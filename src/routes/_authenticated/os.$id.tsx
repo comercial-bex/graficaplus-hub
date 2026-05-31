@@ -26,8 +26,8 @@ export const Route = createFileRoute("/_authenticated/os/$id")({
 });
 
 const STATUS_OS = [
-  "novo","aguardando_briefing","briefing_ok","em_design","aguardando_aprovacao_arte",
-  "arte_aprovada","arte_rejeitada","aguardando_producao","em_producao","em_impressao",
+  "entrada","aguardando_briefing","briefing_ok","design","aguardando_aprovacao_arte",
+  "arte_aprovada","arte_rejeitada","aguardando_producao","producao","em_impressao",
   "em_corte","em_acabamento","em_uv","em_laser_cnc","em_3d","controle_qualidade",
   "aguardando_retirada","aguardando_entrega","em_entrega","em_instalacao",
   "concluido","faturado","cancelado","retrabalho","pausado",
@@ -52,12 +52,11 @@ function OSDetailPage() {
   });
 
   async function updateStatus(novoStatus: string) {
-    const { error } = await supabase.from("ordens_servico").update({ status: novoStatus as any }).eq("id", id);
-    if (error) return toast.error(error.message);
-    await supabase.from("logs_auditoria").insert({
-      entidade: "ordens_servico", entidade_id: id, acao: "status_change",
-      detalhes: { novo: novoStatus }, usuario_id: user?.id,
+    const { error } = await supabase.rpc("avancar_os_status", {
+      os_id: id,
+      novo_status: novoStatus as any,
     });
+    if (error) return toast.error(error.message);
     toast.success("Status atualizado");
     qc.invalidateQueries({ queryKey: ["os", id] });
   }
