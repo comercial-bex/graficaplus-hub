@@ -28,28 +28,54 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { useState, useMemo } from "react";
-import { Search, AlertTriangle, X } from "lucide-react";
+import {
+  Search,
+  AlertTriangle,
+  X,
+  Package,
+  Factory,
+  Palette,
+  Paperclip,
+  Clock,
+  DollarSign,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Kanban — BEX PRINT OS" }] }),
   component: KanbanPage,
 });
 
-const COLUNAS: { id: string; label: string }[] = [
-  { id: "novo", label: "Novo" },
-  { id: "aguardando_briefing", label: "Aguardando briefing" },
-  { id: "em_design", label: "Em design" },
-  { id: "aguardando_aprovacao_arte", label: "Aprovação de arte" },
-  { id: "arte_aprovada", label: "Arte aprovada" },
-  { id: "aguardando_producao", label: "Aguardando produção" },
-  { id: "em_producao", label: "Em produção" },
-  { id: "em_impressao", label: "Impressão" },
-  { id: "em_acabamento", label: "Acabamento" },
-  { id: "controle_qualidade", label: "QA" },
-  { id: "aguardando_entrega", label: "Aguardando entrega" },
-  { id: "em_instalacao", label: "Instalação" },
-  { id: "concluido", label: "Concluído" },
+type ColunaKanban = { id: string; label: string; setor: string };
+
+const COLUNAS: ColunaKanban[] = [
+  { id: "entrada", label: "Entrada", setor: "Atendimento" },
+  { id: "aguardando_briefing", label: "Aguardando briefing", setor: "Atendimento" },
+  { id: "briefing_ok", label: "Briefing OK", setor: "Atendimento" },
+  { id: "design", label: "Design", setor: "Design" },
+  { id: "aguardando_aprovacao_arte", label: "Aprovação de arte", setor: "Design" },
+  { id: "arte_aprovada", label: "Arte aprovada", setor: "Design" },
+  { id: "arte_rejeitada", label: "Arte rejeitada", setor: "Design" },
+  { id: "aguardando_producao", label: "Aguardando produção", setor: "PCP" },
+  { id: "producao", label: "Produção", setor: "Produção" },
+  { id: "em_impressao", label: "Impressão", setor: "Produção" },
+  { id: "em_corte", label: "Corte", setor: "Produção" },
+  { id: "em_acabamento", label: "Acabamento", setor: "Produção" },
+  { id: "em_uv", label: "UV", setor: "Produção" },
+  { id: "em_laser_cnc", label: "Laser/CNC", setor: "Produção" },
+  { id: "em_3d", label: "3D", setor: "Produção" },
+  { id: "controle_qualidade", label: "Controle de qualidade", setor: "Qualidade" },
+  { id: "aguardando_retirada", label: "Aguardando retirada", setor: "Expedição" },
+  { id: "aguardando_entrega", label: "Aguardando entrega", setor: "Expedição" },
+  { id: "em_entrega", label: "Em entrega", setor: "Logística" },
+  { id: "em_instalacao", label: "Instalação", setor: "Instalação" },
+  { id: "concluido", label: "Concluído", setor: "Finalização" },
+  { id: "faturado", label: "Faturado", setor: "Financeiro" },
+  { id: "cancelado", label: "Cancelado", setor: "Cancelado" },
+  { id: "retrabalho", label: "Retrabalho", setor: "Qualidade" },
+  { id: "pausado", label: "Pausado", setor: "Pendência" },
 ];
+
+const COLUNAS_BY_ID = Object.fromEntries(COLUNAS.map((c) => [c.id, c]));
 
 const PRIORIDADES = [
   { v: "1", label: "Urgente" },
@@ -64,9 +90,54 @@ function isOverdue(prazo?: string | null) {
   return new Date(prazo) < new Date(new Date().toDateString());
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getStatusFinanceiro(os: any) {
+  const pagamentos = os.pagamentos ?? [];
+  if (pagamentos.length === 0) return "Não lançado";
+  if (
+    pagamentos.some(
+      (p: any) => p.status === "atrasado" || (p.status !== "pago" && isOverdue(p.data_vencimento)),
+    )
+  )
+    return "Atrasado";
+  if (pagamentos.every((p: any) => p.status === "pago")) return "Pago";
+  if (pagamentos.some((p: any) => p.status === "parcial" || p.status === "pago")) return "Parcial";
+  return "Pendente";
+}
+
+function getStatusArte(os: any) {
+  if (os.status === "arte_aprovada") return "Aprovada";
+  if (os.status === "arte_rejeitada") return "Rejeitada";
+  if (os.status === "aguardando_aprovacao_arte") return "Em aprovação";
+  const aprovacoes = [...(os.aprovacoes ?? [])].sort(
+    (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+  if (aprovacoes[0]?.aprovado === true) return "Aprovada";
+  if (aprovacoes[0]?.aprovado === false) return "Rejeitada";
+  return os.status === "design" ? "Em design" : "Pendente";
+}
+
+function hasPendencia(os: any) {
+  const tarefas = os.tarefas ?? [];
+  return (
+    os.status === "pausado" ||
+    os.status === "arte_rejeitada" ||
+    tarefas.some((t: any) => !t.concluida && isOverdue(t.prazo))
+  );
+}
+
 function KanbanPage() {
   const qc = useQueryClient();
-  const { canSeeFinancials, user } = useAuth();
+  const { canSeeFinancials } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -133,6 +204,15 @@ function KanbanPage() {
   );
 
   async function mover(osId: string, novoStatus: string) {
+    const coluna = COLUNAS_BY_ID[novoStatus];
+    const atual = (os as any[]).find((o) => o.id === osId);
+    const novaOrdem =
+      Math.max(
+        -1,
+        ...(os as any[])
+          .filter((o) => o.status === novoStatus && o.id !== osId)
+          .map((o) => Number(o.ordem_kanban) || 0),
+      ) + 1;
     qc.setQueryData(["kanban-os"], (prev: any) =>
       prev?.map((o: any) => (o.id === osId ? { ...o, status: novoStatus } : o)),
     );
@@ -152,6 +232,7 @@ function KanbanPage() {
       detalhes: { novo: novoStatus },
       usuario_id: user?.id,
     });
+    if (error) { toast.error(error.message); qc.invalidateQueries({ queryKey: ["kanban-os"] }); return; }
     toast.success("Status atualizado");
   }
 
@@ -164,7 +245,7 @@ function KanbanPage() {
     const osId = String(e.active.id);
     const novoStatus = String(e.over.id);
     const current = (os as any[]).find((o) => o.id === osId);
-    if (!current || current.status === novoStatus) return;
+    if (!current || current.status === novoStatus || !COLUNAS_BY_ID[novoStatus]) return;
     mover(osId, novoStatus);
   }
 
@@ -282,7 +363,7 @@ function KanbanPage() {
 function Coluna({ id, label, itens, canSeeFinancials }: any) {
   const { isOver, setNodeRef } = useDroppable({ id });
   return (
-    <div className="w-72 shrink-0">
+    <div className="w-80 shrink-0">
       <div className="flex items-center justify-between mb-2 px-1">
         <h3 className="text-sm font-semibold">{label}</h3>
         <Badge variant="secondary" className="text-xs">
@@ -320,7 +401,13 @@ const PRIO_COLOR: Record<number, string> = {
 
 function OSCard({ os, canSeeFinancials, dragging }: any) {
   const overdue = isOverdue(os.prazo_entrega);
+  const urgent = Number(os.prioridade) <= 2;
+  const pending = hasPendencia(os);
   const responsaveis = [os.designer, os.operador].filter(Boolean);
+  const setor = os.setor_atual || COLUNAS_BY_ID[os.status]?.setor || "—";
+  const anexos = os.arquivos?.length ?? 0;
+  const financeiro = getStatusFinanceiro(os);
+  const arte = getStatusArte(os);
   return (
     <Card
       className={`relative p-3 cursor-grab active:cursor-grabbing hover:border-accent transition-colors overflow-hidden ${dragging ? "shadow-lg rotate-2" : ""} ${overdue ? "border-destructive/60" : ""}`}
@@ -359,7 +446,40 @@ function OSCard({ os, canSeeFinancials, dragging }: any) {
           )}
           <span className="truncate">{os.cliente_nome}</span>
         </div>
-        <div className="flex items-center justify-between mt-2">
+
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1 min-w-0">
+            <Package className="h-3 w-3 shrink-0" />
+            <span className="truncate">{os.produtos?.nome ?? "Produto não definido"}</span>
+          </span>
+          <span className="flex items-center gap-1 min-w-0">
+            <Factory className="h-3 w-3 shrink-0" />
+            <span className="truncate">{os.maquinas?.nome ?? "Máquina não definida"}</span>
+          </span>
+          <span className="truncate">
+            Setor: <strong className="font-medium text-foreground/80">{setor}</strong>
+          </span>
+          <span className="flex items-center gap-1">
+            <Paperclip className="h-3 w-3" />
+            {anexos} anexo(s)
+          </span>
+          <span className="flex items-center gap-1 min-w-0">
+            <Palette className="h-3 w-3 shrink-0" />
+            <span className="truncate">Arte: {arte}</span>
+          </span>
+          {canSeeFinancials && (
+            <span className="flex items-center gap-1 min-w-0">
+              <DollarSign className="h-3 w-3 shrink-0" />
+              <span className="truncate">Fin.: {financeiro}</span>
+            </span>
+          )}
+          <span className="flex items-center gap-1 col-span-2">
+            <Clock className="h-3 w-3" />
+            Última mov.: {formatDateTime(os.updated_at)}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
           <div className="flex -space-x-1.5">
             {responsaveis.map((r: any) => (
               <Avatar key={r.id} className="h-5 w-5 border border-background" title={r.nome}>
@@ -380,7 +500,7 @@ function OSCard({ os, canSeeFinancials, dragging }: any) {
           )}
         </div>
         {canSeeFinancials && Number(os.valor_total) > 0 && (
-          <div className="text-xs font-medium mt-1">R$ {Number(os.valor_total).toFixed(2)}</div>
+          <div className="text-xs font-medium">R$ {Number(os.valor_total).toFixed(2)}</div>
         )}
       </div>
     </Card>
