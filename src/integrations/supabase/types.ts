@@ -369,6 +369,42 @@ export type Database = {
           },
         ]
       }
+      documentos_gerados: {
+        Row: {
+          caminho: string
+          created_at: string
+          gerado_por: string | null
+          id: string
+          numero: number | null
+          referencia_id: string
+          tamanho_bytes: number | null
+          tipo: string
+          variante: string
+        }
+        Insert: {
+          caminho: string
+          created_at?: string
+          gerado_por?: string | null
+          id?: string
+          numero?: number | null
+          referencia_id: string
+          tamanho_bytes?: number | null
+          tipo: string
+          variante?: string
+        }
+        Update: {
+          caminho?: string
+          created_at?: string
+          gerado_por?: string | null
+          id?: string
+          numero?: number | null
+          referencia_id?: string
+          tamanho_bytes?: number | null
+          tipo?: string
+          variante?: string
+        }
+        Relationships: []
+      }
       entregas_instalacoes: {
         Row: {
           created_at: string
