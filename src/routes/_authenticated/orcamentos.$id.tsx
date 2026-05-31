@@ -160,6 +160,15 @@ function OrcamentoDetailPage() {
           </>}
         </div>
       </CardContent></Card>
+
+      <PDFHistoryCard tipo="orcamento" referencia_id={id} />
+
+      <PDFPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        tipo="orcamento"
+        referencia_id={id}
+      />
     </div>
   );
 }
