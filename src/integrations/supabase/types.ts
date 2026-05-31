@@ -946,45 +946,72 @@ export type Database = {
       }
       arquivos: {
         Row: {
+          aprovado_por: string | null
+          ativo: boolean
           caminho: string
           cliente_id: string | null
+          conversa_id: string | null
           created_at: string
+          data_aprovacao: string | null
           enviado_por: string | null
           final_producao: boolean
           id: string
           mime_type: string | null
           nome: string
+          observacao: string | null
           os_id: string | null
+          status: Database["public"]["Enums"]["status_arquivo"]
           substituido_por: string | null
           tamanho_bytes: number | null
+          tarefa_id: string | null
+          tipo: Database["public"]["Enums"]["tipo_arquivo"]
+          url: string | null
           versao: number
         }
         Insert: {
+          aprovado_por?: string | null
+          ativo?: boolean
           caminho: string
           cliente_id?: string | null
+          conversa_id?: string | null
           created_at?: string
+          data_aprovacao?: string | null
           enviado_por?: string | null
           final_producao?: boolean
           id?: string
           mime_type?: string | null
           nome: string
+          observacao?: string | null
           os_id?: string | null
+          status?: Database["public"]["Enums"]["status_arquivo"]
           substituido_por?: string | null
           tamanho_bytes?: number | null
+          tarefa_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_arquivo"]
+          url?: string | null
           versao?: number
         }
         Update: {
+          aprovado_por?: string | null
+          ativo?: boolean
           caminho?: string
           cliente_id?: string | null
+          conversa_id?: string | null
           created_at?: string
+          data_aprovacao?: string | null
           enviado_por?: string | null
           final_producao?: boolean
           id?: string
           mime_type?: string | null
           nome?: string
+          observacao?: string | null
           os_id?: string | null
+          status?: Database["public"]["Enums"]["status_arquivo"]
           substituido_por?: string | null
           tamanho_bytes?: number | null
+          tarefa_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_arquivo"]
+          url?: string | null
           versao?: number
         }
         Relationships: [
@@ -993,6 +1020,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivos_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
           {
@@ -1014,6 +1048,13 @@ export type Database = {
             columns: ["substituido_por"]
             isOneToOne: false
             referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
             referencedColumns: ["id"]
           },
         ]
@@ -2265,6 +2306,7 @@ export type Database = {
         | "email"
         | "presencial"
         | "telefone"
+      status_arquivo: "ativo" | "substituido" | "inativo" | "aprovado" | "rejeitado"
       status_orcamento:
         | "rascunho"
         | "enviado"
@@ -2304,7 +2346,15 @@ export type Database = {
         | "pago"
         | "atrasado"
         | "cancelado"
-      tipo_aprovacao: "arte" | "orcamento" | "margem_baixa" | "desconto_alto"
+      tipo_aprovacao: "arte" | "orcamento"
+      tipo_arquivo:
+        | "arte"
+        | "briefing"
+        | "referencia"
+        | "producao"
+        | "orcamento"
+        | "comprovante"
+        | "outro"
       tipo_cliente: "pf" | "pj"
     }
     CompositeTypes: {
@@ -2451,6 +2501,7 @@ export const Constants = {
         "presencial",
         "telefone",
       ],
+      status_arquivo: ["ativo", "substituido", "inativo", "aprovado", "rejeitado"],
       status_orcamento: [
         "rascunho",
         "enviado",
@@ -2493,7 +2544,16 @@ export const Constants = {
         "atrasado",
         "cancelado",
       ],
-      tipo_aprovacao: ["arte", "orcamento", "margem_baixa", "desconto_alto"],
+      tipo_aprovacao: ["arte", "orcamento"],
+      tipo_arquivo: [
+        "arte",
+        "briefing",
+        "referencia",
+        "producao",
+        "orcamento",
+        "comprovante",
+        "outro",
+      ],
       tipo_cliente: ["pf", "pj"],
     },
   },

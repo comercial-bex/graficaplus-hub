@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -206,11 +207,34 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [substituir, setSubstituir] = useState<any | null>(null);
+  const [aprovar, setAprovar] = useState<any | null>(null);
+  const [uploadMeta, setUploadMeta] = useState({ tipo: "arte", tarefa_id: "sem-tarefa", conversa_id: "", observacao: "" });
+  const [aprovacao, setAprovacao] = useState({ canal: "sistema", cliente_contato_id: "sem-contato", observacao: "" });
+
   const { data: arquivos = [] } = useQuery({
     queryKey: ["arquivos-os", osId],
     queryFn: async () => {
-      const { data } = await supabase.from("arquivos").select("*").eq("os_id", osId).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("arquivos")
+        .select("*, aprovacoes(id, aprovado, canal, created_at, observacao, usuarios(nome), cliente_contatos(nome))")
+        .eq("os_id", osId)
+        .order("created_at", { ascending: false });
       return data ?? [];
+    },
+  });
+
+  const { data: tarefas = [] } = useQuery({
+    queryKey: ["tarefas-os", osId, "arquivos"],
+    queryFn: async () => (await supabase.from("tarefas").select("id,titulo").eq("os_id", osId).order("created_at")).data ?? [],
+  });
+
+  const { data: contatos = [] } = useQuery({
+    queryKey: ["contatos-os", osId],
+    queryFn: async () => {
+      const { data: osData } = await supabase.from("ordens_servico").select("cliente_id").eq("id", osId).single();
+      if (!osData?.cliente_id) return [];
+      return (await supabase.from("cliente_contatos").select("id,nome").eq("cliente_id", osData.cliente_id).order("principal", { ascending: false })).data ?? [];
     },
   });
 
@@ -219,25 +243,90 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
     if (!file) return;
     setUploading(true);
     try {
+      const baseNome = substituir?.nome ?? file.name;
       const path = `${osId}/${Date.now()}_${file.name}`;
       const { error: upErr } = await supabase.storage.from("arquivos-clientes").upload(path, file);
       if (upErr) throw upErr;
-      const versao = arquivos.filter((a: any) => a.nome === file.name).length + 1;
-      const { error } = await supabase.from("arquivos").insert({
-        os_id: osId, nome: file.name, caminho: path, mime_type: file.type,
-        tamanho_bytes: file.size, enviado_por: userId, versao,
-      });
+
+      const versao = substituir
+        ? Number(substituir.versao ?? 1) + 1
+        : arquivos.filter((a: any) => a.nome === file.name).length + 1;
+
+      const { data: novo, error } = await supabase.from("arquivos").insert({
+        os_id: osId,
+        nome: baseNome,
+        caminho: path,
+        mime_type: file.type,
+        tamanho_bytes: file.size,
+        enviado_por: userId,
+        versao,
+        tipo: uploadMeta.tipo as any,
+        status: "ativo" as any,
+        tarefa_id: uploadMeta.tarefa_id === "sem-tarefa" ? null : uploadMeta.tarefa_id,
+        conversa_id: uploadMeta.conversa_id || null,
+        observacao: uploadMeta.observacao || null,
+        ativo: true,
+      }).select("id").single();
       if (error) throw error;
-      toast.success("Arquivo enviado");
+
+      if (substituir && novo?.id) {
+        const { error: subErr } = await supabase.from("arquivos").update({
+          status: "substituido" as any,
+          substituido_por: novo.id,
+          ativo: false,
+          observacao: substituir.observacao ?? "Substituído por nova versão",
+        }).eq("id", substituir.id);
+        if (subErr) throw subErr;
+      }
+
+      await supabase.from("logs_auditoria").insert({
+        entidade: "arquivos",
+        entidade_id: novo?.id,
+        acao: substituir ? "nova_versao" : "upload",
+        detalhes: { os_id: osId, nome: baseNome, versao, substituido_id: substituir?.id ?? null },
+        usuario_id: userId,
+      });
+
+      toast.success(substituir ? "Nova versão enviada e versão anterior substituída" : "Arquivo enviado");
+      setSubstituir(null);
       qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
     } catch (err: any) { toast.error(err.message); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
   }
 
-  async function marcarFinal(id: string) {
-    await supabase.from("arquivos").update({ final_producao: true }).eq("id", id);
+  async function marcarInativo(id: string) {
+    const { error } = await supabase.from("arquivos").update({ status: "inativo" as any, ativo: false }).eq("id", id);
+    if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
-    toast.success("Marcado como final");
+    toast.success("Arquivo marcado como inativo");
+  }
+
+  async function registrarAprovacao() {
+    if (!aprovar) return;
+    const { error } = await supabase.from("aprovacoes").insert({
+      tipo: "arte",
+      os_id: osId,
+      arquivo_id: aprovar.id,
+      aprovado: true,
+      canal: aprovacao.canal as any,
+      usuario_id: userId,
+      cliente_contato_id: aprovacao.cliente_contato_id === "sem-contato" ? null : aprovacao.cliente_contato_id,
+      observacao: aprovacao.observacao || null,
+    });
+    if (error) return toast.error(error.message);
+
+    await supabase.from("logs_auditoria").insert({
+      entidade: "arquivos",
+      entidade_id: aprovar.id,
+      acao: "aprovacao_arte",
+      detalhes: { os_id: osId, canal: aprovacao.canal, cliente_contato_id: aprovacao.cliente_contato_id },
+      usuario_id: userId,
+    });
+
+    setAprovar(null);
+    setAprovacao({ canal: "sistema", cliente_contato_id: "sem-contato", observacao: "" });
+    qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
+    toast.success("Aprovação de arte registrada");
   }
 
   async function download(caminho: string) {
@@ -248,31 +337,90 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
-        <div>
+        <div className="grid gap-3 md:grid-cols-[160px_1fr_1fr_2fr_auto] md:items-end">
           <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} />
-          <Button onClick={() => fileRef.current?.click()} disabled={uploading}>
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={uploadMeta.tipo} onValueChange={(tipo) => setUploadMeta({ ...uploadMeta, tipo })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['arte','briefing','referencia','producao','orcamento','comprovante','outro'].map((t) => <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Tarefa</Label>
+            <Select value={uploadMeta.tarefa_id} onValueChange={(tarefa_id) => setUploadMeta({ ...uploadMeta, tarefa_id })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sem-tarefa">Sem tarefa</SelectItem>
+                {tarefas.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.titulo}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2"><Label>Conversa ID</Label><Input value={uploadMeta.conversa_id} onChange={(e) => setUploadMeta({ ...uploadMeta, conversa_id: e.target.value })} placeholder="Opcional" /></div>
+          <div className="space-y-2"><Label>Observação</Label><Input value={uploadMeta.observacao} onChange={(e) => setUploadMeta({ ...uploadMeta, observacao: e.target.value })} placeholder="Contexto do arquivo" /></div>
+          <Button onClick={() => { setSubstituir(null); fileRef.current?.click(); }} disabled={uploading}>
             <Upload className="h-4 w-4 mr-2" /> {uploading ? "Enviando..." : "Enviar arquivo"}
           </Button>
         </div>
+
+        {substituir && <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Subindo nova versão de <strong>{substituir.nome}</strong>. A versão v{substituir.versao} será marcada como substituída, sem exclusão do arquivo antigo.</div>}
+
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Versão</TableHead><TableHead>Tamanho</TableHead><TableHead>Final</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Versão</TableHead><TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead>Aprovação</TableHead><TableHead>Tamanho</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>
-            {arquivos.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem arquivos</TableCell></TableRow>}
-            {arquivos.map((a: any) => (
-              <TableRow key={a.id}>
-                <TableCell className="font-medium">{a.nome}</TableCell>
-                <TableCell>v{a.versao}</TableCell>
-                <TableCell>{((a.tamanho_bytes ?? 0) / 1024).toFixed(1)} KB</TableCell>
-                <TableCell>{a.final_producao && <Badge>Final</Badge>}</TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button size="sm" variant="ghost" onClick={() => download(a.caminho)}>Baixar</Button>
-                  {!a.final_producao && <Button size="sm" variant="ghost" onClick={() => marcarFinal(a.id)}><CheckCircle2 className="h-4 w-4" /></Button>}
-                </TableCell>
-              </TableRow>
-            ))}
+            {arquivos.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sem arquivos</TableCell></TableRow>}
+            {arquivos.map((a: any) => {
+              const ultimaAprovacao = a.aprovacoes?.[0];
+              return (
+                <TableRow key={a.id} className={a.ativo === false ? "opacity-60" : ""}>
+                  <TableCell className="font-medium"><div>{a.nome}</div><div className="text-xs text-muted-foreground">{a.observacao || "—"}</div></TableCell>
+                  <TableCell>v{a.versao}</TableCell>
+                  <TableCell><Badge variant="outline">{(a.tipo ?? "outro").replace(/_/g, " ")}</Badge></TableCell>
+                  <TableCell><Badge variant={a.status === "aprovado" ? "default" : a.status === "rejeitado" ? "destructive" : "outline"}>{a.ativo === false ? "inativo" : (a.status ?? "ativo")}</Badge></TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{ultimaAprovacao ? `${ultimaAprovacao.aprovado ? "Aprovado" : "Rejeitado"} via ${ultimaAprovacao.canal}` : "—"}</TableCell>
+                  <TableCell>{((a.tamanho_bytes ?? 0) / 1024).toFixed(1)} KB</TableCell>
+                  <TableCell className="text-right space-x-1">
+                    <Button size="sm" variant="ghost" onClick={() => download(a.caminho)}>Baixar</Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setSubstituir(a); setTimeout(() => fileRef.current?.click(), 0); }}>Nova versão</Button>
+                    {a.tipo === "arte" && a.status !== "aprovado" && <Button size="sm" variant="ghost" onClick={() => setAprovar(a)}><CheckCircle2 className="h-4 w-4" /></Button>}
+                    {a.ativo !== false && a.status !== "substituido" && <Button size="sm" variant="ghost" onClick={() => marcarInativo(a.id)}>Inativar</Button>}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
+
+      <Dialog open={!!aprovar} onOpenChange={(open) => !open && setAprovar(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Registrar aprovação de arte</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">Arquivo: <strong>{aprovar?.nome}</strong> v{aprovar?.versao}</div>
+            <div className="space-y-2">
+              <Label>Canal</Label>
+              <Select value={aprovacao.canal} onValueChange={(canal) => setAprovacao({ ...aprovacao, canal })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{['sistema','whatsapp','email','presencial','telefone'].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Cliente/contato</Label>
+              <Select value={aprovacao.cliente_contato_id} onValueChange={(cliente_contato_id) => setAprovacao({ ...aprovacao, cliente_contato_id })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sem-contato">Sem contato específico</SelectItem>
+                  {contatos.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2"><Label>Observação</Label><Textarea value={aprovacao.observacao} onChange={(e) => setAprovacao({ ...aprovacao, observacao: e.target.value })} /></div>
+          </div>
+          <DialogFooter><Button onClick={registrarAprovacao}>Registrar aprovação</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
