@@ -163,7 +163,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           <View style={s.tr}><Text style={[s.td, { color: "#999" }]}>Nenhum item</Text></View>
         )}
         {p.itens.map((i, idx) => (
-          <View style={[s.tr, idx % 2 === 1 && s.trAlt]} key={idx} wrap={false}>
+          <View style={idx % 2 === 1 ? [s.tr, s.trAlt] : s.tr} key={idx} wrap={false}>
             <Text style={[s.td, s.cCode, { color: "#888" }]}>{i.codigo ?? String(idx + 1).padStart(3, "0")}</Text>
             <Text style={[s.td, s.cDesc]}>{i.descricao}</Text>
             <Text style={[s.td, s.cUn]}>{i.unidade ?? "un"}</Text>
