@@ -1,35 +1,67 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Users, FileText, ClipboardList, Kanban, FolderOpen,
-  DollarSign, Settings, Shield, Printer, LogOut, MessageCircle, Palette,
-  Factory, Package, Truck, AlertTriangle, BarChart3, Calculator, Wrench,
-  Calendar, ListChecks, Bot, History, UserPlus, Boxes,
+  LayoutDashboard,
+  Users,
+  FileText,
+  ClipboardList,
+  Kanban,
+  FolderOpen,
+  DollarSign,
+  Settings,
+  Shield,
+  Printer,
+  LogOut,
+  MessageCircle,
+  Palette,
+  Factory,
+  Package,
+  Truck,
+  AlertTriangle,
+  BarChart3,
+  Calculator,
+  Wrench,
+  Calendar,
+  ListChecks,
+  Bot,
+  History,
+  UserPlus,
+  Boxes,
+  type LucideIcon,
 } from "lucide-react";
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import type { Permission } from "@/lib/permissions";
 
-type Item = { title: string; url: string; icon: any };
+type Item = { title: string; url: string; icon: LucideIcon; permission?: Permission };
 
 const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] = [
   {
     label: "Operação",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Kanban Produção", url: "/kanban", icon: Kanban },
+      { title: "Kanban Produção", url: "/kanban", icon: Kanban, permission: "kanban.move" },
       { title: "Ordens de Serviço", url: "/os", icon: ClipboardList },
     ],
   },
   {
     label: "Comercial",
     items: [
-      { title: "Clientes", url: "/clientes", icon: Users },
+      { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes.read" },
       { title: "Leads", url: "/leads", icon: UserPlus },
-      { title: "Orçamentos", url: "/orcamentos", icon: FileText },
+      { title: "Orçamentos", url: "/orcamentos", icon: FileText, permission: "orcamentos.create" },
     ],
   },
   {
@@ -44,11 +76,16 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Produção",
     items: [
       { title: "Design & Arte", url: "/design", icon: Palette },
-      { title: "Arquivos", url: "/arquivos", icon: FolderOpen },
+      { title: "Arquivos", url: "/arquivos", icon: FolderOpen, permission: "arquivos.approve" },
       { title: "Máquinas", url: "/maquinas", icon: Factory },
       { title: "Agenda de máquinas", url: "/maquinas-agenda", icon: Calendar },
       { title: "Manutenção", url: "/manutencao", icon: Wrench },
-      { title: "Entregas & Instalações", url: "/entregas", icon: Truck },
+      {
+        title: "Entregas & Instalações",
+        url: "/entregas",
+        icon: Truck,
+        permission: "instalacao.update",
+      },
       { title: "Ocorrências", url: "/ocorrencias", icon: AlertTriangle },
     ],
   },
@@ -56,23 +93,26 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Catálogo & Estoque",
     items: [
       { title: "Produtos", url: "/produtos", icon: Package },
-      { title: "Precificação", url: "/precificacao", icon: Calculator, },
-      { title: "Materiais", url: "/materiais", icon: Boxes },
-      { title: "Movimentações", url: "/movimentacoes", icon: History },
+      { title: "Precificação", url: "/precificacao", icon: Calculator, permission: "custos.read" },
+      { title: "Materiais", url: "/materiais", icon: Boxes, permission: "estoque.cost.read" },
+      {
+        title: "Movimentações",
+        url: "/movimentacoes",
+        icon: History,
+        permission: "estoque.cost.read",
+      },
     ],
   },
   {
     label: "Financeiro",
     gate: "financial",
     items: [
-      { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+      { title: "Financeiro", url: "/financeiro", icon: DollarSign, permission: "financeiro.read" },
     ],
   },
   {
     label: "Análise",
-    items: [
-      { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-    ],
+    items: [{ title: "Relatórios", url: "/relatorios", icon: BarChart3 }],
   },
   {
     label: "Administração",
@@ -89,7 +129,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { user, canSeeFinancials, hasRole, signOut } = useAuth();
+  const { user, canSeeFinancials, hasRole, hasPermission, signOut } = useAuth();
   const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
 
   return (
@@ -102,7 +142,9 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="leading-tight">
               <div className="text-sm font-bold text-sidebar-foreground">BEX PRINT</div>
-              <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60">OS</div>
+              <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60">
+                OS
+              </div>
             </div>
           )}
         </div>
@@ -112,12 +154,16 @@ export function AppSidebar() {
         {groups.map((group) => {
           if (group.gate === "financial" && !canSeeFinancials) return null;
           if (group.gate === "admin" && !hasRole("admin")) return null;
+          const visibleItems = group.items.filter(
+            (item) => !item.permission || hasPermission(item.permission),
+          );
+          if (visibleItems.length === 0) return null;
           return (
             <SidebarGroup key={group.label}>
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {group.items.map((item) => (
+                  {visibleItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
                         <Link to={item.url}>
