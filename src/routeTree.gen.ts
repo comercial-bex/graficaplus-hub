@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_authenticated/respostas-rapidas'
@@ -59,6 +60,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicoTokenRoute = PublicoTokenRouteImport.update({
+  id: '/publico/$token',
+  path: '/publico/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
@@ -238,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
@@ -271,6 +278,7 @@ export interface FileRoutesByTo {
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/_authenticated/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/publico/$token': typeof PublicoTokenRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
@@ -341,6 +350,7 @@ export interface FileRouteTypes {
     | '/respostas-rapidas'
     | '/usuarios'
     | '/whatsapp'
+    | '/publico/$token'
     | '/clientes/$id'
     | '/orcamentos/$id'
     | '/os/$id'
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/respostas-rapidas'
     | '/usuarios'
     | '/whatsapp'
+    | '/publico/$token'
     | '/clientes/$id'
     | '/orcamentos/$id'
     | '/os/$id'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/_authenticated/respostas-rapidas'
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
+    | '/publico/$token'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
@@ -418,6 +430,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  PublicoTokenRoute: typeof PublicoTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -448,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/publico/$token': {
+      id: '/publico/$token'
+      path: '/publico/$token'
+      fullPath: '/publico/$token'
+      preLoaderRoute: typeof PublicoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/whatsapp': {
@@ -752,7 +772,18 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  PublicoTokenRoute: PublicoTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
