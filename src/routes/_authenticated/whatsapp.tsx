@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -44,22 +46,24 @@ function WhatsAppPage() {
 
   return (
     <div className="h-[calc(100vh-8rem)] grid grid-cols-12 gap-4">
-      {/* Inbox */}
       <Card className="col-span-3 flex flex-col overflow-hidden">
         <div className="p-3 border-b">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" placeholder="Buscar conversa..." />
+            <Input
+              className="pl-8"
+              placeholder="Buscar conversa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
         <div className="flex-1 overflow-auto">
-          {conversasWhatsapp.map((c) => (
+          {conversas.map((c: any) => (
             <button
               key={c.id}
-              onClick={() => setSelected(c)}
-              className={`w-full text-left p-3 border-b hover:bg-muted/50 transition-colors ${
-                selected.id === c.id ? "bg-muted" : ""
-              }`}
+              onClick={() => setSelectedId(c.id)}
+              className={`w-full text-left p-3 border-b hover:bg-muted/50 transition-colors ${selected.id === c.id ? "bg-muted" : ""}`}
             >
               <div className="flex items-start gap-3">
                 <Avatar className="h-9 w-9">
@@ -68,9 +72,13 @@ function WhatsAppPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between gap-2">
                     <span className="font-medium text-sm truncate">{c.nome}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{c.hora}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {formatDateTime(c.ultima_interacao)}
+                    </span>
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">{c.ultima}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {c.ultima_mensagem || "Sem mensagens"}
+                  </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-[10px] py-0">
                       {c.etiqueta}
@@ -82,13 +90,11 @@ function WhatsAppPage() {
                     )}
                   </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </Card>
-
-      {/* Chat */}
       <Card className="col-span-6 flex flex-col overflow-hidden">
         <div className="p-3 border-b flex items-center gap-3">
           <Avatar>
@@ -127,8 +133,6 @@ function WhatsAppPage() {
           </Button>
         </div>
       </Card>
-
-      {/* Contexto */}
       <Card className="col-span-3 flex flex-col overflow-auto">
         <div className="p-4 border-b">
           <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Cliente</div>
@@ -217,6 +221,27 @@ function WhatsAppPage() {
               </div>
             ))}
           </div>
+          <Button variant="outline" size="sm" className="w-full justify-start">
+            <FileText className="h-4 w-4 mr-2" /> Criar orçamento
+          </Button>
+          <Button variant="outline" size="sm" className="w-full justify-start">
+            <ClipboardList className="h-4 w-4 mr-2" /> Criar OS
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => update.mutate({ id: selected.id, changes: { etiqueta: "Atendimento" } })}
+          >
+            <Tag className="h-4 w-4 mr-2" /> Editar etiqueta
+          </Button>
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={() => update.mutate({ id: selected.id, changes: { nao_lidas: 0 } })}
+          >
+            Concluir atendimento
+          </Button>
         </div>
       </Card>
     </div>
