@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Plus, Trash2, ArrowRight, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { gerarPDFOrcamento } from "@/lib/pdf/generate";
+import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 
 export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
   head: () => ({ meta: [{ title: "Orçamento — BEX PRINT OS" }] }),
