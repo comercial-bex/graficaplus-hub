@@ -1,16 +1,20 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { getRoutePermission, permissionLabels } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
 });
 
 function AuthenticatedLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, hasPermission } = useAuth();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const requiredPermission = getRoutePermission(pathname);
+  const canAccessRoute = !requiredPermission || hasPermission(requiredPermission);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -35,7 +39,17 @@ function AuthenticatedLayout() {
             <div className="flex-1" />
           </header>
           <main className="flex-1 p-6 overflow-auto">
-            <Outlet />
+            {canAccessRoute ? (
+              <Outlet />
+            ) : (
+              <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center gap-3 text-center">
+                <h1 className="text-2xl font-semibold tracking-tight">Acesso restrito</h1>
+                <p className="text-muted-foreground">
+                  Seu perfil precisa da permissão para {permissionLabels[requiredPermission]} para
+                  acessar esta rota.
+                </p>
+              </div>
+            )}
           </main>
         </div>
       </div>
