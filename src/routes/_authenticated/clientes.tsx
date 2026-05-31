@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,8 +99,8 @@ function ClientesPage() {
               {isLoading && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>}
               {!isLoading && clientes.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nenhum cliente cadastrado</TableCell></TableRow>}
               {clientes.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nome}</TableCell>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableCell className="font-medium"><Link to="/clientes/$id" params={{ id: c.id }} className="text-accent hover:underline">{c.nome}</Link></TableCell>
                   <TableCell><Badge variant="secondary">{c.tipo.toUpperCase()}</Badge></TableCell>
                   <TableCell>{c.documento || "—"}</TableCell>
                   <TableCell>{c.email || "—"}</TableCell>
