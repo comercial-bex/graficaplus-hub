@@ -119,7 +119,7 @@ function OrcamentoDetailPage() {
               {["rascunho","enviado","aprovado","rejeitado","expirado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => gerarPDFOrcamento(id).catch((e) => toast.error(e.message))}>
+          <Button variant="outline" onClick={() => setPreviewOpen(true)}>
             <FileDown className="h-4 w-4 mr-1" /> PDF
           </Button>
           {orc.status !== "convertido" && !orc.os_id && (
