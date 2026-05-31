@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -147,16 +148,12 @@ function KanbanPage() {
   const [soAtrasadas, setSoAtrasadas] = useState(false);
 
   const { data: os = [] } = useQuery({
-    queryKey: ["kanban-os"],
+    queryKey: ["kanban-os", canSeeFinancials ? "financeiro" : "operacional"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ordens_servico")
-        .select(
-          "*, clientes(id, nome, logo_url), produtos(id, nome), maquinas(id, nome, tipo), arquivos(id), pagamentos(id, status, data_vencimento, data_pagamento), aprovacoes(id, aprovado, created_at), tarefas(id, concluida, prazo), designer:usuarios!ordens_servico_designer_id_fkey(id, nome, avatar_url), operador:usuarios!ordens_servico_operador_id_fkey(id, nome, avatar_url)",
-        )
-        .order("status")
-        .order("ordem_kanban")
-        .order("updated_at", { ascending: false });
+      const { data, error } = await fromFinancialView("ordens_servico", canSeeFinancials)
+        .select("*")
+        .not("status", "in", "(faturado,cancelado)")
+        .order("ordem_kanban");
       if (error) throw error;
       return data;
     },
@@ -190,14 +187,10 @@ function KanbanPage() {
       if (soAtrasadas && !isOverdue(o.prazo_entrega)) return false;
       if (search) {
         const s = search.toLowerCase();
-        const produto = o.produtos?.nome?.toLowerCase() ?? "";
-        const maquina = o.maquinas?.nome?.toLowerCase() ?? "";
         if (
           !o.titulo?.toLowerCase().includes(s) &&
           !String(o.numero).includes(s) &&
-          !o.clientes?.nome?.toLowerCase().includes(s) &&
-          !produto.includes(s) &&
-          !maquina.includes(s)
+          !o.cliente_nome?.toLowerCase().includes(s)
         )
           return false;
       }
@@ -221,15 +214,11 @@ function KanbanPage() {
           .map((o) => Number(o.ordem_kanban) || 0),
       ) + 1;
     qc.setQueryData(["kanban-os"], (prev: any) =>
-      prev?.map((o: any) =>
-        o.id === osId
-          ? { ...o, status: novoStatus, ordem_kanban: novaOrdem, setor_atual: coluna?.setor }
-          : o,
-      ),
+      prev?.map((o: any) => (o.id === osId ? { ...o, status: novoStatus } : o)),
     );
     const { error } = await supabase
       .from("ordens_servico")
-      .update({ status: novoStatus as any, ordem_kanban: novaOrdem, setor_atual: coluna?.setor })
+      .update({ status: novoStatus as any })
       .eq("id", osId);
     if (error) {
       toast.error(error.message);
@@ -240,7 +229,7 @@ function KanbanPage() {
       entidade: "ordens_servico",
       entidade_id: osId,
       acao: "status_change",
-      detalhes: { anterior: atual?.status, novo: novoStatus, ordem_kanban: novaOrdem },
+      detalhes: { novo: novoStatus },
       usuario_id: user?.id,
     });
     if (error) { toast.error(error.message); qc.invalidateQueries({ queryKey: ["kanban-os"] }); return; }
@@ -290,7 +279,7 @@ function KanbanPage() {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar título, nº, cliente, produto ou máquina..."
+              placeholder="Buscar título, nº ou cliente..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9"
@@ -358,9 +347,7 @@ function KanbanPage() {
               key={col.id}
               id={col.id}
               label={col.label}
-              itens={filtered
-                .filter((o: any) => o.status === col.id)
-                .sort((a: any, b: any) => (a.ordem_kanban ?? 0) - (b.ordem_kanban ?? 0))}
+              itens={filtered.filter((o: any) => o.status === col.id)}
               canSeeFinancials={canSeeFinancials}
             />
           ))}
@@ -428,8 +415,8 @@ function OSCard({ os, canSeeFinancials, dragging }: any) {
       <div
         className={`absolute left-0 top-0 bottom-0 w-1 ${PRIO_COLOR[os.prioridade] || "bg-muted"}`}
       />
-      <div className="pl-1 space-y-2">
-        <div className="flex items-center justify-between gap-2">
+      <div className="pl-1">
+        <div className="flex items-center justify-between">
           <Link
             to="/os/$id"
             params={{ id: os.id }}
@@ -438,33 +425,26 @@ function OSCard({ os, canSeeFinancials, dragging }: any) {
           >
             #{os.numero}
           </Link>
-          <div className="flex flex-wrap justify-end gap-1">
-            {overdue && (
-              <Badge variant="destructive" className="text-[10px] h-4">
-                ATRASADA
-              </Badge>
-            )}
-            {urgent && (
-              <Badge variant="destructive" className="text-[10px] h-4">
-                URG
-              </Badge>
-            )}
-            {pending && (
-              <Badge variant="outline" className="text-[10px] h-4 border-amber-500 text-amber-600">
-                PEND
-              </Badge>
-            )}
-          </div>
+          {overdue && (
+            <Badge variant="destructive" className="text-[10px] h-4">
+              ATRASADA
+            </Badge>
+          )}
+          {!overdue && os.prioridade <= 2 && (
+            <Badge variant="destructive" className="text-[10px] h-4">
+              URG
+            </Badge>
+          )}
         </div>
-        <div className="font-medium text-sm line-clamp-2">{os.titulo}</div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {os.clientes?.logo_url && (
+        <div className="font-medium text-sm mt-1 line-clamp-2">{os.titulo}</div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1.5">
+          {os.cliente_logo_url && (
             <Avatar className="h-4 w-4">
-              <AvatarImage src={os.clientes.logo_url} />
-              <AvatarFallback className="text-[8px]">{os.clientes.nome?.charAt(0)}</AvatarFallback>
+              <AvatarImage src={os.cliente_logo_url} />
+              <AvatarFallback className="text-[8px]">{os.cliente_nome?.charAt(0)}</AvatarFallback>
             </Avatar>
           )}
-          <span className="truncate">{os.clientes?.nome}</span>
+          <span className="truncate">{os.cliente_nome}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
