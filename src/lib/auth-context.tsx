@@ -1,10 +1,18 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { hasPermission as checkPermission, type Permission } from "@/lib/permissions";
 
 export type AppRole =
-  | "admin" | "gestor" | "financeiro" | "vendedor" | "designer"
-  | "operador" | "estoque" | "instalador" | "cliente";
+  | "admin"
+  | "gestor"
+  | "financeiro"
+  | "vendedor"
+  | "designer"
+  | "operador"
+  | "estoque"
+  | "instalador"
+  | "cliente";
 
 type AuthContextValue = {
   user: User | null;
@@ -13,6 +21,7 @@ type AuthContextValue = {
   loading: boolean;
   hasRole: (r: AppRole) => boolean;
   hasAnyRole: (rs: AppRole[]) => boolean;
+  hasPermission: (permission: Permission) => boolean;
   canSeeFinancials: boolean;
   signOut: () => Promise<void>;
   refreshRoles: () => Promise<void>;
@@ -32,7 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
@@ -47,7 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) fetchRoles(s.user.id).then(setRoles).finally(() => setLoading(false));
+      if (s?.user)
+        fetchRoles(s.user.id)
+          .then(setRoles)
+          .finally(() => setLoading(false));
       else setLoading(false);
     });
 
@@ -56,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (r: AppRole) => roles.includes(r);
   const hasAnyRole = (rs: AppRole[]) => rs.some((r) => roles.includes(r));
-  const canSeeFinancials = hasAnyRole(["admin", "gestor", "financeiro"]);
+  const hasPermission = (permission: Permission) => checkPermission(roles, permission);
+  const canSeeFinancials = hasPermission("financeiro.read");
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -68,7 +83,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, roles, loading, hasRole, hasAnyRole, canSeeFinancials, signOut, refreshRoles }}
+      value={{
+        user,
+        session,
+        roles,
+        loading,
+        hasRole,
+        hasAnyRole,
+        hasPermission,
+        canSeeFinancials,
+        signOut,
+        refreshRoles,
+      }}
     >
       {children}
     </AuthContext.Provider>
