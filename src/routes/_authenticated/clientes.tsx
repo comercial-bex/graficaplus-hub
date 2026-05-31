@@ -128,7 +128,7 @@ function ClientesPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={form.logo_url} />
+                  <AvatarImage src={form.logo_url ?? undefined} />
                   <AvatarFallback>{form.nome.charAt(0).toUpperCase() || "?"}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-2">
@@ -269,7 +269,7 @@ function ClientesPage() {
                 <TableRow key={c.id} className="hover:bg-muted/50">
                   <TableCell>
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={c.logo_url} />
+                      <AvatarImage src={c.logo_url ?? undefined} />
                       <AvatarFallback>{c.nome.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </TableCell>

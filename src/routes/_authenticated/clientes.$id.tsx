@@ -75,7 +75,7 @@ function ClienteDetailPage() {
         <div className="flex items-start gap-3">
           <Link to="/clientes"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
           <Avatar className="h-16 w-16">
-            <AvatarImage src={cliente.logo_url} />
+            <AvatarImage src={cliente.logo_url ?? undefined} />
             <AvatarFallback className="text-xl">{cliente.nome.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
@@ -226,7 +226,7 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
         <div className="space-y-4">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={form.logo_url} />
+              <AvatarImage src={form.logo_url ?? undefined} />
               <AvatarFallback>{form.nome?.charAt(0).toUpperCase() || "?"}</AvatarFallback>
             </Avatar>
             <Label htmlFor="logo-edit" className="cursor-pointer">
