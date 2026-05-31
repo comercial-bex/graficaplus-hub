@@ -49,7 +49,7 @@ function isOverdue(prazo?: string | null) {
 
 function KanbanPage() {
   const qc = useQueryClient();
-  const { canSeeFinancials, user } = useAuth();
+  const { canSeeFinancials } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -105,12 +105,11 @@ function KanbanPage() {
   async function mover(osId: string, novoStatus: string) {
     qc.setQueryData(["kanban-os"], (prev: any) =>
       prev?.map((o: any) => o.id === osId ? { ...o, status: novoStatus } : o));
-    const { error } = await supabase.from("ordens_servico").update({ status: novoStatus as any }).eq("id", osId);
-    if (error) { toast.error(error.message); qc.invalidateQueries({ queryKey: ["kanban-os"] }); return; }
-    await supabase.from("logs_auditoria").insert({
-      entidade: "ordens_servico", entidade_id: osId, acao: "status_change",
-      detalhes: { novo: novoStatus }, usuario_id: user?.id,
+    const { error } = await supabase.rpc("avancar_os_status", {
+      os_id: osId,
+      novo_status: novoStatus as any,
     });
+    if (error) { toast.error(error.message); qc.invalidateQueries({ queryKey: ["kanban-os"] }); return; }
     toast.success("Status atualizado");
   }
 
