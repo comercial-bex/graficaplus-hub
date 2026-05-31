@@ -25,8 +25,8 @@ export const Route = createFileRoute("/_authenticated/os/$id")({
 });
 
 const STATUS_OS = [
-  "novo","aguardando_briefing","briefing_ok","em_design","aguardando_aprovacao_arte",
-  "arte_aprovada","arte_rejeitada","aguardando_producao","em_producao","em_impressao",
+  "entrada","aguardando_briefing","briefing_ok","design","aguardando_aprovacao_arte",
+  "arte_aprovada","arte_rejeitada","aguardando_producao","producao","em_impressao",
   "em_corte","em_acabamento","em_uv","em_laser_cnc","em_3d","controle_qualidade",
   "aguardando_retirada","aguardando_entrega","em_entrega","em_instalacao",
   "concluido","faturado","cancelado","retrabalho","pausado",
