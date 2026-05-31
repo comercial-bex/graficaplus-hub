@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -135,9 +135,9 @@ function OrcamentosPage() {
               {orcamentos.map((o: any) => {
                 const s = statusLabels[o.status] ?? { label: o.status, variant: "outline" as const };
                 return (
-                  <TableRow key={o.id}>
-                    <TableCell>#{o.numero}</TableCell>
-                    <TableCell className="font-medium">{o.titulo}</TableCell>
+                  <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableCell><Link to="/orcamentos/$id" params={{ id: o.id }} className="hover:underline">#{o.numero}</Link></TableCell>
+                    <TableCell className="font-medium"><Link to="/orcamentos/$id" params={{ id: o.id }} className="hover:underline">{o.titulo}</Link></TableCell>
                     <TableCell>{o.clientes?.nome}</TableCell>
                     <TableCell><Badge variant={s.variant}>{s.label}</Badge></TableCell>
                     {canSeeFinancials && <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>}
