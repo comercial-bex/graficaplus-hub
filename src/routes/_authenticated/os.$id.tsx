@@ -86,21 +86,18 @@ function OSDetailPage() {
   });
 
   async function updateStatus(novoStatus: string) {
-    const { error } = await supabase
-      .from("ordens_servico")
-      .update({ status: novoStatus as any })
-      .eq("id", id);
+    const statusAnterior = os?.status;
+    const { error } = novoStatus === "concluido"
+      ? await supabase.rpc("fechar_os", { os_id: id })
+      : await supabase.from("ordens_servico").update({ status: novoStatus as any }).eq("id", id);
     if (error) return toast.error(error.message);
     await supabase.from("logs_auditoria").insert({
-      entidade: "ordens_servico",
-      entidade_id: id,
-      acao: "status_change",
-      detalhes: { novo: novoStatus },
-      usuario_id: user?.id,
+      entidade: "ordens_servico", entidade_id: id, acao: novoStatus === "concluido" ? "fechamento_os" : "status_change",
+      detalhes: { anterior: statusAnterior, novo: novoStatus }, usuario_id: user?.id,
     });
-    if (error) return toast.error(error.message);
-    toast.success("Status atualizado");
+    toast.success(novoStatus === "concluido" ? "OS concluída e resultado real calculado" : "Status atualizado");
     qc.invalidateQueries({ queryKey: ["os", id] });
+    qc.invalidateQueries({ queryKey: ["resultado-os", id] });
   }
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
@@ -160,26 +157,12 @@ function OSDetailPage() {
           {canSeeFinancials && <TabsTrigger value="financeiro">Financeiro</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="resumo">
-          <ResumoTab os={os} />
-        </TabsContent>
-        <TabsContent value="itens">
-          <ItensTab osId={id} canSeeFinancials={canSeeFinancials} />
-        </TabsContent>
-        <TabsContent value="arquivos">
-          <ArquivosTab osId={id} userId={user?.id} />
-        </TabsContent>
-        <TabsContent value="tarefas">
-          <TarefasTab osId={id} userId={user?.id} />
-        </TabsContent>
-        <TabsContent value="historico">
-          <HistoricoTab osId={id} />
-        </TabsContent>
-        {canSeeFinancials && (
-          <TabsContent value="financeiro">
-            <FinanceiroTab osId={id} userId={user?.id} />
-          </TabsContent>
-        )}
+        <TabsContent value="resumo"><ResumoTab os={os} /></TabsContent>
+        <TabsContent value="itens"><ItensTab osId={id} canSeeFinancials={canSeeFinancials} /></TabsContent>
+        <TabsContent value="arquivos"><ArquivosTab osId={id} userId={user?.id} /></TabsContent>
+        <TabsContent value="tarefas"><TarefasTab osId={id} userId={user?.id} /></TabsContent>
+        <TabsContent value="historico"><HistoricoTab osId={id} /></TabsContent>
+        {canSeeFinancials && <TabsContent value="financeiro"><FinanceiroTab osId={id} userId={user?.id} os={os} /></TabsContent>}
       </Tabs>
 
       <PDFHistoryCard tipo="os" referencia_id={id} />
@@ -695,7 +678,7 @@ function HistoricoTab({ osId }: { osId: string }) {
   );
 }
 
-function FinanceiroTab({ osId, userId }: { osId: string; userId?: string }) {
+function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os: any }) {
   const qc = useQueryClient();
   const [pag, setPag] = useState({ valor: "", data_vencimento: "", forma_pagamento: "" });
   const [custo, setCusto] = useState({ descricao: "", valor: "", categoria: "" });
@@ -716,6 +699,10 @@ function FinanceiroTab({ osId, userId }: { osId: string; userId?: string }) {
           .eq("os_id", osId)
           .order("data", { ascending: false })
       ).data ?? [],
+  });
+  const { data: resultado } = useQuery({
+    queryKey: ["resultado-os", osId],
+    queryFn: async () => (await supabase.from("os_resultados").select("*").eq("os_id", osId).maybeSingle()).data,
   });
 
   async function addPag() {
@@ -744,6 +731,7 @@ function FinanceiroTab({ osId, userId }: { osId: string; userId?: string }) {
     if (error) return toast.error(error.message);
     setCusto({ descricao: "", valor: "", categoria: "" });
     qc.invalidateQueries({ queryKey: ["custos-os", osId] });
+    qc.invalidateQueries({ queryKey: ["resultado-os", osId] });
   }
 
   async function marcarPago(id: string) {
@@ -760,14 +748,31 @@ function FinanceiroTab({ osId, userId }: { osId: string; userId?: string }) {
   const totalCustos = custos.reduce((s: number, c: any) => s + Number(c.valor), 0);
 
   return (
-    <div className="grid md:grid-cols-2 gap-4">
+    <div className="space-y-4">
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Pagamentos — Recebido R$ {totalRecebido.toFixed(2)}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+        <CardHeader><CardTitle className="text-base">Resultado real da OS</CardTitle></CardHeader>
+        <CardContent>
+          {resultado ? (
+            <div className="grid md:grid-cols-3 gap-3 text-sm">
+              <div className="rounded border p-3"><div className="text-muted-foreground">Custo previsto</div><div className="font-semibold">R$ {Number(resultado.custo_previsto).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Custo real</div><div className="font-semibold">R$ {Number(resultado.custo_real).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro real</div><div className="font-semibold">R$ {Number(resultado.lucro_real).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Margem prevista</div><div className="font-semibold">{resultado.margem_prevista == null ? "—" : `${Number(resultado.margem_prevista).toFixed(2)}%`}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Margem real</div><div className="font-semibold">{resultado.margem_real == null ? "—" : `${Number(resultado.margem_real).toFixed(2)}%`}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Material consumido</div><div className="font-semibold">{Number(resultado.material_consumido).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Tempo real</div><div className="font-semibold">{resultado.tempo_real == null ? "—" : `${Number(resultado.tempo_real).toFixed(2)}h`}</div></div>
+              <div className="rounded border p-3 md:col-span-2"><div className="text-muted-foreground">Divergência</div><div className="font-semibold">{resultado.motivo_divergencia || "Sem divergência registrada"}</div></div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">O resultado real será exibido após concluir a OS. Valor atual da OS: R$ {Number(os.valor_total).toFixed(2)}.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Pagamentos — Recebido R$ {totalRecebido.toFixed(2)}</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
           <div className="grid grid-cols-4 gap-2">
             <Input
               placeholder="Valor"
@@ -811,16 +816,12 @@ function FinanceiroTab({ osId, userId }: { osId: string; userId?: string }) {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Custos reais — Total R$ {totalCustos.toFixed(2)}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Custos reais — Total R$ {totalCustos.toFixed(2)}</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
           <div className="grid grid-cols-4 gap-2">
             <Input
               placeholder="Descrição"
@@ -858,7 +859,8 @@ function FinanceiroTab({ osId, userId }: { osId: string; userId?: string }) {
             ))}
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

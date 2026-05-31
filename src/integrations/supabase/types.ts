@@ -1639,6 +1639,7 @@ export type Database = {
       ocorrencias: {
         Row: {
           created_at: string
+          custo_real: number
           descricao: string
           id: string
           os_id: string
@@ -1648,6 +1649,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custo_real?: number
           descricao: string
           id?: string
           os_id: string
@@ -1657,6 +1659,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custo_real?: number
           descricao?: string
           id?: string
           os_id?: string
@@ -1822,6 +1825,81 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_resultados: {
+        Row: {
+          created_at: string
+          custo_previsto: number
+          custo_real: number
+          fechado_em: string
+          fechado_por: string | null
+          id: string
+          lucro_previsto: number
+          lucro_real: number
+          margem_prevista: number | null
+          margem_real: number | null
+          material_consumido: number
+          material_previsto: number | null
+          motivo_divergencia: string | null
+          os_id: string
+          tempo_previsto: number | null
+          tempo_real: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_previsto?: number
+          custo_real?: number
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          lucro_previsto?: number
+          lucro_real?: number
+          margem_prevista?: number | null
+          margem_real?: number | null
+          material_consumido?: number
+          material_previsto?: number | null
+          motivo_divergencia?: string | null
+          os_id: string
+          tempo_previsto?: number | null
+          tempo_real?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_previsto?: number
+          custo_real?: number
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          lucro_previsto?: number
+          lucro_real?: number
+          margem_prevista?: number | null
+          margem_real?: number | null
+          material_consumido?: number
+          material_previsto?: number | null
+          motivo_divergencia?: string | null
+          os_id?: string
+          tempo_previsto?: number | null
+          tempo_real?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_resultados_fechado_por_fkey"
+            columns: ["fechado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_resultados_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: true
+            referencedRelation: "ordens_servico"
             referencedColumns: ["id"]
           },
         ]
@@ -2276,6 +2354,10 @@ export type Database = {
         Returns: Database["public"]["Tables"]["ordens_servico"]["Row"]
       }
       can_see_financials: { Args: { _user_id: string }; Returns: boolean }
+      fechar_os: {
+        Args: { os_id: string }
+        Returns: Database["public"]["Tables"]["os_resultados"]["Row"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
