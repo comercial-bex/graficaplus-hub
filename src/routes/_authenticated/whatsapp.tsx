@@ -92,7 +92,12 @@ function WhatsAppPage() {
         <div className="p-3 border-b">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" placeholder="Buscar conversa..." />
+            <Input
+              className="pl-8"
+              placeholder="Buscar conversa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
         <div className="flex-1 overflow-auto">
@@ -127,9 +132,9 @@ function WhatsAppPage() {
                     )}
                   </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </Card>
       <Card className="col-span-6 flex flex-col overflow-hidden">
