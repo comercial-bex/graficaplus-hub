@@ -86,11 +86,11 @@ function OSDetailPage() {
             </SelectContent>
           </Select>
           {canSeeFinancials && (
-            <Button variant="outline" onClick={() => gerarPDFOS(id, true).catch((e) => toast.error(e.message))}>
+            <Button variant="outline" onClick={() => setPreviewOpen("cliente")}>
               <FileDown className="h-4 w-4 mr-1" /> PDF Cliente
             </Button>
           )}
-          <Button variant="outline" onClick={() => gerarPDFOS(id, false).catch((e) => toast.error(e.message))}>
+          <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
             <FileDown className="h-4 w-4 mr-1" /> PDF Produção
           </Button>
         </div>
