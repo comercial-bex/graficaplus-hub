@@ -219,6 +219,7 @@ export type Database = {
           endereco: string | null
           estado: string | null
           id: string
+          logo_url: string | null
           nome: string
           observacoes: string | null
           razao_social: string | null
@@ -238,6 +239,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          logo_url?: string | null
           nome: string
           observacoes?: string | null
           razao_social?: string | null
@@ -257,6 +259,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          logo_url?: string | null
           nome?: string
           observacoes?: string | null
           razao_social?: string | null
