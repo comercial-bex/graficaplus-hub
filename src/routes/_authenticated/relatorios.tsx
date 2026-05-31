@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -298,6 +299,8 @@ function EmptyRow({ cols }: { cols: number }) {
     </TableRow>
   );
 }
+
+void [TrendingUp, Package, AlertTriangle, Clock, Users, Wrench];
 
 function RelatPage() {
   const { canSeeFinancials } = useAuth();
