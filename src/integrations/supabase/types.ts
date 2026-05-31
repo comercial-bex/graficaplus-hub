@@ -598,6 +598,45 @@ export type Database = {
         }
         Relationships: []
       }
+      os_materiais_obrigatorios: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          os_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          os_id: string
+          quantidade: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          os_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_materiais_obrigatorios_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_obrigatorios_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimentacoes_estoque: {
         Row: {
           created_at: string
@@ -1187,6 +1226,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      avancar_os_status: {
+        Args: {
+          novo_status: Database["public"]["Enums"]["status_os"]
+          os_id: string
+        }
+        Returns: Database["public"]["Tables"]["ordens_servico"]["Row"]
+      }
       can_see_financials: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -1196,6 +1242,10 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      status_os_exige_validacoes_producao: {
+        Args: { _status: Database["public"]["Enums"]["status_os"] }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
@@ -1253,7 +1303,7 @@ export type Database = {
         | "pago"
         | "atrasado"
         | "cancelado"
-      tipo_aprovacao: "arte" | "orcamento"
+      tipo_aprovacao: "arte" | "orcamento" | "margem_baixa" | "desconto_alto"
       tipo_cliente: "pf" | "pj"
     }
     CompositeTypes: {
@@ -1442,7 +1492,7 @@ export const Constants = {
         "atrasado",
         "cancelado",
       ],
-      tipo_aprovacao: ["arte", "orcamento"],
+      tipo_aprovacao: ["arte", "orcamento", "margem_baixa", "desconto_alto"],
       tipo_cliente: ["pf", "pj"],
     },
   },
