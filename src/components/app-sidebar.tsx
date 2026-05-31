@@ -1,7 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Users, FileText, ClipboardList, Kanban,
-  FolderOpen, DollarSign, Settings, Shield, Printer, LogOut,
+  LayoutDashboard, Users, FileText, ClipboardList, Kanban, FolderOpen,
+  DollarSign, Settings, Shield, Printer, LogOut, MessageCircle, Palette,
+  Factory, Package, Truck, AlertTriangle, BarChart3, Calculator, Wrench,
+  Calendar, ListChecks, Bot, History, UserPlus, Boxes,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -11,22 +13,76 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
-const mainItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Clientes", url: "/clientes", icon: Users },
-  { title: "Orçamentos", url: "/orcamentos", icon: FileText },
-  { title: "Ordens de Serviço", url: "/os", icon: ClipboardList },
-  { title: "Kanban Produção", url: "/kanban", icon: Kanban },
-  { title: "Arquivos", url: "/arquivos", icon: FolderOpen },
-];
+type Item = { title: string; url: string; icon: any };
 
-const financialItems = [
-  { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-];
-
-const adminItems = [
-  { title: "Usuários", url: "/usuarios", icon: Shield },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
+const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] = [
+  {
+    label: "Operação",
+    items: [
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+      { title: "Kanban Produção", url: "/kanban", icon: Kanban },
+      { title: "Ordens de Serviço", url: "/os", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "Comercial",
+    items: [
+      { title: "Clientes", url: "/clientes", icon: Users },
+      { title: "Leads", url: "/leads", icon: UserPlus },
+      { title: "Orçamentos", url: "/orcamentos", icon: FileText },
+    ],
+  },
+  {
+    label: "Atendimento",
+    items: [
+      { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
+      { title: "Respostas rápidas", url: "/respostas-rapidas", icon: ListChecks },
+      { title: "Automações", url: "/automacoes", icon: Bot },
+    ],
+  },
+  {
+    label: "Produção",
+    items: [
+      { title: "Design & Arte", url: "/design", icon: Palette },
+      { title: "Arquivos", url: "/arquivos", icon: FolderOpen },
+      { title: "Máquinas", url: "/maquinas", icon: Factory },
+      { title: "Agenda de máquinas", url: "/maquinas-agenda", icon: Calendar },
+      { title: "Manutenção", url: "/manutencao", icon: Wrench },
+      { title: "Entregas & Instalações", url: "/entregas", icon: Truck },
+      { title: "Ocorrências", url: "/ocorrencias", icon: AlertTriangle },
+    ],
+  },
+  {
+    label: "Catálogo & Estoque",
+    items: [
+      { title: "Produtos", url: "/produtos", icon: Package },
+      { title: "Precificação", url: "/precificacao", icon: Calculator, },
+      { title: "Materiais", url: "/materiais", icon: Boxes },
+      { title: "Movimentações", url: "/movimentacoes", icon: History },
+    ],
+  },
+  {
+    label: "Financeiro",
+    gate: "financial",
+    items: [
+      { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+    ],
+  },
+  {
+    label: "Análise",
+    items: [
+      { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Administração",
+    gate: "admin",
+    items: [
+      { title: "Usuários", url: "/usuarios", icon: Shield },
+      { title: "Logs & Auditoria", url: "/logs", icon: History },
+      { title: "Configurações", url: "/configuracoes", icon: Settings },
+    ],
+  },
 ];
 
 export function AppSidebar() {
@@ -53,63 +109,29 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Operação</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {canSeeFinancials && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {financialItems.map((item) => (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                      <Link to={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {hasRole("admin") && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Administração</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {adminItems.map((item) => (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                      <Link to={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {groups.map((group) => {
+          if (group.gate === "financial" && !canSeeFinancials) return null;
+          if (group.gate === "admin" && !hasRole("admin")) return null;
+          return (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                        <Link to={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter>
