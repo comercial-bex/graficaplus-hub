@@ -85,7 +85,7 @@ function OrcamentoDetailPage() {
     if (!orc) return;
     const { data: os, error } = await supabase.from("ordens_servico").insert({
       cliente_id: orc.cliente_id, orcamento_id: orc.id, titulo: orc.titulo,
-      valor_total: orc.valor_total, custo_previsto: orc.custo_estimado, status: "novo",
+      valor_total: orc.valor_total, custo_previsto: orc.custo_estimado, status: "entrada",
     }).select().single();
     if (error) return toast.error(error.message);
     await supabase.from("orcamentos").update({ status: "convertido", os_id: os.id }).eq("id", id);

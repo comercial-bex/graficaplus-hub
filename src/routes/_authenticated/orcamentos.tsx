@@ -76,7 +76,7 @@ function OrcamentosPage() {
       orcamento_id: orc.id,
       titulo: orc.titulo,
       valor_total: orc.valor_total,
-      status: "novo",
+      status: "entrada",
     }).select().single();
     if (error) return toast.error(error.message);
     await supabase.from("orcamentos").update({ status: "convertido", os_id: os.id }).eq("id", orc.id);

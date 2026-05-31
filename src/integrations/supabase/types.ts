@@ -855,14 +855,17 @@ export type Database = {
           designer_id: string | null
           id: string
           margem_real: number | null
+          maquina_id: string | null
           numero: number
           observacoes: string | null
           operador_id: string | null
           orcamento_id: string | null
           ordem_kanban: number
+          produto_id: string | null
           prazo_entrega: string | null
           prioridade: number
           responsavel_id: string | null
+          setor_atual: string | null
           status: Database["public"]["Enums"]["status_os"]
           titulo: string
           updated_at: string
@@ -880,14 +883,17 @@ export type Database = {
           designer_id?: string | null
           id?: string
           margem_real?: number | null
+          maquina_id?: string | null
           numero?: number
           observacoes?: string | null
           operador_id?: string | null
           orcamento_id?: string | null
           ordem_kanban?: number
+          produto_id?: string | null
           prazo_entrega?: string | null
           prioridade?: number
           responsavel_id?: string | null
+          setor_atual?: string | null
           status?: Database["public"]["Enums"]["status_os"]
           titulo: string
           updated_at?: string
@@ -905,14 +911,17 @@ export type Database = {
           designer_id?: string | null
           id?: string
           margem_real?: number | null
+          maquina_id?: string | null
           numero?: number
           observacoes?: string | null
           operador_id?: string | null
           orcamento_id?: string | null
           ordem_kanban?: number
+          produto_id?: string | null
           prazo_entrega?: string | null
           prioridade?: number
           responsavel_id?: string | null
+          setor_atual?: string | null
           status?: Database["public"]["Enums"]["status_os"]
           titulo?: string
           updated_at?: string
@@ -949,10 +958,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ordens_servico_orcamento_id_fkey"
             columns: ["orcamento_id"]
             isOneToOne: false
             referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
           {
@@ -1222,15 +1245,15 @@ export type Database = {
         | "expirado"
         | "convertido"
       status_os:
-        | "novo"
+        | "entrada"
         | "aguardando_briefing"
         | "briefing_ok"
-        | "em_design"
+        | "design"
         | "aguardando_aprovacao_arte"
         | "arte_aprovada"
         | "arte_rejeitada"
         | "aguardando_producao"
-        | "em_producao"
+        | "producao"
         | "em_impressao"
         | "em_corte"
         | "em_acabamento"
@@ -1409,15 +1432,15 @@ export const Constants = {
         "convertido",
       ],
       status_os: [
-        "novo",
+        "entrada",
         "aguardando_briefing",
         "briefing_ok",
-        "em_design",
+        "design",
         "aguardando_aprovacao_arte",
         "arte_aprovada",
         "arte_rejeitada",
         "aguardando_producao",
-        "em_producao",
+        "producao",
         "em_impressao",
         "em_corte",
         "em_acabamento",
