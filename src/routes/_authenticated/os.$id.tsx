@@ -36,6 +36,7 @@ function OSDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const { canSeeFinancials, user } = useAuth();
+  const [previewOpen, setPreviewOpen] = useState<null | "cliente" | "producao">(null);
 
   const { data: os, isLoading } = useQuery({
     queryKey: ["os", id],
