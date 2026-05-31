@@ -1,9 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { produtosMock } from "@/lib/mock-data";
-import { useAuth } from "@/lib/auth-context";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos — BEX PRINT OS" }] }),
@@ -11,42 +19,105 @@ export const Route = createFileRoute("/_authenticated/produtos")({
 });
 
 function ProdutosPage() {
-  const { canSeeFinancials } = useAuth();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [nome, setNome] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [preco, setPreco] = useState("");
+
+  const { data: produtos = [], isLoading } = useQuery({
+    queryKey: ["produtos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("produtos").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("produtos").insert({
+        nome,
+        descricao: descricao || null,
+        preco_base: preco ? Number(preco) : null,
+        ativo: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Produto cadastrado");
+      qc.invalidateQueries({ queryKey: ["produtos"] });
+      setOpen(false); setNome(""); setDescricao(""); setPreco("");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Produtos & Serviços</h1>
-        <p className="text-muted-foreground">Catálogo de produtos com precificação</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Produtos & Serviços</h1>
+          <p className="text-muted-foreground">Catálogo da gráfica</p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="h-4 w-4 mr-2" />Novo produto</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Cadastrar produto</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome *</Label>
+                <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Banner lona 440g" />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Preço base (R$)</Label>
+                <Input type="number" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0.00" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => create.mutate()} disabled={!nome || create.isPending}>Salvar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+
       <Card>
-        <CardHeader><CardTitle>Catálogo</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead className="text-right">Preço público</TableHead>
-                {canSeeFinancials && <TableHead className="text-right">Custo</TableHead>}
-                {canSeeFinancials && <TableHead className="text-right">Margem</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {produtosMock.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.nome}</TableCell>
-                  <TableCell><Badge variant="outline">{p.categoria}</Badge></TableCell>
-                  <TableCell className="text-right">R$ {p.preco.toFixed(2)}</TableCell>
-                  {canSeeFinancials && <TableCell className="text-right">R$ {p.custo.toFixed(2)}</TableCell>}
-                  {canSeeFinancials && (
-                    <TableCell className="text-right">
-                      <Badge variant={p.margem >= 60 ? "default" : "secondary"}>{p.margem}%</Badge>
-                    </TableCell>
-                  )}
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-6 text-muted-foreground">Carregando...</div>
+          ) : produtos.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">Nenhum produto cadastrado</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="text-right">Preço base</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {produtos.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">{p.nome}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-md truncate">{p.descricao || "—"}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {p.preco_base ? `R$ ${Number(p.preco_base).toFixed(2)}` : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={p.ativo ? "default" : "secondary"}>{p.ativo ? "Ativo" : "Inativo"}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
