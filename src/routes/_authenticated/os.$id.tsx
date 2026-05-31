@@ -113,6 +113,16 @@ function OSDetailPage() {
         <TabsContent value="historico"><HistoricoTab osId={id} /></TabsContent>
         {canSeeFinancials && <TabsContent value="financeiro"><FinanceiroTab osId={id} userId={user?.id} /></TabsContent>}
       </Tabs>
+
+      <PDFHistoryCard tipo="os" referencia_id={id} />
+
+      <PDFPreviewDialog
+        open={previewOpen !== null}
+        onOpenChange={(o) => !o && setPreviewOpen(null)}
+        tipo="os"
+        referencia_id={id}
+        mostrarValores={previewOpen !== "producao"}
+      />
     </div>
   );
 }
