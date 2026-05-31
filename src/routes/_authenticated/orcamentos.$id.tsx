@@ -25,6 +25,7 @@ function OrcamentoDetailPage() {
   const qc = useQueryClient();
   const { canSeeFinancials } = useAuth();
   const [form, setForm] = useState({ descricao: "", quantidade: "1", unidade: "un", valor_unitario: "0", custo_unitario: "0" });
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id],
