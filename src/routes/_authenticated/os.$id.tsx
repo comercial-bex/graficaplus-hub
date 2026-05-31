@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { gerarPDFOS } from "@/lib/pdf/generate";
+import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
