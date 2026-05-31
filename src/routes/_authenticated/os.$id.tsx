@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { gerarPDFOS } from "@/lib/pdf/generate";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -82,6 +83,14 @@ function OSDetailPage() {
               {STATUS_OS.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
             </SelectContent>
           </Select>
+          {canSeeFinancials && (
+            <Button variant="outline" onClick={() => gerarPDFOS(id, true).catch((e) => toast.error(e.message))}>
+              <FileDown className="h-4 w-4 mr-1" /> PDF Cliente
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => gerarPDFOS(id, false).catch((e) => toast.error(e.message))}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF Produção
+          </Button>
         </div>
       </div>
 

@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, ArrowRight } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ArrowRight, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { gerarPDFOrcamento } from "@/lib/pdf/generate";
 
 export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
   head: () => ({ meta: [{ title: "Orçamento — BEX PRINT OS" }] }),
@@ -116,6 +117,9 @@ function OrcamentoDetailPage() {
               {["rascunho","enviado","aprovado","rejeitado","expirado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => gerarPDFOrcamento(id).catch((e) => toast.error(e.message))}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF
+          </Button>
           {orc.status !== "convertido" && !orc.os_id && (
             <Button onClick={converterEmOS}>Converter em OS <ArrowRight className="h-4 w-4 ml-1" /></Button>
           )}
