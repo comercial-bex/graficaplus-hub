@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { DocumentoPDF, type DocumentoPDFProps } from "./DocumentoPDF";
 
 function download(blob: Blob, filename: string) {
@@ -14,7 +15,11 @@ function download(blob: Blob, filename: string) {
 
 function fmt(d?: string | null) {
   if (!d) return null;
-  try { return new Date(d).toLocaleDateString("pt-BR"); } catch { return d; }
+  try {
+    return new Date(d).toLocaleDateString("pt-BR");
+  } catch {
+    return d;
+  }
 }
 
 export async function renderPDFBlob(props: DocumentoPDFProps): Promise<Blob> {
@@ -22,19 +27,39 @@ export async function renderPDFBlob(props: DocumentoPDFProps): Promise<Blob> {
   return await pdf(DocumentoPDF(props)).toBlob();
 }
 
-export async function carregarPropsOrcamento(orcamentoId: string, mostrarValores = true): Promise<DocumentoPDFProps> {
-  const { data: orc, error } = await supabase
-    .from("orcamentos")
-    .select("*, clientes(*), usuarios:vendedor_id(nome)")
+export async function carregarPropsOrcamento(
+  orcamentoId: string,
+  mostrarValores = true,
+): Promise<DocumentoPDFProps> {
+  const { data: orc, error } = await fromFinancialView("orcamentos", mostrarValores)
+    .select("*")
     .eq("id", orcamentoId)
     .single();
   if (error || !orc) throw error ?? new Error("Orçamento não encontrado");
 
-  const { data: itens = [] } = await supabase
-    .from("orcamento_itens").select("*").eq("orcamento_id", orcamentoId).order("ordem");
+  const [{ data: cliente }, { data: vendedor }, { data: itens = [] }] = await Promise.all([
+    supabase
+      .from("clientes")
+      .select("*")
+      .eq("id", (orc as any).cliente_id)
+      .single(),
+    (orc as any).vendedor_id
+      ? supabase
+          .from("usuarios")
+          .select("nome")
+          .eq("id", (orc as any).vendedor_id)
+          .single()
+      : Promise.resolve({ data: null }),
+    fromFinancialView("orcamento_itens", mostrarValores)
+      .select("*")
+      .eq("orcamento_id", orcamentoId)
+      .order("ordem"),
+  ]);
 
   const validade = orc.created_at
-    ? new Date(new Date(orc.created_at).getTime() + (orc.validade_dias ?? 7) * 86400000).toLocaleDateString("pt-BR")
+    ? new Date(
+        new Date(orc.created_at).getTime() + (orc.validade_dias ?? 7) * 86400000,
+      ).toLocaleDateString("pt-BR")
     : null;
 
   return {
@@ -42,61 +67,82 @@ export async function carregarPropsOrcamento(orcamentoId: string, mostrarValores
     numero: orc.numero,
     data_solicitacao: fmt(orc.created_at),
     data_validade: validade,
-    vendedor: (orc as any).usuarios?.nome ?? null,
+    vendedor: (vendedor as any)?.nome ?? null,
     status: orc.status,
     cliente: {
-      nome: orc.clientes?.nome ?? "—",
-      documento: orc.clientes?.documento,
-      endereco: orc.clientes?.endereco,
-      cidade: orc.clientes?.cidade,
-      estado: orc.clientes?.estado,
-      cep: orc.clientes?.cep,
-      telefone: orc.clientes?.telefone,
-      email: orc.clientes?.email,
+      nome: (cliente as any)?.nome ?? (orc as any).cliente_nome ?? "—",
+      documento: (cliente as any)?.documento,
+      endereco: (cliente as any)?.endereco,
+      cidade: (cliente as any)?.cidade,
+      estado: (cliente as any)?.estado,
+      cep: (cliente as any)?.cep,
+      telefone: (cliente as any)?.telefone,
+      email: (cliente as any)?.email,
     },
     itens: (itens ?? []).map((i: any) => ({
-      descricao: i.descricao, unidade: i.unidade, quantidade: Number(i.quantidade),
-      valor_unitario: Number(i.valor_unitario), valor_total: Number(i.valor_total),
+      descricao: i.descricao,
+      unidade: i.unidade,
+      quantidade: Number(i.quantidade),
+      valor_unitario: mostrarValores ? Number(i.valor_unitario) : 0,
+      valor_total: mostrarValores ? Number(i.valor_total) : 0,
     })),
-    total: Number(orc.valor_total),
+    total: mostrarValores ? Number((orc as any).valor_total) : 0,
     observacoes: orc.observacoes,
     mostrarValores,
   };
 }
 
-export async function carregarPropsOS(osId: string, mostrarValores = true): Promise<DocumentoPDFProps> {
-  const { data: os, error } = await supabase
-    .from("ordens_servico")
-    .select("*, clientes(*), usuarios:vendedor_id(nome)")
+export async function carregarPropsOS(
+  osId: string,
+  mostrarValores = true,
+): Promise<DocumentoPDFProps> {
+  const { data: os, error } = await fromFinancialView("ordens_servico", mostrarValores)
+    .select("*")
     .eq("id", osId)
     .single();
   if (error || !os) throw error ?? new Error("OS não encontrada");
 
-  const { data: itens = [] } = await supabase
-    .from("itens_os").select("*").eq("os_id", osId).order("ordem");
+  const [{ data: cliente }, { data: vendedor }, { data: itens = [] }] = await Promise.all([
+    supabase
+      .from("clientes")
+      .select("*")
+      .eq("id", (os as any).cliente_id)
+      .single(),
+    (os as any).vendedor_id
+      ? supabase
+          .from("usuarios")
+          .select("nome")
+          .eq("id", (os as any).vendedor_id)
+          .single()
+      : Promise.resolve({ data: null }),
+    fromFinancialView("itens_os", mostrarValores).select("*").eq("os_id", osId).order("ordem"),
+  ]);
 
   return {
     tipo: "os",
     numero: os.numero,
     data_solicitacao: fmt(os.created_at),
     data_entrega: fmt(os.prazo_entrega),
-    vendedor: (os as any).usuarios?.nome ?? null,
+    vendedor: (vendedor as any)?.nome ?? null,
     status: os.status,
     cliente: {
-      nome: os.clientes?.nome ?? "—",
-      documento: os.clientes?.documento,
-      endereco: os.clientes?.endereco,
-      cidade: os.clientes?.cidade,
-      estado: os.clientes?.estado,
-      cep: os.clientes?.cep,
-      telefone: os.clientes?.telefone,
-      email: os.clientes?.email,
+      nome: (cliente as any)?.nome ?? (os as any).cliente_nome ?? "—",
+      documento: (cliente as any)?.documento,
+      endereco: (cliente as any)?.endereco,
+      cidade: (cliente as any)?.cidade,
+      estado: (cliente as any)?.estado,
+      cep: (cliente as any)?.cep,
+      telefone: (cliente as any)?.telefone,
+      email: (cliente as any)?.email,
     },
     itens: (itens ?? []).map((i: any) => ({
-      descricao: i.descricao, unidade: i.unidade, quantidade: Number(i.quantidade),
-      valor_unitario: Number(i.valor_unitario), valor_total: Number(i.valor_total),
+      descricao: i.descricao,
+      unidade: i.unidade,
+      quantidade: Number(i.quantidade),
+      valor_unitario: mostrarValores ? Number(i.valor_unitario) : 0,
+      valor_total: mostrarValores ? Number(i.valor_total) : 0,
     })),
-    total: Number(os.valor_total),
+    total: mostrarValores ? Number((os as any).valor_total) : 0,
     observacoes: os.observacoes ?? os.briefing,
     mostrarValores,
   };
@@ -120,8 +166,12 @@ export async function salvarERegistrarPDF(opts: {
   if (upErr) throw upErr;
 
   const { error: regErr } = await supabase.from("documentos_gerados").insert({
-    tipo: opts.tipo, referencia_id: opts.referencia_id, variante: opts.variante,
-    numero: Number(opts.numero) || null, caminho: path, tamanho_bytes: opts.blob.size,
+    tipo: opts.tipo,
+    referencia_id: opts.referencia_id,
+    variante: opts.variante,
+    numero: Number(opts.numero) || null,
+    caminho: path,
+    tamanho_bytes: opts.blob.size,
     gerado_por: userId,
   });
   if (regErr) throw regErr;
@@ -136,13 +186,17 @@ export async function gerarESalvarPDF(opts: {
   mostrarValores?: boolean;
 }) {
   const mostrar = opts.mostrarValores ?? true;
-  const props = opts.tipo === "orcamento"
-    ? await carregarPropsOrcamento(opts.referencia_id, mostrar)
-    : await carregarPropsOS(opts.referencia_id, mostrar);
+  const props =
+    opts.tipo === "orcamento"
+      ? await carregarPropsOrcamento(opts.referencia_id, mostrar)
+      : await carregarPropsOS(opts.referencia_id, mostrar);
   const blob = await renderPDFBlob(props);
   const { filename } = await salvarERegistrarPDF({
-    blob, tipo: opts.tipo, referencia_id: opts.referencia_id,
-    numero: props.numero, variante: mostrar ? "cliente" : "producao",
+    blob,
+    tipo: opts.tipo,
+    referencia_id: opts.referencia_id,
+    numero: props.numero,
+    variante: mostrar ? "cliente" : "producao",
   });
   download(blob, filename);
   return { props, filename };
