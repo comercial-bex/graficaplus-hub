@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { gerarPDFOS } from "@/lib/pdf/generate";
+import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -35,6 +36,7 @@ function OSDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const { canSeeFinancials, user } = useAuth();
+  const [previewOpen, setPreviewOpen] = useState<null | "cliente" | "producao">(null);
 
   const { data: os, isLoading } = useQuery({
     queryKey: ["os", id],
@@ -84,11 +86,11 @@ function OSDetailPage() {
             </SelectContent>
           </Select>
           {canSeeFinancials && (
-            <Button variant="outline" onClick={() => gerarPDFOS(id, true).catch((e) => toast.error(e.message))}>
+            <Button variant="outline" onClick={() => setPreviewOpen("cliente")}>
               <FileDown className="h-4 w-4 mr-1" /> PDF Cliente
             </Button>
           )}
-          <Button variant="outline" onClick={() => gerarPDFOS(id, false).catch((e) => toast.error(e.message))}>
+          <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
             <FileDown className="h-4 w-4 mr-1" /> PDF Produção
           </Button>
         </div>
@@ -111,6 +113,16 @@ function OSDetailPage() {
         <TabsContent value="historico"><HistoricoTab osId={id} /></TabsContent>
         {canSeeFinancials && <TabsContent value="financeiro"><FinanceiroTab osId={id} userId={user?.id} /></TabsContent>}
       </Tabs>
+
+      <PDFHistoryCard tipo="os" referencia_id={id} />
+
+      <PDFPreviewDialog
+        open={previewOpen !== null}
+        onOpenChange={(o) => !o && setPreviewOpen(null)}
+        tipo="os"
+        referencia_id={id}
+        mostrarValores={previewOpen !== "producao"}
+      />
     </div>
   );
 }

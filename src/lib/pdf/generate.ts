@@ -12,18 +12,17 @@ function download(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-async function render(props: DocumentoPDFProps): Promise<Blob> {
-  // Dinâmico para não pesar o bundle inicial nem rodar no SSR
-  const { pdf } = await import("@react-pdf/renderer");
-  return await pdf(DocumentoPDF(props)).toBlob();
-}
-
 function fmt(d?: string | null) {
   if (!d) return null;
   try { return new Date(d).toLocaleDateString("pt-BR"); } catch { return d; }
 }
 
-export async function gerarPDFOrcamento(orcamentoId: string, mostrarValores = true) {
+export async function renderPDFBlob(props: DocumentoPDFProps): Promise<Blob> {
+  const { pdf } = await import("@react-pdf/renderer");
+  return await pdf(DocumentoPDF(props)).toBlob();
+}
+
+export async function carregarPropsOrcamento(orcamentoId: string, mostrarValores = true): Promise<DocumentoPDFProps> {
   const { data: orc, error } = await supabase
     .from("orcamentos")
     .select("*, clientes(*), usuarios:vendedor_id(nome)")
@@ -38,7 +37,7 @@ export async function gerarPDFOrcamento(orcamentoId: string, mostrarValores = tr
     ? new Date(new Date(orc.created_at).getTime() + (orc.validade_dias ?? 7) * 86400000).toLocaleDateString("pt-BR")
     : null;
 
-  const blob = await render({
+  return {
     tipo: "orcamento",
     numero: orc.numero,
     data_solicitacao: fmt(orc.created_at),
@@ -56,21 +55,16 @@ export async function gerarPDFOrcamento(orcamentoId: string, mostrarValores = tr
       email: orc.clientes?.email,
     },
     itens: (itens ?? []).map((i: any) => ({
-      descricao: i.descricao,
-      unidade: i.unidade,
-      quantidade: Number(i.quantidade),
-      valor_unitario: Number(i.valor_unitario),
-      valor_total: Number(i.valor_total),
+      descricao: i.descricao, unidade: i.unidade, quantidade: Number(i.quantidade),
+      valor_unitario: Number(i.valor_unitario), valor_total: Number(i.valor_total),
     })),
     total: Number(orc.valor_total),
     observacoes: orc.observacoes,
     mostrarValores,
-  });
-
-  download(blob, `orcamento-${orc.numero}.pdf`);
+  };
 }
 
-export async function gerarPDFOS(osId: string, mostrarValores = true) {
+export async function carregarPropsOS(osId: string, mostrarValores = true): Promise<DocumentoPDFProps> {
   const { data: os, error } = await supabase
     .from("ordens_servico")
     .select("*, clientes(*), usuarios:vendedor_id(nome)")
@@ -81,7 +75,7 @@ export async function gerarPDFOS(osId: string, mostrarValores = true) {
   const { data: itens = [] } = await supabase
     .from("itens_os").select("*").eq("os_id", osId).order("ordem");
 
-  const blob = await render({
+  return {
     tipo: "os",
     numero: os.numero,
     data_solicitacao: fmt(os.created_at),
@@ -99,16 +93,63 @@ export async function gerarPDFOS(osId: string, mostrarValores = true) {
       email: os.clientes?.email,
     },
     itens: (itens ?? []).map((i: any) => ({
-      descricao: i.descricao,
-      unidade: i.unidade,
-      quantidade: Number(i.quantidade),
-      valor_unitario: Number(i.valor_unitario),
-      valor_total: Number(i.valor_total),
+      descricao: i.descricao, unidade: i.unidade, quantidade: Number(i.quantidade),
+      valor_unitario: Number(i.valor_unitario), valor_total: Number(i.valor_total),
     })),
     total: Number(os.valor_total),
     observacoes: os.observacoes ?? os.briefing,
     mostrarValores,
-  });
-
-  download(blob, `os-${os.numero}${mostrarValores ? "" : "-producao"}.pdf`);
+  };
 }
+
+export async function salvarERegistrarPDF(opts: {
+  blob: Blob;
+  tipo: "orcamento" | "os";
+  referencia_id: string;
+  numero: number | string;
+  variante: "cliente" | "producao";
+}) {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id ?? null;
+  const filename = `${opts.tipo}-${opts.numero}${opts.variante === "producao" ? "-producao" : ""}.pdf`;
+  const path = `${opts.tipo}/${opts.referencia_id}/${Date.now()}-${filename}`;
+
+  const { error: upErr } = await supabase.storage
+    .from("documentos-pdf")
+    .upload(path, opts.blob, { contentType: "application/pdf", upsert: false });
+  if (upErr) throw upErr;
+
+  const { error: regErr } = await supabase.from("documentos_gerados").insert({
+    tipo: opts.tipo, referencia_id: opts.referencia_id, variante: opts.variante,
+    numero: Number(opts.numero) || null, caminho: path, tamanho_bytes: opts.blob.size,
+    gerado_por: userId,
+  });
+  if (regErr) throw regErr;
+
+  return { path, filename };
+}
+
+/** Renderiza + sobe no Storage + baixa para o usuário. */
+export async function gerarESalvarPDF(opts: {
+  tipo: "orcamento" | "os";
+  referencia_id: string;
+  mostrarValores?: boolean;
+}) {
+  const mostrar = opts.mostrarValores ?? true;
+  const props = opts.tipo === "orcamento"
+    ? await carregarPropsOrcamento(opts.referencia_id, mostrar)
+    : await carregarPropsOS(opts.referencia_id, mostrar);
+  const blob = await renderPDFBlob(props);
+  const { filename } = await salvarERegistrarPDF({
+    blob, tipo: opts.tipo, referencia_id: opts.referencia_id,
+    numero: props.numero, variante: mostrar ? "cliente" : "producao",
+  });
+  download(blob, filename);
+  return { props, filename };
+}
+
+// Backwards-compat wrappers (caso algum lugar ainda chame os antigos)
+export const gerarPDFOrcamento = (id: string, mostrarValores = true) =>
+  gerarESalvarPDF({ tipo: "orcamento", referencia_id: id, mostrarValores });
+export const gerarPDFOS = (id: string, mostrarValores = true) =>
+  gerarESalvarPDF({ tipo: "os", referencia_id: id, mostrarValores });

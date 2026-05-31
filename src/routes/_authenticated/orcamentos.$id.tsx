@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Plus, Trash2, ArrowRight, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { gerarPDFOrcamento } from "@/lib/pdf/generate";
+import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 
 export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
   head: () => ({ meta: [{ title: "Orçamento — BEX PRINT OS" }] }),
@@ -24,6 +25,7 @@ function OrcamentoDetailPage() {
   const qc = useQueryClient();
   const { canSeeFinancials } = useAuth();
   const [form, setForm] = useState({ descricao: "", quantidade: "1", unidade: "un", valor_unitario: "0", custo_unitario: "0" });
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id],
@@ -117,7 +119,7 @@ function OrcamentoDetailPage() {
               {["rascunho","enviado","aprovado","rejeitado","expirado"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => gerarPDFOrcamento(id).catch((e) => toast.error(e.message))}>
+          <Button variant="outline" onClick={() => setPreviewOpen(true)}>
             <FileDown className="h-4 w-4 mr-1" /> PDF
           </Button>
           {orc.status !== "convertido" && !orc.os_id && (
@@ -158,6 +160,15 @@ function OrcamentoDetailPage() {
           </>}
         </div>
       </CardContent></Card>
+
+      <PDFHistoryCard tipo="orcamento" referencia_id={id} />
+
+      <PDFPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        tipo="orcamento"
+        referencia_id={id}
+      />
     </div>
   );
 }
