@@ -14,6 +14,858 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_maquinas: {
+        Row: {
+          id: string
+          maquina_id: string
+          os_id: string | null
+          item_os_id: string | null
+          operador_id: string | null
+          titulo: string
+          descricao: string | null
+          inicio: string
+          fim: string
+          status: string
+          prioridade: number
+          observacoes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          maquina_id: string
+          os_id?: string | null
+          item_os_id?: string | null
+          operador_id?: string | null
+          titulo: string
+          descricao?: string | null
+          inicio: string
+          fim: string
+          status?: string
+          prioridade?: number
+          observacoes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          maquina_id?: string
+          os_id?: string | null
+          item_os_id?: string | null
+          operador_id?: string | null
+          titulo?: string
+          descricao?: string | null
+          inicio?: string
+          fim?: string
+          status?: string
+          prioridade?: number
+          observacoes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      automacao_execucoes: {
+        Row: {
+          id: string
+          automacao_id: string | null
+          referencia_tipo: string | null
+          referencia_id: string | null
+          status: string
+          entrada: Json
+          resultado: Json
+          erro: string | null
+          executado_em: string
+        }
+        Insert: {
+          id?: string
+          automacao_id?: string | null
+          referencia_tipo?: string | null
+          referencia_id?: string | null
+          status?: string
+          entrada?: Json
+          resultado?: Json
+          erro?: string | null
+          executado_em?: string
+        }
+        Update: {
+          id?: string
+          automacao_id?: string | null
+          referencia_tipo?: string | null
+          referencia_id?: string | null
+          status?: string
+          entrada?: Json
+          resultado?: Json
+          erro?: string | null
+          executado_em?: string
+        }
+        Relationships: []
+      }
+      automacoes: {
+        Row: {
+          id: string
+          nome: string
+          descricao: string | null
+          gatilho: string
+          canal: string
+          condicoes: Json
+          acoes: Json
+          ativa: boolean
+          ultima_execucao: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          descricao?: string | null
+          gatilho: string
+          canal?: string
+          condicoes?: Json
+          acoes?: Json
+          ativa: boolean
+          ultima_execucao?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          descricao?: string | null
+          gatilho?: string
+          canal?: string
+          condicoes?: Json
+          acoes?: Json
+          ativa?: boolean
+          ultima_execucao?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      checklist_itens_modelo: {
+        Row: {
+          id: string
+          modelo_id: string
+          titulo: string
+          descricao: string | null
+          obrigatorio: boolean
+          ordem: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          modelo_id: string
+          titulo: string
+          descricao?: string | null
+          obrigatorio?: boolean
+          ordem?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          modelo_id?: string
+          titulo?: string
+          descricao?: string | null
+          obrigatorio?: boolean
+          ordem?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      checklist_modelos: {
+        Row: {
+          id: string
+          nome: string
+          descricao: string | null
+          tipo: string
+          produto_id: string | null
+          ativo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          descricao?: string | null
+          tipo?: string
+          produto_id?: string | null
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          descricao?: string | null
+          tipo?: string
+          produto_id?: string | null
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      checklist_respostas: {
+        Row: {
+          id: string
+          checklist_id: string
+          item_modelo_id: string | null
+          valor: boolean
+          observacao: string | null
+          respondido_por: string | null
+          respondido_em: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          checklist_id: string
+          item_modelo_id?: string | null
+          valor?: boolean
+          observacao?: string | null
+          respondido_por?: string | null
+          respondido_em?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          checklist_id?: string
+          item_modelo_id?: string | null
+          valor?: boolean
+          observacao?: string | null
+          respondido_por?: string | null
+          respondido_em?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      checklists_os: {
+        Row: {
+          id: string
+          os_id: string
+          modelo_id: string | null
+          status: string
+          responsavel_id: string | null
+          concluido_em: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          os_id: string
+          modelo_id?: string | null
+          status?: string
+          responsavel_id?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          os_id?: string
+          modelo_id?: string | null
+          status?: string
+          responsavel_id?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      historico_alteracoes: {
+        Row: {
+          id: string
+          entidade: string
+          entidade_id: string
+          acao: string
+          campo: string | null
+          valor_anterior: Json | null
+          valor_novo: Json | null
+          usuario_id: string | null
+          origem: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          entidade: string
+          entidade_id: string
+          acao: string
+          campo?: string | null
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+          usuario_id?: string | null
+          origem?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          entidade?: string
+          entidade_id?: string
+          acao?: string
+          campo?: string | null
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+          usuario_id?: string | null
+          origem?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      historico_os_status: {
+        Row: {
+          id: string
+          os_id: string
+          status_anterior: Database["public"]["Enums"]["status_os"] | null
+          status_novo: Database["public"]["Enums"]["status_os"]
+          usuario_id: string | null
+          observacao: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          os_id: string
+          status_anterior?: Database["public"]["Enums"]["status_os"] | null
+          status_novo: Database["public"]["Enums"]["status_os"]
+          usuario_id?: string | null
+          observacao?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          os_id?: string
+          status_anterior?: Database["public"]["Enums"]["status_os"] | null
+          status_novo?: Database["public"]["Enums"]["status_os"]
+          usuario_id?: string | null
+          observacao?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      manutencoes: {
+        Row: {
+          id: string
+          maquina_id: string
+          responsavel_id: string | null
+          tipo: string
+          titulo: string
+          descricao: string | null
+          status: string
+          data_programada: string | null
+          data_inicio: string | null
+          data_conclusao: string | null
+          custo_previsto: number
+          custo_real: number
+          observacoes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          maquina_id: string
+          responsavel_id?: string | null
+          tipo?: string
+          titulo: string
+          descricao?: string | null
+          status?: string
+          data_programada?: string | null
+          data_inicio?: string | null
+          data_conclusao?: string | null
+          custo_previsto?: number
+          custo_real?: number
+          observacoes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          maquina_id?: string
+          responsavel_id?: string | null
+          tipo?: string
+          titulo?: string
+          descricao?: string | null
+          status?: string
+          data_programada?: string | null
+          data_inicio?: string | null
+          data_conclusao?: string | null
+          custo_previsto?: number
+          custo_real?: number
+          observacoes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pos_calculo_itens: {
+        Row: {
+          id: string
+          pos_calculo_id: string
+          item_os_id: string | null
+          descricao: string
+          custo_previsto: number
+          custo_real: number
+          quantidade: number
+          observacoes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          pos_calculo_id: string
+          item_os_id?: string | null
+          descricao: string
+          custo_previsto?: number
+          custo_real?: number
+          quantidade?: number
+          observacoes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          pos_calculo_id?: string
+          item_os_id?: string | null
+          descricao?: string
+          custo_previsto?: number
+          custo_real?: number
+          quantidade?: number
+          observacoes?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      pos_calculos: {
+        Row: {
+          id: string
+          os_id: string
+          valor_venda: number
+          custo_previsto: number
+          custo_real: number
+          lucro_previsto: number
+          lucro_real: number
+          margem_prevista: number | null
+          margem_real: number | null
+          divergencias: Json
+          observacoes: string | null
+          calculado_por: string | null
+          calculado_em: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          os_id: string
+          valor_venda?: number
+          custo_previsto?: number
+          custo_real?: number
+          lucro_previsto?: number
+          lucro_real?: number
+          margem_prevista?: number | null
+          margem_real?: number | null
+          divergencias?: Json
+          observacoes?: string | null
+          calculado_por?: string | null
+          calculado_em?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          os_id?: string
+          valor_venda?: number
+          custo_previsto?: number
+          custo_real?: number
+          lucro_previsto?: number
+          lucro_real?: number
+          margem_prevista?: number | null
+          margem_real?: number | null
+          divergencias?: Json
+          observacoes?: string | null
+          calculado_por?: string | null
+          calculado_em?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      produto_precificacao: {
+        Row: {
+          id: string
+          produto_id: string
+          material_id: string | null
+          maquina_id: string | null
+          nome: string
+          unidade: string
+          quantidade_base: number
+          custo_material: number
+          custo_maquina: number
+          custo_mao_obra: number
+          custo_indireto: number
+          margem_percentual: number
+          preco_calculado: number
+          ativo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          produto_id: string
+          material_id?: string | null
+          maquina_id?: string | null
+          nome: string
+          unidade?: string
+          quantidade_base?: number
+          custo_material?: number
+          custo_maquina?: number
+          custo_mao_obra?: number
+          custo_indireto?: number
+          margem_percentual?: number
+          preco_calculado?: number
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          produto_id?: string
+          material_id?: string | null
+          maquina_id?: string | null
+          nome?: string
+          unidade?: string
+          quantidade_base?: number
+          custo_material?: number
+          custo_maquina?: number
+          custo_mao_obra?: number
+          custo_indireto?: number
+          margem_percentual?: number
+          preco_calculado?: number
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_contas: {
+        Row: {
+          id: string
+          nome: string
+          numero: string
+          provedor: string
+          phone_number_id: string | null
+          business_account_id: string | null
+          status: string
+          configuracoes: Json
+          ultimo_sync: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          numero: string
+          provedor?: string
+          phone_number_id?: string | null
+          business_account_id?: string | null
+          status?: string
+          configuracoes?: Json
+          ultimo_sync?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          numero?: string
+          provedor?: string
+          phone_number_id?: string | null
+          business_account_id?: string | null
+          status?: string
+          configuracoes?: Json
+          ultimo_sync?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_contatos: {
+        Row: {
+          id: string
+          cliente_id: string | null
+          contato_id: string | null
+          nome: string | null
+          telefone: string
+          wa_id: string | null
+          opt_in: boolean
+          ultima_interacao: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          cliente_id?: string | null
+          contato_id?: string | null
+          nome?: string | null
+          telefone: string
+          wa_id?: string | null
+          opt_in?: boolean
+          ultima_interacao?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          cliente_id?: string | null
+          contato_id?: string | null
+          nome?: string | null
+          telefone?: string
+          wa_id?: string | null
+          opt_in?: boolean
+          ultima_interacao?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_conversas: {
+        Row: {
+          id: string
+          conta_id: string | null
+          whatsapp_contato_id: string
+          cliente_id: string | null
+          os_id: string | null
+          status: string
+          assunto: string | null
+          responsavel_id: string | null
+          ultima_mensagem_em: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          conta_id?: string | null
+          whatsapp_contato_id: string
+          cliente_id?: string | null
+          os_id?: string | null
+          status?: string
+          assunto?: string | null
+          responsavel_id?: string | null
+          ultima_mensagem_em?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          conta_id?: string | null
+          whatsapp_contato_id?: string
+          cliente_id?: string | null
+          os_id?: string | null
+          status?: string
+          assunto?: string | null
+          responsavel_id?: string | null
+          ultima_mensagem_em?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_disparos: {
+        Row: {
+          id: string
+          template_id: string | null
+          automacao_id: string | null
+          nome: string
+          status: string
+          filtros: Json
+          total_destinatarios: number
+          total_enviados: number
+          total_falhas: number
+          agendado_para: string | null
+          iniciado_em: string | null
+          concluido_em: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          template_id?: string | null
+          automacao_id?: string | null
+          nome: string
+          status?: string
+          filtros?: Json
+          total_destinatarios?: number
+          total_enviados?: number
+          total_falhas?: number
+          agendado_para?: string | null
+          iniciado_em?: string | null
+          concluido_em?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          template_id?: string | null
+          automacao_id?: string | null
+          nome?: string
+          status?: string
+          filtros?: Json
+          total_destinatarios?: number
+          total_enviados?: number
+          total_falhas?: number
+          agendado_para?: string | null
+          iniciado_em?: string | null
+          concluido_em?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_mensagens: {
+        Row: {
+          id: string
+          conversa_id: string
+          conta_id: string | null
+          remetente_tipo: string
+          direcao: string
+          tipo: string
+          conteudo: string | null
+          media_url: string | null
+          template_nome: string | null
+          provider_message_id: string | null
+          status: string
+          erro: string | null
+          enviado_por: string | null
+          enviado_em: string | null
+          entregue_em: string | null
+          lido_em: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversa_id: string
+          conta_id?: string | null
+          remetente_tipo?: string
+          direcao?: string
+          tipo?: string
+          conteudo?: string | null
+          media_url?: string | null
+          template_nome?: string | null
+          provider_message_id?: string | null
+          status?: string
+          erro?: string | null
+          enviado_por?: string | null
+          enviado_em?: string | null
+          entregue_em?: string | null
+          lido_em?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversa_id?: string
+          conta_id?: string | null
+          remetente_tipo?: string
+          direcao?: string
+          tipo?: string
+          conteudo?: string | null
+          media_url?: string | null
+          template_nome?: string | null
+          provider_message_id?: string | null
+          status?: string
+          erro?: string | null
+          enviado_por?: string | null
+          enviado_em?: string | null
+          entregue_em?: string | null
+          lido_em?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_templates: {
+        Row: {
+          id: string
+          conta_id: string | null
+          nome: string
+          categoria: string | null
+          idioma: string
+          corpo: string
+          parametros: Json
+          status: string
+          provider_template_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          conta_id?: string | null
+          nome: string
+          categoria?: string | null
+          idioma: string
+          corpo: string
+          parametros?: Json
+          status?: string
+          provider_template_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          conta_id?: string | null
+          nome?: string
+          categoria?: string | null
+          idioma?: string
+          corpo?: string
+          parametros?: Json
+          status?: string
+          provider_template_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_webhooks: {
+        Row: {
+          id: string
+          conta_id: string | null
+          provider_event_id: string | null
+          evento: string
+          payload: Json
+          processado: boolean
+          erro: string | null
+          recebido_em: string
+          processado_em: string | null
+        }
+        Insert: {
+          id?: string
+          conta_id?: string | null
+          provider_event_id?: string | null
+          evento: string
+          payload?: Json
+          processado?: boolean
+          erro?: string | null
+          recebido_em?: string
+          processado_em?: string | null
+        }
+        Update: {
+          id?: string
+          conta_id?: string | null
+          provider_event_id?: string | null
+          evento?: string
+          payload?: Json
+          processado?: boolean
+          erro?: string | null
+          recebido_em?: string
+          processado_em?: string | null
+        }
+        Relationships: []
+      }
       aprovacoes: {
         Row: {
           aprovado: boolean
@@ -227,6 +1079,15 @@ export type Database = {
           tipo: Database["public"]["Enums"]["tipo_cliente"]
           updated_at: string
           vendedor_id: string | null
+
+          nome_fantasia: string | null
+          cpf_cnpj: string | null
+          whatsapp_principal: string | null
+          bairro: string | null
+          origem: string | null
+          tipo_cliente: Database["public"]["Enums"]["tipo_cliente"]
+          status: string
+          ultima_interacao: string | null
         }
         Insert: {
           ativo?: boolean
@@ -247,6 +1108,15 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["tipo_cliente"]
           updated_at?: string
           vendedor_id?: string | null
+
+          nome_fantasia?: string | null
+          cpf_cnpj?: string | null
+          whatsapp_principal?: string | null
+          bairro?: string | null
+          origem?: string | null
+          tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
+          status?: string
+          ultima_interacao?: string | null
         }
         Update: {
           ativo?: boolean
@@ -267,6 +1137,15 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["tipo_cliente"]
           updated_at?: string
           vendedor_id?: string | null
+
+          nome_fantasia?: string | null
+          cpf_cnpj?: string | null
+          whatsapp_principal?: string | null
+          bairro?: string | null
+          origem?: string | null
+          tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
+          status?: string
+          ultima_interacao?: string | null
         }
         Relationships: [
           {
@@ -579,6 +1458,14 @@ export type Database = {
           id: string
           nome: string
           unidade: string
+
+          fornecedor: string | null
+          custo_medio: number | null
+          estoque_minimo: number
+          estoque_maximo: number | null
+          localizacao: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
@@ -587,6 +1474,14 @@ export type Database = {
           id?: string
           nome: string
           unidade?: string
+
+          fornecedor?: string | null
+          custo_medio?: number | null
+          estoque_minimo?: number
+          estoque_maximo?: number | null
+          localizacao?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
@@ -595,8 +1490,55 @@ export type Database = {
           id?: string
           nome?: string
           unidade?: string
+
+          fornecedor?: string | null
+          custo_medio?: number | null
+          estoque_minimo?: number
+          estoque_maximo?: number | null
+          localizacao?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
+      }
+      os_materiais_obrigatorios: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          os_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          os_id: string
+          quantidade: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          os_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_materiais_obrigatorios_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_obrigatorios_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       movimentacoes_estoque: {
         Row: {
@@ -871,6 +1813,20 @@ export type Database = {
           updated_at: string
           valor_total: number
           vendedor_id: string | null
+
+          numero_os: number | null
+          contato_id: string | null
+          status_financeiro: Database["public"]["Enums"]["status_pagamento"]
+          status_arte: string
+          status_producao: string
+          prazo_cliente: string | null
+          prazo_interno: string | null
+          valor_venda: number
+          lucro_previsto: number
+          lucro_real: number
+          margem_prevista: number | null
+          precisa_entrega: boolean
+          precisa_instalacao: boolean
         }
         Insert: {
           briefing?: string | null
@@ -899,6 +1855,20 @@ export type Database = {
           updated_at?: string
           valor_total?: number
           vendedor_id?: string | null
+
+          numero_os?: number | null
+          contato_id?: string | null
+          status_financeiro?: Database["public"]["Enums"]["status_pagamento"]
+          status_arte?: string
+          status_producao?: string
+          prazo_cliente?: string | null
+          prazo_interno?: string | null
+          valor_venda?: number
+          lucro_previsto?: number
+          lucro_real?: number
+          margem_prevista?: number | null
+          precisa_entrega?: boolean
+          precisa_instalacao?: boolean
         }
         Update: {
           briefing?: string | null
@@ -927,6 +1897,20 @@ export type Database = {
           updated_at?: string
           valor_total?: number
           vendedor_id?: string | null
+
+          numero_os?: number | null
+          contato_id?: string | null
+          status_financeiro?: Database["public"]["Enums"]["status_pagamento"]
+          status_arte?: string
+          status_producao?: string
+          prazo_cliente?: string | null
+          prazo_interno?: string | null
+          valor_venda?: number
+          lucro_previsto?: number
+          lucro_real?: number
+          margem_prevista?: number | null
+          precisa_entrega?: boolean
+          precisa_instalacao?: boolean
         }
         Relationships: [
           {
@@ -1068,6 +2052,17 @@ export type Database = {
           id: string
           nome: string
           preco_base: number | null
+
+          categoria: string | null
+          maquina_padrao_id: string | null
+          material_principal_id: string | null
+          exigencias: string | null
+          margem_minima: number | null
+          margem_sugerida: number | null
+          preco_minimo: number | null
+          preco_sugerido: number | null
+          preco_publico: number | null
+          updated_at: string
         }
         Insert: {
           ativo?: boolean
@@ -1076,6 +2071,17 @@ export type Database = {
           id?: string
           nome: string
           preco_base?: number | null
+
+          categoria?: string | null
+          maquina_padrao_id?: string | null
+          material_principal_id?: string | null
+          exigencias?: string | null
+          margem_minima?: number | null
+          margem_sugerida?: number | null
+          preco_minimo?: number | null
+          preco_sugerido?: number | null
+          preco_publico?: number | null
+          updated_at?: string
         }
         Update: {
           ativo?: boolean
@@ -1084,6 +2090,17 @@ export type Database = {
           id?: string
           nome?: string
           preco_base?: number | null
+
+          categoria?: string | null
+          maquina_padrao_id?: string | null
+          material_principal_id?: string | null
+          exigencias?: string | null
+          margem_minima?: number | null
+          margem_sugerida?: number | null
+          preco_minimo?: number | null
+          preco_sugerido?: number | null
+          preco_publico?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1210,6 +2227,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      avancar_os_status: {
+        Args: {
+          novo_status: Database["public"]["Enums"]["status_os"]
+          os_id: string
+        }
+        Returns: Database["public"]["Tables"]["ordens_servico"]["Row"]
+      }
       can_see_financials: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -1219,6 +2243,10 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      status_os_exige_validacoes_producao: {
+        Args: { _status: Database["public"]["Enums"]["status_os"] }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
@@ -1276,7 +2304,7 @@ export type Database = {
         | "pago"
         | "atrasado"
         | "cancelado"
-      tipo_aprovacao: "arte" | "orcamento"
+      tipo_aprovacao: "arte" | "orcamento" | "margem_baixa" | "desconto_alto"
       tipo_cliente: "pf" | "pj"
     }
     CompositeTypes: {
@@ -1465,7 +2493,7 @@ export const Constants = {
         "atrasado",
         "cancelado",
       ],
-      tipo_aprovacao: ["arte", "orcamento"],
+      tipo_aprovacao: ["arte", "orcamento", "margem_baixa", "desconto_alto"],
       tipo_cliente: ["pf", "pj"],
     },
   },

@@ -136,7 +136,7 @@ function hasPendencia(os: any) {
 
 function KanbanPage() {
   const qc = useQueryClient();
-  const { canSeeFinancials, user } = useAuth();
+  const { canSeeFinancials } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -243,6 +243,7 @@ function KanbanPage() {
       detalhes: { anterior: atual?.status, novo: novoStatus, ordem_kanban: novaOrdem },
       usuario_id: user?.id,
     });
+    if (error) { toast.error(error.message); qc.invalidateQueries({ queryKey: ["kanban-os"] }); return; }
     toast.success("Status atualizado");
   }
 
