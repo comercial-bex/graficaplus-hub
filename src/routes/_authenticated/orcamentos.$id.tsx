@@ -219,6 +219,7 @@ function OrcamentoDetailPage() {
                   unidade: p.unidade,
                   valor_unitario: String(p.preco_base ?? 0),
                   custo_unitario: String(p.custo_medio ?? 0),
+                  produto_id: p.id,
                 })
               }
             />
