@@ -1040,27 +1040,57 @@ export type Database = {
       produtos: {
         Row: {
           ativo: boolean
+          categoria: Database["public"]["Enums"]["categoria_produto"]
           created_at: string
+          custo_medio: number
           descricao: string | null
           id: string
+          imagem_url: string | null
+          margem_minima: number
           nome: string
+          observacoes_internas: string | null
           preco_base: number | null
+          sku: string | null
+          tempo_producao_min: number | null
+          tipo: Database["public"]["Enums"]["tipo_item"]
+          unidade: string
+          updated_at: string
         }
         Insert: {
           ativo?: boolean
+          categoria?: Database["public"]["Enums"]["categoria_produto"]
           created_at?: string
+          custo_medio?: number
           descricao?: string | null
           id?: string
+          imagem_url?: string | null
+          margem_minima?: number
           nome: string
+          observacoes_internas?: string | null
           preco_base?: number | null
+          sku?: string | null
+          tempo_producao_min?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_item"]
+          unidade?: string
+          updated_at?: string
         }
         Update: {
           ativo?: boolean
+          categoria?: Database["public"]["Enums"]["categoria_produto"]
           created_at?: string
+          custo_medio?: number
           descricao?: string | null
           id?: string
+          imagem_url?: string | null
+          margem_minima?: number
           nome?: string
+          observacoes_internas?: string | null
           preco_base?: number | null
+          sku?: string | null
+          tempo_producao_min?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_item"]
+          unidade?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1214,6 +1244,15 @@ export type Database = {
         | "email"
         | "presencial"
         | "telefone"
+      categoria_produto:
+        | "impressao_grande_formato"
+        | "adesivos"
+        | "comunicacao_visual"
+        | "brindes"
+        | "acabamento"
+        | "instalacao"
+        | "servico"
+        | "outros"
       status_orcamento:
         | "rascunho"
         | "enviado"
@@ -1255,6 +1294,7 @@ export type Database = {
         | "cancelado"
       tipo_aprovacao: "arte" | "orcamento"
       tipo_cliente: "pf" | "pj"
+      tipo_item: "produto" | "servico"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1400,6 +1440,16 @@ export const Constants = {
         "presencial",
         "telefone",
       ],
+      categoria_produto: [
+        "impressao_grande_formato",
+        "adesivos",
+        "comunicacao_visual",
+        "brindes",
+        "acabamento",
+        "instalacao",
+        "servico",
+        "outros",
+      ],
       status_orcamento: [
         "rascunho",
         "enviado",
@@ -1444,6 +1494,7 @@ export const Constants = {
       ],
       tipo_aprovacao: ["arte", "orcamento"],
       tipo_cliente: ["pf", "pj"],
+      tipo_item: ["produto", "servico"],
     },
   },
 } as const
