@@ -32,7 +32,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
-import { baixarEstoqueDaOS } from "@/lib/estoque-baixa";
+import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
+import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
