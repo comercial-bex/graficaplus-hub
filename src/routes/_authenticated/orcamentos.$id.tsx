@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
+import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 
 export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
   head: () => ({ meta: [{ title: "Orçamento — BEX PRINT OS" }] }),
@@ -44,6 +45,7 @@ function OrcamentoDetailPage() {
     unidade: "un",
     valor_unitario: "0",
     custo_unitario: "0",
+    produto_id: null as string | null,
   });
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -101,7 +103,8 @@ function OrcamentoDetailPage() {
       custo_unitario: parseFloat(form.custo_unitario),
       valor_total: qtd * vu,
       ordem: itens.length,
-    });
+      produto_id: form.produto_id,
+    } as any);
     if (error) return toast.error(error.message);
     setForm({
       descricao: "",
@@ -109,6 +112,7 @@ function OrcamentoDetailPage() {
       unidade: "un",
       valor_unitario: "0",
       custo_unitario: "0",
+      produto_id: null,
     });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     setTimeout(recalcular, 100);
@@ -206,6 +210,20 @@ function OrcamentoDetailPage() {
 
       <Card>
         <CardContent className="p-4 space-y-4">
+          <div className="flex justify-end">
+            <ProdutoAutocomplete
+              onSelect={(p) =>
+                setForm({
+                  descricao: p.nome,
+                  quantidade: form.quantidade || "1",
+                  unidade: p.unidade,
+                  valor_unitario: String(p.preco_base ?? 0),
+                  custo_unitario: String(p.custo_medio ?? 0),
+                  produto_id: p.id,
+                })
+              }
+            />
+          </div>
           <div className="grid grid-cols-12 gap-2 items-end">
             <div className="col-span-5">
               <Label>Descrição</Label>

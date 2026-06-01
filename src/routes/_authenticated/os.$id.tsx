@@ -26,12 +26,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown } from "lucide-react";
+import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus } from "lucide-react";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
+import { baixarEstoqueDaOS } from "@/lib/estoque-baixa";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -145,6 +146,28 @@ function OSDetailPage() {
           <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
             <FileDown className="h-4 w-4 mr-1" /> PDF Produção
           </Button>
+          <Button
+            variant="outline"
+            disabled={os.estoque_baixado}
+            onClick={async () => {
+              const res = await baixarEstoqueDaOS(id, user?.id ?? null);
+              if (res.ok) {
+                toast.success(res.message);
+                qc.invalidateQueries({ queryKey: ["os", id] });
+              } else {
+                if (res.faltantes.length > 0) {
+                  toast.error(
+                    `${res.message} ${res.faltantes.map((f) => `${f.material}: precisa ${f.necessario}, tem ${f.disponivel}`).join("; ")}`,
+                  );
+                } else {
+                  toast.error(res.message);
+                }
+              }
+            }}
+          >
+            <PackageMinus className="h-4 w-4 mr-1" />
+            {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
+          </Button>
         </div>
       </div>
 
@@ -214,6 +237,7 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
     unidade: "un",
     valor_unitario: "0",
     custo_unitario: "0",
+    produto_id: null as string | null,
   });
   const { data: itens = [] } = useQuery({
     queryKey: ["itens-os", osId, canSeeFinancials ? "financeiro" : "operacional"],
@@ -238,7 +262,8 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
       custo_unitario: parseFloat(form.custo_unitario),
       valor_total: qtd * vu,
       ordem: itens.length,
-    });
+      produto_id: form.produto_id,
+    } as any);
     if (error) return toast.error(error.message);
     setForm({
       descricao: "",
@@ -246,6 +271,7 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
       unidade: "un",
       valor_unitario: "0",
       custo_unitario: "0",
+      produto_id: null,
     });
     qc.invalidateQueries({ queryKey: ["itens-os", osId] });
   }
@@ -265,6 +291,7 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
                 unidade: p.unidade,
                 valor_unitario: String(p.preco_base ?? 0),
                 custo_unitario: String(p.custo_medio ?? 0),
+                produto_id: p.id,
               })
             }
           />
