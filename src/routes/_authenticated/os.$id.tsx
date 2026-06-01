@@ -75,6 +75,7 @@ function OSDetailPage() {
   const qc = useQueryClient();
   const { canSeeFinancials, user } = useAuth();
   const [previewOpen, setPreviewOpen] = useState<null | "cliente" | "producao">(null);
+  const [baixaOpen, setBaixaOpen] = useState(false);
 
   const { data: os, isLoading } = useQuery({
     queryKey: ["os", id, canSeeFinancials ? "financeiro" : "operacional"],
