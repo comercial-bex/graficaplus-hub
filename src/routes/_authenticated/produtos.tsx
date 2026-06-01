@@ -78,6 +78,7 @@ import {
   parseCSV,
   toCSV,
 } from "@/lib/produtos-catalogo";
+import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
