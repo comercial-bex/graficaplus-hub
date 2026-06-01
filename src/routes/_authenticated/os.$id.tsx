@@ -146,6 +146,28 @@ function OSDetailPage() {
           <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
             <FileDown className="h-4 w-4 mr-1" /> PDF Produção
           </Button>
+          <Button
+            variant="outline"
+            disabled={os.estoque_baixado}
+            onClick={async () => {
+              const res = await baixarEstoqueDaOS(id, user?.id ?? null);
+              if (res.ok) {
+                toast.success(res.message);
+                qc.invalidateQueries({ queryKey: ["os", id] });
+              } else {
+                if (res.faltantes.length > 0) {
+                  toast.error(
+                    `${res.message} ${res.faltantes.map((f) => `${f.material}: precisa ${f.necessario}, tem ${f.disponivel}`).join("; ")}`,
+                  );
+                } else {
+                  toast.error(res.message);
+                }
+              }
+            }}
+          >
+            <PackageMinus className="h-4 w-4 mr-1" />
+            {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
+          </Button>
         </div>
       </div>
 
