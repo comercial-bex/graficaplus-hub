@@ -709,7 +709,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   });
   const { data: resultado } = useQuery({
     queryKey: ["resultado-os", osId],
-    queryFn: async () => (await supabase.from("os_resultados").select("*").eq("os_id", osId).maybeSingle()).data,
+    queryFn: async () => (await (supabase as any).from("os_resultados").select("*").eq("os_id", osId).maybeSingle()).data as any,
   });
 
   async function addPag() {
