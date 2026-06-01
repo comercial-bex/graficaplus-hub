@@ -45,6 +45,7 @@ function OrcamentoDetailPage() {
     unidade: "un",
     valor_unitario: "0",
     custo_unitario: "0",
+    produto_id: null as string | null,
   });
   const [previewOpen, setPreviewOpen] = useState(false);
 
