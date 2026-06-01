@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,6 @@ import {
   User,
   Tag,
 } from "lucide-react";
-import { conversasWhatsapp } from "@/lib/mock-data";
 import { detectsHumanHandoff, getWhatsAppBotTransition, whatsappBotFlow } from "@/lib/whatsapp-bot";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
@@ -39,10 +37,83 @@ const mensagensMock = [
   { id: 5, dir: "in", txt: "Para sexta-feira se possível.", hora: "10:20" },
 ];
 
+type ConversaWhatsapp = {
+  id: string;
+  nome: string;
+  numero: string;
+  ultima: string;
+  hora: string;
+  naoLidas: number;
+  etiqueta: string;
+};
+
+const conversasWhatsappSeed: ConversaWhatsapp[] = [
+  {
+    id: "c1",
+    nome: "Marcos Silva",
+    numero: "+55 11 98765-4321",
+    ultima: "Tudo certo, pode produzir!",
+    hora: "14:32",
+    naoLidas: 0,
+    etiqueta: "Produção",
+  },
+  {
+    id: "c2",
+    nome: "Padaria Aurora",
+    numero: "+55 11 91234-5678",
+    ultima: "Vocês fazem fachada em ACM?",
+    hora: "14:18",
+    naoLidas: 3,
+    etiqueta: "Orçamento",
+  },
+  {
+    id: "c3",
+    nome: "Studio Vita",
+    numero: "+55 11 99887-6655",
+    ultima: "Comprovante anexo",
+    hora: "13:45",
+    naoLidas: 1,
+    etiqueta: "Pagamento",
+  },
+  {
+    id: "c4",
+    nome: "Cliente novo",
+    numero: "+55 11 98123-4567",
+    ultima: "Bom dia, gostaria de um orçamento",
+    hora: "12:10",
+    naoLidas: 2,
+    etiqueta: "Lead",
+  },
+  {
+    id: "c5",
+    nome: "Auto Posto BR",
+    numero: "+55 11 97654-3210",
+    ultima: "Quando posso retirar?",
+    hora: "11:02",
+    naoLidas: 0,
+    etiqueta: "Pronto",
+  },
+];
+
 function WhatsAppPage() {
-  const [selected, setSelected] = useState(conversasWhatsapp[0]);
+  const [search, setSearch] = useState("");
+  const [conversasWhatsapp, setConversasWhatsapp] = useState(conversasWhatsappSeed);
+  const [selectedId, setSelectedId] = useState(conversasWhatsappSeed[0].id);
   const [botPreview, setBotPreview] = useState("Preciso falar com alguém sobre meu pagamento");
+  const conversas = useMemo(
+    () =>
+      conversasWhatsapp.filter((conversa) =>
+        `${conversa.nome} ${conversa.numero} ${conversa.ultima} ${conversa.etiqueta}`
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+      ),
+    [conversasWhatsapp, search],
+  );
+  const selected = conversasWhatsapp.find((conversa) => conversa.id === selectedId) ?? conversasWhatsapp[0];
   const botTransition = getWhatsAppBotTransition(botPreview);
+  const updateConversation = (id: string, changes: Partial<ConversaWhatsapp>) => {
+    setConversasWhatsapp((current) => current.map((conversa) => (conversa.id === id ? { ...conversa, ...changes } : conversa)));
+  };
 
   return (
     <div className="h-[calc(100vh-8rem)] grid grid-cols-12 gap-4">
@@ -59,7 +130,7 @@ function WhatsAppPage() {
           </div>
         </div>
         <div className="flex-1 overflow-auto">
-          {conversas.map((c: any) => (
+          {conversas.map((c) => (
             <button
               key={c.id}
               onClick={() => setSelectedId(c.id)}
@@ -73,11 +144,11 @@ function WhatsAppPage() {
                   <div className="flex justify-between gap-2">
                     <span className="font-medium text-sm truncate">{c.nome}</span>
                     <span className="text-[10px] text-muted-foreground shrink-0">
-                      {formatDateTime(c.ultima_interacao)}
+                      {c.hora}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
-                    {c.ultima_mensagem || "Sem mensagens"}
+                    {c.ultima || "Sem mensagens"}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-[10px] py-0">
@@ -231,14 +302,14 @@ function WhatsAppPage() {
             variant="outline"
             size="sm"
             className="w-full justify-start"
-            onClick={() => update.mutate({ id: selected.id, changes: { etiqueta: "Atendimento" } })}
+            onClick={() => updateConversation(selected.id, { etiqueta: "Atendimento" })}
           >
             <Tag className="h-4 w-4 mr-2" /> Editar etiqueta
           </Button>
           <Button
             size="sm"
             className="w-full"
-            onClick={() => update.mutate({ id: selected.id, changes: { nao_lidas: 0 } })}
+            onClick={() => updateConversation(selected.id, { naoLidas: 0 })}
           >
             Concluir atendimento
           </Button>
