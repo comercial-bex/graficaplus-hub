@@ -166,8 +166,20 @@ function DashboardPage() {
     ),
   ).map(([name, value], i) => ({ name, value, color: statusColors[i % statusColors.length] }));
   const tempoMedioPorEtapa = osPorStatus.map((s) => ({ etapa: s.name, horas: s.value }));
-  const produtosMaisVendidos = (dashboardData?.produtos ?? [])
-    .map((p: any) => ({ produto: p.nome, qtd: 1 }))
+  const itensOs = dashboardData?.itensOs ?? [];
+  const produtosMaisVendidos = Object.entries(
+    itensOs.reduce((acc: Record<string, { qtd: number; valor: number }>, i: any) => {
+      const k = (i.descricao || "—").slice(0, 40);
+      const prev = acc[k] ?? { qtd: 0, valor: 0 };
+      acc[k] = {
+        qtd: prev.qtd + Number(i.quantidade ?? 0),
+        valor: prev.valor + Number(i.valor_total ?? 0),
+      };
+      return acc;
+    }, {}),
+  )
+    .map(([produto, v]) => ({ produto, qtd: (v as any).qtd, valor: (v as any).valor }))
+    .sort((a, b) => b.valor - a.valor)
     .slice(0, 8);
   const producaoPorMaquina = (dashboardData?.maquinas ?? [])
     .map((m: any) => ({ maquina: m.nome, horas: 0 }))
