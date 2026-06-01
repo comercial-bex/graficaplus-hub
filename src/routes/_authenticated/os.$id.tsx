@@ -27,6 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown } from "lucide-react";
+import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
