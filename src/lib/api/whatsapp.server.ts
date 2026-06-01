@@ -56,7 +56,12 @@ function zapiConfig(): {
     throw new Error(`Missing ${missing.join(", ")} server environment variable(s)`);
   }
 
-  return { baseUrl, clientToken, accountToken, instanceToken };
+  return {
+    baseUrl,
+    clientToken: clientToken!,
+    instanceToken: instanceToken!,
+    ...(accountToken ? { accountToken } : {}),
+  };
 }
 
 function normalizePhone(phone: string) {
