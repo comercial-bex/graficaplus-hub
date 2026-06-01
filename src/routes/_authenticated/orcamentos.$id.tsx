@@ -103,7 +103,8 @@ function OrcamentoDetailPage() {
       custo_unitario: parseFloat(form.custo_unitario),
       valor_total: qtd * vu,
       ordem: itens.length,
-    });
+      produto_id: form.produto_id,
+    } as any);
     if (error) return toast.error(error.message);
     setForm({
       descricao: "",
@@ -111,6 +112,7 @@ function OrcamentoDetailPage() {
       unidade: "un",
       valor_unitario: "0",
       custo_unitario: "0",
+      produto_id: null,
     });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     setTimeout(recalcular, 100);
