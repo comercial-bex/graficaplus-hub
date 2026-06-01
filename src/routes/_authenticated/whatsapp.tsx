@@ -90,9 +90,9 @@ function WhatsAppPage() {
                     )}
                   </div>
                 </div>
-              </button>
-            );
-          })}
+              </div>
+            </button>
+          ))}
         </div>
       </Card>
       <Card className="col-span-6 flex flex-col overflow-hidden">
