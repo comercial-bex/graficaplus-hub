@@ -179,12 +179,25 @@ function OSDetailPage() {
 
       <PDFHistoryCard tipo="os" referencia_id={id} />
 
+      <HistoricoEstoqueCard osId={id} />
+
       <PDFPreviewDialog
         open={previewOpen !== null}
         onOpenChange={(o) => !o && setPreviewOpen(null)}
         tipo="os"
         referencia_id={id}
         mostrarValores={previewOpen !== "producao"}
+      />
+
+      <BaixaEstoqueDialog
+        open={baixaOpen}
+        onOpenChange={setBaixaOpen}
+        osId={id}
+        userId={user?.id ?? null}
+        onDone={() => {
+          qc.invalidateQueries({ queryKey: ["os", id] });
+          qc.invalidateQueries({ queryKey: ["historico-estoque", id] });
+        }}
       />
     </div>
   );
