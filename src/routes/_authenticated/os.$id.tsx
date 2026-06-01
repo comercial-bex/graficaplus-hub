@@ -32,7 +32,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
-import { baixarEstoqueDaOS } from "@/lib/estoque-baixa";
+import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
+import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -74,6 +75,7 @@ function OSDetailPage() {
   const qc = useQueryClient();
   const { canSeeFinancials, user } = useAuth();
   const [previewOpen, setPreviewOpen] = useState<null | "cliente" | "producao">(null);
+  const [baixaOpen, setBaixaOpen] = useState(false);
 
   const { data: os, isLoading } = useQuery({
     queryKey: ["os", id, canSeeFinancials ? "financeiro" : "operacional"],
@@ -149,21 +151,7 @@ function OSDetailPage() {
           <Button
             variant="outline"
             disabled={os.estoque_baixado}
-            onClick={async () => {
-              const res = await baixarEstoqueDaOS(id, user?.id ?? null);
-              if (res.ok) {
-                toast.success(res.message);
-                qc.invalidateQueries({ queryKey: ["os", id] });
-              } else {
-                if (res.faltantes.length > 0) {
-                  toast.error(
-                    `${res.message} ${res.faltantes.map((f) => `${f.material}: precisa ${f.necessario}, tem ${f.disponivel}`).join("; ")}`,
-                  );
-                } else {
-                  toast.error(res.message);
-                }
-              }
-            }}
+            onClick={() => setBaixaOpen(true)}
           >
             <PackageMinus className="h-4 w-4 mr-1" />
             {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
@@ -191,12 +179,25 @@ function OSDetailPage() {
 
       <PDFHistoryCard tipo="os" referencia_id={id} />
 
+      <HistoricoEstoqueCard osId={id} />
+
       <PDFPreviewDialog
         open={previewOpen !== null}
         onOpenChange={(o) => !o && setPreviewOpen(null)}
         tipo="os"
         referencia_id={id}
         mostrarValores={previewOpen !== "producao"}
+      />
+
+      <BaixaEstoqueDialog
+        open={baixaOpen}
+        onOpenChange={setBaixaOpen}
+        osId={id}
+        userId={user?.id ?? null}
+        onDone={() => {
+          qc.invalidateQueries({ queryKey: ["os", id] });
+          qc.invalidateQueries({ queryKey: ["historico-estoque", id] });
+        }}
       />
     </div>
   );
