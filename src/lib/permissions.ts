@@ -55,7 +55,7 @@ export const routePermissions: { path: string; permission: Permission }[] = [
 ];
 
 export function hasPermission(roles: AppRole[], permission: Permission) {
-  return roles.some((role) => rolePermissions[role]?.includes(permission));
+  return roles.some((role) => (rolePermissions[role] as readonly Permission[] | undefined)?.includes(permission));
 }
 
 export function getRoutePermission(pathname: string) {
