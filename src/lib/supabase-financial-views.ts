@@ -16,6 +16,12 @@ export function financialView(entity: ProtectedEntity, canSeeFinancials: boolean
   return (canSeeFinancials ? financialViewName : operationalView) as string;
 }
 
-export function fromFinancialView(entity: ProtectedEntity, canSeeFinancials: boolean) {
-  return supabase.from(financialView(entity, canSeeFinancials) as never);
+export function fromFinancialView<E extends ProtectedEntity>(
+  entity: E,
+  canSeeFinancials: boolean,
+) {
+  const view = financialView(entity, canSeeFinancials);
+  // Views mirror the base table shape but aren't in generated types;
+  // cast through the base table so consumers get typed rows.
+  return (supabase.from as unknown as (name: string) => ReturnType<typeof supabase.from<E>>)(view);
 }
