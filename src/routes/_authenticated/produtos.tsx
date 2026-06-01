@@ -144,7 +144,7 @@ function ProdutosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {produtos.map((p) => (
+                {produtos.map((p: any) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">{p.nome}</TableCell>
                     <TableCell className="text-muted-foreground max-w-md truncate">

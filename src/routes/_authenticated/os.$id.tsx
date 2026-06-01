@@ -88,7 +88,7 @@ function OSDetailPage() {
   async function updateStatus(novoStatus: string) {
     const statusAnterior = os?.status;
     const { error } = novoStatus === "concluido"
-      ? await supabase.rpc("fechar_os", { os_id: id })
+      ? await (supabase as any).rpc("fechar_os", { os_id: id })
       : await supabase.from("ordens_servico").update({ status: novoStatus as any }).eq("id", id);
     if (error) return toast.error(error.message);
     await supabase.from("logs_auditoria").insert({
@@ -397,7 +397,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
       const { error: upErr } = await supabase.storage.from("arquivos-clientes").upload(path, file);
       if (upErr) throw upErr;
       const versao = arquivos.filter((a: any) => a.nome === file.name).length + 1;
-      const { error } = await supabase.from("arquivos").insert({
+      const { data: novo, error } = await (supabase as any).from("arquivos").insert({
         os_id: osId,
         nome: file.name,
         caminho: path,
@@ -405,11 +405,11 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
         tamanho_bytes: file.size,
         enviado_por: userId,
         versao,
-      });
+      }).select("id").single();
       if (error) throw error;
 
       if (substituir && novo?.id) {
-        const { error: subErr } = await supabase.from("arquivos").update({
+        const { error: subErr } = await (supabase as any).from("arquivos").update({
           status: "substituido" as any,
           substituido_por: novo.id,
           ativo: false,
@@ -438,7 +438,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
   }
 
   async function marcarInativo(id: string) {
-    const { error } = await supabase.from("arquivos").update({ status: "inativo" as any, ativo: false }).eq("id", id);
+    const { error } = await (supabase as any).from("arquivos").update({ status: "inativo", ativo: false }).eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
     toast.success("Arquivo marcado como inativo");
@@ -475,6 +475,13 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
   async function download(caminho: string) {
     const { data } = await supabase.storage.from("arquivos-clientes").createSignedUrl(caminho, 60);
     if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+  }
+
+  async function marcarFinal(id: string) {
+    const { error } = await supabase.from("arquivos").update({ final_producao: true }).eq("id", id);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
+    toast.success("Arquivo marcado como final de produção");
   }
 
   return (
@@ -702,7 +709,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   });
   const { data: resultado } = useQuery({
     queryKey: ["resultado-os", osId],
-    queryFn: async () => (await supabase.from("os_resultados").select("*").eq("os_id", osId).maybeSingle()).data,
+    queryFn: async () => (await (supabase as any).from("os_resultados").select("*").eq("os_id", osId).maybeSingle()).data as any,
   });
 
   async function addPag() {

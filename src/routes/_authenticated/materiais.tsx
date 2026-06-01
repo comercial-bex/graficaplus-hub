@@ -71,9 +71,9 @@ function MateriaisPage() {
   });
 
   const totalValor = canSeeFinancials
-    ? materiais.reduce((sum, m: any) => sum + Number(m.estoque) * Number(m.custo_unitario || 0), 0)
+    ? materiais.reduce((sum: number, m: any) => sum + Number(m.estoque) * Number(m.custo_unitario || 0), 0)
     : 0;
-  const baixoEstoque = materiais.filter((m) => Number(m.estoque) < 10).length;
+  const baixoEstoque = materiais.filter((m: any) => Number(m.estoque) < 10).length;
 
   return (
     <div className="space-y-6">
@@ -200,7 +200,7 @@ function MateriaisPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {materiais.map((m) => {
+                {materiais.map((m: any) => {
                   const baixo = Number(m.estoque) < 10;
                   return (
                     <TableRow key={m.id}>

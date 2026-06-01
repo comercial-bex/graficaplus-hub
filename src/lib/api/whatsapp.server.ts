@@ -37,7 +37,12 @@ type IncomingWebhookInput = {
 
 const WHATSAPP_MEDIA_BUCKET = "whatsapp-midias";
 
-function zapiConfig() {
+function zapiConfig(): {
+  baseUrl: string;
+  clientToken: string;
+  accountToken?: string;
+  instanceToken: string;
+} {
   const baseUrl = process.env.ZAPI_BASE_URL ?? "https://api.z-api.io";
   const clientToken = process.env.ZAPI_CLIENT_TOKEN;
   const accountToken = process.env.ZAPI_ACCOUNT_TOKEN;
@@ -51,14 +56,19 @@ function zapiConfig() {
     throw new Error(`Missing ${missing.join(", ")} server environment variable(s)`);
   }
 
-  return { baseUrl, clientToken, accountToken, instanceToken };
+  return {
+    baseUrl,
+    clientToken: clientToken!,
+    instanceToken: instanceToken!,
+    ...(accountToken ? { accountToken } : {}),
+  };
 }
 
 function normalizePhone(phone: string) {
   return phone.replace(/\D/g, "");
 }
 
-function zapiHeaders() {
+function zapiHeaders(): HeadersInit {
   const { clientToken, accountToken } = zapiConfig();
   return {
     "content-type": "application/json",

@@ -361,7 +361,7 @@ function DashboardPage() {
                 <div key={s.name} className="flex items-center gap-1.5 text-xs">
                   <div className="h-2 w-2 rounded-full" style={{ background: s.color }} />
                   <span>
-                    {s.name} {s.value}%
+                    {s.name} {Number(s.value).toFixed(0)}%
                   </span>
                 </div>
               ))}

@@ -31,11 +31,11 @@ function ArquivosPage() {
   const { data: arquivos = [], isLoading } = useQuery({
     queryKey: ["arquivos", busca, tipo, status],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase
         .from("arquivos")
         .select("*, ordens_servico(id, numero, titulo), clientes(id, nome), usuarios(nome), aprovacoes(id, aprovado, canal, created_at, observacao, usuarios(nome), cliente_contatos(nome))")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(200) as any);
 
       if (tipo !== "todos") query = query.eq("tipo", tipo as any);
       if (status !== "todos") query = query.eq("status", status as any);

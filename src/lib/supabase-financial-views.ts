@@ -22,7 +22,6 @@ export function fromFinancialView<E extends ProtectedEntity>(
 ) {
   const view = financialView(entity, canSeeFinancials);
   // Views mirror the base table shape but aren't in generated types;
-  // route through the base table builder so consumers get typed rows.
-  type Builder = ReturnType<(typeof supabase)["from"]>;
-  return (supabase as unknown as { from: (name: string) => Builder }).from(view);
+  // use a dynamic builder so generated table typings don't reject view names.
+  return (supabase as any).from(view);
 }

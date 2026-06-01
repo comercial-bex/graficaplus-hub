@@ -80,7 +80,7 @@ function PublicPortalPage() {
     );
   }
 
-  if (!verification.data?.valid || !record) {
+  if (!verification.data?.valid || !payload || !record) {
     return (
       <PublicShell>
         <Alert variant="destructive" className="mx-auto max-w-2xl">
