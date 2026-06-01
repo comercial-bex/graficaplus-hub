@@ -256,6 +256,19 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
+        <div className="flex justify-end">
+          <ProdutoAutocomplete
+            onSelect={(p) =>
+              setForm({
+                descricao: p.nome,
+                quantidade: form.quantidade || "1",
+                unidade: p.unidade,
+                valor_unitario: String(p.preco_base ?? 0),
+                custo_unitario: String(p.custo_medio ?? 0),
+              })
+            }
+          />
+        </div>
         <div className="grid grid-cols-12 gap-2 items-end">
           <div className="col-span-5">
             <Label>Descrição</Label>
