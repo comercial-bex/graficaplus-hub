@@ -106,8 +106,8 @@ function DashboardPage() {
   const { data: dashboardData } = useQuery({
     queryKey: ["dashboard-operacional"],
     queryFn: async () => {
-      const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais] = await Promise.all(
-        [
+      const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs] =
+        await Promise.all([
           supabase.from("ordens_servico").select("status, valor_total, custo_real, created_at"),
           supabase.from("custos_os").select("categoria, valor"),
           supabase.from("produtos").select("nome"),
@@ -117,8 +117,8 @@ function DashboardPage() {
             .from("whatsapp_conversas")
             .select("nome, ultima_mensagem, nao_lidas, ultima_interacao"),
           supabase.from("materiais").select("id, nome, unidade, estoque"),
-        ],
-      );
+          supabase.from("itens_os").select("descricao, quantidade, valor_total"),
+        ]);
 
       return {
         os: os.data ?? [],
@@ -128,6 +128,7 @@ function DashboardPage() {
         ocorrencias: ocorrencias.data ?? [],
         conversas: conversas.data ?? [],
         materiais: materiais.data ?? [],
+        itensOs: itensOs.data ?? [],
       };
     },
   });
