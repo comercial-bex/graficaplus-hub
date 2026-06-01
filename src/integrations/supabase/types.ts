@@ -470,6 +470,7 @@ export type Database = {
           id: string
           ordem: number
           os_id: string
+          produto_id: string | null
           quantidade: number
           unidade: string
           valor_total: number
@@ -482,6 +483,7 @@ export type Database = {
           id?: string
           ordem?: number
           os_id: string
+          produto_id?: string | null
           quantidade?: number
           unidade?: string
           valor_total?: number
@@ -494,6 +496,7 @@ export type Database = {
           id?: string
           ordem?: number
           os_id?: string
+          produto_id?: string | null
           quantidade?: number
           unidade?: string
           valor_total?: number
@@ -505,6 +508,13 @@ export type Database = {
             columns: ["os_id"]
             isOneToOne: false
             referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_os_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
         ]
@@ -706,6 +716,7 @@ export type Database = {
           id: string
           orcamento_id: string
           ordem: number
+          produto_id: string | null
           quantidade: number
           unidade: string
           valor_total: number
@@ -718,6 +729,7 @@ export type Database = {
           id?: string
           orcamento_id: string
           ordem?: number
+          produto_id?: string | null
           quantidade?: number
           unidade?: string
           valor_total?: number
@@ -730,6 +742,7 @@ export type Database = {
           id?: string
           orcamento_id?: string
           ordem?: number
+          produto_id?: string | null
           quantidade?: number
           unidade?: string
           valor_total?: number
@@ -741,6 +754,13 @@ export type Database = {
             columns: ["orcamento_id"]
             isOneToOne: false
             referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
         ]
@@ -853,6 +873,8 @@ export type Database = {
           custo_real: number
           data_entrega_real: string | null
           designer_id: string | null
+          estoque_baixado: boolean
+          estoque_baixado_em: string | null
           id: string
           margem_real: number | null
           numero: number
@@ -878,6 +900,8 @@ export type Database = {
           custo_real?: number
           data_entrega_real?: string | null
           designer_id?: string | null
+          estoque_baixado?: boolean
+          estoque_baixado_em?: string | null
           id?: string
           margem_real?: number | null
           numero?: number
@@ -903,6 +927,8 @@ export type Database = {
           custo_real?: number
           data_entrega_real?: string | null
           designer_id?: string | null
+          estoque_baixado?: boolean
+          estoque_baixado_em?: string | null
           id?: string
           margem_real?: number | null
           numero?: number
@@ -1033,6 +1059,48 @@ export type Database = {
             columns: ["registrado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_materiais: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          observacao: string | null
+          produto_id: string
+          quantidade_por_unidade: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          observacao?: string | null
+          produto_id: string
+          quantidade_por_unidade?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          observacao?: string | null
+          produto_id?: string
+          quantidade_por_unidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_materiais_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_materiais_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
         ]
