@@ -914,6 +914,11 @@ function ProdutoFormDialog({
               />
             </div>
           </section>
+
+          {/* Materiais consumidos — só faz sentido em itens existentes */}
+          {form.id && form.tipo === "produto" && (
+            <ProdutoMateriaisEditor produtoId={form.id} produtoUnidade={form.unidade} />
+          )}
         </div>
 
         <DialogFooter className="gap-2">
