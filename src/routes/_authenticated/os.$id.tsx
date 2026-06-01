@@ -237,6 +237,7 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
     unidade: "un",
     valor_unitario: "0",
     custo_unitario: "0",
+    produto_id: null as string | null,
   });
   const { data: itens = [] } = useQuery({
     queryKey: ["itens-os", osId, canSeeFinancials ? "financeiro" : "operacional"],
@@ -261,7 +262,8 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
       custo_unitario: parseFloat(form.custo_unitario),
       valor_total: qtd * vu,
       ordem: itens.length,
-    });
+      produto_id: form.produto_id,
+    } as any);
     if (error) return toast.error(error.message);
     setForm({
       descricao: "",
@@ -269,6 +271,7 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
       unidade: "un",
       valor_unitario: "0",
       custo_unitario: "0",
+      produto_id: null,
     });
     qc.invalidateQueries({ queryKey: ["itens-os", osId] });
   }
