@@ -14,6 +14,7 @@ import {
   Package,
   Printer,
   TrendingUp,
+  Users,
   Wrench,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
