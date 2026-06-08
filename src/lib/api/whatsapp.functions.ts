@@ -28,7 +28,8 @@ export const enviarTextoWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(sendBaseSchema.extend({ text: z.string().min(1) }))
   .handler(async ({ data, context }) => {
-    const { sendWhatsAppText } = await import("./whatsapp.server");
+    const { assertWhatsAppStaffUser, sendWhatsAppText } = await import("./whatsapp.server");
+    await assertWhatsAppStaffUser(context.userId);
     return sendWhatsAppText({ ...data, userId: context.userId });
   });
 
@@ -38,7 +39,8 @@ export const enviarImagemWhatsapp = createServerFn({ method: "POST" })
     sendBaseSchema.extend({ imageUrl: z.string().url(), caption: z.string().optional() }),
   )
   .handler(async ({ data, context }) => {
-    const { sendWhatsAppImage } = await import("./whatsapp.server");
+    const { assertWhatsAppStaffUser, sendWhatsAppImage } = await import("./whatsapp.server");
+    await assertWhatsAppStaffUser(context.userId);
     return sendWhatsAppImage({ ...data, userId: context.userId });
   });
 
@@ -52,7 +54,8 @@ export const enviarDocumentoWhatsapp = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
-    const { sendWhatsAppDocument } = await import("./whatsapp.server");
+    const { assertWhatsAppStaffUser, sendWhatsAppDocument } = await import("./whatsapp.server");
+    await assertWhatsAppStaffUser(context.userId);
     return sendWhatsAppDocument({ ...data, userId: context.userId });
   });
 
