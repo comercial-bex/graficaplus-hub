@@ -78,6 +78,28 @@ async function getInstance(instanceId: string) {
   return data as unknown as { id: string; zapi_instance_id: string };
 }
 
+async function getInstanceByZapiInstanceId(zapiInstanceId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("whatsapp_instancias" as never)
+    .select("id,zapi_instance_id" as never)
+    .eq("zapi_instance_id" as never, zapiInstanceId)
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "Instância WhatsApp não encontrada");
+  return data as unknown as { id: string; zapi_instance_id: string };
+}
+
+async function resolveWebhookInstanciaId(input: { instanciaId?: string; instanceId?: string }) {
+  if (input.instanceId) {
+    const instance = await getInstanceByZapiInstanceId(input.instanceId);
+    return instance.id;
+  }
+
+  if (input.instanciaId) return input.instanciaId;
+
+  throw new Error("Webhook sem instanciaId");
+}
+
 async function zapiPost(instanceId: string, path: string, body: JsonRecord) {
   const instance = await getInstance(instanceId);
   const { baseUrl, instanceToken } = zapiConfig();
@@ -105,6 +127,15 @@ async function zapiPost(instanceId: string, path: string, body: JsonRecord) {
 
 async function logWhatsapp(data: JsonRecord) {
   await supabaseAdmin.from("whatsapp_logs" as never).insert(data as never);
+}
+
+export async function assertWhatsAppStaffUser(userId: string) {
+  const { data: isStaff, error } = await supabaseAdmin.rpc("is_staff", { _user_id: userId });
+
+  if (error) throw new Error(error.message);
+  if (!isStaff) {
+    throw new Error("Usuário sem permissão para enviar WhatsApp");
+  }
 }
 
 export async function resolveCustomerByPhone(phone: string, contactName?: string) {
@@ -389,9 +420,9 @@ function incomingMedia(payload: IncomingWebhookInput) {
 }
 
 export async function handleIncomingMessageWebhook(payload: IncomingWebhookInput) {
-  const instanciaId = payload.instanciaId ?? payload.instanceId;
+  const instanciaId = await resolveWebhookInstanciaId(payload);
   const phone = payload.phone ?? payload.from;
-  if (!instanciaId || !phone) throw new Error("Webhook sem instanciaId ou telefone");
+  if (!phone) throw new Error("Webhook sem telefone");
 
   const text = incomingText(payload);
   const media = incomingMedia(payload);
@@ -455,8 +486,7 @@ export async function handleMessageStatusWebhook(payload: {
   status: string;
   [key: string]: unknown;
 }) {
-  const instanciaId = payload.instanciaId ?? payload.instanceId;
-  if (!instanciaId) throw new Error("Webhook sem instanciaId");
+  const instanciaId = await resolveWebhookInstanciaId(payload);
   const statusMap: Record<string, string> = {
     SENT: "enviada",
     DELIVERED: "entregue",
@@ -500,8 +530,7 @@ export async function handleConnectionWebhook(payload: {
   status?: string;
   [key: string]: unknown;
 }) {
-  const instanciaId = payload.instanciaId ?? payload.instanceId;
-  if (!instanciaId) throw new Error("Webhook sem instanciaId");
+  const instanciaId = await resolveWebhookInstanciaId(payload);
   const connected = payload.connected ?? payload.status === "connected";
   const status = connected
     ? "conectada"
