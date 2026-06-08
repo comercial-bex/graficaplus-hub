@@ -99,11 +99,11 @@ BEGIN
     RETURN v_os;
   END IF;
 
-  IF v_os.responsavel_id IS NULL THEN
-    RAISE EXCEPTION 'Defina um responsável antes de alterar o status da OS %.', os_id;
-  END IF;
-
   IF public.status_os_exige_validacoes_producao(novo_status) THEN
+    IF v_os.responsavel_id IS NULL THEN
+      RAISE EXCEPTION 'Defina um responsável antes de avançar a OS % para %.', os_id, novo_status;
+    END IF;
+
     SELECT COALESCE(SUM(valor), 0) INTO v_total_pago
     FROM public.pagamentos
     WHERE pagamentos.os_id = avancar_os_status.os_id
