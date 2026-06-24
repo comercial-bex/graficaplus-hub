@@ -216,10 +216,11 @@ function KanbanPage() {
     qc.setQueryData(["kanban-os"], (prev: any) =>
       prev?.map((o: any) => (o.id === osId ? { ...o, status: novoStatus } : o)),
     );
-    const { error } = await supabase
-      .from("ordens_servico")
-      .update({ status: novoStatus as any })
-      .eq("id", osId);
+    const { error } = await supabase.rpc("avancar_os_status", {
+      p_os_id: osId,
+      p_novo_status: novoStatus,
+      p_justificativa: `Movido para ${coluna?.titulo ?? novoStatus} no Kanban`,
+    });
     if (error) {
       toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["kanban-os"] });

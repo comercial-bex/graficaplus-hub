@@ -1,57 +1,61 @@
 import type { AppRole } from "@/lib/auth-context";
 
 export const permissions = [
-  "clientes.read",
-  "orcamentos.create",
-  "financeiro.read",
-  "custos.read",
-  "kanban.move",
-  "arquivos.approve",
-  "estoque.cost.read",
-  "instalacao.update",
+  "leads.read", "leads.create", "leads.update", "leads.assign", "leads.convert", "leads.delete",
+  "clientes.read", "clientes.create", "clientes.update", "clientes.delete", "clientes.sensitive.read",
+  "whatsapp.read", "whatsapp.reply", "whatsapp.assign", "whatsapp.transfer", "whatsapp.manage", "automacoes.read", "automacoes.manage", "templates.manage",
+  "orcamentos.read", "orcamentos.create", "orcamentos.update", "orcamentos.send", "orcamentos.approve", "orcamentos.cancel", "orcamentos.convert", "desconto.request", "desconto.approve", "margem.read",
+  "os.read", "os.create", "os.update", "os.assign", "os.status.advance", "os.status.override", "os.close",
+  "financeiro.read", "financeiro.sensitive.read", "pagamentos.create", "pagamentos.update", "pagamentos.confirm", "pagamentos.reverse", "custos.read", "resultado.read",
+  "usuarios.read", "usuarios.manage", "permissoes.manage", "logs.read", "configuracoes.manage",
 ] as const;
 
 export type Permission = (typeof permissions)[number];
 
+const allPermissions = [...permissions];
+
 export const rolePermissions = {
-  admin: [...permissions],
-  gestor: [...permissions],
-  financeiro: [
-    "clientes.read",
-    "orcamentos.create",
-    "financeiro.read",
-    "custos.read",
-    "estoque.cost.read",
-  ],
-  vendedor: ["clientes.read", "orcamentos.create"],
-  designer: ["clientes.read", "kanban.move", "arquivos.approve"],
-  operador: ["clientes.read", "kanban.move"],
-  estoque: ["clientes.read", "estoque.cost.read"],
-  instalador: ["clientes.read", "instalacao.update"],
-  cliente: [],
+  admin: allPermissions,
+  gestor: ["leads.read", "leads.create", "leads.update", "leads.assign", "leads.convert", "clientes.read", "clientes.create", "clientes.update", "clientes.sensitive.read", "whatsapp.read", "whatsapp.reply", "whatsapp.assign", "whatsapp.transfer", "orcamentos.read", "orcamentos.create", "orcamentos.update", "orcamentos.send", "orcamentos.approve", "orcamentos.convert", "margem.read", "os.read", "os.create", "os.update", "os.assign", "os.status.advance", "financeiro.read", "logs.read"],
+  financeiro: ["clientes.read", "orcamentos.read", "os.read", "financeiro.read", "financeiro.sensitive.read", "pagamentos.create", "pagamentos.update", "pagamentos.confirm", "pagamentos.reverse", "custos.read", "resultado.read"],
+  vendedor: ["leads.read", "leads.create", "leads.update", "leads.assign", "leads.convert", "clientes.read", "clientes.create", "clientes.update", "whatsapp.read", "whatsapp.reply", "orcamentos.read", "orcamentos.create", "orcamentos.update", "orcamentos.send"],
+  designer: ["clientes.read", "os.read", "os.update", "os.status.advance"],
+  operador: ["os.read", "os.update", "os.status.advance"],
+  estoque: ["os.read", "custos.read"],
+  instalador: ["clientes.read", "os.read", "os.status.advance"],
+  cliente: ["clientes.read"],
 } satisfies Record<AppRole, readonly Permission[]>;
 
-export const permissionLabels = {
-  "clientes.read": "visualizar clientes",
-  "orcamentos.create": "criar orçamentos",
-  "financeiro.read": "visualizar financeiro",
-  "custos.read": "visualizar custos",
-  "kanban.move": "movimentar Kanban",
-  "arquivos.approve": "aprovar arquivos",
-  "estoque.cost.read": "visualizar custos de estoque",
-  "instalacao.update": "atualizar instalações",
-} satisfies Record<Permission, string>;
+export const permissionLabels = Object.fromEntries(
+  permissions.map((permission) => [permission, permission.replaceAll(".", " › ")]),
+) as Record<Permission, string>;
 
 export const routePermissions: { path: string; permission: Permission }[] = [
+  { path: "/dashboard", permission: "os.read" },
   { path: "/clientes", permission: "clientes.read" },
-  { path: "/orcamentos", permission: "orcamentos.create" },
+  { path: "/leads", permission: "leads.read" },
+  { path: "/whatsapp", permission: "whatsapp.read" },
+  { path: "/respostas-rapidas", permission: "templates.manage" },
+  { path: "/automacoes", permission: "automacoes.read" },
+  { path: "/orcamentos", permission: "orcamentos.read" },
+  { path: "/os", permission: "os.read" },
+  { path: "/kanban", permission: "os.status.advance" },
   { path: "/financeiro", permission: "financeiro.read" },
   { path: "/precificacao", permission: "custos.read" },
-  { path: "/kanban", permission: "kanban.move" },
-  { path: "/arquivos", permission: "arquivos.approve" },
-  { path: "/materiais", permission: "estoque.cost.read" },
-  { path: "/movimentacoes", permission: "estoque.cost.read" },
-  { path: "/entregas", permission: "instalacao.update" },
+  { path: "/materiais", permission: "custos.read" },
+  { path: "/movimentacoes", permission: "custos.read" },
+  { path: "/entregas", permission: "os.status.advance" },
+  { path: "/arquivos", permission: "os.update" },
+  { path: "/maquinas", permission: "os.read" },
+  { path: "/maquinas-agenda", permission: "os.read" },
+  { path: "/manutencao", permission: "os.update" },
+  { path: "/design", permission: "os.update" },
+  { path: "/produtos", permission: "custos.read" },
+  { path: "/ocorrencias", permission: "os.update" },
+  { path: "/relatorios", permission: "resultado.read" },
+  { path: "/logs", permission: "logs.read" },
+  { path: "/usuarios", permission: "usuarios.read" },
+  { path: "/configuracoes", permission: "configuracoes.manage" },
 ];
 
 export function hasPermission(roles: AppRole[], permission: Permission) {
@@ -59,6 +63,6 @@ export function hasPermission(roles: AppRole[], permission: Permission) {
 }
 
 export function getRoutePermission(pathname: string) {
-  return routePermissions.find(({ path }) => pathname === path || pathname.startsWith(`${path}/`))
-    ?.permission;
+  const normalized = pathname.replace(/^\/_authenticated/, "") || "/dashboard";
+  return routePermissions.find(({ path }) => normalized === path || normalized.startsWith(`${path}/`))?.permission ?? null;
 }

@@ -14,7 +14,7 @@ function AuthenticatedLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const requiredPermission = getRoutePermission(pathname);
-  const canAccessRoute = !requiredPermission || hasPermission(requiredPermission);
+  const canAccessRoute = requiredPermission !== null && hasPermission(requiredPermission);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -45,7 +45,7 @@ function AuthenticatedLayout() {
               <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center gap-3 text-center">
                 <h1 className="text-2xl font-semibold tracking-tight">Acesso restrito</h1>
                 <p className="text-muted-foreground">
-                  Seu perfil precisa da permissão para {permissionLabels[requiredPermission]} para
+                  Seu perfil precisa da permissão para {requiredPermission ? permissionLabels[requiredPermission] : "uma permissão configurada"} para
                   acessar esta rota.
                 </p>
               </div>
