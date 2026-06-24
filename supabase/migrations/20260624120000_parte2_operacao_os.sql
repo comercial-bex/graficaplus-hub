@@ -105,9 +105,20 @@ CREATE TABLE IF NOT EXISTS public.estoque_inventarios (id UUID PRIMARY KEY DEFAU
 CREATE TABLE IF NOT EXISTS public.maquinas_agenda (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(), maquina_id UUID NOT NULL REFERENCES public.maquinas(id) ON DELETE CASCADE, os_id UUID REFERENCES public.ordens_servico(id) ON DELETE SET NULL, os_item_id UUID REFERENCES public.itens_os(id) ON DELETE SET NULL, tarefa_id UUID REFERENCES public.os_tarefas(id) ON DELETE SET NULL, operador_id UUID REFERENCES public.usuarios(id) ON DELETE SET NULL, inicio_previsto TIMESTAMPTZ NOT NULL, fim_previsto TIMESTAMPTZ NOT NULL, minutos_previstos INT NOT NULL DEFAULT 0, inicio_real TIMESTAMPTZ, fim_real TIMESTAMPTZ, minutos_reais INT NOT NULL DEFAULT 0, prioridade INT NOT NULL DEFAULT 3, status TEXT NOT NULL DEFAULT 'agendada', origem TEXT NOT NULL DEFAULT 'manual', observacao TEXT, created_by UUID REFERENCES public.usuarios(id), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), CHECK (fim_previsto > inicio_previsto)
 );
+ALTER TABLE public.maquinas_agenda ADD COLUMN IF NOT EXISTS inicio_previsto TIMESTAMPTZ;
+ALTER TABLE public.maquinas_agenda ADD COLUMN IF NOT EXISTS fim_previsto TIMESTAMPTZ;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='maquinas_agenda' AND column_name='inicio') THEN
+    UPDATE public.maquinas_agenda SET inicio_previsto = inicio WHERE inicio_previsto IS NULL AND inicio IS NOT NULL;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='maquinas_agenda' AND column_name='fim') THEN
+    UPDATE public.maquinas_agenda SET fim_previsto = fim WHERE fim_previsto IS NULL AND fim IS NOT NULL;
+  END IF;
+END $$;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='maquinas_agenda_sem_sobreposicao') THEN
-    ALTER TABLE public.maquinas_agenda ADD CONSTRAINT maquinas_agenda_sem_sobreposicao EXCLUDE USING gist (maquina_id WITH =, tstzrange(inicio_previsto, fim_previsto, '[)') WITH &&) WHERE (status NOT IN ('cancelada','concluida'));
+    ALTER TABLE public.maquinas_agenda ADD CONSTRAINT maquinas_agenda_sem_sobreposicao EXCLUDE USING gist (maquina_id WITH =, tstzrange(inicio_previsto, fim_previsto, '[)') WITH &&) WHERE (status NOT IN ('cancelada','concluida') AND inicio_previsto IS NOT NULL AND fim_previsto IS NOT NULL);
   END IF;
 END $$;
 CREATE TABLE IF NOT EXISTS public.maquina_compatibilidades (maquina_id UUID REFERENCES public.maquinas(id) ON DELETE CASCADE, produto_id UUID REFERENCES public.produtos(id) ON DELETE CASCADE, tipo_operacao TEXT, minutos_setup INT NOT NULL DEFAULT 0, minutos_limpeza INT NOT NULL DEFAULT 0, ativo BOOLEAN NOT NULL DEFAULT true, PRIMARY KEY(maquina_id, produto_id, tipo_operacao));
@@ -124,6 +135,7 @@ ALTER TABLE public.manutencoes ADD COLUMN IF NOT EXISTS horas_paradas NUMERIC(12
 ALTER TABLE public.manutencoes ADD COLUMN IF NOT EXISTS horimetro NUMERIC(12,2);
 ALTER TABLE public.manutencoes ADD COLUMN IF NOT EXISTS recorrencia JSONB NOT NULL DEFAULT '{}'::jsonb;
 CREATE TABLE IF NOT EXISTS public.apontamentos_producao (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), os_id UUID NOT NULL REFERENCES public.ordens_servico(id) ON DELETE CASCADE, os_item_id UUID REFERENCES public.itens_os(id), tarefa_id UUID REFERENCES public.os_tarefas(id), operador_id UUID NOT NULL REFERENCES public.usuarios(id), maquina_id UUID REFERENCES public.maquinas(id), status TEXT NOT NULL DEFAULT 'ativo', inicio TIMESTAMPTZ NOT NULL DEFAULT now(), pausado_em TIMESTAMPTZ, retomado_em TIMESTAMPTZ, fim TIMESTAMPTZ, minutos INT NOT NULL DEFAULT 0, quantidade_planejada NUMERIC(14,4) NOT NULL DEFAULT 0, quantidade_produzida NUMERIC(14,4), quantidade_perdida NUMERIC(14,4) NOT NULL DEFAULT 0, motivo_perda TEXT, observacao TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), CHECK (quantidade_produzida IS NULL OR quantidade_produzida >= 0));
+ALTER TABLE public.apontamentos_producao ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'ativo';
 CREATE UNIQUE INDEX IF NOT EXISTS uq_apontamento_operador_ativo ON public.apontamentos_producao(operador_id) WHERE status IN ('ativo','pausado');
 
 -- -----------------------------------------------------------------------------
@@ -246,7 +258,21 @@ BEGIN
   v_uid := public.require_permission('os.close'); PERFORM 1 FROM public.ordens_servico WHERE id=p_os_id FOR UPDATE; IF NOT FOUND THEN RAISE EXCEPTION 'OS não encontrada'; END IF;
   IF EXISTS (SELECT 1 FROM public.os_tarefas WHERE os_id=p_os_id AND obrigatoria AND status <> 'concluida') THEN v_bloqueios := v_bloqueios || '"tarefas_obrigatorias"'::jsonb; END IF;
   IF EXISTS (SELECT 1 FROM public.itens_os WHERE os_id=p_os_id AND requer_qualidade) AND NOT EXISTS (SELECT 1 FROM public.qualidade_inspecoes WHERE os_id=p_os_id AND resultado IN ('aprovado','aprovado_com_ressalva')) THEN v_bloqueios := v_bloqueios || '"qualidade_aprovada"'::jsonb; END IF;
-  IF EXISTS (SELECT 1 FROM public.os_materiais_previstos WHERE os_id=p_os_id) AND NOT EXISTS (SELECT 1 FROM public.movimentacoes_estoque WHERE os_id=p_os_id AND tipo='saida' AND origem='baixa_os') THEN v_bloqueios := v_bloqueios || '"materiais_baixados"'::jsonb; END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM public.os_materiais_previstos mp
+    LEFT JOIN (
+      SELECT material_id, os_item_id, tarefa_id, SUM(quantidade) AS quantidade_baixada
+      FROM public.movimentacoes_estoque
+      WHERE os_id=p_os_id AND tipo='saida' AND origem='baixa_os'
+      GROUP BY material_id, os_item_id, tarefa_id
+    ) me ON me.material_id=mp.material_id
+      AND COALESCE(me.os_item_id,'00000000-0000-0000-0000-000000000000'::uuid)=COALESCE(mp.os_item_id,'00000000-0000-0000-0000-000000000000'::uuid)
+      AND COALESCE(me.tarefa_id,'00000000-0000-0000-0000-000000000000'::uuid)=COALESCE(mp.tarefa_id,'00000000-0000-0000-0000-000000000000'::uuid)
+    WHERE mp.os_id=p_os_id
+    GROUP BY mp.material_id, mp.os_item_id, mp.tarefa_id, me.quantidade_baixada
+    HAVING COALESCE(me.quantidade_baixada,0) < SUM(mp.quantidade)
+  ) THEN v_bloqueios := v_bloqueios || '"materiais_baixados"'::jsonb; END IF;
   IF EXISTS (SELECT 1 FROM public.ocorrencias WHERE os_id=p_os_id AND COALESCE(status,'aberta') NOT IN ('tratada','fechada','cancelada')) THEN v_bloqueios := v_bloqueios || '"ocorrencias_tratadas"'::jsonb; END IF;
   IF EXISTS (SELECT 1 FROM public.entregas_instalacoes WHERE os_id=p_os_id AND status NOT IN ('concluida','cancelada','nao_necessaria')) THEN v_bloqueios := v_bloqueios || '"logistica_concluida"'::jsonb; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.custos_operacionais_os WHERE os_id=p_os_id) THEN v_bloqueios := v_bloqueios || '"custos_operacionais"'::jsonb; END IF;
