@@ -141,7 +141,7 @@ export type ResultadoBaixa = {
 export async function aplicarBaixaEstoque(
   osId: string,
   ajustes: AjusteBaixa[],
-  userId: string | null,
+  _userId: string | null,
 ): Promise<ResultadoBaixa> {
   // Filtra zeros — operador pode ter zerado uma linha que não quer baixar
   const ativos = ajustes.filter((a) => a.quantidade > 0);
@@ -153,72 +153,30 @@ export async function aplicarBaixaEstoque(
       insuficientes: [],
     };
 
-  const { data: os } = await supabase
-    .from("ordens_servico")
-    .select("id, numero, estoque_baixado")
-    .eq("id", osId)
-    .single();
-  if (!os) return { ok: false, mensagem: "OS não encontrada", movimentos: 0, insuficientes: [] };
-  if (os.estoque_baixado)
+  const consumos = ativos.map((a) => ({
+    material_id: a.material_id,
+    quantidade: a.quantidade,
+  }));
+
+  const { data, error } = await (supabase as any).rpc("baixar_estoque_os", {
+    p_os_id: osId,
+    p_consumos: consumos,
+  });
+
+  if (error) {
     return {
       ok: false,
-      mensagem: `OS #${os.numero} já teve estoque baixado.`,
+      mensagem: error.message ?? "Falha ao baixar estoque pela RPC transacional.",
       movimentos: 0,
       insuficientes: [],
     };
-
-  const materialIds = ativos.map((a) => a.material_id);
-  const { data: materiais } = await supabase
-    .from("materiais")
-    .select("id, nome, estoque, unidade")
-    .in("id", materialIds);
-
-  // Validação dura: nenhum estoque pode ficar < 0
-  const insuficientes: ResultadoBaixa["insuficientes"] = [];
-  for (const a of ativos) {
-    const m = (materiais ?? []).find((x: any) => x.id === a.material_id) as any;
-    const disponivel = Number(m?.estoque ?? 0);
-    if (disponivel < a.quantidade) {
-      insuficientes.push({
-        material: m?.nome ?? "(material removido)",
-        necessario: a.quantidade,
-        disponivel,
-      });
-    }
-  }
-  if (insuficientes.length > 0) {
-    return {
-      ok: false,
-      mensagem: `Operação bloqueada: ${insuficientes.length} material(is) ficaria(m) abaixo de zero.`,
-      movimentos: 0,
-      insuficientes,
-    };
   }
 
-  // Aplicar
-  let movimentos = 0;
-  for (const a of ativos) {
-    const m = (materiais ?? []).find((x: any) => x.id === a.material_id) as any;
-    const novoEstoque = Number(m?.estoque ?? 0) - a.quantidade;
-    await supabase.from("materiais").update({ estoque: novoEstoque }).eq("id", a.material_id);
-    await supabase.from("movimentacoes_estoque").insert({
-      material_id: a.material_id,
-      tipo: "saida",
-      quantidade: a.quantidade,
-      os_id: osId,
-      usuario_id: userId,
-      observacao: `Baixa por OS #${os.numero}`,
-    });
-    movimentos++;
-  }
-  await supabase
-    .from("ordens_servico")
-    .update({ estoque_baixado: true, estoque_baixado_em: new Date().toISOString() })
-    .eq("id", osId);
+  const movimentos = Array.isArray(data?.movimentacoes) ? data.movimentacoes.length : 0;
 
   return {
     ok: true,
-    mensagem: `${movimentos} material(is) baixado(s) com sucesso.`,
+    mensagem: `${movimentos} material(is) baixado(s) com sucesso pela RPC transacional.`,
     movimentos,
     insuficientes: [],
   };
