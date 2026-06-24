@@ -19,8 +19,8 @@ INSERT INTO public.permissoes (chave, dominio, descricao) VALUES
 ('clientes.read','crm','Ler clientes'),('clientes.create','crm','Criar clientes'),('clientes.update','crm','Atualizar clientes'),('clientes.delete','crm','Excluir clientes'),('clientes.sensitive.read','crm','Ler dados sensíveis'),
 ('whatsapp.read','whatsapp','Ler atendimento'),('whatsapp.reply','whatsapp','Responder'),('whatsapp.assign','whatsapp','Atribuir'),('whatsapp.transfer','whatsapp','Transferir'),('whatsapp.manage','whatsapp','Gerenciar'),('automacoes.read','whatsapp','Ler automações'),('automacoes.manage','whatsapp','Gerenciar automações'),('templates.manage','whatsapp','Gerenciar templates'),
 ('orcamentos.read','orcamentos','Ler orçamentos'),('orcamentos.create','orcamentos','Criar orçamentos'),('orcamentos.update','orcamentos','Atualizar orçamentos'),('orcamentos.send','orcamentos','Enviar orçamentos'),('orcamentos.approve','orcamentos','Aprovar orçamentos'),('orcamentos.cancel','orcamentos','Cancelar orçamentos'),('orcamentos.convert','orcamentos','Converter em OS'),('desconto.request','orcamentos','Solicitar desconto'),('desconto.approve','orcamentos','Aprovar desconto'),('margem.read','orcamentos','Ler margem'),
-('os.read','os','Ler OS'),('os.create','os','Criar OS'),('os.update','os','Atualizar OS'),('os.assign','os','Atribuir OS'),('os.status.advance','os','Avançar status'),('os.status.override','os','Forçar status'),('os.close','os','Fechar OS'),
-('financeiro.read','financeiro','Ler financeiro'),('financeiro.sensitive.read','financeiro','Ler financeiro sensível'),('pagamentos.create','financeiro','Criar pagamentos'),('pagamentos.update','financeiro','Atualizar pagamentos'),('pagamentos.confirm','financeiro','Confirmar pagamentos'),('pagamentos.reverse','financeiro','Estornar pagamentos'),('custos.read','financeiro','Ler custos'),('resultado.read','financeiro','Ler resultado'),
+('os.read','os','Ler OS'),('os.create','os','Criar OS'),('os.update','os','Atualizar OS'),('os.assign','os','Atribuir OS'),('os.status.advance','os','Avançar status'),('os.status.override','os','Forçar status'),('os.close','os','Fechar OS'),('kanban.move','os','Compatibilidade: movimentar Kanban'),('instalacao.update','os','Compatibilidade: atualizar instalação'),('arquivos.approve','os','Compatibilidade: aprovar arquivos'),
+('financeiro.read','financeiro','Ler financeiro'),('financeiro.sensitive.read','financeiro','Ler financeiro sensível'),('pagamentos.create','financeiro','Criar pagamentos'),('pagamentos.update','financeiro','Atualizar pagamentos'),('pagamentos.confirm','financeiro','Confirmar pagamentos'),('pagamentos.reverse','financeiro','Estornar pagamentos'),('custos.read','financeiro','Ler custos'),('resultado.read','financeiro','Ler resultado'),('estoque.cost.read','financeiro','Compatibilidade: ler custos de estoque'),
 ('usuarios.read','admin','Ler usuários'),('usuarios.manage','admin','Gerenciar usuários'),('permissoes.manage','admin','Gerenciar permissões'),('logs.read','admin','Ler logs'),('configuracoes.manage','admin','Gerenciar configurações')
 ON CONFLICT (chave) DO UPDATE SET dominio = EXCLUDED.dominio, descricao = EXCLUDED.descricao;
 
@@ -40,6 +40,17 @@ INSERT INTO public.perfil_permissoes (perfil, permissao) VALUES
 ('estoque','os.read'),('estoque','custos.read'),
 ('instalador','clientes.read'),('instalador','os.read'),('instalador','os.status.advance'),
 ('cliente','clientes.read')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.perfil_permissoes (perfil, permissao) VALUES
+('gerente','kanban.move'),('gerente','instalacao.update'),('gerente','arquivos.approve'),('gerente','estoque.cost.read'),
+('gestor','kanban.move'),('gestor','instalacao.update'),('gestor','arquivos.approve'),('gestor','estoque.cost.read'),
+('financeiro','estoque.cost.read'),
+('vendedor','kanban.move'),
+('designer','kanban.move'),('designer','arquivos.approve'),
+('operador','kanban.move'),
+('estoque','estoque.cost.read'),
+('instalador','instalacao.update')
 ON CONFLICT DO NOTHING;
 
 CREATE OR REPLACE FUNCTION public.has_permission(_user_id UUID, _permission TEXT)
@@ -87,7 +98,16 @@ CREATE INDEX IF NOT EXISTS idx_leads_cliente_id ON public.leads(cliente_id);
 
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS telefone_normalizado TEXT;
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS documento_normalizado TEXT;
-UPDATE public.clientes SET telefone_normalizado = COALESCE(telefone_normalizado, public.normalize_phone(telefone)), documento_normalizado = COALESCE(documento_normalizado, public.normalize_document(documento));
+UPDATE public.clientes SET documento_normalizado = COALESCE(documento_normalizado, public.normalize_document(documento));
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'clientes' AND column_name = 'telefone_normalizado' AND is_generated = 'NEVER'
+  ) THEN
+    UPDATE public.clientes SET telefone_normalizado = COALESCE(telefone_normalizado, public.normalize_phone(telefone));
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_clientes_documento_normalizado ON public.clientes(documento_normalizado);
 
 CREATE TABLE IF NOT EXISTS public.eventos_negocio (
@@ -163,8 +183,8 @@ BEGIN
     SELECT id INTO v_existing FROM public.clientes WHERE (documento_normalizado IS NOT NULL AND documento_normalizado = public.normalize_document(COALESCE(p_dados->>'documento', v_lead.documento))) OR (telefone_normalizado IS NOT NULL AND telefone_normalizado = COALESCE(v_lead.telefone_normalizado, public.normalize_phone(v_lead.telefone_original))) LIMIT 1;
   END IF;
   IF v_existing IS NULL THEN
-    INSERT INTO public.clientes (nome, razao_social, documento, documento_normalizado, email, telefone, telefone_normalizado, vendedor_id, created_by, observacoes)
-    VALUES (COALESCE(p_dados->>'nome', v_lead.nome), COALESCE(p_dados->>'empresa', v_lead.empresa), COALESCE(p_dados->>'documento', v_lead.documento), public.normalize_document(COALESCE(p_dados->>'documento', v_lead.documento)), public.normalize_email(COALESCE(p_dados->>'email', v_lead.email)), COALESCE(p_dados->>'telefone', v_lead.telefone_original), COALESCE(v_lead.telefone_normalizado, public.normalize_phone(COALESCE(p_dados->>'telefone', v_lead.telefone_original))), v_lead.responsavel_id, v_uid, 'Criado por conversão de lead') RETURNING id INTO v_cliente_id;
+    INSERT INTO public.clientes (nome, razao_social, documento, documento_normalizado, email, telefone, vendedor_id, created_by, observacoes)
+    VALUES (COALESCE(p_dados->>'nome', v_lead.nome), COALESCE(p_dados->>'empresa', v_lead.empresa), COALESCE(p_dados->>'documento', v_lead.documento), public.normalize_document(COALESCE(p_dados->>'documento', v_lead.documento)), public.normalize_email(COALESCE(p_dados->>'email', v_lead.email)), COALESCE(p_dados->>'telefone', v_lead.telefone_original), v_lead.responsavel_id, v_uid, 'Criado por conversão de lead') RETURNING id INTO v_cliente_id;
   ELSE v_cliente_id := v_existing; END IF;
   UPDATE public.leads SET cliente_id = v_cliente_id, convertido_em = now(), status = 'ganho', etapa = 'convertido' WHERE id = p_lead_id;
   IF p_criar_orcamento THEN
@@ -216,26 +236,46 @@ END; $$;
 
 CREATE OR REPLACE FUNCTION public.avancar_os_status(p_os_id UUID, p_novo_status TEXT, p_justificativa TEXT DEFAULT NULL)
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_uid UUID; v_antigo TEXT;
+DECLARE v_uid UUID; v_antigo TEXT; v_status_geral TEXT;
 BEGIN
   v_uid := public.require_permission('os.status.advance');
-  SELECT status_geral INTO v_antigo FROM public.ordens_servico WHERE id=p_os_id FOR UPDATE;
+  SELECT status INTO v_antigo FROM public.ordens_servico WHERE id=p_os_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'OS não encontrada'; END IF;
-  IF p_novo_status NOT IN ('entrada','design','producao','acabamento','pronto','entregue','finalizado') THEN RAISE EXCEPTION 'Status inválido: %', p_novo_status; END IF;
-  UPDATE public.ordens_servico SET status_geral=p_novo_status WHERE id=p_os_id;
+  IF p_novo_status NOT IN ('novo','aguardando_briefing','briefing_ok','em_design','aguardando_aprovacao_arte','arte_aprovada','arte_rejeitada','aguardando_producao','em_producao','em_impressao','em_corte','em_acabamento','em_uv','em_laser_cnc','em_3d','controle_qualidade','aguardando_retirada','aguardando_entrega','em_entrega','em_instalacao','concluido','faturado','cancelado','retrabalho','pausado') THEN RAISE EXCEPTION 'Status inválido: %', p_novo_status; END IF;
+  v_status_geral := CASE
+    WHEN p_novo_status IN ('novo','aguardando_briefing','briefing_ok') THEN 'entrada'
+    WHEN p_novo_status IN ('em_design','aguardando_aprovacao_arte','arte_aprovada','arte_rejeitada') THEN 'design'
+    WHEN p_novo_status IN ('aguardando_producao','em_producao','em_impressao','em_corte','em_uv','em_laser_cnc','em_3d') THEN 'producao'
+    WHEN p_novo_status IN ('em_acabamento','controle_qualidade') THEN 'acabamento'
+    WHEN p_novo_status IN ('aguardando_retirada','aguardando_entrega') THEN 'pronto'
+    WHEN p_novo_status IN ('em_entrega','em_instalacao') THEN 'entregue'
+    WHEN p_novo_status IN ('concluido','faturado') THEN 'finalizado'
+    ELSE COALESCE((SELECT status_geral FROM public.ordens_servico WHERE id=p_os_id), 'entrada')
+  END;
+  UPDATE public.ordens_servico SET status=p_novo_status, status_geral=v_status_geral WHERE id=p_os_id;
   INSERT INTO public.eventos_negocio(entidade, entidade_id, os_id, tipo, titulo, descricao, dados_anteriores, dados_posteriores, usuario_id) VALUES ('os', p_os_id, p_os_id, 'status_alterado', 'Status da OS alterado', p_justificativa, jsonb_build_object('status', v_antigo), jsonb_build_object('status', p_novo_status), v_uid);
   RETURN jsonb_build_object('os_id', p_os_id, 'status_anterior', v_antigo, 'status_novo', p_novo_status);
 END; $$;
 
 CREATE OR REPLACE FUNCTION public.forcar_transicao_os(p_os_id UUID, p_novo_status TEXT, p_motivo TEXT)
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_uid UUID; v_antigo TEXT;
+DECLARE v_uid UUID; v_antigo TEXT; v_status_geral TEXT;
 BEGIN
   IF NULLIF(trim(p_motivo),'') IS NULL THEN RAISE EXCEPTION 'Motivo obrigatório'; END IF;
   v_uid := public.require_permission('os.status.override');
-  SELECT status_geral INTO v_antigo FROM public.ordens_servico WHERE id=p_os_id FOR UPDATE;
+  SELECT status INTO v_antigo FROM public.ordens_servico WHERE id=p_os_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'OS não encontrada'; END IF;
-  UPDATE public.ordens_servico SET status_geral=p_novo_status WHERE id=p_os_id;
+  v_status_geral := CASE
+    WHEN p_novo_status IN ('novo','aguardando_briefing','briefing_ok','entrada') THEN 'entrada'
+    WHEN p_novo_status IN ('em_design','aguardando_aprovacao_arte','arte_aprovada','arte_rejeitada','design') THEN 'design'
+    WHEN p_novo_status IN ('aguardando_producao','em_producao','em_impressao','em_corte','em_uv','em_laser_cnc','em_3d','producao') THEN 'producao'
+    WHEN p_novo_status IN ('em_acabamento','controle_qualidade','acabamento') THEN 'acabamento'
+    WHEN p_novo_status IN ('aguardando_retirada','aguardando_entrega','pronto') THEN 'pronto'
+    WHEN p_novo_status IN ('em_entrega','em_instalacao','entregue') THEN 'entregue'
+    WHEN p_novo_status IN ('concluido','faturado','finalizado') THEN 'finalizado'
+    ELSE COALESCE((SELECT status_geral FROM public.ordens_servico WHERE id=p_os_id), 'entrada')
+  END;
+  UPDATE public.ordens_servico SET status=p_novo_status, status_geral=v_status_geral WHERE id=p_os_id;
   INSERT INTO public.eventos_negocio(entidade, entidade_id, os_id, tipo, titulo, descricao, dados_anteriores, dados_posteriores, usuario_id) VALUES ('os', p_os_id, p_os_id, 'excecao_status', 'Transição excepcional forçada', p_motivo, jsonb_build_object('status', v_antigo), jsonb_build_object('status', p_novo_status, 'validacoes_ignoradas', true), v_uid);
   RETURN jsonb_build_object('os_id', p_os_id, 'status_anterior', v_antigo, 'status_novo', p_novo_status);
 END; $$;
