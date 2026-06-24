@@ -92,8 +92,8 @@ function OSDetailPage() {
   async function updateStatus(novoStatus: string) {
     const statusAnterior = os?.status;
     const { error } = novoStatus === "concluido"
-      ? await (supabase as any).rpc("fechar_os", { os_id: id })
-      : await supabase.from("ordens_servico").update({ status: novoStatus as any }).eq("id", id);
+      ? await supabase.rpc("fechar_os", { os_id: id })
+      : await supabase.rpc("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
     if (error) return toast.error(error.message);
     await supabase.from("logs_auditoria").insert({
       entidade: "ordens_servico", entidade_id: id, acao: novoStatus === "concluido" ? "fechamento_os" : "status_change",
@@ -784,10 +784,12 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   }
 
   async function marcarPago(id: string) {
-    await supabase
-      .from("pagamentos")
-      .update({ status: "pago", data_pagamento: new Date().toISOString().slice(0, 10) })
-      .eq("id", id);
+    const { error } = await supabase.rpc("confirmar_pagamento_registrado", {
+      p_pagamento_id: id,
+      p_data: new Date().toISOString().slice(0, 10),
+      p_referencia_externa: null,
+    });
+    if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["pag-os", osId] });
   }
 

@@ -91,23 +91,13 @@ function OrcamentosPage() {
   }
 
   async function converterEmOS(orc: any) {
-    const { data: os, error } = await supabase
-      .from("ordens_servico")
-      .insert({
-        cliente_id: orc.cliente_id,
-        orcamento_id: orc.id,
-        titulo: orc.titulo,
-        valor_total: canSeeFinancials ? Number(orc.valor_total ?? 0) : 0,
-        status: "novo",
-      })
-      .select("id, numero")
-      .single();
+    const { data, error } = await supabase.rpc("converter_orcamento_em_os", {
+      p_orcamento_id: orc.id,
+      p_opcoes: {},
+    });
     if (error) return toast.error(error.message);
-    await supabase
-      .from("orcamentos")
-      .update({ status: "convertido", os_id: os.id })
-      .eq("id", orc.id);
-    toast.success(`OS #${os.numero} criada`);
+    const osId = typeof data === "object" && data && "os_id" in data ? String(data.os_id) : "";
+    toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
     qc.invalidateQueries({ queryKey: ["orcamentos"] });
   }
 
