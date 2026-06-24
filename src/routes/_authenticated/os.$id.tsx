@@ -784,10 +784,12 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   }
 
   async function marcarPago(id: string) {
-    await supabase
-      .from("pagamentos")
-      .update({ status: "pago", data_pagamento: new Date().toISOString().slice(0, 10) })
-      .eq("id", id);
+    const { error } = await supabase.rpc("confirmar_pagamento_registrado", {
+      p_pagamento_id: id,
+      p_data: new Date().toISOString().slice(0, 10),
+      p_referencia_externa: null,
+    });
+    if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["pag-os", osId] });
   }
 

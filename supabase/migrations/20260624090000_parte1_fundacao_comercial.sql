@@ -81,7 +81,23 @@ ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS proxima_acao_em TIMESTAMPTZ;
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.usuarios(id) ON DELETE SET NULL;
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS cliente_id UUID REFERENCES public.clientes(id) ON DELETE SET NULL;
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS convertido_em TIMESTAMPTZ;
-UPDATE public.leads SET telefone_original = COALESCE(telefone_original, telefone), telefone_normalizado = COALESCE(telefone_normalizado, public.normalize_phone(telefone)) WHERE telefone IS NOT NULL;
+DO $$
+BEGIN
+  UPDATE public.leads
+  SET telefone_original = COALESCE(telefone_original, telefone)
+  WHERE telefone IS NOT NULL;
+
+  IF EXISTS (
+    SELECT 1 FROM pg_attribute
+    WHERE attrelid = 'public.leads'::regclass
+      AND attname = 'telefone_normalizado'
+      AND attgenerated = ''
+  ) THEN
+    UPDATE public.leads
+    SET telefone_normalizado = COALESCE(telefone_normalizado, public.normalize_phone(telefone))
+    WHERE telefone IS NOT NULL;
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_leads_telefone_normalizado ON public.leads(telefone_normalizado);
 CREATE INDEX IF NOT EXISTS idx_leads_cliente_id ON public.leads(cliente_id);
 
@@ -256,6 +272,20 @@ BEGIN
   RETURN jsonb_build_object('pagamento_id', v_pag, 'parcela_id', p_parcela_id);
 END; $$;
 
+CREATE OR REPLACE FUNCTION public.confirmar_pagamento_registrado(p_pagamento_id UUID, p_data DATE DEFAULT CURRENT_DATE, p_referencia_externa TEXT DEFAULT NULL)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_uid UUID; v_pag public.pagamentos%ROWTYPE;
+BEGIN
+  v_uid := public.require_permission('pagamentos.confirm');
+  SELECT * INTO v_pag FROM public.pagamentos WHERE id=p_pagamento_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Pagamento não encontrado'; END IF;
+  IF v_pag.status='pago' THEN RETURN jsonb_build_object('pagamento_id', p_pagamento_id, 'idempotent', true); END IF;
+  UPDATE public.pagamentos SET status='pago', data_pagamento=p_data, referencia_externa=COALESCE(p_referencia_externa, referencia_externa), registrado_por=COALESCE(registrado_por, v_uid) WHERE id=p_pagamento_id;
+  IF v_pag.parcela_id IS NOT NULL THEN UPDATE public.parcelas_receber SET status='paga' WHERE id=v_pag.parcela_id; END IF;
+  INSERT INTO public.eventos_negocio(entidade, entidade_id, os_id, tipo, titulo, dados_anteriores, dados_posteriores, usuario_id) VALUES ('pagamento', p_pagamento_id, v_pag.os_id, 'pagamento_confirmado', 'Pagamento confirmado', to_jsonb(v_pag), jsonb_build_object('status','pago','data_pagamento',p_data), v_uid);
+  RETURN jsonb_build_object('pagamento_id', p_pagamento_id);
+END; $$;
+
 CREATE OR REPLACE FUNCTION public.estornar_pagamento(p_pagamento_id UUID, p_motivo TEXT)
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_uid UUID; v_pag public.pagamentos%ROWTYPE; v_estorno UUID;
@@ -278,4 +308,5 @@ GRANT EXECUTE ON FUNCTION public.converter_orcamento_em_os(UUID, JSONB) TO authe
 GRANT EXECUTE ON FUNCTION public.avancar_os_status(UUID, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.forcar_transicao_os(UUID, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.confirmar_pagamento(UUID, NUMERIC, TEXT, NUMERIC, DATE, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.confirmar_pagamento_registrado(UUID, DATE, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.estornar_pagamento(UUID, TEXT) TO authenticated;
