@@ -31,6 +31,7 @@ import { Route as AuthenticatedManutencaoRouteImport } from './routes/_authentic
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
+import { Route as AuthenticatedImpressao3DRouteImport } from './routes/_authenticated/impressao-3d'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
@@ -157,6 +158,11 @@ const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
   path: '/kanban',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedImpressao3DRoute = AuthenticatedImpressao3DRouteImport.update({
+  id: '/impressao-3d',
+  path: '/impressao-3d',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
   id: '/financeiro',
   path: '/financeiro',
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/entregas': typeof AuthenticatedEntregasRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/kanban': typeof AuthenticatedKanbanRoute
+  '/impressao-3d': typeof AuthenticatedImpressao3DRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/manutencao': typeof AuthenticatedManutencaoRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/entregas': typeof AuthenticatedEntregasRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/kanban': typeof AuthenticatedKanbanRoute
+  '/impressao-3d': typeof AuthenticatedImpressao3DRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/manutencao': typeof AuthenticatedManutencaoRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
+  '/_authenticated/impressao-3d': typeof AuthenticatedImpressao3DRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/manutencao': typeof AuthenticatedManutencaoRoute
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/entregas'
     | '/financeiro'
     | '/kanban'
+    | '/impressao-3d'
     | '/leads'
     | '/logs'
     | '/manutencao'
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
     | '/entregas'
     | '/financeiro'
     | '/kanban'
+    | '/impressao-3d'
     | '/leads'
     | '/logs'
     | '/manutencao'
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '/_authenticated/entregas'
     | '/_authenticated/financeiro'
     | '/_authenticated/kanban'
+    | '/_authenticated/impressao-3d'
     | '/_authenticated/leads'
     | '/_authenticated/logs'
     | '/_authenticated/manutencao'
@@ -718,6 +730,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
+  AuthenticatedImpressao3DRoute: typeof AuthenticatedImpressao3DRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedManutencaoRoute: typeof AuthenticatedManutencaoRoute
@@ -746,6 +759,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
+  AuthenticatedImpressao3DRoute: AuthenticatedImpressao3DRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedManutencaoRoute: AuthenticatedManutencaoRoute,
