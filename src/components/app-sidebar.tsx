@@ -26,6 +26,7 @@ import {
   History,
   UserPlus,
   Boxes,
+  Cuboid,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -62,6 +63,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes.read" },
       { title: "Leads", url: "/leads", icon: UserPlus },
       { title: "Orçamentos", url: "/orcamentos", icon: FileText, permission: "orcamentos.create" },
+      { title: "Impressão 3D", url: "/impressao-3d", icon: Cuboid, permission: "impressao3d.read" },
     ],
   },
   {
