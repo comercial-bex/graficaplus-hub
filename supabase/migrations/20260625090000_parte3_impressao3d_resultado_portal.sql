@@ -168,7 +168,7 @@ SELECT os.id os_id, COALESCE(os.valor_total,0) receita_bruta, COALESCE(os.descon
        CASE WHEN COALESCE(os.valor_total,0)-COALESCE(os.desconto,0)>0 THEN (((COALESCE(os.valor_total,0)-COALESCE(os.desconto,0))-COALESCE((SELECT SUM(co.total) FROM public.custos_operacionais_os co WHERE co.os_id=os.id),0))/(COALESCE(os.valor_total,0)-COALESCE(os.desconto,0))) END margem_realizada,
        COALESCE((SELECT SUM(co.total) FROM public.custos_operacionais_os co WHERE co.os_id=os.id),0)-COALESCE(os.custo_previsto,0) divergencia_custo,
        COALESCE((SELECT SUM(co.total) FROM public.custos_operacionais_os co WHERE co.os_id=os.id AND co.categoria='retrabalho'),0) retrabalho,
-       CASE WHEN os.prazo_entrega IS NOT NULL AND os.prazo_entrega < now() AND os.status NOT IN ('entregue','finalizada','cancelada') THEN true ELSE false END atraso,
+       CASE WHEN os.prazo_entrega IS NOT NULL AND os.prazo_entrega < now() AND os.status::text NOT IN ('concluido','faturado','cancelado') THEN true ELSE false END atraso,
        COALESCE(os.status_financeiro,'pendente') status_financeiro
 FROM public.ordens_servico os;
 CREATE OR REPLACE VIEW public.vw_dashboard_impressao_3d AS SELECT count(j.id) jobs, COALESCE(sum(a.tempo_real_segundos)/3600.0,0) horas_impressas, COALESCE(sum((a.consumo_real_json->0->>'gramas')::numeric),0) gramas_consumidas, count(*) FILTER (WHERE a.resultado='falha') falhas, COALESCE(sum(f.custo_previsto),0) custo_previsto, COALESCE(sum(f.custo_real),0) custo_real, COALESCE(avg(f.margem_real),0) margem_real FROM public.producao_3d_jobs j LEFT JOIN public.producao_3d_apontamentos a ON a.job_id=j.id LEFT JOIN public.producao_3d_fechamentos f ON f.os_id=j.os_id;
@@ -180,23 +180,98 @@ CREATE OR REPLACE VIEW public.vw_dashboard_estoque AS SELECT count(*) FILTER (WH
 CREATE OR REPLACE VIEW public.vw_dashboard_maquinas AS SELECT count(*) maquinas, COALESCE(sum(a.minutos_reais),0)/60.0 horas_produtivas FROM public.maquinas m LEFT JOIN public.maquinas_agenda a ON a.maquina_id=m.id;
 CREATE OR REPLACE VIEW public.vw_dashboard_prazos AS SELECT count(*) FILTER (WHERE atraso) atrasadas FROM public.vw_resultado_os;
 CREATE OR REPLACE VIEW public.vw_dashboard_qualidade AS SELECT resultado, count(*) inspecoes FROM public.qualidade_inspecoes GROUP BY resultado;
-CREATE OR REPLACE VIEW public.vw_dashboard_retrabalho AS SELECT count(*) retrabalhos, COALESCE(sum(custo_total),0) custo FROM public.retrabalhos;
+CREATE OR REPLACE VIEW public.vw_dashboard_retrabalho AS SELECT count(*) FILTER (WHERE COALESCE(o.retrabalho,false) OR lower(COALESCE(o.tipo,'')) LIKE '%retrabalho%') retrabalhos, COALESCE((SELECT SUM(co.total) FROM public.custos_operacionais_os co WHERE co.categoria='retrabalho'),0) custo FROM public.ocorrencias o;
 CREATE OR REPLACE VIEW public.vw_dashboard_logistica AS SELECT status, count(*) entregas FROM public.entregas_instalacoes GROUP BY status;
 
-CREATE OR REPLACE FUNCTION public.fechar_os(p_os_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE v_uid uuid; v_result jsonb; v_cliente uuid;
+CREATE OR REPLACE FUNCTION public.fechar_os(os_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE v_uid uuid; v_result jsonb; v_cliente uuid; v_bloqueios jsonb := '[]'::jsonb; v_receita numeric; v_pago numeric;
 BEGIN
   v_uid := public.require_permission('os.close');
-  SELECT cliente_id INTO v_cliente FROM public.ordens_servico WHERE id=p_os_id FOR UPDATE; IF NOT FOUND THEN RAISE EXCEPTION 'OS não encontrada'; END IF;
-  IF EXISTS (SELECT 1 FROM public.os_tarefas WHERE os_id=p_os_id AND obrigatoria AND status NOT IN ('concluida','cancelada')) THEN RAISE EXCEPTION 'Há tarefas obrigatórias pendentes'; END IF;
-  IF EXISTS (SELECT 1 FROM public.qualidade_inspecoes WHERE os_id=p_os_id AND resultado IN ('reprovado','retrabalho')) THEN RAISE EXCEPTION 'Há qualidade/retrabalho pendente'; END IF;
-  SELECT to_jsonb(r) INTO v_result FROM public.vw_resultado_os r WHERE r.os_id=p_os_id;
-  INSERT INTO public.os_resultado_snapshots(os_id, resultado_json, created_by) VALUES (p_os_id, v_result, v_uid);
-  UPDATE public.ordens_servico SET status='finalizada', data_fechamento=now() WHERE id=p_os_id;
-  INSERT INTO public.pos_venda_pesquisas(os_id, cliente_id) VALUES (p_os_id, v_cliente);
-  PERFORM public.registrar_evento_os(p_os_id,'os',p_os_id,'fechamento','OS fechada',NULL,v_result);
-  RETURN v_result;
+  SELECT cliente_id, COALESCE(valor_total,0)-COALESCE(desconto,0) INTO v_cliente, v_receita FROM public.ordens_servico WHERE id=fechar_os.os_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'OS não encontrada'; END IF;
+  IF EXISTS (SELECT 1 FROM public.os_tarefas WHERE os_id=fechar_os.os_id AND obrigatoria AND status NOT IN ('concluida','cancelada')) THEN v_bloqueios := v_bloqueios || '"tarefas_obrigatorias"'::jsonb; END IF;
+  IF EXISTS (SELECT 1 FROM public.itens_os WHERE os_id=fechar_os.os_id AND requer_qualidade) AND NOT EXISTS (SELECT 1 FROM public.qualidade_inspecoes WHERE os_id=fechar_os.os_id AND resultado IN ('aprovado','aprovado_com_ressalva')) THEN v_bloqueios := v_bloqueios || '"qualidade_aprovada"'::jsonb; END IF;
+  IF EXISTS (SELECT 1 FROM public.qualidade_inspecoes WHERE os_id=fechar_os.os_id AND resultado IN ('reprovado','retrabalho')) THEN v_bloqueios := v_bloqueios || '"qualidade_reprovada_ou_retrabalho"'::jsonb; END IF;
+  IF EXISTS (SELECT 1 FROM public.os_materiais_previstos WHERE os_id=fechar_os.os_id) AND NOT EXISTS (SELECT 1 FROM public.movimentacoes_estoque WHERE os_id=fechar_os.os_id AND tipo='saida' AND origem='baixa_os') THEN v_bloqueios := v_bloqueios || '"materiais_baixados"'::jsonb; END IF;
+  IF EXISTS (SELECT 1 FROM public.ocorrencias WHERE os_id=fechar_os.os_id AND COALESCE(status,'aberta') NOT IN ('tratada','fechada','cancelada')) THEN v_bloqueios := v_bloqueios || '"ocorrencias_tratadas"'::jsonb; END IF;
+  IF EXISTS (SELECT 1 FROM public.entregas_instalacoes WHERE os_id=fechar_os.os_id AND status NOT IN ('concluida','cancelada','nao_necessaria')) THEN v_bloqueios := v_bloqueios || '"logistica_concluida"'::jsonb; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.custos_operacionais_os WHERE os_id=fechar_os.os_id) THEN v_bloqueios := v_bloqueios || '"custos_operacionais"'::jsonb; END IF;
+  SELECT COALESCE(SUM(valor),0) INTO v_pago FROM public.pagamentos WHERE os_id=fechar_os.os_id AND status='pago';
+  IF v_receita > 0 AND v_pago < v_receita AND COALESCE((SELECT status_financeiro::text FROM public.ordens_servico WHERE id=fechar_os.os_id),'pendente') <> 'pago' THEN v_bloqueios := v_bloqueios || '"pagamentos_pendentes"'::jsonb; END IF;
+  SELECT to_jsonb(r) INTO v_result FROM public.vw_resultado_os r WHERE r.os_id=fechar_os.os_id;
+  IF jsonb_array_length(v_bloqueios)>0 THEN RETURN jsonb_build_object('os_id',fechar_os.os_id,'fechada',false,'bloqueios',v_bloqueios,'resultado',v_result); END IF;
+  INSERT INTO public.os_resultado_snapshots(os_id, resultado_json, created_by) VALUES (fechar_os.os_id, v_result, v_uid);
+  UPDATE public.ordens_servico SET status='concluido', status_geral='fechada', data_fechamento=now(), custo_real=COALESCE((v_result->>'custo_realizado')::numeric,0), margem_real=COALESCE((v_result->>'margem_realizada')::numeric,0) WHERE id=fechar_os.os_id;
+  INSERT INTO public.pos_venda_pesquisas(os_id, cliente_id) VALUES (fechar_os.os_id, v_cliente);
+  PERFORM public.registrar_evento_os(fechar_os.os_id,'os',fechar_os.os_id,'fechamento','OS fechada',NULL,v_result);
+  RETURN jsonb_build_object('os_id',fechar_os.os_id,'fechada',true,'resultado',v_result);
 END $$;
+
+GRANT EXECUTE ON FUNCTION public.fechar_os(uuid) TO authenticated;
+
+
+-- Grants/RLS para tabelas da Parte 3. As políticas separam leitura operacional, custo interno, produção e portal.
+DO $$ DECLARE t TEXT; BEGIN
+  FOREACH t IN ARRAY ARRAY['maquinas_3d_config','materiais_3d_filamento','orcamentos_3d','slicer_imports','orcamento_3d_placas','orcamento_3d_consumos','orcamento_3d_servicos','orcamento_3d_calculos','producao_3d_jobs','producao_3d_apontamentos','producao_3d_fechamentos','os_resultado_snapshots','portal_cliente_acessos','portal_cliente_solicitacoes','pos_venda_pesquisas','pos_venda_respostas','pos_venda_tickets','pos_venda_garantias','pos_venda_retornos','pos_venda_oportunidades'] LOOP
+    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', t);
+    EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+  END LOOP;
+END $$;
+
+DROP POLICY IF EXISTS impressao3d_config_read ON public.maquinas_3d_config;
+CREATE POLICY impressao3d_config_read ON public.maquinas_3d_config FOR SELECT TO authenticated USING (public.require_permission('impressao3d.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_config_manage ON public.maquinas_3d_config;
+CREATE POLICY impressao3d_config_manage ON public.maquinas_3d_config FOR ALL TO authenticated USING (public.require_permission('impressao3d.settings.manage') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.settings.manage') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_filamento_read ON public.materiais_3d_filamento;
+CREATE POLICY impressao3d_filamento_read ON public.materiais_3d_filamento FOR SELECT TO authenticated USING (public.require_permission('impressao3d.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_filamento_manage ON public.materiais_3d_filamento;
+CREATE POLICY impressao3d_filamento_manage ON public.materiais_3d_filamento FOR ALL TO authenticated USING (public.require_permission('impressao3d.settings.manage') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.settings.manage') IS NOT NULL);
+
+DROP POLICY IF EXISTS impressao3d_quote_read ON public.orcamentos_3d;
+CREATE POLICY impressao3d_quote_read ON public.orcamentos_3d FOR SELECT TO authenticated USING (public.require_permission('impressao3d.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_quote_create ON public.orcamentos_3d;
+CREATE POLICY impressao3d_quote_create ON public.orcamentos_3d FOR INSERT TO authenticated WITH CHECK (public.require_permission('impressao3d.quote.create') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_quote_update ON public.orcamentos_3d;
+CREATE POLICY impressao3d_quote_update ON public.orcamentos_3d FOR UPDATE TO authenticated USING (public.require_permission('impressao3d.quote.update') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.quote.update') IS NOT NULL);
+
+DROP POLICY IF EXISTS impressao3d_quote_children_read ON public.slicer_imports;
+CREATE POLICY impressao3d_quote_children_read ON public.slicer_imports FOR SELECT TO authenticated USING (public.require_permission('impressao3d.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_quote_children_manage ON public.slicer_imports;
+CREATE POLICY impressao3d_quote_children_manage ON public.slicer_imports FOR ALL TO authenticated USING (public.require_permission('impressao3d.quote.update') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.quote.update') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_placas_read ON public.orcamento_3d_placas;
+CREATE POLICY impressao3d_placas_read ON public.orcamento_3d_placas FOR SELECT TO authenticated USING (public.require_permission('impressao3d.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_placas_manage ON public.orcamento_3d_placas;
+CREATE POLICY impressao3d_placas_manage ON public.orcamento_3d_placas FOR ALL TO authenticated USING (public.require_permission('impressao3d.quote.update') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.quote.update') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_servicos_read ON public.orcamento_3d_servicos;
+CREATE POLICY impressao3d_servicos_read ON public.orcamento_3d_servicos FOR SELECT TO authenticated USING (public.require_permission('impressao3d.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_servicos_manage ON public.orcamento_3d_servicos;
+CREATE POLICY impressao3d_servicos_manage ON public.orcamento_3d_servicos FOR ALL TO authenticated USING (public.require_permission('impressao3d.quote.update') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.quote.update') IS NOT NULL);
+
+DROP POLICY IF EXISTS impressao3d_cost_read_consumos ON public.orcamento_3d_consumos;
+CREATE POLICY impressao3d_cost_read_consumos ON public.orcamento_3d_consumos FOR SELECT TO authenticated USING (public.require_permission('impressao3d.cost.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_cost_manage_consumos ON public.orcamento_3d_consumos;
+CREATE POLICY impressao3d_cost_manage_consumos ON public.orcamento_3d_consumos FOR ALL TO authenticated USING (public.require_permission('impressao3d.cost.manage') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.cost.manage') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_cost_read_calculos ON public.orcamento_3d_calculos;
+CREATE POLICY impressao3d_cost_read_calculos ON public.orcamento_3d_calculos FOR SELECT TO authenticated USING (public.require_permission('impressao3d.cost.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_cost_insert_calculos ON public.orcamento_3d_calculos;
+CREATE POLICY impressao3d_cost_insert_calculos ON public.orcamento_3d_calculos FOR INSERT TO authenticated WITH CHECK (public.require_permission('impressao3d.cost.manage') IS NOT NULL);
+
+DROP POLICY IF EXISTS impressao3d_producao_read_jobs ON public.producao_3d_jobs;
+CREATE POLICY impressao3d_producao_read_jobs ON public.producao_3d_jobs FOR SELECT TO authenticated USING (public.require_permission('impressao3d.read') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_producao_manage_jobs ON public.producao_3d_jobs;
+CREATE POLICY impressao3d_producao_manage_jobs ON public.producao_3d_jobs FOR ALL TO authenticated USING (public.require_permission('impressao3d.production.update') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.production.update') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_producao_manage_apont ON public.producao_3d_apontamentos;
+CREATE POLICY impressao3d_producao_manage_apont ON public.producao_3d_apontamentos FOR ALL TO authenticated USING (public.require_permission('impressao3d.production.update') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.production.update') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_close_fechamentos ON public.producao_3d_fechamentos;
+CREATE POLICY impressao3d_close_fechamentos ON public.producao_3d_fechamentos FOR ALL TO authenticated USING (public.require_permission('impressao3d.close') IS NOT NULL) WITH CHECK (public.require_permission('impressao3d.close') IS NOT NULL);
+DROP POLICY IF EXISTS impressao3d_resultado_snapshot_read ON public.os_resultado_snapshots;
+CREATE POLICY impressao3d_resultado_snapshot_read ON public.os_resultado_snapshots FOR SELECT TO authenticated USING (public.require_permission('resultado.read') IS NOT NULL);
+
+DROP POLICY IF EXISTS slicer_imports_storage_select ON storage.objects;
+CREATE POLICY slicer_imports_storage_select ON storage.objects FOR SELECT TO authenticated USING (bucket_id='slicer-imports' AND public.require_permission('impressao3d.read') IS NOT NULL);
+DROP POLICY IF EXISTS slicer_imports_storage_insert ON storage.objects;
+CREATE POLICY slicer_imports_storage_insert ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id='slicer-imports' AND public.require_permission('impressao3d.quote.create') IS NOT NULL);
 
 -- RLS portal cliente: isolamento no banco, não só frontend.
 ALTER TABLE public.portal_cliente_acessos ENABLE ROW LEVEL SECURITY;
