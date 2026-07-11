@@ -135,12 +135,12 @@ function OrcamentoDetailPage() {
   }
 
   async function converterEmOS() {
-    const { data, error } = await supabase.rpc("converter_orcamento_em_os", {
+    const { data, error } = await (supabase.rpc as any)("converter_orcamento_em_os", {
       p_orcamento_id: id,
       p_opcoes: {},
     });
     if (error) return toast.error(error.message);
-    const osId = typeof data === "object" && data && "os_id" in data ? String(data.os_id) : "";
+    const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
     toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }

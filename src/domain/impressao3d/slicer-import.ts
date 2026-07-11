@@ -12,8 +12,8 @@ function assertSafe(buffer: Buffer, fileName: string, mime?: string) {
 }
 function parseDurationToSeconds(text: string) { const h = /([0-9]+)\s*h/i.exec(text)?.[1]; const m = /([0-9]+)\s*m/i.exec(text)?.[1]; const s = /([0-9]+)\s*s/i.exec(text)?.[1]; return (Number(h ?? 0) * 3600) + (Number(m ?? 0) * 60) + Number(s ?? 0); }
 export class GenericGCodeParser implements SlicerImportAdapter {
-  readonly name = "GenericGCodeParser";
-  canParse(fileName: string) { return fileName.toLowerCase().endsWith(".gcode"); }
+  readonly name: string = "GenericGCodeParser";
+  canParse(fileName: string, _mime?: string) { return fileName.toLowerCase().endsWith(".gcode"); }
   parse(buffer: Buffer, fileName: string, mime?: string): NormalizedSlicerData {
     assertSafe(buffer, fileName, mime);
     const text = buffer.toString("utf8", 0, Math.min(buffer.byteLength, LIMITS.internalBytes));

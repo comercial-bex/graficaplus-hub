@@ -92,8 +92,8 @@ function OSDetailPage() {
   async function updateStatus(novoStatus: string) {
     const statusAnterior = os?.status;
     const { error } = novoStatus === "concluido"
-      ? await supabase.rpc("fechar_os", { os_id: id })
-      : await supabase.rpc("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
+      ? await (supabase.rpc as any)("fechar_os", { os_id: id })
+      : await (supabase.rpc as any)("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
     if (error) return toast.error(error.message);
     await supabase.from("logs_auditoria").insert({
       entidade: "ordens_servico", entidade_id: id, acao: novoStatus === "concluido" ? "fechamento_os" : "status_change",
@@ -784,7 +784,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   }
 
   async function marcarPago(id: string) {
-    const { error } = await supabase.rpc("confirmar_pagamento_registrado", {
+    const { error } = await (supabase.rpc as any)("confirmar_pagamento_registrado", {
       p_pagamento_id: id,
       p_data: new Date().toISOString().slice(0, 10),
       p_referencia_externa: null,

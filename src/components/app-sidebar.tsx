@@ -53,7 +53,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Operação",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Kanban Produção", url: "/kanban", icon: Kanban, permission: "kanban.move" },
+      { title: "Kanban Produção", url: "/kanban", icon: Kanban, permission: "os.status.advance" },
       { title: "Ordens de Serviço", url: "/os", icon: ClipboardList },
     ],
   },
@@ -78,7 +78,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Produção",
     items: [
       { title: "Design & Arte", url: "/design", icon: Palette },
-      { title: "Arquivos", url: "/arquivos", icon: FolderOpen, permission: "arquivos.approve" },
+      { title: "Arquivos", url: "/arquivos", icon: FolderOpen, permission: "os.update" },
       { title: "Máquinas", url: "/maquinas", icon: Factory },
       { title: "Agenda de máquinas", url: "/maquinas-agenda", icon: Calendar },
       { title: "Manutenção", url: "/manutencao", icon: Wrench },
@@ -86,7 +86,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
         title: "Entregas & Instalações",
         url: "/entregas",
         icon: Truck,
-        permission: "instalacao.update",
+        permission: "os.status.advance",
       },
       { title: "Ocorrências", url: "/ocorrencias", icon: AlertTriangle },
     ],
@@ -96,12 +96,12 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     items: [
       { title: "Produtos", url: "/produtos", icon: Package },
       { title: "Precificação", url: "/precificacao", icon: Calculator, permission: "custos.read" },
-      { title: "Materiais", url: "/materiais", icon: Boxes, permission: "estoque.cost.read" },
+      { title: "Materiais", url: "/materiais", icon: Boxes, permission: "custos.read" },
       {
         title: "Movimentações",
         url: "/movimentacoes",
         icon: History,
-        permission: "estoque.cost.read",
+        permission: "custos.read",
       },
     ],
   },
