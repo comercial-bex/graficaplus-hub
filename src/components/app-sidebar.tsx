@@ -86,7 +86,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
         title: "Entregas & Instalações",
         url: "/entregas",
         icon: Truck,
-        permission: "instalacao.update",
+        permission: "os.status.advance",
       },
       { title: "Ocorrências", url: "/ocorrencias", icon: AlertTriangle },
     ],
