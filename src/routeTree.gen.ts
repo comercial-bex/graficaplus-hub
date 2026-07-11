@@ -31,7 +31,7 @@ import { Route as AuthenticatedManutencaoRouteImport } from './routes/_authentic
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
-import { Route as AuthenticatedImpressao3DRouteImport } from './routes/_authenticated/impressao-3d'
+import { Route as AuthenticatedImpressao3dRouteImport } from './routes/_authenticated/impressao-3d'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
@@ -158,11 +158,12 @@ const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
   path: '/kanban',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedImpressao3DRoute = AuthenticatedImpressao3DRouteImport.update({
-  id: '/impressao-3d',
-  path: '/impressao-3d',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedImpressao3dRoute =
+  AuthenticatedImpressao3dRouteImport.update({
+    id: '/impressao-3d',
+    path: '/impressao-3d',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
   id: '/financeiro',
   path: '/financeiro',
@@ -233,8 +234,8 @@ export interface FileRoutesByFullPath {
   '/design': typeof AuthenticatedDesignRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/kanban': typeof AuthenticatedKanbanRoute
-  '/impressao-3d': typeof AuthenticatedImpressao3DRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/manutencao': typeof AuthenticatedManutencaoRoute
@@ -268,8 +269,8 @@ export interface FileRoutesByTo {
   '/design': typeof AuthenticatedDesignRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/kanban': typeof AuthenticatedKanbanRoute
-  '/impressao-3d': typeof AuthenticatedImpressao3DRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/manutencao': typeof AuthenticatedManutencaoRoute
@@ -305,8 +306,8 @@ export interface FileRoutesById {
   '/_authenticated/design': typeof AuthenticatedDesignRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/_authenticated/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
-  '/_authenticated/impressao-3d': typeof AuthenticatedImpressao3DRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/manutencao': typeof AuthenticatedManutencaoRoute
@@ -342,8 +343,8 @@ export interface FileRouteTypes {
     | '/design'
     | '/entregas'
     | '/financeiro'
-    | '/kanban'
     | '/impressao-3d'
+    | '/kanban'
     | '/leads'
     | '/logs'
     | '/manutencao'
@@ -377,8 +378,8 @@ export interface FileRouteTypes {
     | '/design'
     | '/entregas'
     | '/financeiro'
-    | '/kanban'
     | '/impressao-3d'
+    | '/kanban'
     | '/leads'
     | '/logs'
     | '/manutencao'
@@ -413,8 +414,8 @@ export interface FileRouteTypes {
     | '/_authenticated/design'
     | '/_authenticated/entregas'
     | '/_authenticated/financeiro'
-    | '/_authenticated/kanban'
     | '/_authenticated/impressao-3d'
+    | '/_authenticated/kanban'
     | '/_authenticated/leads'
     | '/_authenticated/logs'
     | '/_authenticated/manutencao'
@@ -601,6 +602,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKanbanRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/impressao-3d': {
+      id: '/_authenticated/impressao-3d'
+      path: '/impressao-3d'
+      fullPath: '/impressao-3d'
+      preLoaderRoute: typeof AuthenticatedImpressao3dRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/financeiro': {
       id: '/_authenticated/financeiro'
       path: '/financeiro'
@@ -729,8 +737,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
+  AuthenticatedImpressao3dRoute: typeof AuthenticatedImpressao3dRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
-  AuthenticatedImpressao3DRoute: typeof AuthenticatedImpressao3DRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedManutencaoRoute: typeof AuthenticatedManutencaoRoute
@@ -758,8 +766,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
+  AuthenticatedImpressao3dRoute: AuthenticatedImpressao3dRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
-  AuthenticatedImpressao3DRoute: AuthenticatedImpressao3DRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedManutencaoRoute: AuthenticatedManutencaoRoute,
@@ -791,3 +799,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
