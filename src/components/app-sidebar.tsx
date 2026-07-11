@@ -96,12 +96,12 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     items: [
       { title: "Produtos", url: "/produtos", icon: Package },
       { title: "Precificação", url: "/precificacao", icon: Calculator, permission: "custos.read" },
-      { title: "Materiais", url: "/materiais", icon: Boxes, permission: "estoque.cost.read" },
+      { title: "Materiais", url: "/materiais", icon: Boxes, permission: "custos.read" },
       {
         title: "Movimentações",
         url: "/movimentacoes",
         icon: History,
-        permission: "estoque.cost.read",
+        permission: "custos.read",
       },
     ],
   },
