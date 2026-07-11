@@ -113,15 +113,6 @@ function OrcamentosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Orçamentos</h1>
-          <p className="text-muted-foreground">Propostas comerciais</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-  return (
-    <div className="space-y-6">
       <SectionHeader
         breadcrumb="Print OS · Comercial"
         title="Orçamentos"
@@ -213,14 +204,10 @@ function OrcamentosPage() {
                 </TableRow>
               )}
               {orcamentos.map((o: any) => {
-                const s = statusLabels[o.status] ?? {
-                  label: o.status,
-                  variant: "outline" as const,
-                };
                 return (
                   <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
                     <TableCell>
-                      <Link to="/orcamentos/$id" params={{ id: o.id }} className="hover:underline">
+                      <Link to="/orcamentos/$id" params={{ id: o.id }} className="font-mono text-xs text-muted-foreground hover:text-[color:var(--bex-cyan)]">
                         #{o.numero}
                       </Link>
                     </TableCell>
@@ -229,12 +216,15 @@ function OrcamentosPage() {
                         {o.titulo}
                       </Link>
                     </TableCell>
-                    <TableCell>{o.cliente_nome}</TableCell>
+                    <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
                     <TableCell>
-                      <Badge variant={s.variant}>{s.label}</Badge>
+                      <StatusChip
+                        label={statusLabel[o.status] ?? o.status}
+                        tone={statusTone[o.status] ?? "muted"}
+                      />
                     </TableCell>
                     {canSeeFinancials && (
-                      <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-sm">R$ {Number(o.valor_total).toFixed(2)}</TableCell>
                     )}
                     <TableCell className="text-right">
                       {o.status !== "convertido" && (
