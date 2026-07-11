@@ -151,6 +151,13 @@ export type Database = {
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
           },
+          {
+            foreignKeyName: "agenda_maquinas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
         ]
       }
       apontamentos_producao: {
@@ -248,6 +255,13 @@ export type Database = {
             columns: ["os_id"]
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "apontamentos_producao_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
             referencedColumns: ["os_id"]
           },
         ]
@@ -364,6 +378,13 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
           {
+            foreignKeyName: "aprovacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
             foreignKeyName: "aprovacoes_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
@@ -372,24 +393,186 @@ export type Database = {
           },
         ]
       }
+      arquivo_aprovacoes: {
+        Row: {
+          arquivo_id: string
+          canal: string
+          cliente_id: string | null
+          comentario: string | null
+          created_at: string
+          decisao: string
+          id: string
+          referencias: Json
+          usuario_id: string | null
+        }
+        Insert: {
+          arquivo_id: string
+          canal?: string
+          cliente_id?: string | null
+          comentario?: string | null
+          created_at?: string
+          decisao: string
+          id?: string
+          referencias?: Json
+          usuario_id?: string | null
+        }
+        Update: {
+          arquivo_id?: string
+          canal?: string
+          cliente_id?: string | null
+          comentario?: string | null
+          created_at?: string
+          decisao?: string
+          id?: string
+          referencias?: Json
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arquivo_aprovacoes_arquivo_id_fkey"
+            columns: ["arquivo_id"]
+            isOneToOne: false
+            referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_aprovacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_aprovacoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arquivo_tokens_externos: {
+        Row: {
+          arquivo_id: string | null
+          created_at: string
+          created_by: string | null
+          escopo: Json
+          expira_em: string
+          id: string
+          os_id: string | null
+          revogado_em: string | null
+          token_hash: string
+          usado_em: string | null
+        }
+        Insert: {
+          arquivo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          escopo?: Json
+          expira_em: string
+          id?: string
+          os_id?: string | null
+          revogado_em?: string | null
+          token_hash: string
+          usado_em?: string | null
+        }
+        Update: {
+          arquivo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          escopo?: Json
+          expira_em?: string
+          id?: string
+          os_id?: string | null
+          revogado_em?: string | null
+          token_hash?: string
+          usado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arquivo_tokens_externos_arquivo_id_fkey"
+            columns: ["arquivo_id"]
+            isOneToOne: false
+            referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_tokens_externos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_tokens_externos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_tokens_externos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_tokens_externos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_tokens_externos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "arquivo_tokens_externos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "arquivo_tokens_externos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+        ]
+      }
       arquivos: {
         Row: {
           aprovado_por: string | null
+          arquivo_substituido_id: string | null
           ativo: boolean
+          bucket: string | null
           caminho: string
           cliente_id: string | null
           conversa_id: string | null
           created_at: string
+          created_by: string | null
           data_aprovacao: string | null
           enviado_por: string | null
+          final: boolean
           final_producao: boolean
+          hash: string | null
           id: string
+          mime: string | null
           mime_type: string | null
           nome: string
           observacao: string | null
           os_id: string | null
+          os_item_id: string | null
           status: Database["public"]["Enums"]["status_arquivo"]
           substituido_por: string | null
+          tamanho: number | null
           tamanho_bytes: number | null
           tarefa_id: string | null
           tipo: Database["public"]["Enums"]["tipo_arquivo"]
@@ -398,21 +581,29 @@ export type Database = {
         }
         Insert: {
           aprovado_por?: string | null
+          arquivo_substituido_id?: string | null
           ativo?: boolean
+          bucket?: string | null
           caminho: string
           cliente_id?: string | null
           conversa_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_aprovacao?: string | null
           enviado_por?: string | null
+          final?: boolean
           final_producao?: boolean
+          hash?: string | null
           id?: string
+          mime?: string | null
           mime_type?: string | null
           nome: string
           observacao?: string | null
           os_id?: string | null
+          os_item_id?: string | null
           status?: Database["public"]["Enums"]["status_arquivo"]
           substituido_por?: string | null
+          tamanho?: number | null
           tamanho_bytes?: number | null
           tarefa_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_arquivo"]
@@ -421,21 +612,29 @@ export type Database = {
         }
         Update: {
           aprovado_por?: string | null
+          arquivo_substituido_id?: string | null
           ativo?: boolean
+          bucket?: string | null
           caminho?: string
           cliente_id?: string | null
           conversa_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_aprovacao?: string | null
           enviado_por?: string | null
+          final?: boolean
           final_producao?: boolean
+          hash?: string | null
           id?: string
+          mime?: string | null
           mime_type?: string | null
           nome?: string
           observacao?: string | null
           os_id?: string | null
+          os_item_id?: string | null
           status?: Database["public"]["Enums"]["status_arquivo"]
           substituido_por?: string | null
+          tamanho?: number | null
           tamanho_bytes?: number | null
           tarefa_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_arquivo"]
@@ -451,10 +650,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "arquivos_arquivo_substituido_id_fkey"
+            columns: ["arquivo_substituido_id"]
+            isOneToOne: false
+            referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "arquivos_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
           {
@@ -498,6 +711,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "arquivos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "arquivos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "arquivos_substituido_por_fkey"
@@ -828,6 +1069,13 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
           {
+            foreignKeyName: "checklists_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
             foreignKeyName: "checklists_os_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -1116,6 +1364,13 @@ export type Database = {
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
           },
+          {
+            foreignKeyName: "contas_receber_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
         ]
       }
       conversas_whatsapp: {
@@ -1174,6 +1429,136 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custos_operacionais_os: {
+        Row: {
+          categoria: string
+          created_at: string
+          data: string
+          id: string
+          origem: string
+          os_id: string
+          os_item_id: string | null
+          quantidade: number
+          tarefa_id: string | null
+          total: number | null
+          usuario_id: string | null
+          valor_unitario: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data?: string
+          id?: string
+          origem: string
+          os_id: string
+          os_item_id?: string | null
+          quantidade?: number
+          tarefa_id?: string | null
+          total?: number | null
+          usuario_id?: string | null
+          valor_unitario?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data?: string
+          id?: string
+          origem?: string
+          os_id?: string
+          os_item_id?: string | null
+          quantidade?: number
+          tarefa_id?: string | null
+          total?: number | null
+          usuario_id?: string | null
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custos_operacionais_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "os_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custos_operacionais_os_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -1246,6 +1631,13 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
           {
+            foreignKeyName: "custos_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
             foreignKeyName: "custos_os_registrado_por_fkey"
             columns: ["registrado_por"]
             isOneToOne: false
@@ -1292,38 +1684,68 @@ export type Database = {
       }
       entregas_instalacoes: {
         Row: {
+          assinatura: Json
+          checklist: Json
+          comprovante: Json
           created_at: string
           data_agendada: string | null
           data_realizada: string | null
           endereco: string | null
+          fotos: Json
           id: string
           instalador_id: string | null
+          janela_fim: string | null
+          janela_inicio: string | null
           observacoes: string | null
+          ocorrencia: string | null
           os_id: string | null
+          os_item_id: string | null
+          responsavel_id: string | null
+          rota: Json
           status: string
           tipo: string
         }
         Insert: {
+          assinatura?: Json
+          checklist?: Json
+          comprovante?: Json
           created_at?: string
           data_agendada?: string | null
           data_realizada?: string | null
           endereco?: string | null
+          fotos?: Json
           id?: string
           instalador_id?: string | null
+          janela_fim?: string | null
+          janela_inicio?: string | null
           observacoes?: string | null
+          ocorrencia?: string | null
           os_id?: string | null
+          os_item_id?: string | null
+          responsavel_id?: string | null
+          rota?: Json
           status?: string
           tipo?: string
         }
         Update: {
+          assinatura?: Json
+          checklist?: Json
+          comprovante?: Json
           created_at?: string
           data_agendada?: string | null
           data_realizada?: string | null
           endereco?: string | null
+          fotos?: Json
           id?: string
           instalador_id?: string | null
+          janela_fim?: string | null
+          janela_inicio?: string | null
           observacoes?: string | null
+          ocorrencia?: string | null
           os_id?: string | null
+          os_item_id?: string | null
+          responsavel_id?: string | null
+          rota?: Json
           status?: string
           tipo?: string
         }
@@ -1369,6 +1791,279 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "entregas_instalacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "entregas_instalacoes_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_instalacoes_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_instalacoes_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_instalacoes_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_inventarios: {
+        Row: {
+          created_at: string
+          id: string
+          lote_id: string | null
+          material_id: string
+          motivo: string
+          quantidade_anterior: number
+          quantidade_nova: number
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          material_id: string
+          motivo: string
+          quantidade_anterior: number
+          quantidade_nova: number
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          material_id?: string
+          motivo?: string
+          quantidade_anterior?: number
+          quantidade_nova?: number
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_inventarios_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "material_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_inventarios_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_inventarios_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_inventarios_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_inventarios_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "estoque_inventarios_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_reservas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lote_id: string | null
+          material_id: string
+          os_id: string
+          os_item_id: string | null
+          quantidade: number
+          quantidade_baixada: number
+          status: string
+          tarefa_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lote_id?: string | null
+          material_id: string
+          os_id: string
+          os_item_id?: string | null
+          quantidade: number
+          quantidade_baixada?: number
+          status?: string
+          tarefa_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lote_id?: string | null
+          material_id?: string
+          os_id?: string
+          os_item_id?: string | null
+          quantidade?: number
+          quantidade_baixada?: number
+          status?: string
+          tarefa_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_reservas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "material_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "os_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_reservas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1476,49 +2171,76 @@ export type Database = {
       }
       itens_os: {
         Row: {
+          arquivo_id: string | null
           created_at: string
           custo_unitario: number
+          custos_previstos: Json
           descricao: string
+          especificacoes: Json
           id: string
+          margem_prevista: number | null
           orcamento_item_id: string | null
           ordem: number
           os_id: string
           parametros: Json
+          planejamento: Json
+          precisa_entrega: boolean
+          precisa_instalacao: boolean
+          preco_snapshot: number | null
           produto_id: string | null
           produto_snapshot: Json
           quantidade: number
+          requer_qualidade: boolean
           unidade: string
           valor_total: number
           valor_unitario: number
         }
         Insert: {
+          arquivo_id?: string | null
           created_at?: string
           custo_unitario?: number
+          custos_previstos?: Json
           descricao: string
+          especificacoes?: Json
           id?: string
+          margem_prevista?: number | null
           orcamento_item_id?: string | null
           ordem?: number
           os_id: string
           parametros?: Json
+          planejamento?: Json
+          precisa_entrega?: boolean
+          precisa_instalacao?: boolean
+          preco_snapshot?: number | null
           produto_id?: string | null
           produto_snapshot?: Json
           quantidade?: number
+          requer_qualidade?: boolean
           unidade?: string
           valor_total?: number
           valor_unitario?: number
         }
         Update: {
+          arquivo_id?: string | null
           created_at?: string
           custo_unitario?: number
+          custos_previstos?: Json
           descricao?: string
+          especificacoes?: Json
           id?: string
+          margem_prevista?: number | null
           orcamento_item_id?: string | null
           ordem?: number
           os_id?: string
           parametros?: Json
+          planejamento?: Json
+          precisa_entrega?: boolean
+          precisa_instalacao?: boolean
+          preco_snapshot?: number | null
           produto_id?: string | null
           produto_snapshot?: Json
           quantidade?: number
+          requer_qualidade?: boolean
           unidade?: string
           valor_total?: number
           valor_unitario?: number
@@ -1578,6 +2300,13 @@ export type Database = {
             columns: ["os_id"]
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "itens_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
             referencedColumns: ["os_id"]
           },
           {
@@ -1745,55 +2474,91 @@ export type Database = {
       }
       manutencoes: {
         Row: {
+          abertura: string
           created_at: string
           created_by: string | null
+          custo: number
           custo_previsto: number
           custo_real: number
           data_conclusao: string | null
           data_inicio: string | null
           data_programada: string | null
           descricao: string | null
+          fim_previsto: string | null
+          fim_real: string | null
+          horas_paradas: number
+          horimetro: number | null
           id: string
+          inicio_previsto: string | null
+          inicio_real: string | null
           maquina_id: string
+          motivo: string | null
           observacoes: string | null
+          pecas: Json
+          recorrencia: Json
           responsavel_id: string | null
           status: string
+          tecnico_id: string | null
           tipo: string
           titulo: string
           updated_at: string
         }
         Insert: {
+          abertura?: string
           created_at?: string
           created_by?: string | null
+          custo?: number
           custo_previsto?: number
           custo_real?: number
           data_conclusao?: string | null
           data_inicio?: string | null
           data_programada?: string | null
           descricao?: string | null
+          fim_previsto?: string | null
+          fim_real?: string | null
+          horas_paradas?: number
+          horimetro?: number | null
           id?: string
+          inicio_previsto?: string | null
+          inicio_real?: string | null
           maquina_id: string
+          motivo?: string | null
           observacoes?: string | null
+          pecas?: Json
+          recorrencia?: Json
           responsavel_id?: string | null
           status?: string
+          tecnico_id?: string | null
           tipo?: string
           titulo: string
           updated_at?: string
         }
         Update: {
+          abertura?: string
           created_at?: string
           created_by?: string | null
+          custo?: number
           custo_previsto?: number
           custo_real?: number
           data_conclusao?: string | null
           data_inicio?: string | null
           data_programada?: string | null
           descricao?: string | null
+          fim_previsto?: string | null
+          fim_real?: string | null
+          horas_paradas?: number
+          horimetro?: number | null
           id?: string
+          inicio_previsto?: string | null
+          inicio_real?: string | null
           maquina_id?: string
+          motivo?: string | null
           observacoes?: string | null
+          pecas?: Json
+          recorrencia?: Json
           responsavel_id?: string | null
           status?: string
+          tecnico_id?: string | null
           tipo?: string
           titulo?: string
           updated_at?: string
@@ -1827,6 +2592,69 @@ export type Database = {
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "manutencoes_tecnico_id_fkey"
+            columns: ["tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maquina_compatibilidades: {
+        Row: {
+          ativo: boolean
+          maquina_id: string
+          minutos_limpeza: number
+          minutos_setup: number
+          produto_id: string
+          tipo_operacao: string
+        }
+        Insert: {
+          ativo?: boolean
+          maquina_id: string
+          minutos_limpeza?: number
+          minutos_setup?: number
+          produto_id: string
+          tipo_operacao: string
+        }
+        Update: {
+          ativo?: boolean
+          maquina_id?: string
+          minutos_limpeza?: number
+          minutos_setup?: number
+          produto_id?: string
+          tipo_operacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquina_compatibilidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquina_compatibilidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "maquina_compatibilidades_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquina_compatibilidades_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maquinas: {
@@ -1856,41 +2684,84 @@ export type Database = {
       maquinas_agenda: {
         Row: {
           created_at: string
+          created_by: string | null
           fim: string
+          fim_previsto: string | null
+          fim_real: string | null
           id: string
           inicio: string
+          inicio_previsto: string | null
+          inicio_real: string | null
           maquina_id: string
+          minutos_previstos: number
+          minutos_reais: number
           observacoes: string | null
+          operador_id: string | null
+          origem: string
           os_id: string | null
+          os_item_id: string | null
+          prioridade: number
           status: string
+          tarefa_id: string | null
           titulo: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           fim: string
+          fim_previsto?: string | null
+          fim_real?: string | null
           id?: string
           inicio: string
+          inicio_previsto?: string | null
+          inicio_real?: string | null
           maquina_id: string
+          minutos_previstos?: number
+          minutos_reais?: number
           observacoes?: string | null
+          operador_id?: string | null
+          origem?: string
           os_id?: string | null
+          os_item_id?: string | null
+          prioridade?: number
           status?: string
+          tarefa_id?: string | null
           titulo: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           fim?: string
+          fim_previsto?: string | null
+          fim_real?: string | null
           id?: string
           inicio?: string
+          inicio_previsto?: string | null
+          inicio_real?: string | null
           maquina_id?: string
+          minutos_previstos?: number
+          minutos_reais?: number
           observacoes?: string | null
+          operador_id?: string | null
+          origem?: string
           os_id?: string | null
+          os_item_id?: string | null
+          prioridade?: number
           status?: string
+          tarefa_id?: string | null
           titulo?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "maquinas_agenda_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "maquinas_agenda_maquina_id_fkey"
             columns: ["maquina_id"]
@@ -1904,6 +2775,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "maquinas_agenda_os_id_fkey"
@@ -1939,6 +2817,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2028,6 +2934,81 @@ export type Database = {
             referencedRelation: "materiais_operacional"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "material_custos_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+        ]
+      }
+      material_lotes: {
+        Row: {
+          codigo: string | null
+          created_at: string
+          custo_unitario_snapshot: number
+          fornecedor: string | null
+          id: string
+          material_id: string
+          quantidade: number
+          quantidade_reservada: number
+          unidade: string
+          validade: string | null
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string
+          custo_unitario_snapshot?: number
+          fornecedor?: string | null
+          id?: string
+          material_id: string
+          quantidade?: number
+          quantidade_reservada?: number
+          unidade?: string
+          validade?: string | null
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string
+          custo_unitario_snapshot?: number
+          fornecedor?: string | null
+          id?: string
+          material_id?: string
+          quantidade?: number
+          quantidade_reservada?: number
+          unidade?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_lotes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_lotes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_lotes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_lotes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
         ]
       }
       mensagens_whatsapp: {
@@ -2092,35 +3073,66 @@ export type Database = {
       movimentacoes_estoque: {
         Row: {
           created_at: string
+          custo_unitario_snapshot: number | null
           id: string
+          lote_id: string | null
           material_id: string
+          motivo: string | null
+          movimentacao_origem_id: string | null
           observacao: string | null
+          origem: string | null
           os_id: string | null
+          os_item_id: string | null
           quantidade: number
+          tarefa_id: string | null
           tipo: string
+          unidade: string | null
           usuario_id: string | null
         }
         Insert: {
           created_at?: string
+          custo_unitario_snapshot?: number | null
           id?: string
+          lote_id?: string | null
           material_id: string
+          motivo?: string | null
+          movimentacao_origem_id?: string | null
           observacao?: string | null
+          origem?: string | null
           os_id?: string | null
+          os_item_id?: string | null
           quantidade: number
+          tarefa_id?: string | null
           tipo: string
+          unidade?: string | null
           usuario_id?: string | null
         }
         Update: {
           created_at?: string
+          custo_unitario_snapshot?: number | null
           id?: string
+          lote_id?: string | null
           material_id?: string
+          motivo?: string | null
+          movimentacao_origem_id?: string | null
           observacao?: string | null
+          origem?: string | null
           os_id?: string | null
+          os_item_id?: string | null
           quantidade?: number
+          tarefa_id?: string | null
           tipo?: string
+          unidade?: string | null
           usuario_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "material_lotes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movimentacoes_estoque_material_id_fkey"
             columns: ["material_id"]
@@ -2143,6 +3155,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movimentacoes_estoque_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_movimentacao_origem_id_fkey"
+            columns: ["movimentacao_origem_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_estoque"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movimentacoes_estoque_os_id_fkey"
             columns: ["os_id"]
             isOneToOne: false
@@ -2176,6 +3202,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "os_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_estoque_usuario_id_fkey"
@@ -2186,53 +3254,149 @@ export type Database = {
           },
         ]
       }
+      notificacoes_operacionais: {
+        Row: {
+          acao: Json
+          canal: string
+          data: string
+          entidade: string
+          entidade_id: string
+          id: string
+          lida: boolean
+          mensagem: string
+          prioridade: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          acao?: Json
+          canal?: string
+          data?: string
+          entidade: string
+          entidade_id: string
+          id?: string
+          lida?: boolean
+          mensagem: string
+          prioridade?: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: Json
+          canal?: string
+          data?: string
+          entidade?: string
+          entidade_id?: string
+          id?: string
+          lida?: boolean
+          mensagem?: string
+          prioridade?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_operacionais_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ocorrencias: {
         Row: {
+          acao_corretiva: string | null
+          acao_preventiva: string | null
+          analisado_por: string | null
+          categoria: string | null
+          causa: string | null
           created_at: string
           custo: number
           custo_real: number
           descricao: string
+          etapa: string | null
           id: string
+          material_perdido: Json
           os_id: string | null
+          os_item_id: string | null
+          quantidade_afetada: number
           registrado_por: string | null
           resolvida: boolean
           resolvida_em: string | null
           retrabalho: boolean
+          retrabalho_tarefa_id: string | null
           setor: string | null
+          status: string
+          tarefa_id: string | null
+          tempo_perdido_minutos: number
           tipo: string
           updated_at: string
         }
         Insert: {
+          acao_corretiva?: string | null
+          acao_preventiva?: string | null
+          analisado_por?: string | null
+          categoria?: string | null
+          causa?: string | null
           created_at?: string
           custo?: number
           custo_real?: number
           descricao: string
+          etapa?: string | null
           id?: string
+          material_perdido?: Json
           os_id?: string | null
+          os_item_id?: string | null
+          quantidade_afetada?: number
           registrado_por?: string | null
           resolvida?: boolean
           resolvida_em?: string | null
           retrabalho?: boolean
+          retrabalho_tarefa_id?: string | null
           setor?: string | null
+          status?: string
+          tarefa_id?: string | null
+          tempo_perdido_minutos?: number
           tipo: string
           updated_at?: string
         }
         Update: {
+          acao_corretiva?: string | null
+          acao_preventiva?: string | null
+          analisado_por?: string | null
+          categoria?: string | null
+          causa?: string | null
           created_at?: string
           custo?: number
           custo_real?: number
           descricao?: string
+          etapa?: string | null
           id?: string
+          material_perdido?: Json
           os_id?: string | null
+          os_item_id?: string | null
+          quantidade_afetada?: number
           registrado_por?: string | null
           resolvida?: boolean
           resolvida_em?: string | null
           retrabalho?: boolean
+          retrabalho_tarefa_id?: string | null
           setor?: string | null
+          status?: string
+          tarefa_id?: string | null
+          tempo_perdido_minutos?: number
           tipo?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ocorrencias_analisado_por_fkey"
+            columns: ["analisado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ocorrencias_os_id_fkey"
             columns: ["os_id"]
@@ -2269,10 +3433,66 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
           {
+            foreignKeyName: "ocorrencias_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ocorrencias_registrado_por_fkey"
             columns: ["registrado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_retrabalho_tarefa_id_fkey"
+            columns: ["retrabalho_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "os_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_retrabalho_tarefa_id_fkey"
+            columns: ["retrabalho_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "os_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
             referencedColumns: ["id"]
           },
         ]
@@ -2782,6 +4002,13 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
           {
+            foreignKeyName: "orcamentos_os_fk"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
             foreignKeyName: "orcamentos_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
@@ -3075,6 +4302,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "os_materiais_obrigatorios_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "os_materiais_obrigatorios_os_id_fkey"
             columns: ["os_id"]
             isOneToOne: false
@@ -3108,6 +4342,155 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_materiais_obrigatorios_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+        ]
+      }
+      os_materiais_previstos: {
+        Row: {
+          created_at: string
+          custo_unitario_previsto: number
+          id: string
+          material_id: string
+          os_id: string
+          os_item_id: string | null
+          quantidade: number
+          tarefa_id: string | null
+          unidade: string
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario_previsto?: number
+          id?: string
+          material_id: string
+          os_id: string
+          os_item_id?: string | null
+          quantidade: number
+          tarefa_id?: string | null
+          unidade?: string
+        }
+        Update: {
+          created_at?: string
+          custo_unitario_previsto?: number
+          id?: string
+          material_id?: string
+          os_id?: string
+          os_item_id?: string | null
+          quantidade?: number
+          tarefa_id?: string | null
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_materiais_previstos_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "os_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_materiais_previstos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3212,6 +4595,13 @@ export type Database = {
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
           },
+          {
+            foreignKeyName: "os_resultados_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: true
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
         ]
       }
       os_resultados_financeiros: {
@@ -3274,6 +4664,234 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_resultados_financeiros_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: true
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+        ]
+      }
+      os_tarefa_comentarios: {
+        Row: {
+          anexos: Json
+          autor_id: string | null
+          comentario: string
+          created_at: string
+          id: string
+          tarefa_id: string
+        }
+        Insert: {
+          anexos?: Json
+          autor_id?: string | null
+          comentario: string
+          created_at?: string
+          id?: string
+          tarefa_id: string
+        }
+        Update: {
+          anexos?: Json
+          autor_id?: string | null
+          comentario?: string
+          created_at?: string
+          id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_tarefa_comentarios_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefa_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "os_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefa_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_tarefas: {
+        Row: {
+          anexos: Json
+          bloqueia_dependentes: boolean
+          checklist: Json
+          comentarios: Json
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          dependencias: Json
+          descricao: string | null
+          fim_previsto: string | null
+          fim_real: string | null
+          id: string
+          inicio_previsto: string | null
+          inicio_real: string | null
+          minutos_previstos: number
+          minutos_realizados: number
+          obrigatoria: boolean
+          os_id: string
+          os_item_id: string | null
+          prazo: string | null
+          prioridade: string
+          responsavel_id: string | null
+          setor: string | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          anexos?: Json
+          bloqueia_dependentes?: boolean
+          checklist?: Json
+          comentarios?: Json
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          dependencias?: Json
+          descricao?: string | null
+          fim_previsto?: string | null
+          fim_real?: string | null
+          id?: string
+          inicio_previsto?: string | null
+          inicio_real?: string | null
+          minutos_previstos?: number
+          minutos_realizados?: number
+          obrigatoria?: boolean
+          os_id: string
+          os_item_id?: string | null
+          prazo?: string | null
+          prioridade?: string
+          responsavel_id?: string | null
+          setor?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          anexos?: Json
+          bloqueia_dependentes?: boolean
+          checklist?: Json
+          comentarios?: Json
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          dependencias?: Json
+          descricao?: string | null
+          fim_previsto?: string | null
+          fim_real?: string | null
+          id?: string
+          inicio_previsto?: string | null
+          inicio_real?: string | null
+          minutos_previstos?: number
+          minutos_realizados?: number
+          obrigatoria?: boolean
+          os_id?: string
+          os_item_id?: string | null
+          prazo?: string | null
+          prioridade?: string
+          responsavel_id?: string | null
+          setor?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_tarefas_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3372,6 +4990,13 @@ export type Database = {
             columns: ["os_id"]
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
             referencedColumns: ["os_id"]
           },
           {
@@ -3530,6 +5155,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "produto_materiais_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "produto_materiais_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
@@ -3637,6 +5269,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "produto_precificacao_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "produto_precificacao_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
@@ -3673,6 +5312,7 @@ export type Database = {
           preco_publico: number | null
           preco_sugerido: number | null
           sku: string | null
+          sugestoes_operacionais: Json
           tempo_producao_min: number | null
           tipo: Database["public"]["Enums"]["tipo_item"]
           unidade: string
@@ -3698,6 +5338,7 @@ export type Database = {
           preco_publico?: number | null
           preco_sugerido?: number | null
           sku?: string | null
+          sugestoes_operacionais?: Json
           tempo_producao_min?: number | null
           tipo?: Database["public"]["Enums"]["tipo_item"]
           unidade?: string
@@ -3723,6 +5364,7 @@ export type Database = {
           preco_publico?: number | null
           preco_sugerido?: number | null
           sku?: string | null
+          sugestoes_operacionais?: Json
           tempo_producao_min?: number | null
           tipo?: Database["public"]["Enums"]["tipo_item"]
           unidade?: string
@@ -3762,6 +5404,195 @@ export type Database = {
             columns: ["material_principal_id"]
             isOneToOne: false
             referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_material_principal_id_fkey"
+            columns: ["material_principal_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+        ]
+      }
+      qualidade_checklists: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          id: string
+          itens: Json
+          operacao: string | null
+          produto_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          itens?: Json
+          operacao?: string | null
+          produto_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          itens?: Json
+          operacao?: string | null
+          produto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualidade_checklists_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_checklists_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qualidade_inspecoes: {
+        Row: {
+          checklist_id: string | null
+          created_at: string
+          data: string
+          fotos: Json
+          id: string
+          observacao: string | null
+          os_id: string
+          os_item_id: string | null
+          responsavel_id: string | null
+          respostas: Json
+          resultado: string
+          tarefa_id: string | null
+        }
+        Insert: {
+          checklist_id?: string | null
+          created_at?: string
+          data?: string
+          fotos?: Json
+          id?: string
+          observacao?: string | null
+          os_id: string
+          os_item_id?: string | null
+          responsavel_id?: string | null
+          respostas?: Json
+          resultado: string
+          tarefa_id?: string | null
+        }
+        Update: {
+          checklist_id?: string | null
+          created_at?: string
+          data?: string
+          fotos?: Json
+          id?: string
+          observacao?: string | null
+          os_id?: string
+          os_item_id?: string | null
+          responsavel_id?: string | null
+          respostas?: Json
+          resultado?: string
+          tarefa_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualidade_inspecoes_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "qualidade_checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "os_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualidade_inspecoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
             referencedColumns: ["id"]
           },
         ]
@@ -3910,6 +5741,13 @@ export type Database = {
             columns: ["os_id"]
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
             referencedColumns: ["os_id"]
           },
           {
@@ -4247,6 +6085,13 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
           {
+            foreignKeyName: "whatsapp_conversas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
             foreignKeyName: "whatsapp_conversas_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -4578,6 +6423,13 @@ export type Database = {
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
           },
+          {
+            foreignKeyName: "whatsapp_mensagens_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
         ]
       }
       whatsapp_participantes: {
@@ -4744,6 +6596,13 @@ export type Database = {
             referencedRelation: "rel_os_atrasadas"
             referencedColumns: ["os_id"]
           },
+          {
+            foreignKeyName: "itens_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
         ]
       }
       itens_os_operacional: {
@@ -4808,6 +6667,13 @@ export type Database = {
             columns: ["os_id"]
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "itens_os_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
             referencedColumns: ["os_id"]
           },
         ]
@@ -5011,6 +6877,13 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
           {
+            foreignKeyName: "orcamentos_os_fk"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
             foreignKeyName: "orcamentos_vendedor_id_fkey"
             columns: ["vendedor_id"]
             isOneToOne: false
@@ -5086,6 +6959,13 @@ export type Database = {
             columns: ["os_id"]
             isOneToOne: false
             referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "orcamentos_os_fk"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
             referencedColumns: ["os_id"]
           },
           {
@@ -5421,6 +7301,252 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_critico: {
+        Row: {
+          critico: boolean | null
+          estoque_minimo: number | null
+          material_id: string | null
+          nome: string | null
+          saldo_disponivel: number | null
+          saldo_fisico: number | null
+          saldo_reservado: number | null
+        }
+        Relationships: []
+      }
+      vw_resultado_operacional_os: {
+        Row: {
+          custo_previsto: number | null
+          custo_realizado: number | null
+          divergencia: number | null
+          lucro_operacional_realizado: number | null
+          lucro_previsto: number | null
+          margem_operacional: number | null
+          margem_prevista: number | null
+          os_id: string | null
+          receita: number | null
+          retrabalho: number | null
+        }
+        Relationships: []
+      }
+      vw_tarefas_kanban: {
+        Row: {
+          anexos: Json | null
+          bloqueia_dependentes: boolean | null
+          checklist: Json | null
+          comentarios: Json | null
+          completed_by: string | null
+          created_at: string | null
+          created_by: string | null
+          dependencias: Json | null
+          descricao: string | null
+          fim_previsto: string | null
+          fim_real: string | null
+          id: string | null
+          inicio_previsto: string | null
+          inicio_real: string | null
+          minutos_previstos: number | null
+          minutos_realizados: number | null
+          obrigatoria: boolean | null
+          os_id: string | null
+          os_item_id: string | null
+          prazo: string | null
+          prioridade: string | null
+          responsavel_id: string | null
+          setor: string | null
+          status: string | null
+          titulo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          anexos?: Json | null
+          bloqueia_dependentes?: boolean | null
+          checklist?: Json | null
+          comentarios?: Json | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          dependencias?: Json | null
+          descricao?: string | null
+          fim_previsto?: string | null
+          fim_real?: string | null
+          id?: string | null
+          inicio_previsto?: string | null
+          inicio_real?: string | null
+          minutos_previstos?: number | null
+          minutos_realizados?: number | null
+          obrigatoria?: boolean | null
+          os_id?: string | null
+          os_item_id?: string | null
+          prazo?: string | null
+          prioridade?: string | null
+          responsavel_id?: string | null
+          setor?: string | null
+          status?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          anexos?: Json | null
+          bloqueia_dependentes?: boolean | null
+          checklist?: Json | null
+          comentarios?: Json | null
+          completed_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          dependencias?: Json | null
+          descricao?: string | null
+          fim_previsto?: string | null
+          fim_real?: string | null
+          id?: string | null
+          inicio_previsto?: string | null
+          inicio_real?: string | null
+          minutos_previstos?: number | null
+          minutos_realizados?: number | null
+          obrigatoria?: boolean | null
+          os_id?: string | null
+          os_item_id?: string | null
+          prazo?: string | null
+          prioridade?: string | null
+          responsavel_id?: string | null
+          setor?: string | null
+          status?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_tarefas_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_tarefas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_timeline_os: {
+        Row: {
+          created_at: string | null
+          dados: Json | null
+          descricao: string | null
+          entidade: string | null
+          entidade_id: string | null
+          id: string | null
+          os_id: string | null
+          tipo: string | null
+          titulo: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dados?: Json | null
+          descricao?: string | null
+          entidade?: string | null
+          entidade_id?: string | null
+          id?: string | null
+          os_id?: string | null
+          tipo?: string | null
+          titulo?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dados?: Json | null
+          descricao?: string | null
+          entidade?: string | null
+          entidade_id?: string | null
+          id?: string | null
+          os_id?: string | null
+          tipo?: string | null
+          titulo?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_negocio_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _apply_pending_migration: { Args: { p_sql: string }; Returns: undefined }
@@ -5502,6 +7628,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      baixar_estoque_os: {
+        Args: { p_consumos?: Json; p_os_id: string }
+        Returns: Json
+      }
       can_see_financials: { Args: { _user_id: string }; Returns: boolean }
       confirmar_pagamento: {
         Args: {
@@ -5541,38 +7671,15 @@ export type Database = {
         }
         Returns: number
       }
+      estornar_baixa_estoque_os: {
+        Args: { p_motivo: string; p_movimentacao_origem_id: string }
+        Returns: Json
+      }
       estornar_pagamento: {
         Args: { p_motivo: string; p_pagamento_id: string }
         Returns: Json
       }
-      fechar_os: {
-        Args: { os_id: string }
-        Returns: {
-          created_at: string
-          custo_previsto: number
-          custo_real: number
-          fechado_em: string
-          fechado_por: string | null
-          id: string
-          lucro_previsto: number
-          lucro_real: number
-          margem_prevista: number | null
-          margem_real: number | null
-          material_consumido: number
-          material_previsto: number | null
-          motivo_divergencia: string | null
-          os_id: string
-          tempo_previsto: number | null
-          tempo_real: number | null
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "os_resultados"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      fechar_os: { Args: { p_os_id: string }; Returns: Json }
       forcar_transicao_os: {
         Args: { p_motivo: string; p_novo_status: string; p_os_id: string }
         Returns: Json
@@ -5598,7 +7705,20 @@ export type Database = {
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
       normalize_whatsapp_phone: { Args: { _phone: string }; Returns: string }
+      registrar_evento_os: {
+        Args: {
+          p_dados?: Json
+          p_descricao?: string
+          p_entidade: string
+          p_entidade_id: string
+          p_os_id: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: undefined
+      }
       require_permission: { Args: { _permission: string }; Returns: string }
+      reservar_materiais_os: { Args: { p_os_id: string }; Returns: Json }
       status_os_exige_validacoes_producao: {
         Args: { _status: Database["public"]["Enums"]["status_os"] }
         Returns: boolean
