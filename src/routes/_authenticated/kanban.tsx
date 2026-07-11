@@ -262,21 +262,23 @@ function KanbanPage() {
 
   return (
     <div className="space-y-4 h-full">
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Kanban de Produção</h1>
-          <p className="text-muted-foreground">
-            {filtered.length} de {os.length} OS
+      <SectionHeader
+        breadcrumb="Print OS · Operação · Kanban"
+        title="Kanban de Produção"
+        description="Arraste e solte cartões entre estágios. As mudanças são registradas no histórico."
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <StatusChip label={`${filtered.length}/${os.length} OS`} tone="cyan" />
             {atrasadasCount > 0 && (
-              <span className="text-destructive ml-2">· {atrasadasCount} atrasada(s)</span>
+              <StatusChip label={`${atrasadasCount} atrasada(s)`} tone="magenta" />
             )}
-          </p>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
-      <Card className="p-3">
+      <div className="rounded-xl border border-border bg-card/60 p-3">
         <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar título, nº ou cliente..."
@@ -338,7 +340,7 @@ function KanbanPage() {
             </Button>
           )}
         </div>
-      </Card>
+      </div>
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-3 overflow-x-auto pb-4">

@@ -2,7 +2,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/module-data";
 import {
@@ -20,6 +19,9 @@ import {
   Palette,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { KpiCard } from "@/components/bex/KpiCard";
+import { StatusChip } from "@/components/bex/StatusChip";
 import {
   AreaChart,
   Area,
@@ -43,33 +45,6 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
 
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  hint,
-  accent,
-}: {
-  title: string;
-  value: string | number;
-  icon: any;
-  hint?: string;
-  accent?: string;
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${accent ?? "text-accent"}`} />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
-      </CardContent>
-    </Card>
-  );
-}
-
 function useCount(table: any, filter?: (q: any) => any) {
   return useQuery({
     queryKey: ["count", table, filter?.toString() ?? ""],
@@ -84,12 +59,35 @@ function useCount(table: any, filter?: (q: any) => any) {
 
 const chartTooltipStyle = {
   contentStyle: {
-    background: "hsl(var(--card))",
-    border: "1px solid hsl(var(--border))",
+    background: "var(--card)",
+    border: "1px solid var(--border)",
     borderRadius: "0.5rem",
     fontSize: "12px",
+    fontFamily: "var(--font-mono)",
   },
 };
+
+const CMYK = {
+  cyan: "#00d4ff",
+  magenta: "#e91e63",
+  lime: "#a8ff2e",
+  amber: "#ffb020",
+  violet: "#8b5cf6",
+};
+const PIE_COLORS = [CMYK.cyan, CMYK.magenta, CMYK.lime, CMYK.amber, CMYK.violet, "#64748b"];
+
+function BexCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-3">
+        <CardTitle className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
 
 function DashboardPage() {
   const { canSeeFinancials } = useAuth();
@@ -113,13 +111,10 @@ function DashboardPage() {
           supabase.from("produtos").select("nome"),
           supabase.from("maquinas").select("nome"),
           db.from("ocorrencias").select("setor, retrabalho"),
-          db
-            .from("whatsapp_conversas")
-            .select("nome, ultima_mensagem, nao_lidas, ultima_interacao"),
+          db.from("whatsapp_conversas").select("nome, ultima_mensagem, nao_lidas, ultima_interacao"),
           supabase.from("materiais").select("id, nome, unidade, estoque"),
           supabase.from("itens_os").select("descricao, quantidade, valor_total"),
         ]);
-
       return {
         os: os.data ?? [],
         custos: custos.data ?? [],
@@ -149,13 +144,12 @@ function DashboardPage() {
   const lucroPrevistoRealMensal = faturamentoMensal
     .slice(-6)
     .map((m) => ({ mes: m.mes, previsto: m.lucro, real: m.lucro }));
-  const statusColors = ["#3b82f6", "#f59e0b", "#eab308", "#10b981", "#ef4444", "#8b5cf6"];
   const osPorStatus = Object.entries(
     os.reduce(
       (acc: Record<string, number>, o: any) => ({ ...acc, [o.status]: (acc[o.status] ?? 0) + 1 }),
       {},
     ),
-  ).map(([name, value], i) => ({ name, value, color: statusColors[i % statusColors.length] }));
+  ).map(([name, value], i) => ({ name, value, color: PIE_COLORS[i % PIE_COLORS.length] }));
   const custoPorCategoria = Object.entries(
     custos.reduce(
       (acc: Record<string, number>, c: any) => ({
@@ -164,7 +158,7 @@ function DashboardPage() {
       }),
       {},
     ),
-  ).map(([name, value], i) => ({ name, value, color: statusColors[i % statusColors.length] }));
+  ).map(([name, value], i) => ({ name, value, color: PIE_COLORS[i % PIE_COLORS.length] }));
   const tempoMedioPorEtapa = osPorStatus.map((s) => ({ etapa: s.name, horas: s.value }));
   const itensOs = dashboardData?.itensOs ?? [];
   const produtosMaisVendidos = Object.entries(
@@ -199,317 +193,242 @@ function DashboardPage() {
   const wppNaoLidas = conversas.reduce((s: number, c: any) => s + Number(c.nao_lidas ?? 0), 0);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral da operação · dados reais do Supabase</p>
-      </div>
+    <div className="space-y-8">
+      <SectionHeader
+        breadcrumb="Print OS · Operação"
+        title="Dashboard"
+        description="Telemetria em tempo real da produção, comercial e financeiro."
+        actions={
+          <div className="flex items-center gap-2">
+            <StatusChip label="Live" tone="lime" />
+            <StatusChip label="v4.2" tone="cyan" />
+          </div>
+        }
+      />
 
-      {/* KPIs operacionais reais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Clientes" value={clientes.data ?? "—"} icon={Users} />
-        <StatCard title="Orçamentos em aberto" value={orcamentos.data ?? "—"} icon={FileText} />
-        <StatCard title="OS abertas" value={osAbertas.data ?? "—"} icon={ClipboardList} />
-        <StatCard
-          title="OS atrasadas"
-          value={osAtrasadas.data ?? 0}
-          icon={AlertTriangle}
-          accent="text-destructive"
-        />
-      </div>
-
-      {/* KPIs operacionais complementares */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Máquinas em uso" value="3/5" icon={Factory} hint="60% de ocupação" />
-        <StatCard title="Artes p/ aprovação" value="3" icon={Palette} accent="text-violet-600" />
-        <StatCard
-          title="Estoque crítico"
-          value={criticos}
-          icon={Package}
-          accent={criticos > 0 ? "text-amber-600" : ""}
-          hint="materiais abaixo do mínimo"
-        />
-        <StatCard
-          title="WhatsApp não lidas"
-          value={wppNaoLidas}
-          icon={MessageCircle}
-          accent="text-emerald-600"
-        />
-      </div>
+      {/* KPIs operacionais */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          <span>Operação</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Clientes ativos" value={clientes.data ?? "—"} icon={Users} tone="cyan" />
+          <KpiCard label="Orçamentos abertos" value={orcamentos.data ?? "—"} icon={FileText} tone="cyan" />
+          <KpiCard label="OS em andamento" value={osAbertas.data ?? "—"} icon={ClipboardList} tone="lime" />
+          <KpiCard
+            label="OS atrasadas"
+            value={osAtrasadas.data ?? 0}
+            icon={AlertTriangle}
+            tone="magenta"
+            hint={osAtrasadas.data ? "requer atenção imediata" : "no prazo"}
+          />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Máquinas em uso" value="3/5" icon={Factory} tone="cyan" hint="60% de ocupação" />
+          <KpiCard label="Artes p/ aprovação" value="3" icon={Palette} tone="magenta" />
+          <KpiCard
+            label="Estoque crítico"
+            value={criticos}
+            icon={Package}
+            tone={criticos > 0 ? "magenta" : "muted"}
+            hint="itens abaixo do mínimo"
+          />
+          <KpiCard label="WhatsApp não lidas" value={wppNaoLidas} icon={MessageCircle} tone="lime" />
+        </div>
+      </section>
 
       {/* KPIs financeiros */}
       {canSeeFinancials && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Faturamento (mês)"
-            value="R$ 95.4k"
-            icon={DollarSign}
-            accent="text-emerald-600"
-            hint="+7% vs mês anterior"
-          />
-          <StatCard
-            title="Lucro real (mês)"
-            value="R$ 34.8k"
-            icon={TrendingUp}
-            accent="text-emerald-600"
-            hint="margem 36%"
-          />
-          <StatCard title="A receber" value="R$ 18.2k" icon={Wallet} />
-          <StatCard title="Ticket médio" value="R$ 1.245" icon={Receipt} />
-        </div>
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            <span>Financeiro</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <KpiCard label="Faturamento (mês)" value="R$ 95.4k" delta="+7%" icon={DollarSign} tone="lime" hint="vs mês anterior" />
+            <KpiCard label="Lucro real (mês)" value="R$ 34.8k" delta="36%" icon={TrendingUp} tone="lime" hint="margem líquida" />
+            <KpiCard label="A receber" value="R$ 18.2k" icon={Wallet} tone="cyan" />
+            <KpiCard label="Ticket médio" value="R$ 1.245" icon={Receipt} tone="cyan" />
+          </div>
+        </section>
       )}
 
-      {/* Gráficos linha 1 */}
+      {/* Charts row 1 */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Faturamento últimos 12 meses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={faturamentoMensal}>
-                <defs>
-                  <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="mes" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip {...chartTooltipStyle} />
-                <Area
-                  type="monotone"
-                  dataKey="faturamento"
-                  stroke="hsl(var(--accent))"
-                  fillOpacity={1}
-                  fill="url(#fatGrad)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <BexCard title="Faturamento · 12 meses">
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={faturamentoMensal}>
+              <defs>
+                <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CMYK.cyan} stopOpacity={0.6} />
+                  <stop offset="95%" stopColor={CMYK.cyan} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <Tooltip {...chartTooltipStyle} />
+              <Area type="monotone" dataKey="faturamento" stroke={CMYK.cyan} strokeWidth={2} fill="url(#fatGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </BexCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Lucro previsto vs real</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={lucroPrevistoRealMensal}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="mes" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip {...chartTooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: "12px" }} />
-                <Bar dataKey="previsto" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="real" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <BexCard title="Lucro · previsto vs real">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={lucroPrevistoRealMensal}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <Tooltip {...chartTooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: "11px", fontFamily: "var(--font-mono)" }} />
+              <Bar dataKey="previsto" fill="#334155" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="real" fill={CMYK.lime} radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </BexCard>
       </div>
 
-      {/* Gráficos linha 2 */}
+      {/* Charts row 2 */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>OS por status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie
-                  data={osPorStatus}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  innerRadius={45}
-                >
-                  {osPorStatus.map((e) => (
-                    <Cell key={e.name} fill={e.color} />
-                  ))}
-                </Pie>
-                <Tooltip {...chartTooltipStyle} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {osPorStatus.map((s) => (
-                <div key={s.name} className="flex items-center gap-1.5 text-xs">
-                  <div className="h-2 w-2 rounded-full" style={{ background: s.color }} />
-                  <span>{s.name}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <BexCard title="OS por status">
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={osPorStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={45}>
+                {osPorStatus.map((e) => (
+                  <Cell key={e.name} fill={e.color} />
+                ))}
+              </Pie>
+              <Tooltip {...chartTooltipStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {osPorStatus.map((s) => (
+              <span key={s.name} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                <span className="h-2 w-2 rounded-sm" style={{ background: s.color }} />
+                {s.name}
+              </span>
+            ))}
+            {osPorStatus.length === 0 && <StatusChip label="sem dados" tone="muted" />}
+          </div>
+        </BexCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Custo por categoria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie
-                  data={custoPorCategoria}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  innerRadius={45}
-                >
-                  {custoPorCategoria.map((e) => (
-                    <Cell key={e.name} fill={e.color} />
-                  ))}
-                </Pie>
-                <Tooltip {...chartTooltipStyle} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {custoPorCategoria.map((s) => (
-                <div key={s.name} className="flex items-center gap-1.5 text-xs">
-                  <div className="h-2 w-2 rounded-full" style={{ background: s.color }} />
-                  <span>
-                    {s.name} {Number(s.value).toFixed(0)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <BexCard title="Custo · categoria">
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={custoPorCategoria} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={45}>
+                {custoPorCategoria.map((e) => (
+                  <Cell key={e.name} fill={e.color} />
+                ))}
+              </Pie>
+              <Tooltip {...chartTooltipStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {custoPorCategoria.map((s) => (
+              <span key={s.name} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                <span className="h-2 w-2 rounded-sm" style={{ background: s.color }} />
+                {s.name}
+              </span>
+            ))}
+            {custoPorCategoria.length === 0 && <StatusChip label="sem dados" tone="muted" />}
+          </div>
+        </BexCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Tempo médio por etapa (h)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={tempoMedioPorEtapa}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="etapa" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip {...chartTooltipStyle} />
-                <Line
-                  type="monotone"
-                  dataKey="horas"
-                  stroke="#8b5cf6"
-                  strokeWidth={2}
-                  dot={{ fill: "#8b5cf6" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <BexCard title="Tempo médio · etapa (h)">
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={tempoMedioPorEtapa}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="etapa" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+              <Tooltip {...chartTooltipStyle} />
+              <Line type="monotone" dataKey="horas" stroke={CMYK.magenta} strokeWidth={2} dot={{ fill: CMYK.magenta }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </BexCard>
       </div>
 
-      {/* Gráficos linha 3 */}
+      {/* Charts row 3 */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Produtos mais vendidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={produtosMaisVendidos} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis type="number" className="text-xs" />
-                <YAxis dataKey="produto" type="category" width={110} className="text-xs" />
-                <Tooltip {...chartTooltipStyle} />
-                <Bar dataKey="qtd" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <BexCard title="Produtos · mais vendidos">
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={produtosMaisVendidos} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <YAxis dataKey="produto" type="category" width={110} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+              <Tooltip {...chartTooltipStyle} />
+              <Bar dataKey="qtd" fill={CMYK.cyan} radius={[0, 3, 3, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </BexCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Produção por máquina (horas)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={producaoPorMaquina}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="maquina" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip {...chartTooltipStyle} />
-                <Bar dataKey="horas" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <BexCard title="Produção · horas por máquina">
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={producaoPorMaquina}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="maquina" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <Tooltip {...chartTooltipStyle} />
+              <Bar dataKey="horas" fill={CMYK.amber} radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </BexCard>
       </div>
 
-      {/* Linha 4: retrabalho + listas */}
+      {/* Row 4 */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Retrabalho por setor</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={retrabalhoPorSetor}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="setor" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip {...chartTooltipStyle} />
-                <Bar dataKey="qtd" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <BexCard title="Retrabalho · setor">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={retrabalhoPorSetor}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="setor" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <Tooltip {...chartTooltipStyle} />
+              <Bar dataKey="qtd" fill={CMYK.magenta} radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          {retrabalhoPorSetor.length === 0 && (
+            <div className="mt-2">
+              <StatusChip label="Sem retrabalho" tone="lime" />
+            </div>
+          )}
+        </BexCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Conversas recentes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <BexCard title="WhatsApp · conversas recentes">
+          <div className="space-y-2">
             {conversas.slice(0, 5).map((c: any) => (
-              <div
-                key={c.id}
-                className="flex items-center justify-between text-sm border-b border-border/50 pb-2"
-              >
+              <div key={c.id} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0">
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{c.nome}</div>
+                  <div className="text-sm font-medium truncate">{c.nome}</div>
                   <div className="text-xs text-muted-foreground truncate">{c.ultima_mensagem}</div>
                 </div>
-                {c.nao_lidas > 0 && (
-                  <Badge className="bg-emerald-600 hover:bg-emerald-600">{c.nao_lidas}</Badge>
-                )}
+                {c.nao_lidas > 0 && <StatusChip label={String(c.nao_lidas)} tone="lime" />}
               </div>
             ))}
-          </CardContent>
-        </Card>
+            {conversas.length === 0 && <StatusChip label="Sem conversas" tone="muted" />}
+          </div>
+        </BexCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Estoque crítico</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <BexCard title="Estoque · críticos">
+          <div className="space-y-2">
             {materiais
               .filter((m: any) => Number(m.estoque ?? 0) <= 0)
               .map((m: any) => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between text-sm border-b border-border/50 pb-2"
-                >
+                <div key={m.id} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0">
                   <div>
-                    <div className="font-medium">{m.nome}</div>
-                    <div className="text-xs text-muted-foreground">Estoque crítico</div>
+                    <div className="text-sm font-medium">{m.nome}</div>
+                    <div className="text-xs text-muted-foreground">Reposição necessária</div>
                   </div>
-                  <Badge variant="destructive">
-                    {m.estoque} {m.unidade}
-                  </Badge>
+                  <StatusChip label={`${m.estoque} ${m.unidade}`} tone="magenta" />
                 </div>
               ))}
             {materiais.filter((m: any) => Number(m.estoque ?? 0) <= 0).length === 0 && (
-              <div className="text-sm text-muted-foreground">Nenhum item crítico</div>
+              <StatusChip label="Sem itens críticos" tone="lime" />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </BexCard>
       </div>
     </div>
   );
