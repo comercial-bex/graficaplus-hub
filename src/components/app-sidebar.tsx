@@ -53,7 +53,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Operação",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Kanban Produção", url: "/kanban", icon: Kanban, permission: "kanban.move" },
+      { title: "Kanban Produção", url: "/kanban", icon: Kanban, permission: "os.status.advance" },
       { title: "Ordens de Serviço", url: "/os", icon: ClipboardList },
     ],
   },
