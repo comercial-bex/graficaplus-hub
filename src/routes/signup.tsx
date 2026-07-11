@@ -1,12 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Printer } from "lucide-react";
+import { BexLogo } from "@/components/bex/BexLogo";
+import { BexBackground } from "@/components/bex/BexBackground";
+import { NeonButton } from "@/components/bex/NeonButton";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Criar conta — BEX PRINT OS" }] }),
@@ -37,40 +35,58 @@ function SignupPage() {
     navigate({ to: "/dashboard" });
   }
 
+  const inputCls =
+    "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-[color:var(--bex-cyan)]/50 focus:ring-1 focus:ring-[color:var(--bex-cyan)]/30";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Printer className="h-6 w-6" />
-          </div>
-          <CardTitle className="text-2xl">Criar conta</CardTitle>
-          <CardDescription>O primeiro usuário cadastrado vira administrador</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome</Label>
-              <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input id="password" type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Criando..." : "Criar conta"}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Já tem conta?{" "}
-              <Link to="/login" className="font-medium text-primary hover:underline">Entrar</Link>
+    <BexBackground className="min-h-screen flex items-center justify-center p-6">
+      <div className="relative w-full max-w-[420px]">
+        <div className="mb-10 flex flex-col items-center">
+          <BexLogo size="xl" showTagline />
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card/60 p-8 shadow-2xl backdrop-blur-xl">
+          <div className="mb-8">
+            <h1 className="text-xl font-semibold text-foreground">Solicitar registro</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              O primeiro usuário vira administrador do sistema
             </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Nome completo
+              </label>
+              <input value={nome} onChange={(e) => setNome(e.target.value)} required className={inputCls} placeholder="Seu nome" />
+            </div>
+            <div className="space-y-2">
+              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                E-mail corporativo
+              </label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} placeholder="voce@bexprint.com.br" />
+            </div>
+            <div className="space-y-2">
+              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Senha
+              </label>
+              <input type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required className={inputCls} placeholder="Mínimo 6 caracteres" />
+            </div>
+            <NeonButton type="submit" disabled={loading} className="w-full">
+              {loading ? "CRIANDO..." : "CRIAR CONTA"}
+            </NeonButton>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+
+          <div className="mt-8 border-t border-border/50 pt-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              Já tem conta?{" "}
+              <Link to="/login" className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-[color:var(--bex-cyan)]">
+                Entrar
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </BexBackground>
   );
 }

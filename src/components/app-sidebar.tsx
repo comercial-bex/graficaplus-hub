@@ -137,15 +137,21 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground shrink-0">
-            <Printer className="h-4 w-4" />
+        <div className="flex items-center gap-2.5 px-2 py-3">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 font-black text-sm"
+            style={{ background: "var(--gradient-cmyk)", color: "#050507" }}
+          >
+            X
           </div>
           {!collapsed && (
             <div className="leading-tight">
-              <div className="text-sm font-bold text-sidebar-foreground">BEX PRINT</div>
-              <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60">
-                OS
+              <div className="text-sm font-black tracking-tight text-sidebar-foreground">
+                BE<span className="bex-gradient-text">X</span>{" "}
+                <span className="font-medium">PRINT</span>
+              </div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-sidebar-foreground/50">
+                Print OS · v4.2
               </div>
             </div>
           )}
