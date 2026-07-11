@@ -39,6 +39,8 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Kanban — BEX PRINT OS" }] }),
@@ -367,18 +369,29 @@ function Coluna({ id, label, itens, canSeeFinancials }: any) {
   return (
     <div className="w-80 shrink-0">
       <div className="flex items-center justify-between mb-2 px-1">
-        <h3 className="text-sm font-semibold">{label}</h3>
-        <Badge variant="secondary" className="text-xs">
-          {itens.length}
-        </Badge>
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          {label}
+        </h3>
+        <span className="font-mono text-[10px] text-muted-foreground/80 rounded border border-border px-1.5 py-0.5">
+          {itens.length.toString().padStart(2, "0")}
+        </span>
       </div>
       <div
         ref={setNodeRef}
-        className={`space-y-2 p-2 rounded-lg min-h-[200px] transition-colors ${isOver ? "bg-accent/20" : "bg-muted/40"}`}
+        className={`space-y-2 p-2 rounded-lg min-h-[220px] border transition-colors ${
+          isOver
+            ? "bg-[color:var(--bex-cyan)]/5 border-[color:var(--bex-cyan)]/40"
+            : "bg-muted/30 border-border/50"
+        }`}
       >
         {itens.map((o: any) => (
           <DraggableCard key={o.id} os={o} canSeeFinancials={canSeeFinancials} />
         ))}
+        {itens.length === 0 && (
+          <div className="text-center text-[11px] text-muted-foreground/60 font-mono py-4">
+            — vazio —
+          </div>
+        )}
       </div>
     </div>
   );
@@ -394,9 +407,9 @@ function DraggableCard({ os, canSeeFinancials }: any) {
 }
 
 const PRIO_COLOR: Record<number, string> = {
-  1: "bg-destructive",
-  2: "bg-orange-500",
-  3: "bg-blue-500",
+  1: "bg-[color:var(--bex-magenta)]",
+  2: "bg-amber-400",
+  3: "bg-[color:var(--bex-cyan)]",
   4: "bg-muted-foreground/40",
   5: "bg-muted-foreground/30",
 };
