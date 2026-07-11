@@ -425,33 +425,26 @@ function OSCard({ os, canSeeFinancials, dragging }: any) {
   const arte = getStatusArte(os);
   return (
     <Card
-      className={`relative p-3 cursor-grab active:cursor-grabbing hover:border-accent transition-colors overflow-hidden ${dragging ? "shadow-lg rotate-2" : ""} ${overdue ? "border-destructive/60" : ""}`}
+      className={`relative p-3 cursor-grab active:cursor-grabbing bg-card hover:border-[color:var(--bex-cyan)]/50 transition-colors overflow-hidden ${dragging ? "shadow-[0_0_24px_-6px_rgba(0,212,255,0.5)] rotate-1" : ""} ${overdue ? "border-[color:var(--bex-magenta)]/60" : ""}`}
     >
       <div
         className={`absolute left-0 top-0 bottom-0 w-1 ${PRIO_COLOR[os.prioridade] || "bg-muted"}`}
       />
       <div className="pl-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <Link
             to="/os/$id"
             params={{ id: os.id }}
-            className="text-xs text-muted-foreground hover:text-accent"
+            className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-[color:var(--bex-cyan)]"
             onPointerDown={(e) => e.stopPropagation()}
           >
             #{os.numero}
           </Link>
-          {overdue && (
-            <Badge variant="destructive" className="text-[10px] h-4">
-              ATRASADA
-            </Badge>
-          )}
-          {!overdue && os.prioridade <= 2 && (
-            <Badge variant="destructive" className="text-[10px] h-4">
-              URG
-            </Badge>
-          )}
+          {overdue && <StatusChip label="Atrasada" tone="magenta" />}
+          {!overdue && urgent && <StatusChip label="Urgente" tone="magenta" />}
+          {!overdue && !urgent && pending && <StatusChip label="Pendência" tone="amber" />}
         </div>
-        <div className="font-medium text-sm mt-1 line-clamp-2">{os.titulo}</div>
+        <div className="font-semibold text-sm mt-1.5 line-clamp-2 text-foreground">{os.titulo}</div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1.5">
           {os.cliente_logo_url && (
             <Avatar className="h-4 w-4">
@@ -515,7 +508,9 @@ function OSCard({ os, canSeeFinancials, dragging }: any) {
           )}
         </div>
         {canSeeFinancials && Number(os.valor_total) > 0 && (
-          <div className="text-xs font-medium">R$ {Number(os.valor_total).toFixed(2)}</div>
+          <div className="mt-1 font-mono text-xs text-[color:var(--bex-lime)]">
+            R$ {Number(os.valor_total).toFixed(2)}
+          </div>
         )}
       </div>
     </Card>
