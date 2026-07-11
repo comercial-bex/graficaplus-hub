@@ -118,7 +118,7 @@ function FinanceiroPage() {
   }
 
   async function marcarPago(p: any) {
-    const { error } = await supabase.rpc("confirmar_pagamento_registrado", {
+    const { error } = await (supabase.rpc as any)("confirmar_pagamento_registrado", {
       p_pagamento_id: p.id,
       p_data: today,
       p_referencia_externa: null,
