@@ -78,7 +78,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Produção",
     items: [
       { title: "Design & Arte", url: "/design", icon: Palette },
-      { title: "Arquivos", url: "/arquivos", icon: FolderOpen, permission: "arquivos.approve" },
+      { title: "Arquivos", url: "/arquivos", icon: FolderOpen, permission: "os.update" },
       { title: "Máquinas", url: "/maquinas", icon: Factory },
       { title: "Agenda de máquinas", url: "/maquinas-agenda", icon: Calendar },
       { title: "Manutenção", url: "/manutencao", icon: Wrench },
