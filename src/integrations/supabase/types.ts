@@ -1285,15 +1285,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      aprovar_orcamento: { Args: { p_orcamento_id: string; p_versao_id?: string | null; p_observacao?: string | null }; Returns: Json }
-      avancar_os_status: { Args: { p_os_id: string; p_novo_status: string; p_justificativa?: string | null }; Returns: Json }
-      confirmar_pagamento: { Args: { p_parcela_id: string; p_valor: number; p_meio: string; p_taxa?: number; p_data?: string; p_comprovante?: string | null; p_referencia_externa?: string | null }; Returns: Json }
-      confirmar_pagamento_registrado: { Args: { p_pagamento_id: string; p_data?: string; p_referencia_externa?: string | null }; Returns: Json }
-      converter_lead_em_cliente: { Args: { p_lead_id: string; p_dados: Json; p_criar_orcamento?: boolean }; Returns: Json }
-      converter_orcamento_em_os: { Args: { p_orcamento_id: string; p_opcoes?: Json }; Returns: Json }
-      estornar_pagamento: { Args: { p_pagamento_id: string; p_motivo: string }; Returns: Json }
-      fechar_os: { Args: { os_id: string }; Returns: Json }
-      forcar_transicao_os: { Args: { p_os_id: string; p_novo_status: string; p_motivo: string }; Returns: Json }
       can_see_financials: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
