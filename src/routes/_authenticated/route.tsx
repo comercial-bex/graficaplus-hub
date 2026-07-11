@@ -34,19 +34,32 @@ function AuthenticatedLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b bg-card px-4 sticky top-0 z-10">
+          <header className="h-14 flex items-center gap-3 border-b border-border bg-card/60 backdrop-blur-xl px-4 sticky top-0 z-10 relative">
             <SidebarTrigger />
+            <div className="hidden md:flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--bex-lime)] animate-pulse" />
+              Print OS Online
+            </div>
             <div className="flex-1" />
+            <div className="hidden sm:block font-mono text-[10px] uppercase tracking-wider text-muted-foreground truncate max-w-[200px]">
+              {user.email}
+            </div>
+            {/* CMYK footer line */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-[2px]"
+              style={{ background: "var(--gradient-cmyk)" }}
+            />
           </header>
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-6 overflow-auto bex-grid">
             {canAccessRoute ? (
               <Outlet />
             ) : (
               <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center gap-3 text-center">
                 <h1 className="text-2xl font-semibold tracking-tight">Acesso restrito</h1>
                 <p className="text-muted-foreground">
-                  Seu perfil precisa da permissão para {requiredPermission ? permissionLabels[requiredPermission] : "uma permissão configurada"} para
-                  acessar esta rota.
+                  Seu perfil precisa da permissão para{" "}
+                  {requiredPermission ? permissionLabels[requiredPermission] : "uma permissão configurada"}{" "}
+                  para acessar esta rota.
                 </p>
               </div>
             )}
