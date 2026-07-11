@@ -1,12 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Printer } from "lucide-react";
+import { BexLogo } from "@/components/bex/BexLogo";
+import { BexBackground } from "@/components/bex/BexBackground";
+import { NeonButton } from "@/components/bex/NeonButton";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Login — BEX PRINT OS" }] }),
@@ -30,35 +28,87 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Printer className="h-6 w-6" />
-          </div>
-          <CardTitle className="text-2xl">BEX PRINT OS</CardTitle>
-          <CardDescription>ERP de gráfica e comunicação visual</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Não tem conta?{" "}
-              <Link to="/signup" className="font-medium text-primary hover:underline">Criar conta</Link>
+    <BexBackground className="min-h-screen flex items-center justify-center p-6">
+      <div className="relative w-full max-w-[420px]">
+        {/* Brand */}
+        <div className="mb-10 flex flex-col items-center">
+          <BexLogo size="xl" showTagline />
+        </div>
+
+        {/* Card */}
+        <div className="rounded-2xl border border-border bg-card/60 p-8 shadow-2xl backdrop-blur-xl">
+          <div className="mb-8">
+            <h1 className="text-xl font-semibold text-foreground">Acesso ao Sistema</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Controle de Produção, Comercial e Financeiro
             </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Usuário
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="voce@bexprint.com.br"
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-[color:var(--bex-cyan)]/50 focus:ring-1 focus:ring-[color:var(--bex-cyan)]/30"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Senha
+                </label>
+                <button
+                  type="button"
+                  className="text-[11px] text-muted-foreground hover:text-[color:var(--bex-cyan)] transition-colors"
+                >
+                  Recuperar acesso
+                </button>
+              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-[color:var(--bex-magenta)]/50 focus:ring-1 focus:ring-[color:var(--bex-magenta)]/30"
+              />
+            </div>
+
+            <NeonButton type="submit" disabled={loading} className="w-full">
+              {loading ? "AUTENTICANDO..." : "ENTRAR NO SISTEMA"}
+            </NeonButton>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+
+          <div className="mt-8 border-t border-border/50 pt-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              Não tem uma conta?{" "}
+              <Link
+                to="/signup"
+                className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-[color:var(--bex-lime)]"
+              >
+                Solicitar registro
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Telemetria footer */}
+        <div className="mt-8 flex justify-center gap-6 font-mono text-[10px] text-muted-foreground/70">
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--bex-lime)]" />
+            SERVER_ON
+          </span>
+          <span>V 4.2.0</span>
+          <span>SECURE_AUTH</span>
+        </div>
+      </div>
+    </BexBackground>
   );
 }
