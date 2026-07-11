@@ -1,0 +1,1 @@
+ALTER TYPE public.status_os ADD VALUE IF NOT EXISTS 'em_producao' AFTER 'producao';
