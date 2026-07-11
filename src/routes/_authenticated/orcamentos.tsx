@@ -34,19 +34,29 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
 
 export const Route = createFileRoute("/_authenticated/orcamentos")({
   head: () => ({ meta: [{ title: "Orçamentos — BEX PRINT OS" }] }),
   component: OrcamentosPage,
 });
 
-const statusLabels: Record<string, { label: string; variant: any }> = {
-  rascunho: { label: "Rascunho", variant: "secondary" },
-  enviado: { label: "Enviado", variant: "default" },
-  aprovado: { label: "Aprovado", variant: "default" },
-  rejeitado: { label: "Rejeitado", variant: "destructive" },
-  expirado: { label: "Expirado", variant: "outline" },
-  convertido: { label: "Convertido em OS", variant: "default" },
+const statusTone: Record<string, "cyan" | "magenta" | "lime" | "amber" | "muted"> = {
+  rascunho: "muted",
+  enviado: "cyan",
+  aprovado: "lime",
+  rejeitado: "magenta",
+  expirado: "amber",
+  convertido: "lime",
+};
+const statusLabel: Record<string, string> = {
+  rascunho: "Rascunho",
+  enviado: "Enviado",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+  expirado: "Expirado",
+  convertido: "Convertido em OS",
 };
 
 function OrcamentosPage() {
@@ -103,66 +113,67 @@ function OrcamentosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Orçamentos</h1>
-          <p className="text-muted-foreground">Propostas comerciais</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Novo orçamento
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Novo orçamento</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Cliente *</Label>
-                <Select
-                  value={form.cliente_id}
-                  onValueChange={(v) => setForm({ ...form, cliente_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Título *</Label>
-                <Input
-                  value={form.titulo}
-                  onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Valor total (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={form.valor_total}
-                  onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
+      <SectionHeader
+        breadcrumb="Print OS · Comercial"
+        title="Orçamentos"
+        description="Propostas comerciais e conversão em Ordens de Serviço."
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Novo orçamento
               </Button>
-              <Button onClick={handleCreate}>Criar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Novo orçamento</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Cliente *</Label>
+                  <Select
+                    value={form.cliente_id}
+                    onValueChange={(v) => setForm({ ...form, cliente_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Título *</Label>
+                  <Input
+                    value={form.titulo}
+                    onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor total (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.valor_total}
+                    onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreate}>Criar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       <Card>
         <CardContent className="p-4">
@@ -193,14 +204,10 @@ function OrcamentosPage() {
                 </TableRow>
               )}
               {orcamentos.map((o: any) => {
-                const s = statusLabels[o.status] ?? {
-                  label: o.status,
-                  variant: "outline" as const,
-                };
                 return (
                   <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
                     <TableCell>
-                      <Link to="/orcamentos/$id" params={{ id: o.id }} className="hover:underline">
+                      <Link to="/orcamentos/$id" params={{ id: o.id }} className="font-mono text-xs text-muted-foreground hover:text-[color:var(--bex-cyan)]">
                         #{o.numero}
                       </Link>
                     </TableCell>
@@ -209,12 +216,15 @@ function OrcamentosPage() {
                         {o.titulo}
                       </Link>
                     </TableCell>
-                    <TableCell>{o.cliente_nome}</TableCell>
+                    <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
                     <TableCell>
-                      <Badge variant={s.variant}>{s.label}</Badge>
+                      <StatusChip
+                        label={statusLabel[o.status] ?? o.status}
+                        tone={statusTone[o.status] ?? "muted"}
+                      />
                     </TableCell>
                     {canSeeFinancials && (
-                      <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-sm">R$ {Number(o.valor_total).toFixed(2)}</TableCell>
                     )}
                     <TableCell className="text-right">
                       {o.status !== "convertido" && (

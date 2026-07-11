@@ -29,6 +29,17 @@ import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
+
+const statusTone: Record<string, "cyan" | "magenta" | "lime" | "amber" | "muted"> = {
+  rascunho: "muted",
+  enviado: "cyan",
+  aprovado: "lime",
+  rejeitado: "magenta",
+  expirado: "amber",
+  convertido: "lime",
+};
 
 export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
   head: () => ({ meta: [{ title: "Orçamento — BEX PRINT OS" }] }),
@@ -155,49 +166,43 @@ function OrcamentoDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link to="/orcamentos">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <div className="text-xs text-muted-foreground">Orçamento #{orc.numero}</div>
-            <h1 className="text-2xl font-bold tracking-tight">{orc.titulo}</h1>
-            <Link
-              to="/clientes/$id"
-              params={{ id: orc.cliente_id }}
-              className="text-sm text-muted-foreground hover:underline"
-            >
-              {orc.cliente_nome}
+      <SectionHeader
+        breadcrumb={`Orçamento · #${orc.numero}`}
+        title={orc.titulo}
+        description={
+          orc.cliente_nome ? `Cliente: ${orc.cliente_nome}` : undefined
+        }
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link to="/orcamentos">
+              <Button variant="ghost" size="icon" title="Voltar">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
             </Link>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">{orc.status}</Badge>
-          <Select value={orc.status} onValueChange={setStatus}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {["rascunho", "enviado", "aprovado", "rejeitado", "expirado"].map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={() => setPreviewOpen(true)}>
-            <FileDown className="h-4 w-4 mr-1" /> PDF
-          </Button>
-          {orc.status !== "convertido" && !orc.os_id && (
-            <Button onClick={converterEmOS}>
-              Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
+            <StatusChip label={orc.status} tone={statusTone[orc.status] ?? "muted"} />
+            <Select value={orc.status} onValueChange={setStatus}>
+              <SelectTrigger className="w-40 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {["rascunho", "enviado", "aprovado", "rejeitado", "expirado"].map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+              <FileDown className="h-4 w-4 mr-1" /> PDF
             </Button>
-          )}
-        </div>
-      </div>
+            {orc.status !== "convertido" && !orc.os_id && (
+              <Button onClick={converterEmOS}>
+                Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       <Card>
         <CardContent className="p-4 space-y-4">

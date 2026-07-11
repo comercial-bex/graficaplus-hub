@@ -39,6 +39,8 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Kanban — BEX PRINT OS" }] }),
@@ -262,21 +264,23 @@ function KanbanPage() {
 
   return (
     <div className="space-y-4 h-full">
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Kanban de Produção</h1>
-          <p className="text-muted-foreground">
-            {filtered.length} de {os.length} OS
+      <SectionHeader
+        breadcrumb="Print OS · Operação · Kanban"
+        title="Kanban de Produção"
+        description="Arraste e solte cartões entre estágios. As mudanças são registradas no histórico."
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <StatusChip label={`${filtered.length}/${os.length} OS`} tone="cyan" />
             {atrasadasCount > 0 && (
-              <span className="text-destructive ml-2">· {atrasadasCount} atrasada(s)</span>
+              <StatusChip label={`${atrasadasCount} atrasada(s)`} tone="magenta" />
             )}
-          </p>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
-      <Card className="p-3">
+      <div className="rounded-xl border border-border bg-card/60 p-3">
         <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar título, nº ou cliente..."
@@ -338,7 +342,7 @@ function KanbanPage() {
             </Button>
           )}
         </div>
-      </Card>
+      </div>
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-3 overflow-x-auto pb-4">
@@ -365,18 +369,29 @@ function Coluna({ id, label, itens, canSeeFinancials }: any) {
   return (
     <div className="w-80 shrink-0">
       <div className="flex items-center justify-between mb-2 px-1">
-        <h3 className="text-sm font-semibold">{label}</h3>
-        <Badge variant="secondary" className="text-xs">
-          {itens.length}
-        </Badge>
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          {label}
+        </h3>
+        <span className="font-mono text-[10px] text-muted-foreground/80 rounded border border-border px-1.5 py-0.5">
+          {itens.length.toString().padStart(2, "0")}
+        </span>
       </div>
       <div
         ref={setNodeRef}
-        className={`space-y-2 p-2 rounded-lg min-h-[200px] transition-colors ${isOver ? "bg-accent/20" : "bg-muted/40"}`}
+        className={`space-y-2 p-2 rounded-lg min-h-[220px] border transition-colors ${
+          isOver
+            ? "bg-[color:var(--bex-cyan)]/5 border-[color:var(--bex-cyan)]/40"
+            : "bg-muted/30 border-border/50"
+        }`}
       >
         {itens.map((o: any) => (
           <DraggableCard key={o.id} os={o} canSeeFinancials={canSeeFinancials} />
         ))}
+        {itens.length === 0 && (
+          <div className="text-center text-[11px] text-muted-foreground/60 font-mono py-4">
+            — vazio —
+          </div>
+        )}
       </div>
     </div>
   );
@@ -392,9 +407,9 @@ function DraggableCard({ os, canSeeFinancials }: any) {
 }
 
 const PRIO_COLOR: Record<number, string> = {
-  1: "bg-destructive",
-  2: "bg-orange-500",
-  3: "bg-blue-500",
+  1: "bg-[color:var(--bex-magenta)]",
+  2: "bg-amber-400",
+  3: "bg-[color:var(--bex-cyan)]",
   4: "bg-muted-foreground/40",
   5: "bg-muted-foreground/30",
 };
@@ -410,33 +425,26 @@ function OSCard({ os, canSeeFinancials, dragging }: any) {
   const arte = getStatusArte(os);
   return (
     <Card
-      className={`relative p-3 cursor-grab active:cursor-grabbing hover:border-accent transition-colors overflow-hidden ${dragging ? "shadow-lg rotate-2" : ""} ${overdue ? "border-destructive/60" : ""}`}
+      className={`relative p-3 cursor-grab active:cursor-grabbing bg-card hover:border-[color:var(--bex-cyan)]/50 transition-colors overflow-hidden ${dragging ? "shadow-[0_0_24px_-6px_rgba(0,212,255,0.5)] rotate-1" : ""} ${overdue ? "border-[color:var(--bex-magenta)]/60" : ""}`}
     >
       <div
         className={`absolute left-0 top-0 bottom-0 w-1 ${PRIO_COLOR[os.prioridade] || "bg-muted"}`}
       />
       <div className="pl-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <Link
             to="/os/$id"
             params={{ id: os.id }}
-            className="text-xs text-muted-foreground hover:text-accent"
+            className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-[color:var(--bex-cyan)]"
             onPointerDown={(e) => e.stopPropagation()}
           >
             #{os.numero}
           </Link>
-          {overdue && (
-            <Badge variant="destructive" className="text-[10px] h-4">
-              ATRASADA
-            </Badge>
-          )}
-          {!overdue && os.prioridade <= 2 && (
-            <Badge variant="destructive" className="text-[10px] h-4">
-              URG
-            </Badge>
-          )}
+          {overdue && <StatusChip label="Atrasada" tone="magenta" />}
+          {!overdue && urgent && <StatusChip label="Urgente" tone="magenta" />}
+          {!overdue && !urgent && pending && <StatusChip label="Pendência" tone="amber" />}
         </div>
-        <div className="font-medium text-sm mt-1 line-clamp-2">{os.titulo}</div>
+        <div className="font-semibold text-sm mt-1.5 line-clamp-2 text-foreground">{os.titulo}</div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1.5">
           {os.cliente_logo_url && (
             <Avatar className="h-4 w-4">
@@ -500,7 +508,9 @@ function OSCard({ os, canSeeFinancials, dragging }: any) {
           )}
         </div>
         {canSeeFinancials && Number(os.valor_total) > 0 && (
-          <div className="text-xs font-medium">R$ {Number(os.valor_total).toFixed(2)}</div>
+          <div className="mt-1 font-mono text-xs text-[color:var(--bex-lime)]">
+            R$ {Number(os.valor_total).toFixed(2)}
+          </div>
         )}
       </div>
     </Card>

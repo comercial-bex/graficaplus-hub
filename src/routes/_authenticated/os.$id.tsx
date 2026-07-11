@@ -34,6 +34,10 @@ import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
 import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
+import { KpiCard } from "@/components/bex/KpiCard";
+import { Clock, Package, Factory as FactoryIcon, DollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -109,54 +113,82 @@ function OSDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link to="/os">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
+      <SectionHeader
+        breadcrumb={`Ordem de Serviço · #${os.numero}`}
+        title={os.titulo}
+        description={os.cliente_nome ? `Cliente: ${os.cliente_nome}` : undefined}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link to="/os">
+              <Button variant="ghost" size="icon" title="Voltar">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <StatusChip label={os.status.replace(/_/g, " ")} tone="cyan" />
+            <Select value={os.status} onValueChange={updateStatus}>
+              <SelectTrigger className="w-56 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s.replace(/_/g, " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {canSeeFinancials && (
+              <Button variant="outline" onClick={() => setPreviewOpen("cliente")}>
+                <FileDown className="h-4 w-4 mr-1" /> PDF Cliente
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
+              <FileDown className="h-4 w-4 mr-1" /> PDF Produção
             </Button>
-          </Link>
-          <div>
-            <div className="text-xs text-muted-foreground">OS #{os.numero}</div>
-            <h1 className="text-2xl font-bold tracking-tight">{os.titulo}</h1>
-            <div className="text-sm text-muted-foreground mt-1">
-              <Link to="/clientes/$id" params={{ id: os.cliente_id }} className="hover:underline">
-                {os.cliente_nome}
-              </Link>
-            </div>
+            <Button
+              variant="outline"
+              disabled={os.estoque_baixado}
+              onClick={() => setBaixaOpen(true)}
+            >
+              <PackageMinus className="h-4 w-4 mr-1" />
+              {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
+            </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">{os.status.replace(/_/g, " ")}</Badge>
-          <Select value={os.status} onValueChange={updateStatus}>
-            <SelectTrigger className="w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s.replace(/_/g, " ")}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {canSeeFinancials && (
-            <Button variant="outline" onClick={() => setPreviewOpen("cliente")}>
-              <FileDown className="h-4 w-4 mr-1" /> PDF Cliente
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
-            <FileDown className="h-4 w-4 mr-1" /> PDF Produção
-          </Button>
-          <Button
-            variant="outline"
-            disabled={os.estoque_baixado}
-            onClick={() => setBaixaOpen(true)}
-          >
-            <PackageMinus className="h-4 w-4 mr-1" />
-            {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
-          </Button>
-        </div>
+        }
+      />
+
+      {/* KPI row */}
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          label="Prazo"
+          value={os.prazo_entrega ? new Date(os.prazo_entrega).toLocaleDateString("pt-BR") : "—"}
+          icon={Clock}
+          tone={
+            os.prazo_entrega && new Date(os.prazo_entrega) < new Date() && os.status !== "concluido"
+              ? "magenta"
+              : "cyan"
+          }
+        />
+        <KpiCard
+          label="Produto"
+          value={os.produtos?.nome ?? "—"}
+          icon={Package}
+          tone="cyan"
+        />
+        <KpiCard
+          label="Máquina"
+          value={os.maquinas?.nome ?? "—"}
+          icon={FactoryIcon}
+          tone="lime"
+        />
+        {canSeeFinancials && (
+          <KpiCard
+            label="Valor total"
+            value={`R$ ${Number(os.valor_total ?? 0).toFixed(2)}`}
+            icon={DollarSign}
+            tone="lime"
+          />
+        )}
       </div>
 
       <Tabs defaultValue="resumo">
