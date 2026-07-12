@@ -20,6 +20,7 @@ import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_aut
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
+import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedOsRouteImport } from './routes/_authenticated/os'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
@@ -98,6 +99,12 @@ const AuthenticatedPrecificacaoRoute =
   AuthenticatedPrecificacaoRouteImport.update({
     id: '/precificacao',
     path: '/precificacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPortalClienteRoute =
+  AuthenticatedPortalClienteRouteImport.update({
+    id: '/portal-cliente',
+    path: '/portal-cliente',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedOsRoute = AuthenticatedOsRouteImport.update({
@@ -246,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
+  '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -281,6 +289,7 @@ export interface FileRoutesByTo {
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
+  '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -318,6 +327,7 @@ export interface FileRoutesById {
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/_authenticated/os': typeof AuthenticatedOsRouteWithChildren
+  '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -355,6 +365,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/orcamentos'
     | '/os'
+    | '/portal-cliente'
     | '/precificacao'
     | '/produtos'
     | '/relatorios'
@@ -390,6 +401,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/orcamentos'
     | '/os'
+    | '/portal-cliente'
     | '/precificacao'
     | '/produtos'
     | '/relatorios'
@@ -426,6 +438,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ocorrencias'
     | '/_authenticated/orcamentos'
     | '/_authenticated/os'
+    | '/_authenticated/portal-cliente'
     | '/_authenticated/precificacao'
     | '/_authenticated/produtos'
     | '/_authenticated/relatorios'
@@ -523,6 +536,13 @@ declare module '@tanstack/react-router' {
       path: '/precificacao'
       fullPath: '/precificacao'
       preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/portal-cliente': {
+      id: '/_authenticated/portal-cliente'
+      path: '/portal-cliente'
+      fullPath: '/portal-cliente'
+      preLoaderRoute: typeof AuthenticatedPortalClienteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/os': {
@@ -749,6 +769,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRouteWithChildren
   AuthenticatedOsRoute: typeof AuthenticatedOsRouteWithChildren
+  AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
@@ -778,6 +799,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRouteWithChildren,
   AuthenticatedOsRoute: AuthenticatedOsRouteWithChildren,
+  AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
