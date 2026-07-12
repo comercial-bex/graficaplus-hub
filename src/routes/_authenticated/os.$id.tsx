@@ -863,24 +863,35 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle className="text-base">Resultado real da OS</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Resultado real da OS</span>
+            {snapshot && (
+              <span className="text-xs font-mono text-muted-foreground">
+                Snapshot: {new Date(snapshot.created_at).toLocaleString("pt-BR")}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {resultado ? (
             <div className="grid md:grid-cols-3 gap-3 text-sm">
-              <div className="rounded border p-3"><div className="text-muted-foreground">Custo previsto</div><div className="font-semibold">R$ {Number(resultado.custo_previsto).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Custo real</div><div className="font-semibold">R$ {Number(resultado.custo_real).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro real</div><div className="font-semibold">R$ {Number(resultado.lucro_real).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Receita líquida</div><div className="font-semibold">R$ {Number(resultado.receita_liquida ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Custo previsto</div><div className="font-semibold">R$ {Number(resultado.custo_previsto ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Custo realizado</div><div className="font-semibold">R$ {Number(resultado.custo_realizado ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro previsto</div><div className="font-semibold">R$ {Number(resultado.lucro_previsto ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro realizado</div><div className="font-semibold">R$ {Number(resultado.lucro_realizado ?? 0).toFixed(2)}</div></div>
               <div className="rounded border p-3"><div className="text-muted-foreground">Margem prevista</div><div className="font-semibold">{resultado.margem_prevista == null ? "—" : `${Number(resultado.margem_prevista).toFixed(2)}%`}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Margem real</div><div className="font-semibold">{resultado.margem_real == null ? "—" : `${Number(resultado.margem_real).toFixed(2)}%`}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Material consumido</div><div className="font-semibold">{Number(resultado.material_consumido).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Tempo real</div><div className="font-semibold">{resultado.tempo_real == null ? "—" : `${Number(resultado.tempo_real).toFixed(2)}h`}</div></div>
-              <div className="rounded border p-3 md:col-span-2"><div className="text-muted-foreground">Divergência</div><div className="font-semibold">{resultado.motivo_divergencia || "Sem divergência registrada"}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Margem realizada</div><div className="font-semibold">{resultado.margem_realizada == null ? "—" : `${Number(resultado.margem_realizada).toFixed(2)}%`}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Divergência custo</div><div className="font-semibold">R$ {Number(resultado.divergencia_custo ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Status</div><div className="font-semibold">{resultado.atraso ? "Com atraso" : "No prazo"} · {resultado.status_financeiro ?? "—"}</div></div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">O resultado real será exibido após concluir a OS. Valor atual da OS: R$ {Number(os.valor_total).toFixed(2)}.</p>
+            <p className="text-sm text-muted-foreground">O resultado será calculado quando houver custos operacionais e pagamentos registrados. Valor atual da OS: R$ {Number(os.valor_total ?? 0).toFixed(2)}.</p>
           )}
         </CardContent>
       </Card>
+
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
