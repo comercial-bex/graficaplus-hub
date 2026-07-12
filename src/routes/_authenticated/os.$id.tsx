@@ -95,18 +95,43 @@ function OSDetailPage() {
 
   async function updateStatus(novoStatus: string) {
     const statusAnterior = os?.status;
-    const { error } = novoStatus === "concluido"
-      ? await (supabase.rpc as any)("fechar_os", { os_id: id })
-      : await (supabase.rpc as any)("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
-    if (error) return toast.error(error.message);
+    if (novoStatus === "concluido") {
+      const { data, error } = await (supabase.rpc as any)("fechar_os", { os_id: id });
+      if (error) return toast.error(error.message);
+      const res = data as any;
+      if (res && res.fechada === false) {
+        const bloqueios: string[] = Array.isArray(res.bloqueios) ? res.bloqueios : [];
+        const labels: Record<string, string> = {
+          tarefas_obrigatorias: "Tarefas obrigatórias pendentes",
+          qualidade_aprovada: "Qualidade não aprovada",
+          qualidade_reprovada_ou_retrabalho: "Qualidade reprovada ou em retrabalho",
+          materiais_baixados: "Materiais ainda não baixados",
+          ocorrencias_tratadas: "Ocorrências abertas",
+          logistica_concluida: "Entrega/instalação pendente",
+          custos_operacionais: "Sem custos operacionais registrados",
+          pagamentos_pendentes: "Pagamentos pendentes",
+        };
+        toast.error("Não é possível fechar a OS", {
+          description: bloqueios.map((b) => `• ${labels[b] ?? b}`).join("\n"),
+        });
+        qc.invalidateQueries({ queryKey: ["resultado-os", id] });
+        return;
+      }
+      toast.success("OS concluída — snapshot de resultado gerado e pesquisa de pós-venda agendada");
+    } else {
+      const { error } = await (supabase.rpc as any)("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
+      if (error) return toast.error(error.message);
+      toast.success("Status atualizado");
+    }
     await supabase.from("logs_auditoria").insert({
       entidade: "ordens_servico", entidade_id: id, acao: novoStatus === "concluido" ? "fechamento_os" : "status_change",
       detalhes: { anterior: statusAnterior, novo: novoStatus }, usuario_id: user?.id,
     });
-    toast.success(novoStatus === "concluido" ? "OS concluída e resultado real calculado" : "Status atualizado");
     qc.invalidateQueries({ queryKey: ["os", id] });
     qc.invalidateQueries({ queryKey: ["resultado-os", id] });
+    qc.invalidateQueries({ queryKey: ["snapshot-os", id] });
   }
+
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
   if (!os) return <div className="p-6">OS não encontrada</div>;
