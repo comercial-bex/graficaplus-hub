@@ -56,7 +56,51 @@ function NovoOrcamento3D() {
     markup: "2",
   });
   const [file, setFile] = useState<File | null>(null);
+  const [ocr, setOcr] = useState<{ status: "idle" | "lendo" | "ok" | "erro"; msg?: string }>({
+    status: "idle",
+  });
   const set = (k: keyof typeof f, v: string) => setF((s) => ({ ...s, [k]: v }));
+
+  // OCR do print do fatiador (Tesseract.js no cliente). Lê gramas e tempo do
+  // "Resultado do fatiamento"; o usuário sempre confere/ajusta os valores.
+  async function lerPrint(img: File) {
+    setOcr({ status: "lendo" });
+    try {
+      const Tesseract = (await import("tesseract.js")).default;
+      const { data } = await Tesseract.recognize(img, "por+eng");
+      const texto = data.text ?? "";
+      // gramas: pega o maior valor "NN,NN g" (linha do modelo / total)
+      const gramas = [...texto.matchAll(/(\d+[.,]\d+)\s*g\b/gi)]
+        .map((m) => parseFloat(m[1].replace(",", ".")))
+        .filter((n) => Number.isFinite(n))
+        .sort((a, b) => b - a)[0];
+      // tempo total: "Xh Ym" (aceita "3h0m", "2h47m", "3 h 0 m")
+      const t = texto.match(/(\d+)\s*h\s*(\d+)\s*m/i);
+      const achou: string[] = [];
+      if (gramas) {
+        set("gramas", String(gramas));
+        achou.push(`${gramas} g`);
+      }
+      if (t) {
+        set("horas", t[1]);
+        set("minutos", t[2]);
+        achou.push(`${t[1]}h${t[2]}m`);
+      }
+      if (achou.length) {
+        setOcr({ status: "ok", msg: `Lido do print: ${achou.join(" · ")} — confira` });
+      } else {
+        setOcr({ status: "erro", msg: "Não consegui ler gramas/tempo — preencha manualmente" });
+      }
+    } catch (e: any) {
+      setOcr({ status: "erro", msg: "Falha no OCR — preencha manualmente" });
+    }
+  }
+
+  function onPrintSelected(selected: File | null) {
+    setFile(selected);
+    setOcr({ status: "idle" });
+    if (selected) void lerPrint(selected);
+  }
 
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-sel"],
@@ -322,14 +366,21 @@ function NovoOrcamento3D() {
                 </div>
               </div>
               <div className="space-y-2 col-span-2">
-                <Label>Print do fatiador (imagem — opcional)</Label>
+                <Label>Print do fatiador (imagem — lê gramas e tempo automaticamente)</Label>
                 <Input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  onChange={(e) => onPrintSelected(e.target.files?.[0] ?? null)}
                 />
                 {file && <p className="text-xs text-muted-foreground">{file.name}</p>}
+                {ocr.status === "lendo" && (
+                  <p className="text-xs text-primary">Lendo o print (OCR)…</p>
+                )}
+                {ocr.status === "ok" && <p className="text-xs text-accent">{ocr.msg}</p>}
+                {ocr.status === "erro" && (
+                  <p className="text-xs text-destructive">{ocr.msg}</p>
+                )}
               </div>
             </CardContent>
           </Card>
