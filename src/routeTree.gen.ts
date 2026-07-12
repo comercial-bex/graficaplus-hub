@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
+import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_authenticated/respostas-rapidas'
@@ -69,6 +70,12 @@ const PublicoTokenRoute = PublicoTokenRouteImport.update({
   path: '/publico/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWhatsappMonitorRoute =
+  AuthenticatedWhatsappMonitorRouteImport.update({
+    id: '/whatsapp-monitor',
+    path: '/whatsapp-monitor',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
@@ -260,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -296,6 +304,7 @@ export interface FileRoutesByTo {
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -334,6 +343,7 @@ export interface FileRoutesById {
   '/_authenticated/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -372,6 +382,7 @@ export interface FileRouteTypes {
     | '/respostas-rapidas'
     | '/usuarios'
     | '/whatsapp'
+    | '/whatsapp-monitor'
     | '/publico/$token'
     | '/clientes/$id'
     | '/orcamentos/$id'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/respostas-rapidas'
     | '/usuarios'
     | '/whatsapp'
+    | '/whatsapp-monitor'
     | '/publico/$token'
     | '/clientes/$id'
     | '/orcamentos/$id'
@@ -445,6 +457,7 @@ export interface FileRouteTypes {
     | '/_authenticated/respostas-rapidas'
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
+    | '/_authenticated/whatsapp-monitor'
     | '/publico/$token'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamentos/$id'
@@ -495,6 +508,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/publico/$token'
       preLoaderRoute: typeof PublicoTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/whatsapp-monitor': {
+      id: '/_authenticated/whatsapp-monitor'
+      path: '/whatsapp-monitor'
+      fullPath: '/whatsapp-monitor'
+      preLoaderRoute: typeof AuthenticatedWhatsappMonitorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/whatsapp': {
       id: '/_authenticated/whatsapp'
@@ -776,6 +796,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRespostasRapidasRoute: typeof AuthenticatedRespostasRapidasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
+  AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -806,6 +827,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRespostasRapidasRoute: AuthenticatedRespostasRapidasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
+  AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
