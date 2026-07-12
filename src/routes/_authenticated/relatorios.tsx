@@ -864,8 +864,8 @@ function RelatPage() {
         </CardHeader>
         <CardContent className="grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
           <div className="flex gap-2">
-            <DollarSign className="mt-0.5 h-4 w-4" /> pagamentos, custos_os, ordens_servico e
-            itens_os
+            <DollarSign className="mt-0.5 h-4 w-4" /> pagamentos, custos_operacionais_os,
+            ordens_servico e itens_os
           </div>
           <div className="flex gap-2">
             <Package className="mt-0.5 h-4 w-4" /> ocorrencias e apontamentos_producao
