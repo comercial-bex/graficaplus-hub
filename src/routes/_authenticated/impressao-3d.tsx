@@ -14,6 +14,7 @@ import {
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { Button } from "@/components/ui/button";
 import {
   Cuboid,
   Clock,
@@ -114,6 +115,12 @@ function Impressao3DPage() {
         description="Orçamentos 3D com motor de custo Decimal, produção e apontamentos"
         actions={
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/filamentos-3d">Filamentos</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/impressoras-3d">Impressoras</Link>
+            </Button>
             <StatusChip label={`Motor ${MOTOR_VERSION}`} tone="cyan" />
             <StatusChip
               label={`Nível: ${(dashboard as any)?.nivel_padrao ?? "validado"}`}
