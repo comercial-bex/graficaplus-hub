@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -45,6 +46,25 @@ function toneForStatus(status: string): "cyan" | "magenta" | "lime" | "muted" {
 }
 
 function Impressao3DPage() {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+
+  const converter = useMutation({
+    mutationFn: async (orcamento3dId: string) => {
+      const { data, error } = await (supabase.rpc as any)("converter_orcamento_3d_em_os", {
+        p_orcamento_3d_id: orcamento3dId,
+      });
+      if (error) throw error;
+      return data as { os_id: string };
+    },
+    onSuccess: (res) => {
+      toast.success("Orçamento convertido em OS");
+      qc.invalidateQueries({ queryKey: ["orcamentos-3d"] });
+      if (res?.os_id) navigate({ to: "/os/$id", params: { id: res.os_id } });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const { data: orcamentos = [], isLoading } = useQuery({
     queryKey: ["orcamentos-3d"],
     queryFn: async () => {
@@ -227,6 +247,7 @@ function Impressao3DPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Qtd</TableHead>
                   <TableHead className="text-right">Preço comercial</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -247,6 +268,25 @@ function Impressao3DPage() {
                       {o.preco_comercial != null
                         ? `R$ ${Number(o.preco_comercial).toFixed(2)}`
                         : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {o.os_id ? (
+                        <Button asChild variant="ghost" size="sm">
+                          <Link to="/os/$id" params={{ id: o.os_id }}>
+                            Ver OS
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!o.cliente_id || converter.isPending}
+                          title={!o.cliente_id ? "Associe um cliente ao orçamento" : "Converter em OS"}
+                          onClick={() => converter.mutate(o.id)}
+                        >
+                          Converter em OS
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
