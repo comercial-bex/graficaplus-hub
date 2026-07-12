@@ -129,7 +129,7 @@ function DashboardPage() {
       const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs] =
         await Promise.all([
           supabase.from("ordens_servico").select("status, valor_total, custo_real, created_at"),
-          supabase.from("custos_operacionais_os").select("categoria, total"),
+          supabase.from("vw_dashboard_custos_categoria").select("categoria, total"),
           supabase.from("produtos").select("nome"),
           supabase.from("maquinas").select("nome"),
           db.from("ocorrencias").select("setor, retrabalho"),

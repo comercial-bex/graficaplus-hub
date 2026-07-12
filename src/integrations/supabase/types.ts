@@ -9041,6 +9041,13 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dashboard_custos_categoria: {
+        Row: {
+          categoria: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
       vw_dashboard_estoque: {
         Row: {
           abaixo_minimo: number | null
