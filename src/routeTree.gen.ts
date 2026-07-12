@@ -22,6 +22,7 @@ import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
+import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedOsRouteImport } from './routes/_authenticated/os'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
@@ -114,6 +115,11 @@ const AuthenticatedPrecificacaoRoute =
     path: '/precificacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPosVendaRoute = AuthenticatedPosVendaRouteImport.update({
+  id: '/pos-venda',
+  path: '/pos-venda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPortalClienteRoute =
   AuthenticatedPortalClienteRouteImport.update({
     id: '/portal-cliente',
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
+  '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
+  '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -345,6 +353,7 @@ export interface FileRoutesById {
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/_authenticated/os': typeof AuthenticatedOsRouteWithChildren
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
+  '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/os'
     | '/portal-cliente'
+    | '/pos-venda'
     | '/precificacao'
     | '/producao-3d'
     | '/produtos'
@@ -423,6 +433,7 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/os'
     | '/portal-cliente'
+    | '/pos-venda'
     | '/precificacao'
     | '/producao-3d'
     | '/produtos'
@@ -462,6 +473,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamentos'
     | '/_authenticated/os'
     | '/_authenticated/portal-cliente'
+    | '/_authenticated/pos-venda'
     | '/_authenticated/precificacao'
     | '/_authenticated/producao-3d'
     | '/_authenticated/produtos'
@@ -575,6 +587,13 @@ declare module '@tanstack/react-router' {
       path: '/precificacao'
       fullPath: '/precificacao'
       preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pos-venda': {
+      id: '/_authenticated/pos-venda'
+      path: '/pos-venda'
+      fullPath: '/pos-venda'
+      preLoaderRoute: typeof AuthenticatedPosVendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/portal-cliente': {
@@ -809,6 +828,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRouteWithChildren
   AuthenticatedOsRoute: typeof AuthenticatedOsRouteWithChildren
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
+  AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
@@ -841,6 +861,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRouteWithChildren,
   AuthenticatedOsRoute: AuthenticatedOsRouteWithChildren,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
+  AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
