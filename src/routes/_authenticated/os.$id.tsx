@@ -808,8 +808,13 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   });
   const { data: resultado } = useQuery({
     queryKey: ["resultado-os", osId],
-    queryFn: async () => (await (supabase as any).from("os_resultados").select("*").eq("os_id", osId).maybeSingle()).data as any,
+    queryFn: async () => (await (supabase as any).from("vw_resultado_os").select("*").eq("os_id", osId).maybeSingle()).data as any,
   });
+  const { data: snapshot } = useQuery({
+    queryKey: ["snapshot-os", osId],
+    queryFn: async () => (await (supabase as any).from("os_resultado_snapshots").select("*").eq("os_id", osId).order("created_at", { ascending: false }).limit(1).maybeSingle()).data as any,
+  });
+
 
   async function addPag() {
     if (!pag.valor) return toast.error("Valor obrigatório");
