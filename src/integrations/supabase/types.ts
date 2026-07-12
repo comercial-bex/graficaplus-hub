@@ -786,7 +786,7 @@ export type Database = {
             foreignKeyName: "arquivos_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
-            referencedRelation: "tarefas"
+            referencedRelation: "os_tarefas"
             referencedColumns: ["id"]
           },
         ]
@@ -1275,45 +1275,6 @@ export type Database = {
           },
         ]
       }
-      comentarios_tarefa: {
-        Row: {
-          autor_id: string | null
-          created_at: string
-          id: string
-          tarefa_id: string
-          texto: string
-        }
-        Insert: {
-          autor_id?: string | null
-          created_at?: string
-          id?: string
-          tarefa_id: string
-          texto: string
-        }
-        Update: {
-          autor_id?: string | null
-          created_at?: string
-          id?: string
-          tarefa_id?: string
-          texto?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comentarios_tarefa_autor_id_fkey"
-            columns: ["autor_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comentarios_tarefa_tarefa_id_fkey"
-            columns: ["tarefa_id"]
-            isOneToOne: false
-            referencedRelation: "tarefas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contas_receber: {
         Row: {
           cliente_id: string
@@ -1419,66 +1380,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_resultado_os"
             referencedColumns: ["os_id"]
-          },
-        ]
-      }
-      conversas_whatsapp: {
-        Row: {
-          aberta_em: string
-          atendente_id: string | null
-          cliente_id: string | null
-          contato_nome: string
-          created_at: string
-          etiqueta: string | null
-          fechada_em: string | null
-          id: string
-          status: string
-          telefone: string
-          ultima_mensagem_em: string | null
-          updated_at: string
-        }
-        Insert: {
-          aberta_em?: string
-          atendente_id?: string | null
-          cliente_id?: string | null
-          contato_nome: string
-          created_at?: string
-          etiqueta?: string | null
-          fechada_em?: string | null
-          id?: string
-          status?: string
-          telefone: string
-          ultima_mensagem_em?: string | null
-          updated_at?: string
-        }
-        Update: {
-          aberta_em?: string
-          atendente_id?: string | null
-          cliente_id?: string | null
-          contato_nome?: string
-          created_at?: string
-          etiqueta?: string | null
-          fechada_em?: string | null
-          id?: string
-          status?: string
-          telefone?: string
-          ultima_mensagem_em?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conversas_whatsapp_atendente_id_fkey"
-            columns: ["atendente_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversas_whatsapp_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -1613,96 +1514,6 @@ export type Database = {
           {
             foreignKeyName: "custos_operacionais_os_usuario_id_fkey"
             columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      custos_os: {
-        Row: {
-          categoria: string | null
-          created_at: string
-          data: string
-          descricao: string
-          id: string
-          os_id: string
-          registrado_por: string | null
-          valor: number
-        }
-        Insert: {
-          categoria?: string | null
-          created_at?: string
-          data?: string
-          descricao: string
-          id?: string
-          os_id: string
-          registrado_por?: string | null
-          valor: number
-        }
-        Update: {
-          categoria?: string | null
-          created_at?: string
-          data?: string
-          descricao?: string
-          id?: string
-          os_id?: string
-          registrado_por?: string | null
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "custos_os_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custos_os_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico_financeiro"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custos_os_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico_operacional"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custos_os_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "rel_lucro_por_os"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "custos_os_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "rel_os_atrasadas"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "custos_os_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "vw_resultado_operacional_os"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "custos_os_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "vw_resultado_os"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "custos_os_registrado_por_fkey"
-            columns: ["registrado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
@@ -3381,65 +3192,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_estoque_critico"
             referencedColumns: ["material_id"]
-          },
-        ]
-      }
-      mensagens_whatsapp: {
-        Row: {
-          conversa_id: string
-          created_at: string
-          direcao: string
-          enviada_em: string
-          id: string
-          texto: string | null
-          usuario_id: string | null
-        }
-        Insert: {
-          conversa_id: string
-          created_at?: string
-          direcao: string
-          enviada_em?: string
-          id?: string
-          texto?: string | null
-          usuario_id?: string | null
-        }
-        Update: {
-          conversa_id?: string
-          created_at?: string
-          direcao?: string
-          enviada_em?: string
-          id?: string
-          texto?: string | null
-          usuario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mensagens_whatsapp_conversa_id_fkey"
-            columns: ["conversa_id"]
-            isOneToOne: false
-            referencedRelation: "conversas_whatsapp"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "mensagens_whatsapp_conversa_id_fkey"
-            columns: ["conversa_id"]
-            isOneToOne: false
-            referencedRelation: "rel_whatsapp_conversas_abertas"
-            referencedColumns: ["conversa_id"]
-          },
-          {
-            foreignKeyName: "mensagens_whatsapp_conversa_id_fkey"
-            columns: ["conversa_id"]
-            isOneToOne: false
-            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
-            referencedColumns: ["conversa_id"]
-          },
-          {
-            foreignKeyName: "mensagens_whatsapp_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -7794,112 +7546,6 @@ export type Database = {
           },
         ]
       }
-      tarefas: {
-        Row: {
-          concluida: boolean
-          concluida_em: string | null
-          created_at: string
-          created_by: string | null
-          descricao: string | null
-          id: string
-          os_id: string
-          prazo: string | null
-          responsavel_id: string | null
-          titulo: string
-          updated_at: string
-        }
-        Insert: {
-          concluida?: boolean
-          concluida_em?: string | null
-          created_at?: string
-          created_by?: string | null
-          descricao?: string | null
-          id?: string
-          os_id: string
-          prazo?: string | null
-          responsavel_id?: string | null
-          titulo: string
-          updated_at?: string
-        }
-        Update: {
-          concluida?: boolean
-          concluida_em?: string | null
-          created_at?: string
-          created_by?: string | null
-          descricao?: string | null
-          id?: string
-          os_id?: string
-          prazo?: string | null
-          responsavel_id?: string | null
-          titulo?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tarefas_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tarefas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tarefas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico_financeiro"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tarefas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico_operacional"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tarefas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "rel_lucro_por_os"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "tarefas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "rel_os_atrasadas"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "tarefas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "vw_resultado_operacional_os"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "tarefas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "vw_resultado_os"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "tarefas_responsavel_id_fkey"
-            columns: ["responsavel_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_roles: {
         Row: {
           created_at: string
@@ -7988,63 +7634,6 @@ export type Database = {
             columns: ["mensagem_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_mensagens"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      whatsapp_automacoes: {
-        Row: {
-          acoes: Json
-          ativa: boolean
-          condicoes: Json
-          created_at: string
-          created_by: string | null
-          gatilho: Database["public"]["Enums"]["whatsapp_automacao_gatilho"]
-          id: string
-          instancia_id: string | null
-          nome: string
-          prioridade: number
-          updated_at: string
-        }
-        Insert: {
-          acoes?: Json
-          ativa?: boolean
-          condicoes?: Json
-          created_at?: string
-          created_by?: string | null
-          gatilho: Database["public"]["Enums"]["whatsapp_automacao_gatilho"]
-          id?: string
-          instancia_id?: string | null
-          nome: string
-          prioridade?: number
-          updated_at?: string
-        }
-        Update: {
-          acoes?: Json
-          ativa?: boolean
-          condicoes?: Json
-          created_at?: string
-          created_by?: string | null
-          gatilho?: Database["public"]["Enums"]["whatsapp_automacao_gatilho"]
-          id?: string
-          instancia_id?: string | null
-          nome?: string
-          prioridade?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_automacoes_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "whatsapp_automacoes_instancia_id_fkey"
-            columns: ["instancia_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_instancias"
             referencedColumns: ["id"]
           },
         ]
@@ -8617,53 +8206,6 @@ export type Database = {
           {
             foreignKeyName: "whatsapp_participantes_usuario_id_fkey"
             columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      whatsapp_respostas_rapidas: {
-        Row: {
-          anexos: Json
-          atalho: string | null
-          ativa: boolean
-          categoria: string | null
-          conteudo: string
-          created_at: string
-          created_by: string | null
-          id: string
-          titulo: string
-          updated_at: string
-        }
-        Insert: {
-          anexos?: Json
-          atalho?: string | null
-          ativa?: boolean
-          categoria?: string | null
-          conteudo: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          titulo: string
-          updated_at?: string
-        }
-        Update: {
-          anexos?: Json
-          atalho?: string | null
-          ativa?: boolean
-          categoria?: string | null
-          conteudo?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          titulo?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_respostas_rapidas_created_by_fkey"
-            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]

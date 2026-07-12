@@ -4,9 +4,13 @@
 > (Supabase `xzllbjbcdhkjrsiiytvn`): **todas as tabelas envolvidas estavam com 0 linhas**
 > — não houve migração de dados necessária.
 >
-> **STATUS: CORRIGIDO no frontend em 2026-07-12** (Achados 1 e 2). Alinhamento aplicado
-> em `os.$id.tsx`, `dashboard.tsx` e `relatorios.tsx`; `typecheck` e `build` passam.
-> Achado 3 (WhatsApp legado) e o `DROP` das tabelas legadas seguem pendentes.
+> **STATUS: CORRIGIDO em 2026-07-12** (Achados 1, 2 e 3). Alinhamento do frontend em
+> `os.$id.tsx`, `dashboard.tsx`, `relatorios.tsx`; `typecheck` e `build` passam.
+> Views/FK repontadas e 7 tabelas legadas dropadas (migrações `20260712140000` e
+> `20260712150000`), aplicadas no banco. `types.ts` limpo das tabelas removidas.
+>
+> Nota: `os_tarefa_comentarios` **não** é legada (FK -> os_tarefas, schema canônico) — mantida.
+> A legada de comentários era `comentarios_tarefa` (dropada).
 
 ## Resumo executivo
 
