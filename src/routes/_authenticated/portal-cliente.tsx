@@ -38,6 +38,8 @@ function PortalClientePage() {
   const [solicitacaoTipo, setSolicitacaoTipo] = useState("duvida");
   const [solicitacaoMsg, setSolicitacaoMsg] = useState("");
 
+  const { data: acessos = [], isLoading } = useQuery({
+
     queryKey: ["portal-acessos", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
