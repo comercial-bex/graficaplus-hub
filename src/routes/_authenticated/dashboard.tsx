@@ -261,22 +261,91 @@ function DashboardPage() {
         </div>
       </section>
 
-      {/* KPIs financeiros */}
+      {/* KPIs financeiros — conectados às vw_dashboard_* */}
       {canSeeFinancials && (
         <section className="space-y-3">
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
-            <span>Financeiro</span>
+            <span>Financeiro · views oficiais</span>
             <span className="h-px flex-1 bg-border" />
           </div>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <KpiCard label="Faturamento (mês)" value="R$ 95.4k" delta="+7%" icon={DollarSign} tone="lime" hint="vs mês anterior" />
-            <KpiCard label="Lucro real (mês)" value="R$ 34.8k" delta="36%" icon={TrendingUp} tone="lime" hint="margem líquida" />
-            <KpiCard label="A receber" value="R$ 18.2k" icon={Wallet} tone="cyan" />
-            <KpiCard label="Ticket médio" value="R$ 1.245" icon={Receipt} tone="cyan" />
+            <KpiCard
+              label="Faturamento"
+              value={dashViews?.financeiro?.faturamento != null ? `R$ ${Number(dashViews.financeiro.faturamento).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}
+              icon={DollarSign}
+              tone="lime"
+              hint="vw_dashboard_financeiro"
+            />
+            <KpiCard
+              label="Lucro"
+              value={dashViews?.financeiro?.lucro != null ? `R$ ${Number(dashViews.financeiro.lucro).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}
+              delta={dashViews?.financeiro?.margem != null ? `${Number(dashViews.financeiro.margem).toFixed(1)}%` : undefined}
+              icon={TrendingUp}
+              tone="lime"
+              hint="margem oficial"
+            />
+            <KpiCard
+              label="Ticket médio"
+              value={dashViews?.comercial?.ticket_medio != null ? `R$ ${Number(dashViews.comercial.ticket_medio).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}` : "—"}
+              icon={Receipt}
+              tone="cyan"
+              hint={dashViews?.comercial?.orcamentos_mes ? `${dashViews.comercial.orcamentos_mes} orçamentos` : undefined}
+            />
+            <KpiCard
+              label="Custo total"
+              value={dashViews?.financeiro?.custo != null ? `R$ ${Number(dashViews.financeiro.custo).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}
+              icon={Wallet}
+              tone="cyan"
+            />
           </div>
         </section>
       )}
+
+      {/* KPIs 3D + prazos + qualidade */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          <span>Impressão 3D · Prazos · Qualidade</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <KpiCard
+            label="Jobs 3D"
+            value={dashViews?.impressao3d?.jobs ?? 0}
+            icon={Factory}
+            tone="cyan"
+            hint={dashViews?.impressao3d?.horas_impressas != null ? `${Number(dashViews.impressao3d.horas_impressas).toFixed(1)}h impressas` : "sem produção"}
+          />
+          <KpiCard
+            label="Falhas 3D"
+            value={dashViews?.impressao3d?.falhas ?? 0}
+            icon={AlertTriangle}
+            tone={(dashViews?.impressao3d?.falhas ?? 0) > 0 ? "magenta" : "muted"}
+            hint={dashViews?.impressao3d?.gramas_consumidas != null ? `${Number(dashViews.impressao3d.gramas_consumidas).toFixed(0)}g consumidos` : "—"}
+          />
+          <KpiCard
+            label="OS atrasadas (view)"
+            value={dashViews?.prazos?.atrasadas ?? 0}
+            icon={AlertTriangle}
+            tone={(dashViews?.prazos?.atrasadas ?? 0) > 0 ? "magenta" : "lime"}
+            hint="vw_dashboard_prazos"
+          />
+          <KpiCard
+            label="Inspeções aprovadas"
+            value={(() => {
+              const q: any[] = (dashViews?.qualidade as any[]) ?? [];
+              const ok = q.filter((r: any) => r.resultado === "aprovado" || r.resultado === "aprovado_com_ressalva").reduce((s, r) => s + Number(r.inspecoes ?? 0), 0);
+              const total = q.reduce((s, r) => s + Number(r.inspecoes ?? 0), 0);
+              return total > 0 ? `${ok}/${total}` : "—";
+            })()}
+            icon={ClipboardList}
+            tone="lime"
+            hint="qualidade"
+          />
+        </div>
+      </section>
+
 
       {/* Charts row 1 */}
       <div className="grid gap-4 lg:grid-cols-2">
