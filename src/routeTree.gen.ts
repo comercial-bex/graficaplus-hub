@@ -14,12 +14,15 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
+import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_authenticated/respostas-rapidas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
+import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedOsRouteImport } from './routes/_authenticated/os'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
@@ -69,6 +72,12 @@ const PublicoTokenRoute = PublicoTokenRouteImport.update({
   path: '/publico/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWhatsappMonitorRoute =
+  AuthenticatedWhatsappMonitorRouteImport.update({
+    id: '/whatsapp-monitor',
+    path: '/whatsapp-monitor',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
@@ -95,12 +104,22 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProducao3dRoute = AuthenticatedProducao3dRouteImport.update({
+  id: '/producao-3d',
+  path: '/producao-3d',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPrecificacaoRoute =
   AuthenticatedPrecificacaoRouteImport.update({
     id: '/precificacao',
     path: '/precificacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPosVendaRoute = AuthenticatedPosVendaRouteImport.update({
+  id: '/pos-venda',
+  path: '/pos-venda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPortalClienteRoute =
   AuthenticatedPortalClienteRouteImport.update({
     id: '/portal-cliente',
@@ -254,12 +273,15 @@ export interface FileRoutesByFullPath {
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
+  '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -290,12 +312,15 @@ export interface FileRoutesByTo {
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
+  '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -328,12 +353,15 @@ export interface FileRoutesById {
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/_authenticated/os': typeof AuthenticatedOsRouteWithChildren
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
+  '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -366,12 +394,15 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/os'
     | '/portal-cliente'
+    | '/pos-venda'
     | '/precificacao'
+    | '/producao-3d'
     | '/produtos'
     | '/relatorios'
     | '/respostas-rapidas'
     | '/usuarios'
     | '/whatsapp'
+    | '/whatsapp-monitor'
     | '/publico/$token'
     | '/clientes/$id'
     | '/orcamentos/$id'
@@ -402,12 +433,15 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/os'
     | '/portal-cliente'
+    | '/pos-venda'
     | '/precificacao'
+    | '/producao-3d'
     | '/produtos'
     | '/relatorios'
     | '/respostas-rapidas'
     | '/usuarios'
     | '/whatsapp'
+    | '/whatsapp-monitor'
     | '/publico/$token'
     | '/clientes/$id'
     | '/orcamentos/$id'
@@ -439,12 +473,15 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamentos'
     | '/_authenticated/os'
     | '/_authenticated/portal-cliente'
+    | '/_authenticated/pos-venda'
     | '/_authenticated/precificacao'
+    | '/_authenticated/producao-3d'
     | '/_authenticated/produtos'
     | '/_authenticated/relatorios'
     | '/_authenticated/respostas-rapidas'
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
+    | '/_authenticated/whatsapp-monitor'
     | '/publico/$token'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamentos/$id'
@@ -496,6 +533,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/whatsapp-monitor': {
+      id: '/_authenticated/whatsapp-monitor'
+      path: '/whatsapp-monitor'
+      fullPath: '/whatsapp-monitor'
+      preLoaderRoute: typeof AuthenticatedWhatsappMonitorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/whatsapp': {
       id: '/_authenticated/whatsapp'
       path: '/whatsapp'
@@ -531,11 +575,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/producao-3d': {
+      id: '/_authenticated/producao-3d'
+      path: '/producao-3d'
+      fullPath: '/producao-3d'
+      preLoaderRoute: typeof AuthenticatedProducao3dRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/precificacao': {
       id: '/_authenticated/precificacao'
       path: '/precificacao'
       fullPath: '/precificacao'
       preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pos-venda': {
+      id: '/_authenticated/pos-venda'
+      path: '/pos-venda'
+      fullPath: '/pos-venda'
+      preLoaderRoute: typeof AuthenticatedPosVendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/portal-cliente': {
@@ -770,12 +828,15 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRouteWithChildren
   AuthenticatedOsRoute: typeof AuthenticatedOsRouteWithChildren
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
+  AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
+  AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRespostasRapidasRoute: typeof AuthenticatedRespostasRapidasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
+  AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -800,12 +861,15 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRouteWithChildren,
   AuthenticatedOsRoute: AuthenticatedOsRouteWithChildren,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
+  AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
+  AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRespostasRapidasRoute: AuthenticatedRespostasRapidasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
+  AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -16,7 +17,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, FileText, DollarSign, Truck, Download } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { ClipboardList, FileText, DollarSign, Truck, Download, Upload, MessageSquare } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/portal-cliente")({
   head: () => ({ meta: [{ title: "Portal do Cliente — BEX PRINT OS" }] }),
@@ -27,9 +33,13 @@ export const Route = createFileRoute("/_authenticated/portal-cliente")({
 
 function PortalClientePage() {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [osSelecionada, setOsSelecionada] = useState<string | null>(null);
+  const [solicitacaoTipo, setSolicitacaoTipo] = useState("duvida");
+  const [solicitacaoMsg, setSolicitacaoMsg] = useState("");
 
   const { data: acessos = [], isLoading } = useQuery({
+
     queryKey: ["portal-acessos", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
@@ -65,8 +75,26 @@ function PortalClientePage() {
       const { data } = await (supabase as any)
         .from("documentos_gerados")
         .select("*")
-        .eq("os_id", osSelecionada)
+        .eq("tipo", "os")
+        .eq("referencia_id", osSelecionada)
+        .eq("variante", "cliente")
         .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const { data: solicitacoes = [] } = useQuery({
+    queryKey: ["portal-solicitacoes", clienteIds, osSelecionada],
+    enabled: clienteIds.length > 0,
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("portal_cliente_solicitacoes")
+        .select("*")
+        .in("cliente_id", clienteIds)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (osSelecionada) q = q.eq("os_id", osSelecionada);
+      const { data } = await q;
       return data ?? [];
     },
   });
@@ -85,6 +113,35 @@ function PortalClientePage() {
           .maybeSingle()
       ).data,
   });
+
+  async function baixarDocumento(d: any) {
+    // Signed URL from the documentos-pdf bucket (private)
+    const { data, error } = await (supabase as any).storage
+      .from("documentos-pdf")
+      .createSignedUrl(d.caminho, 60);
+    if (error || !data?.signedUrl) {
+      return toast.error("Não foi possível gerar link de download");
+    }
+    window.open(data.signedUrl, "_blank");
+  }
+
+  async function enviarSolicitacao() {
+    if (!clienteIds[0] || !solicitacaoMsg.trim()) {
+      return toast.error("Descreva sua solicitação");
+    }
+    const { error } = await (supabase as any).from("portal_cliente_solicitacoes").insert({
+      cliente_id: clienteIds[0],
+      os_id: osSelecionada,
+      tipo: solicitacaoTipo,
+      mensagem: solicitacaoMsg,
+      status: "aberta",
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Solicitação enviada à equipe BEX");
+    setSolicitacaoMsg("");
+    qc.invalidateQueries({ queryKey: ["portal-solicitacoes"] });
+  }
+
 
   if (isLoading) {
     return <div className="p-6 text-muted-foreground">Carregando portal...</div>;
@@ -230,23 +287,27 @@ function PortalClientePage() {
                       key={d.id}
                       className="flex items-center justify-between rounded border p-3 text-sm"
                     >
-                      <div>
-                        <div className="font-medium">{d.tipo ?? "Documento"}</div>
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {new Date(d.created_at).toLocaleString("pt-BR")}
+                      <div className="min-w-0">
+                        <div className="font-medium flex items-center gap-2">
+                          <FileText className="h-3 w-3" />
+                          {d.tipo === "os" ? "OS" : "Orçamento"}
+                          {d.numero ? ` #${d.numero}` : ""}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono truncate">
+                          {new Date(d.created_at).toLocaleString("pt-BR")} ·{" "}
+                          {d.tamanho_bytes
+                            ? `${(Number(d.tamanho_bytes) / 1024).toFixed(0)} KB`
+                            : ""}
                         </div>
                       </div>
-                      {d.url && (
-                        <Button asChild size="sm" variant="outline">
-                          <a href={d.url} target="_blank" rel="noreferrer">
-                            <Download className="h-3 w-3 mr-1" />
-                            Baixar
-                          </a>
-                        </Button>
-                      )}
+                      <Button size="sm" variant="outline" onClick={() => baixarDocumento(d)}>
+                        <Download className="h-3 w-3 mr-1" />
+                        Baixar
+                      </Button>
                     </div>
                   ))}
                 </div>
+
               )}
             </CardContent>
           </Card>
@@ -285,6 +346,88 @@ function PortalClientePage() {
           </Card>
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" /> Enviar solicitação / dúvida
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-[220px_1fr]">
+            <div>
+              <Label>Tipo</Label>
+              <select
+                className="w-full border rounded h-9 px-2 bg-background text-sm"
+                value={solicitacaoTipo}
+                onChange={(e) => setSolicitacaoTipo(e.target.value)}
+              >
+                <option value="duvida">Dúvida</option>
+                <option value="alteracao">Solicitar alteração</option>
+                <option value="arquivo">Enviar arquivo/arte</option>
+                <option value="pagamento">Pagamento</option>
+                <option value="entrega">Entrega</option>
+              </select>
+            </div>
+            <div>
+              <Label>Mensagem</Label>
+              <Textarea
+                value={solicitacaoMsg}
+                onChange={(e) => setSolicitacaoMsg(e.target.value)}
+                rows={2}
+                placeholder={
+                  osSelecionada
+                    ? "Sua mensagem sobre a OS selecionada..."
+                    : "Descreva sua solicitação..."
+                }
+              />
+            </div>
+          </div>
+          {solicitacaoTipo === "arquivo" && (
+            <div className="rounded border-2 border-dashed p-4 text-center space-y-2">
+              <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                Para enviar arquivos, descreva na mensagem. Nossa equipe entrará em contato
+                pelo WhatsApp/e-mail com um link seguro de upload.
+              </p>
+              <Input type="file" disabled title="Upload direto virá em breve" />
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={enviarSolicitacao}>Enviar solicitação</Button>
+          </div>
+
+          {solicitacoes.length > 0 && (
+            <div className="border-t pt-3 space-y-2">
+              <div className="text-xs font-mono uppercase text-muted-foreground">
+                Histórico de solicitações
+              </div>
+              {solicitacoes.map((s: any) => (
+                <div key={s.id} className="rounded border p-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                      {s.tipo} ·{" "}
+                      {new Date(s.created_at).toLocaleDateString("pt-BR")}
+                    </span>
+                    <StatusChip
+                      label={s.status}
+                      tone={
+                        s.status === "resolvida"
+                          ? "lime"
+                          : s.status === "cancelada"
+                            ? "magenta"
+                            : "cyan"
+                      }
+                    />
+                  </div>
+                  <div className="mt-1">{s.mensagem}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
