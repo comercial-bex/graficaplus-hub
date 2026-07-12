@@ -129,7 +129,7 @@ function DashboardPage() {
       const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs] =
         await Promise.all([
           supabase.from("ordens_servico").select("status, valor_total, custo_real, created_at"),
-          supabase.from("custos_os").select("categoria, valor"),
+          supabase.from("custos_operacionais_os").select("categoria, total"),
           supabase.from("produtos").select("nome"),
           supabase.from("maquinas").select("nome"),
           db.from("ocorrencias").select("setor, retrabalho"),
@@ -176,7 +176,7 @@ function DashboardPage() {
     custos.reduce(
       (acc: Record<string, number>, c: any) => ({
         ...acc,
-        [c.categoria || "Outros"]: (acc[c.categoria || "Outros"] ?? 0) + Number(c.valor ?? 0),
+        [c.categoria || "Outros"]: (acc[c.categoria || "Outros"] ?? 0) + Number(c.total ?? 0),
       }),
       {},
     ),

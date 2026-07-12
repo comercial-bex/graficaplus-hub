@@ -474,7 +474,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
 
   const { data: tarefas = [] } = useQuery({
     queryKey: ["tarefas-os", osId, "arquivos"],
-    queryFn: async () => (await supabase.from("tarefas").select("id,titulo").eq("os_id", osId).order("created_at")).data ?? [],
+    queryFn: async () => (await supabase.from("os_tarefas").select("id,titulo").eq("os_id", osId).order("created_at")).data ?? [],
   });
 
   const { data: contatos = [] } = useQuery({
@@ -694,7 +694,7 @@ function TarefasTab({ osId, userId }: { osId: string; userId?: string }) {
     queryKey: ["tarefas-os", osId],
     queryFn: async () => {
       const { data } = await supabase
-        .from("tarefas")
+        .from("os_tarefas")
         .select("*")
         .eq("os_id", osId)
         .order("created_at");
@@ -703,16 +703,18 @@ function TarefasTab({ osId, userId }: { osId: string; userId?: string }) {
   });
   async function add() {
     if (!titulo) return;
-    await supabase.from("tarefas").insert({ os_id: osId, titulo, created_by: userId });
+    await supabase.from("os_tarefas").insert({ os_id: osId, titulo, created_by: userId });
     setTitulo("");
     qc.invalidateQueries({ queryKey: ["tarefas-os", osId] });
   }
   async function toggle(t: any) {
+    const concluida = t.status === "concluida";
     await supabase
-      .from("tarefas")
+      .from("os_tarefas")
       .update({
-        concluida: !t.concluida,
-        concluida_em: !t.concluida ? new Date().toISOString() : null,
+        status: concluida ? "pendente" : "concluida",
+        fim_real: concluida ? null : new Date().toISOString(),
+        completed_by: concluida ? null : userId,
       })
       .eq("id", t.id);
     qc.invalidateQueries({ queryKey: ["tarefas-os", osId] });
@@ -737,8 +739,8 @@ function TarefasTab({ osId, userId }: { osId: string; userId?: string }) {
           )}
           {tarefas.map((t: any) => (
             <div key={t.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-              <input type="checkbox" checked={t.concluida} onChange={() => toggle(t)} />
-              <span className={t.concluida ? "line-through text-muted-foreground" : ""}>
+              <input type="checkbox" checked={t.status === "concluida"} onChange={() => toggle(t)} />
+              <span className={t.status === "concluida" ? "line-through text-muted-foreground" : ""}>
                 {t.titulo}
               </span>
             </div>
@@ -800,7 +802,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
     queryFn: async () =>
       (
         await supabase
-          .from("custos_os")
+          .from("custos_operacionais_os")
           .select("*")
           .eq("os_id", osId)
           .order("data", { ascending: false })
@@ -831,13 +833,15 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   }
 
   async function addCusto() {
-    if (!custo.descricao || !custo.valor) return toast.error("Descrição e valor obrigatórios");
-    const { error } = await supabase.from("custos_os").insert({
+    if (!custo.descricao || !custo.valor || !custo.categoria)
+      return toast.error("Descrição, categoria e valor obrigatórios");
+    const { error } = await supabase.from("custos_operacionais_os").insert({
       os_id: osId,
-      descricao: custo.descricao,
-      valor: parseFloat(custo.valor),
-      categoria: custo.categoria || null,
-      registrado_por: userId,
+      origem: custo.descricao,
+      categoria: custo.categoria,
+      quantidade: 1,
+      valor_unitario: parseFloat(custo.valor),
+      usuario_id: userId,
     });
     if (error) return toast.error(error.message);
     setCusto({ descricao: "", valor: "", categoria: "" });
@@ -858,7 +862,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   const totalRecebido = pagamentos
     .filter((p: any) => p.status === "pago")
     .reduce((s: number, p: any) => s + Number(p.valor), 0);
-  const totalCustos = custos.reduce((s: number, c: any) => s + Number(c.valor), 0);
+  const totalCustos = custos.reduce((s: number, c: any) => s + Number(c.total), 0);
 
   return (
     <div className="space-y-4">
@@ -952,11 +956,23 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
               value={custo.descricao}
               onChange={(e) => setCusto({ ...custo, descricao: e.target.value })}
             />
-            <Input
-              placeholder="Categoria"
+            <Select
               value={custo.categoria}
-              onChange={(e) => setCusto({ ...custo, categoria: e.target.value })}
-            />
+              onValueChange={(v) => setCusto({ ...custo, categoria: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {["material", "mao_obra", "maquina", "terceiros", "acabamento", "logistica", "retrabalho", "taxa", "comissao"].map(
+                  (cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectContent>
+            </Select>
             <Input
               placeholder="Valor"
               type="number"
@@ -975,10 +991,10 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
                 className="flex items-center justify-between text-sm border rounded p-2"
               >
                 <div>
-                  {c.descricao}{" "}
+                  {c.origem}{" "}
                   {c.categoria && <span className="text-muted-foreground">({c.categoria})</span>}
                 </div>
-                <div>R$ {Number(c.valor).toFixed(2)}</div>
+                <div>R$ {Number(c.total).toFixed(2)}</div>
               </div>
             ))}
           </div>
