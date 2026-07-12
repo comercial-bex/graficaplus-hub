@@ -26,6 +26,7 @@ import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedOsRouteImport } from './routes/_authenticated/os'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
+import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
 import { Route as AuthenticatedMateriaisRouteImport } from './routes/_authenticated/materiais'
@@ -138,6 +139,12 @@ const AuthenticatedOrcamentosRoute = AuthenticatedOrcamentosRouteImport.update({
   path: '/orcamentos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOrcamento3dNovoRoute =
+  AuthenticatedOrcamento3dNovoRouteImport.update({
+    id: '/orcamento-3d-novo',
+    path: '/orcamento-3d-novo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOcorrenciasRoute =
   AuthenticatedOcorrenciasRouteImport.update({
     id: '/ocorrencias',
@@ -286,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/materiais': typeof AuthenticatedMateriaisRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -327,6 +335,7 @@ export interface FileRoutesByTo {
   '/materiais': typeof AuthenticatedMateriaisRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -370,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/materiais': typeof AuthenticatedMateriaisRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/_authenticated/os': typeof AuthenticatedOsRouteWithChildren
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -413,6 +423,7 @@ export interface FileRouteTypes {
     | '/materiais'
     | '/movimentacoes'
     | '/ocorrencias'
+    | '/orcamento-3d-novo'
     | '/orcamentos'
     | '/os'
     | '/portal-cliente'
@@ -454,6 +465,7 @@ export interface FileRouteTypes {
     | '/materiais'
     | '/movimentacoes'
     | '/ocorrencias'
+    | '/orcamento-3d-novo'
     | '/orcamentos'
     | '/os'
     | '/portal-cliente'
@@ -496,6 +508,7 @@ export interface FileRouteTypes {
     | '/_authenticated/materiais'
     | '/_authenticated/movimentacoes'
     | '/_authenticated/ocorrencias'
+    | '/_authenticated/orcamento-3d-novo'
     | '/_authenticated/orcamentos'
     | '/_authenticated/os'
     | '/_authenticated/portal-cliente'
@@ -641,6 +654,13 @@ declare module '@tanstack/react-router' {
       path: '/orcamentos'
       fullPath: '/orcamentos'
       preLoaderRoute: typeof AuthenticatedOrcamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/orcamento-3d-novo': {
+      id: '/_authenticated/orcamento-3d-novo'
+      path: '/orcamento-3d-novo'
+      fullPath: '/orcamento-3d-novo'
+      preLoaderRoute: typeof AuthenticatedOrcamento3dNovoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/ocorrencias': {
@@ -867,6 +887,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMateriaisRoute: typeof AuthenticatedMateriaisRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
+  AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRouteWithChildren
   AuthenticatedOsRoute: typeof AuthenticatedOsRouteWithChildren
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
@@ -902,6 +923,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMateriaisRoute: AuthenticatedMateriaisRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
+  AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRouteWithChildren,
   AuthenticatedOsRoute: AuthenticatedOsRouteWithChildren,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
