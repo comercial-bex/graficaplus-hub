@@ -346,6 +346,88 @@ function PortalClientePage() {
           </Card>
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" /> Enviar solicitação / dúvida
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-[220px_1fr]">
+            <div>
+              <Label>Tipo</Label>
+              <select
+                className="w-full border rounded h-9 px-2 bg-background text-sm"
+                value={solicitacaoTipo}
+                onChange={(e) => setSolicitacaoTipo(e.target.value)}
+              >
+                <option value="duvida">Dúvida</option>
+                <option value="alteracao">Solicitar alteração</option>
+                <option value="arquivo">Enviar arquivo/arte</option>
+                <option value="pagamento">Pagamento</option>
+                <option value="entrega">Entrega</option>
+              </select>
+            </div>
+            <div>
+              <Label>Mensagem</Label>
+              <Textarea
+                value={solicitacaoMsg}
+                onChange={(e) => setSolicitacaoMsg(e.target.value)}
+                rows={2}
+                placeholder={
+                  osSelecionada
+                    ? "Sua mensagem sobre a OS selecionada..."
+                    : "Descreva sua solicitação..."
+                }
+              />
+            </div>
+          </div>
+          {solicitacaoTipo === "arquivo" && (
+            <div className="rounded border-2 border-dashed p-4 text-center space-y-2">
+              <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                Para enviar arquivos, descreva na mensagem. Nossa equipe entrará em contato
+                pelo WhatsApp/e-mail com um link seguro de upload.
+              </p>
+              <Input type="file" disabled title="Upload direto virá em breve" />
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={enviarSolicitacao}>Enviar solicitação</Button>
+          </div>
+
+          {solicitacoes.length > 0 && (
+            <div className="border-t pt-3 space-y-2">
+              <div className="text-xs font-mono uppercase text-muted-foreground">
+                Histórico de solicitações
+              </div>
+              {solicitacoes.map((s: any) => (
+                <div key={s.id} className="rounded border p-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                      {s.tipo} ·{" "}
+                      {new Date(s.created_at).toLocaleDateString("pt-BR")}
+                    </span>
+                    <StatusChip
+                      label={s.status}
+                      tone={
+                        s.status === "resolvida"
+                          ? "lime"
+                          : s.status === "cancelada"
+                            ? "magenta"
+                            : "cyan"
+                      }
+                    />
+                  </div>
+                  <div className="mt-1">{s.mensagem}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
