@@ -101,6 +101,28 @@ function DashboardPage() {
     q.lt("prazo_entrega", today).not("status", "in", "(concluido,faturado,cancelado)"),
   );
 
+  const { data: dashViews } = useQuery({
+    queryKey: ["vw-dashboards"],
+    queryFn: async () => {
+      const client = supabase as any;
+      const [comercial, financeiro, prazos, qualidade, impressao3d] = await Promise.all([
+        client.from("vw_dashboard_comercial").select("*").maybeSingle(),
+        client.from("vw_dashboard_financeiro").select("*").maybeSingle(),
+        client.from("vw_dashboard_prazos").select("*").maybeSingle(),
+        client.from("vw_dashboard_qualidade").select("*"),
+        client.from("vw_dashboard_impressao_3d").select("*").maybeSingle(),
+      ]);
+      return {
+        comercial: comercial.data ?? null,
+        financeiro: financeiro.data ?? null,
+        prazos: prazos.data ?? null,
+        qualidade: qualidade.data ?? [],
+        impressao3d: impressao3d.data ?? null,
+      };
+    },
+  });
+
+
   const { data: dashboardData } = useQuery({
     queryKey: ["dashboard-operacional"],
     queryFn: async () => {
