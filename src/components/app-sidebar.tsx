@@ -114,8 +114,12 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
   },
   {
     label: "Análise",
-    items: [{ title: "Relatórios", url: "/relatorios", icon: BarChart3 }],
+    items: [
+      { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+      { title: "Portal do cliente", url: "/portal-cliente", icon: Users },
+    ],
   },
+
   {
     label: "Administração",
     gate: "admin",

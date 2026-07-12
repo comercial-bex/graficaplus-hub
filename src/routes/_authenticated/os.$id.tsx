@@ -95,18 +95,43 @@ function OSDetailPage() {
 
   async function updateStatus(novoStatus: string) {
     const statusAnterior = os?.status;
-    const { error } = novoStatus === "concluido"
-      ? await (supabase.rpc as any)("fechar_os", { os_id: id })
-      : await (supabase.rpc as any)("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
-    if (error) return toast.error(error.message);
+    if (novoStatus === "concluido") {
+      const { data, error } = await (supabase.rpc as any)("fechar_os", { os_id: id });
+      if (error) return toast.error(error.message);
+      const res = data as any;
+      if (res && res.fechada === false) {
+        const bloqueios: string[] = Array.isArray(res.bloqueios) ? res.bloqueios : [];
+        const labels: Record<string, string> = {
+          tarefas_obrigatorias: "Tarefas obrigatórias pendentes",
+          qualidade_aprovada: "Qualidade não aprovada",
+          qualidade_reprovada_ou_retrabalho: "Qualidade reprovada ou em retrabalho",
+          materiais_baixados: "Materiais ainda não baixados",
+          ocorrencias_tratadas: "Ocorrências abertas",
+          logistica_concluida: "Entrega/instalação pendente",
+          custos_operacionais: "Sem custos operacionais registrados",
+          pagamentos_pendentes: "Pagamentos pendentes",
+        };
+        toast.error("Não é possível fechar a OS", {
+          description: bloqueios.map((b) => `• ${labels[b] ?? b}`).join("\n"),
+        });
+        qc.invalidateQueries({ queryKey: ["resultado-os", id] });
+        return;
+      }
+      toast.success("OS concluída — snapshot de resultado gerado e pesquisa de pós-venda agendada");
+    } else {
+      const { error } = await (supabase.rpc as any)("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
+      if (error) return toast.error(error.message);
+      toast.success("Status atualizado");
+    }
     await supabase.from("logs_auditoria").insert({
       entidade: "ordens_servico", entidade_id: id, acao: novoStatus === "concluido" ? "fechamento_os" : "status_change",
       detalhes: { anterior: statusAnterior, novo: novoStatus }, usuario_id: user?.id,
     });
-    toast.success(novoStatus === "concluido" ? "OS concluída e resultado real calculado" : "Status atualizado");
     qc.invalidateQueries({ queryKey: ["os", id] });
     qc.invalidateQueries({ queryKey: ["resultado-os", id] });
+    qc.invalidateQueries({ queryKey: ["snapshot-os", id] });
   }
+
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
   if (!os) return <div className="p-6">OS não encontrada</div>;
@@ -783,8 +808,13 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   });
   const { data: resultado } = useQuery({
     queryKey: ["resultado-os", osId],
-    queryFn: async () => (await (supabase as any).from("os_resultados").select("*").eq("os_id", osId).maybeSingle()).data as any,
+    queryFn: async () => (await (supabase as any).from("vw_resultado_os").select("*").eq("os_id", osId).maybeSingle()).data as any,
   });
+  const { data: snapshot } = useQuery({
+    queryKey: ["snapshot-os", osId],
+    queryFn: async () => (await (supabase as any).from("os_resultado_snapshots").select("*").eq("os_id", osId).order("created_at", { ascending: false }).limit(1).maybeSingle()).data as any,
+  });
+
 
   async function addPag() {
     if (!pag.valor) return toast.error("Valor obrigatório");
@@ -833,24 +863,35 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle className="text-base">Resultado real da OS</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Resultado real da OS</span>
+            {snapshot && (
+              <span className="text-xs font-mono text-muted-foreground">
+                Snapshot: {new Date(snapshot.created_at).toLocaleString("pt-BR")}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {resultado ? (
             <div className="grid md:grid-cols-3 gap-3 text-sm">
-              <div className="rounded border p-3"><div className="text-muted-foreground">Custo previsto</div><div className="font-semibold">R$ {Number(resultado.custo_previsto).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Custo real</div><div className="font-semibold">R$ {Number(resultado.custo_real).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro real</div><div className="font-semibold">R$ {Number(resultado.lucro_real).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Receita líquida</div><div className="font-semibold">R$ {Number(resultado.receita_liquida ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Custo previsto</div><div className="font-semibold">R$ {Number(resultado.custo_previsto ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Custo realizado</div><div className="font-semibold">R$ {Number(resultado.custo_realizado ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro previsto</div><div className="font-semibold">R$ {Number(resultado.lucro_previsto ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro realizado</div><div className="font-semibold">R$ {Number(resultado.lucro_realizado ?? 0).toFixed(2)}</div></div>
               <div className="rounded border p-3"><div className="text-muted-foreground">Margem prevista</div><div className="font-semibold">{resultado.margem_prevista == null ? "—" : `${Number(resultado.margem_prevista).toFixed(2)}%`}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Margem real</div><div className="font-semibold">{resultado.margem_real == null ? "—" : `${Number(resultado.margem_real).toFixed(2)}%`}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Material consumido</div><div className="font-semibold">{Number(resultado.material_consumido).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Tempo real</div><div className="font-semibold">{resultado.tempo_real == null ? "—" : `${Number(resultado.tempo_real).toFixed(2)}h`}</div></div>
-              <div className="rounded border p-3 md:col-span-2"><div className="text-muted-foreground">Divergência</div><div className="font-semibold">{resultado.motivo_divergencia || "Sem divergência registrada"}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Margem realizada</div><div className="font-semibold">{resultado.margem_realizada == null ? "—" : `${Number(resultado.margem_realizada).toFixed(2)}%`}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Divergência custo</div><div className="font-semibold">R$ {Number(resultado.divergencia_custo ?? 0).toFixed(2)}</div></div>
+              <div className="rounded border p-3"><div className="text-muted-foreground">Status</div><div className="font-semibold">{resultado.atraso ? "Com atraso" : "No prazo"} · {resultado.status_financeiro ?? "—"}</div></div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">O resultado real será exibido após concluir a OS. Valor atual da OS: R$ {Number(os.valor_total).toFixed(2)}.</p>
+            <p className="text-sm text-muted-foreground">O resultado será calculado quando houver custos operacionais e pagamentos registrados. Valor atual da OS: R$ {Number(os.valor_total ?? 0).toFixed(2)}.</p>
           )}
         </CardContent>
       </Card>
+
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
