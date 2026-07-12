@@ -20,6 +20,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_authenticated/respostas-rapidas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedOsRouteImport } from './routes/_authenticated/os'
@@ -100,6 +101,11 @@ const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
 const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProducao3dRoute = AuthenticatedProducao3dRouteImport.update({
+  id: '/producao-3d',
+  path: '/producao-3d',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPrecificacaoRoute =
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/os': typeof AuthenticatedOsRouteWithChildren
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/os': typeof AuthenticatedOsRouteWithChildren
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
@@ -338,6 +346,7 @@ export interface FileRoutesById {
   '/_authenticated/os': typeof AuthenticatedOsRouteWithChildren
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
@@ -377,6 +386,7 @@ export interface FileRouteTypes {
     | '/os'
     | '/portal-cliente'
     | '/precificacao'
+    | '/producao-3d'
     | '/produtos'
     | '/relatorios'
     | '/respostas-rapidas'
@@ -414,6 +424,7 @@ export interface FileRouteTypes {
     | '/os'
     | '/portal-cliente'
     | '/precificacao'
+    | '/producao-3d'
     | '/produtos'
     | '/relatorios'
     | '/respostas-rapidas'
@@ -452,6 +463,7 @@ export interface FileRouteTypes {
     | '/_authenticated/os'
     | '/_authenticated/portal-cliente'
     | '/_authenticated/precificacao'
+    | '/_authenticated/producao-3d'
     | '/_authenticated/produtos'
     | '/_authenticated/relatorios'
     | '/_authenticated/respostas-rapidas'
@@ -549,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/produtos'
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/producao-3d': {
+      id: '/_authenticated/producao-3d'
+      path: '/producao-3d'
+      fullPath: '/producao-3d'
+      preLoaderRoute: typeof AuthenticatedProducao3dRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/precificacao': {
@@ -791,6 +810,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOsRoute: typeof AuthenticatedOsRouteWithChildren
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
+  AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRespostasRapidasRoute: typeof AuthenticatedRespostasRapidasRoute
@@ -822,6 +842,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOsRoute: AuthenticatedOsRouteWithChildren,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
+  AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRespostasRapidasRoute: AuthenticatedRespostasRapidasRoute,
