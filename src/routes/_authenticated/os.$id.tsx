@@ -703,13 +703,18 @@ function TarefasTab({ osId, userId }: { osId: string; userId?: string }) {
   });
   async function add() {
     if (!titulo) return;
-    await supabase.from("os_tarefas").insert({ os_id: osId, titulo, created_by: userId });
+    // obrigatoria=false: tarefas de checklist rápido não devem bloquear o
+    // fechamento da OS (fechar_os barra apenas tarefas obrigatórias pendentes).
+    const { error } = await supabase
+      .from("os_tarefas")
+      .insert({ os_id: osId, titulo, created_by: userId, obrigatoria: false });
+    if (error) return toast.error(error.message);
     setTitulo("");
     qc.invalidateQueries({ queryKey: ["tarefas-os", osId] });
   }
   async function toggle(t: any) {
     const concluida = t.status === "concluida";
-    await supabase
+    const { error } = await supabase
       .from("os_tarefas")
       .update({
         status: concluida ? "pendente" : "concluida",
@@ -717,6 +722,7 @@ function TarefasTab({ osId, userId }: { osId: string; userId?: string }) {
         completed_by: concluida ? null : userId,
       })
       .eq("id", t.id);
+    if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["tarefas-os", osId] });
   }
   return (
