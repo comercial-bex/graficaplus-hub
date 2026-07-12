@@ -287,23 +287,27 @@ function PortalClientePage() {
                       key={d.id}
                       className="flex items-center justify-between rounded border p-3 text-sm"
                     >
-                      <div>
-                        <div className="font-medium">{d.tipo ?? "Documento"}</div>
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {new Date(d.created_at).toLocaleString("pt-BR")}
+                      <div className="min-w-0">
+                        <div className="font-medium flex items-center gap-2">
+                          <FileText className="h-3 w-3" />
+                          {d.tipo === "os" ? "OS" : "Orçamento"}
+                          {d.numero ? ` #${d.numero}` : ""}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono truncate">
+                          {new Date(d.created_at).toLocaleString("pt-BR")} ·{" "}
+                          {d.tamanho_bytes
+                            ? `${(Number(d.tamanho_bytes) / 1024).toFixed(0)} KB`
+                            : ""}
                         </div>
                       </div>
-                      {d.url && (
-                        <Button asChild size="sm" variant="outline">
-                          <a href={d.url} target="_blank" rel="noreferrer">
-                            <Download className="h-3 w-3 mr-1" />
-                            Baixar
-                          </a>
-                        </Button>
-                      )}
+                      <Button size="sm" variant="outline" onClick={() => baixarDocumento(d)}>
+                        <Download className="h-3 w-3 mr-1" />
+                        Baixar
+                      </Button>
                     </div>
                   ))}
                 </div>
+
               )}
             </CardContent>
           </Card>
