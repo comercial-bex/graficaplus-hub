@@ -115,6 +115,9 @@ function Impressao3DPage() {
         description="Orçamentos 3D com motor de custo Decimal, produção e apontamentos"
         actions={
           <div className="flex items-center gap-2">
+            <Button asChild size="sm">
+              <Link to="/orcamento-3d-novo">Novo orçamento</Link>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/filamentos-3d">Filamentos</Link>
             </Button>
