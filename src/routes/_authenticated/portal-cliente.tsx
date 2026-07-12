@@ -75,8 +75,26 @@ function PortalClientePage() {
       const { data } = await (supabase as any)
         .from("documentos_gerados")
         .select("*")
-        .eq("os_id", osSelecionada)
+        .eq("tipo", "os")
+        .eq("referencia_id", osSelecionada)
+        .eq("variante", "cliente")
         .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const { data: solicitacoes = [] } = useQuery({
+    queryKey: ["portal-solicitacoes", clienteIds, osSelecionada],
+    enabled: clienteIds.length > 0,
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("portal_cliente_solicitacoes")
+        .select("*")
+        .in("cliente_id", clienteIds)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (osSelecionada) q = q.eq("os_id", osSelecionada);
+      const { data } = await q;
       return data ?? [];
     },
   });
@@ -95,6 +113,35 @@ function PortalClientePage() {
           .maybeSingle()
       ).data,
   });
+
+  async function baixarDocumento(d: any) {
+    // Signed URL from the documentos-pdf bucket (private)
+    const { data, error } = await (supabase as any).storage
+      .from("documentos-pdf")
+      .createSignedUrl(d.caminho, 60);
+    if (error || !data?.signedUrl) {
+      return toast.error("Não foi possível gerar link de download");
+    }
+    window.open(data.signedUrl, "_blank");
+  }
+
+  async function enviarSolicitacao() {
+    if (!clienteIds[0] || !solicitacaoMsg.trim()) {
+      return toast.error("Descreva sua solicitação");
+    }
+    const { error } = await (supabase as any).from("portal_cliente_solicitacoes").insert({
+      cliente_id: clienteIds[0],
+      os_id: osSelecionada,
+      tipo: solicitacaoTipo,
+      mensagem: solicitacaoMsg,
+      status: "aberta",
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Solicitação enviada à equipe BEX");
+    setSolicitacaoMsg("");
+    qc.invalidateQueries({ queryKey: ["portal-solicitacoes"] });
+  }
+
 
   if (isLoading) {
     return <div className="p-6 text-muted-foreground">Carregando portal...</div>;
