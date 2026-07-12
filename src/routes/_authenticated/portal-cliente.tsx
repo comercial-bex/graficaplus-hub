@@ -33,9 +33,11 @@ export const Route = createFileRoute("/_authenticated/portal-cliente")({
 
 function PortalClientePage() {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [osSelecionada, setOsSelecionada] = useState<string | null>(null);
+  const [solicitacaoTipo, setSolicitacaoTipo] = useState("duvida");
+  const [solicitacaoMsg, setSolicitacaoMsg] = useState("");
 
-  const { data: acessos = [], isLoading } = useQuery({
     queryKey: ["portal-acessos", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
