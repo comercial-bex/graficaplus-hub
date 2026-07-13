@@ -49,6 +49,7 @@ import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
 import { Route as AuthenticatedOsIdRouteImport } from './routes/_authenticated/os.$id'
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
+import { Route as AuthenticatedOrcamento3dIdRouteImport } from './routes/_authenticated/orcamento-3d.$id'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes.$id'
 
 const SignupRoute = SignupRouteImport.update({
@@ -263,6 +264,12 @@ const AuthenticatedOrcamentosIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedOrcamentosRoute,
   } as any)
+const AuthenticatedOrcamento3dIdRoute =
+  AuthenticatedOrcamento3dIdRouteImport.update({
+    id: '/orcamento-3d/$id',
+    path: '/orcamento-3d/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientesIdRoute = AuthenticatedClientesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -308,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
 }
@@ -350,6 +358,7 @@ export interface FileRoutesByTo {
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
 }
@@ -394,6 +403,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
 }
@@ -438,6 +448,7 @@ export interface FileRouteTypes {
     | '/whatsapp-monitor'
     | '/publico/$token'
     | '/clientes/$id'
+    | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -480,6 +491,7 @@ export interface FileRouteTypes {
     | '/whatsapp-monitor'
     | '/publico/$token'
     | '/clientes/$id'
+    | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
   id:
@@ -523,6 +535,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp-monitor'
     | '/publico/$token'
     | '/_authenticated/clientes/$id'
+    | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
   fileRoutesById: FileRoutesById
@@ -817,6 +830,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrcamentosIdRouteImport
       parentRoute: typeof AuthenticatedOrcamentosRoute
     }
+    '/_authenticated/orcamento-3d/$id': {
+      id: '/_authenticated/orcamento-3d/$id'
+      path: '/orcamento-3d/$id'
+      fullPath: '/orcamento-3d/$id'
+      preLoaderRoute: typeof AuthenticatedOrcamento3dIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clientes/$id': {
       id: '/_authenticated/clientes/$id'
       path: '/$id'
@@ -900,6 +920,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
+  AuthenticatedOrcamento3dIdRoute: typeof AuthenticatedOrcamento3dIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -936,6 +957,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
+  AuthenticatedOrcamento3dIdRoute: AuthenticatedOrcamento3dIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
