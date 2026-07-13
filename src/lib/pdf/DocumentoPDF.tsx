@@ -11,7 +11,7 @@ export type DocItem = {
 };
 
 export type DocumentoPDFProps = {
-  tipo: "orcamento" | "os";
+  tipo: "orcamento" | "os" | "orcamento_3d";
   numero: number | string;
   data_solicitacao?: string | null;
   data_validade?: string | null;
@@ -94,7 +94,8 @@ const money = (v: number) =>
   "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function DocumentoPDF(p: DocumentoPDFProps) {
-  const titulo = p.tipo === "orcamento" ? "Orçamento" : "Ordem de Serviço";
+  const isOrc = p.tipo === "orcamento" || p.tipo === "orcamento_3d";
+  const titulo = p.tipo === "os" ? "Ordem de Serviço" : p.tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento";
   const mostrar = p.mostrarValores ?? true;
   const totalQtd = p.itens.reduce((a, i) => a + Number(i.quantidade || 0), 0);
   const now = new Date().toLocaleString("pt-BR");
@@ -121,7 +122,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             <Text style={s.docTitle}>{titulo.toUpperCase()} Nº {p.numero}</Text>
 
             <View style={s.metaRow}><Text style={s.metaLabel}>Solicitação</Text><Text style={s.metaValue}>{p.data_solicitacao ?? "—"}</Text></View>
-            {p.tipo === "orcamento" && (
+            {isOrc && (
               <View style={s.metaRow}><Text style={s.metaLabel}>Validade</Text><Text style={s.metaValue}>{p.data_validade ?? "—"}</Text></View>
             )}
             {p.tipo === "os" && (
@@ -193,11 +194,11 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           </View>
         )}
 
-        {(p.observacoes || p.tipo === "orcamento") && (
+        {(p.observacoes || isOrc) && (
           <View style={s.obs}>
             <Text style={s.obsTitle}>OBSERVAÇÕES</Text>
             {p.observacoes && <Text>{p.observacoes}</Text>}
-            {!p.observacoes && p.tipo === "orcamento" && (
+            {!p.observacoes && isOrc && (
               <Text>
                 1 — Os layouts a serem produzidos deverão ser entregues até 03 (três) dias úteis antes do início da data de exibição, mediante assinatura do pedido, aprovação da arte e comprovação de pagamento.{"\n"}
                 2 — Favor conferir os dados cadastrais para emissão de documento fiscal.

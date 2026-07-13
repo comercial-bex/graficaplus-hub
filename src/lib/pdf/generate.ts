@@ -148,9 +148,70 @@ export async function carregarPropsOS(
   };
 }
 
+export async function carregarPropsOrcamento3d(
+  id: string,
+  mostrarValores = true,
+): Promise<DocumentoPDFProps> {
+  const { data: orc, error } = await (supabase as any)
+    .from("orcamentos_3d")
+    .select("*, clientes(*)")
+    .eq("id", id)
+    .single();
+  if (error || !orc) throw error ?? new Error("Orçamento 3D não encontrado");
+
+  const { data: calc } = await (supabase as any)
+    .from("orcamento_3d_calculos")
+    .select("valor_unitario")
+    .eq("orcamento_3d_id", id)
+    .order("versao", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const qtd = Number(orc.quantidade ?? 1) || 1;
+  const preco = Number(orc.preco_comercial ?? 0);
+  const unit = calc?.valor_unitario != null ? Number(calc.valor_unitario) : qtd > 0 ? preco / qtd : preco;
+  const validade = orc.validade
+    ? new Date(orc.validade).toLocaleDateString("pt-BR")
+    : orc.created_at
+      ? new Date(new Date(orc.created_at).getTime() + 7 * 86400000).toLocaleDateString("pt-BR")
+      : null;
+  const cli = (orc.clientes ?? {}) as any;
+
+  return {
+    tipo: "orcamento_3d",
+    numero: String(id).slice(0, 8).toUpperCase(),
+    data_solicitacao: fmt(orc.created_at),
+    data_validade: validade,
+    vendedor: null,
+    status: orc.status,
+    cliente: {
+      nome: cli.nome ?? "—",
+      documento: cli.documento,
+      endereco: cli.endereco,
+      cidade: cli.cidade,
+      estado: cli.estado,
+      cep: cli.cep,
+      telefone: cli.telefone,
+      email: cli.email,
+    },
+    itens: [
+      {
+        descricao: orc.titulo,
+        unidade: "un",
+        quantidade: qtd,
+        valor_unitario: mostrarValores ? unit : 0,
+        valor_total: mostrarValores ? preco : 0,
+      },
+    ],
+    total: mostrarValores ? preco : 0,
+    observacoes: orc.descricao ?? null,
+    mostrarValores,
+  };
+}
+
 export async function salvarERegistrarPDF(opts: {
   blob: Blob;
-  tipo: "orcamento" | "os";
+  tipo: "orcamento" | "os" | "orcamento_3d";
   referencia_id: string;
   numero: number | string;
   variante: "cliente" | "producao";
@@ -181,7 +242,7 @@ export async function salvarERegistrarPDF(opts: {
 
 /** Renderiza + sobe no Storage + baixa para o usuário. */
 export async function gerarESalvarPDF(opts: {
-  tipo: "orcamento" | "os";
+  tipo: "orcamento" | "os" | "orcamento_3d";
   referencia_id: string;
   mostrarValores?: boolean;
 }) {
@@ -189,7 +250,9 @@ export async function gerarESalvarPDF(opts: {
   const props =
     opts.tipo === "orcamento"
       ? await carregarPropsOrcamento(opts.referencia_id, mostrar)
-      : await carregarPropsOS(opts.referencia_id, mostrar);
+      : opts.tipo === "orcamento_3d"
+        ? await carregarPropsOrcamento3d(opts.referencia_id, mostrar)
+        : await carregarPropsOS(opts.referencia_id, mostrar);
   const blob = await renderPDFBlob(props);
   const { filename } = await salvarERegistrarPDF({
     blob,

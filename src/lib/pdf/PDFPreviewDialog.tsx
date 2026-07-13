@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   carregarPropsOrcamento,
+  carregarPropsOrcamento3d,
   carregarPropsOS,
   renderPDFBlob,
   salvarERegistrarPDF,
@@ -15,7 +16,7 @@ import type { DocumentoPDFProps } from "./DocumentoPDF";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tipo: "orcamento" | "os";
+  tipo: "orcamento" | "os" | "orcamento_3d";
   referencia_id: string;
   mostrarValores?: boolean;
 };
@@ -37,7 +38,9 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
       try {
         const p = tipo === "orcamento"
           ? await carregarPropsOrcamento(referencia_id, mostrarValores)
-          : await carregarPropsOS(referencia_id, mostrarValores);
+          : tipo === "orcamento_3d"
+            ? await carregarPropsOrcamento3d(referencia_id, mostrarValores)
+            : await carregarPropsOS(referencia_id, mostrarValores);
         const b = await renderPDFBlob(p);
         if (cancelled) return;
         setProps(p);
@@ -89,7 +92,7 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0">
         <DialogHeader className="p-4 border-b">
           <DialogTitle>
-            Preview · {tipo === "orcamento" ? "Orçamento" : "OS"}
+            Preview · {tipo === "os" ? "OS" : tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento"}
             {!mostrarValores && " (Produção)"}
           </DialogTitle>
         </DialogHeader>
