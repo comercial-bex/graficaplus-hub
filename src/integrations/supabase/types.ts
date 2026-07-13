@@ -793,37 +793,55 @@ export type Database = {
       }
       automacao_execucoes: {
         Row: {
-          automacao_id: string | null
-          entrada: Json
+          automacao_id: string
+          contexto: Json
+          created_at: string
+          dedupe_key: string
+          entidade: string
+          entidade_id: string | null
           erro: string | null
-          executado_em: string
+          gatilho: Database["public"]["Enums"]["automacao_gatilho"]
           id: string
-          referencia_id: string | null
-          referencia_tipo: string | null
-          resultado: Json
+          payload: Json
+          processado_em: string | null
+          resposta: Json | null
+          scheduled_at: string
           status: string
+          tentativas: number
         }
         Insert: {
-          automacao_id?: string | null
-          entrada?: Json
+          automacao_id: string
+          contexto?: Json
+          created_at?: string
+          dedupe_key: string
+          entidade: string
+          entidade_id?: string | null
           erro?: string | null
-          executado_em?: string
+          gatilho: Database["public"]["Enums"]["automacao_gatilho"]
           id?: string
-          referencia_id?: string | null
-          referencia_tipo?: string | null
-          resultado?: Json
+          payload?: Json
+          processado_em?: string | null
+          resposta?: Json | null
+          scheduled_at?: string
           status?: string
+          tentativas?: number
         }
         Update: {
-          automacao_id?: string | null
-          entrada?: Json
+          automacao_id?: string
+          contexto?: Json
+          created_at?: string
+          dedupe_key?: string
+          entidade?: string
+          entidade_id?: string | null
           erro?: string | null
-          executado_em?: string
+          gatilho?: Database["public"]["Enums"]["automacao_gatilho"]
           id?: string
-          referencia_id?: string | null
-          referencia_tipo?: string | null
-          resultado?: Json
+          payload?: Json
+          processado_em?: string | null
+          resposta?: Json | null
+          scheduled_at?: string
           status?: string
+          tentativas?: number
         }
         Relationships: [
           {
@@ -837,44 +855,50 @@ export type Database = {
       }
       automacoes: {
         Row: {
-          acoes: Json
-          ativa: boolean
-          canal: string
-          condicoes: Json
+          acao: string
+          ativo: boolean
+          condicao: Json
+          cooldown_segundos: number
           created_at: string
           created_by: string | null
+          delay_segundos: number
           descricao: string | null
           gatilho: string
           id: string
           nome: string
+          payload: Json
           ultima_execucao: string | null
           updated_at: string
         }
         Insert: {
-          acoes?: Json
-          ativa?: boolean
-          canal?: string
-          condicoes?: Json
+          acao?: string
+          ativo?: boolean
+          condicao?: Json
+          cooldown_segundos?: number
           created_at?: string
           created_by?: string | null
+          delay_segundos?: number
           descricao?: string | null
           gatilho: string
           id?: string
           nome: string
+          payload?: Json
           ultima_execucao?: string | null
           updated_at?: string
         }
         Update: {
-          acoes?: Json
-          ativa?: boolean
-          canal?: string
-          condicoes?: Json
+          acao?: string
+          ativo?: boolean
+          condicao?: Json
+          cooldown_segundos?: number
           created_at?: string
           created_by?: string | null
+          delay_segundos?: number
           descricao?: string | null
           gatilho?: string
           id?: string
           nome?: string
+          payload?: Json
           ultima_execucao?: string | null
           updated_at?: string
         }

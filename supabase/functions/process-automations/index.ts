@@ -113,15 +113,19 @@ async function logWhatsapp(params: {
   responsePayload?: JsonRecord;
   error?: string;
 }) {
+  // Colunas reais de whatsapp_logs: tipo, sucesso, request, response, erro.
   await supabase.from("whatsapp_logs").insert({
-    automacao_execucao_id: params.execution.id,
-    automacao_id: params.execution.automacao_id,
-    telefone: params.phone,
-    mensagem: params.message,
-    status: params.status,
-    provider: "z-api",
-    request_payload: params.requestPayload,
-    response_payload: params.responsePayload ?? null,
+    tipo: "automacao",
+    sucesso: params.status === "sucesso",
+    request: {
+      provider: "z-api",
+      telefone: params.phone,
+      mensagem: params.message,
+      automacao_id: params.execution.automacao_id,
+      automacao_execucao_id: params.execution.id,
+      ...params.requestPayload,
+    },
+    response: params.responsePayload ?? null,
     erro: params.error ?? null,
   });
 }
@@ -214,6 +218,10 @@ Deno.serve(async (req) => {
             erro: null,
           })
           .eq("id", execution.id);
+        await supabase
+          .from("automacoes")
+          .update({ ultima_execucao: new Date().toISOString() })
+          .eq("id", execution.automacao_id);
         results.push({ id: execution.id, status: "sucesso" });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
