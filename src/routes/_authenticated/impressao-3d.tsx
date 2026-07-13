@@ -253,7 +253,15 @@ function Impressao3DPage() {
               <TableBody>
                 {orcamentos.map((o: any) => (
                   <TableRow key={o.id}>
-                    <TableCell className="font-medium">{o.titulo}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link
+                        to="/orcamento-3d/$id"
+                        params={{ id: o.id }}
+                        className="hover:underline text-primary"
+                      >
+                        {o.titulo}
+                      </Link>
+                    </TableCell>
                     <TableCell>{o.clientes?.nome ?? "—"}</TableCell>
                     <TableCell>
                       <span className="font-mono text-xs">{o.nivel_precisao}</span>

@@ -41,6 +41,7 @@ export const routePermissions: { path: string; permission: Permission }[] = [
   { path: "/orcamentos", permission: "orcamentos.read" },
   { path: "/impressao-3d", permission: "impressao3d.read" },
   { path: "/orcamento-3d-novo", permission: "impressao3d.quote.create" },
+  { path: "/orcamento-3d", permission: "impressao3d.read" },
   { path: "/filamentos-3d", permission: "impressao3d.settings.manage" },
   { path: "/impressoras-3d", permission: "impressao3d.settings.manage" },
   { path: "/os", permission: "os.read" },
