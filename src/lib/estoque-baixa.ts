@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
 
 export type LinhaConsumo = {
   material_id: string;
@@ -23,8 +24,7 @@ export type PlanoBaixa = {
  * alteração. Usado para preview e edição antes do "Baixar estoque".
  */
 export async function calcularConsumoPrevisto(osId: string): Promise<PlanoBaixa> {
-  const { data: os } = await supabase
-    .from("ordens_servico")
+  const { data: os } = await fromFinancialView("ordens_servico", false)
     .select("id, numero, estoque_baixado")
     .eq("id", osId)
     .single();
@@ -38,8 +38,7 @@ export async function calcularConsumoPrevisto(osId: string): Promise<PlanoBaixa>
       linhas: [],
     };
 
-  const { data: itens } = await supabase
-    .from("itens_os")
+  const { data: itens } = await fromFinancialView("itens_os", false)
     .select("id, produto_id, quantidade, descricao")
     .eq("os_id", osId);
   const comProduto = (itens ?? []).filter((i: any) => i.produto_id);
@@ -52,7 +51,9 @@ export async function calcularConsumoPrevisto(osId: string): Promise<PlanoBaixa>
       linhas: [],
     };
 
-  const produtoIds = [...new Set(comProduto.map((i: any) => i.produto_id))];
+  const produtoIds: string[] = [
+    ...new Set((comProduto as any[]).map((i: any) => String(i.produto_id))),
+  ];
   const [{ data: produtos }, { data: mapeamentos }] = await Promise.all([
     supabase.from("produtos").select("id, nome").in("id", produtoIds),
     supabase

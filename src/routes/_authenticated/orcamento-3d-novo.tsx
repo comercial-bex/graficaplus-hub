@@ -74,8 +74,12 @@ function NovoOrcamento3D() {
         .map((m) => parseFloat(m[1].replace(",", ".")))
         .filter((n) => Number.isFinite(n))
         .sort((a, b) => b - a)[0];
-      // tempo total: "Xh Ym" (aceita "3h0m", "2h47m", "3 h 0 m")
-      const t = texto.match(/(\d+)\s*h\s*(\d+)\s*m/i);
+      // tempo: prioriza a linha "Tempo total: XhYm"; senão usa a ÚLTIMA ocorrência
+      // "XhYm" (o print lista prepare/modelo antes do total).
+      const t =
+        texto.match(/total[^\d]{0,20}(\d+)\s*h\s*(\d+)\s*m/i) ??
+        [...texto.matchAll(/(\d+)\s*h\s*(\d+)\s*m/gi)].at(-1) ??
+        null;
       const achou: string[] = [];
       if (gramas) {
         set("gramas", String(gramas));

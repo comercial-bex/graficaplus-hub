@@ -480,7 +480,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
   const { data: contatos = [] } = useQuery({
     queryKey: ["contatos-os", osId],
     queryFn: async () => {
-      const { data: osData } = await supabase.from("ordens_servico").select("cliente_id").eq("id", osId).single();
+      const { data: osData } = await fromFinancialView("ordens_servico", false).select("cliente_id").eq("id", osId).single();
       if (!osData?.cliente_id) return [];
       return (await supabase.from("cliente_contatos").select("id,nome").eq("cliente_id", osData.cliente_id).order("principal", { ascending: false })).data ?? [];
     },
