@@ -59,8 +59,8 @@ function PortalClientePage() {
     queryKey: ["portal-os", clienteIds],
     enabled: clienteIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("ordens_servico")
+      const { data } = await (supabase as any)
+        .from("ordens_servico_financeiro")
         .select("id, numero, titulo, status, prazo_entrega, valor_total, created_at")
         .in("cliente_id", clienteIds)
         .order("created_at", { ascending: false });

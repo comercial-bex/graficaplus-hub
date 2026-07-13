@@ -39,7 +39,7 @@ function EntregasPage() {
   });
   const create = useMutation({
     mutationFn: async () => {
-      const { data: os } = await db.from("ordens_servico").select("id").limit(1).maybeSingle();
+      const { data: os } = await db.from("ordens_servico_operacional").select("id").limit(1).maybeSingle();
       const { error } = await db.from("entregas_instalacoes").insert({
         os_id: os?.id,
         tipo,

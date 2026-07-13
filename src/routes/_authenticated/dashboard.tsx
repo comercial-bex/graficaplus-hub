@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/module-data";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
 import {
   Users,
   FileText,
@@ -45,11 +46,19 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
 
+// Tabelas com SELECT revogado na base — contar pela view operacional.
+const COUNT_VIEW: Record<string, string> = {
+  ordens_servico: "ordens_servico_operacional",
+  orcamentos: "orcamentos_operacional",
+  itens_os: "itens_os_operacional",
+};
+
 function useCount(table: any, filter?: (q: any) => any) {
   return useQuery({
     queryKey: ["count", table, filter?.toString() ?? ""],
     queryFn: async () => {
-      let q: any = supabase.from(table).select("*", { count: "exact", head: true });
+      const alvo = COUNT_VIEW[table as string] ?? table;
+      let q: any = (supabase as any).from(alvo).select("*", { count: "exact", head: true });
       if (filter) q = filter(q);
       const { count } = await q;
       return count ?? 0;
@@ -124,18 +133,25 @@ function DashboardPage() {
 
 
   const { data: dashboardData } = useQuery({
-    queryKey: ["dashboard-operacional"],
+    queryKey: ["dashboard-operacional", canSeeFinancials ? "fin" : "op"],
     queryFn: async () => {
+      // ordens_servico/itens_os têm SELECT revogado na base — ler pelas views;
+      // colunas financeiras (valor_total/custo_real) só existem na view financeira.
       const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs] =
         await Promise.all([
-          supabase.from("ordens_servico").select("status, valor_total, custo_real, created_at"),
+          fromFinancialView("ordens_servico", canSeeFinancials).select(
+            canSeeFinancials ? "status, valor_total, custo_real, created_at" : "status, created_at",
+          ),
           supabase.from("vw_dashboard_custos_categoria").select("categoria, total"),
           supabase.from("produtos").select("nome"),
           supabase.from("maquinas").select("nome"),
           db.from("ocorrencias").select("setor, retrabalho"),
-          db.from("whatsapp_conversas").select("nome, ultima_mensagem, nao_lidas, ultima_interacao"),
+          // colunas reais: nome_contato / ultima_mensagem_at (aliases mantêm o shape usado abaixo)
+          db.from("whatsapp_conversas").select("nome:nome_contato, ultima_mensagem, nao_lidas, ultima_interacao:ultima_mensagem_at"),
           supabase.from("materiais").select("id, nome, unidade, estoque"),
-          supabase.from("itens_os").select("descricao, quantidade, valor_total"),
+          fromFinancialView("itens_os", canSeeFinancials).select(
+            canSeeFinancials ? "descricao, quantidade, valor_total" : "descricao, quantidade",
+          ),
         ]);
       return {
         os: os.data ?? [],

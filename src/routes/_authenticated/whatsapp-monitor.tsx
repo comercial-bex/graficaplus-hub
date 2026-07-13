@@ -38,9 +38,9 @@ function WhatsappMonitorPage() {
   const { data: ordens = [] } = useQuery({
     queryKey: ["os-para-monitor"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("ordens_servico")
-        .select("id, numero, titulo, cliente_id, clientes(nome)")
+      const { data } = await (supabase as any)
+        .from("ordens_servico_operacional")
+        .select("id, numero, titulo, cliente_id, cliente_nome")
         .order("created_at", { ascending: false })
         .limit(100);
       return data ?? [];
@@ -137,7 +137,7 @@ function WhatsappMonitorPage() {
             <SelectContent>
               {ordens.map((o: any) => (
                 <SelectItem key={o.id} value={o.id}>
-                  #{o.numero} · {o.titulo} · {o.clientes?.nome ?? "—"}
+                  #{o.numero} · {o.titulo} · {o.cliente_nome ?? "—"}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -42,7 +42,7 @@ function OcorrPage() {
   const retrabalhos = ocorrencias.filter((o: any) => o.retrabalho).length;
   const create = useMutation({
     mutationFn: async () => {
-      const { data: os } = await db.from("ordens_servico").select("id").limit(1).maybeSingle();
+      const { data: os } = await db.from("ordens_servico_operacional").select("id").limit(1).maybeSingle();
       const { error } = await db
         .from("ocorrencias")
         .insert({ os_id: os?.id, tipo, setor, descricao: descricao || tipo, retrabalho: true });
