@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/bex/StatusChip";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 
 export const Route = createFileRoute("/_authenticated/orcamento-3d/$id")({
   head: () => ({ meta: [{ title: "Orçamento 3D — BEX PRINT OS" }] }),
@@ -20,6 +21,7 @@ function OrcamentoDetalhe() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [shotUrl, setShotUrl] = useState<string | null>(null);
+  const [pdfOpen, setPdfOpen] = useState(false);
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento-3d", id],
@@ -111,6 +113,9 @@ function OrcamentoDetalhe() {
           </p>
         </div>
         <StatusChip label={orc.status} tone={orc.status === "convertido" ? "lime" : "muted"} />
+        <Button variant="outline" onClick={() => setPdfOpen(true)}>
+          <FileDown className="h-4 w-4 mr-1" /> Gerar PDF
+        </Button>
         {orc.os_id ? (
           <Button asChild variant="outline">
             <Link to="/os/$id" params={{ id: orc.os_id }}>
@@ -207,6 +212,13 @@ function OrcamentoDetalhe() {
           </Card>
         </div>
       </div>
+
+      <PDFPreviewDialog
+        open={pdfOpen}
+        onOpenChange={setPdfOpen}
+        tipo="orcamento_3d"
+        referencia_id={id}
+      />
     </div>
   );
 }
