@@ -291,11 +291,17 @@ function NovoOrcamento3D() {
         fotoPath = path;
       }
 
-      const horasTotais = num(f.horas) + num(f.minutos) / 60;
+      const horasTotais = tempoHoras;
       const inputs = {
         cliente_id: f.cliente_id || null,
         quantidade: calc.qtd,
         gramas: num(f.gramas),
+        peso_suporte_g: num(f.peso_suporte),
+        peso_purga_g: num(f.peso_purga),
+        pecas_por_placa: num(f.pecas_placa, 1) || 1,
+        filamento_tipo_detectado: f.filamento_tipo_detectado || null,
+        altura_camada_mm: num(f.altura_camada),
+        infill_pct: num(f.infill_pct),
         horas_totais: horasTotais,
         tarifa_kwh: num(f.tarifa_kwh),
         mao_obra: { custo_hora: num(f.mo_custo_hora), horas: num(f.mo_horas) },
