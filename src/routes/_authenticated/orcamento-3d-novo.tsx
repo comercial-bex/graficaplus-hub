@@ -151,11 +151,16 @@ function NovoOrcamento3D() {
         set("gramas", String(r.gramas));
         achou.push(`${r.gramas} g`);
       }
-      if (r.horas !== undefined) {
-        set("horas", String(r.horas));
-        achou.push(`${r.horas}h${r.minutos ?? 0}m`);
+      if (r.minutos !== undefined) {
+        set("tempo", formatMinutos(r.minutos));
+        achou.push(formatMinutos(r.minutos));
       }
-      if (r.minutos !== undefined) set("minutos", String(r.minutos));
+      if (r.pesoSuporteG !== undefined) set("peso_suporte", String(r.pesoSuporteG));
+      if (r.pesoPurgaG !== undefined) set("peso_purga", String(r.pesoPurgaG));
+      if (r.pecasPorPlaca !== undefined) set("pecas_placa", String(r.pecasPorPlaca));
+      if (r.filamentoTipo) set("filamento_tipo_detectado", r.filamentoTipo);
+      if (r.alturaCamadaMm !== undefined) set("altura_camada", String(r.alturaCamadaMm));
+      if (r.infillPct !== undefined) set("infill_pct", String(r.infillPct));
       if (achou.length) {
         setOcr({ kind: "ok", label: achou.join(" · ") });
       } else {
