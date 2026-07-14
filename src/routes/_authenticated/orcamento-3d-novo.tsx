@@ -27,7 +27,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { FieldTooltip } from "@/components/bex/FieldTooltip";
 import { Dropzone, type DropzoneStatus } from "@/components/bex/Dropzone";
-import { runSlicerOcr } from "@/domain/impressao3d/ocr";
+import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao3d/ocr";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/orcamento-3d-novo")({
@@ -50,8 +50,13 @@ type FormState = {
   maquina_id: string;
   material_id: string;
   gramas: string;
-  horas: string;
-  minutos: string;
+  tempo: string; // livre: "2h 15m", "2:15", "135"
+  peso_suporte: string;
+  peso_purga: string;
+  pecas_placa: string;
+  filamento_tipo_detectado: string;
+  altura_camada: string;
+  infill_pct: string;
   tarifa_kwh: string;
   mo_custo_hora: string;
   mo_horas: string;
@@ -103,8 +108,13 @@ function NovoOrcamento3D() {
     maquina_id: "",
     material_id: "",
     gramas: "",
-    horas: "",
-    minutos: "",
+    tempo: "",
+    peso_suporte: "",
+    peso_purga: "",
+    pecas_placa: "",
+    filamento_tipo_detectado: "",
+    altura_camada: "",
+    infill_pct: "",
     tarifa_kwh: "0.95",
     mo_custo_hora: "40",
     mo_horas: "0",
@@ -141,11 +151,16 @@ function NovoOrcamento3D() {
         set("gramas", String(r.gramas));
         achou.push(`${r.gramas} g`);
       }
-      if (r.horas !== undefined) {
-        set("horas", String(r.horas));
-        achou.push(`${r.horas}h${r.minutos ?? 0}m`);
+      if (r.minutos !== undefined) {
+        set("tempo", formatMinutos(r.minutos));
+        achou.push(formatMinutos(r.minutos));
       }
-      if (r.minutos !== undefined) set("minutos", String(r.minutos));
+      if (r.pesoSuporteG !== undefined) set("peso_suporte", String(r.pesoSuporteG));
+      if (r.pesoPurgaG !== undefined) set("peso_purga", String(r.pesoPurgaG));
+      if (r.pecasPorPlaca !== undefined) set("pecas_placa", String(r.pecasPorPlaca));
+      if (r.filamentoTipo) set("filamento_tipo_detectado", r.filamentoTipo);
+      if (r.alturaCamadaMm !== undefined) set("altura_camada", String(r.alturaCamadaMm));
+      if (r.infillPct !== undefined) set("infill_pct", String(r.infillPct));
       if (achou.length) {
         setOcr({ kind: "ok", label: achou.join(" · ") });
       } else {
@@ -184,9 +199,15 @@ function NovoOrcamento3D() {
   const impressora = impressoras.find((m: any) => m.maquina_id === f.maquina_id);
   const filamento = filamentos.find((m: any) => m.material_id === f.material_id);
 
+  const tempoMinutos = parseTempoLivre(f.tempo) ?? 0;
+  const tempoHoras = tempoMinutos / 60;
+
   const calc = useMemo(() => {
-    const gramas = num(f.gramas);
-    const horasTotais = num(f.horas) + num(f.minutos) / 60;
+    const gramasModelo = num(f.gramas);
+    const gramasSuporte = num(f.peso_suporte);
+    const gramasPurga = num(f.peso_purga);
+    const gramas = gramasModelo + gramasSuporte + gramasPurga;
+    const horasTotais = tempoHoras;
     const cpg = Number(filamento?.custo_por_grama_calculado ?? 0);
     const custoHora = Number(impressora?.custo_hora_calculado ?? 0);
     const potenciaW = Number(impressora?.potencia_media_w ?? 0);
@@ -270,11 +291,17 @@ function NovoOrcamento3D() {
         fotoPath = path;
       }
 
-      const horasTotais = num(f.horas) + num(f.minutos) / 60;
+      const horasTotais = tempoHoras;
       const inputs = {
         cliente_id: f.cliente_id || null,
         quantidade: calc.qtd,
         gramas: num(f.gramas),
+        peso_suporte_g: num(f.peso_suporte),
+        peso_purga_g: num(f.peso_purga),
+        pecas_por_placa: num(f.pecas_placa, 1) || 1,
+        filamento_tipo_detectado: f.filamento_tipo_detectado || null,
+        altura_camada_mm: num(f.altura_camada),
+        infill_pct: num(f.infill_pct),
         horas_totais: horasTotais,
         tarifa_kwh: num(f.tarifa_kwh),
         mao_obra: { custo_hora: num(f.mo_custo_hora), horas: num(f.mo_horas) },
@@ -516,48 +543,130 @@ function NovoOrcamento3D() {
                   <FieldTooltip
                     label="Peso do modelo (g)"
                     required
-                    hint="Total gasto no print (modelo + suportes + purga). Peças pequenas 20–80 g; média 80–200 g."
+                    hint="Só o peso do modelo. Suporte e purga ficam nos campos 'Detectado no print' abaixo. Aceita decimais (ex.: 6,52)."
                   />
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     inputMode="decimal"
                     value={f.gramas}
-                    onChange={(e) => set("gramas", e.target.value)}
-                    placeholder="42.09"
+                    onChange={(e) => set("gramas", e.target.value.replace(",", "."))}
+                    placeholder="6.52"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <FieldTooltip
+                    label="Tempo total"
+                    hint="Aceita: 2h 15m · 2:15 · 135min · 1,5h · 90m. Cada hora custa a linha 'Máquina' + 'Energia'."
+                  />
+                  <Input
+                    type="text"
+                    inputMode="text"
+                    value={f.tempo}
+                    onChange={(e) => set("tempo", e.target.value)}
+                    placeholder="ex.: 2h 15m ou 2:15"
+                  />
+                  {tempoMinutos > 0 && (
+                    <div className="text-[11px] text-muted-foreground font-mono">
+                      ≈ {formatMinutos(tempoMinutos)} · {tempoMinutos} min
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Detectado no print — bloco enxuto com campos extras */}
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Detectado no print
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Preenchido pelo OCR; ajuste se preciso</span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
                   <div className="space-y-1.5">
                     <FieldTooltip
-                      label="Tempo (h)"
-                      hint="Horas do print. Cada hora custa a linha 'Máquina' + 'Energia' do resumo."
+                      label="Peso suporte (g)"
+                      hint="Filamento gasto em estruturas de suporte. Soma no total de material antes do custo."
                     />
                     <Input
-                      type="number"
-                      min="0"
-                      inputMode="numeric"
-                      value={f.horas}
-                      onChange={(e) => set("horas", e.target.value)}
-                      placeholder="3"
+                      type="text"
+                      inputMode="decimal"
+                      value={f.peso_suporte}
+                      onChange={(e) => set("peso_suporte", e.target.value.replace(",", "."))}
+                      placeholder="0"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <FieldTooltip label="Tempo (min)" hint="Minutos que sobraram além das horas completas (0–59)." />
+                    <FieldTooltip
+                      label="Peso purga/torre (g)"
+                      hint="Purga e torre de troca (prime tower). Em multicolor passa fácil de 20% do total."
+                    />
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={f.peso_purga}
+                      onChange={(e) => set("peso_purga", e.target.value.replace(",", "."))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip
+                      label="Peças na placa"
+                      hint="Quantas peças o print inclui. Confira contra 'Quantidade' para evitar subestimar 5×."
+                    />
                     <Input
                       type="number"
-                      min="0"
-                      max="59"
+                      min="1"
                       inputMode="numeric"
-                      value={f.minutos}
-                      onChange={(e) => set("minutos", e.target.value)}
-                      placeholder="10"
+                      value={f.pecas_placa}
+                      onChange={(e) => set("pecas_placa", e.target.value)}
+                      placeholder="1"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Tipo detectado" hint="Se diferente do filamento selecionado, revise — pode mudar R$/kg." />
+                    <Input
+                      value={f.filamento_tipo_detectado}
+                      onChange={(e) => set("filamento_tipo_detectado", e.target.value.toUpperCase())}
+                      placeholder="PLA / PETG / ABS…"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Altura camada (mm)" hint="Só metadado de reprodutibilidade. Não afeta o custo." />
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={f.altura_camada}
+                      onChange={(e) => set("altura_camada", e.target.value.replace(",", "."))}
+                      placeholder="0.2"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Infill (%)" hint="Só metadado. Peça re-cotada com infill maior vai gastar mais material." />
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={f.infill_pct}
+                      onChange={(e) => set("infill_pct", e.target.value.replace(",", "."))}
+                      placeholder="15"
                     />
                   </div>
                 </div>
+                {f.filamento_tipo_detectado && filamento?.tipo &&
+                  f.filamento_tipo_detectado.toUpperCase() !== String(filamento.tipo).toUpperCase() && (
+                    <div className="text-xs rounded border border-amber-400/40 bg-amber-400/10 px-2 py-1.5 text-amber-300">
+                      Atenção: fatiador diz <b>{f.filamento_tipo_detectado}</b>, você selecionou <b>{filamento.tipo}</b>.
+                    </div>
+                  )}
+                {num(f.pecas_placa) > 1 && num(f.quantidade) !== num(f.pecas_placa) && (
+                  <div className="text-xs rounded border border-amber-400/40 bg-amber-400/10 px-2 py-1.5 text-amber-300">
+                    O print é de <b>{num(f.pecas_placa)}</b> peças e a quantidade cotada é <b>{num(f.quantidade)}</b>. Confira se o peso e o tempo cobrem o total.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+
+
 
           {/* 3. Parâmetros de custo */}
           <Card>

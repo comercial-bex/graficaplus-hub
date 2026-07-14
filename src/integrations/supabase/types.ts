@@ -4565,17 +4565,23 @@ export type Database = {
       }
       orcamentos_3d: {
         Row: {
+          altura_camada_mm: number | null
           cliente_id: string | null
           created_at: string
           created_by: string | null
           descricao: string | null
+          filamento_tipo_detectado: string | null
           foto_modelo_path: string | null
           id: string
+          infill_pct: number | null
           lead_id: string | null
           moeda: string
           nivel_precisao: string
           orcamento_id: string | null
           os_id: string | null
+          pecas_por_placa: number | null
+          peso_purga_g: number | null
+          peso_suporte_g: number | null
           prazo: string | null
           preco_comercial: number | null
           preco_nao_arredondado: number | null
@@ -4587,17 +4593,23 @@ export type Database = {
           versao_motor: string
         }
         Insert: {
+          altura_camada_mm?: number | null
           cliente_id?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          filamento_tipo_detectado?: string | null
           foto_modelo_path?: string | null
           id?: string
+          infill_pct?: number | null
           lead_id?: string | null
           moeda?: string
           nivel_precisao?: string
           orcamento_id?: string | null
           os_id?: string | null
+          pecas_por_placa?: number | null
+          peso_purga_g?: number | null
+          peso_suporte_g?: number | null
           prazo?: string | null
           preco_comercial?: number | null
           preco_nao_arredondado?: number | null
@@ -4609,17 +4621,23 @@ export type Database = {
           versao_motor: string
         }
         Update: {
+          altura_camada_mm?: number | null
           cliente_id?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          filamento_tipo_detectado?: string | null
           foto_modelo_path?: string | null
           id?: string
+          infill_pct?: number | null
           lead_id?: string | null
           moeda?: string
           nivel_precisao?: string
           orcamento_id?: string | null
           os_id?: string | null
+          pecas_por_placa?: number | null
+          peso_purga_g?: number | null
+          peso_suporte_g?: number | null
           prazo?: string | null
           preco_comercial?: number | null
           preco_nao_arredondado?: number | null
