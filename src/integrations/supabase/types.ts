@@ -4569,6 +4569,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string | null
+          foto_modelo_path: string | null
           id: string
           lead_id: string | null
           moeda: string
@@ -4590,6 +4591,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          foto_modelo_path?: string | null
           id?: string
           lead_id?: string | null
           moeda?: string
@@ -4611,6 +4613,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          foto_modelo_path?: string | null
           id?: string
           lead_id?: string | null
           moeda?: string

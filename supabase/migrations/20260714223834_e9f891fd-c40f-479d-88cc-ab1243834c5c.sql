@@ -1,0 +1,1 @@
+ALTER TABLE public.orcamentos_3d ADD COLUMN IF NOT EXISTS foto_modelo_path text;
