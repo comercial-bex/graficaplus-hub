@@ -789,6 +789,13 @@ export type Database = {
             referencedRelation: "os_tarefas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "arquivos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_tarefas_kanban"
+            referencedColumns: ["id"]
+          },
         ]
       }
       automacao_execucoes: {
@@ -4567,6 +4574,7 @@ export type Database = {
           moeda: string
           nivel_precisao: string
           orcamento_id: string | null
+          os_id: string | null
           prazo: string | null
           preco_comercial: number | null
           preco_nao_arredondado: number | null
@@ -4587,6 +4595,7 @@ export type Database = {
           moeda?: string
           nivel_precisao?: string
           orcamento_id?: string | null
+          os_id?: string | null
           prazo?: string | null
           preco_comercial?: number | null
           preco_nao_arredondado?: number | null
@@ -4607,6 +4616,7 @@ export type Database = {
           moeda?: string
           nivel_precisao?: string
           orcamento_id?: string | null
+          os_id?: string | null
           prazo?: string | null
           preco_comercial?: number | null
           preco_nao_arredondado?: number | null
@@ -4659,6 +4669,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orcamentos_operacional"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_3d_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_3d_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_3d_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_3d_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "orcamentos_3d_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "orcamentos_3d_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "orcamentos_3d_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_os"
+            referencedColumns: ["os_id"]
           },
         ]
       }
@@ -7906,6 +7965,20 @@ export type Database = {
             foreignKeyName: "whatsapp_fila_envio_conversa_id_fkey"
             columns: ["conversa_id"]
             isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_fila_envio_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_fila_envio_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
             referencedRelation: "whatsapp_conversas"
             referencedColumns: ["id"]
           },
@@ -8011,6 +8084,20 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["whatsapp_log_tipo"]
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_logs_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_logs_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
           {
             foreignKeyName: "whatsapp_logs_conversa_id_fkey"
             columns: ["conversa_id"]
@@ -8132,6 +8219,20 @@ export type Database = {
             foreignKeyName: "whatsapp_mensagens_conversa_id_fkey"
             columns: ["conversa_id"]
             isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
             referencedRelation: "whatsapp_conversas"
             referencedColumns: ["id"]
           },
@@ -8220,6 +8321,20 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_participantes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_participantes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
           {
             foreignKeyName: "whatsapp_participantes_conversa_id_fkey"
             columns: ["conversa_id"]
@@ -8340,6 +8455,7 @@ export type Database = {
           id: string | null
           ordem: number | null
           os_id: string | null
+          produto_id: string | null
           quantidade: number | null
           unidade: string | null
         }
@@ -8349,6 +8465,7 @@ export type Database = {
           id?: string | null
           ordem?: number | null
           os_id?: string | null
+          produto_id?: string | null
           quantidade?: number | null
           unidade?: string | null
         }
@@ -8358,6 +8475,7 @@ export type Database = {
           id?: string | null
           ordem?: number | null
           os_id?: string | null
+          produto_id?: string | null
           quantidade?: number | null
           unidade?: string | null
         }
@@ -8410,6 +8528,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_resultado_os"
             referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "itens_os_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_os_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8830,6 +8962,7 @@ export type Database = {
           created_by: string | null
           data_entrega_real: string | null
           designer_id: string | null
+          estoque_baixado: boolean | null
           id: string | null
           numero: number | null
           observacoes: string | null
@@ -9048,7 +9181,23 @@ export type Database = {
           permission: string | null
           role: Database["public"]["Enums"]["app_role"] | null
         }
-        Relationships: []
+        Insert: {
+          permission?: string | null
+          role?: never
+        }
+        Update: {
+          permission?: string | null
+          role?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_permissoes_permissao_fkey"
+            columns: ["permission"]
+            isOneToOne: false
+            referencedRelation: "permissoes"
+            referencedColumns: ["chave"]
+          },
+        ]
       }
       vw_dashboard_atendimento: {
         Row: {
@@ -9562,11 +9711,23 @@ export type Database = {
         Args: { p_criar_orcamento?: boolean; p_dados: Json; p_lead_id: string }
         Returns: Json
       }
+      converter_orcamento_3d_em_os: {
+        Args: { p_orcamento_3d_id: string }
+        Returns: Json
+      }
       converter_orcamento_em_os: {
         Args: { p_opcoes?: Json; p_orcamento_id: string }
         Returns: Json
       }
       criar_eventos_automacoes_recorrentes: { Args: never; Returns: number }
+      delete_filamento_3d: {
+        Args: { p_material_id: string }
+        Returns: undefined
+      }
+      delete_impressora_3d: {
+        Args: { p_maquina_id: string }
+        Returns: undefined
+      }
       enqueue_automacoes: {
         Args: {
           p_contexto?: Json
@@ -9624,9 +9785,67 @@ export type Database = {
       }
       require_permission: { Args: { _permission: string }; Returns: string }
       reservar_materiais_os: { Args: { p_os_id: string }; Returns: Json }
+      salvar_orcamento_3d: {
+        Args: {
+          p_arquivo_id: string
+          p_cliente_id: string
+          p_custo_acabamento: number
+          p_custo_energia: number
+          p_custo_indireto: number
+          p_custo_mao_obra: number
+          p_custo_maquina: number
+          p_custo_material: number
+          p_custo_operacional: number
+          p_custo_por_grama: number
+          p_custo_risco: number
+          p_gramas: number
+          p_inputs: Json
+          p_lucro: number
+          p_maquina_id: string
+          p_margem: number
+          p_markup: number
+          p_material_id: string
+          p_preco: number
+          p_quantidade: number
+          p_resultados: Json
+          p_tempo_segundos: number
+          p_titulo: string
+        }
+        Returns: string
+      }
       status_os_exige_validacoes_producao: {
         Args: { _status: Database["public"]["Enums"]["status_os"] }
         Returns: boolean
+      }
+      upsert_filamento_3d: {
+        Args: {
+          p_cor?: string
+          p_custo_por_kg?: number
+          p_densidade?: number
+          p_diametro?: number
+          p_fator_aproveitamento?: number
+          p_marca?: string
+          p_material_id: string
+          p_nome: string
+          p_peso_kg?: number
+          p_tipo: string
+        }
+        Returns: string
+      }
+      upsert_impressora_3d: {
+        Args: {
+          p_custo_aquisicao?: number
+          p_fabricante?: string
+          p_manutencao_por_hora?: number
+          p_maquina_id: string
+          p_modelo?: string
+          p_nome: string
+          p_potencia_media_w?: number
+          p_tecnologia?: string
+          p_valor_residual?: number
+          p_vida_util_horas?: number
+        }
+        Returns: string
       }
     }
     Enums: {
