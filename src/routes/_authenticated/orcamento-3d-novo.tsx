@@ -663,6 +663,10 @@ function NovoOrcamento3D() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+
 
           {/* 3. Parâmetros de custo */}
           <Card>
