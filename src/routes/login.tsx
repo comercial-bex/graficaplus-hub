@@ -16,6 +16,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -25,6 +26,23 @@ function LoginPage() {
     if (error) return toast.error(error.message);
     toast.success("Bem-vindo!");
     navigate({ to: "/dashboard" });
+  }
+
+  async function handlePasswordReset() {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      toast.error("Digite seu e-mail primeiro para recuperar o acesso.");
+      return;
+    }
+
+    setResetLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setResetLoading(false);
+
+    if (error) return toast.error(error.message);
+    toast.success("Enviamos um link para você criar uma nova senha.");
   }
 
   return (
@@ -54,6 +72,7 @@ function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 placeholder="voce@bexprint.com.br"
                 className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-[color:var(--bex-cyan)]/50 focus:ring-1 focus:ring-[color:var(--bex-cyan)]/30"
               />
@@ -66,9 +85,11 @@ function LoginPage() {
                 </label>
                 <button
                   type="button"
+                  onClick={handlePasswordReset}
+                  disabled={resetLoading}
                   className="text-[11px] text-muted-foreground hover:text-[color:var(--bex-cyan)] transition-colors"
                 >
-                  Recuperar acesso
+                  {resetLoading ? "Enviando..." : "Recuperar acesso"}
                 </button>
               </div>
               <input
@@ -76,6 +97,7 @@ function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 placeholder="••••••••"
                 className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-[color:var(--bex-magenta)]/50 focus:ring-1 focus:ring-[color:var(--bex-magenta)]/30"
               />
