@@ -21,7 +21,10 @@ export type OcrResult = {
 
 /** Converte um match numérico com vírgula ou ponto em número decimal. */
 function toNumber(raw: string): number {
-  return parseFloat(raw.replace(/\./g, "").replace(",", "."));
+  // Se tem vírgula, ela é o decimal (formato pt-BR); pontos viram nada (milhar).
+  // Se tem só ponto, ele é o decimal (formato en-US).
+  const s = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+  return parseFloat(s);
 }
 
 /**
