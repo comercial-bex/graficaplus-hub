@@ -115,8 +115,10 @@ export function parseSlicerText(texto: string): OcrResult {
     t.match(/(\d+[.,]?\d*)\s*mm\s*(?:layer|camada)/i);
   const alturaCamadaMm = camMatch ? toNumber(camMatch[1]) : undefined;
 
-  // Infill
-  const infillMatch = t.match(/(?:infill|preenchimento)[^\d]{0,10}(\d+[.,]?\d*)\s*%/i);
+  // Infill (aceita "infill 20%" e "20% infill")
+  const infillMatch =
+    t.match(/(?:infill|preenchimento)[^\d]{0,10}(\d+[.,]?\d*)\s*%/i) ||
+    t.match(/(\d+[.,]?\d*)\s*%\s*(?:infill|preenchimento)/i);
   const infillPct = infillMatch ? toNumber(infillMatch[1]) : undefined;
 
   return {
