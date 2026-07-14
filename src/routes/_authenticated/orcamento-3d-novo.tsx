@@ -50,8 +50,13 @@ type FormState = {
   maquina_id: string;
   material_id: string;
   gramas: string;
-  horas: string;
-  minutos: string;
+  tempo: string; // livre: "2h 15m", "2:15", "135"
+  peso_suporte: string;
+  peso_purga: string;
+  pecas_placa: string;
+  filamento_tipo_detectado: string;
+  altura_camada: string;
+  infill_pct: string;
   tarifa_kwh: string;
   mo_custo_hora: string;
   mo_horas: string;
