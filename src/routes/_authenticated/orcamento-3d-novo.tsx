@@ -27,7 +27,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { FieldTooltip } from "@/components/bex/FieldTooltip";
 import { Dropzone, type DropzoneStatus } from "@/components/bex/Dropzone";
-import { runSlicerOcr } from "@/domain/impressao3d/ocr";
+import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao3d/ocr";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/orcamento-3d-novo")({
