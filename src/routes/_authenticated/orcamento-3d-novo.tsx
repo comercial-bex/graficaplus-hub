@@ -199,9 +199,15 @@ function NovoOrcamento3D() {
   const impressora = impressoras.find((m: any) => m.maquina_id === f.maquina_id);
   const filamento = filamentos.find((m: any) => m.material_id === f.material_id);
 
+  const tempoMinutos = parseTempoLivre(f.tempo) ?? 0;
+  const tempoHoras = tempoMinutos / 60;
+
   const calc = useMemo(() => {
-    const gramas = num(f.gramas);
-    const horasTotais = num(f.horas) + num(f.minutos) / 60;
+    const gramasModelo = num(f.gramas);
+    const gramasSuporte = num(f.peso_suporte);
+    const gramasPurga = num(f.peso_purga);
+    const gramas = gramasModelo + gramasSuporte + gramasPurga;
+    const horasTotais = tempoHoras;
     const cpg = Number(filamento?.custo_por_grama_calculado ?? 0);
     const custoHora = Number(impressora?.custo_hora_calculado ?? 0);
     const potenciaW = Number(impressora?.potencia_media_w ?? 0);
