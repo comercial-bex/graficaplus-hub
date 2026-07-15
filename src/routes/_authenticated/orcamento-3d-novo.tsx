@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,13 @@ export const Route = createFileRoute("/_authenticated/orcamento-3d-novo")({
 });
 
 const num = (v: string, fallback = 0) => {
-  const n = parseFloat(v);
+  // tolera vírgula decimal (pt-BR). Só mexe quando há vírgula, para não quebrar
+  // valores já com ponto decimal (ex.: "1.375").
+  let s = String(v ?? "").trim();
+  if (s.includes(",")) {
+    s = s.includes(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(",", ".");
+  }
+  const n = parseFloat(s);
   return Number.isFinite(n) ? n : fallback;
 };
 
@@ -47,6 +53,8 @@ function NovoOrcamento3D() {
     gramas: "",
     horas: "",
     minutos: "",
+    custo_hora: "",
+    potencia_w: "",
     tarifa_kwh: "0.95",
     mo_custo_hora: "0",
     mo_horas: "0",
@@ -69,26 +77,39 @@ function NovoOrcamento3D() {
       const Tesseract = (await import("tesseract.js")).default;
       const { data } = await Tesseract.recognize(img, "por+eng");
       const texto = data.text ?? "";
-      // gramas: pega o maior valor "NN,NN g" (linha do modelo / total)
-      const gramas = [...texto.matchAll(/(\d+[.,]\d+)\s*g\b/gi)]
-        .map((m) => parseFloat(m[1].replace(",", ".")))
-        .filter((n) => Number.isFinite(n))
+
+      // GRAMAS: o fatiador sempre mostra o peso com 2 casas (ex.: "6,52 g").
+      // O OCR costuma DROPAR a vírgula ("6,52 g" -> "652g"); então quando o número
+      // vier inteiro (sem separador decimal) tratamos as 2 últimas casas como
+      // decimais. Se vier com separador, usamos como está (vírgula = decimal).
+      const gramas = [...texto.matchAll(/(\d+)(?:[.,](\d+))?\s*g\b/gi)]
+        .map((m) => (m[2] != null ? parseFloat(`${m[1]}.${m[2]}`) : parseInt(m[1], 10) / 100))
+        .filter((n) => Number.isFinite(n) && n > 0)
         .sort((a, b) => b - a)[0];
-      // tempo: prioriza a linha "Tempo total: XhYm"; senão usa a ÚLTIMA ocorrência
-      // "XhYm" (o print lista prepare/modelo antes do total).
-      const t =
-        texto.match(/total[^\d]{0,20}(\d+)\s*h\s*(\d+)\s*m/i) ??
-        [...texto.matchAll(/(\d+)\s*h\s*(\d+)\s*m/gi)].at(-1) ??
-        null;
+
+      // TEMPO: lê a linha "Tempo total:" e extrai h/m/s independentes (tolera lixo
+      // do OCR entre os campos, ex.: "37m52s" saindo como "37mb52s"). Também cobre
+      // impressões < 1h ("31m3s") e < 1min ("45s").
+      const linhaTotal =
+        texto.split(/\n/).find((l) => /\btotal\b/i.test(l)) ??
+        texto.split(/\n/).find((l) => /impress[aã]o do modelo/i.test(l)) ??
+        "";
+      const th = Number(linhaTotal.match(/(\d+)\s*h/i)?.[1] ?? 0);
+      const tm = Number(linhaTotal.match(/(\d+)\s*m/i)?.[1] ?? 0);
+      const ts = Number(linhaTotal.match(/(\d+)\s*s/i)?.[1] ?? 0);
+      const totalSeg = th * 3600 + tm * 60 + ts;
+
       const achou: string[] = [];
       if (gramas) {
         set("gramas", String(gramas));
         achou.push(`${gramas} g`);
       }
-      if (t) {
-        set("horas", t[1]);
-        set("minutos", t[2]);
-        achou.push(`${t[1]}h${t[2]}m`);
+      if (totalSeg > 0) {
+        const h = Math.floor(totalSeg / 3600);
+        const min = Math.round((totalSeg % 3600) / 60);
+        set("horas", String(h));
+        set("minutos", String(min));
+        achou.push(`${h}h${min}m`);
       }
       if (achou.length) {
         setOcr({ status: "ok", msg: `Lido do print: ${achou.join(" · ")} — confira` });
@@ -134,12 +155,25 @@ function NovoOrcamento3D() {
   const impressora = impressoras.find((m: any) => m.maquina_id === f.maquina_id);
   const filamento = filamentos.find((m: any) => m.material_id === f.material_id);
 
+  // Ao selecionar a impressora, puxa custo-hora e potência para campos editáveis.
+  // Assim o valor sempre "puxa" (fica visível) e pode ser corrigido por orçamento
+  // caso o cadastro esteja incompleto — evita sub-precificar em silêncio.
+  useEffect(() => {
+    if (!impressora) return;
+    setF((s) => ({
+      ...s,
+      custo_hora: String(Number(impressora.custo_hora_calculado ?? 0)),
+      potencia_w: String(Number(impressora.potencia_media_w ?? 0)),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f.maquina_id]);
+
   const calc = useMemo(() => {
     const gramas = num(f.gramas);
     const horasTotais = num(f.horas) + num(f.minutos) / 60;
     const cpg = Number(filamento?.custo_por_grama_calculado ?? 0);
-    const custoHora = Number(impressora?.custo_hora_calculado ?? 0);
-    const potenciaW = Number(impressora?.potencia_media_w ?? 0);
+    const custoHora = num(f.custo_hora);
+    const potenciaW = num(f.potencia_w);
     const qtd = num(f.quantidade, 1) || 1;
 
     const material = materialCost(D(gramas), cpg);
@@ -208,6 +242,8 @@ function NovoOrcamento3D() {
         quantidade: calc.qtd,
         gramas: num(f.gramas),
         horas_totais: horasTotais,
+        custo_hora_maquina: num(f.custo_hora),
+        potencia_w: num(f.potencia_w),
         tarifa_kwh: num(f.tarifa_kwh),
         mao_obra: { custo_hora: num(f.mo_custo_hora), horas: num(f.mo_horas) },
         pct_acabamento: num(f.pct_acabamento),
@@ -394,6 +430,31 @@ function NovoOrcamento3D() {
               <CardTitle className="text-base">Parâmetros de custo</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Custo-hora máquina (R$/h)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={f.custo_hora}
+                  onChange={(e) => set("custo_hora", e.target.value)}
+                  placeholder="da impressora"
+                />
+                {f.maquina_id && num(f.custo_hora) <= 0 && (
+                  <p className="text-xs text-destructive">
+                    Impressora sem custo-hora — informe manualmente ou corrija o cadastro.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Potência (W)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={f.potencia_w}
+                  onChange={(e) => set("potencia_w", e.target.value)}
+                  placeholder="da impressora"
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Tarifa energia (R$/kWh)</Label>
                 <Input type="number" step="0.01" value={f.tarifa_kwh} onChange={(e) => set("tarifa_kwh", e.target.value)} />
