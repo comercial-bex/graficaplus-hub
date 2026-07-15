@@ -28,57 +28,79 @@ function toNumber(raw: string): number {
 }
 
 /**
- * Extrai o peso em gramas. Prioriza:
- *   1. valor com decimal (X,YY g ou X.YY g) — cobre "6,52 g"
- *   2. label âncora: "filament used [g]", "material", "used filament"
- *   3. fallback: maior inteiro seguido de "g"
- * Rejeita "652 g" quando "6,52 g" existe na mesma imagem.
+ * Extrai o peso em gramas.
+ *
+ * O fatiador SEMPRE mostra o peso com 2 casas decimais (ex.: "6,52 g"), mas o
+ * Tesseract frequentemente DROPA a vírgula ("6,52 g" sai como "652g") — foi o
+ * que causava ler 653 no lugar de 6,53. Como o formato é fixo, quando o número
+ * vier inteiro (sem separador decimal) tratamos as 2 últimas casas como
+ * decimais: 652 -> 6,52 ; 4209 -> 42,09. Quando vier com separador, usamos como
+ * está (vírgula = decimal). Pega o maior valor (linha do "Modelo"/total).
  */
-function parseGramas(texto: string): number | undefined {
-  const decimais = [...texto.matchAll(/(\d{1,3}[.,]\d{1,3})\s*g\b/gi)]
-    .map((m) => toNumber(m[1]))
-    .filter((n) => Number.isFinite(n) && n > 0 && n < 100000);
-
-  // Labels âncoras
-  const ancora = texto.match(
-    /(?:filament\s+used(?:\s*\[g\])?|used\s+filament|material|filamento\s+usado)[^\d]{0,20}(\d+[.,]?\d*)\s*g?/i,
-  );
-  const porAncora = ancora ? toNumber(ancora[1]) : undefined;
-
-  if (decimais.length > 0) {
-    return Math.max(...decimais);
-  }
-  if (porAncora !== undefined && Number.isFinite(porAncora) && porAncora > 0) {
-    return porAncora;
-  }
-  // último recurso: inteiro com "g" — só aceita se < 1000 (peça implausível > 1kg via OCR ruim)
-  const inteiros = [...texto.matchAll(/\b(\d{1,3})\s*g\b/gi)]
-    .map((m) => parseInt(m[1], 10))
-    .filter((n) => n > 0 && n < 1000);
-  return inteiros.length ? Math.max(...inteiros) : undefined;
+/**
+ * Normaliza um token de peso. O fatiador SEMPRE mostra 2 casas decimais:
+ * - com separador: trunca em 2 casas ("6,529" -> 6,52; cobre o "g" lido como "9").
+ * - inteiro (vírgula dropada pelo OCR): as 2 últimas casas são decimais (652 -> 6,52).
+ */
+function normWeight(tok: string): number {
+  return /[.,]/.test(tok)
+    ? Math.floor(toNumber(tok) * 100) / 100
+    : parseInt(tok, 10) / 100;
 }
 
-/** Extrai o tempo total em minutos. */
-function parseTempoMinutos(texto: string): number | undefined {
-  // 1) "Xh Ym" — prioriza linhas com âncora
-  const ancora =
-    texto.match(
-      /(?:total|estimated|estimativa|tempo(?:\s+de\s+impress\w+)?)[^\d]{0,30}(\d+)\s*h\s*(\d+)\s*m/i,
-    ) || [...texto.matchAll(/(\d+)\s*h\s*(\d+)\s*m/gi)].at(-1);
-  if (ancora) {
-    const h = parseInt(ancora[1], 10);
-    const m = parseInt(ancora[2], 10);
-    if (Number.isFinite(h) && Number.isFinite(m)) return h * 60 + m;
+function parseGramas(texto: string): number | undefined {
+  // 1) número seguido de "g"
+  const comG = [...texto.matchAll(/(\d+(?:[.,]\d+)?)\s*g\b/gi)]
+    .map((m) => normWeight(m[1]))
+    .filter((n) => Number.isFinite(n) && n > 0 && n < 100000);
+  if (comG.length > 0) return Math.max(...comG);
+
+  // 2) linha do "Modelo" (Bambu): "<comprimento>m <peso>" — cobre o "g" lido
+  //    errado (vira "9"/"q"), já que o peso é o 2º número após a metragem.
+  const modelo = texto.match(/\d+(?:[.,]\d+)?\s*m\s+(\d+(?:[.,]\d+)?)/i);
+  if (modelo) {
+    const v = normWeight(modelo[1]);
+    if (Number.isFinite(v) && v > 0) return v;
   }
-  // 2) HH:MM(:SS)
+
+  // 3) âncora por label (Cura/Prusa: "Material 6.52g", "filamento usado 6,52")
+  const ancora = texto.match(
+    /(?:filament\s+used(?:\s*\[g\])?|used\s+filament|material|filamento\s+usado)[^\d]{0,20}(\d+(?:[.,]\d+)?)\s*g?/i,
+  );
+  if (ancora) {
+    const v = normWeight(ancora[1]);
+    if (Number.isFinite(v) && v > 0) return v;
+  }
+  return undefined;
+}
+
+/**
+ * Extrai o tempo total em minutos. Lê h/m/s independentes na linha âncora
+ * ("Tempo total:"), o que cobre impressões < 1h como "37m52s" e "31m3s"
+ * (antes só "XhYm" era lido) e tolera lixo do OCR ("37m52s" -> "37mb52s").
+ */
+function parseTempoMinutos(texto: string): number | undefined {
+  const linhas = texto.split(/\n/);
+  const linha =
+    linhas.find((l) => /\btotal\b/i.test(l)) ??
+    linhas.find((l) => /(estimated|estimativa|impress\w+ do modelo|print\s*time)/i.test(l));
+  const alvo = linha ?? texto;
+
+  // h não seguido de letra (casa "3h0m", "2h47m"; evita "horas"/"height")
+  const h = Number(alvo.match(/(\d+)\s*h(?![a-z])/i)?.[1] ?? 0);
+  // minutos: "37m" (não "min", não a parte de segundos)
+  const m = Number(
+    alvo.match(/(\d+)\s*m(?![si])/i)?.[1] ?? alvo.match(/(\d+)\s*min\b/i)?.[1] ?? 0,
+  );
+  const s = Number(alvo.match(/(\d+)\s*s(?![a-z])/i)?.[1] ?? 0);
+  if (h || m || s) return h * 60 + m + Math.round(s / 60);
+
+  // HH:MM(:SS)
   const hms = texto.match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\b/);
   if (hms) return parseInt(hms[1], 10) * 60 + parseInt(hms[2], 10);
-  // 3) só "Xh" ou "X,Yh"
+  // só "Xh" / "X,Yh"
   const soHoras = texto.match(/\b(\d+[.,]?\d*)\s*h\b/i);
   if (soHoras) return Math.round(toNumber(soHoras[1]) * 60);
-  // 4) só "Xmin" / "Xm"
-  const soMin = texto.match(/\b(\d+)\s*min\b/i);
-  if (soMin) return parseInt(soMin[1], 10);
   return undefined;
 }
 

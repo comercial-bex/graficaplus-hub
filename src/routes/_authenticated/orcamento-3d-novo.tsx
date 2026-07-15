@@ -36,7 +36,12 @@ export const Route = createFileRoute("/_authenticated/orcamento-3d-novo")({
 });
 
 const num = (v: string, fallback = 0) => {
-  const n = parseFloat(v);
+  // tolera vírgula decimal (pt-BR): "6,52" -> 6.52, sem quebrar "1.375".
+  let s = String(v ?? "").trim();
+  if (s.includes(",")) {
+    s = s.includes(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(",", ".");
+  }
+  const n = parseFloat(s);
   return Number.isFinite(n) ? n : fallback;
 };
 
@@ -51,6 +56,8 @@ type FormState = {
   material_id: string;
   gramas: string;
   tempo: string; // livre: "2h 15m", "2:15", "135"
+  custo_hora: string;
+  potencia_w: string;
   peso_suporte: string;
   peso_purga: string;
   pecas_placa: string;
@@ -109,6 +116,8 @@ function NovoOrcamento3D() {
     material_id: "",
     gramas: "",
     tempo: "",
+    custo_hora: "",
+    potencia_w: "",
     peso_suporte: "",
     peso_purga: "",
     pecas_placa: "",
@@ -199,6 +208,18 @@ function NovoOrcamento3D() {
   const impressora = impressoras.find((m: any) => m.maquina_id === f.maquina_id);
   const filamento = filamentos.find((m: any) => m.material_id === f.material_id);
 
+  // Ao trocar de impressora, puxa custo-hora e potência para campos editáveis.
+  // Evita sub-precificar em silêncio quando a impressora não tem custo-hora.
+  useEffect(() => {
+    if (!impressora) return;
+    setF((s) => ({
+      ...s,
+      custo_hora: String(Number(impressora.custo_hora_calculado ?? 0)),
+      potencia_w: String(Number(impressora.potencia_media_w ?? 0)),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f.maquina_id]);
+
   const tempoMinutos = parseTempoLivre(f.tempo) ?? 0;
   const tempoHoras = tempoMinutos / 60;
 
@@ -209,8 +230,8 @@ function NovoOrcamento3D() {
     const gramas = gramasModelo + gramasSuporte + gramasPurga;
     const horasTotais = tempoHoras;
     const cpg = Number(filamento?.custo_por_grama_calculado ?? 0);
-    const custoHora = Number(impressora?.custo_hora_calculado ?? 0);
-    const potenciaW = Number(impressora?.potencia_media_w ?? 0);
+    const custoHora = num(f.custo_hora);
+    const potenciaW = num(f.potencia_w);
     const qtd = num(f.quantidade, 1) || 1;
 
     const material = materialCost(D(gramas), cpg);
@@ -303,6 +324,8 @@ function NovoOrcamento3D() {
         altura_camada_mm: num(f.altura_camada),
         infill_pct: num(f.infill_pct),
         horas_totais: horasTotais,
+        custo_hora_maquina: num(f.custo_hora),
+        potencia_w: num(f.potencia_w),
         tarifa_kwh: num(f.tarifa_kwh),
         mao_obra: { custo_hora: num(f.mo_custo_hora), horas: num(f.mo_horas) },
         pct_acabamento: num(f.pct_acabamento),
@@ -696,6 +719,20 @@ function NovoOrcamento3D() {
 
               <div className="grid gap-3 md:grid-cols-3">
                 <Campo
+                  label="Custo-hora máquina (R$/h)"
+                  hint="Puxado da impressora ao selecioná-la; edite se o cadastro estiver incompleto."
+                  value={f.custo_hora}
+                  onChange={(v) => set("custo_hora", v)}
+                  step="0.01"
+                />
+                <Campo
+                  label="Potência (W)"
+                  hint="Potência média da impressora, puxada do cadastro. Base do custo de energia."
+                  value={f.potencia_w}
+                  onChange={(v) => set("potencia_w", v)}
+                  step="1"
+                />
+                <Campo
                   label="Tarifa energia (R$/kWh)"
                   hint="R$/kWh da conta de luz. Média BR residencial 0,85–1,10; comercial 0,60–0,90."
                   value={f.tarifa_kwh}
@@ -745,6 +782,12 @@ function NovoOrcamento3D() {
                   step="0.1"
                 />
               </div>
+              {f.maquina_id && num(f.custo_hora) <= 0 && (
+                <p className="mt-2 text-xs text-destructive">
+                  A impressora selecionada está sem custo-hora — informe manualmente acima ou
+                  corrija o cadastro, senão o orçamento sub-precifica.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
