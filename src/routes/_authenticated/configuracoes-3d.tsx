@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Zap, Calculator } from "lucide-react";
+import { ArrowLeft, Zap, Calculator, Users, Percent } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/configuracoes-3d")({
@@ -27,6 +27,17 @@ type Form = {
   energia_pis_pct: string;
   energia_cofins_pct: string;
   observacao: string;
+  // mão de obra
+  mo_custo_hora_padrao: string;
+  mo_salario_mensal: string;
+  mo_encargos_pct: string;
+  mo_horas_mensais: string;
+  // precificação padrão
+  markup_padrao: string;
+  markup_atacado_padrao: string;
+  pct_acabamento_padrao: string;
+  pct_falha_padrao: string;
+  custo_admin_padrao: string;
 };
 
 const s = (v: any) => (v == null ? "" : String(v));
@@ -60,6 +71,15 @@ function Configuracoes3D() {
       energia_pis_pct: s(cfg.energia_pis_pct),
       energia_cofins_pct: s(cfg.energia_cofins_pct),
       observacao: s(cfg.observacao),
+      mo_custo_hora_padrao: s(cfg.mo_custo_hora_padrao),
+      mo_salario_mensal: s(cfg.mo_salario_mensal),
+      mo_encargos_pct: s(cfg.mo_encargos_pct),
+      mo_horas_mensais: s(cfg.mo_horas_mensais),
+      markup_padrao: s(cfg.markup_padrao),
+      markup_atacado_padrao: s(cfg.markup_atacado_padrao),
+      pct_acabamento_padrao: s(cfg.pct_acabamento_padrao),
+      pct_falha_padrao: s(cfg.pct_falha_padrao),
+      custo_admin_padrao: s(cfg.custo_admin_padrao),
     });
   }, [cfg]);
 
@@ -83,6 +103,15 @@ function Configuracoes3D() {
           energia_pis_pct: form.energia_pis_pct ? n(form.energia_pis_pct) : null,
           energia_cofins_pct: form.energia_cofins_pct ? n(form.energia_cofins_pct) : null,
           observacao: form.observacao || null,
+          mo_custo_hora_padrao: n(form.mo_custo_hora_padrao),
+          mo_salario_mensal: form.mo_salario_mensal ? n(form.mo_salario_mensal) : null,
+          mo_encargos_pct: n(form.mo_encargos_pct),
+          mo_horas_mensais: n(form.mo_horas_mensais) || 220,
+          markup_padrao: n(form.markup_padrao) || 2,
+          markup_atacado_padrao: n(form.markup_atacado_padrao) || 1.5,
+          pct_acabamento_padrao: n(form.pct_acabamento_padrao),
+          pct_falha_padrao: n(form.pct_falha_padrao),
+          custo_admin_padrao: n(form.custo_admin_padrao),
           atualizado_em: new Date().toISOString(),
         })
         .eq("id", true);
@@ -111,6 +140,21 @@ function Configuracoes3D() {
     const marginal = tarifaEnergia + bandeira / consumo;
     set("tarifa_kwh_padrao", marginal.toFixed(4));
     toast.success(`Tarifa recalculada: R$ ${marginal.toFixed(4)}/kWh`);
+  }
+
+  // Custo-hora da mão de obra = salário × (1 + encargos%) / horas trabalhadas no mês.
+  function recalcularMaoDeObra() {
+    if (!form) return;
+    const salario = n(form.mo_salario_mensal);
+    const horas = n(form.mo_horas_mensais) || 220;
+    const encargos = n(form.mo_encargos_pct) / 100;
+    if (salario <= 0 || horas <= 0) {
+      toast.error("Preencha salário mensal e horas trabalhadas no mês.");
+      return;
+    }
+    const custoHora = (salario * (1 + encargos)) / horas;
+    set("mo_custo_hora_padrao", custoHora.toFixed(2));
+    toast.success(`Custo-hora da mão de obra: R$ ${custoHora.toFixed(2)}/h`);
   }
 
   const allIn = form && n(form.energia_total_fatura) > 0 && n(form.energia_consumo_kwh) > 0
@@ -187,6 +231,55 @@ function Configuracoes3D() {
             <Label>Observação</Label>
             <Input value={form.observacao} onChange={(e) => set("observacao", e.target.value)} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Users className="h-4 w-4" /> Mão de obra (base)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <Campo label="Salário mensal (R$)" value={form.mo_salario_mensal} onChange={(v) => set("mo_salario_mensal", v)} num />
+            <Campo label="Encargos (%)" value={form.mo_encargos_pct} onChange={(v) => set("mo_encargos_pct", v)} num step="0.1" />
+            <Campo label="Horas trabalhadas/mês" value={form.mo_horas_mensais} onChange={(v) => set("mo_horas_mensais", v)} num step="1" />
+          </div>
+          <div className="grid gap-2">
+            <Label>Custo-hora da mão de obra (R$/h) *</Label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                step="0.01"
+                value={form.mo_custo_hora_padrao}
+                onChange={(e) => set("mo_custo_hora_padrao", e.target.value)}
+                className="max-w-40"
+              />
+              <Button variant="outline" size="sm" onClick={recalcularMaoDeObra}>
+                <Calculator className="h-3.5 w-3.5 mr-1" /> Calcular do salário
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              = salário × (1 + encargos%) ÷ horas trabalhadas no mês. É o custo por hora do operador
+              usado nos orçamentos (multiplicado pelas horas de pós-processamento da peça).
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Percent className="h-4 w-4" /> Precificação padrão
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-3 gap-3">
+          <Campo label="Markup varejo (×)" value={form.markup_padrao} onChange={(v) => set("markup_padrao", v)} num step="0.1" />
+          <Campo label="Markup atacado (×)" value={form.markup_atacado_padrao} onChange={(v) => set("markup_atacado_padrao", v)} num step="0.1" />
+          <Campo label="Custo adm./embalagem (R$)" value={form.custo_admin_padrao} onChange={(v) => set("custo_admin_padrao", v)} num />
+          <Campo label="% Acabamento" value={form.pct_acabamento_padrao} onChange={(v) => set("pct_acabamento_padrao", v)} num step="0.1" />
+          <Campo label="% Falha" value={form.pct_falha_padrao} onChange={(v) => set("pct_falha_padrao", v)} num step="0.1" />
         </CardContent>
       </Card>
 
