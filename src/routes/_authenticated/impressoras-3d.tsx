@@ -43,6 +43,8 @@ type FormState = {
   vida_util_horas: string;
   manutencao_por_hora: string;
   potencia_media_w: string;
+  potencia_aquecimento_w: string;
+  potencia_standby_w: string;
 };
 
 const EMPTY: FormState = {
@@ -56,6 +58,8 @@ const EMPTY: FormState = {
   vida_util_horas: "5000",
   manutencao_por_hora: "0",
   potencia_media_w: "500",
+  potencia_aquecimento_w: "",
+  potencia_standby_w: "",
 };
 
 function ImpressorasPage() {
@@ -69,12 +73,23 @@ function ImpressorasPage() {
       const { data, error } = await (supabase as any)
         .from("maquinas_3d_config")
         .select(
-          "maquina_id, fabricante, modelo, tecnologia, custo_aquisicao, valor_residual, vida_util_horas, manutencao_por_hora, potencia_media_w, custo_hora_calculado, ativa, maquinas(nome, ativa)",
+          "maquina_id, fabricante, modelo, tecnologia, custo_aquisicao, valor_residual, vida_util_horas, manutencao_por_hora, potencia_media_w, potencia_aquecimento_w, potencia_standby_w, custo_hora_calculado, ativa, maquinas(nome, ativa)",
         )
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
+  });
+
+  // Tarifa de energia base (config_precificacao_3d) para mostrar o custo de
+  // energia/hora de cada máquina.
+  const { data: tarifaBase = 0 } = useQuery({
+    queryKey: ["tarifa-energia-base"],
+    queryFn: async () =>
+      Number(
+        (await (supabase as any).from("config_precificacao_3d").select("tarifa_kwh_padrao").maybeSingle())
+          .data?.tarifa_kwh_padrao ?? 0,
+      ),
   });
 
   const save = useMutation({
@@ -90,6 +105,8 @@ function ImpressorasPage() {
         p_vida_util_horas: Number(form.vida_util_horas) || 5000,
         p_manutencao_por_hora: Number(form.manutencao_por_hora) || 0,
         p_potencia_media_w: Number(form.potencia_media_w) || 0,
+        p_potencia_aquecimento_w: Number(form.potencia_aquecimento_w) || 0,
+        p_potencia_standby_w: Number(form.potencia_standby_w) || 0,
       });
       if (error) throw error;
     },
@@ -131,6 +148,8 @@ function ImpressorasPage() {
       vida_util_horas: String(m.vida_util_horas ?? 5000),
       manutencao_por_hora: String(m.manutencao_por_hora ?? 0),
       potencia_media_w: String(m.potencia_media_w ?? 0),
+      potencia_aquecimento_w: m.potencia_aquecimento_w ? String(m.potencia_aquecimento_w) : "",
+      potencia_standby_w: m.potencia_standby_w ? String(m.potencia_standby_w) : "",
     });
     setOpen(true);
   }
@@ -210,6 +229,32 @@ function ImpressorasPage() {
                   step="1"
                   value={form.potencia_media_w}
                   onChange={(e) => setForm({ ...form, potencia_media_w: e.target.value })}
+                />
+                {tarifaBase > 0 && Number(form.potencia_media_w) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    ≈ R$ {((Number(form.potencia_media_w) / 1000) * tarifaBase).toFixed(3)}/h de energia
+                    (tarifa base R$ {tarifaBase.toFixed(4)}/kWh)
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Potência aquecimento (W)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={form.potencia_aquecimento_w}
+                  onChange={(e) => setForm({ ...form, potencia_aquecimento_w: e.target.value })}
+                  placeholder="opcional (mesa/hotend)"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Potência standby (W)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={form.potencia_standby_w}
+                  onChange={(e) => setForm({ ...form, potencia_standby_w: e.target.value })}
+                  placeholder="opcional"
                 />
               </div>
               <div className="space-y-2">
@@ -307,6 +352,12 @@ function ImpressorasPage() {
                   <div>
                     <div className="text-muted-foreground text-xs">Potência</div>
                     <div className="font-mono font-semibold">{Number(m.potencia_media_w ?? 0).toFixed(0)} W</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground text-xs">Energia/hora</div>
+                    <div className="font-mono font-semibold">
+                      R$ {((Number(m.potencia_media_w ?? 0) / 1000) * tarifaBase).toFixed(3)}
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
