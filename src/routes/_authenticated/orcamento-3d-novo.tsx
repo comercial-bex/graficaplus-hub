@@ -205,6 +205,24 @@ function NovoOrcamento3D() {
       ).data ?? [],
   });
 
+  // Base de precificação 3D (tarifa de energia real). Vira o default do campo
+  // Tarifa energia enquanto o usuário não o alterou.
+  const { data: configPrec } = useQuery({
+    queryKey: ["config-precificacao-3d"],
+    queryFn: async () =>
+      (
+        await (supabase as any)
+          .from("config_precificacao_3d")
+          .select("tarifa_kwh_padrao")
+          .maybeSingle()
+      ).data,
+  });
+  useEffect(() => {
+    const t = configPrec?.tarifa_kwh_padrao;
+    if (t != null) setF((s) => (s.tarifa_kwh === "0.95" ? { ...s, tarifa_kwh: String(t) } : s));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configPrec]);
+
   const impressora = impressoras.find((m: any) => m.maquina_id === f.maquina_id);
   const filamento = filamentos.find((m: any) => m.material_id === f.material_id);
 
