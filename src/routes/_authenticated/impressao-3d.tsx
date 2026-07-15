@@ -144,6 +144,9 @@ function Impressao3DPage() {
             <Button asChild variant="outline" size="sm">
               <Link to="/impressoras-3d">Impressoras</Link>
             </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/configuracoes-3d">Config</Link>
+            </Button>
             <StatusChip label={`Motor ${MOTOR_VERSION}`} tone="cyan" />
             <StatusChip
               label={`Nível: ${(dashboard as any)?.nivel_padrao ?? "validado"}`}
