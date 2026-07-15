@@ -205,21 +205,33 @@ function NovoOrcamento3D() {
       ).data ?? [],
   });
 
-  // Base de precificação 3D (tarifa de energia real). Vira o default do campo
-  // Tarifa energia enquanto o usuário não o alterou.
+  // Base de precificação 3D: vira o default dos campos enquanto o usuário não os
+  // alterou (compara com o valor hardcoded inicial de cada campo).
   const { data: configPrec } = useQuery({
     queryKey: ["config-precificacao-3d"],
     queryFn: async () =>
       (
         await (supabase as any)
           .from("config_precificacao_3d")
-          .select("tarifa_kwh_padrao")
+          .select(
+            "tarifa_kwh_padrao, mo_custo_hora_padrao, markup_padrao, pct_acabamento_padrao, pct_falha_padrao, custo_admin_padrao",
+          )
           .maybeSingle()
       ).data,
   });
   useEffect(() => {
-    const t = configPrec?.tarifa_kwh_padrao;
-    if (t != null) setF((s) => (s.tarifa_kwh === "0.95" ? { ...s, tarifa_kwh: String(t) } : s));
+    const c = configPrec;
+    if (!c) return;
+    setF((s) => {
+      const n2 = { ...s };
+      if (c.tarifa_kwh_padrao != null && s.tarifa_kwh === "0.95") n2.tarifa_kwh = String(c.tarifa_kwh_padrao);
+      if (c.mo_custo_hora_padrao != null && s.mo_custo_hora === "40") n2.mo_custo_hora = String(c.mo_custo_hora_padrao);
+      if (c.markup_padrao != null && s.markup === "2") n2.markup = String(c.markup_padrao);
+      if (c.pct_acabamento_padrao != null && s.pct_acabamento === "5") n2.pct_acabamento = String(c.pct_acabamento_padrao);
+      if (c.pct_falha_padrao != null && s.pct_falha === "5") n2.pct_falha = String(c.pct_falha_padrao);
+      if (c.custo_admin_padrao != null && s.custo_admin === "0") n2.custo_admin = String(c.custo_admin_padrao);
+      return n2;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configPrec]);
 
