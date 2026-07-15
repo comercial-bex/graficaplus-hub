@@ -187,6 +187,10 @@ function OrcamentoDetalhe() {
                 label="Tempo"
                 value={inputs.horas_totais != null ? `${Number(inputs.horas_totais).toFixed(2)} h` : null}
               />
+              <Param
+                label="Custo-hora máquina"
+                value={inputs.custo_hora_maquina != null ? `${money(inputs.custo_hora_maquina)}/h` : null}
+              />
               <Param label="Tarifa energia" value={inputs.tarifa_kwh != null ? money(inputs.tarifa_kwh) : null} />
               <Param label="% Acabamento" value={inputs.pct_acabamento != null ? `${inputs.pct_acabamento}%` : null} />
               <Param label="% Falha" value={inputs.pct_falha != null ? `${inputs.pct_falha}%` : null} />
