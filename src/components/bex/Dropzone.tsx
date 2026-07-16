@@ -138,6 +138,7 @@ export function Dropzone({
           ref={inputRef}
           type="file"
           accept={accept}
+          aria-label={label}
           className="hidden"
           onChange={(e) => onFile(e.target.files?.[0] ?? null)}
         />

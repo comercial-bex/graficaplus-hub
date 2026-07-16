@@ -263,20 +263,31 @@ function NovoOrcamento3D() {
     const custoHora = num(f.custo_hora);
     const potenciaW = num(f.potencia_w);
     const qtd = num(f.quantidade, 1) || 1;
+    // O print do fatiador é UMA impressão (placa) que produz `pecasPlaca` peças.
+    // Para `qtd` peças, precisamos de `placas` impressões — e material/máquina/
+    // energia escalam por impressão, mão de obra e embalagem por peça.
+    const pecasPlaca = num(f.pecas_placa, 1) || 1;
+    const placas = Math.max(1, Math.ceil(qtd / pecasPlaca));
 
-    const material = materialCost(D(gramas), cpg);
-    const maquina = machineCost(horasTotais * 3600, custoHora);
-    const energia = energyCost({
+    const materialPlaca = materialCost(D(gramas), cpg);
+    const maquinaPlaca = machineCost(horasTotais * 3600, custoHora);
+    const energiaPlaca = energyCost({
       potenciaMediaW: potenciaW,
       horasImpressao: horasTotais,
       tarifaKwhSnapshot: num(f.tarifa_kwh),
     });
-    const maoDeObra = laborCost([
-      { minutos: num(f.mo_horas) * 60, custoHoraSnapshot: num(f.mo_custo_hora) },
-    ]);
+
+    const material = materialPlaca.mul(placas);
+    const maquina = maquinaPlaca.mul(placas);
+    const energia = energiaPlaca.mul(placas);
     const acabamento = material.mul(num(f.pct_acabamento) / 100);
     const risco = material.mul(num(f.pct_falha) / 100);
-    const indireto = D(num(f.custo_admin));
+    // mão de obra: horas de pós-processamento POR PEÇA × quantidade
+    const maoDeObra = laborCost([
+      { minutos: num(f.mo_horas) * 60, custoHoraSnapshot: num(f.mo_custo_hora) },
+    ]).mul(qtd);
+    // adm/embalagem: por peça
+    const indireto = D(num(f.custo_admin)).mul(qtd);
 
     const operacional = operationalCost({
       material: material.toString(),
@@ -288,9 +299,10 @@ function NovoOrcamento3D() {
       indiretosRateados: indireto.toString(),
     });
     const markup = num(f.markup, 2) || 2;
-    const preco = operacional.mul(markup);
+    const preco = operacional.mul(markup); // TOTAL do lote (qtd peças)
     const lucro = preco.sub(operacional);
     const margem = preco.gt(0) ? lucro.div(preco) : D(0);
+    const unitario = qtd > 0 ? preco.div(qtd) : preco;
     const equilibrio = operacional.mul(1 / 0.9); // margem 10%
     return {
       cpg,
@@ -304,11 +316,14 @@ function NovoOrcamento3D() {
       indireto,
       operacional,
       preco,
+      unitario,
       lucro,
       margem,
       atacado: operacional.mul(1.5),
       equilibrio,
       qtd,
+      pecasPlaca,
+      placas,
       markup,
     };
   }, [f, impressora, filamento]);
@@ -469,6 +484,7 @@ function NovoOrcamento3D() {
                     hint="Nome curto que aparece no PDF e na listagem. Ex.: 'Porta-joias verde matcha'."
                   />
                   <Input
+                    aria-label="Título"
                     value={f.titulo}
                     onChange={(e) => set("titulo", e.target.value)}
                     placeholder="Porta-joias Verde Matcha"
@@ -480,7 +496,7 @@ function NovoOrcamento3D() {
                     hint="Opcional. Vincula o orçamento ao 360º do cliente e habilita a conversão em OS."
                   />
                   <Select value={f.cliente_id} onValueChange={(v) => set("cliente_id", v)}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Cliente">
                       <SelectValue placeholder="Selecionar" />
                     </SelectTrigger>
                     <SelectContent>
@@ -500,12 +516,13 @@ function NovoOrcamento3D() {
                 <div className="space-y-1.5">
                   <FieldTooltip
                     label="Quantidade"
-                    hint="Número de peças idênticas. O motor NÃO multiplica automaticamente — informe o total do print."
+                    hint="Total de peças a cotar. O motor escala automaticamente: material/máquina/energia por impressão e mão de obra/embalagem por peça (use 'Peças na placa' se o print traz mais de uma)."
                   />
                   <Input
                     type="number"
                     min="1"
                     inputMode="numeric"
+                    aria-label="Quantidade"
                     value={f.quantidade}
                     onChange={(e) => set("quantidade", e.target.value)}
                   />
@@ -545,7 +562,7 @@ function NovoOrcamento3D() {
                     hint="Custo/hora vem de maquinas_3d_config (depreciação + manutenção + rateio de estrutura)."
                   />
                   <Select value={f.maquina_id} onValueChange={(v) => set("maquina_id", v)}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Impressora">
                       <SelectValue placeholder="Selecione a impressora" />
                     </SelectTrigger>
                     <SelectContent>
@@ -569,7 +586,7 @@ function NovoOrcamento3D() {
                     hint="Preço vem de materiais_3d_filamento. Mostramos o valor do quilo — a fórmula converte pra grama internamente."
                   />
                   <Select value={f.material_id} onValueChange={(v) => set("material_id", v)}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Filamento">
                       <SelectValue placeholder="Selecione o filamento" />
                     </SelectTrigger>
                     <SelectContent>
@@ -601,6 +618,7 @@ function NovoOrcamento3D() {
                   <Input
                     type="text"
                     inputMode="decimal"
+                    aria-label="Peso do modelo (g)"
                     value={f.gramas}
                     onChange={(e) => set("gramas", e.target.value.replace(",", "."))}
                     placeholder="6.52"
@@ -614,6 +632,7 @@ function NovoOrcamento3D() {
                   <Input
                     type="text"
                     inputMode="text"
+                    aria-label="Tempo total"
                     value={f.tempo}
                     onChange={(e) => set("tempo", e.target.value)}
                     placeholder="ex.: 2h 15m ou 2:15"
@@ -643,6 +662,7 @@ function NovoOrcamento3D() {
                     <Input
                       type="text"
                       inputMode="decimal"
+                      aria-label="Peso suporte (g)"
                       value={f.peso_suporte}
                       onChange={(e) => set("peso_suporte", e.target.value.replace(",", "."))}
                       placeholder="0"
@@ -656,6 +676,7 @@ function NovoOrcamento3D() {
                     <Input
                       type="text"
                       inputMode="decimal"
+                      aria-label="Peso purga/torre (g)"
                       value={f.peso_purga}
                       onChange={(e) => set("peso_purga", e.target.value.replace(",", "."))}
                       placeholder="0"
@@ -670,6 +691,7 @@ function NovoOrcamento3D() {
                       type="number"
                       min="1"
                       inputMode="numeric"
+                      aria-label="Peças na placa"
                       value={f.pecas_placa}
                       onChange={(e) => set("pecas_placa", e.target.value)}
                       placeholder="1"
@@ -678,6 +700,7 @@ function NovoOrcamento3D() {
                   <div className="space-y-1.5">
                     <FieldTooltip label="Tipo detectado" hint="Se diferente do filamento selecionado, revise — pode mudar R$/kg." />
                     <Input
+                      aria-label="Tipo detectado"
                       value={f.filamento_tipo_detectado}
                       onChange={(e) => set("filamento_tipo_detectado", e.target.value.toUpperCase())}
                       placeholder="PLA / PETG / ABS…"
@@ -688,6 +711,7 @@ function NovoOrcamento3D() {
                     <Input
                       type="text"
                       inputMode="decimal"
+                      aria-label="Altura camada (mm)"
                       value={f.altura_camada}
                       onChange={(e) => set("altura_camada", e.target.value.replace(",", "."))}
                       placeholder="0.2"
@@ -698,6 +722,7 @@ function NovoOrcamento3D() {
                     <Input
                       type="text"
                       inputMode="decimal"
+                      aria-label="Infill (%)"
                       value={f.infill_pct}
                       onChange={(e) => set("infill_pct", e.target.value.replace(",", "."))}
                       placeholder="15"
@@ -843,7 +868,7 @@ function NovoOrcamento3D() {
               <CardContent className="pt-5 space-y-4">
                 <div>
                   <div className="text-xs uppercase tracking-widest text-muted-foreground font-mono">
-                    Preço ({calc.markup}×)
+                    {calc.qtd > 1 ? `Preço total (${calc.qtd} un · ${calc.markup}×)` : `Preço (${calc.markup}×)`}
                   </div>
                   <div className="font-mono text-4xl font-black tracking-tight">
                     {money(calc.preco)}
@@ -857,8 +882,11 @@ function NovoOrcamento3D() {
 
                 {calc.qtd > 1 && (
                   <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Unitário ({calc.qtd}×)</span>
-                    <span className="font-mono font-semibold">{money(calc.preco.div(calc.qtd))}</span>
+                    <span className="text-muted-foreground">
+                      Preço unitário
+                      {calc.placas !== calc.qtd ? ` · ${calc.placas} impressões` : ""}
+                    </span>
+                    <span className="font-mono font-semibold">{money(calc.unitario)}</span>
                   </div>
                 )}
 
@@ -976,6 +1004,7 @@ function Campo({
         type="number"
         step={step}
         inputMode="decimal"
+        aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
