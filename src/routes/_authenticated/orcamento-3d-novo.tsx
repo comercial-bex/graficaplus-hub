@@ -48,6 +48,26 @@ const num = (v: string, fallback = 0) => {
 const money = (v: any) =>
   `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/**
+ * Sanitiza o nome do arquivo para uso como chave do Supabase Storage.
+ * O Storage rejeita chaves com espaço/acento/símbolo ("Invalid key") — e os
+ * prints do macOS vêm como "Captura de Tela 2026-07-14 às 18.37.36.png".
+ */
+function slugFile(name: string) {
+  const semAcento = (name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const ponto = semAcento.lastIndexOf(".");
+  const base =
+    (ponto > 0 ? semAcento.slice(0, ponto) : semAcento)
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 60) || "arquivo";
+  const ext = (ponto > 0 ? semAcento.slice(ponto + 1) : "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase();
+  return ext ? `${base}.${ext}` : base;
+}
+
 type FormState = {
   cliente_id: string;
   titulo: string;
@@ -343,13 +363,13 @@ function NovoOrcamento3D() {
       let fotoPath: string | null = null;
       const ts = Date.now();
       if (slicerFile) {
-        const path = `orcamentos-3d/${ts}_slicer_${slicerFile.name}`;
+        const path = `orcamentos-3d/${ts}_slicer_${slugFile(slicerFile.name)}`;
         const { error } = await supabase.storage.from("arquivos-clientes").upload(path, slicerFile);
         if (error) throw error;
         slicerPath = path;
       }
       if (fotoModelo) {
-        const path = `orcamentos-3d/${ts}_modelo_${fotoModelo.name}`;
+        const path = `orcamentos-3d/${ts}_modelo_${slugFile(fotoModelo.name)}`;
         const { error } = await supabase.storage
           .from("arquivos-clientes")
           .upload(path, fotoModelo);
@@ -423,12 +443,14 @@ function NovoOrcamento3D() {
       if (error) throw error;
       const id = data as string;
 
-      // grava a foto do modelo em orcamentos_3d.foto_modelo_path
+      // grava a foto do modelo em orcamentos_3d.foto_modelo_path (não bloqueia o
+      // salvar — a foto é secundária; só avisa se falhar em vez de engolir).
       if (fotoPath && id) {
-        await (supabase as any)
+        const { error: fotoErr } = await (supabase as any)
           .from("orcamentos_3d")
           .update({ foto_modelo_path: fotoPath })
           .eq("id", id);
+        if (fotoErr) toast.warning("Orçamento salvo, mas a foto do modelo não foi vinculada.");
       }
       return id;
     },
