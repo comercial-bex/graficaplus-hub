@@ -241,33 +241,44 @@ function NovoOrcamento3D() {
       ).data ?? [],
   });
 
-  // Base de precificação 3D: vira o default dos campos enquanto o usuário não os
-  // alterou (compara com o valor hardcoded inicial de cada campo).
-  const { data: configPrec } = useQuery({
+  // Base de precificação 3D: preenche todo campo que o usuário ainda não tocou.
+  // A tarifa de energia sempre vem da conta de luz cadastrada em /configuracoes-3d.
+  const { data: configPrec, isError: configErro } = useQuery({
     queryKey: ["config-precificacao-3d"],
-    queryFn: async () =>
-      (
-        await (supabase as any)
-          .from("config_precificacao_3d")
-          .select(
-            "tarifa_kwh_padrao, mo_custo_hora_padrao, markup_padrao, pct_acabamento_padrao, pct_falha_padrao, custo_admin_padrao",
-          )
-          .maybeSingle()
-      ).data,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("config_precificacao_3d")
+        .select(
+          "tarifa_kwh_padrao, mo_custo_hora_padrao, markup_padrao, pct_acabamento_padrao, pct_falha_padrao, custo_admin_padrao",
+        )
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
   });
+  const [vindoDaConfig, setVindoDaConfig] = useState<Set<string>>(new Set());
   useEffect(() => {
     const c = configPrec;
     if (!c) return;
+    const mapa: [keyof FormState, unknown][] = [
+      ["tarifa_kwh", c.tarifa_kwh_padrao],
+      ["mo_custo_hora", c.mo_custo_hora_padrao],
+      ["markup", c.markup_padrao],
+      ["pct_acabamento", c.pct_acabamento_padrao],
+      ["pct_falha", c.pct_falha_padrao],
+      ["custo_admin", c.custo_admin_padrao],
+    ];
+    const aplicados = new Set<string>();
     setF((s) => {
       const n2 = { ...s };
-      if (c.tarifa_kwh_padrao != null && s.tarifa_kwh === "0.95") n2.tarifa_kwh = String(c.tarifa_kwh_padrao);
-      if (c.mo_custo_hora_padrao != null && s.mo_custo_hora === "40") n2.mo_custo_hora = String(c.mo_custo_hora_padrao);
-      if (c.markup_padrao != null && s.markup === "2") n2.markup = String(c.markup_padrao);
-      if (c.pct_acabamento_padrao != null && s.pct_acabamento === "5") n2.pct_acabamento = String(c.pct_acabamento_padrao);
-      if (c.pct_falha_padrao != null && s.pct_falha === "5") n2.pct_falha = String(c.pct_falha_padrao);
-      if (c.custo_admin_padrao != null && s.custo_admin === "0") n2.custo_admin = String(c.custo_admin_padrao);
+      for (const [k, v] of mapa) {
+        if (v == null || tocados.current.has(k)) continue;
+        n2[k] = String(v);
+        aplicados.add(k);
+      }
       return n2;
     });
+    setVindoDaConfig(aplicados);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configPrec]);
 
