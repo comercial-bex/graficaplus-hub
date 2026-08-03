@@ -8802,6 +8802,9 @@ export type Database = {
           aprovado_em: string | null
           cliente_id: string | null
           cliente_nome: string | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
           created_at: string | null
           created_by: string | null
           custo_estimado: number | null
@@ -8899,6 +8902,9 @@ export type Database = {
           aprovado_em: string | null
           cliente_id: string | null
           cliente_nome: string | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
           created_at: string | null
           created_by: string | null
           descricao: string | null
