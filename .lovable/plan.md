@@ -1,89 +1,76 @@
+# Diagnóstico completo e correção do módulo de Orçamentos
 
-# Ajustes no Novo Orçamento 3D — OCR, tempo unificado e dados do fatiador
+## O que foi verificado agora no sistema
 
-Três problemas observados no print que você mandou (fatiador Bambu):
+Consultei o banco e o código antes de escrever este plano. Os achados abaixo estão confirmados.
 
-1. Leu **652 g** onde o correto é **6,52 g** — o parser está ignorando a vírgula decimal e concatenando os dígitos.
-2. Campos de tempo estão separados em **horas** e **minutos** — você quer um único campo mais natural.
-3. O print do fatiador tem mais informações úteis que hoje jogamos fora e que, faltando, geram prejuízo.
+### 1. Causa raiz dos orçamentos 3D "que somem" (crítico)
 
-## 1. Corrigir o parser de gramas (bug real)
+O orçamento 3D **é gravado** — existe 1 registro salvo ("Urna e Gatinho Anjo", R$ 121,15, hoje 13:52). O problema é na **leitura**: 21 regras de acesso, em 13 tabelas do módulo 3D, dependem da função interna `require_permission`, e essa função **deixou de ser executável pelo usuário logado** (efeito colateral do último ajuste de segurança). Resultado: toda consulta às tabelas abaixo falha ou volta vazia para quem está logado.
 
-Arquivo: `src/domain/impressao3d/ocr.ts` — função `parseSlicerText`.
+Tabelas afetadas: `orcamentos_3d`, `orcamento_3d_calculos`, `orcamento_3d_placas`, `orcamento_3d_consumos`, `orcamento_3d_servicos`, `maquinas_3d_config`, `materiais_3d_filamento`, `config_precificacao_3d`, `producao_3d_jobs`, `producao_3d_apontamentos`, `producao_3d_fechamentos`, `slicer_imports`, `os_resultado_snapshots`.
 
-Hoje o regex é `/(\d+[.,]?\d*)\s*g\b/gi`. O `?` deixa o separador opcional e captura "652" quando na verdade o texto é "6,52". Ajustes:
+Isso explica em cascata: lista de orçamentos 3D vazia, impressoras/filamentos sumindo dos seletores, produção 3D vazia e a energia/mão de obra não vindo das configurações.
 
-- Trocar por dois passes: primeiro **preferir** valores com decimal explícito (`\d+[.,]\d+\s*g`), só cair para inteiro se não achar nenhum.
-- Ao converter, tratar tanto vírgula quanto ponto como separador decimal (já faz), mas **rejeitar** matches sem separador quando o valor bruto tem 3+ dígitos e existe outro candidato com decimal na mesma imagem (evita "652" ganhar de "6,52").
-- Extra: ler também "**filament used [g]**", "**used filament**", "**material**" como âncoras — pega o número mais próximo dessas labels em vez do maior número solto na tela.
+### 2. Energia e mão de obra não puxam da configuração
 
-Vou adicionar um teste rápido (bun test) cobrindo os dois casos ("6,52 g" e "652g total, 6,52g modelo") no `tests/`.
+As configurações **existem e estão certas** no banco: tarifa marginal R$ 1,1339/kWh (calculada da fatura, R$ 1,108521 com tributos) e mão de obra R$ 40,00/h. Dois problemas:
+- a leitura dessa tabela está bloqueada pelo item 1;
+- mesmo desbloqueada, o formulário só aplica o valor salvo se o campo ainda estiver exatamente no valor "de fábrica" (0,95 e 40). Se o usuário mexeu ou trocou de preset, a configuração é ignorada.
 
-## 2. Campo de tempo unificado
+### 3. Orçamento sem cliente cadastrado (pedido do usuário)
 
-Hoje: dois inputs (`Horas` + `Minutos`).
-Novo: um único input `Tempo` aceitando formatos naturais e convertendo para minutos internamente:
+Hoje é impossível: na tabela de orçamentos o cliente é **campo obrigatório** e não existe campo para escrever o nome livre. O orçamento 3D já aceita ficar sem cliente, mas a tela obriga selecionar.
 
-- `2h 3m`, `2:03`, `2:03:45`, `123min`, `1,5h`, `90m`.
-- Placeholder do input: `ex.: 2h 15m ou 2:15`.
-- Abaixo em texto pequeno: `≈ 2h 15min · 135 minutos` (feedback ao vivo do que o motor entendeu).
-- OCR passa a preencher direto esse campo (`Xh Ym`) em vez dos dois separados.
-- Estado interno vira `tempoMinutos: number` (uma variável só); as fórmulas de custo passam a receber isso.
+### 4. Orçamento comum (lona, adesivo, impressão) — catálogo zerado
 
-Arquivo: `src/routes/_authenticated/orcamento-3d-novo.tsx` (troca dos dois inputs + helper `parseTempoLivre`).
+Após a limpeza dos dados, `produtos` e `orcamentos` estão com 0 registros. O autocomplete de produtos funciona, mas não há nada para escolher, então o orçamento tradicional parece "quebrado".
 
-## 3. Aproveitar mais dados do print do fatiador
+### 5. Orçamentos 3D e orçamentos comuns são dois mundos separados
 
-Levantamento do que o fatiador mostra e o que hoje **não** capturamos — e o impacto se faltar:
+`/orcamentos` lê só a tabela tradicional; o 3D vive em `/impressao-3d`. Não há visão única do funil comercial.
 
-| Info no print | Já capturamos? | Impacto se faltar |
-|---|---|---|
-| Peso total do modelo (g) | Sim (com bug da vírgula) | Base de custo material |
-| Tempo total de impressão | Sim | Base de custo máquina + energia |
-| **Peso do suporte (g)** | Não | Subestima gasto de filamento; peça com muito suporte pode dar prejuízo |
-| **Peso da purga/torre (g)** | Não | Mesmo problema — em multicolor a purga passa fácil de 20% do total |
-| **Consumo estimado (m)** | Não (só grama) | Cross-check contra estoque de bobina |
-| **Tipo de filamento** (PLA/PETG/ABS/TPU) | Não | Se diferente do cadastrado, R$/g muda; hoje confia cegamente no select |
-| **Temperatura do bocal / mesa** | Não | Não afeta preço, mas útil para reimpressão idêntica |
-| **Altura de camada / infill %** | Não | Guarda pra reproduzir a peça; peça re-cotada com infill maior vai gastar mais |
-| **Nº de placas / peças** | Não | Se o print é de uma placa com 5 peças e o operador cotar 1, subestima 5× |
-| **Custo estimado pelo fatiador** | Não | Sanity check contra nosso motor |
+---
 
-Proposta prática (sem inflar a tela):
+## O que será feito
 
-- **Capturar 4 campos extras** do OCR e mostrar num bloco enxuto "Detectado no print" (abaixo do dropzone, dobrável):
-  - Peso suporte (g) — soma no total antes do custo de material
-  - Peso purga/torre (g) — soma no total antes do custo de material
-  - Nº de peças na placa — multiplica o motor de custo automaticamente
-  - Tipo de filamento detectado (PLA/PETG/…) — se diferente do select, mostra chip amarelo "atenção: fatiador diz PETG, você selecionou PLA"
+### Etapa A — Destravar o sistema (correção de banco)
+- Devolver a permissão de execução de `require_permission` ao usuário logado (mantendo bloqueado para visitantes anônimos), restaurando leitura/escrita nas 13 tabelas.
+- Revisar as demais funções internas usadas em regras de acesso para garantir que nenhuma outra ficou com o mesmo problema.
+- Tornar o cliente **opcional** no orçamento tradicional e adicionar campos de contato avulso (nome, telefone, e-mail).
+- Regra de faturamento: exigir cliente cadastrado apenas na conversão do orçamento em OS (mensagem clara pedindo o vínculo).
 
-- **Guardar em campos novos** em `orcamentos_3d` (via migration):
-  - `peso_suporte_g numeric`
-  - `peso_purga_g numeric`
-  - `pecas_por_placa int default 1`
-  - `filamento_tipo_detectado text` (só metadado, não altera cálculo)
-  - `altura_camada_mm numeric` e `infill_pct numeric` (metadados de reprodutibilidade)
+### Etapa B — Orçamento sem cliente (telas)
+- Em `/orcamentos` e no orçamento 3D: alternar entre "Cliente cadastrado" e "Contato avulso" (só o nome é obrigatório).
+- Botão "Cadastrar este contato como cliente" que cria o cliente e vincula ao orçamento existente.
+- Bloqueio amigável na conversão em OS quando não houver cliente vinculado.
 
-- **Ajuste no cost-engine**: o `pesoGramas` que entra na fórmula passa a ser `modelo + suporte + purga` × `pecas_por_placa`. Fórmula continua a mesma, só muda o input.
+### Etapa C — Orçamento 3D confiável
+- Puxar sempre tarifa de energia, mão de obra/hora, markup, acabamento, falha e custo administrativo da configuração salva, com indicação visual de origem ("vindo das configurações") e possibilidade de sobrepor manualmente.
+- Presets deixam de sobrescrever a tarifa de energia da configuração.
+- Após salvar, redirecionar para o detalhe do orçamento 3D e confirmar em tela que foi gravado (hoje volta para a lista, que estava vazia por causa do item 1).
+- Mensagens de erro reais em vez de falha silenciosa ao salvar.
 
-- **Regex novos** em `ocr.ts` para essas âncoras (`support`, `prime tower`, `purge`, `plate`, `layer height`, `infill`, `filament type`, `PLA/PETG/ABS/TPU/ASA/PC`).
+### Etapa D — Orçamento tradicional (lona, adesivo, impressão)
+- Repovoar o catálogo de produtos/serviços de comunicação visual (lona, adesivo, banner, placa, impressão, acabamentos) com unidade, custo e margem — como base editável.
+- Revisar cálculo por m² (largura × altura × quantidade) nos itens de orçamento.
+- Conferir fluxo completo: criar → itens → total → aprovar → converter em OS → parcelas.
 
-## 4. Tooltip do filamento em R$/g
+### Etapa E — Diagnóstico dos módulos e conexões
+- Página/relatório interno de saúde do sistema mostrando, por módulo (Comercial, Produção, 3D, Estoque, Financeiro, Pós-venda, WhatsApp): tabelas acessíveis, cadastros mínimos presentes (máquinas, materiais, produtos, configurações) e o que falta para operar.
+- Conferir vínculos: máquinas ↔ configuração 3D ↔ filamentos ↔ agenda ↔ produção; produtos ↔ materiais ↔ estoque; OS ↔ financeiro ↔ pós-venda.
+- Entregar ao final um resumo em % do que está operacional por módulo.
 
-Você mencionou "tarifa de energia já tem denominação"; aproveitando o pente-fino, o select de filamento continua mostrando **R$/kg** (correto), mas hoje o breakdown do resumo mostra o cálculo em R$/g. Vou padronizar o resumo para exibir também `X g × R$ Y/kg = R$ Z` — mais legível.
+---
 
-## Arquivos afetados
+## Detalhes técnicos
 
-- `src/domain/impressao3d/ocr.ts` — regex do peso, novos regex para suporte/purga/peças/tipo/camada/infill.
-- `src/routes/_authenticated/orcamento-3d-novo.tsx` — campo único de tempo, bloco "Detectado no print", uso dos extras no `useMemo` de custo.
-- `src/domain/impressao3d/cost-engine.ts` — só se preciso ajustar assinatura (provavelmente o cálculo agregado fica na tela; motor recebe pesoTotal já somado).
-- `tests/impressao3d-ocr.test.ts` **(novo)** — casos: "6,52 g", "6.52g", "Total 12,4 g / suporte 3,1 g", tempo "2h 3m" e "2:03".
-- Migration: colunas extras em `orcamentos_3d` conforme acima (nullable, sem quebrar dados existentes).
+- Migration: `GRANT EXECUTE ON FUNCTION public.require_permission(text) TO authenticated;` e auditoria de `has_function_privilege` para toda função citada em `pg_policies`.
+- Migration: `ALTER TABLE public.orcamentos ALTER COLUMN cliente_id DROP NOT NULL;` + colunas `contato_nome`, `contato_telefone`, `contato_email`; validação no RPC `converter_orcamento_em_os` exigindo `cliente_id`.
+- Frontend: `orcamentos.tsx`, `orcamentos.$id.tsx`, `orcamento-3d-novo.tsx`, `impressao-3d.tsx`, `configuracoes-3d.tsx`.
+- Prefill do 3D passa a usar um estado "tocado pelo usuário" por campo em vez de comparar com literais (`"0.95"`, `"40"`).
+- Seed do catálogo por migration com `INSERT` explícito.
 
-## Fora do escopo desta rodada
-
-- Reler o print automaticamente ao trocar o arquivo (já funciona), mas sem reprocessamento em background para outras imagens.
-- Enviar o texto bruto do OCR ao servidor para telemetria — mantenho só no state para debug local.
-- Redesign da listagem `/impressao-3d` — segue como está.
-
-Aprovando, aplico numa passada só (migration + código + teste).
+## Fora deste escopo
+- Mudanças visuais na identidade Bex Print (mantida).
+- Integração real de WhatsApp com provedor externo.
