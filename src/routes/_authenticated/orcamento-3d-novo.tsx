@@ -811,7 +811,7 @@ function NovoOrcamento3D() {
                     key={p.id}
                     type="button"
                     onClick={() => {
-                      patch(p.patch);
+                      aplicarPreset(p.patch);
                       if (typeof window !== "undefined") localStorage.setItem("bex.orc3d.preset", p.id);
                     }}
                     className="group"
