@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,6 +70,9 @@ function slugFile(name: string) {
 
 type FormState = {
   cliente_id: string;
+  contato_nome: string;
+  contato_telefone: string;
+  contato_email: string;
   titulo: string;
   quantidade: string;
   maquina_id: string;
@@ -130,6 +133,9 @@ function NovoOrcamento3D() {
 
   const [f, setF] = useState<FormState>({
     cliente_id: "",
+    contato_nome: "",
+    contato_telefone: "",
+    contato_email: "",
     titulo: "",
     quantidade: "1",
     maquina_id: "",
@@ -152,8 +158,18 @@ function NovoOrcamento3D() {
     custo_admin: "0",
     markup: "2",
   });
-  const set = (k: keyof FormState, v: string) => setF((s) => ({ ...s, [k]: v }));
+  // Campos que o usuário (ou um preset) já tocou — a configuração salva só
+  // preenche o que ainda está intocado, em vez de comparar com literais.
+  const tocados = useRef<Set<keyof FormState>>(new Set());
+  const set = (k: keyof FormState, v: string) => {
+    tocados.current.add(k);
+    setF((s) => ({ ...s, [k]: v }));
+  };
   const patch = (p: Partial<FormState>) => setF((s) => ({ ...s, ...p }));
+  const aplicarPreset = (p: Partial<FormState>) => {
+    (Object.keys(p) as (keyof FormState)[]).forEach((k) => tocados.current.add(k));
+    patch(p);
+  };
 
   // aplica último preset salvo
   useEffect(() => {
@@ -161,7 +177,7 @@ function NovoOrcamento3D() {
     const id = localStorage.getItem("bex.orc3d.preset");
     if (!id) return;
     const p = PRESETS.find((x) => x.id === id);
-    if (p) patch(p.patch);
+    if (p) aplicarPreset(p.patch);
   }, []);
 
   const [fotoModelo, setFotoModelo] = useState<File | null>(null);
@@ -225,33 +241,44 @@ function NovoOrcamento3D() {
       ).data ?? [],
   });
 
-  // Base de precificação 3D: vira o default dos campos enquanto o usuário não os
-  // alterou (compara com o valor hardcoded inicial de cada campo).
-  const { data: configPrec } = useQuery({
+  // Base de precificação 3D: preenche todo campo que o usuário ainda não tocou.
+  // A tarifa de energia sempre vem da conta de luz cadastrada em /configuracoes-3d.
+  const { data: configPrec, isError: configErro } = useQuery({
     queryKey: ["config-precificacao-3d"],
-    queryFn: async () =>
-      (
-        await (supabase as any)
-          .from("config_precificacao_3d")
-          .select(
-            "tarifa_kwh_padrao, mo_custo_hora_padrao, markup_padrao, pct_acabamento_padrao, pct_falha_padrao, custo_admin_padrao",
-          )
-          .maybeSingle()
-      ).data,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("config_precificacao_3d")
+        .select(
+          "tarifa_kwh_padrao, mo_custo_hora_padrao, markup_padrao, pct_acabamento_padrao, pct_falha_padrao, custo_admin_padrao",
+        )
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
   });
+  const [vindoDaConfig, setVindoDaConfig] = useState<Set<string>>(new Set());
   useEffect(() => {
     const c = configPrec;
     if (!c) return;
+    const mapa: [keyof FormState, unknown][] = [
+      ["tarifa_kwh", c.tarifa_kwh_padrao],
+      ["mo_custo_hora", c.mo_custo_hora_padrao],
+      ["markup", c.markup_padrao],
+      ["pct_acabamento", c.pct_acabamento_padrao],
+      ["pct_falha", c.pct_falha_padrao],
+      ["custo_admin", c.custo_admin_padrao],
+    ];
+    const aplicados = new Set<string>();
     setF((s) => {
       const n2 = { ...s };
-      if (c.tarifa_kwh_padrao != null && s.tarifa_kwh === "0.95") n2.tarifa_kwh = String(c.tarifa_kwh_padrao);
-      if (c.mo_custo_hora_padrao != null && s.mo_custo_hora === "40") n2.mo_custo_hora = String(c.mo_custo_hora_padrao);
-      if (c.markup_padrao != null && s.markup === "2") n2.markup = String(c.markup_padrao);
-      if (c.pct_acabamento_padrao != null && s.pct_acabamento === "5") n2.pct_acabamento = String(c.pct_acabamento_padrao);
-      if (c.pct_falha_padrao != null && s.pct_falha === "5") n2.pct_falha = String(c.pct_falha_padrao);
-      if (c.custo_admin_padrao != null && s.custo_admin === "0") n2.custo_admin = String(c.custo_admin_padrao);
+      for (const [k, v] of mapa) {
+        if (v == null || tocados.current.has(k)) continue;
+        n2[k] = String(v);
+        aplicados.add(k);
+      }
       return n2;
     });
+    setVindoDaConfig(aplicados);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configPrec]);
 
@@ -443,23 +470,32 @@ function NovoOrcamento3D() {
       if (error) throw error;
       const id = data as string;
 
-      // grava a foto do modelo em orcamentos_3d.foto_modelo_path (não bloqueia o
-      // salvar — a foto é secundária; só avisa se falhar em vez de engolir).
-      if (fotoPath && id) {
-        const { error: fotoErr } = await (supabase as any)
+      // grava a foto do modelo e os dados do contato avulso em orcamentos_3d
+      // (não bloqueiam o salvar — só avisam se falharem).
+      const extras: Record<string, unknown> = {};
+      if (fotoPath) extras.foto_modelo_path = fotoPath;
+      if (!f.cliente_id) {
+        extras.contato_nome = f.contato_nome.trim() || null;
+        extras.contato_telefone = f.contato_telefone.trim() || null;
+        extras.contato_email = f.contato_email.trim() || null;
+      }
+      if (id && Object.keys(extras).length) {
+        const { error: extraErr } = await (supabase as any)
           .from("orcamentos_3d")
-          .update({ foto_modelo_path: fotoPath })
+          .update(extras)
           .eq("id", id);
-        if (fotoErr) toast.warning("Orçamento salvo, mas a foto do modelo não foi vinculada.");
+        if (extraErr) toast.warning("Orçamento salvo, mas foto/contato não foram vinculados.");
       }
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       toast.success("Orçamento 3D salvo");
-      navigate({ to: "/impressao-3d" });
+      if (id) navigate({ to: "/orcamento-3d/$id", params: { id } });
+      else navigate({ to: "/impressao-3d" });
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const margemPct = calc.margem.toNumber() * 100;
   const margemTone: "lime" | "amber" | "magenta" =
@@ -515,18 +551,17 @@ function NovoOrcamento3D() {
                 <div className="space-y-1.5">
                   <FieldTooltip
                     label="Cliente"
-                    hint="Opcional. Vincula o orçamento ao 360º do cliente e habilita a conversão em OS."
+                    hint="Opcional. Sem cliente cadastrado, escreva o nome do contato abaixo — o vínculo só é exigido na hora de virar OS."
                   />
-                  <Select value={f.cliente_id} onValueChange={(v) => set("cliente_id", v)}>
+                  <Select
+                    value={f.cliente_id || "__avulso"}
+                    onValueChange={(v) => set("cliente_id", v === "__avulso" ? "" : v)}
+                  >
                     <SelectTrigger aria-label="Cliente">
                       <SelectValue placeholder="Selecionar" />
                     </SelectTrigger>
                     <SelectContent>
-                      {clientes.length === 0 && (
-                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                          Nenhum cliente cadastrado
-                        </div>
-                      )}
+                      <SelectItem value="__avulso">Sem cadastro (contato avulso)</SelectItem>
                       {clientes.map((c: any) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.nome}
@@ -535,6 +570,7 @@ function NovoOrcamento3D() {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-1.5">
                   <FieldTooltip
                     label="Quantidade"
@@ -550,6 +586,43 @@ function NovoOrcamento3D() {
                   />
                 </div>
               </div>
+
+              {!f.cliente_id && (
+                <div className="grid gap-3 md:grid-cols-3 rounded-lg border border-border/60 bg-card/40 p-3">
+                  <div className="space-y-1.5">
+                    <FieldTooltip
+                      label="Nome do contato"
+                      hint="Aparece no PDF no lugar do cliente. Você cadastra o cliente depois, na conversão em OS."
+                    />
+                    <Input
+                      aria-label="Nome do contato"
+                      value={f.contato_nome}
+                      onChange={(e) => set("contato_nome", e.target.value)}
+                      placeholder="Ex.: Marina (Instagram)"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Telefone / WhatsApp" hint="Opcional. Facilita o follow-up do orçamento." />
+                    <Input
+                      aria-label="Telefone do contato"
+                      value={f.contato_telefone}
+                      onChange={(e) => set("contato_telefone", e.target.value)}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="E-mail" hint="Opcional. Usado no envio do PDF do orçamento." />
+                    <Input
+                      aria-label="E-mail do contato"
+                      value={f.contato_email}
+                      onChange={(e) => set("contato_email", e.target.value)}
+                      placeholder="contato@email.com"
+                    />
+                  </div>
+                </div>
+              )}
+
+
 
               <Dropzone
                 label="Foto do modelo (opcional)"
@@ -784,7 +857,7 @@ function NovoOrcamento3D() {
                     key={p.id}
                     type="button"
                     onClick={() => {
-                      patch(p.patch);
+                      aplicarPreset(p.patch);
                       if (typeof window !== "undefined") localStorage.setItem("bex.orc3d.preset", p.id);
                     }}
                     className="group"
@@ -793,6 +866,24 @@ function NovoOrcamento3D() {
                   </button>
                 ))}
               </div>
+
+              {configErro && (
+                <p className="text-xs text-[color:var(--bex-magenta)]">
+                  Não foi possível ler a base de precificação 3D — os valores abaixo são padrões
+                  genéricos. Revise em Configurações 3D.
+                </p>
+              )}
+              {!configErro && vindoDaConfig.size > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Tarifa de energia, mão de obra e demais parâmetros vindos das{" "}
+                  <Link to="/configuracoes-3d" className="text-[color:var(--bex-cyan)] hover:underline">
+                    Configurações 3D
+                  </Link>
+                  . Edite abaixo para sobrepor só neste orçamento.
+                </p>
+              )}
+
+
 
               <div className="grid gap-3 md:grid-cols-3">
                 <Campo

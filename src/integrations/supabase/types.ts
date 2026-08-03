@@ -4466,9 +4466,12 @@ export type Database = {
         Row: {
           aprovado_em: string | null
           briefing: string | null
-          cliente_id: string
+          cliente_id: string | null
           condicao_pagamento: Json
+          contato_email: string | null
           contato_id: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
           conversa_id: string | null
           created_at: string
           created_by: string | null
@@ -4500,9 +4503,12 @@ export type Database = {
         Insert: {
           aprovado_em?: string | null
           briefing?: string | null
-          cliente_id: string
+          cliente_id?: string | null
           condicao_pagamento?: Json
+          contato_email?: string | null
           contato_id?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
           conversa_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -4534,9 +4540,12 @@ export type Database = {
         Update: {
           aprovado_em?: string | null
           briefing?: string | null
-          cliente_id?: string
+          cliente_id?: string | null
           condicao_pagamento?: Json
+          contato_email?: string | null
           contato_id?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
           conversa_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -4656,6 +4665,9 @@ export type Database = {
         Row: {
           altura_camada_mm: number | null
           cliente_id: string | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
           created_at: string
           created_by: string | null
           descricao: string | null
@@ -4684,6 +4696,9 @@ export type Database = {
         Insert: {
           altura_camada_mm?: number | null
           cliente_id?: string | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
@@ -4712,6 +4727,9 @@ export type Database = {
         Update: {
           altura_camada_mm?: number | null
           cliente_id?: string | null
+          contato_email?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
@@ -8784,6 +8802,9 @@ export type Database = {
           aprovado_em: string | null
           cliente_id: string | null
           cliente_nome: string | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
           created_at: string | null
           created_by: string | null
           custo_estimado: number | null
@@ -8881,6 +8902,9 @@ export type Database = {
           aprovado_em: string | null
           cliente_id: string | null
           cliente_nome: string | null
+          contato_email: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
           created_at: string | null
           created_by: string | null
           descricao: string | null
@@ -9825,6 +9849,7 @@ export type Database = {
         Args: { p_orcamento_3d_id: string }
         Returns: Json
       }
+      converter_orcamento_3d_em_os_guard: { Args: never; Returns: undefined }
       converter_orcamento_em_os: {
         Args: { p_opcoes?: Json; p_orcamento_id: string }
         Returns: Json

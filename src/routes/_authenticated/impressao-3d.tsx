@@ -265,7 +265,7 @@ function Impressao3DPage() {
                         {o.titulo}
                       </Link>
                     </TableCell>
-                    <TableCell>{o.clientes?.nome ?? "—"}</TableCell>
+                    <TableCell>{o.clientes?.nome ?? o.contato_nome ?? "—"}</TableCell>
                     <TableCell>
                       <span className="font-mono text-xs">{o.nivel_precisao}</span>
                     </TableCell>

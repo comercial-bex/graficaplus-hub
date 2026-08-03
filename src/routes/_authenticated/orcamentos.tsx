@@ -63,7 +63,14 @@ function OrcamentosPage() {
   const qc = useQueryClient();
   const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ cliente_id: "", titulo: "", valor_total: "" });
+  const [form, setForm] = useState({
+    cliente_id: "",
+    contato_nome: "",
+    contato_telefone: "",
+    contato_email: "",
+    titulo: "",
+    valor_total: "",
+  });
 
   const { data: orcamentos = [], isLoading } = useQuery({
     queryKey: ["orcamentos", canSeeFinancials ? "financeiro" : "operacional"],
@@ -85,22 +92,38 @@ function OrcamentosPage() {
   });
 
   async function handleCreate() {
-    if (!form.cliente_id || !form.titulo) return toast.error("Cliente e título são obrigatórios");
+    if (!form.titulo) return toast.error("Título é obrigatório");
+    if (!form.cliente_id && !form.contato_nome.trim())
+      return toast.error("Informe um cliente cadastrado ou o nome do contato");
     const valor = parseFloat(form.valor_total || "0");
     const { error } = await supabase.from("orcamentos").insert({
-      cliente_id: form.cliente_id,
+      cliente_id: form.cliente_id || null,
+      contato_nome: form.cliente_id ? null : form.contato_nome.trim(),
+      contato_telefone: form.cliente_id ? null : form.contato_telefone.trim() || null,
+      contato_email: form.cliente_id ? null : form.contato_email.trim() || null,
       titulo: form.titulo,
       valor_total: valor,
       valor_subtotal: valor,
-    });
+    } as any);
     if (error) return toast.error(error.message);
     toast.success("Orçamento criado");
     setOpen(false);
-    setForm({ cliente_id: "", titulo: "", valor_total: "" });
+    setForm({
+      cliente_id: "",
+      contato_nome: "",
+      contato_telefone: "",
+      contato_email: "",
+      titulo: "",
+      valor_total: "",
+    });
     qc.invalidateQueries({ queryKey: ["orcamentos"] });
   }
 
   async function converterEmOS(orc: any) {
+    if (!orc.cliente_id)
+      return toast.error(
+        "Vincule um cliente cadastrado a este orçamento antes de convertê-lo em OS.",
+      );
     const { data, error } = await (supabase.rpc as any)("converter_orcamento_em_os", {
       p_orcamento_id: orc.id,
       p_opcoes: {},
@@ -130,15 +153,18 @@ function OrcamentosPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Cliente *</Label>
+                  <Label>Cliente</Label>
                   <Select
-                    value={form.cliente_id}
-                    onValueChange={(v) => setForm({ ...form, cliente_id: v })}
+                    value={form.cliente_id || "__avulso"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, cliente_id: v === "__avulso" ? "" : v })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__avulso">Sem cadastro (contato avulso)</SelectItem>
                       {clientes.map((c: any) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.nome}
@@ -146,7 +172,39 @@ function OrcamentosPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O cliente cadastrado só é exigido na conversão em OS.
+                  </p>
                 </div>
+                {!form.cliente_id && (
+                  <div className="grid gap-3 sm:grid-cols-3 rounded-lg border border-border/60 bg-card/40 p-3">
+                    <div className="space-y-2">
+                      <Label>Nome do contato *</Label>
+                      <Input
+                        value={form.contato_nome}
+                        onChange={(e) => setForm({ ...form, contato_nome: e.target.value })}
+                        placeholder="Ex.: Marina (Instagram)"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telefone</Label>
+                      <Input
+                        value={form.contato_telefone}
+                        onChange={(e) => setForm({ ...form, contato_telefone: e.target.value })}
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>E-mail</Label>
+                      <Input
+                        value={form.contato_email}
+                        onChange={(e) => setForm({ ...form, contato_email: e.target.value })}
+                        placeholder="contato@email.com"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Título *</Label>
                   <Input
@@ -216,7 +274,14 @@ function OrcamentosPage() {
                         {o.titulo}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {o.cliente_nome ?? (
+                        <span className="inline-flex items-center gap-1.5">
+                          {o.contato_nome ?? "—"}
+                          <StatusChip label="sem cadastro" tone="amber" />
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <StatusChip
                         label={statusLabel[o.status] ?? o.status}
