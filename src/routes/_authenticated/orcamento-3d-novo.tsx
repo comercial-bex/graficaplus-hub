@@ -821,6 +821,24 @@ function NovoOrcamento3D() {
                 ))}
               </div>
 
+              {configErro && (
+                <p className="text-xs text-[color:var(--bex-magenta)]">
+                  Não foi possível ler a base de precificação 3D — os valores abaixo são padrões
+                  genéricos. Revise em Configurações 3D.
+                </p>
+              )}
+              {!configErro && vindoDaConfig.size > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Tarifa de energia, mão de obra e demais parâmetros vindos das{" "}
+                  <Link to="/configuracoes-3d" className="text-[color:var(--bex-cyan)] hover:underline">
+                    Configurações 3D
+                  </Link>
+                  . Edite abaixo para sobrepor só neste orçamento.
+                </p>
+              )}
+
+
+
               <div className="grid gap-3 md:grid-cols-3">
                 <Campo
                   label="Custo-hora máquina (R$/h)"
