@@ -120,6 +120,10 @@ function OrcamentosPage() {
   }
 
   async function converterEmOS(orc: any) {
+    if (!orc.cliente_id)
+      return toast.error(
+        "Vincule um cliente cadastrado a este orçamento antes de convertê-lo em OS.",
+      );
     const { data, error } = await (supabase.rpc as any)("converter_orcamento_em_os", {
       p_orcamento_id: orc.id,
       p_opcoes: {},
