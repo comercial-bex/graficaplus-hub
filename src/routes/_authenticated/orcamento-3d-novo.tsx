@@ -578,6 +578,43 @@ function NovoOrcamento3D() {
                 </div>
               </div>
 
+              {!f.cliente_id && (
+                <div className="grid gap-3 md:grid-cols-3 rounded-lg border border-border/60 bg-card/40 p-3">
+                  <div className="space-y-1.5">
+                    <FieldTooltip
+                      label="Nome do contato"
+                      hint="Aparece no PDF no lugar do cliente. Você cadastra o cliente depois, na conversão em OS."
+                    />
+                    <Input
+                      aria-label="Nome do contato"
+                      value={f.contato_nome}
+                      onChange={(e) => set("contato_nome", e.target.value)}
+                      placeholder="Ex.: Marina (Instagram)"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Telefone / WhatsApp" hint="Opcional. Facilita o follow-up do orçamento." />
+                    <Input
+                      aria-label="Telefone do contato"
+                      value={f.contato_telefone}
+                      onChange={(e) => set("contato_telefone", e.target.value)}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="E-mail" hint="Opcional. Usado no envio do PDF do orçamento." />
+                    <Input
+                      aria-label="E-mail do contato"
+                      value={f.contato_email}
+                      onChange={(e) => set("contato_email", e.target.value)}
+                      placeholder="contato@email.com"
+                    />
+                  </div>
+                </div>
+              )}
+
+
+
               <Dropzone
                 label="Foto do modelo (opcional)"
                 hint="Imagem final da peça — vira capa do orçamento, PDF e listagem"
