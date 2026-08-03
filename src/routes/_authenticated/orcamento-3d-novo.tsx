@@ -542,18 +542,17 @@ function NovoOrcamento3D() {
                 <div className="space-y-1.5">
                   <FieldTooltip
                     label="Cliente"
-                    hint="Opcional. Vincula o orçamento ao 360º do cliente e habilita a conversão em OS."
+                    hint="Opcional. Sem cliente cadastrado, escreva o nome do contato abaixo — o vínculo só é exigido na hora de virar OS."
                   />
-                  <Select value={f.cliente_id} onValueChange={(v) => set("cliente_id", v)}>
+                  <Select
+                    value={f.cliente_id || "__avulso"}
+                    onValueChange={(v) => set("cliente_id", v === "__avulso" ? "" : v)}
+                  >
                     <SelectTrigger aria-label="Cliente">
                       <SelectValue placeholder="Selecionar" />
                     </SelectTrigger>
                     <SelectContent>
-                      {clientes.length === 0 && (
-                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                          Nenhum cliente cadastrado
-                        </div>
-                      )}
+                      <SelectItem value="__avulso">Sem cadastro (contato avulso)</SelectItem>
                       {clientes.map((c: any) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.nome}
@@ -562,6 +561,7 @@ function NovoOrcamento3D() {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-1.5">
                   <FieldTooltip
                     label="Quantidade"
