@@ -274,7 +274,14 @@ function OrcamentosPage() {
                         {o.titulo}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {o.cliente_nome ?? (
+                        <span className="inline-flex items-center gap-1.5">
+                          {o.contato_nome ?? "—"}
+                          <StatusChip label="sem cadastro" tone="amber" />
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <StatusChip
                         label={statusLabel[o.status] ?? o.status}
