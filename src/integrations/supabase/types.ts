@@ -1306,6 +1306,95 @@ export type Database = {
           },
         ]
       }
+      config_precificacao_3d: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          custo_admin_padrao: number
+          energia_adicional_bandeira: number | null
+          energia_cofins_pct: number | null
+          energia_consumo_kwh: number | null
+          energia_distribuidora: string | null
+          energia_icms_pct: number | null
+          energia_pis_pct: number | null
+          energia_referencia: string | null
+          energia_tarifa_com_tributos: number | null
+          energia_tarifa_sem_tributos: number | null
+          energia_total_fatura: number | null
+          id: boolean
+          markup_atacado_padrao: number
+          markup_padrao: number
+          mo_custo_hora_padrao: number
+          mo_encargos_pct: number
+          mo_horas_mensais: number
+          mo_salario_mensal: number | null
+          observacao: string | null
+          pct_acabamento_padrao: number
+          pct_falha_padrao: number
+          tarifa_kwh_padrao: number
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          custo_admin_padrao?: number
+          energia_adicional_bandeira?: number | null
+          energia_cofins_pct?: number | null
+          energia_consumo_kwh?: number | null
+          energia_distribuidora?: string | null
+          energia_icms_pct?: number | null
+          energia_pis_pct?: number | null
+          energia_referencia?: string | null
+          energia_tarifa_com_tributos?: number | null
+          energia_tarifa_sem_tributos?: number | null
+          energia_total_fatura?: number | null
+          id?: boolean
+          markup_atacado_padrao?: number
+          markup_padrao?: number
+          mo_custo_hora_padrao?: number
+          mo_encargos_pct?: number
+          mo_horas_mensais?: number
+          mo_salario_mensal?: number | null
+          observacao?: string | null
+          pct_acabamento_padrao?: number
+          pct_falha_padrao?: number
+          tarifa_kwh_padrao?: number
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          custo_admin_padrao?: number
+          energia_adicional_bandeira?: number | null
+          energia_cofins_pct?: number | null
+          energia_consumo_kwh?: number | null
+          energia_distribuidora?: string | null
+          energia_icms_pct?: number | null
+          energia_pis_pct?: number | null
+          energia_referencia?: string | null
+          energia_tarifa_com_tributos?: number | null
+          energia_tarifa_sem_tributos?: number | null
+          energia_total_fatura?: number | null
+          id?: boolean
+          markup_atacado_padrao?: number
+          markup_padrao?: number
+          mo_custo_hora_padrao?: number
+          mo_encargos_pct?: number
+          mo_horas_mensais?: number
+          mo_salario_mensal?: number | null
+          observacao?: string | null
+          pct_acabamento_padrao?: number
+          pct_falha_padrao?: number
+          tarifa_kwh_padrao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_precificacao_3d_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_receber: {
         Row: {
           cliente_id: string
@@ -9861,7 +9950,9 @@ export type Database = {
           p_maquina_id: string
           p_modelo?: string
           p_nome: string
+          p_potencia_aquecimento_w?: number
           p_potencia_media_w?: number
+          p_potencia_standby_w?: number
           p_tecnologia?: string
           p_valor_residual?: number
           p_vida_util_horas?: number
