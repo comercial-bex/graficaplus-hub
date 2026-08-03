@@ -92,18 +92,30 @@ function OrcamentosPage() {
   });
 
   async function handleCreate() {
-    if (!form.cliente_id || !form.titulo) return toast.error("Cliente e título são obrigatórios");
+    if (!form.titulo) return toast.error("Título é obrigatório");
+    if (!form.cliente_id && !form.contato_nome.trim())
+      return toast.error("Informe um cliente cadastrado ou o nome do contato");
     const valor = parseFloat(form.valor_total || "0");
     const { error } = await supabase.from("orcamentos").insert({
-      cliente_id: form.cliente_id,
+      cliente_id: form.cliente_id || null,
+      contato_nome: form.cliente_id ? null : form.contato_nome.trim(),
+      contato_telefone: form.cliente_id ? null : form.contato_telefone.trim() || null,
+      contato_email: form.cliente_id ? null : form.contato_email.trim() || null,
       titulo: form.titulo,
       valor_total: valor,
       valor_subtotal: valor,
-    });
+    } as any);
     if (error) return toast.error(error.message);
     toast.success("Orçamento criado");
     setOpen(false);
-    setForm({ cliente_id: "", titulo: "", valor_total: "" });
+    setForm({
+      cliente_id: "",
+      contato_nome: "",
+      contato_telefone: "",
+      contato_email: "",
+      titulo: "",
+      valor_total: "",
+    });
     qc.invalidateQueries({ queryKey: ["orcamentos"] });
   }
 
