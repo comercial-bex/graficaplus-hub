@@ -63,7 +63,14 @@ function OrcamentosPage() {
   const qc = useQueryClient();
   const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ cliente_id: "", titulo: "", valor_total: "" });
+  const [form, setForm] = useState({
+    cliente_id: "",
+    contato_nome: "",
+    contato_telefone: "",
+    contato_email: "",
+    titulo: "",
+    valor_total: "",
+  });
 
   const { data: orcamentos = [], isLoading } = useQuery({
     queryKey: ["orcamentos", canSeeFinancials ? "financeiro" : "operacional"],
