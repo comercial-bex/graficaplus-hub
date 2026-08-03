@@ -470,23 +470,32 @@ function NovoOrcamento3D() {
       if (error) throw error;
       const id = data as string;
 
-      // grava a foto do modelo em orcamentos_3d.foto_modelo_path (não bloqueia o
-      // salvar — a foto é secundária; só avisa se falhar em vez de engolir).
-      if (fotoPath && id) {
-        const { error: fotoErr } = await (supabase as any)
+      // grava a foto do modelo e os dados do contato avulso em orcamentos_3d
+      // (não bloqueiam o salvar — só avisam se falharem).
+      const extras: Record<string, unknown> = {};
+      if (fotoPath) extras.foto_modelo_path = fotoPath;
+      if (!f.cliente_id) {
+        extras.contato_nome = f.contato_nome.trim() || null;
+        extras.contato_telefone = f.contato_telefone.trim() || null;
+        extras.contato_email = f.contato_email.trim() || null;
+      }
+      if (id && Object.keys(extras).length) {
+        const { error: extraErr } = await (supabase as any)
           .from("orcamentos_3d")
-          .update({ foto_modelo_path: fotoPath })
+          .update(extras)
           .eq("id", id);
-        if (fotoErr) toast.warning("Orçamento salvo, mas a foto do modelo não foi vinculada.");
+        if (extraErr) toast.warning("Orçamento salvo, mas foto/contato não foram vinculados.");
       }
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       toast.success("Orçamento 3D salvo");
-      navigate({ to: "/impressao-3d" });
+      if (id) navigate({ to: "/orcamento-3d/$id", params: { id } });
+      else navigate({ to: "/impressao-3d" });
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const margemPct = calc.margem.toNumber() * 100;
   const margemTone: "lime" | "amber" | "magenta" =
