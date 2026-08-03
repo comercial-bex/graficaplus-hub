@@ -149,15 +149,18 @@ function OrcamentosPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Cliente *</Label>
+                  <Label>Cliente</Label>
                   <Select
-                    value={form.cliente_id}
-                    onValueChange={(v) => setForm({ ...form, cliente_id: v })}
+                    value={form.cliente_id || "__avulso"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, cliente_id: v === "__avulso" ? "" : v })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__avulso">Sem cadastro (contato avulso)</SelectItem>
                       {clientes.map((c: any) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.nome}
@@ -165,7 +168,39 @@ function OrcamentosPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O cliente cadastrado só é exigido na conversão em OS.
+                  </p>
                 </div>
+                {!form.cliente_id && (
+                  <div className="grid gap-3 sm:grid-cols-3 rounded-lg border border-border/60 bg-card/40 p-3">
+                    <div className="space-y-2">
+                      <Label>Nome do contato *</Label>
+                      <Input
+                        value={form.contato_nome}
+                        onChange={(e) => setForm({ ...form, contato_nome: e.target.value })}
+                        placeholder="Ex.: Marina (Instagram)"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telefone</Label>
+                      <Input
+                        value={form.contato_telefone}
+                        onChange={(e) => setForm({ ...form, contato_telefone: e.target.value })}
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>E-mail</Label>
+                      <Input
+                        value={form.contato_email}
+                        onChange={(e) => setForm({ ...form, contato_email: e.target.value })}
+                        placeholder="contato@email.com"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Título *</Label>
                   <Input
