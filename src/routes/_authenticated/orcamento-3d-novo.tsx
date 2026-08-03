@@ -70,6 +70,9 @@ function slugFile(name: string) {
 
 type FormState = {
   cliente_id: string;
+  contato_nome: string;
+  contato_telefone: string;
+  contato_email: string;
   titulo: string;
   quantidade: string;
   maquina_id: string;
