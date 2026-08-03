@@ -133,6 +133,9 @@ function NovoOrcamento3D() {
 
   const [f, setF] = useState<FormState>({
     cliente_id: "",
+    contato_nome: "",
+    contato_telefone: "",
+    contato_email: "",
     titulo: "",
     quantidade: "1",
     maquina_id: "",
@@ -155,8 +158,18 @@ function NovoOrcamento3D() {
     custo_admin: "0",
     markup: "2",
   });
-  const set = (k: keyof FormState, v: string) => setF((s) => ({ ...s, [k]: v }));
+  // Campos que o usuário (ou um preset) já tocou — a configuração salva só
+  // preenche o que ainda está intocado, em vez de comparar com literais.
+  const tocados = useRef<Set<keyof FormState>>(new Set());
+  const set = (k: keyof FormState, v: string) => {
+    tocados.current.add(k);
+    setF((s) => ({ ...s, [k]: v }));
+  };
   const patch = (p: Partial<FormState>) => setF((s) => ({ ...s, ...p }));
+  const aplicarPreset = (p: Partial<FormState>) => {
+    (Object.keys(p) as (keyof FormState)[]).forEach((k) => tocados.current.add(k));
+    patch(p);
+  };
 
   // aplica último preset salvo
   useEffect(() => {
@@ -164,7 +177,7 @@ function NovoOrcamento3D() {
     const id = localStorage.getItem("bex.orc3d.preset");
     if (!id) return;
     const p = PRESETS.find((x) => x.id === id);
-    if (p) patch(p.patch);
+    if (p) aplicarPreset(p.patch);
   }, []);
 
   const [fotoModelo, setFotoModelo] = useState<File | null>(null);
