@@ -109,7 +109,7 @@ function OrcamentoDetalhe() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">{orc.titulo}</h1>
           <p className="text-muted-foreground">
-            {orc.clientes?.nome ?? "Sem cliente"} · Qtd {Number(orc.quantidade ?? 1)}
+            {orc.clientes?.nome ?? orc.contato_nome ?? "Sem cliente"} · Qtd {Number(orc.quantidade ?? 1)}
           </p>
         </div>
         <StatusChip label={orc.status} tone={orc.status === "convertido" ? "lime" : "muted"} />
