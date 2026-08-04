@@ -236,6 +236,8 @@ function OSDetailPage() {
 
       <PDFHistoryCard tipo="os" referencia_id={id} />
 
+      <MateriaisPrevistosCard osId={id} />
+
       <HistoricoEstoqueCard osId={id} />
 
       <PDFPreviewDialog
