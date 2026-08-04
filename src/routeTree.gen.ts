@@ -25,6 +25,7 @@ import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
+import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
 import { Route as AuthenticatedOsRouteImport } from './routes/_authenticated/os'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
@@ -142,6 +143,11 @@ const AuthenticatedPortalClienteRoute =
     path: '/portal-cliente',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPerdasRoute = AuthenticatedPerdasRouteImport.update({
+  id: '/perdas',
+  path: '/perdas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOsRoute = AuthenticatedOsRouteImport.update({
   id: '/os',
   path: '/os',
@@ -356,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
+  '/perdas': typeof AuthenticatedPerdasRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
@@ -406,6 +413,7 @@ export interface FileRoutesByTo {
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
+  '/perdas': typeof AuthenticatedPerdasRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
@@ -458,6 +466,7 @@ export interface FileRoutesById {
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/_authenticated/os': typeof AuthenticatedOsRouteWithChildren
+  '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
@@ -510,6 +519,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d-novo'
     | '/orcamentos'
     | '/os'
+    | '/perdas'
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
@@ -560,6 +570,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d-novo'
     | '/orcamentos'
     | '/os'
+    | '/perdas'
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
@@ -611,6 +622,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamento-3d-novo'
     | '/_authenticated/orcamentos'
     | '/_authenticated/os'
+    | '/_authenticated/perdas'
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
     | '/_authenticated/precificacao'
@@ -749,6 +761,13 @@ declare module '@tanstack/react-router' {
       path: '/portal-cliente'
       fullPath: '/portal-cliente'
       preLoaderRoute: typeof AuthenticatedPortalClienteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/perdas': {
+      id: '/_authenticated/perdas'
+      path: '/perdas'
+      fullPath: '/perdas'
+      preLoaderRoute: typeof AuthenticatedPerdasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/os': {
@@ -1054,6 +1073,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRouteWithChildren
   AuthenticatedOsRoute: typeof AuthenticatedOsRouteWithChildren
+  AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
@@ -1097,6 +1117,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRouteWithChildren,
   AuthenticatedOsRoute: AuthenticatedOsRouteWithChildren,
+  AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
