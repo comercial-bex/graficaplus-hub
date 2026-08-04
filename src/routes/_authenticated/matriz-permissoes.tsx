@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionHeader } from "@/components/bex/SectionHeader";
@@ -143,8 +143,8 @@ function MatrizPermissoesPage() {
             </thead>
             <tbody>
               {grupos.map(([modulo, perms]) => (
-                <>
-                  <tr key={modulo} className="bg-muted/40">
+                <Fragment key={modulo}>
+                  <tr className="bg-muted/40">
                     <td
                       colSpan={ROLES.length + 1}
                       className="px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[color:var(--bex-cyan)]"
@@ -166,7 +166,7 @@ function MatrizPermissoesPage() {
                       ))}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
               {grupos.length === 0 && (
                 <tr>

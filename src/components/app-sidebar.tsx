@@ -27,6 +27,9 @@ import {
   UserPlus,
   Boxes,
   Cuboid,
+  ShieldCheck,
+  Workflow,
+  Network,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -127,6 +130,9 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     gate: "admin",
     items: [
       { title: "Usuários", url: "/usuarios", icon: Shield },
+      { title: "Matriz de permissões", url: "/matriz-permissoes", icon: ShieldCheck },
+      { title: "Casos de uso", url: "/casos-de-uso", icon: Workflow },
+      { title: "Mapa do sistema", url: "/mapa-sistema", icon: Network },
       { title: "Logs & Auditoria", url: "/logs", icon: History },
       { title: "Configurações", url: "/configuracoes", icon: Settings },
     ],
