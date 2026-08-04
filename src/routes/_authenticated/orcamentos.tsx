@@ -138,10 +138,13 @@ function OrcamentosPage() {
       return toast.error(
         "Vincule um cliente cadastrado a este orçamento antes de convertê-lo em OS.",
       );
-    const { data, error } = await (supabase.rpc as any)("converter_orcamento_em_os", {
-      p_orcamento_id: orc.id,
-      p_opcoes: {},
-    });
+    const orc3dId = mapa3d[orc.id];
+    const { data, error } = orc3dId
+      ? await (supabase.rpc as any)("converter_orcamento_3d_em_os", { p_orcamento_3d_id: orc3dId })
+      : await (supabase.rpc as any)("converter_orcamento_em_os", {
+          p_orcamento_id: orc.id,
+          p_opcoes: {},
+        });
     if (error) return toast.error(error.message);
     const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
     toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
