@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 type SupabaseError = { message: string };
@@ -20,6 +21,11 @@ type QueryResult<T> = { data: T | null; error: SupabaseError | null };
 type SupabaseQuery<T> = PromiseLike<QueryResult<T>> & {
   order: (column: string, options?: { ascending?: boolean }) => SupabaseQuery<T>;
   limit: (count: number) => SupabaseQuery<T>;
+};
+type CountResult = { count: number | null; error: SupabaseError | null };
+type SupabaseCountQuery = PromiseLike<CountResult> & {
+  eq: (column: string, value: string | boolean | number) => SupabaseCountQuery;
+  lte: (column: string, value: string) => SupabaseCountQuery;
 };
 type SupabaseUpdate = {
   eq: (
@@ -29,7 +35,10 @@ type SupabaseUpdate = {
 };
 type UntypedSupabase = {
   from: (table: string) => {
-    select: <T>(columns?: string) => SupabaseQuery<T>;
+    select: {
+      <T>(columns?: string): SupabaseQuery<T>;
+      (columns: string, options: { count: "exact"; head: true }): SupabaseCountQuery;
+    };
     update: (values: Record<string, unknown>) => SupabaseUpdate;
   };
 };
@@ -106,6 +115,25 @@ function AutoPage() {
     },
   });
 
+  // A fila só anda se a edge function process-automations estiver publicada e
+  // sendo chamada. Enquanto não estiver, marcar uma automação como "Ativa" não
+  // dispara nada e a tela não dava nenhum sinal disso. Execução pendente com
+  // horário já vencido há mais de 15 min significa que ninguém está consumindo.
+  const { data: filaParada = 0 } = useQuery({
+    queryKey: ["automacao_fila_parada"],
+    queryFn: async () => {
+      const limite = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const { count, error } = await automationsDb
+        .from("automacao_execucoes")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pendente")
+        .lte("scheduled_at", limite);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 60_000,
+  });
+
   const toggle = useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
       const { error } = await automationsDb.from("automacoes").update({ ativo }).eq("id", id);
@@ -126,6 +154,24 @@ function AutoPage() {
           Regras reais processadas por fila e disparadas via Z-API
         </p>
       </div>
+
+      {filaParada > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4"
+        >
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium">
+              Fila parada: {filaParada} {filaParada === 1 ? "execução vencida" : "execuções vencidas"}
+            </p>
+            <p className="text-muted-foreground">
+              Nenhuma delas foi processada. Automações marcadas como “Ativa” não estão disparando —
+              publique a função <code>process-automations</code> e configure os segredos da Z-API.
+            </p>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
