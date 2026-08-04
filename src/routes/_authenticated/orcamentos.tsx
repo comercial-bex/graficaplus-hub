@@ -91,6 +91,20 @@ function OrcamentosPage() {
     },
   });
 
+  // Orçamentos originados no módulo 3D (para exibir tipo e link no funil único)
+  const { data: mapa3d = {} } = useQuery({
+    queryKey: ["orcamentos-3d-map"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("orcamentos_3d")
+        .select("id, orcamento_id")
+        .not("orcamento_id", "is", null);
+      const map: Record<string, string> = {};
+      for (const r of data ?? []) if (r.orcamento_id) map[r.orcamento_id] = r.id;
+      return map;
+    },
+  });
+
   async function handleCreate() {
     if (!form.titulo) return toast.error("Título é obrigatório");
     if (!form.cliente_id && !form.contato_nome.trim())
