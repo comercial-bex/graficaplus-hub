@@ -254,6 +254,7 @@ function OrcamentosPage() {
               <TableRow>
                 <TableHead>#</TableHead>
                 <TableHead>Título</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Status</TableHead>
                 {canSeeFinancials && <TableHead>Valor</TableHead>}
