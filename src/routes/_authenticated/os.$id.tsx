@@ -34,6 +34,7 @@ import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
 import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
+import { MateriaisPrevistosCard } from "@/components/materiais-previstos-card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
