@@ -50,26 +50,31 @@ export const Route = createFileRoute("/_authenticated/perdas")({
   component: PerdasPage,
 });
 
+type PerdaRow = { custo_total: number | null; custo_unitario: number; quantidade_perdida: number };
+const custoDaPerda = (p: PerdaRow) =>
+  Number(p.custo_total ?? Number(p.custo_unitario ?? 0) * Number(p.quantidade_perdida ?? 0));
+
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const motivos = [
   { value: "erro_arte", label: "Erro de arte" },
-  { value: "erro_operador", label: "Erro do operador" },
-  { value: "falha_maquina", label: "Falha da máquina" },
-  { value: "material_defeito", label: "Material com defeito" },
-  { value: "recorte_sobra", label: "Sobra de recorte" },
-  { value: "teste_calibracao", label: "Teste / calibração" },
-  { value: "cliente_alterou", label: "Cliente alterou" },
+  { value: "falha_impressao", label: "Falha de impressão" },
+  { value: "material_defeituoso", label: "Material defeituoso" },
+  { value: "refile", label: "Refile / sobra" },
+  { value: "teste_cor", label: "Teste de cor" },
   { value: "outro", label: "Outro" },
-];
+] as const;
+
+type Motivo = (typeof motivos)[number]["value"];
 
 type Form = {
   os_id: string;
   material_id: string;
   maquina_id: string;
-  motivo: string;
+  motivo: Motivo;
   quantidade: string;
-  custo_estimado: string;
+  custo_unitario: string;
+  unidade: string;
   observacoes: string;
 };
 
@@ -77,9 +82,10 @@ const emptyForm: Form = {
   os_id: "",
   material_id: "",
   maquina_id: "",
-  motivo: "erro_operador",
+  motivo: "erro_arte",
   quantidade: "0",
-  custo_estimado: "0",
+  custo_unitario: "0",
+  unidade: "un",
   observacoes: "",
 };
 
@@ -139,8 +145,9 @@ function PerdasPage() {
         material_id: form.material_id || null,
         maquina_id: form.maquina_id || null,
         motivo: form.motivo,
-        quantidade: Number(form.quantidade) || 0,
-        custo_estimado: Number(form.custo_estimado) || 0,
+        quantidade_perdida: Number(form.quantidade) || 0,
+        custo_unitario: Number(form.custo_unitario) || 0,
+        unidade: form.unidade || "un",
         observacoes: form.observacoes || null,
       });
       if (error) throw error;
@@ -155,11 +162,11 @@ function PerdasPage() {
   });
 
   const kpis = useMemo(() => {
-    const custoTotal = perdas.reduce((a, p) => a + Number(p.custo_estimado ?? 0), 0);
+    const custoTotal = perdas.reduce((a, p) => a + custoDaPerda(p), 0);
     const mesAtual = new Date().toISOString().slice(0, 7);
     const custoMes = perdas
       .filter((p) => String(p.created_at ?? "").slice(0, 7) === mesAtual)
-      .reduce((a, p) => a + Number(p.custo_estimado ?? 0), 0);
+      .reduce((a, p) => a + custoDaPerda(p), 0);
     return { custoTotal, custoMes, registros: perdas.length };
   }, [perdas]);
 
@@ -167,7 +174,7 @@ function PerdasPage() {
     const mapa = new Map<string, number>();
     for (const p of perdas) {
       const key = motivos.find((m) => m.value === p.motivo)?.label ?? String(p.motivo);
-      mapa.set(key, (mapa.get(key) ?? 0) + Number(p.custo_estimado ?? 0));
+      mapa.set(key, (mapa.get(key) ?? 0) + custoDaPerda(p));
     }
     return [...mapa.entries()]
       .map(([motivo, custo]) => ({ motivo, custo }))
@@ -195,7 +202,7 @@ function PerdasPage() {
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
         <KpiCard label="Custo perdido (total)" value={brl(kpis.custoTotal)} icon={TrendingDown} tone="magenta" />
-        <KpiCard label="Custo perdido no mês" value={brl(kpis.custoMes)} icon={AlertTriangle} tone="amber" />
+        <KpiCard label="Custo perdido no mês" value={brl(kpis.custoMes)} icon={AlertTriangle} tone="magenta" />
         <KpiCard label="Registros" value={kpis.registros} icon={Recycle} tone="cyan" />
       </div>
 
@@ -242,8 +249,8 @@ function PerdasPage() {
                   <div className="min-w-0">
                     <div className="font-medium truncate">
                       {p.materiais?.nome ?? "Material não informado"}
-                      {p.quantidade
-                        ? ` · ${Number(p.quantidade)} ${p.materiais?.unidade ?? ""}`
+                      {p.quantidade_perdida
+                        ? ` · ${Number(p.quantidade_perdida)} ${p.unidade ?? p.materiais?.unidade ?? ""}`
                         : ""}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -258,7 +265,7 @@ function PerdasPage() {
                       tone="amber"
                     />
                     <span className="font-bold tabular-nums text-[color:var(--bex-magenta)]">
-                      {brl(Number(p.custo_estimado ?? 0))}
+                      {brl(custoDaPerda(p))}
                     </span>
                   </div>
                 </div>
@@ -291,7 +298,7 @@ function PerdasPage() {
             </div>
             <div className="space-y-2">
               <Label>Motivo *</Label>
-              <Select value={form.motivo} onValueChange={(v) => setForm((f) => ({ ...f, motivo: v }))}>
+              <Select value={form.motivo} onValueChange={(v) => setForm((f) => ({ ...f, motivo: v as Motivo }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -350,12 +357,12 @@ function PerdasPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Custo estimado (R$)</Label>
+              <Label>Custo unitário (R$)</Label>
               <Input
                 type="number"
                 step="0.01"
-                value={form.custo_estimado}
-                onChange={(e) => setForm((f) => ({ ...f, custo_estimado: e.target.value }))}
+                value={form.custo_unitario}
+                onChange={(e) => setForm((f) => ({ ...f, custo_unitario: e.target.value }))}
               />
             </div>
             <div className="sm:col-span-2 space-y-2">
