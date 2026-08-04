@@ -62,6 +62,9 @@ export const routePermissions: { path: string; permission: Permission }[] = [
   { path: "/relatorios", permission: "resultado.read" },
   { path: "/logs", permission: "logs.read" },
   { path: "/usuarios", permission: "usuarios.read" },
+  { path: "/matriz-permissoes", permission: "usuarios.read" },
+  { path: "/casos-de-uso", permission: "os.read" },
+  { path: "/mapa-sistema", permission: "os.read" },
   { path: "/configuracoes", permission: "configuracoes.manage" },
 ];
 
