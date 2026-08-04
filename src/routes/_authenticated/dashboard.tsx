@@ -140,7 +140,9 @@ function DashboardPage() {
       const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs] =
         await Promise.all([
           fromFinancialView("ordens_servico", canSeeFinancials).select(
-            canSeeFinancials ? "status, valor_total, custo_real, created_at" : "status, created_at",
+            canSeeFinancials
+              ? "status, valor_total, custo_previsto, custo_real, created_at"
+              : "status, created_at",
           ),
           supabase.from("vw_dashboard_custos_categoria").select("categoria, total"),
           supabase.from("produtos").select("nome"),
@@ -170,18 +172,38 @@ function DashboardPage() {
   const custos = dashboardData?.custos ?? [];
   const conversas = dashboardData?.conversas ?? [];
   const materiais = dashboardData?.materiais ?? [];
-  const faturamentoMensal = Array.from({ length: 12 }, (_, i) => ({
-    mes: new Date(2026, i, 1).toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
-    faturamento: os
-      .filter((o: any) => new Date(o.created_at).getMonth() === i)
-      .reduce((s: number, o: any) => s + Number(o.valor_total ?? 0), 0),
-    lucro: os
-      .filter((o: any) => new Date(o.created_at).getMonth() === i)
-      .reduce((s: number, o: any) => s + Number(o.valor_total ?? 0) - Number(o.custo_real ?? 0), 0),
-  }));
+  // Janela móvel dos últimos 12 meses. Antes o eixo era fixo em 2026 e o filtro
+  // comparava só getMonth(), então OS de anos diferentes caíam no mesmo ponto e
+  // o faturamento vinha somado entre anos.
+  const hoje = new Date();
+  const janelaMeses = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - 11 + i, 1);
+    return {
+      ano: d.getFullYear(),
+      mesIndice: d.getMonth(),
+      rotulo: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+    };
+  });
+  const faturamentoMensal = janelaMeses.map(({ ano, mesIndice, rotulo }) => {
+    const doMes = os.filter((o: any) => {
+      const d = new Date(o.created_at);
+      return d.getFullYear() === ano && d.getMonth() === mesIndice;
+    });
+    const receita = doMes.reduce((s: number, o: any) => s + Number(o.valor_total ?? 0), 0);
+    return {
+      mes: rotulo,
+      faturamento: receita,
+      lucro: receita - doMes.reduce((s: number, o: any) => s + Number(o.custo_real ?? 0), 0),
+      // margem que a OS prometia no orçamento, para comparar com a realizada
+      lucroPrevisto:
+        receita - doMes.reduce((s: number, o: any) => s + Number(o.custo_previsto ?? 0), 0),
+    };
+  });
+  // Previsto usa custo_previsto e real usa custo_real; antes ambas as séries
+  // recebiam o mesmo valor e as linhas do gráfico coincidiam sempre.
   const lucroPrevistoRealMensal = faturamentoMensal
     .slice(-6)
-    .map((m) => ({ mes: m.mes, previsto: m.lucro, real: m.lucro }));
+    .map((m) => ({ mes: m.mes, previsto: m.lucroPrevisto, real: m.lucro }));
   const osPorStatus = Object.entries(
     os.reduce(
       (acc: Record<string, number>, o: any) => ({ ...acc, [o.status]: (acc[o.status] ?? 0) + 1 }),
