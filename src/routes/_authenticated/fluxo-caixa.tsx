@@ -357,7 +357,7 @@ function FluxoCaixaPage() {
                   <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={11} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={11} />
                   <RTooltip
-                    formatter={(v: number) => brl(Number(v))}
+                    formatter={(v) => brl(Number(v))}
                     contentStyle={{
                       background: "var(--card)",
                       border: "1px solid var(--border)",
