@@ -34,10 +34,24 @@ async function fetchRoles(userId: string): Promise<AppRole[]> {
   return (data ?? []).map((r) => r.role as AppRole);
 }
 
+/** Matriz perfil × permissão vinda do banco (fonte de verdade). */
+async function fetchPermissionMatrix(): Promise<Record<string, string[]>> {
+  const { data, error } = await supabase
+    .from("role_permission_matrix" as never)
+    .select("role, permission");
+  if (error || !data) return {};
+  const matrix: Record<string, string[]> = {};
+  for (const row of data as unknown as { role: string; permission: string }[]) {
+    (matrix[row.role] ??= []).push(row.permission);
+  }
+  return matrix;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [matrix, setMatrix] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,20 +63,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (s?.user) {
         setTimeout(() => {
           fetchRoles(s.user.id).then(setRoles);
+          fetchPermissionMatrix().then(setMatrix);
         }, 0);
       } else {
         setRoles([]);
+        setMatrix({});
       }
     });
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user)
+      if (s?.user) {
+        fetchPermissionMatrix().then(setMatrix);
         fetchRoles(s.user.id)
           .then(setRoles)
           .finally(() => setLoading(false));
-      else setLoading(false);
+      } else setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -70,7 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (r: AppRole) => roles.includes(r);
   const hasAnyRole = (rs: AppRole[]) => rs.some((r) => roles.includes(r));
-  const hasPermission = (permission: Permission) => checkPermission(roles, permission);
+  const hasPermission = (permission: Permission) => {
+    // Fonte de verdade: matriz do banco. Fallback: catálogo estático.
+    const fromDb = roles.some((role) => matrix[role]?.includes(permission));
+    if (fromDb) return true;
+    if (Object.keys(matrix).length > 0) return false;
+    return checkPermission(roles, permission);
+  };
   const canSeeFinancials = hasPermission("financeiro.read");
 
   const signOut = async () => {
@@ -78,7 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshRoles = async () => {
-    if (user) setRoles(await fetchRoles(user.id));
+    if (user) {
+      setRoles(await fetchRoles(user.id));
+      setMatrix(await fetchPermissionMatrix());
+    }
   };
 
   return (

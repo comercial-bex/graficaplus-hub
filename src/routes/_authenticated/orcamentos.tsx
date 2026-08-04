@@ -91,6 +91,20 @@ function OrcamentosPage() {
     },
   });
 
+  // Orçamentos originados no módulo 3D (para exibir tipo e link no funil único)
+  const { data: mapa3d = {} } = useQuery({
+    queryKey: ["orcamentos-3d-map"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("orcamentos_3d")
+        .select("id, orcamento_id")
+        .not("orcamento_id", "is", null);
+      const map: Record<string, string> = {};
+      for (const r of data ?? []) if (r.orcamento_id) map[r.orcamento_id] = r.id;
+      return map;
+    },
+  });
+
   async function handleCreate() {
     if (!form.titulo) return toast.error("Título é obrigatório");
     if (!form.cliente_id && !form.contato_nome.trim())
@@ -124,10 +138,13 @@ function OrcamentosPage() {
       return toast.error(
         "Vincule um cliente cadastrado a este orçamento antes de convertê-lo em OS.",
       );
-    const { data, error } = await (supabase.rpc as any)("converter_orcamento_em_os", {
-      p_orcamento_id: orc.id,
-      p_opcoes: {},
-    });
+    const orc3dId = mapa3d[orc.id];
+    const { data, error } = orc3dId
+      ? await (supabase.rpc as any)("converter_orcamento_3d_em_os", { p_orcamento_3d_id: orc3dId })
+      : await (supabase.rpc as any)("converter_orcamento_em_os", {
+          p_orcamento_id: orc.id,
+          p_opcoes: {},
+        });
     if (error) return toast.error(error.message);
     const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
     toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
@@ -240,6 +257,7 @@ function OrcamentosPage() {
               <TableRow>
                 <TableHead>#</TableHead>
                 <TableHead>Título</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Status</TableHead>
                 {canSeeFinancials && <TableHead>Valor</TableHead>}
@@ -249,14 +267,14 @@ function OrcamentosPage() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && orcamentos.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Nenhum orçamento
                   </TableCell>
                 </TableRow>
@@ -273,6 +291,15 @@ function OrcamentosPage() {
                       <Link to="/orcamentos/$id" params={{ id: o.id }} className="hover:underline">
                         {o.titulo}
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      {mapa3d[o.id] ? (
+                        <Link to="/orcamento-3d/$id" params={{ id: mapa3d[o.id] }}>
+                          <StatusChip label="Impressão 3D" tone="magenta" />
+                        </Link>
+                      ) : (
+                        <StatusChip label="Comunicação visual" tone="cyan" />
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {o.cliente_nome ?? (

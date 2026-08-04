@@ -14,159 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      agenda_maquinas: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          descricao: string | null
-          fim: string
-          id: string
-          inicio: string
-          item_os_id: string | null
-          maquina_id: string
-          observacoes: string | null
-          operador_id: string | null
-          os_id: string | null
-          prioridade: number
-          status: string
-          titulo: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          descricao?: string | null
-          fim: string
-          id?: string
-          inicio: string
-          item_os_id?: string | null
-          maquina_id: string
-          observacoes?: string | null
-          operador_id?: string | null
-          os_id?: string | null
-          prioridade?: number
-          status?: string
-          titulo: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          descricao?: string | null
-          fim?: string
-          id?: string
-          inicio?: string
-          item_os_id?: string | null
-          maquina_id?: string
-          observacoes?: string | null
-          operador_id?: string | null
-          os_id?: string | null
-          prioridade?: number
-          status?: string
-          titulo?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agenda_maquinas_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_item_os_id_fkey"
-            columns: ["item_os_id"]
-            isOneToOne: false
-            referencedRelation: "itens_os"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_item_os_id_fkey"
-            columns: ["item_os_id"]
-            isOneToOne: false
-            referencedRelation: "itens_os_financeiro"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_item_os_id_fkey"
-            columns: ["item_os_id"]
-            isOneToOne: false
-            referencedRelation: "itens_os_operacional"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_maquina_id_fkey"
-            columns: ["maquina_id"]
-            isOneToOne: false
-            referencedRelation: "maquinas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_maquina_id_fkey"
-            columns: ["maquina_id"]
-            isOneToOne: false
-            referencedRelation: "rel_producao_por_maquina"
-            referencedColumns: ["maquina_id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_operador_id_fkey"
-            columns: ["operador_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico_financeiro"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "ordens_servico_operacional"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "rel_lucro_por_os"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "rel_os_atrasadas"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "vw_resultado_operacional_os"
-            referencedColumns: ["os_id"]
-          },
-          {
-            foreignKeyName: "agenda_maquinas_os_id_fkey"
-            columns: ["os_id"]
-            isOneToOne: false
-            referencedRelation: "vw_resultado_os"
-            referencedColumns: ["os_id"]
-          },
-        ]
-      }
       apontamentos_producao: {
         Row: {
           created_at: string
@@ -7005,6 +6852,13 @@ export type Database = {
             foreignKeyName: "producao_3d_jobs_agenda_id_fkey"
             columns: ["agenda_id"]
             isOneToOne: false
+            referencedRelation: "agenda_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_3d_jobs_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
             referencedRelation: "maquinas_agenda"
             referencedColumns: ["id"]
           },
@@ -8511,6 +8365,159 @@ export type Database = {
       }
     }
     Views: {
+      agenda_maquinas: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          fim: string | null
+          id: string | null
+          inicio: string | null
+          item_os_id: string | null
+          maquina_id: string | null
+          observacoes: string | null
+          operador_id: string | null
+          os_id: string | null
+          prioridade: number | null
+          status: string | null
+          titulo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          fim?: string | null
+          id?: string | null
+          inicio?: string | null
+          item_os_id?: string | null
+          maquina_id?: string | null
+          observacoes?: string | null
+          operador_id?: string | null
+          os_id?: string | null
+          prioridade?: number | null
+          status?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          fim?: string | null
+          id?: string | null
+          inicio?: string | null
+          item_os_id?: string | null
+          maquina_id?: string | null
+          observacoes?: string | null
+          operador_id?: string | null
+          os_id?: string | null
+          prioridade?: number | null
+          status?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_agenda_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_item_id_fkey"
+            columns: ["item_os_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_item_id_fkey"
+            columns: ["item_os_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_os_item_id_fkey"
+            columns: ["item_os_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itens_os_financeiro: {
         Row: {
           created_at: string | null
@@ -9884,6 +9891,10 @@ export type Database = {
       forcar_transicao_os: {
         Args: { p_motivo: string; p_novo_status: string; p_os_id: string }
         Returns: Json
+      }
+      gerar_materiais_previstos_os: {
+        Args: { p_os_id: string }
+        Returns: number
       }
       get_relatorios_prioritarios: {
         Args: { p_fim?: string; p_inicio?: string }
