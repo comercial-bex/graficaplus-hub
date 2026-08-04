@@ -264,14 +264,14 @@ function OrcamentosPage() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && orcamentos.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Nenhum orçamento
                   </TableCell>
                 </TableRow>
