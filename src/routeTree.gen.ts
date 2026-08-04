@@ -25,6 +25,7 @@ import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
+import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
 import { Route as AuthenticatedOsRouteImport } from './routes/_authenticated/os'
 import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
@@ -41,11 +42,13 @@ import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedImpressoras3dRouteImport } from './routes/_authenticated/impressoras-3d'
 import { Route as AuthenticatedImpressao3dRouteImport } from './routes/_authenticated/impressao-3d'
+import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedFilamentos3dRouteImport } from './routes/_authenticated/filamentos-3d'
 import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticated/entregas'
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCustosProducaoRouteImport } from './routes/_authenticated/custos-producao'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
@@ -140,6 +143,11 @@ const AuthenticatedPortalClienteRoute =
     path: '/portal-cliente',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPerdasRoute = AuthenticatedPerdasRouteImport.update({
+  id: '/perdas',
+  path: '/perdas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOsRoute = AuthenticatedOsRouteImport.update({
   id: '/os',
   path: '/os',
@@ -228,6 +236,11 @@ const AuthenticatedImpressao3dRoute =
     path: '/impressao-3d',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFluxoCaixaRoute = AuthenticatedFluxoCaixaRouteImport.update({
+  id: '/fluxo-caixa',
+  path: '/fluxo-caixa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
   id: '/financeiro',
   path: '/financeiro',
@@ -254,6 +267,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCustosProducaoRoute =
+  AuthenticatedCustosProducaoRouteImport.update({
+    id: '/custos-producao',
+    path: '/custos-producao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoes3dRoute =
   AuthenticatedConfiguracoes3dRouteImport.update({
     id: '/configuracoes-3d',
@@ -320,11 +339,13 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -341,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
+  '/perdas': typeof AuthenticatedPerdasRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
@@ -368,11 +390,13 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
   '/entregas': typeof AuthenticatedEntregasRoute
   '/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -389,6 +413,7 @@ export interface FileRoutesByTo {
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/os': typeof AuthenticatedOsRouteWithChildren
+  '/perdas': typeof AuthenticatedPerdasRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
@@ -418,11 +443,13 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/_authenticated/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/design': typeof AuthenticatedDesignRoute
   '/_authenticated/entregas': typeof AuthenticatedEntregasRoute
   '/_authenticated/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
+  '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
   '/_authenticated/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/_authenticated/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
@@ -439,6 +466,7 @@ export interface FileRoutesById {
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
   '/_authenticated/os': typeof AuthenticatedOsRouteWithChildren
+  '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
@@ -468,11 +496,13 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/custos-producao'
     | '/dashboard'
     | '/design'
     | '/entregas'
     | '/filamentos-3d'
     | '/financeiro'
+    | '/fluxo-caixa'
     | '/impressao-3d'
     | '/impressoras-3d'
     | '/kanban'
@@ -489,6 +519,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d-novo'
     | '/orcamentos'
     | '/os'
+    | '/perdas'
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
@@ -516,11 +547,13 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/custos-producao'
     | '/dashboard'
     | '/design'
     | '/entregas'
     | '/filamentos-3d'
     | '/financeiro'
+    | '/fluxo-caixa'
     | '/impressao-3d'
     | '/impressoras-3d'
     | '/kanban'
@@ -537,6 +570,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d-novo'
     | '/orcamentos'
     | '/os'
+    | '/perdas'
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
@@ -565,11 +599,13 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
+    | '/_authenticated/custos-producao'
     | '/_authenticated/dashboard'
     | '/_authenticated/design'
     | '/_authenticated/entregas'
     | '/_authenticated/filamentos-3d'
     | '/_authenticated/financeiro'
+    | '/_authenticated/fluxo-caixa'
     | '/_authenticated/impressao-3d'
     | '/_authenticated/impressoras-3d'
     | '/_authenticated/kanban'
@@ -586,6 +622,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamento-3d-novo'
     | '/_authenticated/orcamentos'
     | '/_authenticated/os'
+    | '/_authenticated/perdas'
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
     | '/_authenticated/precificacao'
@@ -726,6 +763,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortalClienteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perdas': {
+      id: '/_authenticated/perdas'
+      path: '/perdas'
+      fullPath: '/perdas'
+      preLoaderRoute: typeof AuthenticatedPerdasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/os': {
       id: '/_authenticated/os'
       path: '/os'
@@ -838,6 +882,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImpressao3dRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/fluxo-caixa': {
+      id: '/_authenticated/fluxo-caixa'
+      path: '/fluxo-caixa'
+      fullPath: '/fluxo-caixa'
+      preLoaderRoute: typeof AuthenticatedFluxoCaixaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/financeiro': {
       id: '/_authenticated/financeiro'
       path: '/financeiro'
@@ -871,6 +922,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/custos-producao': {
+      id: '/_authenticated/custos-producao'
+      path: '/custos-producao'
+      fullPath: '/custos-producao'
+      preLoaderRoute: typeof AuthenticatedCustosProducaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes-3d': {
@@ -992,11 +1050,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRouteWithChildren
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
+  AuthenticatedCustosProducaoRoute: typeof AuthenticatedCustosProducaoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
   AuthenticatedEntregasRoute: typeof AuthenticatedEntregasRoute
   AuthenticatedFilamentos3dRoute: typeof AuthenticatedFilamentos3dRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
+  AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
   AuthenticatedImpressao3dRoute: typeof AuthenticatedImpressao3dRoute
   AuthenticatedImpressoras3dRoute: typeof AuthenticatedImpressoras3dRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
@@ -1013,6 +1073,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
   AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRouteWithChildren
   AuthenticatedOsRoute: typeof AuthenticatedOsRouteWithChildren
+  AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
@@ -1033,11 +1094,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRouteWithChildren,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
+  AuthenticatedCustosProducaoRoute: AuthenticatedCustosProducaoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
   AuthenticatedEntregasRoute: AuthenticatedEntregasRoute,
   AuthenticatedFilamentos3dRoute: AuthenticatedFilamentos3dRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
+  AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
   AuthenticatedImpressao3dRoute: AuthenticatedImpressao3dRoute,
   AuthenticatedImpressoras3dRoute: AuthenticatedImpressoras3dRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
@@ -1054,6 +1117,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
   AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRouteWithChildren,
   AuthenticatedOsRoute: AuthenticatedOsRouteWithChildren,
+  AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
@@ -1081,13 +1145,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

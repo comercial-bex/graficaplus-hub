@@ -30,6 +30,8 @@ import {
   ShieldCheck,
   Workflow,
   Network,
+  TrendingDown,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -91,6 +93,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
         icon: Truck,
         permission: "os.status.advance",
       },
+      { title: "Perdas & desperdício", url: "/perdas", icon: TrendingDown, permission: "os.update" },
       { title: "Ocorrências", url: "/ocorrencias", icon: AlertTriangle },
     ],
   },
@@ -100,6 +103,12 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Produtos", url: "/produtos", icon: Package },
       { title: "Precificação", url: "/precificacao", icon: Calculator, permission: "custos.read" },
       { title: "Materiais", url: "/materiais", icon: Boxes, permission: "custos.read" },
+      {
+        title: "Custos de mão de obra",
+        url: "/custos-producao",
+        icon: Users,
+        permission: "custos.read",
+      },
       {
         title: "Movimentações",
         url: "/movimentacoes",
@@ -113,6 +122,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     gate: "financial",
     items: [
       { title: "Financeiro", url: "/financeiro", icon: DollarSign, permission: "financeiro.read" },
+      { title: "Fluxo de caixa", url: "/fluxo-caixa", icon: Wallet, permission: "financeiro.read" },
     ],
   },
   {
