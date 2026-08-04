@@ -30,3 +30,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# npm não é usado neste repo (o lockfile versionado é bun.lock)
+package-lock.json
+
+# config local do Claude Code
+.claude/

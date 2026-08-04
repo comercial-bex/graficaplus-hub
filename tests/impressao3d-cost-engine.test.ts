@@ -1,4 +1,4 @@
-import { test, expect } from "bun:test";
+import { test, expect } from "vitest";
 import { failureReserve, operationalCost, price, totalGrams, materialCostPerGram, materialCost, energyCost } from "../src/domain/impressao3d/cost-engine";
 
 test("caso financeiro oficial", () => {
