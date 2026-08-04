@@ -34,6 +34,7 @@ import { Route as AuthenticatedMatrizPermissoesRouteImport } from './routes/_aut
 import { Route as AuthenticatedMateriaisRouteImport } from './routes/_authenticated/materiais'
 import { Route as AuthenticatedMaquinasAgendaRouteImport } from './routes/_authenticated/maquinas-agenda'
 import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
+import { Route as AuthenticatedMapaSistemaRouteImport } from './routes/_authenticated/mapa-sistema'
 import { Route as AuthenticatedManutencaoRouteImport } from './routes/_authenticated/manutencao'
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
@@ -189,6 +190,12 @@ const AuthenticatedMaquinasRoute = AuthenticatedMaquinasRouteImport.update({
   path: '/maquinas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMapaSistemaRoute =
+  AuthenticatedMapaSistemaRouteImport.update({
+    id: '/mapa-sistema',
+    path: '/mapa-sistema',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedManutencaoRoute = AuthenticatedManutencaoRouteImport.update({
   id: '/manutencao',
   path: '/manutencao',
@@ -324,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/leads': typeof AuthenticatedLeadsRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/manutencao': typeof AuthenticatedManutencaoRoute
+  '/mapa-sistema': typeof AuthenticatedMapaSistemaRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/materiais': typeof AuthenticatedMateriaisRoute
@@ -371,6 +379,7 @@ export interface FileRoutesByTo {
   '/leads': typeof AuthenticatedLeadsRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/manutencao': typeof AuthenticatedManutencaoRoute
+  '/mapa-sistema': typeof AuthenticatedMapaSistemaRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/materiais': typeof AuthenticatedMateriaisRoute
@@ -420,6 +429,7 @@ export interface FileRoutesById {
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/manutencao': typeof AuthenticatedManutencaoRoute
+  '/_authenticated/mapa-sistema': typeof AuthenticatedMapaSistemaRoute
   '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
   '/_authenticated/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/_authenticated/materiais': typeof AuthenticatedMateriaisRoute
@@ -469,6 +479,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/logs'
     | '/manutencao'
+    | '/mapa-sistema'
     | '/maquinas'
     | '/maquinas-agenda'
     | '/materiais'
@@ -516,6 +527,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/logs'
     | '/manutencao'
+    | '/mapa-sistema'
     | '/maquinas'
     | '/maquinas-agenda'
     | '/materiais'
@@ -564,6 +576,7 @@ export interface FileRouteTypes {
     | '/_authenticated/leads'
     | '/_authenticated/logs'
     | '/_authenticated/manutencao'
+    | '/_authenticated/mapa-sistema'
     | '/_authenticated/maquinas'
     | '/_authenticated/maquinas-agenda'
     | '/_authenticated/materiais'
@@ -776,6 +789,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMaquinasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/mapa-sistema': {
+      id: '/_authenticated/mapa-sistema'
+      path: '/mapa-sistema'
+      fullPath: '/mapa-sistema'
+      preLoaderRoute: typeof AuthenticatedMapaSistemaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/manutencao': {
       id: '/_authenticated/manutencao'
       path: '/manutencao'
@@ -983,6 +1003,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedManutencaoRoute: typeof AuthenticatedManutencaoRoute
+  AuthenticatedMapaSistemaRoute: typeof AuthenticatedMapaSistemaRoute
   AuthenticatedMaquinasRoute: typeof AuthenticatedMaquinasRoute
   AuthenticatedMaquinasAgendaRoute: typeof AuthenticatedMaquinasAgendaRoute
   AuthenticatedMateriaisRoute: typeof AuthenticatedMateriaisRoute
@@ -1023,6 +1044,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedManutencaoRoute: AuthenticatedManutencaoRoute,
+  AuthenticatedMapaSistemaRoute: AuthenticatedMapaSistemaRoute,
   AuthenticatedMaquinasRoute: AuthenticatedMaquinasRoute,
   AuthenticatedMaquinasAgendaRoute: AuthenticatedMaquinasAgendaRoute,
   AuthenticatedMateriaisRoute: AuthenticatedMateriaisRoute,
