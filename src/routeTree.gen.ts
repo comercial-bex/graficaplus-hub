@@ -30,6 +30,7 @@ import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
+import { Route as AuthenticatedMatrizPermissoesRouteImport } from './routes/_authenticated/matriz-permissoes'
 import { Route as AuthenticatedMateriaisRouteImport } from './routes/_authenticated/materiais'
 import { Route as AuthenticatedMaquinasAgendaRouteImport } from './routes/_authenticated/maquinas-agenda'
 import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
@@ -164,6 +165,12 @@ const AuthenticatedMovimentacoesRoute =
   AuthenticatedMovimentacoesRouteImport.update({
     id: '/movimentacoes',
     path: '/movimentacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMatrizPermissoesRoute =
+  AuthenticatedMatrizPermissoesRouteImport.update({
+    id: '/matriz-permissoes',
+    path: '/matriz-permissoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMateriaisRoute = AuthenticatedMateriaisRouteImport.update({
@@ -320,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/materiais': typeof AuthenticatedMateriaisRoute
+  '/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
@@ -366,6 +374,7 @@ export interface FileRoutesByTo {
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/materiais': typeof AuthenticatedMateriaisRoute
+  '/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
@@ -414,6 +423,7 @@ export interface FileRoutesById {
   '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
   '/_authenticated/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/_authenticated/materiais': typeof AuthenticatedMateriaisRoute
+  '/_authenticated/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
@@ -462,6 +472,7 @@ export interface FileRouteTypes {
     | '/maquinas'
     | '/maquinas-agenda'
     | '/materiais'
+    | '/matriz-permissoes'
     | '/movimentacoes'
     | '/ocorrencias'
     | '/orcamento-3d-novo'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/maquinas'
     | '/maquinas-agenda'
     | '/materiais'
+    | '/matriz-permissoes'
     | '/movimentacoes'
     | '/ocorrencias'
     | '/orcamento-3d-novo'
@@ -555,6 +567,7 @@ export interface FileRouteTypes {
     | '/_authenticated/maquinas'
     | '/_authenticated/maquinas-agenda'
     | '/_authenticated/materiais'
+    | '/_authenticated/matriz-permissoes'
     | '/_authenticated/movimentacoes'
     | '/_authenticated/ocorrencias'
     | '/_authenticated/orcamento-3d-novo'
@@ -733,6 +746,13 @@ declare module '@tanstack/react-router' {
       path: '/movimentacoes'
       fullPath: '/movimentacoes'
       preLoaderRoute: typeof AuthenticatedMovimentacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/matriz-permissoes': {
+      id: '/_authenticated/matriz-permissoes'
+      path: '/matriz-permissoes'
+      fullPath: '/matriz-permissoes'
+      preLoaderRoute: typeof AuthenticatedMatrizPermissoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/materiais': {
@@ -966,6 +986,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMaquinasRoute: typeof AuthenticatedMaquinasRoute
   AuthenticatedMaquinasAgendaRoute: typeof AuthenticatedMaquinasAgendaRoute
   AuthenticatedMateriaisRoute: typeof AuthenticatedMateriaisRoute
+  AuthenticatedMatrizPermissoesRoute: typeof AuthenticatedMatrizPermissoesRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
@@ -1005,6 +1026,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMaquinasRoute: AuthenticatedMaquinasRoute,
   AuthenticatedMaquinasAgendaRoute: AuthenticatedMaquinasAgendaRoute,
   AuthenticatedMateriaisRoute: AuthenticatedMateriaisRoute,
+  AuthenticatedMatrizPermissoesRoute: AuthenticatedMatrizPermissoesRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
