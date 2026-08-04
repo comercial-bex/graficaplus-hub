@@ -34,6 +34,19 @@ async function fetchRoles(userId: string): Promise<AppRole[]> {
   return (data ?? []).map((r) => r.role as AppRole);
 }
 
+/** Matriz perfil × permissão vinda do banco (fonte de verdade). */
+async function fetchPermissionMatrix(): Promise<Record<string, string[]>> {
+  const { data, error } = await supabase
+    .from("role_permission_matrix" as never)
+    .select("role, permission");
+  if (error || !data) return {};
+  const matrix: Record<string, string[]> = {};
+  for (const row of data as unknown as { role: string; permission: string }[]) {
+    (matrix[row.role] ??= []).push(row.permission);
+  }
+  return matrix;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
