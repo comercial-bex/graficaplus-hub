@@ -289,6 +289,15 @@ function OrcamentosPage() {
                         {o.titulo}
                       </Link>
                     </TableCell>
+                    <TableCell>
+                      {mapa3d[o.id] ? (
+                        <Link to="/orcamento-3d/$id" params={{ id: mapa3d[o.id] }}>
+                          <StatusChip label="Impressão 3D" tone="magenta" />
+                        </Link>
+                      ) : (
+                        <StatusChip label="Comunicação visual" tone="cyan" />
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {o.cliente_nome ?? (
                         <span className="inline-flex items-center gap-1.5">
