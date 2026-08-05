@@ -1,4 +1,4 @@
-import { test, expect } from "bun:test";
+import { test, expect } from "vitest";
 import { parseSlicerImport } from "../src/domain/impressao3d/slicer-import";
 
 test("GenericGCodeParser extrai tempo, peso e hash", () => {

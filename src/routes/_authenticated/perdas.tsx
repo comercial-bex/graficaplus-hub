@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,13 +111,13 @@ function PerdasPage() {
   const { data: ordens = [] } = useQuery({
     queryKey: ["os-simples"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ordens_servico")
+      // A tabela base tem SELECT revogado para authenticated; ler pela view operacional.
+      const { data, error } = await fromFinancialView("ordens_servico", false)
         .select("id, numero, titulo")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
-      return data;
+      return data as { id: string; numero: number; titulo: string }[];
     },
   });
 

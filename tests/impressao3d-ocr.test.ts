@@ -1,4 +1,4 @@
-import { test, expect } from "bun:test";
+import { test, expect } from "vitest";
 import { parseSlicerText, parseTempoLivre, formatMinutos } from "../src/domain/impressao3d/ocr";
 
 test("prefere gramas com decimal quando ambos aparecem", () => {
