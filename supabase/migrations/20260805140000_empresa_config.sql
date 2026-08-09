@@ -33,6 +33,10 @@ CREATE TABLE IF NOT EXISTS public.empresa_config (
   updated_at          timestamptz NOT NULL DEFAULT now()
 );
 
+-- FK precisa de índice próprio: o Postgres só cria automático para PK/UNIQUE.
+CREATE INDEX IF NOT EXISTS idx_empresa_config_atualizado_por
+  ON public.empresa_config (atualizado_por);
+
 INSERT INTO public.empresa_config (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
 
 ALTER TABLE public.empresa_config ENABLE ROW LEVEL SECURITY;

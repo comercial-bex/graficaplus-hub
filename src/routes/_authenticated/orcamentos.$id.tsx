@@ -35,6 +35,7 @@ import {
   areaTotal,
   areaUnitaria,
   descreverMetragem,
+  ehUnidadeDeArea,
   somaAreaTotal,
   temDimensoes,
   valorUnitarioPorM2,
@@ -301,8 +302,9 @@ function OrcamentoDetailPage() {
                   descricao: p.nome,
                   quantidade: form.quantidade || "1",
                   unidade: p.unidade,
-                  // produto medido em m² já entra no modo de venda por área
-                  preco_m2: p.unidade === "m²" ? String(p.preco_base ?? "") : "",
+                  // produto medido em área já entra no modo de venda por m²;
+                  // o catálogo usa "m2", mas "m²" aparece digitado à mão
+                  preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
                   valor_unitario: String(p.preco_base ?? 0),
                   custo_unitario: String(p.custo_medio ?? 0),
                   produto_id: p.id,

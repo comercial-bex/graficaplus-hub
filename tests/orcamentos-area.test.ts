@@ -2,6 +2,7 @@ import { test, expect } from "vitest";
 import {
   areaUnitaria,
   areaTotal,
+  ehUnidadeDeArea,
   valorUnitarioPorM2,
   precoM2Implicito,
   somaAreaTotal,
@@ -68,6 +69,21 @@ test("dimensão zerada ou negativa não vira área", () => {
 test("quantidade ausente conta como uma peça", () => {
   expect(areaTotal({ largura: 2, altura: 1.5 })).toBeCloseTo(3, 3);
   expect(areaTotal({ largura: 2, altura: 1.5, quantidade: 0 })).toBeCloseTo(3, 3);
+});
+
+test("unidade de área é reconhecida nas duas grafias usadas no cadastro", () => {
+  // O catálogo grava "m2" (11 dos 22 produtos); "m²" é digitado à mão.
+  expect(ehUnidadeDeArea("m2")).toBe(true);
+  expect(ehUnidadeDeArea("m²")).toBe(true);
+  expect(ehUnidadeDeArea("M2")).toBe(true);
+  expect(ehUnidadeDeArea(" m² ")).toBe(true);
+  // Não confundir com metro linear, que também é usado (acabamento de lona).
+  expect(ehUnidadeDeArea("m")).toBe(false);
+  expect(ehUnidadeDeArea("un")).toBe(false);
+  expect(ehUnidadeDeArea("km")).toBe(false);
+  expect(ehUnidadeDeArea("")).toBe(false);
+  expect(ehUnidadeDeArea(null)).toBe(false);
+  expect(ehUnidadeDeArea(undefined)).toBe(false);
 });
 
 test("metragem é descrita no formato do documento", () => {

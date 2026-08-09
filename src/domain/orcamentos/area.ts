@@ -35,6 +35,18 @@ export function temDimensoes(item: ItemDimensionado): boolean {
   return numero(item.largura) > 0 && numero(item.altura) > 0;
 }
 
+/**
+ * Reconhece unidade de área na forma como ela realmente aparece no cadastro.
+ * A unidade canônica do catálogo é "m2" (src/lib/produtos-catalogo.ts), mas
+ * "m²" é digitado à mão com frequência — comparar só com uma das duas faria o
+ * preço por m² deixar de ser sugerido justamente nos produtos vendidos por área.
+ */
+export function ehUnidadeDeArea(unidade?: string | null): boolean {
+  if (!unidade) return false;
+  const normalizada = unidade.trim().toLowerCase().replace("²", "2");
+  return normalizada === "m2" || normalizada === "metro2" || normalizada === "metroquadrado";
+}
+
 /** Área de uma peça, em m². 0 quando o item não é dimensionado. */
 export function areaUnitaria(item: ItemDimensionado): number {
   if (!temDimensoes(item)) return 0;
