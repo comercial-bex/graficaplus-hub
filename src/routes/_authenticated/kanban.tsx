@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   DndContext,
   DragOverlay,
+  KeyboardCode,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -27,7 +28,13 @@ import {
   useDroppable,
   type DragEndEvent,
   type DragStartEvent,
+  type KeyboardCoordinateGetter,
 } from "@dnd-kit/core";
+import {
+  coordenadaNaColuna,
+  proximaColuna,
+  type ColunaAlvo,
+} from "@/domain/kanban/navegacao-teclado";
 import { useState, useMemo } from "react";
 import {
   Search,
@@ -79,6 +86,50 @@ const COLUNAS: ColunaKanban[] = [
 ];
 
 const COLUNAS_BY_ID = Object.fromEntries(COLUNAS.map((c) => [c.id, c]));
+
+/**
+ * Seta horizontal salta uma coluna inteira. A aritmética vive em
+ * @/domain/kanban/navegacao-teclado (testada sem navegador); aqui fica apenas a
+ * extração dos retângulos do contexto do dnd-kit.
+ *
+ * Seta vertical não é tratada de propósito: só as colunas são droppables (o
+ * cartão não é ordenável dentro da coluna), então subir ou descer não muda o
+ * destino de soltar.
+ */
+const saltarEntreColunas: KeyboardCoordinateGetter = (
+  event,
+  { context: { active, collisionRect, droppableRects, droppableContainers } },
+) => {
+  if (!active || !collisionRect) return;
+  if (event.code !== KeyboardCode.Right && event.code !== KeyboardCode.Left) return;
+  event.preventDefault();
+
+  const colunas: ColunaAlvo[] = [];
+  for (const container of droppableContainers.getEnabled()) {
+    const rect = droppableRects.get(container.id);
+    // ignora qualquer droppable que não seja uma coluna do quadro
+    if (rect && COLUNAS_BY_ID[String(container.id)]) {
+      colunas.push({
+        id: String(container.id),
+        left: rect.left,
+        right: rect.right,
+        width: rect.width,
+        top: rect.top,
+      });
+    }
+  }
+
+  const destino = proximaColuna(
+    colunas,
+    collisionRect.left + collisionRect.width / 2,
+    event.code === KeyboardCode.Right ? 1 : -1,
+  );
+  // Já na primeira ou na última: não devolver coordenada mantém o cartão na
+  // faixa das colunas.
+  if (!destino) return;
+
+  return coordenadaNaColuna(destino, collisionRect.width);
+};
 
 const PRIORIDADES = [
   { v: "1", label: "Urgente" },
@@ -147,10 +198,15 @@ function KanbanPage() {
   const [activeOs, setActiveOs] = useState<any>(null);
   // KeyboardSensor não é opcional aqui: o dnd-kit já anuncia ao leitor de tela
   // "To pick up a draggable item, press the space bar", e sem este sensor a
-  // instrução era falsa — o quadro só funcionava com mouse.
+  // instrução era falsa — o quadro só funcionava com mouse. O coordinateGetter
+  // é o que torna a promessa verdadeira: sem ele a seta anda 25px e não troca de
+  // coluna. scrollBehavior traz a coluna de destino para a área visível.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: saltarEntreColunas,
+      scrollBehavior: "smooth",
+    }),
   );
 
   const [search, setSearch] = useState("");
