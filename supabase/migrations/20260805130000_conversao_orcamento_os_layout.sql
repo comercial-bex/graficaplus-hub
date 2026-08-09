@@ -65,7 +65,8 @@ BEGIN
   INSERT INTO public.ordens_servico(
     cliente_id, orcamento_id, vendedor_id, titulo, briefing, observacoes,
     prazo_entrega, valor_total, custo_previsto, desconto, created_by, status_geral,
-    endereco_entrega, condicao_pagamento, precisa_entrega, precisa_instalacao
+    endereco_entrega, condicao_pagamento, precisa_entrega, precisa_instalacao,
+    responsavel_id
   )
   VALUES (
     v_orc.cliente_id, p_orcamento_id, v_orc.vendedor_id, v_orc.titulo, v_orc.briefing,
@@ -73,7 +74,12 @@ BEGIN
     COALESCE(v_orc.valor_subtotal, 0) - COALESCE(v_orc.valor_total, 0),
     v_uid, 'entrada',
     v_orc.endereco_entrega, v_orc.condicao_pagamento,
-    COALESCE(v_orc.precisa_entrega, false), COALESCE(v_orc.precisa_instalacao, false)
+    COALESCE(v_orc.precisa_entrega, false), COALESCE(v_orc.precisa_instalacao, false),
+    -- responsavel_id é OBRIGATÓRIO para mover a OS no Kanban: avancar_os_status
+    -- recusa OS sem responsável. Sem isto a OS nascia travada — nenhuma etapa de
+    -- produção podia avançar. Assume o vendedor do orçamento e, na falta dele,
+    -- quem converteu; quem gerencia troca depois.
+    COALESCE(v_orc.vendedor_id, v_uid)
   )
   RETURNING id INTO v_os_id;
 
