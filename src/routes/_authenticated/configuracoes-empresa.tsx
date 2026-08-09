@@ -139,8 +139,10 @@ function ConfiguracoesEmpresaPage() {
       bairro: dados.bairro ?? atual.bairro,
       cidade: dados.cidade ?? atual.cidade,
       estado: dados.estado ?? atual.estado,
-      cep: dados.cep ?? atual.cep,
-      telefones: atual.telefones || (dados.telefones ?? ""),
+      // A Receita devolve CEP e telefone crus; formatar aqui porque o preenchimento
+      // automático não passa pelo onBlur que formata a digitação manual.
+      cep: dados.cep ? formatarCEP(dados.cep) : atual.cep,
+      telefones: atual.telefones || (dados.telefones ? formatarTelefone(dados.telefones) : ""),
       email: atual.email || (dados.email ?? ""),
     }));
   }

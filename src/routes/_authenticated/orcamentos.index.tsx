@@ -37,7 +37,7 @@ import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 
-export const Route = createFileRoute("/_authenticated/orcamentos")({
+export const Route = createFileRoute("/_authenticated/orcamentos/")({
   head: () => ({ meta: [{ title: "Orçamentos — BEX PRINT OS" }] }),
   component: OrcamentosPage,
 });

@@ -107,9 +107,22 @@ function OrcamentoDetailPage() {
 
   async function recalcular() {
     if (!canSeeFinancials) return;
-    const subtotal = itens.reduce((s: number, i: any) => s + Number(i.valor_total), 0);
-    const custo = itens.reduce(
-      (s: number, i: any) => s + Number(i.custo_unitario) * Number(i.quantidade),
+    // Relê os itens do banco em vez de somar o estado da tela: recalcular é
+    // chamado logo depois de inserir/remover, quando `itens` ainda é a lista
+    // anterior. Somando o estado velho, o total do orçamento ficava zerado após
+    // adicionar o primeiro item — e era esse zero que ia para o PDF e para a
+    // conta a receber criada na conversão em OS.
+    const { data: atuais } = await fromFinancialView("orcamento_itens", true)
+      .select("valor_total, custo_unitario, quantidade")
+      .eq("orcamento_id", id);
+    const lista = (atuais ?? []) as {
+      valor_total: number | null;
+      custo_unitario: number | null;
+      quantidade: number | null;
+    }[];
+    const subtotal = lista.reduce((s, i) => s + Number(i.valor_total ?? 0), 0);
+    const custo = lista.reduce(
+      (s, i) => s + Number(i.custo_unitario ?? 0) * Number(i.quantidade ?? 0),
       0,
     );
     await supabase
@@ -200,13 +213,13 @@ function OrcamentoDetailPage() {
     if (error) return toast.error(error.message);
     setForm({ ...itemVazio });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
-    setTimeout(recalcular, 100);
+    await recalcular();
   }
 
   async function removeItem(itemId: string) {
     await supabase.from("orcamento_itens").delete().eq("id", itemId);
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
-    setTimeout(recalcular, 100);
+    await recalcular();
   }
 
   async function setStatus(novoStatus: string) {

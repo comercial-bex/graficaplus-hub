@@ -68,6 +68,10 @@ export const routePermissions: { path: string; permission: Permission }[] = [
   { path: "/matriz-permissoes", permission: "usuarios.read" },
   { path: "/casos-de-uso", permission: "os.read" },
   { path: "/mapa-sistema", permission: "os.read" },
+  // Mais específico antes do genérico: getRoutePermission usa find() e casa por
+  // prefixo, então "/configuracoes-empresa" precisa ser avaliado antes de
+  // "/configuracoes" para não depender do detalhe da barra no startsWith.
+  { path: "/configuracoes-empresa", permission: "configuracoes.manage" },
   { path: "/configuracoes", permission: "configuracoes.manage" },
 ];
 

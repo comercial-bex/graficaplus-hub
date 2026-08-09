@@ -36,7 +36,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 
-export const Route = createFileRoute("/_authenticated/os")({
+export const Route = createFileRoute("/_authenticated/os/")({
   head: () => ({ meta: [{ title: "Ordens de Serviço — BEX PRINT OS" }] }),
   component: OSPage,
 });

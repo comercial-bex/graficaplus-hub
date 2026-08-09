@@ -113,7 +113,13 @@ export const consultarCNPJ = createServerFn({ method: "POST" })
       // Endpoint correto é /api/cnpj/v1/ — /api/v2/cnpj/ devolve o 404 do site,
       // em HTML, não um erro de API.
       const resposta = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digitos}`, {
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          // Obrigatório: o fetch do Node não manda User-Agent e o Cloudflare da
+          // BrasilAPI responde 403 sem ele. No navegador passaria — este código
+          // roda no servidor.
+          "User-Agent": "bex-print-os/1.0 (+https://agenciabex.com.br)",
+        },
         signal: controlador.signal,
       });
       clearTimeout(expirar);
