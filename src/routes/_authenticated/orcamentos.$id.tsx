@@ -31,6 +31,34 @@ import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
+import {
+  areaTotal,
+  areaUnitaria,
+  descreverMetragem,
+  somaAreaTotal,
+  temDimensoes,
+  valorUnitarioPorM2,
+} from "@/domain/orcamentos/area";
+
+const itemVazio = {
+  descricao: "",
+  quantidade: "1",
+  unidade: "un",
+  largura: "",
+  altura: "",
+  acabamento: "",
+  preco_m2: "",
+  valor_unitario: "0",
+  custo_unitario: "0",
+  produto_id: null as string | null,
+  arquivo_id: null as string | null,
+  arquivo_nome: null as string | null,
+};
+
+const paraNumero = (texto: string) => {
+  const n = Number(String(texto).replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+};
 
 const statusTone: Record<string, "cyan" | "magenta" | "lime" | "amber" | "muted"> = {
   rascunho: "muted",
@@ -50,15 +78,9 @@ function OrcamentoDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const { canSeeFinancials } = useAuth();
-  const [form, setForm] = useState({
-    descricao: "",
-    quantidade: "1",
-    unidade: "un",
-    valor_unitario: "0",
-    custo_unitario: "0",
-    produto_id: null as string | null,
-  });
+  const [form, setForm] = useState({ ...itemVazio });
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [enviandoLayout, setEnviandoLayout] = useState(false);
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id, canSeeFinancials ? "financeiro" : "operacional"],
@@ -101,30 +123,82 @@ function OrcamentoDetailPage() {
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }
 
+  // Dimensões do item em edição, para mostrar a área antes de gravar.
+  const dimensoesForm = {
+    largura: paraNumero(form.largura),
+    altura: paraNumero(form.altura),
+    quantidade: paraNumero(form.quantidade),
+  };
+  const precoM2Form = paraNumero(form.preco_m2);
+  const vendidoPorArea = temDimensoes(dimensoesForm);
+  // Com preço/m² informado, o valor unitário é derivado — o trigger no banco
+  // aplica a mesma regra, então o campo fica só como leitura.
+  const valorUnitarioDerivado =
+    vendidoPorArea && precoM2Form > 0 ? valorUnitarioPorM2(dimensoesForm, precoM2Form) : null;
+
+  async function enviarLayout(arquivo: File) {
+    setEnviandoLayout(true);
+    try {
+      const extensao = arquivo.name.split(".").pop() ?? "bin";
+      const caminho = `orcamento/${id}/${Date.now()}.${extensao}`;
+      const { error: erroUpload } = await supabase.storage
+        .from("arquivos-clientes")
+        .upload(caminho, arquivo, { contentType: arquivo.type });
+      if (erroUpload) throw erroUpload;
+
+      const { data: registro, error: erroRegistro } = await supabase
+        .from("arquivos")
+        .insert({
+          nome: arquivo.name,
+          caminho,
+          // tipo 'arte' é o que a produção procura como layout a imprimir
+          tipo: "arte",
+          cliente_id: (orc as any)?.cliente_id ?? null,
+          tamanho_bytes: arquivo.size,
+        } as any)
+        .select("id, nome")
+        .single();
+      if (erroRegistro) throw erroRegistro;
+
+      setForm((atual) => ({
+        ...atual,
+        arquivo_id: (registro as any).id,
+        arquivo_nome: (registro as any).nome,
+      }));
+      toast.success("Layout anexado ao item");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar o layout");
+    } finally {
+      setEnviandoLayout(false);
+    }
+  }
+
   async function addItem() {
     if (!form.descricao) return toast.error("Descrição obrigatória");
-    const qtd = parseFloat(form.quantidade);
-    const vu = canSeeFinancials ? parseFloat(form.valor_unitario) : 0;
+    if (vendidoPorArea && areaUnitaria(dimensoesForm) <= 0) {
+      return toast.error("Largura e altura devem ser maiores que zero");
+    }
+    const qtd = paraNumero(form.quantidade) || 1;
+    // valor_total e (quando há preço/m²) valor_unitario são derivados pelo
+    // trigger tg_orcamento_itens_precificar — não são enviados daqui para não
+    // haver dois lugares calculando o mesmo número.
     const { error } = await supabase.from("orcamento_itens").insert({
       orcamento_id: id,
       descricao: form.descricao,
       quantidade: qtd,
       unidade: form.unidade,
-      valor_unitario: vu,
-      custo_unitario: parseFloat(form.custo_unitario),
-      valor_total: qtd * vu,
+      largura: vendidoPorArea ? dimensoesForm.largura : null,
+      altura: vendidoPorArea ? dimensoesForm.altura : null,
+      acabamento: form.acabamento.trim() || null,
+      preco_m2: canSeeFinancials && precoM2Form > 0 ? precoM2Form : null,
+      valor_unitario: canSeeFinancials ? paraNumero(form.valor_unitario) : 0,
+      custo_unitario: paraNumero(form.custo_unitario),
       ordem: itens.length,
       produto_id: form.produto_id,
+      arquivo_id: form.arquivo_id,
     } as any);
     if (error) return toast.error(error.message);
-    setForm({
-      descricao: "",
-      quantidade: "1",
-      unidade: "un",
-      valor_unitario: "0",
-      custo_unitario: "0",
-      produto_id: null,
-    });
+    setForm({ ...itemVazio });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     setTimeout(recalcular, 100);
   }
@@ -210,9 +284,12 @@ function OrcamentoDetailPage() {
             <ProdutoAutocomplete
               onSelect={(p) =>
                 setForm({
+                  ...itemVazio,
                   descricao: p.nome,
                   quantidade: form.quantidade || "1",
                   unidade: p.unidade,
+                  // produto medido em m² já entra no modo de venda por área
+                  preco_m2: p.unidade === "m²" ? String(p.preco_base ?? "") : "",
                   valor_unitario: String(p.preco_base ?? 0),
                   custo_unitario: String(p.custo_medio ?? 0),
                   produto_id: p.id,
@@ -220,60 +297,183 @@ function OrcamentoDetailPage() {
               }
             />
           </div>
-          <div className="grid grid-cols-12 gap-2 items-end">
-            <div className="col-span-5">
-              <Label>Descrição</Label>
-              <Input
-                value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-              />
+          <div className="space-y-2">
+            <div className="grid grid-cols-12 gap-2 items-end">
+              <div className="col-span-6">
+                <Label htmlFor="item-descricao">Descrição</Label>
+                <Input
+                  id="item-descricao"
+                  value={form.descricao}
+                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="item-qtd">Qtd</Label>
+                <Input
+                  id="item-qtd"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.quantidade}
+                  onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="item-unidade">Un</Label>
+                <Input
+                  id="item-unidade"
+                  value={form.unidade}
+                  onChange={(e) => setForm({ ...form, unidade: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="item-acabamento">Acabamento</Label>
+                <Input
+                  id="item-acabamento"
+                  placeholder="Refile, ilhós…"
+                  value={form.acabamento}
+                  onChange={(e) => setForm({ ...form, acabamento: e.target.value })}
+                />
+              </div>
             </div>
-            <div className="col-span-1">
-              <Label>Qtd</Label>
-              <Input
-                type="number"
-                value={form.quantidade}
-                onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
-              />
-            </div>
-            <div className="col-span-1">
-              <Label>Un</Label>
-              <Input
-                value={form.unidade}
-                onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-              />
-            </div>
-            {canSeeFinancials && (
-              <>
-                <div className="col-span-2">
-                  <Label>Valor un.</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.valor_unitario}
-                    onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
-                  />
+
+            {/* Medidas em metros: preencher as duas liga a venda por m². */}
+            <div className="grid grid-cols-12 gap-2 items-end">
+              <div className="col-span-2">
+                <Label htmlFor="item-largura">Largura (m)</Label>
+                <Input
+                  id="item-largura"
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  placeholder="3,000"
+                  value={form.largura}
+                  onChange={(e) => setForm({ ...form, largura: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="item-altura">Altura (m)</Label>
+                <Input
+                  id="item-altura"
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  placeholder="2,450"
+                  value={form.altura}
+                  onChange={(e) => setForm({ ...form, altura: e.target.value })}
+                />
+              </div>
+              <div className="col-span-3">
+                <Label>Área</Label>
+                <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm">
+                  {vendidoPorArea ? (
+                    <span>
+                      {areaUnitaria(dimensoesForm).toFixed(3).replace(".", ",")}m² ·{" "}
+                      <strong>{areaTotal(dimensoesForm).toFixed(3).replace(".", ",")}m²</strong> total
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">informe as medidas</span>
+                  )}
                 </div>
-                <div className="col-span-2">
-                  <Label>Custo un.</Label>
+              </div>
+              {canSeeFinancials && (
+                <>
+                  <div className="col-span-2">
+                    <Label htmlFor="item-preco-m2">Preço/m²</Label>
+                    <Input
+                      id="item-preco-m2"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      disabled={!vendidoPorArea}
+                      value={form.preco_m2}
+                      onChange={(e) => setForm({ ...form, preco_m2: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="item-valor-un">Valor un.</Label>
+                    <Input
+                      id="item-valor-un"
+                      type="number"
+                      step="0.01"
+                      readOnly={valorUnitarioDerivado !== null}
+                      title={
+                        valorUnitarioDerivado !== null
+                          ? "Calculado a partir da área e do preço/m²"
+                          : undefined
+                      }
+                      className={valorUnitarioDerivado !== null ? "bg-muted/40" : undefined}
+                      value={
+                        valorUnitarioDerivado !== null
+                          ? valorUnitarioDerivado.toFixed(2)
+                          : form.valor_unitario
+                      }
+                      onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="item-custo-un">Custo un.</Label>
+                    <Input
+                      id="item-custo-un"
+                      type="number"
+                      step="0.01"
+                      value={form.custo_unitario}
+                      onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-end justify-between gap-3 flex-wrap">
+              <div className="space-y-1">
+                <Label htmlFor="item-layout">Layout (arte a ser impressa)</Label>
+                <div className="flex items-center gap-2">
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={form.custo_unitario}
-                    onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
+                    id="item-layout"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="max-w-xs"
+                    disabled={enviandoLayout}
+                    onChange={(e) => {
+                      const arquivo = e.target.files?.[0];
+                      if (arquivo) void enviarLayout(arquivo);
+                      e.target.value = "";
+                    }}
                   />
+                  {enviandoLayout && (
+                    <span className="text-sm text-muted-foreground">enviando…</span>
+                  )}
+                  {form.arquivo_nome && (
+                    <Badge variant="secondary" className="gap-1">
+                      {form.arquivo_nome}
+                      <button
+                        type="button"
+                        aria-label="Remover layout do item"
+                        onClick={() =>
+                          setForm({ ...form, arquivo_id: null, arquivo_nome: null })
+                        }
+                        className="ml-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
                 </div>
-              </>
-            )}
-            <Button className="col-span-1" onClick={addItem}>
-              <Plus className="h-4 w-4" />
-            </Button>
+              </div>
+              <Button onClick={addItem}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar item
+              </Button>
+            </div>
           </div>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Qtd</TableHead>
+                <TableHead>Metragem</TableHead>
+                <TableHead>Acabamento</TableHead>
+                <TableHead>Layout</TableHead>
                 {canSeeFinancials && (
                   <>
                     <TableHead>Valor un.</TableHead>
@@ -286,7 +486,7 @@ function OrcamentoDetailPage() {
             <TableBody>
               {itens.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={canSeeFinancials ? 8 : 6} className="text-center text-muted-foreground">
                     Sem itens
                   </TableCell>
                 </TableRow>
@@ -296,6 +496,19 @@ function OrcamentoDetailPage() {
                   <TableCell>{i.descricao}</TableCell>
                   <TableCell>
                     {i.quantidade} {i.unidade}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {descreverMetragem(i) ?? <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {i.acabamento || <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    {i.arquivo_id ? (
+                      <Badge variant="secondary">anexado</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">sem arte</span>
+                    )}
                   </TableCell>
                   {canSeeFinancials && (
                     <>
@@ -313,6 +526,12 @@ function OrcamentoDetailPage() {
             </TableBody>
           </Table>
           <div className="flex justify-end gap-6 text-sm pt-3 border-t">
+            {somaAreaTotal(itens) > 0 && (
+              <div>
+                <span className="text-muted-foreground">Soma área:</span>{" "}
+                <strong>{somaAreaTotal(itens).toFixed(3).replace(".", ",")}m²</strong>
+              </div>
+            )}
             {canSeeFinancials && (
               <>
                 <div>
