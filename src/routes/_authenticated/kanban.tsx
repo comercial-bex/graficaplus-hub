@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -133,7 +134,10 @@ function hasPendencia(os: any) {
   return (
     os.status === "pausado" ||
     os.status === "arte_rejeitada" ||
-    tarefas.some((t: any) => !t.concluida && isOverdue(t.prazo))
+    // os_tarefas não tem coluna booleana `concluida`: o estado fica em `status`
+    // ('pendente' por padrão, 'concluida' quando fecha). Comparando com a coluna
+    // inexistente, tarefa vencida nunca contava como pendência.
+    tarefas.some((t: any) => t.status !== "concluida" && isOverdue(t.prazo))
   );
 }
 
@@ -141,7 +145,13 @@ function KanbanPage() {
   const qc = useQueryClient();
   const { canSeeFinancials, user } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // KeyboardSensor não é opcional aqui: o dnd-kit já anuncia ao leitor de tela
+  // "To pick up a draggable item, press the space bar", e sem este sensor a
+  // instrução era falsa — o quadro só funcionava com mouse.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
 
   const [search, setSearch] = useState("");
   const [fCliente, setFCliente] = useState("todos");
@@ -157,7 +167,50 @@ function KanbanPage() {
         .not("status", "in", "(faturado,cancelado)")
         .order("ordem_kanban");
       if (error) throw error;
-      return data;
+
+      const ordens = (data ?? []) as Record<string, unknown>[];
+      const ids = ordens.map((o) => o.id as string);
+      if (ids.length === 0) return ordens;
+
+      // Os indicadores do cartão (financeiro, arte, anexos, pendência) dependem
+      // de pagamentos/aprovações/arquivos/tarefas da OS. A leitura vem de uma
+      // VIEW, e view não tem FK declarada — logo o embed do PostgREST não
+      // funciona e essas relações chegavam sempre undefined. Resultado: todo
+      // cartão exibia "Fin.: Não lançado", "Arte: Pendente" e "0 anexo(s)",
+      // mesmo com pagamento registrado e arte aprovada. Buscar em paralelo e
+      // agrupar por os_id resolve sem abrir mão das views.
+      const [pagamentos, aprovacoes, arquivos, tarefas] = await Promise.all([
+        supabase.from("pagamentos").select("os_id, valor, status, data_vencimento").in("os_id", ids),
+        supabase.from("aprovacoes").select("os_id, tipo, aprovado, created_at").in("os_id", ids),
+        supabase.from("arquivos").select("os_id").in("os_id", ids),
+        supabase.from("os_tarefas").select("os_id, status, prazo").in("os_id", ids),
+      ]);
+
+      const agrupar = <T extends { os_id?: string | null }>(linhas: T[] | null) => {
+        const mapa = new Map<string, T[]>();
+        for (const linha of linhas ?? []) {
+          const chave = linha.os_id;
+          if (!chave) continue;
+          const lista = mapa.get(chave);
+          if (lista) lista.push(linha);
+          else mapa.set(chave, [linha]);
+        }
+        return mapa;
+      };
+      const porOs = {
+        pagamentos: agrupar(pagamentos.data as { os_id?: string | null }[] | null),
+        aprovacoes: agrupar(aprovacoes.data as { os_id?: string | null }[] | null),
+        arquivos: agrupar(arquivos.data as { os_id?: string | null }[] | null),
+        tarefas: agrupar(tarefas.data as { os_id?: string | null }[] | null),
+      };
+
+      return ordens.map((o) => ({
+        ...o,
+        pagamentos: porOs.pagamentos.get(o.id as string) ?? [],
+        aprovacoes: porOs.aprovacoes.get(o.id as string) ?? [],
+        arquivos: porOs.arquivos.get(o.id as string) ?? [],
+        tarefas: porOs.tarefas.get(o.id as string) ?? [],
+      }));
     },
   });
 
@@ -206,8 +259,6 @@ function KanbanPage() {
   );
 
   async function mover(osId: string, novoStatus: string) {
-    const coluna = COLUNAS_BY_ID[novoStatus];
-    const atual = (os as any[]).find((o) => o.id === osId);
     const novaOrdem =
       Math.max(
         -1,
@@ -218,23 +269,32 @@ function KanbanPage() {
     qc.setQueryData(["kanban-os"], (prev: any) =>
       prev?.map((o: any) => (o.id === osId ? { ...o, status: novoStatus } : o)),
     );
+
+    // A assinatura real é avancar_os_status(os_id, novo_status) — sem prefixo p_
+    // e sem justificativa. Com os nomes errados o PostgREST não encontrava a
+    // função ("Could not find the function ... in the schema cache") e mover
+    // cartão no Kanban falhava sempre.
     const { error } = await (supabase.rpc as any)("avancar_os_status", {
-      p_os_id: osId,
-      p_novo_status: novoStatus,
-      p_justificativa: `Movido para ${coluna?.label ?? novoStatus} no Kanban`,
+      os_id: osId,
+      novo_status: novoStatus,
     });
     if (error) {
       toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["kanban-os"] });
       return;
     }
-    await supabase.from("logs_auditoria").insert({
-      entidade: "ordens_servico",
-      entidade_id: osId,
-      acao: "status_change",
-      detalhes: { novo: novoStatus },
-      usuario_id: user?.id,
-    });
+
+    // A própria RPC grava o log de auditoria, com status anterior e novo; o
+    // insert que havia aqui duplicaria o registro com menos informação.
+    // ordem_kanban não é tocada pela RPC — persistir aqui para a posição dentro
+    // da coluna sobreviver ao recarregar.
+    const { error: erroOrdem } = await supabase
+      .from("ordens_servico")
+      .update({ ordem_kanban: novaOrdem })
+      .eq("id", osId);
+    if (erroOrdem) toast.warning("Status alterado, mas a posição no quadro não foi salva.");
+
+    qc.invalidateQueries({ queryKey: ["kanban-os"] });
     toast.success("Status atualizado");
   }
 
