@@ -65,6 +65,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
 import {
   CATEGORIAS,
   UNIDADES,
@@ -133,10 +134,12 @@ function ProdutosPage() {
   const [importOpen, setImportOpen] = useState(false);
 
   const { data: produtos = [], isLoading } = useQuery({
-    queryKey: ["produtos"],
+    queryKey: ["produtos", canSeeFinancials ? "financeiro" : "operacional"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("produtos")
+      // produtos tem SELECT de tabela revogado: select("*") na base falhava com
+      // "permission denied" e a lista não carregava. Preço e custo saem da view
+      // financeira, sobre o espelho produto_precos.
+      const { data, error } = await fromFinancialView("produtos", canSeeFinancials)
         .select("*")
         .order("nome");
       if (error) throw error;

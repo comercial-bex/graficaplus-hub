@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -27,14 +28,18 @@ export function ProdutoAutocomplete({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const { canSeeFinancials } = useAuth();
   const { data: produtos = [] } = useQuery({
-    queryKey: ["produtos-catalog-picker"],
+    queryKey: ["produtos-catalog-picker", canSeeFinancials ? "financeiro" : "operacional"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("produtos")
+      // produtos tem SELECT de tabela revogado: select("*") na base falhava com
+      // "permission denied" e o catálogo não abria. Preço e custo só existem na
+      // view financeira, sob can_see_financials.
+      const { data, error } = await fromFinancialView("produtos", canSeeFinancials)
         .select("*")
         .eq("ativo", true)
         .order("nome");
+      if (error) throw error;
       return (data ?? []) as unknown as Produto[];
     },
     enabled: open,

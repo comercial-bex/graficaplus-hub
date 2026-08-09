@@ -14,8 +14,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Upload, Search } from "lucide-react";
 import { toast } from "sonner";
+import { CampoDocumento } from "@/components/campo-documento";
+import { formatarCEP, formatarTelefone } from "@/domain/documentos";
+import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 
-export const Route = createFileRoute("/_authenticated/clientes")({
+export const Route = createFileRoute("/_authenticated/clientes/")({
   head: () => ({ meta: [{ title: "Clientes — BEX PRINT OS" }] }),
   component: ClientesPage,
 });
@@ -28,6 +31,7 @@ type FormState = {
   email: string;
   telefone: string;
   endereco: string;
+  bairro: string;
   cidade: string;
   estado: string;
   cep: string;
@@ -38,7 +42,7 @@ type FormState = {
 
 const emptyForm: FormState = {
   tipo: "pj", nome: "", razao_social: "", documento: "", email: "", telefone: "",
-  endereco: "", cidade: "", estado: "", cep: "", vendedor_id: "", observacoes: "", logo_url: "",
+  endereco: "", bairro: "", cidade: "", estado: "", cep: "", vendedor_id: "", observacoes: "", logo_url: "",
 };
 
 function ClientesPage() {
@@ -92,6 +96,24 @@ function ClientesPage() {
     setForm({ ...form, logo_url: data.publicUrl });
     setUploading(false);
     toast.success("Logo enviada");
+  }
+
+  // Preenche o cadastro com os dados públicos da Receita, sem sobrescrever o
+  // que já foi digitado à mão. O nome fantasia cai para a razão social quando a
+  // empresa não tem fantasia registrada.
+  function preencherComReceita(dados: DadosCNPJ) {
+    setForm((atual) => ({
+      ...atual,
+      razao_social: dados.razao_social ?? atual.razao_social,
+      nome: atual.nome || dados.nome_fantasia || dados.razao_social || "",
+      endereco: dados.endereco ?? atual.endereco,
+      bairro: dados.bairro ?? atual.bairro,
+      cidade: dados.cidade ?? atual.cidade,
+      estado: dados.estado ?? atual.estado,
+      cep: dados.cep ? formatarCEP(dados.cep) : atual.cep,
+      telefone: atual.telefone || (dados.telefones ? formatarTelefone(dados.telefones) : ""),
+      email: atual.email || (dados.email ?? ""),
+    }));
   }
 
   async function handleCreate() {
@@ -175,8 +197,25 @@ function ClientesPage() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label>{form.tipo === "pj" ? "CNPJ" : "CPF"}</Label>
-                  <Input maxLength={20} value={form.documento} onChange={(e) => setForm({ ...form, documento: e.target.value })} />
+                  <CampoDocumento
+                    tipo={form.tipo === "pj" ? "cnpj" : "cpf"}
+                    // Mantém o seletor Pessoa Jurídica/Física em sincronia: são
+                    // duas formas de dizer a mesma coisa e não podem divergir.
+                    // Forma funcional obrigatória: o componente chama
+                    // onTipoChange e onValorChange em sequência, e com spread do
+                    // `form` da closure o segundo desfazia a troca de tipo feita
+                    // pelo primeiro.
+                    onTipoChange={(t) =>
+                      setForm((atual) => ({
+                        ...atual,
+                        tipo: t === "cnpj" ? "pj" : "pf",
+                        documento: "",
+                      }))
+                    }
+                    valor={form.documento}
+                    onValorChange={(v) => setForm((atual) => ({ ...atual, documento: v }))}
+                    onDadosEncontrados={preencherComReceita}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
@@ -189,6 +228,10 @@ function ClientesPage() {
                 <div className="space-y-2 md:col-span-2">
                   <Label>Endereço</Label>
                   <Input maxLength={250} value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Bairro</Label>
+                  <Input maxLength={100} value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Cidade</Label>

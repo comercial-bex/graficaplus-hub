@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Users,
+  Building2,
   FileText,
   ClipboardList,
   Kanban,
@@ -144,6 +145,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Casos de uso", url: "/casos-de-uso", icon: Workflow },
       { title: "Mapa do sistema", url: "/mapa-sistema", icon: Network },
       { title: "Logs & Auditoria", url: "/logs", icon: History },
+      { title: "Dados da empresa", url: "/configuracoes-empresa", icon: Building2 },
       { title: "Configurações", url: "/configuracoes", icon: Settings },
     ],
   },

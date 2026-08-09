@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
-import { DocumentoPDF, type DocumentoPDFProps } from "./DocumentoPDF";
+import { DocumentoPDF, type DocItem, type DocumentoPDFProps } from "./DocumentoPDF";
+import { carregarEmpresa } from "./empresa";
 
 function download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -25,6 +26,83 @@ function fmt(d?: string | null) {
 export async function renderPDFBlob(props: DocumentoPDFProps): Promise<Blob> {
   const { pdf } = await import("@react-pdf/renderer");
   return await pdf(DocumentoPDF(props)).toBlob();
+}
+
+/**
+ * Monta os itens do documento com metragem, acabamento e o layout de cada um.
+ *
+ * O bucket arquivos-clientes é privado, então a arte precisa de URL assinada —
+ * o caminho gravado NÃO é público. A assinatura vale 5 min, o suficiente para o
+ * @react-pdf/renderer buscar a imagem enquanto monta o PDF.
+ */
+async function montarItens(
+  linhas: Record<string, unknown>[],
+  mostrarValores: boolean,
+): Promise<DocItem[]> {
+  const caminhoPorArquivo = new Map<string, string>();
+  const idsLayout = linhas
+    .map((i) => i.arquivo_id as string | null)
+    .filter((id): id is string => !!id);
+
+  if (idsLayout.length > 0) {
+    const { data: arquivos } = await supabase
+      .from("arquivos")
+      .select("id, caminho")
+      .in("id", idsLayout);
+    for (const a of arquivos ?? []) {
+      const registro = a as { id: string; caminho: string };
+      caminhoPorArquivo.set(registro.id, registro.caminho);
+    }
+  }
+
+  const urlPorArquivo = new Map<string, string>();
+  await Promise.all(
+    [...caminhoPorArquivo.entries()].map(async ([id, caminho]) => {
+      const { data } = await supabase.storage
+        .from("arquivos-clientes")
+        .createSignedUrl(caminho, 300);
+      if (data?.signedUrl) urlPorArquivo.set(id, data.signedUrl);
+    }),
+  );
+
+  return linhas.map((i) => ({
+    descricao: String(i.descricao ?? ""),
+    unidade: (i.unidade as string) ?? undefined,
+    quantidade: Number(i.quantidade ?? 0),
+    largura: i.largura != null ? Number(i.largura) : null,
+    altura: i.altura != null ? Number(i.altura) : null,
+    area_total: i.area_total != null ? Number(i.area_total) : null,
+    acabamento: (i.acabamento as string) ?? null,
+    layout_url: i.arquivo_id ? (urlPorArquivo.get(i.arquivo_id as string) ?? null) : null,
+    valor_unitario: mostrarValores ? Number(i.valor_unitario ?? 0) : 0,
+    valor_total: mostrarValores ? Number(i.valor_total ?? 0) : 0,
+  }));
+}
+
+const somaArea = (itens: DocItem[]) => {
+  const soma = itens.reduce((total, i) => total + Number(i.area_total ?? 0), 0);
+  return soma > 0 ? Math.round(soma * 1000) / 1000 : null;
+};
+
+/** "Cliente retira na empresa" ou o endereço montado do jsonb. */
+function descreverEntrega(entrega: unknown): string | null {
+  if (!entrega || typeof entrega !== "object") return null;
+  const e = entrega as Record<string, unknown>;
+  if (typeof e.descricao === "string" && e.descricao.trim()) return e.descricao;
+  const partes = [e.logradouro, e.numero, e.bairro, e.cidade, e.estado, e.cep]
+    .filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  return partes.length > 0 ? partes.join(", ") : null;
+}
+
+function descreverPagamento(condicao: unknown, total: number) {
+  if (!condicao || typeof condicao !== "object") return null;
+  const c = condicao as Record<string, unknown>;
+  const parcelas = Number(c.parcelas ?? 0) || null;
+  return {
+    forma: typeof c.forma === "string" ? c.forma : null,
+    parcelas,
+    valor_parcela: parcelas && parcelas > 0 ? Math.round((total / parcelas) * 100) / 100 : null,
+  };
 }
 
 export async function carregarPropsOrcamento(
@@ -62,31 +140,48 @@ export async function carregarPropsOrcamento(
       ).toLocaleDateString("pt-BR")
     : null;
 
+  const [empresa, itensDoc] = await Promise.all([
+    carregarEmpresa(),
+    montarItens((itens ?? []) as Record<string, unknown>[], mostrarValores),
+  ]);
+  const total = mostrarValores ? Number((orc as any).valor_total ?? 0) : 0;
+  const c = (cliente ?? {}) as any;
+
   return {
     tipo: "orcamento",
     numero: orc.numero,
     data_solicitacao: fmt(orc.created_at),
     data_validade: validade,
+    data_entrega: fmt((orc as any).prazo),
     vendedor: (vendedor as any)?.nome ?? null,
     status: orc.status,
+    empresa,
     cliente: {
-      nome: (cliente as any)?.nome ?? (orc as any).cliente_nome ?? "—",
-      documento: (cliente as any)?.documento,
-      endereco: (cliente as any)?.endereco,
-      cidade: (cliente as any)?.cidade,
-      estado: (cliente as any)?.estado,
-      cep: (cliente as any)?.cep,
-      telefone: (cliente as any)?.telefone,
-      email: (cliente as any)?.email,
+      nome: c.nome ?? (orc as any).cliente_nome ?? (orc as any).contato_nome ?? "—",
+      razao_social: c.razao_social,
+      nome_fantasia: c.nome_fantasia,
+      documento: c.documento ?? c.cpf_cnpj,
+      endereco: c.endereco,
+      bairro: c.bairro,
+      cidade: c.cidade,
+      estado: c.estado,
+      cep: c.cep,
+      telefone: c.telefone ?? (orc as any).contato_telefone,
+      celular: c.whatsapp_principal,
+      email: c.email ?? (orc as any).contato_email,
+      contato: (orc as any).contato_nome,
     },
-    itens: (itens ?? []).map((i: any) => ({
-      descricao: i.descricao,
-      unidade: i.unidade,
-      quantidade: Number(i.quantidade),
-      valor_unitario: mostrarValores ? Number(i.valor_unitario) : 0,
-      valor_total: mostrarValores ? Number(i.valor_total) : 0,
-    })),
-    total: mostrarValores ? Number((orc as any).valor_total) : 0,
+    itens: itensDoc,
+    soma_area: somaArea(itensDoc),
+    subtotal: mostrarValores ? Number((orc as any).valor_subtotal ?? total) : null,
+    desconto: mostrarValores
+      ? Number((orc as any).valor_subtotal ?? total) - total
+      : null,
+    total,
+    pagamento: mostrarValores
+      ? descreverPagamento((orc as any).condicao_pagamento, total)
+      : null,
+    entrega: descreverEntrega((orc as any).endereco_entrega),
     observacoes: orc.observacoes,
     mostrarValores,
   };
@@ -118,6 +213,13 @@ export async function carregarPropsOS(
     fromFinancialView("itens_os", mostrarValores).select("*").eq("os_id", osId).order("ordem"),
   ]);
 
+  const [empresa, itensDoc] = await Promise.all([
+    carregarEmpresa(),
+    montarItens((itens ?? []) as Record<string, unknown>[], mostrarValores),
+  ]);
+  const total = mostrarValores ? Number((os as any).valor_total ?? 0) : 0;
+  const c = (cliente ?? {}) as any;
+
   return {
     tipo: "os",
     numero: os.numero,
@@ -125,24 +227,32 @@ export async function carregarPropsOS(
     data_entrega: fmt(os.prazo_entrega),
     vendedor: (vendedor as any)?.nome ?? null,
     status: os.status,
+    empresa,
     cliente: {
-      nome: (cliente as any)?.nome ?? (os as any).cliente_nome ?? "—",
-      documento: (cliente as any)?.documento,
-      endereco: (cliente as any)?.endereco,
-      cidade: (cliente as any)?.cidade,
-      estado: (cliente as any)?.estado,
-      cep: (cliente as any)?.cep,
-      telefone: (cliente as any)?.telefone,
-      email: (cliente as any)?.email,
+      nome: c.nome ?? (os as any).cliente_nome ?? "—",
+      razao_social: c.razao_social,
+      nome_fantasia: c.nome_fantasia,
+      documento: c.documento ?? c.cpf_cnpj,
+      endereco: c.endereco,
+      bairro: c.bairro,
+      cidade: c.cidade,
+      estado: c.estado,
+      cep: c.cep,
+      telefone: c.telefone,
+      celular: c.whatsapp_principal,
+      email: c.email,
     },
-    itens: (itens ?? []).map((i: any) => ({
-      descricao: i.descricao,
-      unidade: i.unidade,
-      quantidade: Number(i.quantidade),
-      valor_unitario: mostrarValores ? Number(i.valor_unitario) : 0,
-      valor_total: mostrarValores ? Number(i.valor_total) : 0,
-    })),
-    total: mostrarValores ? Number((os as any).valor_total) : 0,
+    itens: itensDoc,
+    soma_area: somaArea(itensDoc),
+    // A via de produção não mostra valores, mas metragem e layout são o que
+    // a oficina precisa — por isso seguem presentes nos itens acima.
+    subtotal: null,
+    desconto: mostrarValores ? Number((os as any).desconto ?? 0) : null,
+    total,
+    pagamento: mostrarValores
+      ? descreverPagamento((os as any).condicao_pagamento, total)
+      : null,
+    entrega: descreverEntrega((os as any).endereco_entrega),
     observacoes: os.observacoes ?? os.briefing,
     mostrarValores,
   };
@@ -176,6 +286,7 @@ export async function carregarPropsOrcamento3d(
       ? new Date(new Date(orc.created_at).getTime() + 7 * 86400000).toLocaleDateString("pt-BR")
       : null;
   const cli = (orc.clientes ?? {}) as any;
+  const empresa = await carregarEmpresa();
 
   return {
     tipo: "orcamento_3d",
@@ -184,14 +295,19 @@ export async function carregarPropsOrcamento3d(
     data_validade: validade,
     vendedor: null,
     status: orc.status,
+    empresa,
     cliente: {
       nome: cli.nome ?? "—",
-      documento: cli.documento,
+      razao_social: cli.razao_social,
+      nome_fantasia: cli.nome_fantasia,
+      documento: cli.documento ?? cli.cpf_cnpj,
       endereco: cli.endereco,
+      bairro: cli.bairro,
       cidade: cli.cidade,
       estado: cli.estado,
       cep: cli.cep,
       telefone: cli.telefone,
+      celular: cli.whatsapp_principal,
       email: cli.email,
     },
     itens: [

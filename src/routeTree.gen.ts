@@ -26,8 +26,6 @@ import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authent
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
-import { Route as AuthenticatedOsRouteImport } from './routes/_authenticated/os'
-import { Route as AuthenticatedOrcamentosRouteImport } from './routes/_authenticated/orcamentos'
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
@@ -49,12 +47,15 @@ import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustosProducaoRouteImport } from './routes/_authenticated/custos-producao'
+import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedCasosDeUsoRouteImport } from './routes/_authenticated/casos-de-uso'
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
+import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
+import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_authenticated/orcamentos.index'
+import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
 import { Route as AuthenticatedOsIdRouteImport } from './routes/_authenticated/os.$id'
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
 import { Route as AuthenticatedOrcamento3dIdRouteImport } from './routes/_authenticated/orcamento-3d.$id'
@@ -146,16 +147,6 @@ const AuthenticatedPortalClienteRoute =
 const AuthenticatedPerdasRoute = AuthenticatedPerdasRouteImport.update({
   id: '/perdas',
   path: '/perdas',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedOsRoute = AuthenticatedOsRouteImport.update({
-  id: '/os',
-  path: '/os',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedOrcamentosRoute = AuthenticatedOrcamentosRouteImport.update({
-  id: '/orcamentos',
-  path: '/orcamentos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOrcamento3dNovoRoute =
@@ -273,6 +264,12 @@ const AuthenticatedCustosProducaoRoute =
     path: '/custos-producao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConfiguracoesEmpresaRoute =
+  AuthenticatedConfiguracoesEmpresaRouteImport.update({
+    id: '/configuracoes-empresa',
+    path: '/configuracoes-empresa',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoes3dRoute =
   AuthenticatedConfiguracoes3dRouteImport.update({
     id: '/configuracoes-3d',
@@ -285,11 +282,6 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
-  id: '/clientes',
-  path: '/clientes',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedCasosDeUsoRoute = AuthenticatedCasosDeUsoRouteImport.update({
   id: '/casos-de-uso',
   path: '/casos-de-uso',
@@ -305,16 +297,33 @@ const AuthenticatedArquivosRoute = AuthenticatedArquivosRouteImport.update({
   path: '/arquivos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOsIndexRoute = AuthenticatedOsIndexRouteImport.update({
+  id: '/os/',
+  path: '/os/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOrcamentosIndexRoute =
+  AuthenticatedOrcamentosIndexRouteImport.update({
+    id: '/orcamentos/',
+    path: '/orcamentos/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClientesIndexRoute =
+  AuthenticatedClientesIndexRouteImport.update({
+    id: '/clientes/',
+    path: '/clientes/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOsIdRoute = AuthenticatedOsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedOsRoute,
+  id: '/os/$id',
+  path: '/os/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOrcamentosIdRoute =
   AuthenticatedOrcamentosIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedOrcamentosRoute,
+    id: '/orcamentos/$id',
+    path: '/orcamentos/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedOrcamento3dIdRoute =
   AuthenticatedOrcamento3dIdRouteImport.update({
@@ -323,9 +332,9 @@ const AuthenticatedOrcamento3dIdRoute =
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClientesIdRoute = AuthenticatedClientesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedClientesRoute,
+  id: '/clientes/$id',
+  path: '/clientes/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -336,9 +345,9 @@ export interface FileRoutesByFullPath {
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
-  '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -360,8 +369,6 @@ export interface FileRoutesByFullPath {
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
-  '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
-  '/os': typeof AuthenticatedOsRouteWithChildren
   '/perdas': typeof AuthenticatedPerdasRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
@@ -378,6 +385,9 @@ export interface FileRoutesByFullPath {
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/clientes/': typeof AuthenticatedClientesIndexRoute
+  '/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
+  '/os/': typeof AuthenticatedOsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -387,9 +397,9 @@ export interface FileRoutesByTo {
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
-  '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -411,8 +421,6 @@ export interface FileRoutesByTo {
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
-  '/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
-  '/os': typeof AuthenticatedOsRouteWithChildren
   '/perdas': typeof AuthenticatedPerdasRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
@@ -429,6 +437,9 @@ export interface FileRoutesByTo {
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/clientes': typeof AuthenticatedClientesIndexRoute
+  '/orcamentos': typeof AuthenticatedOrcamentosIndexRoute
+  '/os': typeof AuthenticatedOsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -440,9 +451,9 @@ export interface FileRoutesById {
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
   '/_authenticated/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
-  '/_authenticated/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/_authenticated/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/design': typeof AuthenticatedDesignRoute
@@ -464,8 +475,6 @@ export interface FileRoutesById {
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
-  '/_authenticated/orcamentos': typeof AuthenticatedOrcamentosRouteWithChildren
-  '/_authenticated/os': typeof AuthenticatedOsRouteWithChildren
   '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
@@ -482,6 +491,9 @@ export interface FileRoutesById {
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
+  '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
+  '/_authenticated/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
+  '/_authenticated/os/': typeof AuthenticatedOsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -493,9 +505,9 @@ export interface FileRouteTypes {
     | '/arquivos'
     | '/automacoes'
     | '/casos-de-uso'
-    | '/clientes'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-empresa'
     | '/custos-producao'
     | '/dashboard'
     | '/design'
@@ -517,8 +529,6 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/ocorrencias'
     | '/orcamento-3d-novo'
-    | '/orcamentos'
-    | '/os'
     | '/perdas'
     | '/portal-cliente'
     | '/pos-venda'
@@ -535,6 +545,9 @@ export interface FileRouteTypes {
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/clientes/'
+    | '/orcamentos/'
+    | '/os/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -544,9 +557,9 @@ export interface FileRouteTypes {
     | '/arquivos'
     | '/automacoes'
     | '/casos-de-uso'
-    | '/clientes'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-empresa'
     | '/custos-producao'
     | '/dashboard'
     | '/design'
@@ -568,8 +581,6 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/ocorrencias'
     | '/orcamento-3d-novo'
-    | '/orcamentos'
-    | '/os'
     | '/perdas'
     | '/portal-cliente'
     | '/pos-venda'
@@ -586,6 +597,9 @@ export interface FileRouteTypes {
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/clientes'
+    | '/orcamentos'
+    | '/os'
   id:
     | '__root__'
     | '/'
@@ -596,9 +610,9 @@ export interface FileRouteTypes {
     | '/_authenticated/arquivos'
     | '/_authenticated/automacoes'
     | '/_authenticated/casos-de-uso'
-    | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
+    | '/_authenticated/configuracoes-empresa'
     | '/_authenticated/custos-producao'
     | '/_authenticated/dashboard'
     | '/_authenticated/design'
@@ -620,8 +634,6 @@ export interface FileRouteTypes {
     | '/_authenticated/movimentacoes'
     | '/_authenticated/ocorrencias'
     | '/_authenticated/orcamento-3d-novo'
-    | '/_authenticated/orcamentos'
-    | '/_authenticated/os'
     | '/_authenticated/perdas'
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
@@ -638,6 +650,9 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
+    | '/_authenticated/clientes/'
+    | '/_authenticated/orcamentos/'
+    | '/_authenticated/os/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -768,20 +783,6 @@ declare module '@tanstack/react-router' {
       path: '/perdas'
       fullPath: '/perdas'
       preLoaderRoute: typeof AuthenticatedPerdasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/os': {
-      id: '/_authenticated/os'
-      path: '/os'
-      fullPath: '/os'
-      preLoaderRoute: typeof AuthenticatedOsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/orcamentos': {
-      id: '/_authenticated/orcamentos'
-      path: '/orcamentos'
-      fullPath: '/orcamentos'
-      preLoaderRoute: typeof AuthenticatedOrcamentosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/orcamento-3d-novo': {
@@ -931,6 +932,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCustosProducaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes-empresa': {
+      id: '/_authenticated/configuracoes-empresa'
+      path: '/configuracoes-empresa'
+      fullPath: '/configuracoes-empresa'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesEmpresaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes-3d': {
       id: '/_authenticated/configuracoes-3d'
       path: '/configuracoes-3d'
@@ -943,13 +951,6 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/clientes': {
-      id: '/_authenticated/clientes'
-      path: '/clientes'
-      fullPath: '/clientes'
-      preLoaderRoute: typeof AuthenticatedClientesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/casos-de-uso': {
@@ -973,19 +974,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedArquivosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/os/': {
+      id: '/_authenticated/os/'
+      path: '/os'
+      fullPath: '/os/'
+      preLoaderRoute: typeof AuthenticatedOsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/orcamentos/': {
+      id: '/_authenticated/orcamentos/'
+      path: '/orcamentos'
+      fullPath: '/orcamentos/'
+      preLoaderRoute: typeof AuthenticatedOrcamentosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clientes/': {
+      id: '/_authenticated/clientes/'
+      path: '/clientes'
+      fullPath: '/clientes/'
+      preLoaderRoute: typeof AuthenticatedClientesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/os/$id': {
       id: '/_authenticated/os/$id'
-      path: '/$id'
+      path: '/os/$id'
       fullPath: '/os/$id'
       preLoaderRoute: typeof AuthenticatedOsIdRouteImport
-      parentRoute: typeof AuthenticatedOsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/orcamentos/$id': {
       id: '/_authenticated/orcamentos/$id'
-      path: '/$id'
+      path: '/orcamentos/$id'
       fullPath: '/orcamentos/$id'
       preLoaderRoute: typeof AuthenticatedOrcamentosIdRouteImport
-      parentRoute: typeof AuthenticatedOrcamentosRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/orcamento-3d/$id': {
       id: '/_authenticated/orcamento-3d/$id'
@@ -996,60 +1018,21 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/clientes/$id': {
       id: '/_authenticated/clientes/$id'
-      path: '/$id'
+      path: '/clientes/$id'
       fullPath: '/clientes/$id'
       preLoaderRoute: typeof AuthenticatedClientesIdRouteImport
-      parentRoute: typeof AuthenticatedClientesRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
-
-interface AuthenticatedClientesRouteChildren {
-  AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
-}
-
-const AuthenticatedClientesRouteChildren: AuthenticatedClientesRouteChildren = {
-  AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
-}
-
-const AuthenticatedClientesRouteWithChildren =
-  AuthenticatedClientesRoute._addFileChildren(
-    AuthenticatedClientesRouteChildren,
-  )
-
-interface AuthenticatedOrcamentosRouteChildren {
-  AuthenticatedOrcamentosIdRoute: typeof AuthenticatedOrcamentosIdRoute
-}
-
-const AuthenticatedOrcamentosRouteChildren: AuthenticatedOrcamentosRouteChildren =
-  {
-    AuthenticatedOrcamentosIdRoute: AuthenticatedOrcamentosIdRoute,
-  }
-
-const AuthenticatedOrcamentosRouteWithChildren =
-  AuthenticatedOrcamentosRoute._addFileChildren(
-    AuthenticatedOrcamentosRouteChildren,
-  )
-
-interface AuthenticatedOsRouteChildren {
-  AuthenticatedOsIdRoute: typeof AuthenticatedOsIdRoute
-}
-
-const AuthenticatedOsRouteChildren: AuthenticatedOsRouteChildren = {
-  AuthenticatedOsIdRoute: AuthenticatedOsIdRoute,
-}
-
-const AuthenticatedOsRouteWithChildren = AuthenticatedOsRoute._addFileChildren(
-  AuthenticatedOsRouteChildren,
-)
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedArquivosRoute: typeof AuthenticatedArquivosRoute
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
   AuthenticatedCasosDeUsoRoute: typeof AuthenticatedCasosDeUsoRoute
-  AuthenticatedClientesRoute: typeof AuthenticatedClientesRouteWithChildren
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
+  AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
   AuthenticatedCustosProducaoRoute: typeof AuthenticatedCustosProducaoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
@@ -1071,8 +1054,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
-  AuthenticatedOrcamentosRoute: typeof AuthenticatedOrcamentosRouteWithChildren
-  AuthenticatedOsRoute: typeof AuthenticatedOsRouteWithChildren
   AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
@@ -1084,16 +1065,23 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
+  AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedOrcamento3dIdRoute: typeof AuthenticatedOrcamento3dIdRoute
+  AuthenticatedOrcamentosIdRoute: typeof AuthenticatedOrcamentosIdRoute
+  AuthenticatedOsIdRoute: typeof AuthenticatedOsIdRoute
+  AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
+  AuthenticatedOrcamentosIndexRoute: typeof AuthenticatedOrcamentosIndexRoute
+  AuthenticatedOsIndexRoute: typeof AuthenticatedOsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedArquivosRoute: AuthenticatedArquivosRoute,
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
   AuthenticatedCasosDeUsoRoute: AuthenticatedCasosDeUsoRoute,
-  AuthenticatedClientesRoute: AuthenticatedClientesRouteWithChildren,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
+  AuthenticatedConfiguracoesEmpresaRoute:
+    AuthenticatedConfiguracoesEmpresaRoute,
   AuthenticatedCustosProducaoRoute: AuthenticatedCustosProducaoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
@@ -1115,8 +1103,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
-  AuthenticatedOrcamentosRoute: AuthenticatedOrcamentosRouteWithChildren,
-  AuthenticatedOsRoute: AuthenticatedOsRouteWithChildren,
   AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
@@ -1128,7 +1114,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
+  AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedOrcamento3dIdRoute: AuthenticatedOrcamento3dIdRoute,
+  AuthenticatedOrcamentosIdRoute: AuthenticatedOrcamentosIdRoute,
+  AuthenticatedOsIdRoute: AuthenticatedOsIdRoute,
+  AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
+  AuthenticatedOrcamentosIndexRoute: AuthenticatedOrcamentosIndexRoute,
+  AuthenticatedOsIndexRoute: AuthenticatedOsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
