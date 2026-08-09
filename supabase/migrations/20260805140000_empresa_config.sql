@@ -38,7 +38,9 @@ INSERT INTO public.empresa_config (id) VALUES (true) ON CONFLICT (id) DO NOTHING
 ALTER TABLE public.empresa_config ENABLE ROW LEVEL SECURITY;
 
 -- Todo mundo autenticado lê (o cabeçalho do documento não é sigiloso);
--- só quem administra configuração escreve.
+-- só quem administra configuração escreve. A permissão é `configuracoes.manage`
+-- (hoje só o perfil admin) — `settings.manage` não existe neste sistema, só
+-- `impressao3d.settings.manage`, que é de outro módulo.
 DROP POLICY IF EXISTS empresa_config_leitura ON public.empresa_config;
 CREATE POLICY empresa_config_leitura ON public.empresa_config
   FOR SELECT TO authenticated
@@ -47,8 +49,8 @@ CREATE POLICY empresa_config_leitura ON public.empresa_config
 DROP POLICY IF EXISTS empresa_config_escrita ON public.empresa_config;
 CREATE POLICY empresa_config_escrita ON public.empresa_config
   FOR UPDATE TO authenticated
-  USING (has_permission((select auth.uid()), 'settings.manage'))
-  WITH CHECK (has_permission((select auth.uid()), 'settings.manage'));
+  USING (has_permission((select auth.uid()), 'configuracoes.manage'))
+  WITH CHECK (has_permission((select auth.uid()), 'configuracoes.manage'));
 
 GRANT SELECT, UPDATE ON public.empresa_config TO authenticated;
 

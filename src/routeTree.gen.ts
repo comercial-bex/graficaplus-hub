@@ -49,6 +49,7 @@ import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustosProducaoRouteImport } from './routes/_authenticated/custos-producao'
+import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
@@ -273,6 +274,12 @@ const AuthenticatedCustosProducaoRoute =
     path: '/custos-producao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConfiguracoesEmpresaRoute =
+  AuthenticatedConfiguracoesEmpresaRouteImport.update({
+    id: '/configuracoes-empresa',
+    path: '/configuracoes-empresa',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoes3dRoute =
   AuthenticatedConfiguracoes3dRouteImport.update({
     id: '/configuracoes-3d',
@@ -339,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -390,6 +398,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -443,6 +452,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/_authenticated/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/design': typeof AuthenticatedDesignRoute
@@ -496,6 +506,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-empresa'
     | '/custos-producao'
     | '/dashboard'
     | '/design'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-empresa'
     | '/custos-producao'
     | '/dashboard'
     | '/design'
@@ -599,6 +611,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
+    | '/_authenticated/configuracoes-empresa'
     | '/_authenticated/custos-producao'
     | '/_authenticated/dashboard'
     | '/_authenticated/design'
@@ -931,6 +944,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCustosProducaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes-empresa': {
+      id: '/_authenticated/configuracoes-empresa'
+      path: '/configuracoes-empresa'
+      fullPath: '/configuracoes-empresa'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesEmpresaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes-3d': {
       id: '/_authenticated/configuracoes-3d'
       path: '/configuracoes-3d'
@@ -1050,6 +1070,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRouteWithChildren
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
+  AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
   AuthenticatedCustosProducaoRoute: typeof AuthenticatedCustosProducaoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
@@ -1094,6 +1115,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRouteWithChildren,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
+  AuthenticatedConfiguracoesEmpresaRoute:
+    AuthenticatedConfiguracoesEmpresaRoute,
   AuthenticatedCustosProducaoRoute: AuthenticatedCustosProducaoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
