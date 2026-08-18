@@ -92,8 +92,9 @@ function ClientesPage() {
     const path = `clientes/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("avatares").upload(path, file, { upsert: false });
     if (error) { setUploading(false); return toast.error(error.message); }
-    const { data } = supabase.storage.from("avatares").getPublicUrl(path);
-    setForm({ ...form, logo_url: data.publicUrl });
+    // Bucket privado: guardamos uma URL assinada de longa duração em vez de URL pública.
+    const { data } = await supabase.storage.from("avatares").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+    setForm({ ...form, logo_url: data?.signedUrl ?? "" });
     setUploading(false);
     toast.success("Logo enviada");
   }
