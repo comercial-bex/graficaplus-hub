@@ -106,3 +106,30 @@ export function formatarCEP(valor: string): string {
   const d = apenasDigitos(valor);
   return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : (valor ?? "");
 }
+
+/**
+ * Chave canônica de telefone para reconhecer a mesma pessoa.
+ *
+ * Espelha public.normalize_whatsapp_phone no banco, que alimenta as colunas
+ * telefone_normalizado de clientes, leads e conversas. As duas precisam
+ * concordar: se divergirem, a tela acha um cliente e o banco acha outro.
+ *
+ * Regra: só dígitos; tira o código do país 55 (12–13 dígitos); acrescenta o
+ * nono dígito em celular de 10 dígitos — o primeiro dígito após o DDD entre 6 e
+ * 9 é celular, de 2 a 5 é fixo e não recebe o 9.
+ *
+ * Assim "(96) 99111-2233", "96991112233", "5596991112233" e "9691112233" viram
+ * todos "96991112233".
+ */
+export function chaveWhatsApp(valor: string | null | undefined): string | null {
+  let d = apenasDigitos(valor ?? "");
+  if (!d) return null;
+
+  if ((d.length === 12 || d.length === 13) && d.startsWith("55")) {
+    d = d.slice(2);
+  }
+  if (d.length === 10 && d[2] >= "6" && d[2] <= "9") {
+    d = `${d.slice(0, 2)}9${d.slice(2)}`;
+  }
+  return d;
+}

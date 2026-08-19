@@ -1,6 +1,7 @@
 import { test, expect } from "vitest";
 import {
   apenasDigitos,
+  chaveWhatsApp,
   formatarCEP,
   formatarDocumento,
   formatarTelefone,
@@ -78,6 +79,40 @@ test("formatação descarta dígitos além do tamanho do tipo", () => {
 test("apenasDigitos limpa qualquer pontuação", () => {
   expect(apenasDigitos("19.131.243/0001-97")).toBe("19131243000197");
   expect(apenasDigitos("(96) 99111-6169")).toBe("96991116169");
+});
+
+// Espelha public.normalize_whatsapp_phone. Se as duas divergirem, a tela acha um
+// cliente e o banco acha outro — que foi o defeito corrigido em 19/08.
+test("mesmo celular escrito de jeitos diferentes vira a mesma chave", () => {
+  const esperado = "96991112233";
+  expect(chaveWhatsApp("(96) 99111-2233")).toBe(esperado); // com máscara
+  expect(chaveWhatsApp("96991112233")).toBe(esperado); // só dígitos
+  expect(chaveWhatsApp("5596991112233")).toBe(esperado); // com +55
+  expect(chaveWhatsApp("9691112233")).toBe(esperado); // sem o nono dígito
+  expect(chaveWhatsApp(" +55 (96) 99111-2233 ")).toBe(esperado);
+});
+
+test("fixo não ganha o nono dígito", () => {
+  // 3 após o DDD indica fixo; acrescentar o 9 criaria um número inexistente
+  expect(chaveWhatsApp("(96) 3222-1010")).toBe("9632221010");
+  expect(chaveWhatsApp("5596 3222-1010")).toBe("9632221010");
+});
+
+test("celulares diferentes não colidem", () => {
+  expect(chaveWhatsApp("(96) 98888-1111")).not.toBe(chaveWhatsApp("(96) 99111-2233"));
+});
+
+test("telefone vazio ou sem dígito não vira chave", () => {
+  expect(chaveWhatsApp("")).toBeNull();
+  expect(chaveWhatsApp(null)).toBeNull();
+  expect(chaveWhatsApp(undefined)).toBeNull();
+  expect(chaveWhatsApp("sem número")).toBeNull();
+});
+
+test("número curto ou estrangeiro é preservado como veio", () => {
+  // não inventa DDD nem nono dígito onde a regra brasileira não se aplica
+  expect(chaveWhatsApp("3222-1010")).toBe("32221010");
+  expect(chaveWhatsApp("+1 415 555 2671")).toBe("14155552671");
 });
 
 test("telefone e CEP são formatados como no documento", () => {
