@@ -77,6 +77,34 @@ export function precoM2Implicito(item: ItemDimensionado, valorUnitario: number):
   return round(numero(valorUnitario) / area, 2);
 }
 
+/**
+ * Área que entra na conta, já com o mínimo por peça aplicado.
+ *
+ * Peça pequena não paga o setup da máquina nem o refile: um adesivo de
+ * 0,20 × 0,30 sai por 0,06 m². Cobrar uma área mínima é prática padrão do setor.
+ * O mínimo vale POR PEÇA e depois multiplica pela quantidade — dez adesivos
+ * pequenos consomem dez setups, não um.
+ *
+ * Sem mínimo definido, devolve a área real: nada muda até alguém decidir o valor.
+ */
+export function areaCobrada(item: ItemDimensionado, areaMinima?: number | null): number {
+  if (!temDimensoes(item)) return 0;
+  const qtd = numero(item.quantidade) > 0 ? numero(item.quantidade) : 1;
+  const daPeca = Math.max(areaUnitaria(item), numero(areaMinima));
+  return round(daPeca * qtd, 3);
+}
+
+/** Valor de UMA peça pelo preço por m², respeitando o mínimo cobrado. */
+export function valorUnitarioComMinimo(
+  item: ItemDimensionado,
+  precoM2: number,
+  areaMinima?: number | null,
+): number {
+  if (!temDimensoes(item)) return 0;
+  const daPeca = Math.max(areaUnitaria(item), numero(areaMinima));
+  return round(daPeca * numero(precoM2), 2);
+}
+
 /** Soma da área de todos os itens dimensionados, em m². */
 export function somaAreaTotal(itens: ItemDimensionado[]): number {
   return round(

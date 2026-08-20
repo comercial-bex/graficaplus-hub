@@ -61,6 +61,15 @@ const paraNumero = (texto: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+type TamanhoProduto = {
+  id: string;
+  produto_id: string;
+  nome: string;
+  largura: number;
+  altura: number;
+  padrao: boolean;
+};
+
 const statusTone: Record<string, "cyan" | "magenta" | "lime" | "amber" | "muted"> = {
   rascunho: "muted",
   enviado: "cyan",
@@ -105,6 +114,30 @@ function OrcamentoDetailPage() {
           .order("ordem")
       ).data ?? [],
   });
+
+  // Tamanhos do produto escolhido no catálogo. Só busca quando há produto: item
+  // digitado à mão não tem preset para oferecer.
+  const { data: tamanhos = [] } = useQuery({
+    queryKey: ["produto-tamanhos", form.produto_id],
+    enabled: !!form.produto_id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_tamanhos")
+        .select("id, produto_id, nome, largura, altura, padrao")
+        .eq("produto_id", form.produto_id)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as TamanhoProduto[];
+    },
+  });
+
+  function aplicarTamanho(t: TamanhoProduto) {
+    setForm((atual) => ({
+      ...atual,
+      largura: String(t.largura),
+      altura: String(t.altura),
+    }));
+  }
 
   async function recalcular() {
     if (!canSeeFinancials) return;
@@ -352,6 +385,31 @@ function OrcamentoDetailPage() {
               </div>
             </div>
 
+            {/* Tamanhos que a gráfica vende sempre iguais: um clique evita
+                redigitar medida — e medida redigitada é onde entra erro. */}
+            {tamanhos.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">Tamanhos comuns:</span>
+                {tamanhos.map((t) => {
+                  const ativo =
+                    paraNumero(form.largura) === Number(t.largura) &&
+                    paraNumero(form.altura) === Number(t.altura);
+                  return (
+                    <Button
+                      key={t.id}
+                      type="button"
+                      size="sm"
+                      variant={ativo ? "default" : "outline"}
+                      className="h-7 text-xs font-normal"
+                      onClick={() => aplicarTamanho(t)}
+                    >
+                      {t.nome}
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Medidas em metros: preencher as duas liga a venda por m². */}
             <div className="grid grid-cols-12 gap-2 items-end">
               <div className="col-span-2">
@@ -514,6 +572,13 @@ function OrcamentoDetailPage() {
                   </TableCell>
                   <TableCell className="text-xs">
                     {descreverMetragem(i) ?? <span className="text-muted-foreground">—</span>}
+                    {/* Mínimo aplicado precisa aparecer: o vendedor tem de saber
+                        por que a conta deu mais que a área da peça. */}
+                    {Number(i.area_cobrada ?? 0) > Number(i.area_total ?? 0) && (
+                      <span className="block text-amber-600">
+                        cobrado {Number(i.area_cobrada).toFixed(3).replace(".", ",")}m² (mínimo)
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs">
                     {i.acabamento || <span className="text-muted-foreground">—</span>}
