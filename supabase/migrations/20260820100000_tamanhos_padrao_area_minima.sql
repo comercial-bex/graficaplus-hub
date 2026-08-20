@@ -63,11 +63,15 @@ DROP POLICY IF EXISTS produto_tamanhos_leitura ON public.produto_tamanhos;
 CREATE POLICY produto_tamanhos_leitura ON public.produto_tamanhos
   FOR SELECT TO authenticated USING (true);
 
+-- 'custos.manage' NÃO existe no catálogo de permissões — as que existem são
+-- custos.create/read/update. Com a permissão errada a policy nunca poderia ser
+-- satisfeita e ninguém conseguiria cadastrar tamanho (mesma armadilha do
+-- 'settings.manage' no empresa_config).
 DROP POLICY IF EXISTS produto_tamanhos_escrita ON public.produto_tamanhos;
 CREATE POLICY produto_tamanhos_escrita ON public.produto_tamanhos
   FOR ALL TO authenticated
-  USING (has_permission((select auth.uid()), 'custos.manage'))
-  WITH CHECK (has_permission((select auth.uid()), 'custos.manage'));
+  USING (has_permission((select auth.uid()), 'custos.update'))
+  WITH CHECK (has_permission((select auth.uid()), 'custos.update'));
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.produto_tamanhos TO authenticated;
 
