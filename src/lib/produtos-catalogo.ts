@@ -27,6 +27,8 @@ export type Produto = {
   preco_base: number | null;
   custo_medio: number;
   margem_minima: number;
+  /** Área mínima faturada por peça, em m². Nulo = cobra a área real. */
+  area_minima_cobrada: number | null;
   tempo_producao_min: number | null;
   imagem_url: string | null;
   observacoes_internas: string | null;

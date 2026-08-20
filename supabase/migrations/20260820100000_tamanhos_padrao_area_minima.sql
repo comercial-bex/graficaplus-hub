@@ -239,3 +239,42 @@ JOIN LATERAL (VALUES
   ('Placa 2,00 × 1,00',    2.000, 1.000, false, 3)
 ) AS t(nome, largura, altura, padrao, ordem) ON p.nome ILIKE 'Placa%'
 ON CONFLICT (produto_id, nome) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 7) A área mínima precisa chegar à tela
+-- ---------------------------------------------------------------------------
+-- É regra de preço de venda, então segue o padrão das demais: vai para o
+-- espelho produto_precos (RLS can_see_financials) e sai pela view financeira.
+-- Sem isto o campo existiria só no banco e só seria ajustável por SQL.
+ALTER TABLE public.produto_precos ADD COLUMN IF NOT EXISTS area_minima_cobrada numeric(10,3);
+
+CREATE OR REPLACE FUNCTION public.tg_sync_produto_precos()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
+BEGIN
+  INSERT INTO public.produto_precos (produto_id, preco_base, custo_medio, margem_minima,
+    margem_sugerida, preco_minimo, preco_sugerido, preco_publico, area_minima_cobrada, updated_at)
+  VALUES (NEW.id, NEW.preco_base, NEW.custo_medio, NEW.margem_minima, NEW.margem_sugerida,
+    NEW.preco_minimo, NEW.preco_sugerido, NEW.preco_publico, NEW.area_minima_cobrada, now())
+  ON CONFLICT (produto_id) DO UPDATE SET
+    preco_base = EXCLUDED.preco_base, custo_medio = EXCLUDED.custo_medio,
+    margem_minima = EXCLUDED.margem_minima, margem_sugerida = EXCLUDED.margem_sugerida,
+    preco_minimo = EXCLUDED.preco_minimo, preco_sugerido = EXCLUDED.preco_sugerido,
+    preco_publico = EXCLUDED.preco_publico, area_minima_cobrada = EXCLUDED.area_minima_cobrada,
+    updated_at = now();
+  RETURN NEW;
+END $function$;
+
+-- toca as linhas para o espelho recalcular
+UPDATE public.produtos SET updated_at = updated_at;
+
+CREATE OR REPLACE VIEW public.produtos_financeiro
+WITH (security_invoker = true) AS
+SELECT p.id, p.nome, p.descricao, p.ativo, p.created_at,
+       p.sku, p.categoria, p.tipo, p.unidade, p.tempo_producao_min, p.imagem_url,
+       p.observacoes_internas, p.updated_at, p.maquina_padrao_id, p.material_principal_id,
+       p.exigencias, p.sugestoes_operacionais,
+       pp.preco_base, pp.custo_medio, pp.margem_minima, pp.margem_sugerida,
+       pp.preco_minimo, pp.preco_sugerido, pp.preco_publico, pp.area_minima_cobrada
+FROM public.produtos p
+LEFT JOIN public.produto_precos pp ON pp.produto_id = p.id
+WHERE can_see_financials((select auth.uid()));
