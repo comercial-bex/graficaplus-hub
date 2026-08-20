@@ -80,6 +80,7 @@ import {
   toCSV,
 } from "@/lib/produtos-catalogo";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
+import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
@@ -97,6 +98,7 @@ type FormState = {
   custo_medio: string;
   preco_base: string;
   margem_minima: string;
+  area_minima_cobrada: string;
   tempo_producao_min: string;
   observacoes_internas: string;
   ativo: boolean;
@@ -112,6 +114,7 @@ const emptyForm: FormState = {
   custo_medio: "0",
   preco_base: "0",
   margem_minima: "40",
+  area_minima_cobrada: "",
   tempo_producao_min: "",
   observacoes_internas: "",
   ativo: true,
@@ -186,6 +189,11 @@ function ProdutosPage() {
         custo_medio: canSeeFinancials ? Number(f.custo_medio) || 0 : undefined,
         preco_base: Number(f.preco_base) || 0,
         margem_minima: canSeeFinancials ? Number(f.margem_minima) || 0 : undefined,
+        // vazio = sem mínimo; nunca grava 0, que o CHECK recusa e que
+        // significaria coisa diferente de "não cobrar mínimo"
+        area_minima_cobrada: canSeeFinancials
+          ? (Number(String(f.area_minima_cobrada).replace(",", ".")) || null)
+          : undefined,
         tempo_producao_min: f.tempo_producao_min
           ? Number(f.tempo_producao_min)
           : null,
@@ -269,6 +277,7 @@ function ProdutosPage() {
       custo_medio: String(p.custo_medio ?? 0),
       preco_base: String(p.preco_base ?? 0),
       margem_minima: String(p.margem_minima ?? 0),
+      area_minima_cobrada: p.area_minima_cobrada ? String(p.area_minima_cobrada) : "",
       tempo_producao_min: p.tempo_producao_min ? String(p.tempo_producao_min) : "",
       observacoes_internas: p.observacoes_internas ?? "",
       ativo: p.ativo,
@@ -286,6 +295,7 @@ function ProdutosPage() {
       custo_medio: String(p.custo_medio ?? 0),
       preco_base: String(p.preco_base ?? 0),
       margem_minima: String(p.margem_minima ?? 0),
+      area_minima_cobrada: p.area_minima_cobrada ? String(p.area_minima_cobrada) : "",
       tempo_producao_min: p.tempo_producao_min ? String(p.tempo_producao_min) : "",
       observacoes_internas: p.observacoes_internas ?? "",
       ativo: true,
@@ -842,6 +852,29 @@ function ProdutoFormDialog({
                   />
                 </div>
               </div>
+
+              {/* Só faz sentido em produto vendido por área. */}
+              {canSeeFinancials && ehUnidadeDeArea(form.unidade) && (
+                <div className="space-y-2">
+                  <Label htmlFor="produto-area-minima">Área mínima cobrada (m²)</Label>
+                  <Input
+                    id="produto-area-minima"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="deixe vazio para cobrar a área real"
+                    value={form.area_minima_cobrada}
+                    onChange={(e) =>
+                      setForm({ ...form, area_minima_cobrada: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Peça menor que isso é faturada por este valor — cobre o setup da
+                    máquina e o refile. Vale por peça: dez peças pequenas cobram dez
+                    mínimos. Vazio, nada muda.
+                  </p>
+                </div>
+              )}
 
               {/* Calculadora ao vivo */}
               <div className="grid grid-cols-3 gap-3 rounded-lg border bg-muted/30 p-3">
