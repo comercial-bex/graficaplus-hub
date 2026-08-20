@@ -7,7 +7,8 @@ export const permissions = [
   "orcamentos.read", "orcamentos.create", "orcamentos.update", "orcamentos.send", "orcamentos.approve", "orcamentos.cancel", "orcamentos.convert", "desconto.request", "desconto.approve", "margem.read",
   "impressao3d.read", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.quote.approve", "impressao3d.cost.read", "impressao3d.cost.manage", "impressao3d.production.update", "impressao3d.close", "impressao3d.settings.manage", "impressao3d.reports.read",
   "os.read", "os.create", "os.update", "os.assign", "os.status.advance", "os.status.override", "os.close",
-  "financeiro.read", "financeiro.sensitive.read", "pagamentos.create", "pagamentos.update", "pagamentos.confirm", "pagamentos.reverse", "custos.read", "resultado.read",
+  "financeiro.read", "financeiro.sensitive.read", "pagamentos.create", "pagamentos.update", "pagamentos.confirm", "pagamentos.reverse", "custos.read", "custos.create", "custos.update", "resultado.read",
+  "estoque.read", "estoque.entry", "estoque.exit", "estoque.adjust", "estoque.inventory", "estoque.reserve", "estoque.reverse", "estoque.cost.read",
   "usuarios.read", "usuarios.manage", "permissoes.manage", "logs.read", "configuracoes.manage",
 ] as const;
 
@@ -22,7 +23,9 @@ export const rolePermissions = {
   vendedor: ["leads.read", "leads.create", "leads.update", "leads.assign", "leads.convert", "clientes.read", "clientes.create", "clientes.update", "whatsapp.read", "whatsapp.reply", "orcamentos.read", "orcamentos.create", "orcamentos.update", "orcamentos.send", "impressao3d.read", "impressao3d.quote.create", "impressao3d.quote.update"],
   designer: ["clientes.read", "os.read", "os.update", "os.status.advance"],
   operador: ["os.read", "os.update", "os.status.advance", "impressao3d.read", "impressao3d.production.update"],
-  estoque: ["os.read", "custos.read"],
+  // alinhado com perfil_permissoes no banco: o papel tinha 2 permissões aqui e 7 lá,
+  // então quem era do estoque não via nenhuma tela de estoque
+  estoque: ["os.read", "custos.read", "estoque.read", "estoque.entry", "estoque.exit", "estoque.adjust", "estoque.inventory", "estoque.reserve", "estoque.reverse", "estoque.cost.read"],
   instalador: ["clientes.read", "os.read", "os.status.advance"],
   cliente: ["clientes.read"],
 } satisfies Record<AppRole, readonly Permission[]>;
