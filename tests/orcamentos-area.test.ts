@@ -1,8 +1,10 @@
 import { test, expect } from "vitest";
 import {
+  areaCobrada,
   areaUnitaria,
   areaTotal,
   ehUnidadeDeArea,
+  valorUnitarioComMinimo,
   valorUnitarioPorM2,
   precoM2Implicito,
   somaAreaTotal,
@@ -69,6 +71,45 @@ test("dimensão zerada ou negativa não vira área", () => {
 test("quantidade ausente conta como uma peça", () => {
   expect(areaTotal({ largura: 2, altura: 1.5 })).toBeCloseTo(3, 3);
   expect(areaTotal({ largura: 2, altura: 1.5, quantidade: 0 })).toBeCloseTo(3, 3);
+});
+
+// O mínimo mexe em preço de venda; estes casos travam a regra.
+const adesivoPequeno = { largura: 0.2, altura: 0.3, quantidade: 2 }; // 0,06m² a peça
+
+test("sem mínimo definido, nada muda", () => {
+  expect(areaCobrada(adesivoPequeno)).toBeCloseTo(0.12, 3);
+  expect(areaCobrada(adesivoPequeno, null)).toBeCloseTo(0.12, 3);
+  expect(areaCobrada(adesivoPequeno, 0)).toBeCloseTo(0.12, 3);
+});
+
+test("mínimo vale por peça e depois multiplica pela quantidade", () => {
+  // dez adesivos pequenos consomem dez setups, não um
+  expect(areaCobrada(adesivoPequeno, 0.25)).toBeCloseTo(0.5, 3);
+  expect(areaCobrada({ ...adesivoPequeno, quantidade: 10 }, 0.25)).toBeCloseTo(2.5, 3);
+});
+
+test("peça maior que o mínimo cobra a área real", () => {
+  const grande = { largura: 1, altura: 1, quantidade: 1 };
+  expect(areaCobrada(grande, 0.25)).toBeCloseTo(1, 3);
+});
+
+test("peça exatamente do tamanho do mínimo não é penalizada", () => {
+  const exata = { largura: 0.5, altura: 0.5, quantidade: 1 }; // 0,25m²
+  expect(areaCobrada(exata, 0.25)).toBeCloseTo(0.25, 3);
+});
+
+test("preço da peça respeita o mínimo — o caso que recupera margem", () => {
+  // 0,06m² a R$ 55/m² daria R$ 3,30; com mínimo de 0,25m² vai a R$ 13,75
+  expect(valorUnitarioComMinimo(adesivoPequeno, 55)).toBeCloseTo(3.3, 2);
+  expect(valorUnitarioComMinimo(adesivoPequeno, 55, 0.25)).toBeCloseTo(13.75, 2);
+  // e o total de 2 peças: R$ 6,60 vira R$ 27,50
+  expect(valorUnitarioComMinimo(adesivoPequeno, 55, 0.25) * 2).toBeCloseTo(27.5, 2);
+});
+
+test("item sem dimensão não recebe mínimo", () => {
+  const avulso = { quantidade: 5 };
+  expect(areaCobrada(avulso, 0.25)).toBe(0);
+  expect(valorUnitarioComMinimo(avulso, 55, 0.25)).toBe(0);
 });
 
 test("unidade de área é reconhecida nas duas grafias usadas no cadastro", () => {
