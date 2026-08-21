@@ -1,15 +1,38 @@
 import type { AppRole } from "@/lib/auth-context";
 
 export const permissions = [
-  "leads.read", "leads.create", "leads.update", "leads.assign", "leads.convert", "leads.delete",
-  "clientes.read", "clientes.create", "clientes.update", "clientes.delete", "clientes.sensitive.read",
-  "whatsapp.read", "whatsapp.reply", "whatsapp.assign", "whatsapp.transfer", "whatsapp.manage", "automacoes.read", "automacoes.manage", "templates.manage",
-  "orcamentos.read", "orcamentos.create", "orcamentos.update", "orcamentos.send", "orcamentos.approve", "orcamentos.cancel", "orcamentos.convert", "desconto.request", "desconto.approve", "margem.read",
-  "impressao3d.read", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.quote.approve", "impressao3d.cost.read", "impressao3d.cost.manage", "impressao3d.production.update", "impressao3d.close", "impressao3d.settings.manage", "impressao3d.reports.read",
-  "os.read", "os.create", "os.update", "os.assign", "os.status.advance", "os.status.override", "os.close",
-  "financeiro.read", "financeiro.sensitive.read", "pagamentos.create", "pagamentos.update", "pagamentos.confirm", "pagamentos.reverse", "custos.read", "custos.create", "custos.update", "resultado.read",
-  "estoque.read", "estoque.entry", "estoque.exit", "estoque.adjust", "estoque.inventory", "estoque.reserve", "estoque.reverse", "estoque.cost.read",
-  "usuarios.read", "usuarios.manage", "permissoes.manage", "logs.read", "configuracoes.manage",
+  "agenda.operate", "agenda.read", "agenda.reschedule", "agenda.schedule",
+  "arquivos.approve", "arquivos.delete", "arquivos.finalize", "arquivos.read", "arquivos.register_approval", "arquivos.request_approval", "arquivos.upload", "arquivos.version",
+  "automacoes.manage", "automacoes.read",
+  "clientes.create", "clientes.delete", "clientes.read", "clientes.sensitive.read", "clientes.update",
+  "configuracoes.manage",
+  "custos.create", "custos.read", "custos.update",
+  "desconto.approve", "desconto.request",
+  "entregas.manage", "entregas.read",
+  "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse",
+  "financeiro.read", "financeiro.sensitive.read",
+  "impressao3d.close", "impressao3d.cost.manage", "impressao3d.cost.read", "impressao3d.production.update", "impressao3d.quote.approve", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "impressao3d.reports.read", "impressao3d.settings.manage",
+  "instalacao.update",
+  "instalacoes.manage", "instalacoes.read",
+  "kanban.move", "kanban.read",
+  "leads.assign", "leads.convert", "leads.create", "leads.delete", "leads.read", "leads.update",
+  "logs.read",
+  "manutencao.manage", "manutencao.read",
+  "maquinas.manage", "maquinas.read",
+  "margem.read",
+  "orcamentos.approve", "orcamentos.cancel", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update",
+  "os.assign", "os.close", "os.create", "os.read", "os.status.advance", "os.status.override", "os.update",
+  "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update",
+  "permissoes.manage",
+  "portal.read",
+  "producao.finish", "producao.pause", "producao.read", "producao.start",
+  "qualidade.manage", "qualidade.read",
+  "resultado.read",
+  "retrabalho.manage", "retrabalho.read",
+  "tarefas.assign", "tarefas.complete", "tarefas.create", "tarefas.read", "tarefas.reopen", "tarefas.update",
+  "templates.manage",
+  "usuarios.manage", "usuarios.read",
+  "whatsapp.assign", "whatsapp.manage", "whatsapp.read", "whatsapp.reply", "whatsapp.transfer",
 ] as const;
 
 export type Permission = (typeof permissions)[number];
@@ -18,71 +41,80 @@ const allPermissions = [...permissions];
 
 export const rolePermissions = {
   admin: allPermissions,
-  gestor: ["leads.read", "leads.create", "leads.update", "leads.assign", "leads.convert", "clientes.read", "clientes.create", "clientes.update", "clientes.sensitive.read", "whatsapp.read", "whatsapp.reply", "whatsapp.assign", "whatsapp.transfer", "orcamentos.read", "orcamentos.create", "orcamentos.update", "orcamentos.send", "orcamentos.approve", "orcamentos.convert", "margem.read", "impressao3d.read", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.quote.approve", "impressao3d.cost.read", "impressao3d.reports.read", "os.read", "os.create", "os.update", "os.assign", "os.status.advance", "financeiro.read", "logs.read"],
-  financeiro: ["clientes.read", "orcamentos.read", "os.read", "financeiro.read", "financeiro.sensitive.read", "pagamentos.create", "pagamentos.update", "pagamentos.confirm", "pagamentos.reverse", "custos.read", "resultado.read", "impressao3d.read", "impressao3d.cost.read", "impressao3d.reports.read"],
-  vendedor: ["leads.read", "leads.create", "leads.update", "leads.assign", "leads.convert", "clientes.read", "clientes.create", "clientes.update", "whatsapp.read", "whatsapp.reply", "orcamentos.read", "orcamentos.create", "orcamentos.update", "orcamentos.send", "impressao3d.read", "impressao3d.quote.create", "impressao3d.quote.update"],
-  designer: ["clientes.read", "os.read", "os.update", "os.status.advance"],
-  operador: ["os.read", "os.update", "os.status.advance", "impressao3d.read", "impressao3d.production.update"],
-  // alinhado com perfil_permissoes no banco: o papel tinha 2 permissões aqui e 7 lá,
-  // então quem era do estoque não via nenhuma tela de estoque
-  estoque: ["os.read", "custos.read", "estoque.read", "estoque.entry", "estoque.exit", "estoque.adjust", "estoque.inventory", "estoque.reserve", "estoque.reverse", "estoque.cost.read"],
-  instalador: ["clientes.read", "os.read", "os.status.advance"],
-  cliente: ["clientes.read"],
+  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance"],
+  financeiro: ["clientes.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read"],
+  vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "whatsapp.read", "whatsapp.reply"],
+  designer: ["arquivos.finalize", "arquivos.read", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.read", "os.read", "os.status.advance", "os.update", "tarefas.complete", "tarefas.read", "tarefas.update"],
+  operador: ["agenda.operate", "agenda.read", "impressao3d.production.update", "impressao3d.read", "os.read", "os.status.advance", "os.update", "producao.finish", "producao.pause", "producao.read", "producao.start", "qualidade.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
+  estoque: ["custos.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "os.read"],
+  instalador: ["clientes.read", "entregas.manage", "entregas.read", "instalacoes.manage", "instalacoes.read", "os.read", "os.status.advance"],
+  cliente: ["portal.read"],
 } satisfies Record<AppRole, readonly Permission[]>;
 
 export const permissionLabels = Object.fromEntries(
   permissions.map((permission) => [permission, permission.replaceAll(".", " › ")]),
 ) as Record<Permission, string>;
 
-export const routePermissions: { path: string; permission: Permission }[] = [
-  { path: "/dashboard", permission: "os.read" },
-  { path: "/clientes", permission: "clientes.read" },
-  { path: "/leads", permission: "leads.read" },
-  { path: "/whatsapp", permission: "whatsapp.read" },
-  { path: "/respostas-rapidas", permission: "templates.manage" },
-  { path: "/automacoes", permission: "automacoes.read" },
-  { path: "/orcamentos", permission: "orcamentos.read" },
-  { path: "/impressao-3d", permission: "impressao3d.read" },
-  { path: "/orcamento-3d-novo", permission: "impressao3d.quote.create" },
-  { path: "/orcamento-3d", permission: "impressao3d.read" },
-  { path: "/filamentos-3d", permission: "impressao3d.settings.manage" },
-  { path: "/impressoras-3d", permission: "impressao3d.settings.manage" },
-  { path: "/configuracoes-3d", permission: "impressao3d.settings.manage" },
-  { path: "/os", permission: "os.read" },
-  { path: "/kanban", permission: "os.status.advance" },
-  { path: "/financeiro", permission: "financeiro.read" },
-  { path: "/precificacao", permission: "custos.read" },
-  { path: "/materiais", permission: "custos.read" },
-  { path: "/movimentacoes", permission: "custos.read" },
-  { path: "/entregas", permission: "os.status.advance" },
-  { path: "/arquivos", permission: "os.update" },
-  { path: "/maquinas", permission: "os.read" },
-  { path: "/perdas", permission: "os.update" },
-  { path: "/custos-producao", permission: "custos.read" },
-  { path: "/fluxo-caixa", permission: "financeiro.read" },
-  { path: "/maquinas-agenda", permission: "os.read" },
-  { path: "/manutencao", permission: "os.update" },
-  { path: "/design", permission: "os.update" },
-  { path: "/produtos", permission: "custos.read" },
-  { path: "/ocorrencias", permission: "os.update" },
-  { path: "/relatorios", permission: "resultado.read" },
-  { path: "/logs", permission: "logs.read" },
-  { path: "/usuarios", permission: "usuarios.read" },
-  { path: "/matriz-permissoes", permission: "usuarios.read" },
-  { path: "/casos-de-uso", permission: "os.read" },
-  { path: "/mapa-sistema", permission: "os.read" },
-  // Mais específico antes do genérico: getRoutePermission usa find() e casa por
+// Uma rota abre com QUALQUER uma das permissões listadas. A lista de cada rota
+// espelha o que o RLS exige das tabelas que a tela lê — antes daqui até o banco
+// havia três listas divergentes (esta, o campo `permission` de cada item do menu
+// e as policies), e o efeito prático era tela que abre e vem vazia, ou botão que
+// aparece e o backend recusa. O menu agora deriva desta mesma tabela.
+export const routePermissions: { path: string; permissions: readonly Permission[] }[] = [
+  { path: "/dashboard", permissions: ["os.read"] },
+  { path: "/clientes", permissions: ["clientes.read"] },
+  { path: "/leads", permissions: ["leads.read"] },
+  { path: "/whatsapp-monitor", permissions: ["whatsapp.read", "whatsapp.manage"] },
+  { path: "/whatsapp", permissions: ["whatsapp.read"] },
+  { path: "/respostas-rapidas", permissions: ["templates.manage"] },
+  { path: "/automacoes", permissions: ["automacoes.read"] },
+  { path: "/orcamentos", permissions: ["orcamentos.read", "orcamentos.create"] },
+  { path: "/impressao-3d", permissions: ["impressao3d.read"] },
+  { path: "/producao-3d", permissions: ["impressao3d.production.update", "impressao3d.read"] },
+  { path: "/orcamento-3d-novo", permissions: ["impressao3d.quote.create"] },
+  { path: "/orcamento-3d", permissions: ["impressao3d.read"] },
+  { path: "/filamentos-3d", permissions: ["impressao3d.settings.manage"] },
+  { path: "/impressoras-3d", permissions: ["impressao3d.settings.manage"] },
+  { path: "/configuracoes-3d", permissions: ["impressao3d.settings.manage"] },
+  { path: "/os", permissions: ["os.read"] },
+  { path: "/kanban", permissions: ["os.status.advance", "kanban.move"] },
+  { path: "/financeiro", permissions: ["financeiro.read"] },
+  { path: "/precificacao", permissions: ["custos.read"] },
+  { path: "/materiais", permissions: ["custos.read", "estoque.read"] },
+  { path: "/movimentacoes", permissions: ["estoque.read", "estoque.cost.read"] },
+  { path: "/entregas", permissions: ["entregas.read", "instalacoes.read", "instalacao.update", "os.read"] },
+  { path: "/arquivos", permissions: ["arquivos.read", "arquivos.approve"] },
+  { path: "/maquinas-agenda", permissions: ["agenda.read", "os.read"] },
+  { path: "/maquinas", permissions: ["maquinas.read", "os.read"] },
+  { path: "/perdas", permissions: ["os.read"] },
+  { path: "/custos-producao", permissions: ["custos.read"] },
+  { path: "/fluxo-caixa", permissions: ["financeiro.read"] },
+  { path: "/manutencao", permissions: ["manutencao.read", "os.read"] },
+  { path: "/design", permissions: ["arquivos.read", "arquivos.approve"] },
+  { path: "/produtos", permissions: ["custos.read"] },
+  { path: "/ocorrencias", permissions: ["os.read"] },
+  { path: "/relatorios", permissions: ["resultado.read"] },
+  { path: "/portal-cliente", permissions: ["portal.read", "clientes.read"] },
+  { path: "/pos-venda", permissions: ["os.read", "orcamentos.read"] },
+  { path: "/logs", permissions: ["logs.read"] },
+  { path: "/usuarios", permissions: ["usuarios.read"] },
+  { path: "/matriz-permissoes", permissions: ["usuarios.read"] },
+  { path: "/casos-de-uso", permissions: ["os.read"] },
+  { path: "/mapa-sistema", permissions: ["os.read"] },
+  // Mais específico antes do genérico: getRoutePermissions usa find() e casa por
   // prefixo, então "/configuracoes-empresa" precisa ser avaliado antes de
   // "/configuracoes" para não depender do detalhe da barra no startsWith.
-  { path: "/configuracoes-empresa", permission: "configuracoes.manage" },
-  { path: "/configuracoes", permission: "configuracoes.manage" },
+  { path: "/configuracoes-empresa", permissions: ["configuracoes.manage"] },
+  { path: "/configuracoes", permissions: ["configuracoes.manage"] },
 ];
 
 export function hasPermission(roles: AppRole[], permission: Permission) {
   return roles.some((role) => (rolePermissions[role] as readonly Permission[] | undefined)?.includes(permission));
 }
 
-export function getRoutePermission(pathname: string) {
+export function getRoutePermissions(pathname: string): readonly Permission[] | null {
   const normalized = pathname.replace(/^\/_authenticated/, "") || "/dashboard";
-  return routePermissions.find(({ path }) => normalized === path || normalized.startsWith(`${path}/`))?.permission ?? null;
+  return (
+    routePermissions.find(({ path }) => normalized === path || normalized.startsWith(`${path}/`))?.permissions ?? null
+  );
 }

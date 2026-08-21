@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { getRoutePermission, permissionLabels } from "@/lib/permissions";
+import { getRoutePermissions, permissionLabels } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -13,8 +13,8 @@ function AuthenticatedLayout() {
   const { user, loading, hasPermission } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const requiredPermission = getRoutePermission(pathname);
-  const canAccessRoute = requiredPermission !== null && hasPermission(requiredPermission);
+  const requiredPermissions = getRoutePermissions(pathname);
+  const canAccessRoute = requiredPermissions !== null && requiredPermissions.some(hasPermission);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -57,9 +57,9 @@ function AuthenticatedLayout() {
               <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center gap-3 text-center">
                 <h1 className="text-2xl font-semibold tracking-tight">Acesso restrito</h1>
                 <p className="text-muted-foreground">
-                  Seu perfil precisa da permissão para{" "}
-                  {requiredPermission ? permissionLabels[requiredPermission] : "uma permissão configurada"}{" "}
-                  para acessar esta rota.
+                  {requiredPermissions
+                    ? `Seu perfil precisa de ${requiredPermissions.map((p) => permissionLabels[p]).join(" ou ")} para acessar esta rota.`
+                    : "Esta rota não tem permissão configurada, então ninguém consegue abri-la. Cadastre-a no mapa de rotas."}
                 </p>
               </div>
             )}
