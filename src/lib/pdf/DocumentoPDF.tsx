@@ -19,7 +19,7 @@ export type DocItem = {
 };
 
 export type DocumentoPDFProps = {
-  tipo: "orcamento" | "os" | "orcamento_3d";
+  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material";
   numero: number | string;
   data_solicitacao?: string | null;
   data_validade?: string | null;
@@ -56,6 +56,12 @@ export type DocumentoPDFProps = {
   } | null;
   entrega?: string | null;
   observacoes?: string | null;
+  /**
+   * Rótulos das duas linhas de assinatura. Sem isso o documento assume
+   * "responsável × cliente", que é o par certo para OS e errado para um recibo
+   * de retirada — ali quem assina é o almoxarifado e quem levou o material.
+   */
+  assinaturas?: { esquerda: string; direita: string } | null;
   mostrarValores?: boolean;
 };
 
@@ -148,7 +154,14 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
   const s = criarEstilos(C);
 
   const isOrc = p.tipo === "orcamento" || p.tipo === "orcamento_3d";
-  const titulo = p.tipo === "os" ? "Ordem de Serviço" : p.tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento";
+  const titulo =
+    p.tipo === "os"
+      ? "Ordem de Serviço"
+      : p.tipo === "orcamento_3d"
+        ? "Orçamento 3D"
+        : p.tipo === "recibo_material"
+          ? "Recibo de Retirada de Material"
+          : "Orçamento";
   const mostrar = p.mostrarValores ?? true;
   const totalQtd = p.itens.reduce((a, i) => a + Number(i.quantidade || 0), 0);
   const agora = new Date().toLocaleString("pt-BR");
@@ -420,11 +433,12 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           <View style={s.signRow}>
             <View style={s.signBox}>
               <Text style={s.signLabel}>
-                {p.vendedor ?? "Responsável"} ({empresa.razao_social ?? empresa.nome})
+                {p.assinaturas?.esquerda ??
+                  `${p.vendedor ?? "Responsável"} (${empresa.razao_social ?? empresa.nome})`}
               </Text>
             </View>
             <View style={s.signBox}>
-              <Text style={s.signLabel}>{p.cliente.nome}</Text>
+              <Text style={s.signLabel}>{p.assinaturas?.direita ?? p.cliente.nome}</Text>
             </View>
           </View>
         )}
