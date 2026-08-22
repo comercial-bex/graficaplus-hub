@@ -111,3 +111,40 @@ export function motivoParaNaoRemoverPapel(params: {
   }
   return null;
 }
+
+/**
+ * Motivo para recusar a desativação de uma pessoa, ou null quando pode.
+ *
+ * Desativar bloqueia de verdade — has_permission e is_staff passaram a exigir
+ * `usuarios.ativo`. Por isso as mesmas duas travas do papel valem aqui: desativar
+ * o único admin, ou a si mesmo, deixa o sistema sem quem administre.
+ */
+export function motivoParaNaoDesativar(params: {
+  usuarioId: string;
+  usuarioLogadoId: string | null;
+  ehAdmin: boolean;
+  totalDeAdminsAtivos: number;
+}): string | null {
+  if (params.usuarioId === params.usuarioLogadoId) {
+    return "Você sairia do sistema agora mesmo. Peça a outro administrador.";
+  }
+  if (params.ehAdmin && params.totalDeAdminsAtivos <= 1) {
+    return "Este é o único administrador ativo. Promova outra pessoa antes de desativar.";
+  }
+  return null;
+}
+
+/**
+ * Motivo para recusar a alteração de uma permissão de perfil, ou null.
+ *
+ * O perfil admin é a rede de segurança: se alguém tirar `usuarios.read` dele,
+ * ninguém mais abre a tela que conserta permissão. O banco ainda deixaria (a
+ * policy aceita has_role admin), mas a tela ficaria inalcançável — e é pela tela
+ * que a pessoa vai tentar voltar atrás.
+ */
+export function motivoParaNaoMudarPermissao(papel: string): string | null {
+  if (papel === "admin") {
+    return "O perfil admin mantém todas as permissões — é o que garante voltar atrás se algo for removido por engano.";
+  }
+  return null;
+}
