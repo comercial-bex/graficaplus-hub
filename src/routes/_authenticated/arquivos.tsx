@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { EnviarParaAprovacao } from "@/components/arquivos/enviar-para-aprovacao";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,12 +29,12 @@ function ArquivosPage() {
   const [preview, setPreview] = useState<any | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const { data: arquivos = [], isLoading } = useQuery({
+  const { data: arquivos = [], isLoading, refetch } = useQuery({
     queryKey: ["arquivos", busca, tipo, status],
     queryFn: async () => {
       let query = (supabase
         .from("arquivos")
-        .select("*, ordens_servico(id, numero, titulo), clientes(id, nome), usuarios(nome), aprovacoes(id, aprovado, canal, created_at, observacao, usuarios(nome), cliente_contatos(nome))")
+        .select("*, ordens_servico(id, numero, titulo), clientes(id, nome, telefone, whatsapp_principal), usuarios(nome), aprovacoes(id, aprovado, canal, created_at, observacao, usuarios(nome), cliente_contatos(nome))")
         .order("created_at", { ascending: false })
         .limit(200) as any);
 
@@ -154,7 +155,23 @@ function ArquivosPage() {
                       <TableCell className="text-xs">
                         {ultimaAprovacao ? `${ultimaAprovacao.aprovado ? "Aprovado" : "Rejeitado"} via ${label(ultimaAprovacao.canal)}` : "—"}
                       </TableCell>
-                      <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => abrirPreview(arquivo)}>Preview</Button></TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {/* Só arte de OS pode ir para aprovação: o cliente
+                              precisa do número do pedido para saber o que está
+                              olhando, e a RPC recusa arquivo sem OS. */}
+                          {arquivo.tipo === "arte" && arquivo.os_id && (
+                            <EnviarParaAprovacao
+                              arquivoId={arquivo.id}
+                              arquivoNome={arquivo.nome}
+                              osNumero={arquivo.ordens_servico?.numero}
+                              telefoneCliente={arquivo.clientes?.whatsapp_principal ?? arquivo.clientes?.telefone}
+                              onGerado={() => refetch()}
+                            />
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => abrirPreview(arquivo)}>Preview</Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
