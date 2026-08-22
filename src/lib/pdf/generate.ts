@@ -325,9 +325,105 @@ export async function carregarPropsOrcamento3d(
   };
 }
 
+/**
+ * Recibo de retirada de material — o papel que a baixa de estoque não tinha.
+ *
+ * A saída já grava material, quantidade, OS, quem retirou e quando; aqui isso
+ * vira documento assinável. Sem valores: é controle de material, não de dinheiro,
+ * e o custo do insumo não é assunto de quem assina no balcão.
+ */
+export async function carregarPropsReciboMaterial(osId: string): Promise<DocumentoPDFProps> {
+  const { data: os, error } = await fromFinancialView("ordens_servico", false)
+    .select("*")
+    .eq("id", osId)
+    .single();
+  if (error || !os) throw error ?? new Error("OS não encontrada");
+
+  const { data: movimentos = [] } = await supabase
+    .from("movimentacoes_estoque")
+    .select("id, created_at, quantidade, unidade, material_id, usuario_id, motivo")
+    .eq("os_id", osId)
+    .eq("tipo", "saida")
+    .order("created_at");
+
+  const linhas = (movimentos ?? []) as Record<string, unknown>[];
+  if (linhas.length === 0) {
+    throw new Error("Esta OS ainda não teve baixa de estoque — não há o que dar recibo.");
+  }
+
+  const idsMaterial = [...new Set(linhas.map((m) => m.material_id as string))];
+  const idsUsuario = [
+    ...new Set(linhas.map((m) => m.usuario_id as string | null).filter(Boolean)),
+  ] as string[];
+
+  const [{ data: cliente }, { data: materiais }, { data: usuarios }, empresa] = await Promise.all([
+    (os as any).cliente_id
+      ? supabase.from("clientes").select("*").eq("id", (os as any).cliente_id).single()
+      : Promise.resolve({ data: null }),
+    supabase.from("materiais").select("id, nome, unidade").in("id", idsMaterial),
+    idsUsuario.length
+      ? supabase.from("usuarios").select("id, nome").in("id", idsUsuario)
+      : Promise.resolve({ data: [] as any[] }),
+    carregarEmpresa(),
+  ]);
+
+  const nomeMaterial = new Map((materiais ?? []).map((m: any) => [m.id, m]));
+  const nomeUsuario = new Map((usuarios ?? []).map((u: any) => [u.id, u.nome]));
+  const c = (cliente ?? {}) as any;
+
+  // Quem retirou: normalmente é uma pessoa só na baixa inteira. Havendo mais de
+  // uma, o recibo lista todas em vez de escolher uma e mentir na assinatura.
+  //
+  // A policy de `usuarios` só libera o próprio registro (fora admin e gestor).
+  // Quem emite o recibo da própria baixa vê o próprio nome; emitindo o recibo de
+  // uma baixa feita por outra pessoa, o nome não resolve. Nesse caso o documento
+  // sai com a linha em branco para assinar à mão — melhor que imprimir um nome
+  // errado ou um "—" onde deveria haver responsável.
+  const retirantes = [
+    ...new Set(linhas.map((m) => nomeUsuario.get(m.usuario_id as string)).filter(Boolean)),
+  ] as string[];
+
+  return {
+    tipo: "recibo_material",
+    numero: os.numero,
+    data_solicitacao: fmt(String(linhas[0].created_at)),
+    vendedor: null,
+    status: os.status,
+    empresa,
+    cliente: {
+      nome: c.nome ?? (os as any).cliente_nome ?? "—",
+      razao_social: c.razao_social,
+      documento: c.documento ?? c.cpf_cnpj,
+      cidade: c.cidade,
+      estado: c.estado,
+      telefone: c.telefone,
+    },
+    itens: linhas.map((m) => {
+      const mat: any = nomeMaterial.get(m.material_id as string);
+      return {
+        descricao: mat?.nome ?? "(material removido)",
+        unidade: (m.unidade as string) ?? mat?.unidade ?? undefined,
+        quantidade: Number(m.quantidade ?? 0),
+        valor_unitario: 0,
+        valor_total: 0,
+        acabamento: (m.motivo as string) ?? null,
+      };
+    }),
+    total: 0,
+    observacoes: `Material retirado do estoque para a OS ${os.numero}${
+      retirantes.length > 0 ? ` por ${retirantes.join(", ")}` : ""
+    }. A assinatura confirma o recebimento das quantidades acima.`,
+    assinaturas: {
+      esquerda: `Entregue por (${empresa.razao_social ?? empresa.nome})`,
+      direita: retirantes.length === 1 ? `Retirado por ${retirantes[0]}` : "Retirado por",
+    },
+    mostrarValores: false,
+  };
+}
+
 export async function salvarERegistrarPDF(opts: {
   blob: Blob;
-  tipo: "orcamento" | "os" | "orcamento_3d";
+  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material";
   referencia_id: string;
   numero: number | string;
   variante: "cliente" | "producao";
@@ -358,17 +454,20 @@ export async function salvarERegistrarPDF(opts: {
 
 /** Renderiza + sobe no Storage + baixa para o usuário. */
 export async function gerarESalvarPDF(opts: {
-  tipo: "orcamento" | "os" | "orcamento_3d";
+  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material";
   referencia_id: string;
   mostrarValores?: boolean;
 }) {
-  const mostrar = opts.mostrarValores ?? true;
+  // O recibo nunca mostra valores, independente de quem clicou.
+  const mostrar = opts.tipo === "recibo_material" ? false : (opts.mostrarValores ?? true);
   const props =
     opts.tipo === "orcamento"
       ? await carregarPropsOrcamento(opts.referencia_id, mostrar)
       : opts.tipo === "orcamento_3d"
         ? await carregarPropsOrcamento3d(opts.referencia_id, mostrar)
-        : await carregarPropsOS(opts.referencia_id, mostrar);
+        : opts.tipo === "recibo_material"
+          ? await carregarPropsReciboMaterial(opts.referencia_id)
+          : await carregarPropsOS(opts.referencia_id, mostrar);
   const blob = await renderPDFBlob(props);
   const { filename } = await salvarERegistrarPDF({
     blob,

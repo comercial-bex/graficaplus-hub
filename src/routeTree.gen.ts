@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
+import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
@@ -88,6 +89,11 @@ const IndexRoute = IndexRouteImport.update({
 const PublicoTokenRoute = PublicoTokenRouteImport.update({
   id: '/publico/$token',
   path: '/publico/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AprovarTokenRoute = AprovarTokenRouteImport.update({
+  id: '/aprovar/$token',
+  path: '/aprovar/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWhatsappMonitorRoute =
@@ -380,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/aprovar/$token': typeof AprovarTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
@@ -432,6 +439,7 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/aprovar/$token': typeof AprovarTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
@@ -486,6 +494,7 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/aprovar/$token': typeof AprovarTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
@@ -540,6 +549,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/whatsapp'
     | '/whatsapp-monitor'
+    | '/aprovar/$token'
     | '/publico/$token'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
@@ -592,6 +602,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/whatsapp'
     | '/whatsapp-monitor'
+    | '/aprovar/$token'
     | '/publico/$token'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
@@ -645,6 +656,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-monitor'
+    | '/aprovar/$token'
     | '/publico/$token'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamento-3d/$id'
@@ -661,6 +673,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  AprovarTokenRoute: typeof AprovarTokenRoute
   PublicoTokenRoute: typeof PublicoTokenRoute
 }
 
@@ -706,6 +719,13 @@ declare module '@tanstack/react-router' {
       path: '/publico/$token'
       fullPath: '/publico/$token'
       preLoaderRoute: typeof PublicoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aprovar/$token': {
+      id: '/aprovar/$token'
+      path: '/aprovar/$token'
+      fullPath: '/aprovar/$token'
+      preLoaderRoute: typeof AprovarTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/whatsapp-monitor': {
@@ -1132,6 +1152,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  AprovarTokenRoute: AprovarTokenRoute,
   PublicoTokenRoute: PublicoTokenRoute,
 }
 export const routeTree = rootRouteImport
