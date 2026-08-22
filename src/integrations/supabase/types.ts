@@ -8390,6 +8390,7 @@ export type Database = {
       usuarios: {
         Row: {
           ativo: boolean
+          cargo_pretendido: string | null
           avatar_url: string | null
           created_at: string
           email: string
@@ -8400,6 +8401,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cargo_pretendido?: string | null
           avatar_url?: string | null
           created_at?: string
           email: string
@@ -8410,6 +8412,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cargo_pretendido?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string

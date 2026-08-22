@@ -60,13 +60,15 @@ function UsuariosPage() {
     queryFn: async () => {
       const { data: usuarios } = await supabase
         .from("usuarios")
-        .select("id, nome, email, telefone, ativo")
+        .select("id, nome, email, telefone, ativo, cargo_pretendido, created_at")
         .order("nome");
       const { data: roles } = await supabase.from("user_roles").select("*");
-      return (usuarios ?? []).map((u) => ({
+      const lista = (usuarios ?? []).map((u) => ({
         ...u,
         roles: (roles ?? []).filter((r) => r.user_id === u.id).map((r) => r.role),
       }));
+      // Quem está sem papel vai para o topo: é a única linha que exige ação.
+      return lista.sort((a, b) => a.roles.length - b.roles.length);
     },
   });
 
@@ -111,6 +113,19 @@ function UsuariosPage() {
       return toast.error("Seu perfil não tem permissão para remover papéis.");
     }
     toast.success("Papel removido");
+    qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
+  }
+
+  async function liberarComoPediu(u: any) {
+    // "administrador" é o rótulo do cadastro; o papel no sistema é `admin`.
+    const papel = (u.cargo_pretendido === "administrador" ? "admin" : u.cargo_pretendido) as AppRole;
+    if (!ROLES.includes(papel)) {
+      return toast.error(`"${u.cargo_pretendido}" não corresponde a um perfil. Escolha na lista.`);
+    }
+    if (!window.confirm(`Liberar ${u.nome} como ${papel}?`)) return;
+    const { error } = await supabase.from("user_roles").insert({ user_id: u.id, role: papel });
+    if (error) return toast.error(error.message);
+    toast.success(`${u.nome} liberado como ${papel}`);
     qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
   }
 
@@ -174,9 +189,8 @@ function UsuariosPage() {
         <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            {semPapel === 1 ? "Uma pessoa está" : `${semPapel} pessoas estão`} sem papel. Quem
-            não tem papel consegue entrar e não enxerga tela nenhuma — o acesso é negado por
-            padrão.
+            {semPapel === 1 ? "Uma pessoa se cadastrou e está" : `${semPapel} pessoas se cadastraram e estão`}{" "}
+            aguardando liberação. Sem papel, elas entram e veem apenas um aviso de espera.
           </div>
         </div>
       )}
@@ -214,7 +228,9 @@ function UsuariosPage() {
                   <TableCell>{u.email}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {u.roles.length === 0 && <span className="text-xs text-muted-foreground">Sem papel</span>}
+                      {u.roles.length === 0 && (
+                        <span className="text-xs text-muted-foreground">Aguardando liberação</span>
+                      )}
                       {u.roles.map((r: string) => (
                         <Badge key={r} variant="secondary" className="gap-1">
                           {r}
@@ -251,6 +267,17 @@ function UsuariosPage() {
                         +
                       </Button>
                     </div>
+                    {/* O que a pessoa declarou no cadastro. É sugestão: liberar
+                        continua sendo uma decisão explícita de quem administra. */}
+                    {u.roles.length === 0 && u.cargo_pretendido && (
+                      <button
+                        type="button"
+                        onClick={() => liberarComoPediu(u)}
+                        className="mt-1 text-xs text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground"
+                      >
+                        pediu acesso como <strong>{u.cargo_pretendido}</strong> — liberar assim
+                      </button>
+                    )}
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <Button

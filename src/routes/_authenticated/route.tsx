@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-  const { user, loading, hasPermission } = useAuth();
+  const { user, loading, hasPermission, roles, signOut } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const requiredPermissions = getRoutePermissions(pathname);
@@ -28,6 +28,34 @@ function AuthenticatedLayout() {
     );
   }
   if (!user) return null;
+
+  // Quem acabou de se cadastrar entra sem papel nenhum. Sem este desvio, o guarda
+  // deny-by-default responde "Acesso restrito" — conta criada com sucesso e uma
+  // tela de erro na cara, que lê como defeito do sistema.
+  if (roles.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="h-1.5" style={{ background: "var(--gradient-cmyk)" }} />
+        <div className="mx-auto max-w-lg px-6 py-20 text-center space-y-4">
+          <h1 className="text-2xl font-semibold tracking-tight">Aguardando liberação</h1>
+          <p className="text-muted-foreground">
+            Sua conta está criada e o acesso ainda não foi liberado. Um administrador precisa
+            escolher o que você pode ver — avise a equipe se estiver demorando.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Conectado como <span className="font-medium text-foreground">{user.email}</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="text-sm underline decoration-border underline-offset-4 hover:decoration-foreground"
+          >
+            Sair
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
