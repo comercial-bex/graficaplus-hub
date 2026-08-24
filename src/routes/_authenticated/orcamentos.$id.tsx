@@ -42,6 +42,11 @@ import {
   valorUnitarioPorM2,
 } from "@/domain/orcamentos/area";
 import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
+import {
+  FaixaDePrecoAviso,
+  useFaixaDePreco,
+  usePedidoMinimo,
+} from "@/components/orcamento/faixa-de-preco";
 
 const rotuloOrigem: Record<string, string> = {
   manual: "digitado",
@@ -66,6 +71,8 @@ const itemVazio = {
   // mesma coisa no relatório de margem — não dava para saber qual item tinha
   // conta feita por trás. 'manual' é o padrão porque o campo é digitável.
   origem_calculo: "manual" as "manual" | "catalogo" | "motor",
+  // "tabela" = veio da faixa de quantidade; "manual" = o vendedor digitou.
+  origem_preco: "manual" as "manual" | "tabela",
   custo_previsto: null as number | null,
   margem_prevista: null as number | null,
   parametros: null as Record<string, unknown> | null,
@@ -192,6 +199,11 @@ function OrcamentoDetailPage() {
     altura: paraNumero(form.altura),
     quantidade: paraNumero(form.quantidade),
   };
+  // Produto de tabela por faixa (catálogo de campanha): o preço vem da faixa,
+  // não do preço-base único do cadastro.
+  const { data: faixa } = useFaixaDePreco(form.produto_id, paraNumero(form.quantidade));
+  const { data: pedidoMinimo } = usePedidoMinimo(form.produto_id);
+
   const precoM2Form = paraNumero(form.preco_m2);
   const vendidoPorArea = temDimensoes(dimensoesForm);
   // Com preço/m² informado, o valor unitário é derivado — o trigger no banco
@@ -430,6 +442,25 @@ function OrcamentoDetailPage() {
                   );
                 })}
               </div>
+            )}
+
+            {canSeeFinancials && form.produto_id && (
+              <FaixaDePrecoAviso
+                faixa={faixa}
+                pedidoMinimo={pedidoMinimo}
+                quantidade={paraNumero(form.quantidade)}
+                aoAplicar={(preco) =>
+                  setForm((atual) =>
+                    // Não sobrescreve preço já negociado à mão: só preenche o que
+                    // ainda está no valor de tabela ou zerado.
+                    paraNumero(atual.valor_unitario) === 0 ||
+                    atual.origem_preco === "tabela"
+                      ? { ...atual, valor_unitario: preco.toFixed(2), origem_preco: "tabela" }
+                      : atual,
+                  )
+                }
+                aoSubirFaixa={(q) => setForm((atual) => ({ ...atual, quantidade: String(q) }))}
+              />
             )}
 
             {/* Medidas em metros: preencher as duas liga a venda por m². */}

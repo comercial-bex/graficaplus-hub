@@ -213,9 +213,16 @@ export async function carregarPropsOS(
     fromFinancialView("itens_os", mostrarValores).select("*").eq("os_id", osId).order("ordem"),
   ]);
 
-  const [empresa, itensDoc] = await Promise.all([
+  const [empresa, itensDoc, identificacaoLegal] = await Promise.all([
     carregarEmpresa(),
     montarItens((itens ?? []) as Record<string, unknown>[], mostrarValores),
+    // Lei nº 9.504/1997: material impresso de campanha precisa trazer o CNPJ da
+    // gráfica, o CNPJ/CPF de quem contratou e a tiragem. A função devolve null
+    // quando falta alguma das três partes — meia identificação não cumpre a lei
+    // e daria a impressão de que cumpre.
+    (supabase.rpc as any)("identificacao_legal_os", { p_os_id: osId }).then(
+      (r: { data: string | null }) => r.data ?? null,
+    ),
   ]);
   const total = mostrarValores ? Number((os as any).valor_total ?? 0) : 0;
   const c = (cliente ?? {}) as any;
@@ -253,7 +260,11 @@ export async function carregarPropsOS(
       ? descreverPagamento((os as any).condicao_pagamento, total)
       : null,
     entrega: descreverEntrega((os as any).endereco_entrega),
-    observacoes: os.observacoes ?? os.briefing,
+    // A identificação legal vai junto das observações da OS, que é o bloco que a
+    // produção lê antes de imprimir.
+    observacoes: [os.observacoes ?? os.briefing, identificacaoLegal]
+      .filter(Boolean)
+      .join("\n\n"),
     mostrarValores,
   };
 }
