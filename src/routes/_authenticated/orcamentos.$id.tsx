@@ -44,8 +44,11 @@ import {
 import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
 import {
   FaixaDePrecoAviso,
+  RestricoesDoProduto,
+  ValidadeDaTabela,
   useFaixaDePreco,
   usePedidoMinimo,
+  useRestricaoProduto,
 } from "@/components/orcamento/faixa-de-preco";
 
 const rotuloOrigem: Record<string, string> = {
@@ -203,6 +206,7 @@ function OrcamentoDetailPage() {
   // não do preço-base único do cadastro.
   const { data: faixa } = useFaixaDePreco(form.produto_id, paraNumero(form.quantidade));
   const { data: pedidoMinimo } = usePedidoMinimo(form.produto_id);
+  const { data: restricao } = useRestricaoProduto(form.produto_id);
 
   const precoM2Form = paraNumero(form.preco_m2);
   const vendidoPorArea = temDimensoes(dimensoesForm);
@@ -443,6 +447,12 @@ function OrcamentoDetailPage() {
                 })}
               </div>
             )}
+
+            {/* Restrição legal aparece para todo mundo, inclusive quem não vê
+                valor: é informação de produção e de venda, não de dinheiro. */}
+            {form.produto_id && <RestricoesDoProduto restricao={restricao} />}
+
+            {canSeeFinancials && form.produto_id && <ValidadeDaTabela faixa={faixa} />}
 
             {canSeeFinancials && form.produto_id && (
               <FaixaDePrecoAviso

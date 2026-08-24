@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, TrendingDown } from "lucide-react";
+import { AlertTriangle, CalendarClock, Scale, TrendingDown } from "lucide-react";
+import { pecasPorVeiculo } from "@/domain/orcamentos/limite-veicular";
 
 export type Faixa = {
   preco_unitario: number;
@@ -11,6 +12,15 @@ export type Faixa = {
   quantidade_minima: number;
   proxima_faixa: number | null;
   economia_na_proxima: number | null;
+  vigencia_fim: string | null;
+  dias_para_vencer: number | null;
+};
+
+export type RestricaoProduto = {
+  exigencias: string | null;
+  conta_no_limite_carroceria: boolean;
+  largura: number | null;
+  altura: number | null;
 };
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -45,6 +55,9 @@ export function useFaixaDePreco(produtoId: string | null, quantidade: number) {
         proxima_faixa: linha.proxima_faixa != null ? Number(linha.proxima_faixa) : null,
         economia_na_proxima:
           linha.economia_na_proxima != null ? Number(linha.economia_na_proxima) : null,
+        vigencia_fim: linha.vigencia_fim ?? null,
+        dias_para_vencer:
+          linha.dias_para_vencer != null ? Number(linha.dias_para_vencer) : null,
       };
     },
   });
@@ -145,6 +158,93 @@ export function FaixaDePrecoAviso({
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Restrições do produto e a validade da tabela.
+ *
+ * As exigências estavam gravadas no cadastro e não apareciam na hora da venda —
+ * ficavam num campo que só quem edita produto vê. É no momento de orçar que elas
+ * mudam a decisão.
+ */
+export function useRestricaoProduto(produtoId: string | null) {
+  return useQuery({
+    queryKey: ["restricao-produto", produtoId],
+    enabled: !!produtoId,
+    queryFn: async (): Promise<RestricaoProduto | null> => {
+      const { data } = await (supabase as any)
+        .from("produtos")
+        .select("exigencias, conta_no_limite_carroceria, produto_tamanhos(largura, altura)")
+        .eq("id", produtoId)
+        .maybeSingle();
+      if (!data) return null;
+      const medida = data.produto_tamanhos?.[0];
+      return {
+        exigencias: data.exigencias ?? null,
+        conta_no_limite_carroceria: !!data.conta_no_limite_carroceria,
+        largura: medida?.largura != null ? Number(medida.largura) : null,
+        altura: medida?.altura != null ? Number(medida.altura) : null,
+      };
+    },
+  });
+}
+
+export function RestricoesDoProduto({ restricao }: { restricao: RestricaoProduto | null | undefined }) {
+  if (!restricao?.exigencias && !restricao?.conta_no_limite_carroceria) return null;
+  const cabem = restricao.conta_no_limite_carroceria
+    ? pecasPorVeiculo(restricao.largura, restricao.altura)
+    : null;
+
+  return (
+    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
+      <Scale className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+      <div className="space-y-1">
+        {restricao.exigencias && <p>{restricao.exigencias}</p>}
+        {cabem != null && (
+          <p>
+            Cabem <strong>{cabem} {cabem === 1 ? "peça" : "peças"} por veículo</strong> dentro
+            do limite de 0,5 m² da Justiça Eleitoral. O limite vale por carro, somando todos os
+            adesivos da carroceria — não pelo total do pedido.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ValidadeDaTabela({ faixa }: { faixa: Faixa | null | undefined }) {
+  if (!faixa?.vigencia_fim || faixa.dias_para_vencer == null) return null;
+  const dias = faixa.dias_para_vencer;
+  // Só fala quando é acionável: tabela vencida, ou vencendo dentro de 15 dias.
+  if (dias > 15) return null;
+
+  const data = new Date(`${faixa.vigencia_fim}T00:00:00`).toLocaleDateString("pt-BR");
+  const vencida = dias < 0;
+
+  return (
+    <div
+      className={`rounded-md border p-3 text-sm flex gap-2 ${
+        vencida ? "border-destructive/40 bg-destructive/10" : "border-amber-500/40 bg-amber-500/10"
+      }`}
+    >
+      <CalendarClock
+        className={`h-4 w-4 flex-shrink-0 mt-0.5 ${vencida ? "text-destructive" : "text-amber-600"}`}
+      />
+      <div>
+        {vencida ? (
+          <>
+            Esta tabela de preços <strong>venceu em {data}</strong>. O valor abaixo é o da tabela
+            antiga — confirme o preço antes de fechar.
+          </>
+        ) : (
+          <>
+            Tabela válida até <strong>{data}</strong>
+            {dias === 0 ? " — vence hoje." : ` — faltam ${dias} ${dias === 1 ? "dia" : "dias"}.`}
+          </>
+        )}
+      </div>
     </div>
   );
 }
