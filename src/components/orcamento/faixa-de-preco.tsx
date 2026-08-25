@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CalendarClock, Scale, TrendingDown } from "lucide-react";
-import { pecasPorVeiculo } from "@/domain/orcamentos/limite-veicular";
 
 export type Faixa = {
   preco_unitario: number;
@@ -191,25 +190,22 @@ export function useRestricaoProduto(produtoId: string | null) {
   });
 }
 
+/**
+ * A restrição legal do produto, nas palavras do próprio catálogo.
+ *
+ * Só o texto: calcular "cabem N peças por veículo" respondia a pergunta errada.
+ * O limite de 0,5 m² é regra de APLICAÇÃO no carro do eleitor, e transformá-lo
+ * num número na tela sugeria uma recomendação de venda que não existe — na
+ * prática vai um adesivo por carro, não quatro. Quem pergunta "quantas saem" está
+ * perguntando de produção, e isso quem responde é o aproveitamento de bobina.
+ */
 export function RestricoesDoProduto({ restricao }: { restricao: RestricaoProduto | null | undefined }) {
-  if (!restricao?.exigencias && !restricao?.conta_no_limite_carroceria) return null;
-  const cabem = restricao.conta_no_limite_carroceria
-    ? pecasPorVeiculo(restricao.largura, restricao.altura)
-    : null;
+  if (!restricao?.exigencias) return null;
 
   return (
     <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
       <Scale className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-      <div className="space-y-1">
-        {restricao.exigencias && <p>{restricao.exigencias}</p>}
-        {cabem != null && (
-          <p>
-            Cabem <strong>{cabem} {cabem === 1 ? "peça" : "peças"} por veículo</strong> dentro
-            do limite de 0,5 m² da Justiça Eleitoral. O limite vale por carro, somando todos os
-            adesivos da carroceria — não pelo total do pedido.
-          </p>
-        )}
-      </div>
+      <p>{restricao.exigencias}</p>
     </div>
   );
 }

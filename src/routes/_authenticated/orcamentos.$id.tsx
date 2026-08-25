@@ -50,6 +50,10 @@ import {
   usePedidoMinimo,
   useRestricaoProduto,
 } from "@/components/orcamento/faixa-de-preco";
+import {
+  AproveitamentoDeBobina,
+  useContextoDeBobina,
+} from "@/components/orcamento/aproveitamento-card";
 
 const rotuloOrigem: Record<string, string> = {
   manual: "digitado",
@@ -207,6 +211,7 @@ function OrcamentoDetailPage() {
   const { data: faixa } = useFaixaDePreco(form.produto_id, paraNumero(form.quantidade));
   const { data: pedidoMinimo } = usePedidoMinimo(form.produto_id);
   const { data: restricao } = useRestricaoProduto(form.produto_id);
+  const { data: contextoBobina } = useContextoDeBobina(form.produto_id);
 
   const precoM2Form = paraNumero(form.preco_m2);
   const vendidoPorArea = temDimensoes(dimensoesForm);
@@ -451,6 +456,17 @@ function OrcamentoDetailPage() {
             {/* Restrição legal aparece para todo mundo, inclusive quem não vê
                 valor: é informação de produção e de venda, não de dinheiro. */}
             {form.produto_id && <RestricoesDoProduto restricao={restricao} />}
+
+            {/* Quantas peças saem da bobina que está na máquina. Vale para todo
+                mundo: é informação de produção, não de preço. */}
+            {form.produto_id && (
+              <AproveitamentoDeBobina
+                contexto={contextoBobina}
+                largura={dimensoesForm.largura || restricao?.largura || 0}
+                altura={dimensoesForm.altura || restricao?.altura || 0}
+                quantidade={paraNumero(form.quantidade)}
+              />
+            )}
 
             {canSeeFinancials && form.produto_id && <ValidadeDaTabela faixa={faixa} />}
 
