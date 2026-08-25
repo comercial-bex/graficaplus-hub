@@ -37,6 +37,7 @@ import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
 import { MateriaisPrevistosCard } from "@/components/materiais-previstos-card";
 import { TarefasDaOS } from "@/components/os/tarefas-card";
 import { ApontamentoDaOS } from "@/components/os/apontamento-card";
+import { QualidadeDaOS } from "@/components/os/qualidade-card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -244,6 +245,9 @@ function OSDetailPage() {
 
       {/* Depois das tarefas: é o tempo de máquina que vira custo real. */}
       <ApontamentoDaOS osId={id} />
+
+      {/* Depois da produção: é a conferência que libera o fechamento. */}
+      <QualidadeDaOS osId={id} />
 
       <MateriaisPrevistosCard osId={id} />
 
