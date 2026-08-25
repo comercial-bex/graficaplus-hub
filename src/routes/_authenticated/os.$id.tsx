@@ -35,6 +35,7 @@ import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
 import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
 import { MateriaisPrevistosCard } from "@/components/materiais-previstos-card";
+import { TarefasDaOS } from "@/components/os/tarefas-card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -236,6 +237,9 @@ function OSDetailPage() {
       </Tabs>
 
       <PDFHistoryCard tipo="os" referencia_id={id} />
+
+      {/* Antes dos materiais: é a lista que decide se a OS pode fechar. */}
+      <TarefasDaOS osId={id} />
 
       <MateriaisPrevistosCard osId={id} />
 
