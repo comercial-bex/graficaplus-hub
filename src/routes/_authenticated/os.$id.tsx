@@ -36,6 +36,7 @@ import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
 import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
 import { MateriaisPrevistosCard } from "@/components/materiais-previstos-card";
 import { TarefasDaOS } from "@/components/os/tarefas-card";
+import { ApontamentoDaOS } from "@/components/os/apontamento-card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -240,6 +241,9 @@ function OSDetailPage() {
 
       {/* Antes dos materiais: é a lista que decide se a OS pode fechar. */}
       <TarefasDaOS osId={id} />
+
+      {/* Depois das tarefas: é o tempo de máquina que vira custo real. */}
+      <ApontamentoDaOS osId={id} />
 
       <MateriaisPrevistosCard osId={id} />
 
