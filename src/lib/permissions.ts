@@ -79,7 +79,6 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/os", permissions: ["os.read"] },
   { path: "/kanban", permissions: ["os.status.advance", "kanban.move"] },
   { path: "/financeiro", permissions: ["financeiro.read"] },
-  { path: "/precificacao", permissions: ["custos.read"] },
   { path: "/materiais", permissions: ["custos.read", "estoque.read"] },
   { path: "/movimentacoes", permissions: ["estoque.read", "estoque.cost.read"] },
   { path: "/entregas", permissions: ["entregas.read", "instalacoes.read", "instalacao.update", "os.read"] },

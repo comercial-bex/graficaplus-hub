@@ -17,7 +17,6 @@ export type Faixa = {
 
 export type RestricaoProduto = {
   exigencias: string | null;
-  conta_no_limite_carroceria: boolean;
   largura: number | null;
   altura: number | null;
 };
@@ -173,16 +172,17 @@ export function useRestricaoProduto(produtoId: string | null) {
     queryKey: ["restricao-produto", produtoId],
     enabled: !!produtoId,
     queryFn: async (): Promise<RestricaoProduto | null> => {
+      // View operacional, não a tabela: o acesso a `produtos` é por coluna e a
+      // view é o caminho oficial de leitura do front.
       const { data } = await (supabase as any)
-        .from("produtos")
-        .select("exigencias, conta_no_limite_carroceria, produto_tamanhos(largura, altura)")
+        .from("produtos_operacional")
+        .select("exigencias, produto_tamanhos(largura, altura)")
         .eq("id", produtoId)
         .maybeSingle();
       if (!data) return null;
       const medida = data.produto_tamanhos?.[0];
       return {
         exigencias: data.exigencias ?? null,
-        conta_no_limite_carroceria: !!data.conta_no_limite_carroceria,
         largura: medida?.largura != null ? Number(medida.largura) : null,
         altura: medida?.altura != null ? Number(medida.altura) : null,
       };

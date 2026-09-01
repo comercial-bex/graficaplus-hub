@@ -19,7 +19,6 @@ import {
   Truck,
   AlertTriangle,
   BarChart3,
-  Calculator,
   Wrench,
   Calendar,
   ListChecks,
@@ -101,7 +100,6 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Catálogo & Estoque",
     items: [
       { title: "Produtos", url: "/produtos", icon: Package },
-      { title: "Precificação", url: "/precificacao", icon: Calculator },
       { title: "Materiais", url: "/materiais", icon: Boxes },
       {
         title: "Custos de mão de obra",

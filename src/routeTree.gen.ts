@@ -23,7 +23,6 @@ import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_aut
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
-import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
@@ -133,12 +132,6 @@ const AuthenticatedProducao3dRoute = AuthenticatedProducao3dRouteImport.update({
   path: '/producao-3d',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPrecificacaoRoute =
-  AuthenticatedPrecificacaoRouteImport.update({
-    id: '/precificacao',
-    path: '/precificacao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedPosVendaRoute = AuthenticatedPosVendaRouteImport.update({
   id: '/pos-venda',
   path: '/pos-venda',
@@ -378,7 +371,6 @@ export interface FileRoutesByFullPath {
   '/perdas': typeof AuthenticatedPerdasRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
-  '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -431,7 +423,6 @@ export interface FileRoutesByTo {
   '/perdas': typeof AuthenticatedPerdasRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
-  '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -486,7 +477,6 @@ export interface FileRoutesById {
   '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
-  '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
@@ -541,7 +531,6 @@ export interface FileRouteTypes {
     | '/perdas'
     | '/portal-cliente'
     | '/pos-venda'
-    | '/precificacao'
     | '/producao-3d'
     | '/produtos'
     | '/relatorios'
@@ -594,7 +583,6 @@ export interface FileRouteTypes {
     | '/perdas'
     | '/portal-cliente'
     | '/pos-venda'
-    | '/precificacao'
     | '/producao-3d'
     | '/produtos'
     | '/relatorios'
@@ -648,7 +636,6 @@ export interface FileRouteTypes {
     | '/_authenticated/perdas'
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
-    | '/_authenticated/precificacao'
     | '/_authenticated/producao-3d'
     | '/_authenticated/produtos'
     | '/_authenticated/relatorios'
@@ -775,13 +762,6 @@ declare module '@tanstack/react-router' {
       path: '/producao-3d'
       fullPath: '/producao-3d'
       preLoaderRoute: typeof AuthenticatedProducao3dRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/precificacao': {
-      id: '/_authenticated/precificacao'
-      path: '/precificacao'
-      fullPath: '/precificacao'
-      preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pos-venda': {
@@ -1077,7 +1057,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
-  AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
@@ -1126,7 +1105,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
-  AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,

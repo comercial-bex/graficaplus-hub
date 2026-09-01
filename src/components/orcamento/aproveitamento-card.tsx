@@ -30,10 +30,12 @@ export function useContextoDeBobina(produtoId: string | null) {
     queryKey: ["contexto-bobina", produtoId],
     enabled: !!produtoId,
     queryFn: async (): Promise<Contexto | null> => {
+      // Views operacionais: o acesso a produtos/materiais é por coluna, e as
+      // colunas de largura só existem na view depois do grant correspondente.
       const { data: produto } = await (supabase as any)
-        .from("produtos")
+        .from("produtos_operacional")
         .select(
-          "espacamento_pecas_m, materiais:material_principal_id(nome, largura_bobina_m, comprimento_bobina_m)",
+          "espacamento_pecas_m, materiais_operacional:material_principal_id(nome, largura_bobina_m, comprimento_bobina_m)",
         )
         .eq("id", produtoId)
         .maybeSingle();
@@ -47,7 +49,7 @@ export function useContextoDeBobina(produtoId: string | null) {
         .order("largura_util_m", { ascending: false })
         .limit(1);
       const maquina = maquinas?.[0];
-      const bobina = produto.materiais;
+      const bobina = produto.materiais_operacional;
 
       return {
         larguraBobina: bobina?.largura_bobina_m != null ? Number(bobina.largura_bobina_m) : null,
