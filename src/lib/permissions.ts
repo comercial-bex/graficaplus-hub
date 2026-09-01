@@ -41,13 +41,13 @@ const allPermissions = [...permissions];
 
 export const rolePermissions = {
   admin: allPermissions,
-  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance"],
+  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance", "resultado.read"],
   financeiro: ["clientes.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read"],
-  vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "whatsapp.read", "whatsapp.reply"],
+  vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "whatsapp.read", "whatsapp.reply"],
   designer: ["arquivos.finalize", "arquivos.read", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.read", "os.read", "os.status.advance", "os.update", "tarefas.complete", "tarefas.read", "tarefas.update"],
-  operador: ["agenda.operate", "agenda.read", "impressao3d.production.update", "impressao3d.read", "os.read", "os.status.advance", "os.update", "producao.finish", "producao.pause", "producao.read", "producao.start", "qualidade.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
+  operador: ["agenda.operate", "agenda.read", "arquivos.read", "impressao3d.production.update", "impressao3d.read", "os.read", "os.status.advance", "os.update", "producao.finish", "producao.pause", "producao.read", "producao.start", "qualidade.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
   estoque: ["custos.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "os.read"],
-  instalador: ["clientes.read", "entregas.manage", "entregas.read", "instalacoes.manage", "instalacoes.read", "os.read", "os.status.advance"],
+  instalador: ["arquivos.read", "clientes.read", "entregas.manage", "entregas.read", "instalacoes.manage", "instalacoes.read", "os.read", "os.status.advance"],
   cliente: ["portal.read"],
 } satisfies Record<AppRole, readonly Permission[]>;
 
