@@ -46,6 +46,7 @@ type ReportResponse = {
     faturamentoPorPeriodo: FaturamentoRow[];
     lucroPorOs: LucroOsRow[];
     margemPorProduto: MargemProdutoRow[];
+    previstoRealizado: PrevistoRealizadoRow[];
   };
   operacional: {
     osAtrasadas: OsAtrasadaRow[];
@@ -137,6 +138,25 @@ type TempoRespostaRow = {
   atendente: string | null;
   respostas: number;
   minutos_media_resposta: number | null;
+};
+
+type PrevistoRealizadoRow = {
+  os_id: string;
+  numero: number;
+  titulo: string | null;
+  cliente: string;
+  criada_em: string;
+  status: string;
+  receita_liquida: number;
+  custo_previsto: number;
+  custo_realizado: number;
+  divergencia_custo: number;
+  divergencia_pct: number | null;
+  margem_prevista: number | null;
+  margem_realizada: number | null;
+  variacao_margem: number;
+  retrabalho: number;
+  atraso: boolean;
 };
 
 type ExportRow = Record<string, string | number | null | undefined>;
@@ -246,6 +266,15 @@ function buildFinancialSections(data: ReportResponse): ExportSection[] {
     { title: "Faturamento por período", rows: financeiro.faturamentoPorPeriodo },
     { title: "Lucro por OS", rows: financeiro.lucroPorOs },
     { title: "Margem por produto", rows: financeiro.margemPorProduto },
+    {
+      title: "Previsto x realizado",
+      // `atraso` é booleano e a planilha é lida por gente: "sim/não" em vez de
+      // true/false, que também é o que o tipo da exportação aceita.
+      rows: financeiro.previstoRealizado.map((row) => ({
+        ...row,
+        atraso: row.atraso ? "sim" : "não",
+      })),
+    },
   ];
 }
 
@@ -569,6 +598,75 @@ function RelatPage() {
                           </TableCell>
                         </TableRow>
                       ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Previsto × realizado</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Onde o custo estourou o que foi orçado. Ordenado pelo maior estouro — é a
+                  lista que mostra em quais trabalhos o preço está errado.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>OS</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="text-right">Custo previsto</TableHead>
+                      <TableHead className="text-right">Custo real</TableHead>
+                      <TableHead className="text-right">Estouro</TableHead>
+                      <TableHead className="text-right">Margem prev. → real</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.financeiro.previstoRealizado.length === 0 ? (
+                      <EmptyRow cols={6} />
+                    ) : (
+                      data.financeiro.previstoRealizado.map((row) => {
+                        const estouro = asNumber(row.divergencia_custo);
+                        return (
+                          <TableRow key={row.os_id}>
+                            <TableCell className="font-medium">#{row.numero}</TableCell>
+                            <TableCell>{row.cliente}</TableCell>
+                            <TableCell className="text-right">
+                              {formatMoney(row.custo_previsto)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatMoney(row.custo_realizado)}
+                            </TableCell>
+                            {/* Estouro é o que interessa: custo real acima do previsto.
+                                Abaixo do previsto não é problema, e por isso não recebe
+                                destaque — alarme em tudo é alarme em nada. */}
+                            <TableCell
+                              className={`text-right ${estouro > 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}
+                            >
+                              {estouro > 0 ? "+" : ""}
+                              {formatMoney(estouro)}
+                              {row.divergencia_pct != null && estouro > 0 && (
+                                <span className="ml-1 text-xs">
+                                  ({decimal.format(asNumber(row.divergencia_pct))}%)
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatPercent(row.margem_prevista)} →{" "}
+                              <span
+                                className={
+                                  asNumber(row.variacao_margem) < 0 ? "text-destructive" : undefined
+                                }
+                              >
+                                {formatPercent(row.margem_realizada)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
