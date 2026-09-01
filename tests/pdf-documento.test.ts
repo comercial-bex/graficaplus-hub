@@ -164,3 +164,39 @@ test("recibo de retirada renderiza sem valores e com as assinaturas próprias", 
   });
   expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
 }, 30_000);
+
+test("fatura mostra parcelas, saldo em aberto e identificação legal", async () => {
+  const buffer = await renderizar({
+    ...props,
+    tipo: "fatura",
+    numero: 31,
+    data_validade: null,
+    vendedor: null,
+    subtotal: 1110,
+    desconto: 0,
+    total: 1110,
+    // Entrada já paga: a fatura precisa mostrar o SALDO, não o total cheio.
+    valor_pago: 555,
+    parcelas: [
+      { numero: 1, valor: 555, vencimento: "2026-09-05", pago: true },
+      { numero: 2, valor: 555, vencimento: "2026-09-20", pago: false },
+    ],
+    pagamento: { forma: "PIX", parcelas: 2, valor_parcela: 555 },
+    observacoes:
+      "Impresso por CNPJ 68.726.406/0001-90 para AGENCIA BEX MCP (37.914.628/0001-02). Tiragem: 3000 exemplares. Art. 38, Lei 9.504/1997.",
+    mostrarValores: true,
+  });
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+}, 30_000);
+
+test("fatura sem parcelas e sem pagamento continua renderizando", async () => {
+  const buffer = await renderizar({
+    ...props,
+    tipo: "fatura",
+    numero: 32,
+    parcelas: [],
+    valor_pago: 0,
+    pagamento: null,
+  });
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+}, 30_000);

@@ -19,7 +19,7 @@ export type DocItem = {
 };
 
 export type DocumentoPDFProps = {
-  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material";
+  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material" | "fatura";
   numero: number | string;
   data_solicitacao?: string | null;
   data_validade?: string | null;
@@ -56,6 +56,14 @@ export type DocumentoPDFProps = {
   } | null;
   entrega?: string | null;
   observacoes?: string | null;
+  /**
+   * Parcelas com vencimento e situação. A cobrança sem as datas obriga o cliente
+   * a ligar para perguntar quando vence — que é o telefonema que a fatura existe
+   * para evitar.
+   */
+  parcelas?: { numero: number; valor: number; vencimento: string | null; pago: boolean }[] | null;
+  /** Já recebido, para a fatura mostrar o saldo em aberto e não o total cheio. */
+  valor_pago?: number | null;
   /**
    * Rótulos das duas linhas de assinatura. Sem isso o documento assume
    * "responsável × cliente", que é o par certo para OS e errado para um recibo
@@ -161,7 +169,9 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
         ? "Orçamento 3D"
         : p.tipo === "recibo_material"
           ? "Recibo de Retirada de Material"
-          : "Orçamento";
+          : p.tipo === "fatura"
+            ? "Fatura"
+            : "Orçamento";
   const mostrar = p.mostrarValores ?? true;
   const totalQtd = p.itens.reduce((a, i) => a + Number(i.quantidade || 0), 0);
   const agora = new Date().toLocaleString("pt-BR");
@@ -402,6 +412,35 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
               <Text style={s.totalLabel}>TOTAL GERAL</Text>
               <Text style={s.totalValue}>{money(p.total)}</Text>
             </View>
+            {/* Na fatura o que interessa é o saldo, não o total: o cliente que já
+                pagou a entrada precisa ver quanto ainda deve. */}
+            {p.valor_pago != null && p.valor_pago > 0 && (
+              <>
+                <View style={s.totalLinha}>
+                  <Text style={s.totalLinhaLabel}>Já recebido</Text>
+                  <Text style={s.totalLinhaValor}>{money(p.valor_pago)}</Text>
+                </View>
+                <View style={s.totalBox}>
+                  <Text style={s.totalLabel}>SALDO EM ABERTO</Text>
+                  <Text style={s.totalValue}>{money(p.total - p.valor_pago)}</Text>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+
+        {p.parcelas && p.parcelas.length > 0 && (
+          <View style={s.obs}>
+            <Text style={s.obsTitle}>PARCELAS</Text>
+            {p.parcelas.map((parcela) => (
+              <Text key={parcela.numero}>
+                {parcela.numero}ª — {money(parcela.valor)}
+                {parcela.vencimento
+                  ? ` · vence em ${new Date(`${parcela.vencimento}T00:00:00`).toLocaleDateString("pt-BR")}`
+                  : ""}
+                {parcela.pago ? " · PAGA" : ""}
+              </Text>
+            ))}
           </View>
         )}
 

@@ -432,9 +432,103 @@ export async function carregarPropsReciboMaterial(osId: string): Promise<Documen
   };
 }
 
+/**
+ * Fatura da OS — o último elo do encanamento: orçamento → OS → custo → cobrança.
+ *
+ * Não cria conta a receber: ela já nasce na conversão do orçamento, com as
+ * parcelas. Esta função só produz o DOCUMENTO que falta — o papel que o cliente
+ * recebe dizendo o que deve, quando vence e quanto já pagou.
+ *
+ * Material de campanha sai com a identificação exigida pela Lei 9.504/1997, a
+ * mesma da OS: a fatura costuma ser o documento que vai para a prestação de
+ * contas eleitoral.
+ */
+export async function carregarPropsFatura(osId: string): Promise<DocumentoPDFProps> {
+  const { data: os, error } = await fromFinancialView("ordens_servico", true)
+    .select("*")
+    .eq("id", osId)
+    .single();
+  if (error || !os) throw error ?? new Error("OS não encontrada");
+
+  const [{ data: cliente }, { data: itens = [] }, { data: conta }, { data: pagos }, empresa] =
+    await Promise.all([
+      supabase.from("clientes").select("*").eq("id", (os as any).cliente_id).single(),
+      fromFinancialView("itens_os", true).select("*").eq("os_id", osId).order("ordem"),
+      (supabase as any)
+        .from("contas_receber")
+        .select("id, valor_total, status, parcelas_receber(parcela, valor, vencimento, status)")
+        .eq("os_id", osId)
+        .maybeSingle(),
+      (supabase as any)
+        .from("pagamentos")
+        .select("valor, status")
+        .eq("os_id", osId)
+        .eq("status", "pago"),
+      carregarEmpresa(),
+    ]);
+
+  const itensDoc = await montarItens((itens ?? []) as Record<string, unknown>[], true);
+  const total = Number((os as any).valor_total ?? 0);
+  const valorPago = ((pagos ?? []) as { valor: number }[]).reduce(
+    (soma, p) => soma + Number(p.valor ?? 0),
+    0,
+  );
+
+  const parcelas = (((conta as any)?.parcelas_receber ?? []) as any[])
+    .map((p) => ({
+      numero: Number(p.parcela ?? 0),
+      valor: Number(p.valor ?? 0),
+      vencimento: p.vencimento ?? null,
+      pago: p.status === "pago" || p.status === "paga",
+    }))
+    .sort((a, b) => a.numero - b.numero);
+
+  const { data: identificacao } = await (supabase.rpc as any)("identificacao_legal_os", {
+    p_os_id: osId,
+  });
+
+  const c = (cliente ?? {}) as any;
+  return {
+    tipo: "fatura",
+    numero: os.numero,
+    data_solicitacao: fmt(os.created_at),
+    data_entrega: fmt((os as any).data_entrega_real ?? os.prazo_entrega),
+    status: (os as any).status_financeiro ?? os.status,
+    vendedor: null,
+    empresa,
+    cliente: {
+      nome: c.nome ?? (os as any).cliente_nome ?? "—",
+      razao_social: c.razao_social,
+      nome_fantasia: c.nome_fantasia,
+      documento: c.documento ?? c.cpf_cnpj,
+      endereco: c.endereco,
+      bairro: c.bairro,
+      cidade: c.cidade,
+      estado: c.estado,
+      cep: c.cep,
+      telefone: c.telefone,
+      celular: c.whatsapp_principal,
+      email: c.email,
+    },
+    itens: itensDoc,
+    soma_area: somaArea(itensDoc),
+    subtotal: Number((os as any).valor_subtotal ?? total),
+    desconto: Number((os as any).desconto ?? 0),
+    total,
+    valor_pago: valorPago,
+    parcelas,
+    pagamento: descreverPagamento((os as any).condicao_pagamento, total),
+    entrega: descreverEntrega((os as any).endereco_entrega),
+    // A identificação legal vem antes da observação livre: numa fiscalização é a
+    // primeira coisa que se procura no documento.
+    observacoes: [identificacao, os.observacoes].filter(Boolean).join("\n\n") || null,
+    mostrarValores: true,
+  };
+}
+
 export async function salvarERegistrarPDF(opts: {
   blob: Blob;
-  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material";
+  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material" | "fatura";
   referencia_id: string;
   numero: number | string;
   variante: "cliente" | "producao";
@@ -465,11 +559,13 @@ export async function salvarERegistrarPDF(opts: {
 
 /** Renderiza + sobe no Storage + baixa para o usuário. */
 export async function gerarESalvarPDF(opts: {
-  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material";
+  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material" | "fatura";
   referencia_id: string;
   mostrarValores?: boolean;
 }) {
   // O recibo nunca mostra valores, independente de quem clicou.
+  // Recibo de material nunca mostra valor; a fatura é o oposto — ela existe
+  // justamente para mostrar.
   const mostrar = opts.tipo === "recibo_material" ? false : (opts.mostrarValores ?? true);
   const props =
     opts.tipo === "orcamento"
@@ -478,7 +574,9 @@ export async function gerarESalvarPDF(opts: {
         ? await carregarPropsOrcamento3d(opts.referencia_id, mostrar)
         : opts.tipo === "recibo_material"
           ? await carregarPropsReciboMaterial(opts.referencia_id)
-          : await carregarPropsOS(opts.referencia_id, mostrar);
+          : opts.tipo === "fatura"
+            ? await carregarPropsFatura(opts.referencia_id)
+            : await carregarPropsOS(opts.referencia_id, mostrar);
   const blob = await renderPDFBlob(props);
   const { filename } = await salvarERegistrarPDF({
     blob,
