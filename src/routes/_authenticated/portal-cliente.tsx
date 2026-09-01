@@ -159,11 +159,15 @@ function PortalClientePage() {
           <CardContent className="py-16 text-center space-y-3">
             <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground" />
             <p className="text-muted-foreground">
-              Seu usuário ainda não foi vinculado a um cliente no portal.
+              Sua conta ainda não foi liberada para acompanhar um cliente.
             </p>
-            <p className="text-xs text-muted-foreground font-mono">
-              Solicite à equipe BEX que cadastre seu acesso em <code>portal_cliente_acessos</code>.
+            <p className="text-sm text-muted-foreground">
+              Fale com a equipe BEX PRINT e informe este e-mail — a liberação é feita no
+              cadastro do cliente, na aba Portal, e vale na hora.
             </p>
+            {user?.email && (
+              <p className="text-sm font-medium">{user.email}</p>
+            )}
           </CardContent>
         </Card>
       </div>

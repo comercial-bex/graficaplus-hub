@@ -1,6 +1,7 @@
 import { test, expect } from "vitest";
 import {
   areaCobrada,
+  baseDeConsumo,
   areaUnitaria,
   areaTotal,
   ehUnidadeDeArea,
@@ -137,4 +138,24 @@ test("área arredonda em 3 casas sem acumular erro de ponto flutuante", () => {
   expect(areaUnitaria({ largura: 0.1, altura: 0.2, quantidade: 1 })).toBe(0.02);
   // 1.005 x 1 arredondado a 3 casas
   expect(areaUnitaria({ largura: 1.005, altura: 1, quantidade: 1 })).toBe(1.005);
+});
+
+// A ficha técnica do produto multiplica por esta base. Trocar metragem por peças
+// erraria o custo de material por um fator igual à área da peça.
+test("baseDeConsumo usa a metragem cobrada quando o item é vendido por área", () => {
+  expect(baseDeConsumo({ largura: 3, altura: 2, quantidade: 2 })).toBe(12);
+});
+
+test("baseDeConsumo usa a quantidade quando o item não tem dimensão", () => {
+  expect(baseDeConsumo({ quantidade: 250 })).toBe(250);
+});
+
+test("baseDeConsumo respeita a área mínima por peça", () => {
+  // dez adesivos de 0,06 m² com mínimo de 0,25: dez setups, não um
+  expect(baseDeConsumo({ largura: 0.2, altura: 0.3, quantidade: 10 }, 0.25)).toBe(2.5);
+});
+
+test("baseDeConsumo trata quantidade ausente como uma peça", () => {
+  expect(baseDeConsumo({ largura: 1.5, altura: 1 })).toBe(1.5);
+  expect(baseDeConsumo({})).toBe(1);
 });

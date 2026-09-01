@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Check, Minus } from "lucide-react";
 import { permissions, rolePermissions, type Permission } from "@/lib/permissions";
+import { motivoParaNaoMudarPermissao } from "@/lib/criar-usuario";
+import { toast } from "sonner";
 import type { AppRole } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/matriz-permissoes")({
@@ -64,6 +66,8 @@ const moduloLabels: Record<string, string> = {
 
 function MatrizPermissoesPage() {
   const [busca, setBusca] = useState("");
+  const [salvando, setSalvando] = useState<string | null>(null);
+  const qc = useQueryClient();
 
   const { data: dbMatrix, isLoading } = useQuery({
     queryKey: ["role-permission-matrix"],
@@ -104,12 +108,52 @@ function MatrizPermissoesPage() {
 
   const totais = ROLES.map((r) => permissions.filter((p) => can(r, p)).length);
 
+  /**
+   * Liga e desliga a permissão direto em perfil_permissoes.
+   *
+   * A tela era só leitura enquanto a tabela sempre aceitou escrita de admin — e
+   * o auth-context já lê a matriz do banco, então a mudança vale para todo mundo
+   * no próximo carregamento, sem publicar nada.
+   */
+  async function alternar(role: AppRole, permission: Permission) {
+    const impedimento = motivoParaNaoMudarPermissao(role);
+    if (impedimento) return toast.error(impedimento);
+
+    const chave = `${role}:${permission}`;
+    setSalvando(chave);
+    const tinha = can(role, permission);
+
+    // Escrita barrada por RLS devolve 0 linhas e nenhum erro: sem conferir o
+    // retorno, o quadradinho mudaria na tela e nada mudaria no banco.
+    const resposta = tinha
+      ? await (supabase as any)
+          .from("perfil_permissoes")
+          .delete()
+          .eq("perfil", role)
+          .eq("permissao", permission)
+          .select("permissao")
+      : await (supabase as any)
+          .from("perfil_permissoes")
+          .insert({ perfil: role, permissao: permission })
+          .select("permissao");
+    setSalvando(null);
+
+    if (resposta.error) return toast.error(resposta.error.message);
+    if (!resposta.data || resposta.data.length === 0) {
+      return toast.error("Seu perfil não tem permissão para alterar a matriz.");
+    }
+    await qc.invalidateQueries({ queryKey: ["role-permission-matrix"] });
+    toast.success(
+      `${permission} ${tinha ? "removida de" : "concedida a"} ${role}. Quem estiver logado vê a mudança ao recarregar.`,
+    );
+  }
+
   return (
     <div>
       <SectionHeader
         breadcrumb="Administração"
         title="Matriz de permissões por perfil"
-        description={`Cada linha é uma ação; cada coluna é um perfil. Fonte de verdade: ${fonte}.`}
+        description={`Clique para conceder ou remover. Cada linha é uma ação, cada coluna é um perfil. Fonte de verdade: ${fonte}.`}
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -155,15 +199,39 @@ function MatrizPermissoesPage() {
                   {perms.map((p) => (
                     <tr key={p} className="border-b border-border/50 hover:bg-muted/20">
                       <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{p}</td>
-                      {ROLES.map((r) => (
-                        <td key={r} className="px-2 py-2 text-center">
-                          {can(r, p) ? (
-                            <Check className="mx-auto h-4 w-4 text-[color:var(--bex-lime)]" />
-                          ) : (
-                            <Minus className="mx-auto h-3.5 w-3.5 text-muted-foreground/30" />
-                          )}
-                        </td>
-                      ))}
+                      {ROLES.map((r) => {
+                        const marcado = can(r, p);
+                        const fixo = r === "admin";
+                        return (
+                          <td key={r} className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              disabled={fixo || salvando === `${r}:${p}`}
+                              onClick={() => alternar(r, p)}
+                              title={
+                                fixo
+                                  ? "O perfil admin mantém todas as permissões"
+                                  : marcado
+                                    ? `Remover ${p} de ${r}`
+                                    : `Conceder ${p} a ${r}`
+                              }
+                              aria-label={`${marcado ? "Remover" : "Conceder"} ${p} ${marcado ? "de" : "a"} ${r}`}
+                              aria-pressed={marcado}
+                              className={`mx-auto flex h-6 w-6 items-center justify-center rounded transition-colors ${
+                                fixo
+                                  ? "cursor-not-allowed opacity-60"
+                                  : "hover:bg-[color:var(--surface-hover)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                              }`}
+                            >
+                              {marcado ? (
+                                <Check className="h-4 w-4 text-[color:var(--bex-lime)]" />
+                              ) : (
+                                <Minus className="h-3.5 w-3.5 text-muted-foreground/30" />
+                              )}
+                            </button>
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </Fragment>

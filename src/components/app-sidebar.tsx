@@ -19,7 +19,6 @@ import {
   Truck,
   AlertTriangle,
   BarChart3,
-  Calculator,
   Wrench,
   Calendar,
   ListChecks,
@@ -27,6 +26,7 @@ import {
   History,
   UserPlus,
   Boxes,
+  ShoppingCart,
   Cuboid,
   ShieldCheck,
   Workflow,
@@ -50,26 +50,26 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import type { Permission } from "@/lib/permissions";
+import { getRoutePermissions } from "@/lib/permissions";
 
-type Item = { title: string; url: string; icon: LucideIcon; permission?: Permission };
+type Item = { title: string; url: string; icon: LucideIcon };
 
 const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] = [
   {
     label: "Operação",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Kanban Produção", url: "/kanban", icon: Kanban, permission: "os.status.advance" },
+      { title: "Kanban Produção", url: "/kanban", icon: Kanban },
       { title: "Ordens de Serviço", url: "/os", icon: ClipboardList },
     ],
   },
   {
     label: "Comercial",
     items: [
-      { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes.read" },
+      { title: "Clientes", url: "/clientes", icon: Users },
       { title: "Leads", url: "/leads", icon: UserPlus },
-      { title: "Orçamentos", url: "/orcamentos", icon: FileText, permission: "orcamentos.create" },
-      { title: "Impressão 3D", url: "/impressao-3d", icon: Cuboid, permission: "impressao3d.read" },
+      { title: "Orçamentos", url: "/orcamentos", icon: FileText },
+      { title: "Impressão 3D", url: "/impressao-3d", icon: Cuboid },
     ],
   },
   {
@@ -84,17 +84,16 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Produção",
     items: [
       { title: "Design & Arte", url: "/design", icon: Palette },
-      { title: "Arquivos", url: "/arquivos", icon: FolderOpen, permission: "os.update" },
+      { title: "Arquivos", url: "/arquivos", icon: FolderOpen },
       { title: "Máquinas", url: "/maquinas", icon: Factory },
       { title: "Agenda de máquinas", url: "/maquinas-agenda", icon: Calendar },
       { title: "Manutenção", url: "/manutencao", icon: Wrench },
       {
         title: "Entregas & Instalações",
         url: "/entregas",
-        icon: Truck,
-        permission: "os.status.advance",
+        icon: Truck
       },
-      { title: "Perdas & desperdício", url: "/perdas", icon: TrendingDown, permission: "os.update" },
+      { title: "Perdas & desperdício", url: "/perdas", icon: TrendingDown },
       { title: "Ocorrências", url: "/ocorrencias", icon: AlertTriangle },
     ],
   },
@@ -102,19 +101,17 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Catálogo & Estoque",
     items: [
       { title: "Produtos", url: "/produtos", icon: Package },
-      { title: "Precificação", url: "/precificacao", icon: Calculator, permission: "custos.read" },
-      { title: "Materiais", url: "/materiais", icon: Boxes, permission: "custos.read" },
+      { title: "Materiais", url: "/materiais", icon: Boxes },
+      { title: "Compras", url: "/compras", icon: ShoppingCart },
       {
         title: "Custos de mão de obra",
         url: "/custos-producao",
-        icon: Users,
-        permission: "custos.read",
+        icon: Users
       },
       {
         title: "Movimentações",
         url: "/movimentacoes",
-        icon: History,
-        permission: "custos.read",
+        icon: History
       },
     ],
   },
@@ -122,8 +119,8 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Financeiro",
     gate: "financial",
     items: [
-      { title: "Financeiro", url: "/financeiro", icon: DollarSign, permission: "financeiro.read" },
-      { title: "Fluxo de caixa", url: "/fluxo-caixa", icon: Wallet, permission: "financeiro.read" },
+      { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+      { title: "Fluxo de caixa", url: "/fluxo-caixa", icon: Wallet },
     ],
   },
   {
@@ -186,9 +183,14 @@ export function AppSidebar() {
         {groups.map((group) => {
           if (group.gate === "financial" && !canSeeFinancials) return null;
           if (group.gate === "admin" && !hasRole("admin")) return null;
-          const visibleItems = group.items.filter(
-            (item) => !item.permission || hasPermission(item.permission),
-          );
+          // A permissão de cada item vem do mapa de rotas, não de um campo próprio:
+          // enquanto eram duas listas, o menu mostrava link que o guarda barrava
+          // (e escondia link que o guarda deixava passar). Item sem rota mapeada
+          // fica oculto porque o guarda é deny-by-default e ele abriria em erro.
+          const visibleItems = group.items.filter((item) => {
+            const exigidas = getRoutePermissions(item.url);
+            return exigidas !== null && exigidas.some(hasPermission);
+          });
           if (visibleItems.length === 0) return null;
           return (
             <SidebarGroup key={group.label}>

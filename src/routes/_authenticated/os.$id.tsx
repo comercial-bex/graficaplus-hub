@@ -26,15 +26,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus } from "lucide-react";
+import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt } from "lucide-react";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { gerarESalvarPDF } from "@/lib/pdf/generate";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
 import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
 import { MateriaisPrevistosCard } from "@/components/materiais-previstos-card";
+import { TarefasDaOS } from "@/components/os/tarefas-card";
+import { ApontamentoDaOS } from "@/components/os/apontamento-card";
+import { QualidadeDaOS } from "@/components/os/qualidade-card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -80,6 +84,19 @@ function OSDetailPage() {
   const qc = useQueryClient();
   const { canSeeFinancials, user } = useAuth();
   const [previewOpen, setPreviewOpen] = useState<null | "cliente" | "producao">(null);
+  const [gerandoFatura, setGerandoFatura] = useState(false);
+
+  async function gerarFatura() {
+    setGerandoFatura(true);
+    try {
+      await gerarESalvarPDF({ tipo: "fatura", referencia_id: id });
+      toast.success("Fatura gerada");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar a fatura");
+    } finally {
+      setGerandoFatura(false);
+    }
+  }
   const [baixaOpen, setBaixaOpen] = useState(false);
 
   const { data: os, isLoading } = useQuery({
@@ -171,6 +188,13 @@ function OSDetailPage() {
             <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
               <FileDown className="h-4 w-4 mr-1" /> PDF Produção
             </Button>
+            {/* Fatura só para quem vê valor: é o documento de cobrança. */}
+            {canSeeFinancials && (
+              <Button variant="outline" disabled={gerandoFatura} onClick={gerarFatura}>
+                <Receipt className="h-4 w-4 mr-1" />
+                {gerandoFatura ? "Gerando…" : "Fatura"}
+              </Button>
+            )}
             <Button
               variant="outline"
               disabled={os.estoque_baixado}
@@ -236,6 +260,15 @@ function OSDetailPage() {
       </Tabs>
 
       <PDFHistoryCard tipo="os" referencia_id={id} />
+
+      {/* Antes dos materiais: é a lista que decide se a OS pode fechar. */}
+      <TarefasDaOS osId={id} />
+
+      {/* Depois das tarefas: é o tempo de máquina que vira custo real. */}
+      <ApontamentoDaOS osId={id} />
+
+      {/* Depois da produção: é a conferência que libera o fechamento. */}
+      <QualidadeDaOS osId={id} />
 
       <MateriaisPrevistosCard osId={id} />
 

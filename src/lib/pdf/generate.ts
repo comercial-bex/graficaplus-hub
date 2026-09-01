@@ -213,9 +213,16 @@ export async function carregarPropsOS(
     fromFinancialView("itens_os", mostrarValores).select("*").eq("os_id", osId).order("ordem"),
   ]);
 
-  const [empresa, itensDoc] = await Promise.all([
+  const [empresa, itensDoc, identificacaoLegal] = await Promise.all([
     carregarEmpresa(),
     montarItens((itens ?? []) as Record<string, unknown>[], mostrarValores),
+    // Lei nº 9.504/1997: material impresso de campanha precisa trazer o CNPJ da
+    // gráfica, o CNPJ/CPF de quem contratou e a tiragem. A função devolve null
+    // quando falta alguma das três partes — meia identificação não cumpre a lei
+    // e daria a impressão de que cumpre.
+    (supabase.rpc as any)("identificacao_legal_os", { p_os_id: osId }).then(
+      (r: { data: string | null }) => r.data ?? null,
+    ),
   ]);
   const total = mostrarValores ? Number((os as any).valor_total ?? 0) : 0;
   const c = (cliente ?? {}) as any;
@@ -253,7 +260,11 @@ export async function carregarPropsOS(
       ? descreverPagamento((os as any).condicao_pagamento, total)
       : null,
     entrega: descreverEntrega((os as any).endereco_entrega),
-    observacoes: os.observacoes ?? os.briefing,
+    // A identificação legal vai junto das observações da OS, que é o bloco que a
+    // produção lê antes de imprimir.
+    observacoes: [os.observacoes ?? os.briefing, identificacaoLegal]
+      .filter(Boolean)
+      .join("\n\n"),
     mostrarValores,
   };
 }
@@ -325,9 +336,199 @@ export async function carregarPropsOrcamento3d(
   };
 }
 
+/**
+ * Recibo de retirada de material — o papel que a baixa de estoque não tinha.
+ *
+ * A saída já grava material, quantidade, OS, quem retirou e quando; aqui isso
+ * vira documento assinável. Sem valores: é controle de material, não de dinheiro,
+ * e o custo do insumo não é assunto de quem assina no balcão.
+ */
+export async function carregarPropsReciboMaterial(osId: string): Promise<DocumentoPDFProps> {
+  const { data: os, error } = await fromFinancialView("ordens_servico", false)
+    .select("*")
+    .eq("id", osId)
+    .single();
+  if (error || !os) throw error ?? new Error("OS não encontrada");
+
+  const { data: movimentos = [] } = await supabase
+    .from("movimentacoes_estoque")
+    .select("id, created_at, quantidade, unidade, material_id, usuario_id, motivo")
+    .eq("os_id", osId)
+    .eq("tipo", "saida")
+    .order("created_at");
+
+  const linhas = (movimentos ?? []) as Record<string, unknown>[];
+  if (linhas.length === 0) {
+    throw new Error("Esta OS ainda não teve baixa de estoque — não há o que dar recibo.");
+  }
+
+  const idsMaterial = [...new Set(linhas.map((m) => m.material_id as string))];
+  const idsUsuario = [
+    ...new Set(linhas.map((m) => m.usuario_id as string | null).filter(Boolean)),
+  ] as string[];
+
+  const [{ data: cliente }, { data: materiais }, { data: usuarios }, empresa] = await Promise.all([
+    (os as any).cliente_id
+      ? supabase.from("clientes").select("*").eq("id", (os as any).cliente_id).single()
+      : Promise.resolve({ data: null }),
+    supabase.from("materiais").select("id, nome, unidade").in("id", idsMaterial),
+    idsUsuario.length
+      ? supabase.from("usuarios").select("id, nome").in("id", idsUsuario)
+      : Promise.resolve({ data: [] as any[] }),
+    carregarEmpresa(),
+  ]);
+
+  const nomeMaterial = new Map((materiais ?? []).map((m: any) => [m.id, m]));
+  const nomeUsuario = new Map((usuarios ?? []).map((u: any) => [u.id, u.nome]));
+  const c = (cliente ?? {}) as any;
+
+  // Quem retirou: normalmente é uma pessoa só na baixa inteira. Havendo mais de
+  // uma, o recibo lista todas em vez de escolher uma e mentir na assinatura.
+  //
+  // A policy de `usuarios` só libera o próprio registro (fora admin e gestor).
+  // Quem emite o recibo da própria baixa vê o próprio nome; emitindo o recibo de
+  // uma baixa feita por outra pessoa, o nome não resolve. Nesse caso o documento
+  // sai com a linha em branco para assinar à mão — melhor que imprimir um nome
+  // errado ou um "—" onde deveria haver responsável.
+  const retirantes = [
+    ...new Set(linhas.map((m) => nomeUsuario.get(m.usuario_id as string)).filter(Boolean)),
+  ] as string[];
+
+  return {
+    tipo: "recibo_material",
+    numero: os.numero,
+    data_solicitacao: fmt(String(linhas[0].created_at)),
+    vendedor: null,
+    status: os.status,
+    empresa,
+    cliente: {
+      nome: c.nome ?? (os as any).cliente_nome ?? "—",
+      razao_social: c.razao_social,
+      documento: c.documento ?? c.cpf_cnpj,
+      cidade: c.cidade,
+      estado: c.estado,
+      telefone: c.telefone,
+    },
+    itens: linhas.map((m) => {
+      const mat: any = nomeMaterial.get(m.material_id as string);
+      return {
+        descricao: mat?.nome ?? "(material removido)",
+        unidade: (m.unidade as string) ?? mat?.unidade ?? undefined,
+        quantidade: Number(m.quantidade ?? 0),
+        valor_unitario: 0,
+        valor_total: 0,
+        acabamento: (m.motivo as string) ?? null,
+      };
+    }),
+    total: 0,
+    observacoes: `Material retirado do estoque para a OS ${os.numero}${
+      retirantes.length > 0 ? ` por ${retirantes.join(", ")}` : ""
+    }. A assinatura confirma o recebimento das quantidades acima.`,
+    assinaturas: {
+      esquerda: `Entregue por (${empresa.razao_social ?? empresa.nome})`,
+      direita: retirantes.length === 1 ? `Retirado por ${retirantes[0]}` : "Retirado por",
+    },
+    mostrarValores: false,
+  };
+}
+
+/**
+ * Fatura da OS — o último elo do encanamento: orçamento → OS → custo → cobrança.
+ *
+ * Não cria conta a receber: ela já nasce na conversão do orçamento, com as
+ * parcelas. Esta função só produz o DOCUMENTO que falta — o papel que o cliente
+ * recebe dizendo o que deve, quando vence e quanto já pagou.
+ *
+ * Material de campanha sai com a identificação exigida pela Lei 9.504/1997, a
+ * mesma da OS: a fatura costuma ser o documento que vai para a prestação de
+ * contas eleitoral.
+ */
+export async function carregarPropsFatura(osId: string): Promise<DocumentoPDFProps> {
+  const { data: os, error } = await fromFinancialView("ordens_servico", true)
+    .select("*")
+    .eq("id", osId)
+    .single();
+  if (error || !os) throw error ?? new Error("OS não encontrada");
+
+  const [{ data: cliente }, { data: itens = [] }, { data: conta }, { data: pagos }, empresa] =
+    await Promise.all([
+      supabase.from("clientes").select("*").eq("id", (os as any).cliente_id).single(),
+      fromFinancialView("itens_os", true).select("*").eq("os_id", osId).order("ordem"),
+      (supabase as any)
+        .from("contas_receber")
+        .select("id, valor_total, status, parcelas_receber(parcela, valor, vencimento, status)")
+        .eq("os_id", osId)
+        .maybeSingle(),
+      (supabase as any)
+        .from("pagamentos")
+        .select("valor, status")
+        .eq("os_id", osId)
+        .eq("status", "pago"),
+      carregarEmpresa(),
+    ]);
+
+  const itensDoc = await montarItens((itens ?? []) as Record<string, unknown>[], true);
+  const total = Number((os as any).valor_total ?? 0);
+  const valorPago = ((pagos ?? []) as { valor: number }[]).reduce(
+    (soma, p) => soma + Number(p.valor ?? 0),
+    0,
+  );
+
+  const parcelas = (((conta as any)?.parcelas_receber ?? []) as any[])
+    .map((p) => ({
+      numero: Number(p.parcela ?? 0),
+      valor: Number(p.valor ?? 0),
+      vencimento: p.vencimento ?? null,
+      pago: p.status === "pago" || p.status === "paga",
+    }))
+    .sort((a, b) => a.numero - b.numero);
+
+  const { data: identificacao } = await (supabase.rpc as any)("identificacao_legal_os", {
+    p_os_id: osId,
+  });
+
+  const c = (cliente ?? {}) as any;
+  return {
+    tipo: "fatura",
+    numero: os.numero,
+    data_solicitacao: fmt(os.created_at),
+    data_entrega: fmt((os as any).data_entrega_real ?? os.prazo_entrega),
+    status: (os as any).status_financeiro ?? os.status,
+    vendedor: null,
+    empresa,
+    cliente: {
+      nome: c.nome ?? (os as any).cliente_nome ?? "—",
+      razao_social: c.razao_social,
+      nome_fantasia: c.nome_fantasia,
+      documento: c.documento ?? c.cpf_cnpj,
+      endereco: c.endereco,
+      bairro: c.bairro,
+      cidade: c.cidade,
+      estado: c.estado,
+      cep: c.cep,
+      telefone: c.telefone,
+      celular: c.whatsapp_principal,
+      email: c.email,
+    },
+    itens: itensDoc,
+    soma_area: somaArea(itensDoc),
+    subtotal: Number((os as any).valor_subtotal ?? total),
+    desconto: Number((os as any).desconto ?? 0),
+    total,
+    valor_pago: valorPago,
+    parcelas,
+    pagamento: descreverPagamento((os as any).condicao_pagamento, total),
+    entrega: descreverEntrega((os as any).endereco_entrega),
+    // A identificação legal vem antes da observação livre: numa fiscalização é a
+    // primeira coisa que se procura no documento.
+    observacoes: [identificacao, os.observacoes].filter(Boolean).join("\n\n") || null,
+    mostrarValores: true,
+  };
+}
+
 export async function salvarERegistrarPDF(opts: {
   blob: Blob;
-  tipo: "orcamento" | "os" | "orcamento_3d";
+  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material" | "fatura";
   referencia_id: string;
   numero: number | string;
   variante: "cliente" | "producao";
@@ -358,17 +559,24 @@ export async function salvarERegistrarPDF(opts: {
 
 /** Renderiza + sobe no Storage + baixa para o usuário. */
 export async function gerarESalvarPDF(opts: {
-  tipo: "orcamento" | "os" | "orcamento_3d";
+  tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material" | "fatura";
   referencia_id: string;
   mostrarValores?: boolean;
 }) {
-  const mostrar = opts.mostrarValores ?? true;
+  // O recibo nunca mostra valores, independente de quem clicou.
+  // Recibo de material nunca mostra valor; a fatura é o oposto — ela existe
+  // justamente para mostrar.
+  const mostrar = opts.tipo === "recibo_material" ? false : (opts.mostrarValores ?? true);
   const props =
     opts.tipo === "orcamento"
       ? await carregarPropsOrcamento(opts.referencia_id, mostrar)
       : opts.tipo === "orcamento_3d"
         ? await carregarPropsOrcamento3d(opts.referencia_id, mostrar)
-        : await carregarPropsOS(opts.referencia_id, mostrar);
+        : opts.tipo === "recibo_material"
+          ? await carregarPropsReciboMaterial(opts.referencia_id)
+          : opts.tipo === "fatura"
+            ? await carregarPropsFatura(opts.referencia_id)
+            : await carregarPropsOS(opts.referencia_id, mostrar);
   const blob = await renderPDFBlob(props);
   const { filename } = await salvarERegistrarPDF({
     blob,

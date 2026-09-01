@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, ArrowRight, FileDown } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ArrowRight, FileDown, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
@@ -34,12 +34,32 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import {
   areaTotal,
   areaUnitaria,
+  baseDeConsumo,
   descreverMetragem,
   ehUnidadeDeArea,
   somaAreaTotal,
   temDimensoes,
   valorUnitarioPorM2,
 } from "@/domain/orcamentos/area";
+import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
+import {
+  FaixaDePrecoAviso,
+  RestricoesDoProduto,
+  ValidadeDaTabela,
+  useFaixaDePreco,
+  usePedidoMinimo,
+  useRestricaoProduto,
+} from "@/components/orcamento/faixa-de-preco";
+import {
+  AproveitamentoDeBobina,
+  useContextoDeBobina,
+} from "@/components/orcamento/aproveitamento-card";
+
+const rotuloOrigem: Record<string, string> = {
+  manual: "digitado",
+  catalogo: "catálogo",
+  motor: "calculado",
+};
 
 const itemVazio = {
   descricao: "",
@@ -54,6 +74,15 @@ const itemVazio = {
   produto_id: null as string | null,
   arquivo_id: null as string | null,
   arquivo_nome: null as string | null,
+  // De onde saiu o custo. Enquanto era sempre null, "custo" e "chute" eram a
+  // mesma coisa no relatório de margem — não dava para saber qual item tinha
+  // conta feita por trás. 'manual' é o padrão porque o campo é digitável.
+  origem_calculo: "manual" as "manual" | "catalogo" | "motor",
+  // "tabela" = veio da faixa de quantidade; "manual" = o vendedor digitou.
+  origem_preco: "manual" as "manual" | "tabela",
+  custo_previsto: null as number | null,
+  margem_prevista: null as number | null,
+  parametros: null as Record<string, unknown> | null,
 };
 
 const paraNumero = (texto: string) => {
@@ -91,6 +120,7 @@ function OrcamentoDetailPage() {
   const [form, setForm] = useState({ ...itemVazio });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [enviandoLayout, setEnviandoLayout] = useState(false);
+  const [calculadoraAberta, setCalculadoraAberta] = useState(false);
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id, canSeeFinancials ? "financeiro" : "operacional"],
@@ -176,6 +206,13 @@ function OrcamentoDetailPage() {
     altura: paraNumero(form.altura),
     quantidade: paraNumero(form.quantidade),
   };
+  // Produto de tabela por faixa (catálogo de campanha): o preço vem da faixa,
+  // não do preço-base único do cadastro.
+  const { data: faixa } = useFaixaDePreco(form.produto_id, paraNumero(form.quantidade));
+  const { data: pedidoMinimo } = usePedidoMinimo(form.produto_id);
+  const { data: restricao } = useRestricaoProduto(form.produto_id);
+  const { data: contextoBobina } = useContextoDeBobina(form.produto_id);
+
   const precoM2Form = paraNumero(form.preco_m2);
   const vendidoPorArea = temDimensoes(dimensoesForm);
   // Com preço/m² informado, o valor unitário é derivado — o trigger no banco
@@ -243,6 +280,10 @@ function OrcamentoDetailPage() {
       ordem: itens.length,
       produto_id: form.produto_id,
       arquivo_id: form.arquivo_id,
+      origem_calculo: form.origem_calculo,
+      custo_previsto: form.custo_previsto,
+      margem_prevista: form.margem_prevista,
+      parametros: form.parametros,
     } as any);
     if (error) return toast.error(error.message);
     setForm({ ...itemVazio });
@@ -341,6 +382,8 @@ function OrcamentoDetailPage() {
                   valor_unitario: String(p.preco_base ?? 0),
                   custo_unitario: String(p.custo_medio ?? 0),
                   produto_id: p.id,
+                  // custo_medio do catálogo é média histórica, não conta deste item
+                  origem_calculo: "catalogo",
                 })
               }
             />
@@ -408,6 +451,42 @@ function OrcamentoDetailPage() {
                   );
                 })}
               </div>
+            )}
+
+            {/* Restrição legal aparece para todo mundo, inclusive quem não vê
+                valor: é informação de produção e de venda, não de dinheiro. */}
+            {form.produto_id && <RestricoesDoProduto restricao={restricao} />}
+
+            {/* Quantas peças saem da bobina que está na máquina. Vale para todo
+                mundo: é informação de produção, não de preço. */}
+            {form.produto_id && (
+              <AproveitamentoDeBobina
+                contexto={contextoBobina}
+                largura={dimensoesForm.largura || restricao?.largura || 0}
+                altura={dimensoesForm.altura || restricao?.altura || 0}
+                quantidade={paraNumero(form.quantidade)}
+              />
+            )}
+
+            {canSeeFinancials && form.produto_id && <ValidadeDaTabela faixa={faixa} />}
+
+            {canSeeFinancials && form.produto_id && (
+              <FaixaDePrecoAviso
+                faixa={faixa}
+                pedidoMinimo={pedidoMinimo}
+                quantidade={paraNumero(form.quantidade)}
+                aoAplicar={(preco) =>
+                  setForm((atual) =>
+                    // Não sobrescreve preço já negociado à mão: só preenche o que
+                    // ainda está no valor de tabela ou zerado.
+                    paraNumero(atual.valor_unitario) === 0 ||
+                    atual.origem_preco === "tabela"
+                      ? { ...atual, valor_unitario: preco.toFixed(2), origem_preco: "tabela" }
+                      : atual,
+                  )
+                }
+                aoSubirFaixa={(q) => setForm((atual) => ({ ...atual, quantidade: String(q) }))}
+              />
             )}
 
             {/* Medidas em metros: preencher as duas liga a venda por m². */}
@@ -485,14 +564,45 @@ function OrcamentoDetailPage() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="item-custo-un">Custo un.</Label>
-                    <Input
-                      id="item-custo-un"
-                      type="number"
-                      step="0.01"
-                      value={form.custo_unitario}
-                      onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
-                    />
+                    <div className="flex items-center justify-between gap-1">
+                      <Label htmlFor="item-custo-un">Custo un.</Label>
+                      <Badge
+                        variant={form.origem_calculo === "motor" ? "secondary" : "outline"}
+                        className="font-normal text-[10px] px-1.5 py-0"
+                      >
+                        {rotuloOrigem[form.origem_calculo]}
+                      </Badge>
+                    </div>
+                    <div className="flex gap-1">
+                      <Input
+                        id="item-custo-un"
+                        type="number"
+                        step="0.01"
+                        value={form.custo_unitario}
+                        onChange={(e) =>
+                          // digitar no campo desfaz o vínculo com a conta: o número
+                          // deixa de ser rastreável, e o rótulo tem que dizer isso
+                          setForm({
+                            ...form,
+                            custo_unitario: e.target.value,
+                            origem_calculo: "manual",
+                            custo_previsto: null,
+                            margem_prevista: null,
+                            parametros: null,
+                          })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        title="Calcular a partir de materiais, máquina e mão de obra"
+                        aria-label="Calcular custo do item"
+                        onClick={() => setCalculadoraAberta(true)}
+                      >
+                        <Calculator className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </>
               )}
@@ -539,6 +649,39 @@ function OrcamentoDetailPage() {
               </Button>
             </div>
           </div>
+
+          {canSeeFinancials && (
+            <CalculadoraCusto
+              open={calculadoraAberta}
+              onOpenChange={setCalculadoraAberta}
+              produtoId={form.produto_id}
+              quantidade={paraNumero(form.quantidade) || 1}
+              // A ficha técnica dá consumo por unidade de venda: para produto
+              // medido em m², a base é a metragem cobrada, não o número de peças.
+              baseConsumo={baseDeConsumo(dimensoesForm)}
+              unidadeBase={vendidoPorArea ? "m²" : form.unidade || "un"}
+              onAplicar={({ resultado, parametros }) => {
+                const qtd = paraNumero(form.quantidade) || 1;
+                setForm((atual) => ({
+                  ...atual,
+                  custo_unitario: (resultado.custoTotal / qtd).toFixed(2),
+                  custo_previsto: resultado.custoTotal,
+                  margem_prevista: resultado.margemPct,
+                  parametros: parametros as unknown as Record<string, unknown>,
+                  origem_calculo: "motor",
+                  // Só sugere preço em campo que ainda está no zero: sobrescrever
+                  // preço já negociado com o cliente seria pior que não sugerir.
+                  valor_unitario:
+                    paraNumero(atual.valor_unitario) > 0
+                      ? atual.valor_unitario
+                      : resultado.precoUnitario.toFixed(2),
+                }));
+                toast.success(
+                  `Custo calculado: ${resultado.custoTotal.toFixed(2)} · margem ${(resultado.margemPct * 100).toFixed(1)}%`,
+                );
+              }}
+            />
+          )}
           <Table>
             <TableHeader>
               <TableRow>
@@ -551,6 +694,7 @@ function OrcamentoDetailPage() {
                   <>
                     <TableHead>Valor un.</TableHead>
                     <TableHead>Total</TableHead>
+                    <TableHead>Custo un.</TableHead>
                   </>
                 )}
                 <TableHead></TableHead>
@@ -559,7 +703,7 @@ function OrcamentoDetailPage() {
             <TableBody>
               {itens.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canSeeFinancials ? 8 : 6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={canSeeFinancials ? 9 : 6} className="text-center text-muted-foreground">
                     Sem itens
                   </TableCell>
                 </TableRow>
@@ -594,6 +738,30 @@ function OrcamentoDetailPage() {
                     <>
                       <TableCell>R$ {Number(i.valor_unitario).toFixed(2)}</TableCell>
                       <TableCell>R$ {Number(i.valor_total).toFixed(2)}</TableCell>
+                      {/* Custo com conta por trás e custo chutado valem o mesmo na
+                          soma da margem — quem revisa precisa distinguir os dois. */}
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          <span>R$ {Number(i.custo_unitario ?? 0).toFixed(2)}</span>
+                          <Badge
+                            variant={i.origem_calculo === "motor" ? "secondary" : "outline"}
+                            className="font-normal text-[10px] px-1.5 py-0 w-fit"
+                          >
+                            {rotuloOrigem[i.origem_calculo ?? "manual"] ?? "digitado"}
+                          </Badge>
+                          {i.margem_prevista != null && (
+                            <span
+                              className={
+                                Number(i.margem_prevista) < 0.2
+                                  ? "text-destructive"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              margem {(Number(i.margem_prevista) * 100).toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                     </>
                   )}
                   <TableCell>
