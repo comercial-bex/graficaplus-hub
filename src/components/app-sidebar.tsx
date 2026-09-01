@@ -26,6 +26,7 @@ import {
   History,
   UserPlus,
   Boxes,
+  ShoppingCart,
   Cuboid,
   ShieldCheck,
   Workflow,
@@ -101,6 +102,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     items: [
       { title: "Produtos", url: "/produtos", icon: Package },
       { title: "Materiais", url: "/materiais", icon: Boxes },
+      { title: "Compras", url: "/compras", icon: ShoppingCart },
       {
         title: "Custos de mão de obra",
         url: "/custos-producao",

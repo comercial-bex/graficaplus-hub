@@ -5,6 +5,7 @@ export const permissions = [
   "arquivos.approve", "arquivos.delete", "arquivos.finalize", "arquivos.read", "arquivos.register_approval", "arquivos.request_approval", "arquivos.upload", "arquivos.version",
   "automacoes.manage", "automacoes.read",
   "clientes.create", "clientes.delete", "clientes.read", "clientes.sensitive.read", "clientes.update",
+  "compras.cancel", "compras.create", "compras.read", "compras.receive",
   "configuracoes.manage",
   "custos.create", "custos.read", "custos.update",
   "desconto.approve", "desconto.request",
@@ -41,12 +42,12 @@ const allPermissions = [...permissions];
 
 export const rolePermissions = {
   admin: allPermissions,
-  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance", "resultado.read"],
-  financeiro: ["clientes.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read"],
+  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance", "resultado.read"],
+  financeiro: ["clientes.read", "compras.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read"],
   vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "whatsapp.read", "whatsapp.reply"],
   designer: ["arquivos.finalize", "arquivos.read", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.read", "os.read", "os.status.advance", "os.update", "tarefas.complete", "tarefas.read", "tarefas.update"],
   operador: ["agenda.operate", "agenda.read", "arquivos.read", "impressao3d.production.update", "impressao3d.read", "os.read", "os.status.advance", "os.update", "producao.finish", "producao.pause", "producao.read", "producao.start", "qualidade.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
-  estoque: ["custos.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "os.read"],
+  estoque: ["compras.create", "compras.read", "compras.receive", "custos.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "os.read"],
   instalador: ["arquivos.read", "clientes.read", "entregas.manage", "entregas.read", "instalacoes.manage", "instalacoes.read", "os.read", "os.status.advance"],
   cliente: ["portal.read"],
 } satisfies Record<AppRole, readonly Permission[]>;
@@ -81,6 +82,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/financeiro", permissions: ["financeiro.read"] },
   { path: "/materiais", permissions: ["custos.read", "estoque.read"] },
   { path: "/movimentacoes", permissions: ["estoque.read", "estoque.cost.read"] },
+  { path: "/compras", permissions: ["compras.read"] },
   { path: "/entregas", permissions: ["entregas.read", "instalacoes.read", "instalacao.update", "os.read"] },
   { path: "/arquivos", permissions: ["arquivos.read", "arquivos.approve"] },
   { path: "/maquinas-agenda", permissions: ["agenda.read", "os.read"] },

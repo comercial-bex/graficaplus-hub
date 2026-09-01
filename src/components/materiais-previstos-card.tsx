@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Package, PackageCheck } from "lucide-react";
+import { AlertTriangle, Package, PackageCheck, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
 type Falta = {
@@ -32,6 +32,7 @@ export function MateriaisPrevistosCard({ osId }: { osId: string }) {
   const qc = useQueryClient();
   const { hasPermission } = useAuth();
   const podeReservar = hasPermission("estoque.reserve");
+  const podeComprar = hasPermission("compras.create");
 
   const { data, isLoading } = useQuery({
     queryKey: ["os-materiais", osId],
@@ -97,6 +98,57 @@ export function MateriaisPrevistosCard({ osId }: { osId: string }) {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao reservar"),
   });
 
+  const comprar = useMutation({
+    mutationFn: async () => {
+      const { data: sugestao, error: erroSugestao } = await (supabase.rpc as any)(
+        "sugerir_compra_da_os",
+        { p_os_id: osId },
+      );
+      if (erroSugestao) throw erroSugestao;
+      const itens = (sugestao ?? []) as {
+        material_id: string;
+        faltante: number;
+        ultimo_custo: number;
+        fornecedor_sugerido: string | null;
+      }[];
+      if (itens.length === 0) throw new Error("Não falta material nesta OS.");
+
+      const { data: auth } = await supabase.auth.getUser();
+      const { data: pedido, error } = await (supabase as any)
+        .from("pedidos_compra")
+        .insert({
+          // Fornecedor do primeiro item como palpite; a tela de Compras deixa
+          // corrigir antes de enviar. Melhor um rascunho preenchido que uma
+          // tela em branco na hora do aperto.
+          fornecedor: itens[0].fornecedor_sugerido ?? "A definir",
+          status: "rascunho",
+          os_id: osId,
+          created_by: auth.user?.id ?? null,
+        })
+        .select("id, numero")
+        .single();
+      if (error || !pedido) {
+        throw new Error(error?.message ?? "Seu perfil não pode criar pedido de compra.");
+      }
+
+      const { error: erroItens } = await (supabase as any).from("pedido_compra_itens").insert(
+        itens.map((i) => ({
+          pedido_id: pedido.id,
+          material_id: i.material_id,
+          quantidade: i.faltante,
+          custo_unitario: i.ultimo_custo,
+        })),
+      );
+      if (erroItens) throw erroItens;
+      return pedido as { numero: number };
+    },
+    onSuccess: (p) => {
+      toast.success(`Pedido de compra #${p.numero} criado como rascunho. Confira em Compras.`);
+      qc.invalidateQueries({ queryKey: ["pedidos-compra"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao criar pedido"),
+  });
+
   const faltas = data?.faltas ?? [];
   if (isLoading || faltas.length === 0) return null;
 
@@ -130,6 +182,14 @@ export function MateriaisPrevistosCard({ osId }: { osId: string }) {
                 : `Faltam ${semSaldo.length} materiais para esta OS:`}{" "}
               {semSaldo.map((f) => `${f.material} (${n2(Number(f.faltante))} ${f.unidade})`).join(" · ")}.
               Compre antes de produzir — a baixa não vai conseguir tirar o que não existe.
+              {podeComprar && (
+                <div className="mt-2">
+                  <Button size="sm" variant="outline" disabled={comprar.isPending} onClick={() => comprar.mutate()}>
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    {comprar.isPending ? "Criando…" : "Comprar o que falta"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
