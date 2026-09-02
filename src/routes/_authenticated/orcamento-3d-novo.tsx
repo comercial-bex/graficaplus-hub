@@ -380,6 +380,10 @@ function NovoOrcamento3D() {
   if (!f.maquina_id) faltando.push("impressora");
   if (!f.material_id) faltando.push("filamento");
   if (num(f.gramas) <= 0) faltando.push("peso");
+  // Sem tempo, `machineCost` e `energyCost` devolvem zero e o orçamento sai sem
+  // custo de máquina nem de energia — a hora de impressora vira brinde, e nada
+  // na tela avisa. Foi o que aconteceu no primeiro orçamento real do sistema.
+  if (tempoMinutos <= 0) faltando.push("tempo de impressão");
 
   const salvar = useMutation({
     mutationFn: async () => {

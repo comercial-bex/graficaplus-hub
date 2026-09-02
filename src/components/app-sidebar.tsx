@@ -26,6 +26,7 @@ import {
   History,
   UserPlus,
   Boxes,
+  Calculator,
   ShoppingCart,
   Cuboid,
   Gauge,
@@ -72,6 +73,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Orçamentos", url: "/orcamentos", icon: FileText },
       { title: "Impressão 3D", url: "/impressao-3d", icon: Cuboid },
       { title: "Produtividade 3D", url: "/produtividade-3d", icon: Gauge },
+      { title: "Custo por peça 3D", url: "/breakdown-3d", icon: Calculator },
     ],
   },
   {
