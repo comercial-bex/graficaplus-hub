@@ -354,9 +354,19 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
 
   async function save() {
     if (!form.nome?.trim()) return toast.error("Nome é obrigatório");
-    const { vendedor, ...rest } = form;
-    const payload = { ...rest, vendedor_id: rest.vendedor_id || null };
-    const { error } = await supabase.from("clientes").update(payload).eq("id", cliente.id);
+    // Envia apenas colunas editáveis: campos gerados pelo banco (ex.: telefone_normalizado)
+    // ou de controle (id/created_at) fazem o update falhar.
+    const camposEditaveis = [
+      "tipo", "nome", "razao_social", "nome_fantasia", "documento", "cpf_cnpj",
+      "email", "telefone", "whatsapp_principal", "endereco", "bairro", "cidade",
+      "estado", "cep", "observacoes", "logo_url", "origem", "status", "tipo_cliente", "ativo",
+    ] as const;
+    const payload: Record<string, unknown> = { vendedor_id: form.vendedor_id || null };
+    for (const campo of camposEditaveis) {
+      if (campo in form) payload[campo] = form[campo] ?? null;
+    }
+    const { error } = await supabase.from("clientes").update(payload as any).eq("id", cliente.id);
+
     if (error) return toast.error(mensagemErro(error));
     toast.success("Salvo");
     setOpen(false);
