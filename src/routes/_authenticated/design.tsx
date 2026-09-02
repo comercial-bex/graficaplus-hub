@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Image, Check, X, MessageSquare } from "lucide-react";
 import { db, formatDateTime } from "@/lib/module-data";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/design")({
   head: () => ({ meta: [{ title: "Design & Arte — BEX PRINT OS" }] }),
@@ -45,7 +46,7 @@ function DesignPage() {
       toast.success("Aprovação registrada");
       qc.invalidateQueries({ queryKey: ["design-aprovacoes"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   const concluir = useMutation({
     mutationFn: async (id: string) => {
@@ -53,7 +54,7 @@ function DesignPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["design-aprovacoes"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   return (
     <div className="space-y-6">

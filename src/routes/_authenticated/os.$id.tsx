@@ -39,6 +39,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Clock, Package, Factory as FactoryIcon, DollarSign } from "lucide-react";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -98,7 +99,7 @@ function OSDetailPage() {
     const statusAnterior = os?.status;
     if (novoStatus === "concluido") {
       const { data, error } = await (supabase.rpc as any)("fechar_os", { os_id: id });
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(mensagemErro(error));
       const res = data as any;
       if (res && res.fechada === false) {
         const bloqueios: string[] = Array.isArray(res.bloqueios) ? res.bloqueios : [];
@@ -121,7 +122,7 @@ function OSDetailPage() {
       toast.success("OS concluída — snapshot de resultado gerado e pesquisa de pós-venda agendada");
     } else {
       const { error } = await (supabase.rpc as any)("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(mensagemErro(error));
       toast.success("Status atualizado");
     }
     await supabase.from("logs_auditoria").insert({
@@ -325,7 +326,7 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
       ordem: itens.length,
       produto_id: form.produto_id,
     } as any);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     setForm({
       descricao: "",
       quantidade: "1",
@@ -532,7 +533,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
       setSubstituir(null);
       qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(mensagemErro(err));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -541,7 +542,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
 
   async function marcarInativo(id: string) {
     const { error } = await (supabase as any).from("arquivos").update({ status: "inativo", ativo: false }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
     toast.success("Arquivo marcado como inativo");
   }
@@ -558,7 +559,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
       cliente_contato_id: aprovacao.cliente_contato_id === "sem-contato" ? null : aprovacao.cliente_contato_id,
       observacao: aprovacao.observacao || null,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
 
     await supabase.from("logs_auditoria").insert({
       entidade: "arquivos",
@@ -581,7 +582,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
 
   async function marcarFinal(id: string) {
     const { error } = await supabase.from("arquivos").update({ final_producao: true }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
     toast.success("Arquivo marcado como final de produção");
   }
@@ -711,7 +712,7 @@ function TarefasTab({ osId, userId }: { osId: string; userId?: string }) {
     const { error } = await supabase
       .from("os_tarefas")
       .insert({ os_id: osId, titulo, created_by: userId, obrigatoria: false });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     setTitulo("");
     qc.invalidateQueries({ queryKey: ["tarefas-os", osId] });
   }
@@ -725,7 +726,7 @@ function TarefasTab({ osId, userId }: { osId: string; userId?: string }) {
         completed_by: concluida ? null : userId,
       })
       .eq("id", t.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["tarefas-os", osId] });
   }
   return (
@@ -836,7 +837,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
       forma_pagamento: pag.forma_pagamento || null,
       registrado_por: userId,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     setPag({ valor: "", data_vencimento: "", forma_pagamento: "" });
     qc.invalidateQueries({ queryKey: ["pag-os", osId] });
   }
@@ -852,7 +853,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
       valor_unitario: parseFloat(custo.valor),
       usuario_id: userId,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     setCusto({ descricao: "", valor: "", categoria: "" });
     qc.invalidateQueries({ queryKey: ["custos-os", osId] });
     qc.invalidateQueries({ queryKey: ["resultado-os", osId] });
@@ -864,7 +865,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
       p_data: new Date().toISOString().slice(0, 10),
       p_referencia_externa: null,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["pag-os", osId] });
   }
 

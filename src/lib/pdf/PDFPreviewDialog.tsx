@@ -12,6 +12,7 @@ import {
   salvarERegistrarPDF,
 } from "./generate";
 import type { DocumentoPDFProps } from "./DocumentoPDF";
+import { mensagemErro } from "@/lib/erros";
 
 type Props = {
   open: boolean;
@@ -47,7 +48,7 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
         setBlob(b);
         setBlobUrl(URL.createObjectURL(b));
       } catch (e: any) {
-        toast.error(e.message ?? "Falha ao gerar preview");
+        toast.error(mensagemErro(e, "Falha ao gerar preview"));
         onOpenChange(false);
       } finally {
         if (!cancelled) setLoading(false);
@@ -81,7 +82,7 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
       toast.success("PDF salvo no histórico");
       qc.invalidateQueries({ queryKey: ["documentos-gerados", tipo, referencia_id] });
     } catch (e: any) {
-      toast.error(e.message ?? "Falha ao salvar");
+      toast.error(mensagemErro(e, "Falha ao salvar"));
     } finally {
       setSaving(false);
     }

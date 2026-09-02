@@ -35,6 +35,7 @@ import {
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/os/")({
   head: () => ({ meta: [{ title: "Ordens de Serviço — BEX PRINT OS" }] }),
@@ -87,7 +88,7 @@ function OSPage() {
       })
       .select("id, numero")
       .single();
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success(`OS #${data.numero} criada`);
     setOpen(false);
     setForm({

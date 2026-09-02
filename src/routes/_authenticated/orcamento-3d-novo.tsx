@@ -29,6 +29,7 @@ import { FieldTooltip } from "@/components/bex/FieldTooltip";
 import { Dropzone, type DropzoneStatus } from "@/components/bex/Dropzone";
 import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao3d/ocr";
 import { cn } from "@/lib/utils";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/orcamento-3d-novo")({
   head: () => ({ meta: [{ title: "Novo orçamento 3D — BEX PRINT OS" }] }),
@@ -493,7 +494,7 @@ function NovoOrcamento3D() {
       if (id) navigate({ to: "/orcamento-3d/$id", params: { id } });
       else navigate({ to: "/impressao-3d" });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
 

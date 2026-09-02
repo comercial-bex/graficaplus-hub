@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { db, formatDateTime } from "@/lib/module-data";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/maquinas-agenda")({
   head: () => ({ meta: [{ title: "Agenda de máquinas — BEX PRINT OS" }] }),
@@ -55,7 +56,7 @@ function AgendaPage() {
       setTitulo("");
       qc.invalidateQueries({ queryKey: ["maquinas-agenda"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   const update = useMutation({
     mutationFn: async ({ id, changes }: { id: string; changes: Record<string, unknown> }) => {
@@ -63,7 +64,7 @@ function AgendaPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["maquinas-agenda"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   return (
     <div className="space-y-6">

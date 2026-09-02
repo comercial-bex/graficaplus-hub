@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/orcamentos/")({
   head: () => ({ meta: [{ title: "Orçamentos — BEX PRINT OS" }] }),
@@ -119,7 +120,7 @@ function OrcamentosPage() {
       valor_total: valor,
       valor_subtotal: valor,
     } as any);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Orçamento criado");
     setOpen(false);
     setForm({
@@ -145,7 +146,7 @@ function OrcamentosPage() {
           p_orcamento_id: orc.id,
           p_opcoes: {},
         });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
     toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
     qc.invalidateQueries({ queryKey: ["orcamentos"] });

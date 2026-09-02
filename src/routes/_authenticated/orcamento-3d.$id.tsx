@@ -8,6 +8,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { ArrowLeft, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/orcamento-3d/$id")({
   head: () => ({ meta: [{ title: "Orçamento 3D — BEX PRINT OS" }] }),
@@ -82,7 +83,7 @@ function OrcamentoDetalhe() {
       qc.invalidateQueries({ queryKey: ["orcamento-3d", id] });
       if (res?.os_id) navigate({ to: "/os/$id", params: { id: res.os_id } });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   if (isLoading) return <div className="text-muted-foreground">Carregando...</div>;

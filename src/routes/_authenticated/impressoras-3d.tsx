@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Printer, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/impressoras-3d")({
   head: () => ({ meta: [{ title: "Impressoras 3D — BEX PRINT OS" }] }),
@@ -116,7 +117,7 @@ function ImpressorasPage() {
       setOpen(false);
       setForm(EMPTY);
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   const remove = useMutation({
@@ -128,7 +129,7 @@ function ImpressorasPage() {
       toast.success("Impressora removida");
       qc.invalidateQueries({ queryKey: ["impressoras-3d"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   function openNew() {

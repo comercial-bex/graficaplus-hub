@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   head: () => ({ meta: [{ title: "Financeiro — BEX PRINT OS" }] }),
@@ -103,7 +104,7 @@ function FinanceiroPage() {
       total_parcelas: parseInt(form.total_parcelas),
       status: "pendente",
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Pagamento registrado");
     setOpen(false);
     setForm({
@@ -123,7 +124,7 @@ function FinanceiroPage() {
       p_data: today,
       p_referencia_externa: null,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Pagamento confirmado");
     qc.invalidateQueries({ queryKey: ["pagamentos"] });
   }

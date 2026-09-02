@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, FileArchive, FileText, Search } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/arquivos")({
   head: () => ({ meta: [{ title: "Arquivos — BEX PRINT OS" }] }),
@@ -64,7 +65,7 @@ function ArquivosPage() {
       return;
     }
     const { data, error } = await supabase.storage.from("arquivos-clientes").createSignedUrl(arquivo.caminho, 300);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     setPreviewUrl(data.signedUrl);
   }
 

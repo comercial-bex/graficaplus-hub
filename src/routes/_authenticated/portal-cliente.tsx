@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ClipboardList, FileText, DollarSign, Truck, Download, Upload, MessageSquare } from "lucide-react";
+import { mensagemErro } from "@/lib/erros";
 
 
 export const Route = createFileRoute("/_authenticated/portal-cliente")({
@@ -136,7 +137,7 @@ function PortalClientePage() {
       mensagem: solicitacaoMsg,
       status: "aberta",
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Solicitação enviada à equipe BEX");
     setSolicitacaoMsg("");
     qc.invalidateQueries({ queryKey: ["portal-solicitacoes"] });

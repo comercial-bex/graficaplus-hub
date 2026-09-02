@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { currency, db, formatDate } from "@/lib/module-data";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/manutencao")({
   head: () => ({ meta: [{ title: "Manutenção — BEX PRINT OS" }] }),
@@ -64,7 +65,7 @@ function ManutPage() {
       setDataPrevista("");
       qc.invalidateQueries({ queryKey: ["manutencoes"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const update = useMutation({
@@ -73,7 +74,7 @@ function ManutPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["manutencoes"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   return (

@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/clientes/$id")({
   head: () => ({ meta: [{ title: "Cliente — BEX PRINT OS" }] }),
@@ -97,7 +98,7 @@ function ClienteDetailPage() {
       .from("clientes")
       .update({ ativo: !cliente.ativo })
       .eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success(cliente.ativo ? "Cliente desativado" : "Cliente reativado");
     qc.invalidateQueries({ queryKey: ["cliente", id] });
     qc.invalidateQueries({ queryKey: ["clientes"] });
@@ -105,7 +106,7 @@ function ClienteDetailPage() {
 
   async function handleDelete() {
     const { error } = await supabase.from("clientes").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Cliente excluído");
     qc.invalidateQueries({ queryKey: ["clientes"] });
     navigate({ to: "/clientes" });
@@ -327,7 +328,7 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
     const { error } = await supabase.storage.from("avatares").upload(path, file);
     if (error) {
       setUploading(false);
-      return toast.error(error.message);
+      return toast.error(mensagemErro(error));
     }
     // Bucket privado: guardamos uma URL assinada de longa duração em vez de URL pública.
     const { data } = await supabase.storage.from("avatares").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
@@ -340,7 +341,7 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
     const { vendedor, ...rest } = form;
     const payload = { ...rest, vendedor_id: rest.vendedor_id || null };
     const { error } = await supabase.from("clientes").update(payload).eq("id", cliente.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Salvo");
     setOpen(false);
     qc.invalidateQueries({ queryKey: ["cliente", cliente.id] });
@@ -565,7 +566,7 @@ function ContatosTab({ clienteId }: { clienteId: string }) {
     const { error } = await supabase
       .from("cliente_contatos")
       .insert({ ...form, cliente_id: clienteId });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     setForm({ nome: "", telefone: "", email: "", cargo: "" });
     qc.invalidateQueries({ queryKey: ["contatos", clienteId] });
   }
@@ -583,7 +584,7 @@ function ContatosTab({ clienteId }: { clienteId: string }) {
 
   async function remove(id: string) {
     const { error } = await supabase.from("cliente_contatos").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["contatos", clienteId] });
   }
 

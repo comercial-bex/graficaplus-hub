@@ -81,6 +81,7 @@ import {
 } from "@/lib/produtos-catalogo";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
@@ -225,7 +226,7 @@ function ProdutosPage() {
       setOpen(false);
       setForm(emptyForm);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const toggleAtivo = useMutation({
@@ -240,7 +241,7 @@ function ProdutosPage() {
       toast.success(p.ativo ? "Produto desativado" : "Produto ativado");
       qc.invalidateQueries({ queryKey: ["produtos"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const remover = useMutation({

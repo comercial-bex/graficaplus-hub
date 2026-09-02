@@ -29,6 +29,7 @@ import {
   operationalCost,
   MOTOR_VERSION,
 } from "@/domain/impressao3d/cost-engine";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/impressao-3d")({
   head: () => ({ meta: [{ title: "Impressão 3D — BEX PRINT OS" }] }),
@@ -62,7 +63,7 @@ function Impressao3DPage() {
       qc.invalidateQueries({ queryKey: ["orcamentos-3d"] });
       if (res?.os_id) navigate({ to: "/os/$id", params: { id: res.os_id } });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   const { data: orcamentos = [], isLoading } = useQuery({

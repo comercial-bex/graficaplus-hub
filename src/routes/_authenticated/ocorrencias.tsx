@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { currency, db } from "@/lib/module-data";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/ocorrencias")({
   head: () => ({ meta: [{ title: "Ocorrências — BEX PRINT OS" }] }),
@@ -55,7 +56,7 @@ function OcorrPage() {
       setDescricao("");
       qc.invalidateQueries({ queryKey: ["ocorrencias"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   const update = useMutation({
     mutationFn: async ({ id, changes }: { id: string; changes: Record<string, unknown> }) => {
@@ -63,7 +64,7 @@ function OcorrPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ocorrencias"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   return (
     <div className="space-y-6">

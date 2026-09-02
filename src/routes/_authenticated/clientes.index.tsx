@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { CampoDocumento } from "@/components/campo-documento";
 import { formatarCEP, formatarTelefone } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/clientes/")({
   head: () => ({ meta: [{ title: "Clientes — BEX PRINT OS" }] }),
@@ -91,7 +92,7 @@ function ClientesPage() {
     const ext = file.name.split(".").pop();
     const path = `clientes/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("avatares").upload(path, file, { upsert: false });
-    if (error) { setUploading(false); return toast.error(error.message); }
+    if (error) { setUploading(false); return toast.error(mensagemErro(error)); }
     // Bucket privado: guardamos uma URL assinada de longa duração em vez de URL pública.
     const { data } = await supabase.storage.from("avatares").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
     setForm({ ...form, logo_url: data?.signedUrl ?? "" });
@@ -122,7 +123,7 @@ function ClientesPage() {
     const payload: any = { ...form };
     if (!payload.vendedor_id) delete payload.vendedor_id;
     const { error } = await supabase.from("clientes").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Cliente cadastrado");
     setOpen(false);
     setForm(emptyForm);
