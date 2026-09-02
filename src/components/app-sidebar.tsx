@@ -28,6 +28,7 @@ import {
   Boxes,
   ShoppingCart,
   Cuboid,
+  Gauge,
   ShieldCheck,
   Workflow,
   Network,
@@ -70,6 +71,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Leads", url: "/leads", icon: UserPlus },
       { title: "Orçamentos", url: "/orcamentos", icon: FileText },
       { title: "Impressão 3D", url: "/impressao-3d", icon: Cuboid },
+      { title: "Produtividade 3D", url: "/produtividade-3d", icon: Gauge },
     ],
   },
   {

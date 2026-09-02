@@ -22,6 +22,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_authenticated/respostas-rapidas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedProdutividade3dRouteImport } from './routes/_authenticated/produtividade-3d'
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
@@ -128,6 +129,12 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProdutividade3dRoute =
+  AuthenticatedProdutividade3dRouteImport.update({
+    id: '/produtividade-3d',
+    path: '/produtividade-3d',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProducao3dRoute = AuthenticatedProducao3dRouteImport.update({
   id: '/producao-3d',
   path: '/producao-3d',
@@ -379,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
+  '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
@@ -432,6 +440,7 @@ export interface FileRoutesByTo {
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
+  '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
@@ -487,6 +496,7 @@ export interface FileRoutesById {
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
+  '/_authenticated/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
@@ -542,6 +552,7 @@ export interface FileRouteTypes {
     | '/portal-cliente'
     | '/pos-venda'
     | '/producao-3d'
+    | '/produtividade-3d'
     | '/produtos'
     | '/relatorios'
     | '/respostas-rapidas'
@@ -595,6 +606,7 @@ export interface FileRouteTypes {
     | '/portal-cliente'
     | '/pos-venda'
     | '/producao-3d'
+    | '/produtividade-3d'
     | '/produtos'
     | '/relatorios'
     | '/respostas-rapidas'
@@ -649,6 +661,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
     | '/_authenticated/producao-3d'
+    | '/_authenticated/produtividade-3d'
     | '/_authenticated/produtos'
     | '/_authenticated/relatorios'
     | '/_authenticated/respostas-rapidas'
@@ -767,6 +780,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/produtos'
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/produtividade-3d': {
+      id: '/_authenticated/produtividade-3d'
+      path: '/produtividade-3d'
+      fullPath: '/produtividade-3d'
+      preLoaderRoute: typeof AuthenticatedProdutividade3dRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/producao-3d': {
@@ -1078,6 +1098,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
+  AuthenticatedProdutividade3dRoute: typeof AuthenticatedProdutividade3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRespostasRapidasRoute: typeof AuthenticatedRespostasRapidasRoute
@@ -1127,6 +1148,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
+  AuthenticatedProdutividade3dRoute: AuthenticatedProdutividade3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRespostasRapidasRoute: AuthenticatedRespostasRapidasRoute,

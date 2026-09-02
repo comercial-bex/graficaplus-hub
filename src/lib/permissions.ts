@@ -71,6 +71,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/automacoes", permissions: ["automacoes.read"] },
   { path: "/orcamentos", permissions: ["orcamentos.read", "orcamentos.create"] },
   { path: "/impressao-3d", permissions: ["impressao3d.read"] },
+  { path: "/produtividade-3d", permissions: ["impressao3d.reports.read", "impressao3d.read"] },
   { path: "/producao-3d", permissions: ["impressao3d.production.update", "impressao3d.read"] },
   { path: "/orcamento-3d-novo", permissions: ["impressao3d.quote.create"] },
   { path: "/orcamento-3d", permissions: ["impressao3d.read"] },
