@@ -365,7 +365,7 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
     for (const campo of camposEditaveis) {
       if (campo in form) payload[campo] = form[campo] ?? null;
     }
-    const { error } = await supabase.from("clientes").update(payload).eq("id", cliente.id);
+    const { error } = await supabase.from("clientes").update(payload as any).eq("id", cliente.id);
 
     if (error) return toast.error(mensagemErro(error));
     toast.success("Salvo");
