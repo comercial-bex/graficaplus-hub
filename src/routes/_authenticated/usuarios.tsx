@@ -187,7 +187,7 @@ function UsuariosPage() {
       invalidate();
       return true;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro inesperado");
+      toast.error(mensagemErro(e));
       return false;
     }
   };
