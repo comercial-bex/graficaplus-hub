@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { BexLogo } from "@/components/bex/BexLogo";
 import { BexBackground } from "@/components/bex/BexBackground";
 import { NeonButton } from "@/components/bex/NeonButton";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Login — BEX PRINT OS" }] }),
@@ -23,7 +24,7 @@ function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Bem-vindo!");
     navigate({ to: "/dashboard" });
   }
@@ -41,7 +42,7 @@ function LoginPage() {
     });
     setResetLoading(false);
 
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Enviamos um link para você criar uma nova senha.");
   }
 

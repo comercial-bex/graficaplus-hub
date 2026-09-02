@@ -27,6 +27,7 @@ import {
 import { Plus, Package, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/materiais")({
   head: () => ({ meta: [{ title: "Materiais — BEX PRINT OS" }] }),
@@ -67,7 +68,7 @@ function MateriaisPage() {
       setOpen(false);
       setForm({ nome: "", unidade: "un", estoque: "0", custo_unitario: "" });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   const totalValor = canSeeFinancials

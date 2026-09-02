@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Zap, Calculator, Users, Percent } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/configuracoes-3d")({
   head: () => ({ meta: [{ title: "Configurações 3D — BEX PRINT OS" }] }),
@@ -123,7 +124,7 @@ function Configuracoes3D() {
       qc.invalidateQueries({ queryKey: ["config-precificacao-3d"] });
       qc.invalidateQueries({ queryKey: ["tarifa-energia-base"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   // Recalcula a tarifa marginal a partir da fatura:

@@ -36,6 +36,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
   head: () => ({
@@ -175,7 +176,7 @@ function FluxoCaixaPage() {
       setContaOpen(false);
       setConta(emptyConta);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const pagar = useMutation({
@@ -203,7 +204,7 @@ function FluxoCaixaPage() {
       qc.invalidateQueries({ queryKey: ["caixa-movimentos"] });
       qc.invalidateQueries({ queryKey: ["vw-fluxo-caixa"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const salvarMov = useMutation({
@@ -226,7 +227,7 @@ function FluxoCaixaPage() {
       setMovOpen(false);
       setMov(emptyMov);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const kpis = useMemo(() => {

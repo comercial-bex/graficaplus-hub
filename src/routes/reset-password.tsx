@@ -5,6 +5,7 @@ import { BexBackground } from "@/components/bex/BexBackground";
 import { BexLogo } from "@/components/bex/BexLogo";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { supabase } from "@/integrations/supabase/client";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{ title: "Redefinir senha — BEX PRINT OS" }] }),
@@ -62,7 +63,7 @@ function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
 
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
 
     toast.success("Senha atualizada. Faça login novamente.");
     await supabase.auth.signOut();

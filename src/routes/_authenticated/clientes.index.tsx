@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { CampoDocumento } from "@/components/campo-documento";
 import { formatarCEP, formatarTelefone } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/clientes/")({
   head: () => ({ meta: [{ title: "Clientes — BEX PRINT OS" }] }),
@@ -86,18 +87,37 @@ function ClientesPage() {
   }, [clientes, search]);
 
   async function handleLogoUpload(file: File) {
-    if (file.size > 2 * 1024 * 1024) return toast.error("Máx 2MB");
+    if (!file.type.startsWith("image/")) return toast.error("Envie um arquivo de imagem (PNG ou JPG).");
+    if (file.size > 2 * 1024 * 1024) return toast.error("A imagem deve ter no máximo 2 MB.");
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `clientes/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("avatares").upload(path, file, { upsert: false });
-    if (error) { setUploading(false); return toast.error(error.message); }
-    // Bucket privado: guardamos uma URL assinada de longa duração em vez de URL pública.
-    const { data } = await supabase.storage.from("avatares").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
-    setForm({ ...form, logo_url: data?.signedUrl ?? "" });
-    setUploading(false);
-    toast.success("Logo enviada");
+    try {
+      // O bucket "avatares" só aceita gravação dentro da pasta do próprio
+      // usuário logado, por isso o caminho começa pelo ID dele.
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) return toast.error("Sua sessão expirou. Entre novamente.");
+
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `${userId}/clientes/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("avatares")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (error) return toast.error(mensagemErro(error, "Não foi possível enviar a logo."));
+
+      // Bucket privado: guardamos uma URL assinada de longa duração em vez de URL pública.
+      const { data, error: erroUrl } = await supabase.storage
+        .from("avatares")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+      if (erroUrl || !data?.signedUrl) {
+        return toast.error(mensagemErro(erroUrl, "Logo enviada, mas não foi possível gerar o link de exibição."));
+      }
+      setForm((atual) => ({ ...atual, logo_url: data.signedUrl }));
+      toast.success("Logo enviada");
+    } finally {
+      setUploading(false);
+    }
   }
+
 
   // Preenche o cadastro com os dados públicos da Receita, sem sobrescrever o
   // que já foi digitado à mão. O nome fantasia cai para a razão social quando a
@@ -122,7 +142,7 @@ function ClientesPage() {
     const payload: any = { ...form };
     if (!payload.vendedor_id) delete payload.vendedor_id;
     const { error } = await supabase.from("clientes").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Cliente cadastrado");
     setOpen(false);
     setForm(emptyForm);

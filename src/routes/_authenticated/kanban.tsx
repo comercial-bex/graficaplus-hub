@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Kanban — BEX PRINT OS" }] }),
@@ -335,7 +336,7 @@ function KanbanPage() {
       novo_status: novoStatus,
     });
     if (error) {
-      toast.error(error.message);
+      toast.error(mensagemErro(error));
       qc.invalidateQueries({ queryKey: ["kanban-os"] });
       return;
     }

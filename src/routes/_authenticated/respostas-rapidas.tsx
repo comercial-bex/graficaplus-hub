@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 import { db } from "@/lib/module-data";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/respostas-rapidas")({
   head: () => ({ meta: [{ title: "Respostas rápidas — BEX PRINT OS" }] }),
@@ -47,7 +48,7 @@ function RespPage() {
       setTexto("");
       qc.invalidateQueries({ queryKey: ["respostas-rapidas"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const update = useMutation({
@@ -56,7 +57,7 @@ function RespPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["respostas-rapidas"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   return (

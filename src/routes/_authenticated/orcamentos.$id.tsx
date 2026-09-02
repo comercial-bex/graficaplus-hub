@@ -40,6 +40,7 @@ import {
   temDimensoes,
   valorUnitarioPorM2,
 } from "@/domain/orcamentos/area";
+import { mensagemErro } from "@/lib/erros";
 
 const itemVazio = {
   descricao: "",
@@ -244,7 +245,7 @@ function OrcamentoDetailPage() {
       produto_id: form.produto_id,
       arquivo_id: form.arquivo_id,
     } as any);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     setForm({ ...itemVazio });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     await recalcular();
@@ -261,7 +262,7 @@ function OrcamentoDetailPage() {
     if (novoStatus === "enviado") update.enviado_em = new Date().toISOString();
     if (novoStatus === "aprovado") update.aprovado_em = new Date().toISOString();
     const { error } = await supabase.from("orcamentos").update(update).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Status atualizado");
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }
@@ -271,7 +272,7 @@ function OrcamentoDetailPage() {
       p_orcamento_id: id,
       p_opcoes: {},
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
     toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
     qc.invalidateQueries({ queryKey: ["orcamento", id] });

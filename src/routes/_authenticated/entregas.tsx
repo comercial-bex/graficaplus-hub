@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { db, formatDateTime } from "@/lib/module-data";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/entregas")({
   head: () => ({ meta: [{ title: "Entregas — BEX PRINT OS" }] }),
@@ -54,7 +55,7 @@ function EntregasPage() {
       setEndereco("");
       qc.invalidateQueries({ queryKey: ["entregas-instalacoes"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   const update = useMutation({
     mutationFn: async ({ id, changes }: { id: string; changes: Record<string, unknown> }) => {
@@ -62,7 +63,7 @@ function EntregasPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entregas-instalacoes"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   return (
     <div className="space-y-6">

@@ -29,6 +29,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/perdas")({
   head: () => ({
@@ -159,7 +160,7 @@ function PerdasPage() {
       setOpen(false);
       setForm(emptyForm);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const kpis = useMemo(() => {

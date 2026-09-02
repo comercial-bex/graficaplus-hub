@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Star, Smile, Meh, Frown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/pos-venda")({
   head: () => ({ meta: [{ title: "Pós-venda / NPS — BEX PRINT OS" }] }),
@@ -77,7 +78,7 @@ function PosVendaPage() {
       nota,
       comentario: comentario || null,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     await (supabase as any)
       .from("pos_venda_pesquisas")
       .update({ status: "respondida" })
@@ -95,7 +96,7 @@ function PosVendaPage() {
       .from("pos_venda_pesquisas")
       .update({ status: "enviada", enviada_em: new Date().toISOString() })
       .eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Pesquisa marcada como enviada");
     qc.invalidateQueries({ queryKey: ["pos-venda-pesquisas"] });
   }

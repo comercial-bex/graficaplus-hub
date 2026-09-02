@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Boxes, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/filamentos-3d")({
   head: () => ({ meta: [{ title: "Filamentos 3D — BEX PRINT OS" }] }),
@@ -96,7 +97,7 @@ function FilamentosPage() {
       setOpen(false);
       setForm(EMPTY);
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   const remove = useMutation({
@@ -108,7 +109,7 @@ function FilamentosPage() {
       toast.success("Filamento removido");
       qc.invalidateQueries({ queryKey: ["filamentos-3d"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   function openNew() {

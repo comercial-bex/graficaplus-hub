@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { BexLogo } from "@/components/bex/BexLogo";
 import { BexBackground } from "@/components/bex/BexBackground";
 import { NeonButton } from "@/components/bex/NeonButton";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Criar conta — BEX PRINT OS" }] }),
@@ -30,7 +31,7 @@ function SignupPage() {
       },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Conta criada! Você já pode entrar.");
     navigate({ to: "/dashboard" });
   }
