@@ -64,6 +64,7 @@ export const permissionLabels = Object.fromEntries(
 export const routePermissions: { path: string; permissions: readonly Permission[] }[] = [
   { path: "/dashboard", permissions: ["os.read"] },
   { path: "/clientes", permissions: ["clientes.read"] },
+  { path: "/funil", permissions: ["leads.read"] },
   { path: "/leads", permissions: ["leads.read"] },
   { path: "/whatsapp-monitor", permissions: ["whatsapp.read", "whatsapp.manage"] },
   { path: "/whatsapp", permissions: ["whatsapp.read"] },

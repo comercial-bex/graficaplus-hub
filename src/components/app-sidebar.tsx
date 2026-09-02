@@ -70,6 +70,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     items: [
       { title: "Clientes", url: "/clientes", icon: Users },
       { title: "Leads", url: "/leads", icon: UserPlus },
+      { title: "Funil", url: "/funil", icon: Workflow },
       { title: "Orçamentos", url: "/orcamentos", icon: FileText },
       { title: "Impressão 3D", url: "/impressao-3d", icon: Cuboid },
       { title: "Produtividade 3D", url: "/produtividade-3d", icon: Gauge },

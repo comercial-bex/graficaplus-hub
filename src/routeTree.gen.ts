@@ -41,6 +41,7 @@ import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedImpressoras3dRouteImport } from './routes/_authenticated/impressoras-3d'
 import { Route as AuthenticatedImpressao3dRouteImport } from './routes/_authenticated/impressao-3d'
+import { Route as AuthenticatedFunilRouteImport } from './routes/_authenticated/funil'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedFilamentos3dRouteImport } from './routes/_authenticated/filamentos-3d'
@@ -235,6 +236,11 @@ const AuthenticatedImpressao3dRoute =
     path: '/impressao-3d',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFunilRoute = AuthenticatedFunilRouteImport.update({
+  id: '/funil',
+  path: '/funil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFluxoCaixaRoute = AuthenticatedFluxoCaixaRouteImport.update({
   id: '/fluxo-caixa',
   path: '/fluxo-caixa',
@@ -376,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/funil': typeof AuthenticatedFunilRoute
   '/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -431,6 +438,7 @@ export interface FileRoutesByTo {
   '/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/funil': typeof AuthenticatedFunilRoute
   '/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -488,6 +496,7 @@ export interface FileRoutesById {
   '/_authenticated/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/_authenticated/funil': typeof AuthenticatedFunilRoute
   '/_authenticated/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/_authenticated/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
@@ -545,6 +554,7 @@ export interface FileRouteTypes {
     | '/filamentos-3d'
     | '/financeiro'
     | '/fluxo-caixa'
+    | '/funil'
     | '/impressao-3d'
     | '/impressoras-3d'
     | '/kanban'
@@ -600,6 +610,7 @@ export interface FileRouteTypes {
     | '/filamentos-3d'
     | '/financeiro'
     | '/fluxo-caixa'
+    | '/funil'
     | '/impressao-3d'
     | '/impressoras-3d'
     | '/kanban'
@@ -656,6 +667,7 @@ export interface FileRouteTypes {
     | '/_authenticated/filamentos-3d'
     | '/_authenticated/financeiro'
     | '/_authenticated/fluxo-caixa'
+    | '/_authenticated/funil'
     | '/_authenticated/impressao-3d'
     | '/_authenticated/impressoras-3d'
     | '/_authenticated/kanban'
@@ -928,6 +940,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImpressao3dRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/funil': {
+      id: '/_authenticated/funil'
+      path: '/funil'
+      fullPath: '/funil'
+      preLoaderRoute: typeof AuthenticatedFunilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/fluxo-caixa': {
       id: '/_authenticated/fluxo-caixa'
       path: '/fluxo-caixa'
@@ -1101,6 +1120,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFilamentos3dRoute: typeof AuthenticatedFilamentos3dRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
+  AuthenticatedFunilRoute: typeof AuthenticatedFunilRoute
   AuthenticatedImpressao3dRoute: typeof AuthenticatedImpressao3dRoute
   AuthenticatedImpressoras3dRoute: typeof AuthenticatedImpressoras3dRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
@@ -1152,6 +1172,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFilamentos3dRoute: AuthenticatedFilamentos3dRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
+  AuthenticatedFunilRoute: AuthenticatedFunilRoute,
   AuthenticatedImpressao3dRoute: AuthenticatedImpressao3dRoute,
   AuthenticatedImpressoras3dRoute: AuthenticatedImpressoras3dRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
