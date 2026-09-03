@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle, ListChecks, Lock, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { SETORES } from "@/domain/producao/setores";
 
 type Tarefa = {
   id: string;
@@ -33,7 +34,6 @@ type Tarefa = {
 };
 
 /** Os setores por onde uma OS passa na gráfica. */
-const SETORES = ["Arte", "Impressão", "Acabamento", "Instalação", "Entrega", "Financeiro"];
 
 const PRIORIDADES = [
   { valor: "baixa", rotulo: "Baixa" },
