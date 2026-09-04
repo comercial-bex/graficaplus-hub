@@ -245,7 +245,7 @@ function OrcamentoDetailPage() {
     // valor_total e (quando há preço/m²) valor_unitario são derivados pelo
     // trigger tg_orcamento_itens_precificar — não são enviados daqui para não
     // haver dois lugares calculando o mesmo número.
-    const { error } = await supabase.from("orcamento_itens").insert({
+    const { data: novoItem, error } = await supabase.from("orcamento_itens").insert({
       orcamento_id: id,
       descricao: form.descricao,
       quantidade: qtd,
@@ -259,8 +259,18 @@ function OrcamentoDetailPage() {
       ordem: itens.length,
       produto_id: form.produto_id,
       arquivo_id: form.arquivo_id,
-    } as any);
+    } as any).select("id").single();
     if (error) return toast.error(mensagemErro(error));
+    // a arte enviada no formulário vira a capa do item; as demais são
+    // anexadas depois pelo botão de artes na linha
+    if (form.arquivo_id && (novoItem as any)?.id) {
+      await (supabase as any).from("orcamento_item_arquivos").insert({
+        item_id: (novoItem as any).id,
+        arquivo_id: form.arquivo_id,
+        capa: true,
+        ordem: 0,
+      });
+    }
     setForm({ ...itemVazio });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     await recalcular();
