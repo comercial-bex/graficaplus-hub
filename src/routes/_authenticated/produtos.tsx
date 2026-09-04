@@ -85,6 +85,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { dicaCampo } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -731,7 +732,7 @@ function ProdutoFormDialog({
             </h3>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1.5">
-                <Label>Nome *</Label>
+                <Label className="flex items-center gap-1.5">Nome *<DicaIcone texto={dicaCampo("/produtos", "Nome *")} rotulo="Nome *" /></Label>
                 <Input
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
@@ -739,7 +740,7 @@ function ProdutoFormDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>SKU</Label>
+                <Label className="flex items-center gap-1.5">SKU<DicaIcone texto={dicaCampo("/produtos", "SKU")} rotulo="SKU" /></Label>
                 <Input
                   value={form.sku}
                   onChange={(e) => setForm({ ...form, sku: e.target.value })}
@@ -750,7 +751,7 @@ function ProdutoFormDialog({
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>Categoria</Label>
+                <Label className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/produtos", "Categoria")} rotulo="Categoria" /></Label>
                 <Select
                   value={form.categoria}
                   onValueChange={(v) => setForm({ ...form, categoria: v })}
@@ -768,7 +769,7 @@ function ProdutoFormDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Tipo</Label>
+                <Label className="flex items-center gap-1.5">Tipo<DicaIcone texto={dicaCampo("/produtos", "Tipo")} rotulo="Tipo" /></Label>
                 <Select
                   value={form.tipo}
                   onValueChange={(v: "produto" | "servico") =>
@@ -788,7 +789,7 @@ function ProdutoFormDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Unidade</Label>
+                <Label className="flex items-center gap-1.5">Unidade<DicaIcone texto={dicaCampo("/produtos", "Unidade")} rotulo="Unidade" /></Label>
                 <Select
                   value={form.unidade}
                   onValueChange={(v) => setForm({ ...form, unidade: v })}
@@ -807,7 +808,7 @@ function ProdutoFormDialog({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Descrição</Label>
+              <Label className="flex items-center gap-1.5">Descrição<DicaIcone texto={dicaCampo("/produtos", "Descrição")} rotulo="Descrição" /></Label>
               <Textarea
                 value={form.descricao}
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
@@ -847,7 +848,7 @@ function ProdutoFormDialog({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Margem mínima (%)</Label>
+                  <Label className="flex items-center gap-1.5">Margem mínima (%)<DicaIcone texto={dicaCampo("/produtos", "Margem mínima (%)")} rotulo="Margem mínima (%)" /></Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -945,7 +946,7 @@ function ProdutoFormDialog({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Observações internas</Label>
+              <Label className="flex items-center gap-1.5">Observações internas<DicaIcone texto={dicaCampo("/produtos", "Observações internas")} rotulo="Observações internas" /></Label>
               <Textarea
                 value={form.observacoes_internas}
                 onChange={(e) =>

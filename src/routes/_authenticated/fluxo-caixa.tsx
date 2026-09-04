@@ -39,6 +39,8 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
   head: () => ({
     meta: [
@@ -490,7 +492,7 @@ function FluxoCaixaPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-2">
-              <Label>Descrição *</Label>
+              <Label className="flex items-center gap-1.5">Descrição *<DicaIcone texto={dicaCampo("/fluxo-caixa", "Descrição *")} rotulo="Descrição *" /></Label>
               <Input
                 value={conta.descricao}
                 onChange={(e) => setConta((c) => ({ ...c, descricao: e.target.value }))}
@@ -498,14 +500,14 @@ function FluxoCaixaPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Fornecedor</Label>
+              <Label className="flex items-center gap-1.5">Fornecedor<DicaIcone texto={dicaCampo("/fluxo-caixa", "Fornecedor")} rotulo="Fornecedor" /></Label>
               <Input
                 value={conta.fornecedor}
                 onChange={(e) => setConta((c) => ({ ...c, fornecedor: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label>Categoria</Label>
+              <Label className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/fluxo-caixa", "Categoria")} rotulo="Categoria" /></Label>
               <Select
                 value={conta.categoria}
                 onValueChange={(v) => setConta((c) => ({ ...c, categoria: v }))}
@@ -523,7 +525,7 @@ function FluxoCaixaPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Valor (R$)</Label>
+              <Label className="flex items-center gap-1.5">Valor (R$)<DicaIcone texto={dicaCampo("/fluxo-caixa", "Valor (R$)")} rotulo="Valor (R$)" /></Label>
               <Input
                 type="number"
                 value={conta.valor}
@@ -531,7 +533,7 @@ function FluxoCaixaPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Vencimento</Label>
+              <Label className="flex items-center gap-1.5">Vencimento<DicaIcone texto={dicaCampo("/fluxo-caixa", "Vencimento")} rotulo="Vencimento" /></Label>
               <Input
                 type="date"
                 value={conta.vencimento}
@@ -557,7 +559,7 @@ function FluxoCaixaPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Tipo</Label>
+              <Label className="flex items-center gap-1.5">Tipo<DicaIcone texto={dicaCampo("/fluxo-caixa", "Tipo")} rotulo="Tipo" /></Label>
               <Select value={mov.tipo} onValueChange={(v) => setMov((m) => ({ ...m, tipo: v }))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -569,7 +571,7 @@ function FluxoCaixaPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Data</Label>
+              <Label className="flex items-center gap-1.5">Data<DicaIcone texto={dicaCampo("/fluxo-caixa", "Data")} rotulo="Data" /></Label>
               <Input
                 type="date"
                 value={mov.data}
@@ -577,21 +579,21 @@ function FluxoCaixaPage() {
               />
             </div>
             <div className="sm:col-span-2 space-y-2">
-              <Label>Descrição *</Label>
+              <Label className="flex items-center gap-1.5">Descrição *<DicaIcone texto={dicaCampo("/fluxo-caixa", "Descrição *")} rotulo="Descrição *" /></Label>
               <Input
                 value={mov.descricao}
                 onChange={(e) => setMov((m) => ({ ...m, descricao: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label>Categoria</Label>
+              <Label className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/fluxo-caixa", "Categoria")} rotulo="Categoria" /></Label>
               <Input
                 value={mov.categoria}
                 onChange={(e) => setMov((m) => ({ ...m, categoria: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label>Valor (R$)</Label>
+              <Label className="flex items-center gap-1.5">Valor (R$)<DicaIcone texto={dicaCampo("/fluxo-caixa", "Valor (R$)")} rotulo="Valor (R$)" /></Label>
               <Input
                 type="number"
                 value={mov.valor}

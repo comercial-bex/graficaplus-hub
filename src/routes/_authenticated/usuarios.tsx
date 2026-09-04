@@ -70,6 +70,8 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { useAuth, type AppRole } from "@/lib/auth-context";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import {
   atribuirPerfil,
   atualizarUsuario,
@@ -528,7 +530,7 @@ function UsuariosPage() {
           {form && (
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Label>Nome completo</Label>
+                <Label className="flex items-center gap-1.5">Nome completo<DicaIcone texto={dicaCampo("/usuarios", "Nome completo")} rotulo="Nome completo" /></Label>
                 <Input
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
@@ -536,7 +538,7 @@ function UsuariosPage() {
                 />
               </div>
               <div>
-                <Label>E-mail</Label>
+                <Label className="flex items-center gap-1.5">E-mail<DicaIcone texto={dicaCampo("/usuarios", "E-mail")} rotulo="E-mail" /></Label>
                 <Input
                   type="email"
                   value={form.email}
@@ -545,7 +547,7 @@ function UsuariosPage() {
                 />
               </div>
               <div>
-                <Label>Telefone</Label>
+                <Label className="flex items-center gap-1.5">Telefone<DicaIcone texto={dicaCampo("/usuarios", "Telefone")} rotulo="Telefone" /></Label>
                 <Input
                   value={form.telefone}
                   onChange={(e) => setForm({ ...form, telefone: e.target.value })}
@@ -553,7 +555,7 @@ function UsuariosPage() {
                 />
               </div>
               <div>
-                <Label>Cargo</Label>
+                <Label className="flex items-center gap-1.5">Cargo<DicaIcone texto={dicaCampo("/usuarios", "Cargo")} rotulo="Cargo" /></Label>
                 <Input
                   value={form.cargo}
                   onChange={(e) => setForm({ ...form, cargo: e.target.value })}
@@ -562,7 +564,7 @@ function UsuariosPage() {
               </div>
               {!form.id && (
                 <div>
-                  <Label>Perfil inicial</Label>
+                  <Label className="flex items-center gap-1.5">Perfil inicial<DicaIcone texto={dicaCampo("/usuarios", "Perfil inicial")} rotulo="Perfil inicial" /></Label>
                   <Select
                     value={form.role}
                     onValueChange={(v: AppRole) => setForm({ ...form, role: v })}
@@ -582,7 +584,7 @@ function UsuariosPage() {
               )}
               {!form.id && (
                 <div className="sm:col-span-2">
-                  <Label>Senha inicial</Label>
+                  <Label className="flex items-center gap-1.5">Senha inicial<DicaIcone texto={dicaCampo("/usuarios", "Senha inicial")} rotulo="Senha inicial" /></Label>
                   <div className="flex gap-2">
                     <Input
                       value={form.senha}
