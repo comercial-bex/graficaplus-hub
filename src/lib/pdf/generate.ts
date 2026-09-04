@@ -182,15 +182,19 @@ export async function carregarPropsOrcamento(
     numero: orc.numero,
     data_solicitacao: fmt(orc.created_at),
     data_validade: validade,
-    data_entrega: fmt((orc as any).prazo),
+    data_entrega: fmt(
+      (orc as any).data_entrega_prometida ?? (orc as any).prazo,
+    ),
     vendedor: (vendedor as any)?.nome ?? null,
     status: orc.status,
     empresa,
     cliente: {
       nome: c.nome ?? (orc as any).cliente_nome ?? (orc as any).contato_nome ?? "—",
-      razao_social: c.razao_social,
+      razao_social: c.razao_social ?? c.nome ?? (orc as any).contato_nome,
       nome_fantasia: c.nome_fantasia,
       documento: c.documento ?? c.cpf_cnpj,
+      inscricao_estadual: c.inscricao_estadual,
+
       endereco: c.endereco,
       bairro: c.bairro,
       cidade: c.cidade,
