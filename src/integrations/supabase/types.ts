@@ -12162,6 +12162,10 @@ export type Database = {
         }[]
       }
       can_see_financials: { Args: { _user_id: string }; Returns: boolean }
+      conciliar_transacao: {
+        Args: { p_caixa_movimento_id: string; p_transacao_id: string }
+        Returns: Json
+      }
       concluir_notificacao: {
         Args: {
           p_erro?: string
@@ -12351,6 +12355,10 @@ export type Database = {
       }
       hash_token_aprovacao: { Args: { p_token: string }; Returns: string }
       identificacao_legal_os: { Args: { p_os_id: string }; Returns: string }
+      importar_extrato: {
+        Args: { p_conta_id: string; p_lancamentos: Json }
+        Returns: Json
+      }
       iniciar_apontamento: {
         Args: { p_etapa?: string; p_maquina_id: string; p_os_id: string }
         Returns: {
@@ -12556,6 +12564,24 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      saldo_contas_bancarias: {
+        Args: never
+        Returns: {
+          agencia: string
+          banco: string
+          conta: string
+          conta_id: string
+          entradas: number
+          lancamentos: number
+          nao_conciliados: number
+          nome: string
+          saidas: number
+          saldo_atual: number
+          saldo_inicial: number
+          saldo_inicial_data: string
+          ultimo_lancamento: string
+        }[]
       }
       salvar_orcamento_3d: {
         Args: {
