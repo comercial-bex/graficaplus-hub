@@ -91,7 +91,10 @@ function OrcamentoDetailPage() {
   const { canSeeFinancials } = useAuth();
   const [form, setForm] = useState({ ...itemVazio });
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewProducaoOpen, setPreviewProducaoOpen] = useState(false);
+  const [gerandoLink, setGerandoLink] = useState(false);
   const [enviandoLayout, setEnviandoLayout] = useState(false);
+
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id, canSeeFinancials ? "financeiro" : "operacional"],
