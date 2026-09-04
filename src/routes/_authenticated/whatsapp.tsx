@@ -17,6 +17,8 @@ import {
   User,
   Tag,
 } from "lucide-react";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 import { detectsHumanHandoff, getWhatsAppBotTransition, whatsappBotFlow } from "@/lib/whatsapp-bot";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
