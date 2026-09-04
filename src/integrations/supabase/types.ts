@@ -12258,6 +12258,27 @@ export type Database = {
         Args: { p_arquivo_id: string; p_dias?: number }
         Returns: Json
       }
+      custo_real_por_peca: {
+        Args: { p_os_id?: string }
+        Returns: {
+          custo_mao_obra: number
+          custo_material: number
+          custo_outros: number
+          custo_perda: number
+          custo_previsto_unitario: number
+          custo_real_total: number
+          custo_real_unitario: number
+          descricao: string
+          divergencia_unitaria: number
+          margem_real: number
+          numero: number
+          os_id: string
+          os_item_id: string
+          preco_unitario: number
+          quantidade: number
+          titulo: string
+        }[]
+      }
       delete_filamento_3d: {
         Args: { p_material_id: string }
         Returns: undefined
@@ -12313,10 +12334,13 @@ export type Database = {
       funil_comercial: {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: {
+          atrasado: boolean
           campanha: string
           cliente: string
           cliente_id: string
           criado_em: string
+          data_inicio: string
+          dias_para_prazo: number
           dias_parado: number
           estagio: string
           etapa: string
@@ -12327,6 +12351,7 @@ export type Database = {
           ordens: number
           ordens_concluidas: number
           origem: string
+          prazo: string
           status: string
           valor_fechado: number
           valor_orcado: number
