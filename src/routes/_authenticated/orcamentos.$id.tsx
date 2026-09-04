@@ -23,12 +23,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, ArrowRight, FileDown } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  ArrowRight,
+  FileDown,
+  Printer,
+  Link as LinkIcon,
+  MessageCircle,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
+import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
+import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
@@ -660,7 +672,12 @@ function OrcamentoDetailPage() {
                       <TableCell>R$ {Number(i.valor_total).toFixed(2)}</TableCell>
                     </>
                   )}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <OrcamentoItemArtes
+                      itemId={i.id}
+                      orcamentoId={id}
+                      clienteId={(orc as any)?.cliente_id ?? null}
+                    />
                     <Button variant="ghost" size="icon" onClick={() => removeItem(i.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -707,6 +724,14 @@ function OrcamentoDetailPage() {
         onOpenChange={setPreviewOpen}
         tipo="orcamento"
         referencia_id={id}
+      />
+
+      <PDFPreviewDialog
+        open={previewProducaoOpen}
+        onOpenChange={setPreviewProducaoOpen}
+        tipo="orcamento"
+        referencia_id={id}
+        mostrarValores={false}
       />
     </div>
   );
