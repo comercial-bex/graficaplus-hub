@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +64,7 @@ const statusLabel: Record<string, string> = {
 
 function OrcamentosPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -72,7 +73,6 @@ function OrcamentosPage() {
     contato_telefone: "",
     contato_email: "",
     titulo: "",
-    valor_total: "",
   });
 
   const { data: orcamentos = [], isLoading } = useQuery({
@@ -112,18 +112,21 @@ function OrcamentosPage() {
     if (!form.titulo) return toast.error("Título é obrigatório");
     if (!form.cliente_id && !form.contato_nome.trim())
       return toast.error("Informe um cliente cadastrado ou o nome do contato");
-    const valor = parseFloat(form.valor_total || "0");
-    const { error } = await supabase.from("orcamentos").insert({
-      cliente_id: form.cliente_id || null,
-      contato_nome: form.cliente_id ? null : form.contato_nome.trim(),
-      contato_telefone: form.cliente_id ? null : form.contato_telefone.trim() || null,
-      contato_email: form.cliente_id ? null : form.contato_email.trim() || null,
-      titulo: form.titulo,
-      valor_total: valor,
-      valor_subtotal: valor,
-    } as any);
+    const { data: criado, error } = await supabase
+      .from("orcamentos")
+      .insert({
+        cliente_id: form.cliente_id || null,
+        contato_nome: form.cliente_id ? null : form.contato_nome.trim(),
+        contato_telefone: form.cliente_id ? null : form.contato_telefone.trim() || null,
+        contato_email: form.cliente_id ? null : form.contato_email.trim() || null,
+        titulo: form.titulo,
+        valor_total: 0,
+        valor_subtotal: 0,
+      } as any)
+      .select("id")
+      .single();
     if (error) return toast.error(mensagemErro(error));
-    toast.success("Orçamento criado");
+    toast.success("Orçamento criado — lance os produtos");
     setOpen(false);
     setForm({
       cliente_id: "",
@@ -131,9 +134,10 @@ function OrcamentosPage() {
       contato_telefone: "",
       contato_email: "",
       titulo: "",
-      valor_total: "",
     });
     qc.invalidateQueries({ queryKey: ["orcamentos"] });
+    const novoId = (criado as { id: string } | null)?.id;
+    if (novoId) navigate({ to: "/orcamentos/$id", params: { id: novoId } });
   }
 
   async function converterEmOS(orc: any) {
@@ -233,15 +237,10 @@ function OrcamentosPage() {
                     onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Valor total (R$)<DicaIcone texto={dicaCampo("/orcamentos", "Valor total (R$)")} rotulo="Valor total (R$)" /></Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.valor_total}
-                    onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  O valor é calculado automaticamente pelos produtos que você lançar na próxima
+                  tela.
+                </p>
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -285,7 +284,11 @@ function OrcamentosPage() {
               )}
               {orcamentos.map((o: any) => {
                 return (
-                  <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow
+                    key={o.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
+                  >
                     <TableCell>
                       <Link to="/orcamentos/$id" params={{ id: o.id }} className="font-mono text-xs text-muted-foreground hover:text-[color:var(--bex-cyan)]">
                         #{o.numero}
@@ -296,7 +299,7 @@ function OrcamentosPage() {
                         {o.titulo}
                       </Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {mapa3d[o.id] ? (
                         <Link to="/orcamento-3d/$id" params={{ id: mapa3d[o.id] }}>
                           <StatusChip label="Impressão 3D" tone="magenta" />
@@ -322,7 +325,7 @@ function OrcamentosPage() {
                     {canSeeFinancials && (
                       <TableCell className="font-mono text-sm">R$ {Number(o.valor_total).toFixed(2)}</TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       {o.status !== "convertido" && (
                         <Button size="sm" variant="outline" onClick={() => converterEmOS(o)}>
                           Converter em OS <ArrowRight className="h-3 w-3 ml-1" />
