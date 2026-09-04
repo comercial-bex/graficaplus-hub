@@ -811,9 +811,80 @@ export type Database = {
           },
         ]
       }
+      banco_transacoes: {
+        Row: {
+          caixa_movimento_id: string | null
+          conciliado: boolean
+          conta_id: string
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao: string
+          documento: string | null
+          fitid: string | null
+          id: string
+          origem: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          caixa_movimento_id?: string | null
+          conciliado?: boolean
+          conta_id: string
+          created_at?: string
+          created_by?: string | null
+          data: string
+          descricao?: string
+          documento?: string | null
+          fitid?: string | null
+          id?: string
+          origem?: string
+          tipo?: string
+          valor: number
+        }
+        Update: {
+          caixa_movimento_id?: string | null
+          conciliado?: boolean
+          conta_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          documento?: string | null
+          fitid?: string | null
+          id?: string
+          origem?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banco_transacoes_caixa_movimento_id_fkey"
+            columns: ["caixa_movimento_id"]
+            isOneToOne: false
+            referencedRelation: "caixa_movimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banco_transacoes_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banco_transacoes_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_saldo_contas"
+            referencedColumns: ["conta_id"]
+          },
+        ]
+      }
       caixa_movimentos: {
         Row: {
           categoria: string | null
+          conta_id: string | null
           conta_pagar_id: string | null
           created_at: string
           created_by: string | null
@@ -830,6 +901,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string | null
+          conta_id?: string | null
           conta_pagar_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -846,6 +918,7 @@ export type Database = {
         }
         Update: {
           categoria?: string | null
+          conta_id?: string | null
           conta_pagar_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -861,6 +934,20 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "caixa_movimentos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixa_movimentos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_saldo_contas"
+            referencedColumns: ["conta_id"]
+          },
           {
             foreignKeyName: "caixa_movimentos_conta_pagar_id_fkey"
             columns: ["conta_pagar_id"]
@@ -1423,6 +1510,48 @@ export type Database = {
           },
         ]
       }
+      contas_bancarias: {
+        Row: {
+          agencia: string | null
+          ativo: boolean
+          banco: string | null
+          conta: string | null
+          created_at: string
+          id: string
+          nome: string
+          saldo_inicial: number
+          saldo_inicial_data: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string | null
+          conta?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          saldo_inicial?: number
+          saldo_inicial_data?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string | null
+          conta?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          saldo_inicial?: number
+          saldo_inicial_data?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contas_pagar: {
         Row: {
           categoria: string
@@ -1862,6 +1991,86 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custos_tabela: {
+        Row: {
+          ativo: boolean
+          atualizado_por: string | null
+          categoria: string
+          codigo: string
+          created_at: string
+          descricao: string
+          id: string
+          observacao: string | null
+          unidade: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          categoria?: string
+          codigo: string
+          created_at?: string
+          descricao: string
+          id?: string
+          observacao?: string | null
+          unidade?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_por?: string | null
+          categoria?: string
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          observacao?: string | null
+          unidade?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      custos_tabela_historico: {
+        Row: {
+          alterado_por: string | null
+          codigo: string
+          created_at: string
+          custo_id: string
+          id: string
+          valor_anterior: number | null
+          valor_novo: number | null
+        }
+        Insert: {
+          alterado_por?: string | null
+          codigo: string
+          created_at?: string
+          custo_id: string
+          id?: string
+          valor_anterior?: number | null
+          valor_novo?: number | null
+        }
+        Update: {
+          alterado_por?: string | null
+          codigo?: string
+          created_at?: string
+          custo_id?: string
+          id?: string
+          valor_anterior?: number | null
+          valor_novo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custos_tabela_historico_custo_id_fkey"
+            columns: ["custo_id"]
+            isOneToOne: false
+            referencedRelation: "custos_tabela"
             referencedColumns: ["id"]
           },
         ]
@@ -5058,6 +5267,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           custo_estimado: number
+          data_entrega_prometida: string | null
+          data_inicio: string | null
           desconto_percentual: number
           descricao: string | null
           endereco_entrega: Json | null
@@ -5095,6 +5306,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           custo_estimado?: number
+          data_entrega_prometida?: string | null
+          data_inicio?: string | null
           desconto_percentual?: number
           descricao?: string | null
           endereco_entrega?: Json | null
@@ -5132,6 +5345,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           custo_estimado?: number
+          data_entrega_prometida?: string | null
+          data_inicio?: string | null
           desconto_percentual?: number
           descricao?: string | null
           endereco_entrega?: Json | null
@@ -11455,6 +11670,42 @@ export type Database = {
           status_financeiro:
             | Database["public"]["Enums"]["status_pagamento"]
             | null
+        }
+        Relationships: []
+      }
+      vw_saldo_contas: {
+        Row: {
+          ativo: boolean | null
+          banco: string | null
+          conta_id: string | null
+          nome: string | null
+          pendentes_conciliacao: number | null
+          saldo_inicial: number | null
+          saldo_inicial_data: string | null
+          saldo_real: number | null
+          ultima_movimentacao: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          banco?: string | null
+          conta_id?: string | null
+          nome?: string | null
+          pendentes_conciliacao?: never
+          saldo_inicial?: number | null
+          saldo_inicial_data?: string | null
+          saldo_real?: never
+          ultima_movimentacao?: never
+        }
+        Update: {
+          ativo?: boolean | null
+          banco?: string | null
+          conta_id?: string | null
+          nome?: string | null
+          pendentes_conciliacao?: never
+          saldo_inicial?: number | null
+          saldo_inicial_data?: string | null
+          saldo_real?: never
+          ultima_movimentacao?: never
         }
         Relationships: []
       }
