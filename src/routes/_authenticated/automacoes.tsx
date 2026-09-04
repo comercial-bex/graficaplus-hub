@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 type SupabaseError = { message: string };
 type QueryResult<T> = { data: T | null; error: SupabaseError | null };
 type SupabaseQuery<T> = PromiseLike<QueryResult<T>> & {
@@ -149,7 +151,10 @@ function AutoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Automações de WhatsApp</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Automações de WhatsApp</h1>
+          <DicaIcone texto={dicaTela("/automacoes")} rotulo="Automações de WhatsApp" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">
           Regras reais processadas por fila e disparadas via Z-API
         </p>

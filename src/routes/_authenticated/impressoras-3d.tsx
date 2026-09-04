@@ -26,6 +26,8 @@ import { Printer, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/impressoras-3d")({
   head: () => ({ meta: [{ title: "Impressoras 3D — BEX PRINT OS" }] }),
   component: ImpressorasPage,
@@ -167,7 +169,10 @@ function ImpressorasPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Impressoras 3D</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Impressoras 3D</h1>
+            <DicaIcone texto={dicaTela("/impressoras-3d")} rotulo="Impressoras 3D" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">
             Parque de impressoras (Bambu Lab, Creality e outras) — base do custo-hora dos orçamentos 3D
           </p>

@@ -29,6 +29,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/materiais")({
   head: () => ({ meta: [{ title: "Materiais — BEX PRINT OS" }] }),
   component: MateriaisPage,
@@ -80,7 +82,10 @@ function MateriaisPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Materiais</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Materiais</h1>
+            <DicaIcone texto={dicaTela("/materiais")} rotulo="Materiais" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">Insumos e matéria-prima em estoque</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

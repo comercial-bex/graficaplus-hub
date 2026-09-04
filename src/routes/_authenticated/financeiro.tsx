@@ -35,6 +35,8 @@ import { Plus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/financeiro")({
   head: () => ({ meta: [{ title: "Financeiro — BEX PRINT OS" }] }),
   component: FinanceiroPage,
@@ -133,7 +135,10 @@ function FinanceiroPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
+            <DicaIcone texto={dicaTela("/financeiro")} rotulo="Financeiro" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">Pagamentos e recebimentos</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

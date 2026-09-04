@@ -14,6 +14,8 @@ import { Eye, FileArchive, FileText, Search } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/arquivos")({
   head: () => ({ meta: [{ title: "Arquivos — BEX PRINT OS" }] }),
   component: ArquivosPage,
@@ -76,7 +78,10 @@ function ArquivosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Arquivos</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Arquivos</h1>
+          <DicaIcone texto={dicaTela("/arquivos")} rotulo="Arquivos" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">Busca, filtros, preview e histórico de versões sem apagar arquivos antigos.</p>
       </div>
 

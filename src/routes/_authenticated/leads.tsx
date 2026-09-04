@@ -18,6 +18,8 @@ import { db } from "@/lib/module-data";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({ meta: [{ title: "Leads — BEX PRINT OS" }] }),
   component: LeadsPage,
@@ -89,7 +91,10 @@ function LeadsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
+          <DicaIcone texto={dicaTela("/leads")} rotulo="Leads" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">
           Funil de oportunidades comerciais conectado ao Supabase
         </p>

@@ -83,6 +83,8 @@ import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -319,7 +321,10 @@ function ProdutosPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Produtos & Serviços</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Produtos & Serviços</h1>
+            <DicaIcone texto={dicaTela("/produtos")} rotulo="Produtos e Serviços" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">
             Catálogo da gráfica — base para orçamentos, OS e estoque
           </p>

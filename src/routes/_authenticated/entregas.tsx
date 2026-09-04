@@ -18,6 +18,8 @@ import { db, formatDateTime } from "@/lib/module-data";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/entregas")({
   head: () => ({ meta: [{ title: "Entregas — BEX PRINT OS" }] }),
   component: EntregasPage,
@@ -68,7 +70,10 @@ function EntregasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Entregas & Instalações</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Entregas & Instalações</h1>
+          <DicaIcone texto={dicaTela("/entregas")} rotulo="Entregas e Instalações" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">
           Agenda logística de entregas, retiradas e instalações
         </p>

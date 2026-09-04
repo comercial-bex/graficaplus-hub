@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({ meta: [{ title: "Precificação — BEX PRINT OS" }] }),
   component: PrecificacaoPage,
@@ -31,7 +33,10 @@ function PrecificacaoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Precificação</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Precificação</h1>
+          <DicaIcone texto={dicaTela("/precificacao")} rotulo="Precificação" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">Calculadora de custo, preço, margem e markup</p>
       </div>
 
