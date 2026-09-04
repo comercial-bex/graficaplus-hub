@@ -260,6 +260,51 @@ function OrcamentoDetailPage() {
     await recalcular();
   }
 
+  /** Link de aprovação do cliente: mesma URL sempre, gerada uma única vez. */
+  async function obterLinkCliente() {
+    const { token } = await gerarLinkPublicoOrcamento({ data: { orcamentoId: id } });
+    return `${window.location.origin}/orcamento-publico/${token}`;
+  }
+
+  async function copiarLinkCliente() {
+    setGerandoLink(true);
+    try {
+      const url = await obterLinkCliente();
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado. É só colar para o cliente.");
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível gerar o link"));
+    } finally {
+      setGerandoLink(false);
+    }
+  }
+
+  async function enviarWhatsApp() {
+    setGerandoLink(true);
+    try {
+      const url = await obterLinkCliente();
+      const telefone = String(
+        (orc as any)?.cliente_whatsapp ??
+          (orc as any)?.cliente_telefone ??
+          (orc as any)?.contato_telefone ??
+          "",
+      ).replace(/\D/g, "");
+      const destino = telefone ? (telefone.length > 11 ? telefone : `55${telefone}`) : "";
+      const texto = `Olá! Segue o orçamento nº ${(orc as any).numero} — ${(orc as any).titulo}.\nVocê pode conferir e aprovar por aqui: ${url}`;
+      window.open(
+        `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`,
+        "_blank",
+        "noopener",
+      );
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível abrir o WhatsApp"));
+    } finally {
+      setGerandoLink(false);
+    }
+  }
+
+
+
   async function setStatus(novoStatus: string) {
     const update: any = { status: novoStatus };
     if (novoStatus === "enviado") update.enviado_em = new Date().toISOString();
