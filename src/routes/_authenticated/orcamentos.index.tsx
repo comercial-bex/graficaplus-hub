@@ -325,7 +325,7 @@ function OrcamentosPage() {
                     {canSeeFinancials && (
                       <TableCell className="font-mono text-sm">R$ {Number(o.valor_total).toFixed(2)}</TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       {o.status !== "convertido" && (
                         <Button size="sm" variant="outline" onClick={() => converterEmOS(o)}>
                           Converter em OS <ArrowRight className="h-3 w-3 ml-1" />
