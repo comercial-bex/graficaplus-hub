@@ -42,6 +42,7 @@ import {
   valorUnitarioPorM2,
 } from "@/domain/orcamentos/area";
 import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
+import { PrazosCard } from "@/components/orcamento/prazos-card";
 import {
   FaixaDePrecoAviso,
   RestricoesDoProduto,
@@ -116,7 +117,7 @@ export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
 function OrcamentoDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
-  const { canSeeFinancials } = useAuth();
+  const { canSeeFinancials, hasPermission } = useAuth();
   const [form, setForm] = useState({ ...itemVazio });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [enviandoLayout, setEnviandoLayout] = useState(false);
@@ -365,6 +366,10 @@ function OrcamentoDetailPage() {
           </div>
         }
       />
+
+      <div className="mb-4">
+        <PrazosCard orcamento={orc as any} podeEditar={hasPermission("orcamentos.update")} />
+      </div>
 
       <Card>
         <CardContent className="p-4 space-y-4">

@@ -34,6 +34,10 @@ type Linha = {
   ordens_concluidas: number;
   estagio: string;
   dias_parado: number;
+  data_inicio: string | null;
+  prazo: string | null;
+  dias_para_prazo: number | null;
+  atrasado: boolean;
 };
 
 const brl = (n: number) =>
@@ -72,6 +76,24 @@ function FunilPage() {
   const { canSeeFinancials } = useAuth();
   const [inicio, setInicio] = useState(noventa);
   const [fim, setFim] = useState(hoje);
+
+  /**
+   * Saldo em conta, do extrato bancário.
+   *
+   * O funil diz quanto está em jogo; o saldo diz com quanto se conta HOJE. Ver
+   * "R$ 40 mil em aberto" sem ver o caixa é como planejar compra olhando só o
+   * pedido — os dois números juntos é que respondem "dá para tocar isso".
+   */
+  const { data: contas = [] } = useQuery({
+    queryKey: ["saldo-contas"],
+    enabled: canSeeFinancials,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("saldo_contas_bancarias");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const saldoEmConta = contas.reduce((s: number, c: any) => s + Number(c.saldo_atual ?? 0), 0);
 
   const { data: linhas = [], isLoading } = useQuery({
     queryKey: ["funil", inicio, fim],
@@ -116,6 +138,7 @@ function FunilPage() {
       valorEmAberto: emAberto.reduce((s, l) => s + Number(l.valor_orcado || l.valor_potencial), 0),
       valorFechado: linhas.reduce((s, l) => s + Number(l.valor_fechado), 0),
       parados: emAberto.filter((l) => l.dias_parado > 15),
+      atrasados: emAberto.filter((l) => l.atrasado),
       origens: [...porOrigem.entries()].sort((a, b) => b[1].fechado - a[1].fechado),
     };
   }, [linhas]);
@@ -152,6 +175,39 @@ function FunilPage() {
             <Metrica rotulo="Perdidos" valor={String(resumo.perdidos)} nota="sem retorno" />
           </div>
 
+          {canSeeFinancials && (
+            <div className="mb-4 grid overflow-hidden rounded-md border sm:grid-cols-2">
+              <div className="border-r bg-card p-4">
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Saldo em conta
+                </div>
+                <div
+                  className={`mt-1 text-2xl font-semibold ${saldoEmConta < 0 ? "text-destructive" : ""}`}
+                >
+                  {contas.length === 0 ? "sem conta" : brl(saldoEmConta)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {contas.length === 0
+                    ? "cadastre em Contas bancárias"
+                    : `${contas.length} conta(s), pelo extrato importado`}
+                </div>
+              </div>
+              <div className="bg-card p-4">
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Em jogo x caixa
+                </div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {saldoEmConta > 0
+                    ? `${(resumo.valorEmAberto / saldoEmConta).toFixed(1)}x`
+                    : "—"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  o que falta fechar vale {saldoEmConta > 0 ? "isso" : "—"} o caixa de hoje
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Etapas em ordem: mostra onde o funil estrangula. */}
           <Card className="mb-4">
             <CardContent className="flex flex-wrap gap-2 p-4">
@@ -166,6 +222,22 @@ function FunilPage() {
               })}
             </CardContent>
           </Card>
+
+          {resumo.atrasados.length > 0 && (
+            <div className="mb-4 flex gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive" />
+              <div>
+                <strong>{resumo.atrasados.length}</strong>{" "}
+                {resumo.atrasados.length === 1 ? "oportunidade passou" : "oportunidades passaram"} do
+                prazo combinado e ainda não foram entregues:{" "}
+                {resumo.atrasados
+                  .slice(0, 4)
+                  .map((l) => `${l.nome} (${Math.abs(l.dias_para_prazo ?? 0)}d)`)
+                  .join(" · ")}
+                {resumo.atrasados.length > 4 && " …"}
+              </div>
+            </div>
+          )}
 
           {resumo.parados.length > 0 && (
             <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
@@ -238,6 +310,7 @@ function FunilPage() {
                     <TableHead>Estágio</TableHead>
                     <TableHead className="text-right">Orçado</TableHead>
                     <TableHead className="text-right">Fechado</TableHead>
+                    <TableHead>Prazo</TableHead>
                     <TableHead className="text-right">Parado</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -273,6 +346,22 @@ function FunilPage() {
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">
                         {l.ordens > 0 ? brl(l.valor_fechado) : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {l.prazo ? (
+                          <>
+                            <div className={l.atrasado ? "font-medium text-destructive" : ""}>
+                              {new Date(`${l.prazo}T12:00:00`).toLocaleDateString("pt-BR")}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {l.data_inicio
+                                ? `início ${new Date(`${l.data_inicio}T12:00:00`).toLocaleDateString("pt-BR")}`
+                                : "sem data de início"}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">sem prazo</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {["entregue", "perdido"].includes(l.estagio) ? (
