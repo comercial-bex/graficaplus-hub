@@ -14,8 +14,10 @@ export type DocItem = {
   /** m², já calculada no banco (coluna gerada) */
   area_total?: number | null;
   acabamento?: string | null;
-  /** URL assinada da arte a imprimir; alimenta o bloco LAYOUT */
+  /** URL assinada da arte de capa; alimenta o bloco LAYOUT */
   layout_url?: string | null;
+  /** demais artes anexadas ao item, listadas abaixo da capa */
+  layouts_extras?: string[];
 };
 
 export type DocumentoPDFProps = {
@@ -59,81 +61,162 @@ export type DocumentoPDFProps = {
   mostrarValores?: boolean;
 };
 
-// Os estilos dependem da cor da marca, que agora vem do banco — daí a fábrica.
+/**
+ * Layout espelhado no orçamento que a gráfica já entrega hoje: blocos com
+ * moldura, títulos centralizados e sublinhados, metragem dentro da coluna de
+ * quantidade e termo de aceite no rodapé. A cor da marca vem do banco, daí a
+ * fábrica de estilos.
+ */
 const criarEstilos = (C: string) =>
   StyleSheet.create({
-    page: { paddingTop: 32, paddingBottom: 48, paddingHorizontal: 32, fontSize: 9, fontFamily: "Helvetica", color: "#1a1a1a" },
-    topBar: { height: 6, backgroundColor: C, marginBottom: 6 },
+    page: {
+      paddingTop: 24,
+      paddingBottom: 40,
+      paddingHorizontal: 24,
+      fontSize: 8.5,
+      fontFamily: "Helvetica",
+      color: "#111",
+    },
 
-    headerRow: { flexDirection: "row", marginBottom: 14 },
-    empresaCol: { width: "45%", paddingRight: 12 },
-    docCol: { width: "55%", borderLeftWidth: 1, borderLeftColor: "#e5e5e5", paddingLeft: 14 },
-    logoBox: { width: 140, height: 52, borderWidth: 1, borderColor: C, borderRadius: 4, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-    logoImg: { width: 140, height: 52, objectFit: "contain", marginBottom: 8 },
-    logoTxt: { color: C, fontSize: 14, fontFamily: "Helvetica-Bold" },
-    slogan: { fontSize: 8, fontStyle: "italic", marginBottom: 4, color: "#555" },
-    empresaNome: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 4 },
-    empresaInfo: { fontSize: 8, color: "#444", lineHeight: 1.4 },
+    headerRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 6 },
+    logoImg: { width: 150, height: 68, objectFit: "contain", marginRight: 14 },
+    logoBox: {
+      width: 150,
+      height: 68,
+      marginRight: 14,
+      borderWidth: 1,
+      borderColor: C,
+      borderRadius: 3,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    logoTxt: { color: C, fontSize: 13, fontFamily: "Helvetica-Bold", textAlign: "center" },
+    empresaCol: { flex: 1 },
+    empresaNome: { fontSize: 9.5, fontFamily: "Helvetica-Bold", marginBottom: 1 },
+    empresaInfo: { fontSize: 8, color: "#222", lineHeight: 1.35 },
+    numeroDoc: { fontSize: 10, fontFamily: "Helvetica-Bold", textAlign: "right", minWidth: 120 },
 
-    docTitle: { fontSize: 16, color: C, marginBottom: 8, fontFamily: "Helvetica-Bold" },
-    metaRow: { flexDirection: "row", marginBottom: 3 },
-    metaLabel: { width: 72, color: "#777", fontSize: 8 },
-    metaValue: { fontSize: 9, fontFamily: "Helvetica-Bold", flex: 1 },
+    datasRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      borderBottomWidth: 1,
+      borderBottomColor: "#111",
+      paddingBottom: 2,
+      marginBottom: 4,
+    },
+    dataTxt: { fontSize: 8.5 },
+    dataLabel: { fontFamily: "Helvetica-Bold" },
 
-    clienteBox: { marginTop: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: "#e5e5e5" },
-    clienteLabel: { fontSize: 8, color: "#777", marginBottom: 2 },
-    clienteNome: { fontSize: 11, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+    bloco: { borderWidth: 1, borderColor: "#111", borderRadius: 3, padding: 6, marginBottom: 5 },
+    blocoTitulo: {
+      fontSize: 9,
+      fontFamily: "Helvetica-Bold",
+      textAlign: "center",
+      textDecoration: "underline",
+      marginBottom: 4,
+    },
 
-    sectionTitle: { color: "#fff", backgroundColor: C, fontFamily: "Helvetica-Bold", fontSize: 10, padding: 5, marginTop: 10 },
+    clienteGrid: { flexDirection: "row" },
+    clienteCol: { width: "50%", paddingRight: 8 },
+    clienteLinha: { flexDirection: "row", marginBottom: 2 },
+    campoLabel: { fontFamily: "Helvetica-Bold", fontSize: 8.5 },
+    campoValor: { fontSize: 8.5, flex: 1 },
 
-    thead: { flexDirection: "row", backgroundColor: C, paddingVertical: 5, paddingHorizontal: 4 },
-    th: { fontSize: 8, color: "#fff", fontFamily: "Helvetica-Bold" },
-    tr: { flexDirection: "row", paddingVertical: 4, paddingHorizontal: 4, borderBottomWidth: 0.5, borderBottomColor: "#eee", alignItems: "flex-start" },
-    trAlt: { backgroundColor: "#fafafa" },
-    td: { fontSize: 9 },
-    metragem: { fontSize: 7, color: "#666", marginTop: 1 },
+    thead: {
+      flexDirection: "row",
+      borderBottomWidth: 1,
+      borderBottomColor: "#111",
+      paddingBottom: 3,
+      marginBottom: 2,
+      alignItems: "flex-end",
+    },
+    th: { fontSize: 8, fontFamily: "Helvetica-Bold" },
+    tr: {
+      flexDirection: "row",
+      paddingVertical: 4,
+      borderBottomWidth: 0.5,
+      borderBottomColor: "#ccc",
+      alignItems: "flex-start",
+    },
+    td: { fontSize: 8.5 },
+    tdMuted: { fontSize: 7.5, color: "#444", lineHeight: 1.3 },
 
-    cCode: { width: "6%" },
+    cNum: { width: "4%" },
     cDesc: { width: "38%", paddingRight: 6 },
-    cAcab: { width: "12%", fontSize: 8 },
-    cUn: { width: "7%", textAlign: "center" },
-    cQtd: { width: "9%", textAlign: "right" },
-    cArea: { width: "10%", textAlign: "right" },
-    cVu: { width: "9%", textAlign: "right" },
-    cVt: { width: "9%", textAlign: "right" },
+    cTipo: { width: "8%", textAlign: "center" },
+    cAcab: { width: "12%", paddingRight: 4 },
+    cQtd: { width: "16%" },
+    cVu: { width: "11%", textAlign: "right" },
+    cVt: { width: "11%", textAlign: "right" },
 
-    layoutRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
-    layoutCard: { width: 118, borderWidth: 0.5, borderColor: "#ddd", borderRadius: 3, padding: 4 },
-    layoutImg: { width: "100%", height: 74, objectFit: "contain" },
-    layoutNum: { fontSize: 7, color: "#666", marginTop: 2, textAlign: "center" },
+    totaisItens: { paddingTop: 4, marginTop: 2 },
+    totalItensTxt: { fontSize: 8.5, fontFamily: "Helvetica-Bold" },
 
-    infoGrid: { flexDirection: "row", gap: 8, marginTop: 10 },
-    infoBox: { flex: 1, borderWidth: 0.5, borderColor: "#ddd", borderRadius: 3, padding: 8 },
-    infoTitle: { fontSize: 8, color: C, fontFamily: "Helvetica-Bold", marginBottom: 3 },
-    infoLinha: { fontSize: 8, color: "#444", lineHeight: 1.5 },
+    layoutRow: { flexDirection: "row", flexWrap: "wrap" },
+    layoutCard: { width: 132, marginRight: 8, marginBottom: 8 },
+    layoutImgBox: {
+      borderWidth: 0.5,
+      borderColor: "#bbb",
+      borderRadius: 2,
+      height: 82,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 2,
+    },
+    layoutImg: { width: "100%", height: "100%", objectFit: "contain" },
+    layoutNum: { fontSize: 7.5, marginTop: 2, color: "#333" },
 
-    totaisBox: { marginTop: 10, alignItems: "flex-end" },
-    totalLinha: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 2 },
-    totalLinhaLabel: { fontSize: 8, color: "#666", width: 110, textAlign: "right", paddingRight: 8 },
-    totalLinhaValor: { fontSize: 9, width: 90, textAlign: "right" },
-    totalBox: { borderWidth: 1.5, borderColor: C, padding: 10, minWidth: 200, alignItems: "flex-end", marginTop: 4 },
-    totalLabel: { fontSize: 8, color: C, marginBottom: 2, fontFamily: "Helvetica-Bold" },
-    totalValue: { fontSize: 16, fontFamily: "Helvetica-Bold", color: C },
+    totaisDir: { alignItems: "flex-end", marginBottom: 5 },
+    totalLinha: { fontSize: 8.5, marginBottom: 2 },
+    totalForte: { fontSize: 10, fontFamily: "Helvetica-Bold" },
 
-    obs: { marginTop: 12, fontSize: 8, color: "#444", lineHeight: 1.5, padding: 8, borderWidth: 0.5, borderColor: "#ddd", borderRadius: 3 },
-    obsTitle: { fontSize: 8, color: C, fontFamily: "Helvetica-Bold", marginBottom: 3 },
+    pagamentoCaixa: {
+      borderWidth: 0.5,
+      borderColor: "#111",
+      borderRadius: 2,
+      paddingVertical: 3,
+      paddingHorizontal: 5,
+      marginTop: 3,
+    },
 
-    aceiteBox: { marginTop: 18, borderWidth: 0.5, borderColor: C, borderRadius: 3, padding: 10 },
-    aceiteTexto: { fontSize: 9, marginBottom: 18 },
-    aceiteLinha: { borderTopWidth: 1, borderTopColor: "#999", paddingTop: 4, alignItems: "center", marginHorizontal: 40 },
-    aceiteLabel: { fontSize: 8, color: "#555" },
+    rodapeRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
+    rodapeTxt: { fontSize: 8.5 },
+    validade: { fontSize: 8.5, marginTop: 2 },
 
-    signRow: { flexDirection: "row", marginTop: 24, gap: 40 },
-    signBox: { flex: 1, borderTopWidth: 1, borderTopColor: "#999", paddingTop: 4, alignItems: "center" },
-    signLabel: { fontSize: 8, color: "#555" },
+    aceite: { marginTop: 26, alignItems: "center" },
+    aceiteTexto: { fontSize: 8.5, marginBottom: 26, textAlign: "center" },
+    aceiteLinha: { borderTopWidth: 1, borderTopColor: "#111", width: 300, paddingTop: 3 },
+    aceiteLabel: { fontSize: 8, textAlign: "center" },
 
-    footer: { position: "absolute", bottom: 16, left: 32, right: 32, flexDirection: "row", justifyContent: "space-between", fontSize: 7, color: "#999", borderTopWidth: 0.5, borderTopColor: "#eee", paddingTop: 4 },
-    producaoBadge: { position: "absolute", top: 14, right: 32, fontSize: 9, color: C, fontFamily: "Helvetica-Bold", borderWidth: 1, borderColor: C, paddingHorizontal: 6, paddingVertical: 2 },
+    signRow: { flexDirection: "row", marginTop: 30, gap: 40 },
+    signBox: { flex: 1, borderTopWidth: 1, borderTopColor: "#111", paddingTop: 3, alignItems: "center" },
+    signLabel: { fontSize: 8 },
+
+    footer: {
+      position: "absolute",
+      bottom: 14,
+      left: 24,
+      right: 24,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      fontSize: 7,
+      color: "#888",
+      borderTopWidth: 0.5,
+      borderTopColor: "#ddd",
+      paddingTop: 3,
+    },
+    producaoBadge: {
+      position: "absolute",
+      top: 8,
+      right: 24,
+      fontSize: 8.5,
+      color: C,
+      fontFamily: "Helvetica-Bold",
+      borderWidth: 1,
+      borderColor: C,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+    },
   });
 
 const money = (v: number) =>
@@ -141,6 +224,25 @@ const money = (v: number) =>
 
 const m2 = (v: number) => v.toFixed(3).replace(".", ",") + "m²";
 const metros = (v: number) => v.toFixed(3).replace(".", ",") + "m";
+const qtdFmt = (v: number) =>
+  Number.isInteger(v) ? String(v) : v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+function Campo({
+  label,
+  valor,
+  s,
+}: {
+  label: string;
+  valor?: string | null;
+  s: ReturnType<typeof criarEstilos>;
+}) {
+  return (
+    <View style={s.clienteLinha}>
+      <Text style={s.campoLabel}>{label}: </Text>
+      <Text style={s.campoValor}>{valor ?? ""}</Text>
+    </View>
+  );
+}
 
 export function DocumentoPDF(p: DocumentoPDFProps) {
   const empresa = p.empresa;
@@ -150,274 +252,252 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
   const isOrc = p.tipo === "orcamento" || p.tipo === "orcamento_3d";
   const titulo = p.tipo === "os" ? "Ordem de Serviço" : p.tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento";
   const mostrar = p.mostrarValores ?? true;
-  const totalQtd = p.itens.reduce((a, i) => a + Number(i.quantidade || 0), 0);
   const agora = new Date().toLocaleString("pt-BR");
 
-  // Itens com arte anexada alimentam o bloco LAYOUT, numerados como na tabela.
-  const layouts = p.itens
-    .map((item, indice) => ({ item, numero: indice + 1 }))
-    .filter((l) => !!l.item.layout_url);
+  // Cada arte anexada vira um quadro no bloco LAYOUT, numerado igual ao item.
+  const layouts: { numero: string; url: string; descricao: string }[] = [];
+  p.itens.forEach((item, indice) => {
+    if (item.layout_url) {
+      layouts.push({ numero: String(indice + 1), url: item.layout_url, descricao: item.descricao });
+    }
+    (item.layouts_extras ?? []).forEach((url, i) => {
+      layouts.push({
+        numero: `${indice + 1}.${i + 2}`,
+        url,
+        descricao: item.descricao,
+      });
+    });
+  });
 
+  const totalItens = p.itens.reduce((a, i) => a + Number(i.valor_total || 0), 0);
   const temArea = (p.soma_area ?? 0) > 0;
   const desconto = Number(p.desconto ?? 0);
   const enderecoEmpresa = enderecoCompleto(empresa);
+  const cidadeUf = [p.cliente.cidade, p.cliente.estado].filter(Boolean).join(" - ");
 
   return (
     <Document title={`${titulo} ${p.numero}`} author={empresa.razao_social ?? empresa.nome}>
       <Page size="A4" style={s.page}>
-        <View style={s.topBar} fixed />
-        {!mostrar && <Text style={s.producaoBadge} fixed>VIA DE PRODUÇÃO</Text>}
+        {!mostrar && (
+          <Text style={s.producaoBadge} fixed>
+            VIA DE PRODUÇÃO
+          </Text>
+        )}
 
-        <View style={s.headerRow}>
+        {/* Cabeçalho da empresa — repetido em toda página */}
+        <View style={s.headerRow} fixed>
+          {empresa.logo_url ? (
+            <Image style={s.logoImg} src={empresa.logo_url} />
+          ) : (
+            <View style={s.logoBox}>
+              <Text style={s.logoTxt}>{empresa.nome}</Text>
+            </View>
+          )}
           <View style={s.empresaCol}>
-            {empresa.logo_url ? (
-              <Image style={s.logoImg} src={empresa.logo_url} />
-            ) : (
-              <View style={s.logoBox}>
-                <Text style={s.logoTxt}>{empresa.nome}</Text>
-              </View>
-            )}
-            {empresa.slogan && <Text style={s.slogan}>“{empresa.slogan}”</Text>}
-            <Text style={s.empresaNome}>{empresa.razao_social ?? empresa.nome}</Text>
-            {empresa.cnpj && <Text style={s.empresaInfo}>CNPJ {empresa.cnpj}</Text>}
-            {empresa.inscricao_estadual && (
-              <Text style={s.empresaInfo}>IE {empresa.inscricao_estadual}</Text>
-            )}
-            {empresa.telefones && <Text style={s.empresaInfo}>{empresa.telefones}</Text>}
-            {enderecoEmpresa && <Text style={s.empresaInfo}>{enderecoEmpresa}</Text>}
+            <Text style={s.empresaNome}>{(empresa.razao_social ?? empresa.nome).toUpperCase()}</Text>
+            {enderecoEmpresa && <Text style={s.empresaInfo}>{enderecoEmpresa.toUpperCase()}</Text>}
+            <Text style={s.empresaInfo}>
+              {[
+                empresa.cnpj ? `CNPJ: ${empresa.cnpj}` : null,
+                empresa.inscricao_estadual ? `IE: ${empresa.inscricao_estadual}` : null,
+              ]
+                .filter(Boolean)
+                .join(" - ")}
+            </Text>
+            {empresa.telefones && <Text style={s.empresaInfo}>Fone: {empresa.telefones}</Text>}
             {empresa.email && <Text style={s.empresaInfo}>{empresa.email}</Text>}
           </View>
+          <Text style={s.numeroDoc}>
+            {titulo}: Nº {p.numero}
+          </Text>
+        </View>
 
-          <View style={s.docCol}>
-            <Text style={s.docTitle}>
-              {titulo.toUpperCase()} Nº {p.numero}
-            </Text>
+        <View style={s.datasRow}>
+          <Text style={s.dataTxt}>
+            <Text style={s.dataLabel}>Data de Emissão: </Text>
+            {p.data_solicitacao ?? "—"}
+          </Text>
+          <Text style={s.dataTxt}>
+            <Text style={s.dataLabel}>Data de Entrega: </Text>
+            {p.data_entrega ?? "—"}
+          </Text>
+        </View>
 
-            <View style={s.metaRow}>
-              <Text style={s.metaLabel}>Emissão</Text>
-              <Text style={s.metaValue}>{p.data_solicitacao ?? "—"}</Text>
+        {/* DADOS DO CLIENTE */}
+        <View style={s.bloco}>
+          <View style={s.clienteGrid}>
+            <View style={s.clienteCol}>
+              <Campo s={s} label="Razão Social" valor={p.cliente.razao_social ?? p.cliente.nome} />
+              <Campo s={s} label="CNPJ/CPF" valor={p.cliente.documento} />
+              <Campo s={s} label="End" valor={p.cliente.endereco} />
+              <Campo s={s} label="CEP" valor={p.cliente.cep} />
+              <Campo s={s} label="Telefone" valor={p.cliente.telefone} />
+              <Campo s={s} label="E-mail" valor={p.cliente.email} />
             </View>
-            {isOrc && (
-              <View style={s.metaRow}>
-                <Text style={s.metaLabel}>Validade</Text>
-                <Text style={s.metaValue}>{p.data_validade ?? "—"}</Text>
-              </View>
-            )}
-            {(p.data_entrega || p.tipo === "os") && (
-              <View style={s.metaRow}>
-                <Text style={s.metaLabel}>Entrega</Text>
-                <Text style={s.metaValue}>{p.data_entrega ?? "—"}</Text>
-              </View>
-            )}
-            <View style={s.metaRow}>
-              <Text style={s.metaLabel}>Responsável</Text>
-              <Text style={s.metaValue}>{p.vendedor ?? "—"}</Text>
-            </View>
-            {p.status && (
-              <View style={s.metaRow}>
-                <Text style={s.metaLabel}>Status</Text>
-                <Text style={s.metaValue}>{p.status}</Text>
-              </View>
-            )}
-
-            <View style={s.clienteBox}>
-              <Text style={s.clienteLabel}>DADOS DO CLIENTE</Text>
-              <Text style={s.clienteNome}>{p.cliente.razao_social ?? p.cliente.nome}</Text>
-              {p.cliente.nome_fantasia && (
-                <Text style={s.empresaInfo}>Nome fantasia: {p.cliente.nome_fantasia}</Text>
-              )}
-              {p.cliente.documento && (
-                <Text style={s.empresaInfo}>CNPJ/CPF: {p.cliente.documento}</Text>
-              )}
-              {p.cliente.inscricao_estadual && (
-                <Text style={s.empresaInfo}>IE: {p.cliente.inscricao_estadual}</Text>
-              )}
-              {(p.cliente.endereco || p.cliente.bairro) && (
-                <Text style={s.empresaInfo}>
-                  {[p.cliente.endereco, p.cliente.bairro].filter(Boolean).join(" — ")}
-                </Text>
-              )}
-              {(p.cliente.cidade || p.cliente.estado || p.cliente.cep) && (
-                <Text style={s.empresaInfo}>
-                  {[
-                    [p.cliente.cidade, p.cliente.estado].filter(Boolean).join("-"),
-                    p.cliente.cep,
-                  ]
-                    .filter(Boolean)
-                    .join(" / ")}
-                </Text>
-              )}
-              {(p.cliente.telefone || p.cliente.celular) && (
-                <Text style={s.empresaInfo}>
-                  {[p.cliente.telefone, p.cliente.celular].filter(Boolean).join("  |  ")}
-                </Text>
-              )}
-              {p.cliente.email && <Text style={s.empresaInfo}>{p.cliente.email}</Text>}
-              {p.cliente.contato && (
-                <Text style={s.empresaInfo}>Contato: {p.cliente.contato}</Text>
-              )}
+            <View style={s.clienteCol}>
+              <Campo s={s} label="Nome Fantasia" valor={p.cliente.nome_fantasia} />
+              <Campo s={s} label="Inscrição Estadual" valor={p.cliente.inscricao_estadual} />
+              <Campo s={s} label="Bairro" valor={p.cliente.bairro} />
+              <Campo s={s} label="Cidade" valor={cidadeUf} />
+              <Campo s={s} label="Celular" valor={p.cliente.celular} />
+              <Campo s={s} label="Contato" valor={p.cliente.contato} />
             </View>
           </View>
         </View>
 
-        <Text style={s.sectionTitle}>PRODUTOS / SERVIÇOS</Text>
-        <View style={s.thead}>
-          <Text style={[s.th, s.cCode]}>Cód.</Text>
-          <Text style={[s.th, s.cDesc]}>Descrição</Text>
-          <Text style={[s.th, s.cAcab]}>Acabamento</Text>
-          <Text style={[s.th, s.cUn]}>Un.</Text>
-          <Text style={[s.th, s.cQtd]}>Qtd</Text>
-          {temArea && <Text style={[s.th, s.cArea]}>Área</Text>}
-          {mostrar && <Text style={[s.th, s.cVu]}>Vlr.Unit.</Text>}
-          {mostrar && <Text style={[s.th, s.cVt]}>Vlr.Total</Text>}
-        </View>
-
-        {p.itens.length === 0 && (
-          <View style={s.tr}>
-            <Text style={[s.td, { color: "#999" }]}>Nenhum item</Text>
+        {/* PRODUTOS/SERVIÇOS */}
+        <View style={s.bloco}>
+          <Text style={s.blocoTitulo}>PRODUTOS/SERVIÇOS</Text>
+          <View style={s.thead}>
+            <Text style={[s.th, s.cNum]} />
+            <Text style={[s.th, s.cDesc]}>Dados Produtos/Serviços</Text>
+            <Text style={[s.th, s.cTipo]}>Tipo Produto</Text>
+            <Text style={[s.th, s.cAcab]}>Acabamento</Text>
+            <Text style={[s.th, s.cQtd]}>Qtd.</Text>
+            {mostrar && <Text style={[s.th, s.cVu]}>Valor</Text>}
+            {mostrar && <Text style={[s.th, s.cVt]}>Valor Total</Text>}
           </View>
-        )}
-        {p.itens.map((i, idx) => {
-          const dimensionado = Number(i.largura ?? 0) > 0 && Number(i.altura ?? 0) > 0;
-          return (
-            <View style={idx % 2 === 1 ? [s.tr, s.trAlt] : s.tr} key={idx} wrap={false}>
-              <Text style={[s.td, s.cCode, { color: "#888" }]}>
-                {i.codigo ?? String(idx + 1).padStart(3, "0")}
-              </Text>
-              <View style={s.cDesc}>
-                <Text style={s.td}>{i.descricao}</Text>
-                {dimensionado && (
-                  <Text style={s.metragem}>
-                    {metros(Number(i.largura))} × {metros(Number(i.altura))} ={" "}
-                    {m2(Number(i.area_total ?? 0))}
+
+          {p.itens.length === 0 && (
+            <View style={s.tr}>
+              <Text style={[s.td, { color: "#999" }]}>Nenhum item</Text>
+            </View>
+          )}
+
+          {p.itens.map((i, idx) => {
+            const dimensionado = Number(i.largura ?? 0) > 0 && Number(i.altura ?? 0) > 0;
+            return (
+              <View style={s.tr} key={idx} wrap={false}>
+                <Text style={[s.td, s.cNum]}>{idx + 1}</Text>
+                <View style={s.cDesc}>
+                  <Text style={s.td}>
+                    <Text style={{ fontFamily: "Helvetica-Bold" }}>
+                      {idx + 1} - {i.descricao}
+                    </Text>
+                    {dimensionado
+                      ? ` - ${metros(Number(i.largura))} x ${metros(Number(i.altura))} - área: ${m2(Number(i.area_total ?? 0))}`
+                      : ""}
                   </Text>
-                )}
+                </View>
+                <Text style={[s.td, s.cTipo]}>{(i.unidade ?? "un").toUpperCase()}</Text>
+                <Text style={[s.td, s.cAcab]}>{i.acabamento ?? ""}</Text>
+                <View style={s.cQtd}>
+                  <Text style={s.td}>{qtdFmt(Number(i.quantidade))}</Text>
+                  {dimensionado && (
+                    <Text style={s.tdMuted}>
+                      Metragem:{"\n"}
+                      {metros(Number(i.largura))} x {metros(Number(i.altura))}
+                      {"\n"}= {m2(Number(i.area_total ?? 0))}
+                    </Text>
+                  )}
+                </View>
+                {mostrar && <Text style={[s.td, s.cVu]}>{money(Number(i.valor_unitario))}</Text>}
+                {mostrar && <Text style={[s.td, s.cVt]}>{money(Number(i.valor_total))}</Text>}
               </View>
-              <Text style={[s.td, s.cAcab]}>{i.acabamento ?? "—"}</Text>
-              <Text style={[s.td, s.cUn]}>{i.unidade ?? "un"}</Text>
-              <Text style={[s.td, s.cQtd]}>
-                {Number(i.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </Text>
-              {temArea && (
-                <Text style={[s.td, s.cArea]}>
-                  {dimensionado ? m2(Number(i.area_total ?? 0)) : "—"}
-                </Text>
-              )}
-              {mostrar && <Text style={[s.td, s.cVu]}>{money(Number(i.valor_unitario))}</Text>}
-              {mostrar && <Text style={[s.td, s.cVt]}>{money(Number(i.valor_total))}</Text>}
-            </View>
-          );
-        })}
+            );
+          })}
 
-        <View style={[s.tr, { borderBottomWidth: 0, paddingTop: 6 }]}>
-          <Text style={[s.td, s.cCode]} />
-          <Text style={[s.td, s.cDesc, { color: "#666" }]}>
-            {temArea ? "Itens totais / soma de área" : "Itens totais"}
-          </Text>
-          <Text style={[s.td, s.cAcab]} />
-          <Text style={[s.td, s.cUn]} />
-          <Text style={[s.td, s.cQtd, { color: C, fontFamily: "Helvetica-Bold" }]}>
-            {totalQtd.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </Text>
-          {temArea && (
-            <Text style={[s.td, s.cArea, { color: C, fontFamily: "Helvetica-Bold" }]}>
-              {m2(Number(p.soma_area))}
-            </Text>
-          )}
-          {mostrar && <Text style={[s.td, s.cVu]} />}
-          {mostrar && (
-            <Text style={[s.td, s.cVt, { color: C, fontFamily: "Helvetica-Bold" }]}>
-              {money(p.total)}
-            </Text>
-          )}
+          <View style={s.totaisItens}>
+            {mostrar && (
+              <Text style={s.totalItensTxt}>Total Produtos {money(totalItens)}</Text>
+            )}
+            {temArea && (
+              <Text style={s.totalItensTxt}>Soma área total: {m2(Number(p.soma_area))}</Text>
+            )}
+          </View>
         </View>
 
+        {/* LAYOUT */}
         {layouts.length > 0 && (
-          <>
-            <Text style={s.sectionTitle}>LAYOUT</Text>
+          <View style={s.bloco} wrap={false}>
+            <Text style={s.blocoTitulo}>LAYOUT</Text>
             <View style={s.layoutRow}>
-              {layouts.map((l) => (
-                <View style={s.layoutCard} key={l.numero} wrap={false}>
-                  <Image style={s.layoutImg} src={l.item.layout_url as string} />
+              {layouts.map((l, idx) => (
+                <View style={s.layoutCard} key={`${l.numero}-${idx}`} wrap={false}>
+                  <View style={s.layoutImgBox}>
+                    <Image style={s.layoutImg} src={l.url} />
+                  </View>
                   <Text style={s.layoutNum}>
-                    {String(l.numero).padStart(3, "0")} — {l.item.descricao}
+                    {l.numero} — {l.descricao}
                   </Text>
                 </View>
               ))}
             </View>
-          </>
+          </View>
         )}
 
-        <View style={s.infoGrid}>
-          {p.entrega && (
-            <View style={s.infoBox}>
-              <Text style={s.infoTitle}>ENTREGA</Text>
-              <Text style={s.infoLinha}>{p.entrega}</Text>
-            </View>
-          )}
-          {mostrar && p.pagamento && (p.pagamento.forma || p.pagamento.parcelas) && (
-            <View style={s.infoBox}>
-              <Text style={s.infoTitle}>PAGAMENTO</Text>
-              {p.pagamento.forma && (
-                <Text style={s.infoLinha}>Forma: {p.pagamento.forma}</Text>
-              )}
-              {p.pagamento.parcelas ? (
-                <Text style={s.infoLinha}>
-                  Condições: {p.pagamento.parcelas}x
-                  {p.pagamento.valor_parcela
-                    ? ` de ${money(Number(p.pagamento.valor_parcela))}`
-                    : ""}
-                </Text>
-              ) : null}
-            </View>
-          )}
+        {/* ENDEREÇO: ENTREGA */}
+        <View style={s.bloco} wrap={false}>
+          <Text style={s.blocoTitulo}>ENDEREÇO: ENTREGA</Text>
+          <Text style={s.td}>{p.entrega ?? "A combinar"}</Text>
         </View>
 
+        {/* Totais */}
         {mostrar && (
-          <View style={s.totaisBox}>
-            {p.subtotal != null && (
-              <View style={s.totalLinha}>
-                <Text style={s.totalLinhaLabel}>Total produtos</Text>
-                <Text style={s.totalLinhaValor}>{money(Number(p.subtotal))}</Text>
-              </View>
-            )}
-            <View style={s.totalLinha}>
-              <Text style={s.totalLinhaLabel}>Desconto</Text>
-              <Text style={s.totalLinhaValor}>{money(desconto)}</Text>
-            </View>
-            <View style={s.totalBox}>
-              <Text style={s.totalLabel}>TOTAL GERAL</Text>
-              <Text style={s.totalValue}>{money(p.total)}</Text>
+          <View style={s.totaisDir}>
+            <Text style={s.totalLinha}>Valor Desconto: {money(desconto)}</Text>
+            <Text style={s.totalForte}>Valor Total do {titulo}: {money(p.total)}</Text>
+          </View>
+        )}
+
+        {/* PAGAMENTO */}
+        {mostrar && p.pagamento && (
+          <View style={s.bloco} wrap={false}>
+            <Text style={s.blocoTitulo}>PAGAMENTO</Text>
+            <Text style={s.td}>
+              <Text style={s.campoLabel}>Forma Pagto: </Text>
+              {p.pagamento.forma ?? "A combinar"}
+            </Text>
+            <Text style={s.td}>
+              <Text style={s.campoLabel}>Condições de Pagamento: </Text>
+              {p.pagamento.parcelas ? `${p.pagamento.parcelas}x` : "À vista"}
+            </Text>
+            <View style={s.pagamentoCaixa}>
+              <Text style={s.td}>
+                {money(Number(p.pagamento.valor_parcela ?? p.total))}
+                {p.pagamento.parcelas && p.pagamento.parcelas > 1
+                  ? ` x ${p.pagamento.parcelas}`
+                  : ""}
+              </Text>
             </View>
           </View>
         )}
 
-        {(p.observacoes || isOrc) && (
-          <View style={s.obs}>
-            <Text style={s.obsTitle}>OBSERVAÇÕES</Text>
-            {p.observacoes && <Text>{p.observacoes}</Text>}
-            {!p.observacoes && isOrc && (
-              <Text>
-                {empresa.condicoes_gerais ??
-                  `1 — Os layouts a serem produzidos deverão ser entregues até 03 (três) dias úteis antes do início da data de exibição, mediante assinatura do pedido, aprovação da arte e comprovação de pagamento.
-2 — Favor conferir os dados cadastrais para emissão de documento fiscal.`}
-              </Text>
-            )}
-          </View>
+        {/* OBSERVAÇÃO */}
+        <View style={s.bloco} wrap={false}>
+          <Text style={s.blocoTitulo}>OBSERVAÇÃO</Text>
+          <Text style={s.tdMuted}>
+            {p.observacoes ??
+              empresa.condicoes_gerais ??
+              "Layouts devem ser entregues com antecedência mínima de 3 dias úteis. Favor conferir os dados cadastrais para emissão do documento fiscal."}
+          </Text>
+        </View>
+
+        <View style={s.rodapeRow}>
+          <Text style={s.rodapeTxt}>
+            <Text style={s.campoLabel}>Responsável: </Text>
+            {p.vendedor ?? "—"}
+          </Text>
+          <Text style={s.rodapeTxt}>
+            <Text style={s.campoLabel}>Data de expedição prevista: </Text>
+            {p.data_entrega ?? "a combinar"}
+          </Text>
+        </View>
+        {isOrc && p.data_validade && (
+          <Text style={s.validade}>Esse orçamento é válido até {p.data_validade}.</Text>
         )}
 
         {isOrc && mostrar ? (
-          <View style={s.aceiteBox} wrap={false}>
+          <View style={s.aceite} wrap={false}>
             <Text style={s.aceiteTexto}>
-              Estou de acordo com o orçamento e autorizo gerar o pedido.
-              {"     "}Data ____ / ____ / ________
+              Estou de acordo com o orçamento e autorizo gerar o pedido. Data ____/____/_______.
             </Text>
             <View style={s.aceiteLinha}>
               <Text style={s.aceiteLabel}>Nome e CPF</Text>
             </View>
           </View>
         ) : (
-          <View style={s.signRow}>
+          <View style={s.signRow} wrap={false}>
             <View style={s.signBox}>
               <Text style={s.signLabel}>
                 {p.vendedor ?? "Responsável"} ({empresa.razao_social ?? empresa.nome})
@@ -430,7 +510,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
         )}
 
         <View style={s.footer} fixed>
-          <Text>{empresa.site ?? ""}</Text>
+          <Text>{empresa.site ?? empresa.nome}</Text>
           <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
           <Text>{agora}</Text>
         </View>

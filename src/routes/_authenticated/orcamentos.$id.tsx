@@ -23,12 +23,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, ArrowRight, FileDown } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  ArrowRight,
+  FileDown,
+  Printer,
+  Link as LinkIcon,
+  MessageCircle,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
+import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
+import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
@@ -91,7 +103,10 @@ function OrcamentoDetailPage() {
   const { canSeeFinancials } = useAuth();
   const [form, setForm] = useState({ ...itemVazio });
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewProducaoOpen, setPreviewProducaoOpen] = useState(false);
+  const [gerandoLink, setGerandoLink] = useState(false);
   const [enviandoLayout, setEnviandoLayout] = useState(false);
+
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id, canSeeFinancials ? "financeiro" : "operacional"],
@@ -230,7 +245,7 @@ function OrcamentoDetailPage() {
     // valor_total e (quando há preço/m²) valor_unitario são derivados pelo
     // trigger tg_orcamento_itens_precificar — não são enviados daqui para não
     // haver dois lugares calculando o mesmo número.
-    const { error } = await supabase.from("orcamento_itens").insert({
+    const { data: novoItem, error } = await supabase.from("orcamento_itens").insert({
       orcamento_id: id,
       descricao: form.descricao,
       quantidade: qtd,
@@ -244,8 +259,18 @@ function OrcamentoDetailPage() {
       ordem: itens.length,
       produto_id: form.produto_id,
       arquivo_id: form.arquivo_id,
-    } as any);
+    } as any).select("id").single();
     if (error) return toast.error(mensagemErro(error));
+    // a arte enviada no formulário vira a capa do item; as demais são
+    // anexadas depois pelo botão de artes na linha
+    if (form.arquivo_id && (novoItem as any)?.id) {
+      await (supabase as any).from("orcamento_item_arquivos").insert({
+        item_id: (novoItem as any).id,
+        arquivo_id: form.arquivo_id,
+        capa: true,
+        ordem: 0,
+      });
+    }
     setForm({ ...itemVazio });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     await recalcular();
@@ -256,6 +281,51 @@ function OrcamentoDetailPage() {
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     await recalcular();
   }
+
+  /** Link de aprovação do cliente: mesma URL sempre, gerada uma única vez. */
+  async function obterLinkCliente() {
+    const { token } = await gerarLinkPublicoOrcamento({ data: { orcamentoId: id } });
+    return `${window.location.origin}/orcamento-publico/${token}`;
+  }
+
+  async function copiarLinkCliente() {
+    setGerandoLink(true);
+    try {
+      const url = await obterLinkCliente();
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado. É só colar para o cliente.");
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível gerar o link"));
+    } finally {
+      setGerandoLink(false);
+    }
+  }
+
+  async function enviarWhatsApp() {
+    setGerandoLink(true);
+    try {
+      const url = await obterLinkCliente();
+      const telefone = String(
+        (orc as any)?.cliente_whatsapp ??
+          (orc as any)?.cliente_telefone ??
+          (orc as any)?.contato_telefone ??
+          "",
+      ).replace(/\D/g, "");
+      const destino = telefone ? (telefone.length > 11 ? telefone : `55${telefone}`) : "";
+      const texto = `Olá! Segue o orçamento nº ${(orc as any).numero} — ${(orc as any).titulo}.\nVocê pode conferir e aprovar por aqui: ${url}`;
+      window.open(
+        `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`,
+        "_blank",
+        "noopener",
+      );
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível abrir o WhatsApp"));
+    } finally {
+      setGerandoLink(false);
+    }
+  }
+
+
 
   async function setStatus(novoStatus: string) {
     const update: any = { status: novoStatus };
@@ -317,6 +387,21 @@ function OrcamentoDetailPage() {
             <Button variant="outline" onClick={() => setPreviewOpen(true)}>
               <FileDown className="h-4 w-4 mr-1" /> PDF
             </Button>
+            <Button variant="outline" onClick={() => setPreviewProducaoOpen(true)}>
+              <Printer className="h-4 w-4 mr-1" /> Via de produção
+            </Button>
+            <Button variant="outline" onClick={copiarLinkCliente} disabled={gerandoLink}>
+              {gerandoLink ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <LinkIcon className="h-4 w-4 mr-1" />
+              )}
+              Link do cliente
+            </Button>
+            <Button variant="outline" onClick={enviarWhatsApp} disabled={gerandoLink}>
+              <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+            </Button>
+
             {orc.status !== "convertido" && !orc.os_id && (
               <Button onClick={converterEmOS}>
                 Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
@@ -597,7 +682,12 @@ function OrcamentoDetailPage() {
                       <TableCell>R$ {Number(i.valor_total).toFixed(2)}</TableCell>
                     </>
                   )}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <OrcamentoItemArtes
+                      itemId={i.id}
+                      orcamentoId={id}
+                      clienteId={(orc as any)?.cliente_id ?? null}
+                    />
                     <Button variant="ghost" size="icon" onClick={() => removeItem(i.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -644,6 +734,14 @@ function OrcamentoDetailPage() {
         onOpenChange={setPreviewOpen}
         tipo="orcamento"
         referencia_id={id}
+      />
+
+      <PDFPreviewDialog
+        open={previewProducaoOpen}
+        onOpenChange={setPreviewProducaoOpen}
+        tipo="orcamento"
+        referencia_id={id}
+        mostrarValores={false}
       />
     </div>
   );

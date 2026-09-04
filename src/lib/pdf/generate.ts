@@ -29,55 +29,85 @@ export async function renderPDFBlob(props: DocumentoPDFProps): Promise<Blob> {
 }
 
 /**
- * Monta os itens do documento com metragem, acabamento e o layout de cada um.
+ * Monta os itens do documento com metragem, acabamento e as artes de cada um.
  *
- * O bucket arquivos-clientes é privado, então a arte precisa de URL assinada —
- * o caminho gravado NÃO é público. A assinatura vale 5 min, o suficiente para o
- * @react-pdf/renderer buscar a imagem enquanto monta o PDF.
+ * Cada item pode ter várias artes (tabela orcamento_item_arquivos); a marcada
+ * como capa é a que abre o bloco LAYOUT, as demais entram numeradas em seguida.
+ * O bucket arquivos-clientes é privado, então cada arte precisa de URL assinada
+ * — vale 5 min, o suficiente para o @react-pdf/renderer buscar a imagem.
  */
 async function montarItens(
   linhas: Record<string, unknown>[],
   mostrarValores: boolean,
 ): Promise<DocItem[]> {
-  const caminhoPorArquivo = new Map<string, string>();
-  const idsLayout = linhas
-    .map((i) => i.arquivo_id as string | null)
+  const idsItens = linhas
+    .map((i) => i.id as string | undefined)
     .filter((id): id is string => !!id);
 
-  if (idsLayout.length > 0) {
-    const { data: arquivos } = await supabase
-      .from("arquivos")
-      .select("id, caminho")
-      .in("id", idsLayout);
-    for (const a of arquivos ?? []) {
-      const registro = a as { id: string; caminho: string };
-      caminhoPorArquivo.set(registro.id, registro.caminho);
+  // artes por item, em ordem: capa primeiro
+  const artesPorItem = new Map<string, string[]>();
+  if (idsItens.length > 0) {
+    const { data: vinculos } = await (supabase as any)
+      .from("orcamento_item_arquivos")
+      .select("item_id, arquivo_id, capa, ordem")
+      .in("item_id", idsItens)
+      .order("capa", { ascending: false })
+      .order("ordem");
+    for (const v of (vinculos ?? []) as {
+      item_id: string;
+      arquivo_id: string;
+    }[]) {
+      const lista = artesPorItem.get(v.item_id) ?? [];
+      lista.push(v.arquivo_id);
+      artesPorItem.set(v.item_id, lista);
     }
   }
 
-  const urlPorArquivo = new Map<string, string>();
-  await Promise.all(
-    [...caminhoPorArquivo.entries()].map(async ([id, caminho]) => {
-      const { data } = await supabase.storage
-        .from("arquivos-clientes")
-        .createSignedUrl(caminho, 300);
-      if (data?.signedUrl) urlPorArquivo.set(id, data.signedUrl);
-    }),
-  );
+  // itens antigos que só têm arquivo_id continuam funcionando
+  for (const i of linhas) {
+    const itemId = i.id as string | undefined;
+    const legado = i.arquivo_id as string | null | undefined;
+    if (itemId && legado && !artesPorItem.has(itemId)) artesPorItem.set(itemId, [legado]);
+  }
 
-  return linhas.map((i) => ({
-    descricao: String(i.descricao ?? ""),
-    unidade: (i.unidade as string) ?? undefined,
-    quantidade: Number(i.quantidade ?? 0),
-    largura: i.largura != null ? Number(i.largura) : null,
-    altura: i.altura != null ? Number(i.altura) : null,
-    area_total: i.area_total != null ? Number(i.area_total) : null,
-    acabamento: (i.acabamento as string) ?? null,
-    layout_url: i.arquivo_id ? (urlPorArquivo.get(i.arquivo_id as string) ?? null) : null,
-    valor_unitario: mostrarValores ? Number(i.valor_unitario ?? 0) : 0,
-    valor_total: mostrarValores ? Number(i.valor_total ?? 0) : 0,
-  }));
+  const todosIds = [...new Set([...artesPorItem.values()].flat())];
+  const urlPorArquivo = new Map<string, string>();
+
+  if (todosIds.length > 0) {
+    const { data: arquivos } = await supabase
+      .from("arquivos")
+      .select("id, caminho")
+      .in("id", todosIds);
+    await Promise.all(
+      ((arquivos ?? []) as { id: string; caminho: string }[]).map(async (a) => {
+        const { data } = await supabase.storage
+          .from("arquivos-clientes")
+          .createSignedUrl(a.caminho, 300);
+        if (data?.signedUrl) urlPorArquivo.set(a.id, data.signedUrl);
+      }),
+    );
+  }
+
+  return linhas.map((i) => {
+    const artes = (artesPorItem.get(i.id as string) ?? [])
+      .map((id) => urlPorArquivo.get(id))
+      .filter((url): url is string => !!url);
+    return {
+      descricao: String(i.descricao ?? ""),
+      unidade: (i.unidade as string) ?? undefined,
+      quantidade: Number(i.quantidade ?? 0),
+      largura: i.largura != null ? Number(i.largura) : null,
+      altura: i.altura != null ? Number(i.altura) : null,
+      area_total: i.area_total != null ? Number(i.area_total) : null,
+      acabamento: (i.acabamento as string) ?? null,
+      layout_url: artes[0] ?? null,
+      layouts_extras: artes.slice(1),
+      valor_unitario: mostrarValores ? Number(i.valor_unitario ?? 0) : 0,
+      valor_total: mostrarValores ? Number(i.valor_total ?? 0) : 0,
+    };
+  });
 }
+
 
 const somaArea = (itens: DocItem[]) => {
   const soma = itens.reduce((total, i) => total + Number(i.area_total ?? 0), 0);
@@ -152,15 +182,19 @@ export async function carregarPropsOrcamento(
     numero: orc.numero,
     data_solicitacao: fmt(orc.created_at),
     data_validade: validade,
-    data_entrega: fmt((orc as any).prazo),
+    data_entrega: fmt(
+      (orc as any).data_entrega_prometida ?? (orc as any).prazo,
+    ),
     vendedor: (vendedor as any)?.nome ?? null,
     status: orc.status,
     empresa,
     cliente: {
       nome: c.nome ?? (orc as any).cliente_nome ?? (orc as any).contato_nome ?? "—",
-      razao_social: c.razao_social,
+      razao_social: c.razao_social ?? c.nome ?? (orc as any).contato_nome,
       nome_fantasia: c.nome_fantasia,
       documento: c.documento ?? c.cpf_cnpj,
+      inscricao_estadual: c.inscricao_estadual,
+
       endereco: c.endereco,
       bairro: c.bairro,
       cidade: c.cidade,
