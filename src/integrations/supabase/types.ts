@@ -3928,6 +3928,7 @@ export type Database = {
           created_at: string
           custo_unitario_snapshot: number | null
           id: string
+          job_3d_id: string | null
           lote_id: string | null
           material_id: string
           motivo: string | null
@@ -3946,6 +3947,7 @@ export type Database = {
           created_at?: string
           custo_unitario_snapshot?: number | null
           id?: string
+          job_3d_id?: string | null
           lote_id?: string | null
           material_id: string
           motivo?: string | null
@@ -3964,6 +3966,7 @@ export type Database = {
           created_at?: string
           custo_unitario_snapshot?: number | null
           id?: string
+          job_3d_id?: string | null
           lote_id?: string | null
           material_id?: string
           motivo?: string | null
@@ -3979,6 +3982,13 @@ export type Database = {
           usuario_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_job_3d_id_fkey"
+            columns: ["job_3d_id"]
+            isOneToOne: false
+            referencedRelation: "producao_3d_jobs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movimentacoes_estoque_lote_id_fkey"
             columns: ["lote_id"]
