@@ -16,6 +16,7 @@ import {
 import { Factory, Plus, Pencil, Zap, Gauge, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -164,6 +165,7 @@ function MaquinasPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/maquinas")}
         breadcrumb="Produção"
         title="Máquinas e hora-máquina"
         description="Cada equipamento precisa de custo/hora para que o orçamento e o resultado da OS fechem com a realidade."

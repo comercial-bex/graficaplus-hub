@@ -36,6 +36,7 @@ import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
 import { HistoricoEstoqueCard } from "@/components/historico-estoque-card";
 import { MateriaisPrevistosCard } from "@/components/materiais-previstos-card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Clock, Package, Factory as FactoryIcon, DollarSign } from "lucide-react";
@@ -141,6 +142,7 @@ function OSDetailPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/os")}
         breadcrumb={`Ordem de Serviço · #${os.numero}`}
         title={os.titulo}
         description={os.cliente_nome ? `Cliente: ${os.cliente_nome}` : undefined}

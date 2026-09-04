@@ -17,6 +17,7 @@ import {
 import { Users, Plus, Pencil, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -121,6 +122,7 @@ function CustosProducaoPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/custos-producao")}
         breadcrumb="Catálogo & Estoque"
         title="Custos de mão de obra"
         description="Custo/hora com encargos de cada função. É o terceiro bloco do detalhamento de cálculo, junto com Materiais e Processos."

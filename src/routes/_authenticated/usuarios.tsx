@@ -65,6 +65,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { NeonButton } from "@/components/bex/NeonButton";
@@ -260,6 +261,7 @@ function UsuariosPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/usuarios")}
         breadcrumb="Administração"
         title="Usuários & Permissões"
         description="Cadastre a equipe, defina perfis de acesso, altere senhas e controle quem pode entrar no sistema."

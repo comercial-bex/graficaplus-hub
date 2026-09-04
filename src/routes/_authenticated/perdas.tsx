@@ -26,6 +26,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip,
 import { Plus, TrendingDown, Recycle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -186,6 +187,7 @@ function PerdasPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/perdas")}
         breadcrumb="Produção"
         title="Perdas e desperdício"
         description="Todo refugo custa material, hora-máquina e prazo. Registrar o motivo é o que permite reduzir."

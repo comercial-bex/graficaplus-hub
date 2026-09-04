@@ -42,6 +42,7 @@ import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
   areaTotal,
@@ -359,6 +360,7 @@ function OrcamentoDetailPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/orcamentos")}
         breadcrumb={`Orçamento · #${orc.numero}`}
         title={orc.titulo}
         description={

@@ -33,6 +33,7 @@ import {
   YAxis,
 } from "recharts";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -287,6 +288,7 @@ function FluxoCaixaPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/fluxo-caixa")}
         breadcrumb="Financeiro"
         title="Fluxo de caixa"
         description="Entradas dos recebimentos, saídas das contas a pagar e lançamentos manuais — previsto e realizado."

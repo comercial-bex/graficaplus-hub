@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
@@ -255,6 +256,7 @@ function DashboardPage() {
   return (
     <div className="space-y-8">
       <SectionHeader
+        ajuda={dicaTela("/dashboard")}
         breadcrumb="Print OS · Operação"
         title="Dashboard"
         description="Telemetria em tempo real da produção, comercial e financeiro."

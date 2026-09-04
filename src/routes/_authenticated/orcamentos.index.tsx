@@ -35,6 +35,7 @@ import { Plus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { mensagemErro } from "@/lib/erros";
 
@@ -155,6 +156,7 @@ function OrcamentosPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/orcamentos")}
         breadcrumb="Print OS · Comercial"
         title="Orçamentos"
         description="Propostas comerciais e conversão em Ordens de Serviço."

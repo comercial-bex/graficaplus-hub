@@ -23,6 +23,7 @@ import {
 } from "@/domain/impressao3d/cost-engine";
 import { D } from "@/domain/impressao3d/decimal";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { FieldTooltip } from "@/components/bex/FieldTooltip";
@@ -516,6 +517,7 @@ function NovoOrcamento3D() {
   return (
     <div className="space-y-6 pb-24">
       <SectionHeader
+        ajuda={dicaTela("/orcamento-3d-novo")}
         breadcrumb="Impressão 3D · Novo orçamento"
         title="Novo orçamento 3D"
         description="Preencha o print do fatiador e o motor calcula custo, preço e margem em tempo real."
