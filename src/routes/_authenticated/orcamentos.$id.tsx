@@ -440,6 +440,7 @@ function OrcamentoDetailPage() {
                 <Label htmlFor="item-descricao">Descrição</Label>
                 <Input
                   id="item-descricao"
+                  autoFocus={itens.length === 0}
                   value={form.descricao}
                   onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                 />
