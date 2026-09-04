@@ -26,6 +26,7 @@ import { Route as AuthenticatedProdutividade3dRouteImport } from './routes/_auth
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
+import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authenticated/planilha-custos'
 import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
@@ -151,6 +152,12 @@ const AuthenticatedPortalClienteRoute =
   AuthenticatedPortalClienteRouteImport.update({
     id: '/portal-cliente',
     path: '/portal-cliente',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPlanilhaCustosRoute =
+  AuthenticatedPlanilhaCustosRouteImport.update({
+    id: '/planilha-custos',
+    path: '/planilha-custos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPerdasRoute = AuthenticatedPerdasRouteImport.update({
@@ -398,6 +405,7 @@ export interface FileRoutesByFullPath {
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/perdas': typeof AuthenticatedPerdasRoute
+  '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
@@ -454,6 +462,7 @@ export interface FileRoutesByTo {
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/perdas': typeof AuthenticatedPerdasRoute
+  '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
@@ -512,6 +521,7 @@ export interface FileRoutesById {
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
+  '/_authenticated/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
@@ -570,6 +580,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/orcamento-3d-novo'
     | '/perdas'
+    | '/planilha-custos'
     | '/portal-cliente'
     | '/pos-venda'
     | '/producao-3d'
@@ -626,6 +637,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/orcamento-3d-novo'
     | '/perdas'
+    | '/planilha-custos'
     | '/portal-cliente'
     | '/pos-venda'
     | '/producao-3d'
@@ -683,6 +695,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ocorrencias'
     | '/_authenticated/orcamento-3d-novo'
     | '/_authenticated/perdas'
+    | '/_authenticated/planilha-custos'
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
     | '/_authenticated/producao-3d'
@@ -833,6 +846,13 @@ declare module '@tanstack/react-router' {
       path: '/portal-cliente'
       fullPath: '/portal-cliente'
       preLoaderRoute: typeof AuthenticatedPortalClienteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planilha-custos': {
+      id: '/_authenticated/planilha-custos'
+      path: '/planilha-custos'
+      fullPath: '/planilha-custos'
+      preLoaderRoute: typeof AuthenticatedPlanilhaCustosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perdas': {
@@ -1136,6 +1156,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
   AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
+  AuthenticatedPlanilhaCustosRoute: typeof AuthenticatedPlanilhaCustosRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
@@ -1188,6 +1209,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
   AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
+  AuthenticatedPlanilhaCustosRoute: AuthenticatedPlanilhaCustosRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,

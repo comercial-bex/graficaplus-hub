@@ -108,6 +108,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Produtos", url: "/produtos", icon: Package },
       { title: "Materiais", url: "/materiais", icon: Boxes },
       { title: "Compras", url: "/compras", icon: ShoppingCart },
+      { title: "Planilha de custos", url: "/planilha-custos", icon: Calculator },
       {
         title: "Custos de mão de obra",
         url: "/custos-producao",

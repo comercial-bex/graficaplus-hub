@@ -31,6 +31,16 @@ function arquivosTsx(dir: string): string[] {
 
 const PASTAS = ["src/routes", "src/components"];
 
+/**
+ * Tabelas de configuração ÚNICA, onde `limit(1)` é a leitura correta e não uma
+ * escolha arbitrária: elas têm uma linha só por desenho.
+ *
+ * A lista é explícita de propósito. Um `startsWith("config")` genérico deixaria
+ * passar qualquer tabela nova com esse prefixo — inclusive uma que tenha muitas
+ * linhas, que é exatamente o caso que este teste existe para pegar.
+ */
+const CONFIG_SINGLETON = ["config_precificacao_3d", "configuracoes_empresa"];
+
 describe("nenhuma tela escolhe o pai arbitrariamente", () => {
   const arquivos = PASTAS.flatMap((p) => arquivosTsx(p));
 
@@ -54,6 +64,7 @@ describe("nenhuma tela escolhe o pai arbitrariamente", () => {
         if (/\.eq\(|\.in\(|\.match\(|\.filter\(|\.or\(/.test(alcance)) continue;
 
         const tabela = alcance.match(/^["'`]([\w.]+)["'`]/)?.[1] ?? "?";
+        if (CONFIG_SINGLETON.includes(tabela)) continue;
         suspeitos.push(`${caminho}: from("${tabela}") … .limit(1) sem filtro`);
       }
     }
