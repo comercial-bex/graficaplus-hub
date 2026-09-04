@@ -93,6 +93,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/perdas", permissions: ["os.read"] },
   { path: "/planilha-custos", permissions: ["custos.read"] },
   { path: "/custos-producao", permissions: ["custos.read"] },
+  { path: "/contas-bancarias", permissions: ["financeiro.read"] },
   { path: "/fluxo-caixa", permissions: ["financeiro.read"] },
   { path: "/manutencao", permissions: ["manutencao.read", "os.read"] },
   { path: "/design", permissions: ["arquivos.read", "arquivos.approve"] },

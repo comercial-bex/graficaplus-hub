@@ -21,7 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Wallet, TrendingUp } from "lucide-react";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Plus,
+  Wallet,
+  TrendingUp,
+  Landmark,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   Area,
@@ -254,6 +261,30 @@ function FluxoCaixaPage() {
     };
   }, [fluxo]);
 
+  /**
+   * Saldo REAL das contas, do extrato bancário.
+   *
+   * O "saldo realizado" abaixo é entradas menos saídas de `caixa_movimentos` —
+   * movimento líquido do que foi LANÇADO no sistema. Não é o saldo da conta:
+   * ignora o saldo inicial e ignora tudo que passou pelo banco sem ninguém
+   * lançar. Os dois números são úteis, mas confundir um com o outro é decidir
+   * pagamento olhando dinheiro que não está lá.
+   */
+  const { data: contasBancarias = [] } = useQuery({
+    queryKey: ["saldo-contas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("saldo_contas_bancarias");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const saldoBancario = contasBancarias.reduce(
+    (soma: number, c: any) => soma + Number(c.saldo_atual ?? 0),
+    0,
+  );
+  const temExtrato = contasBancarias.some((c: any) => Number(c.lancamentos ?? 0) > 0);
+
   const serie = useMemo(() => {
     const mapa = new Map<string, { data: string; entradas: number; saidas: number; saldo: number }>();
     for (const f of fluxo) {
@@ -319,10 +350,24 @@ function FluxoCaixaPage() {
           hint={`Previsto ${brl(kpis.saidaPrev)}`}
         />
         <KpiCard
-          label="Saldo realizado"
+          label="Movimento lançado"
           value={brl(kpis.saldoReal)}
           icon={Wallet}
           tone={kpis.saldoReal >= 0 ? "cyan" : "magenta"}
+          hint="entradas menos saídas do caixa"
+        />
+        <KpiCard
+          label="Saldo em conta"
+          value={contasBancarias.length === 0 ? "sem conta" : brl(saldoBancario)}
+          icon={Landmark}
+          tone={saldoBancario >= 0 ? "cyan" : "magenta"}
+          hint={
+            contasBancarias.length === 0
+              ? "cadastre em Contas bancárias"
+              : temExtrato
+                ? `${contasBancarias.length} conta(s), com extrato`
+                : "só saldo inicial — importe o extrato"
+          }
         />
         <KpiCard
           label="Saldo projetado"
