@@ -62,6 +62,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/clientes/$id")({
   head: () => ({ meta: [{ title: "Cliente — BEX PRINT OS" }] }),
   component: ClienteDetailPage,
@@ -137,7 +139,10 @@ function ClienteDetailPage() {
                 {cliente.ativo ? "Ativo" : "Inativo"}
               </Badge>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">{cliente.nome}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">{cliente.nome}</h1>
+              <DicaIcone texto={dicaTela("/clientes")} rotulo="Cliente" lado="bottom" className="h-5 w-5" />
+            </div>
             <p className="text-sm text-muted-foreground">
               {[cliente.documento, cliente.email, cliente.telefone].filter(Boolean).join(" · ") ||
                 "Sem dados de contato"}
