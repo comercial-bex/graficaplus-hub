@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +64,7 @@ const statusLabel: Record<string, string> = {
 
 function OrcamentosPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -72,7 +73,6 @@ function OrcamentosPage() {
     contato_telefone: "",
     contato_email: "",
     titulo: "",
-    valor_total: "",
   });
 
   const { data: orcamentos = [], isLoading } = useQuery({
