@@ -55,6 +55,8 @@ import {
 } from "@/domain/orcamentos/area";
 import { mensagemErro } from "@/lib/erros";
 
+import { Dica } from "@/components/bex/Dica";
+import { dicaAcao } from "@/lib/dicas";
 const itemVazio = {
   descricao: "",
   quantidade: "1",
@@ -386,23 +388,23 @@ function OrcamentoDetailPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+            <Dica texto={dicaAcao("/orcamentos", "pdf")}><Button variant="outline" onClick={() => setPreviewOpen(true)}>
               <FileDown className="h-4 w-4 mr-1" /> PDF
-            </Button>
-            <Button variant="outline" onClick={() => setPreviewProducaoOpen(true)}>
+            </Button></Dica>
+            <Dica texto={dicaAcao("/orcamentos", "producao")}><Button variant="outline" onClick={() => setPreviewProducaoOpen(true)}>
               <Printer className="h-4 w-4 mr-1" /> Via de produção
-            </Button>
-            <Button variant="outline" onClick={copiarLinkCliente} disabled={gerandoLink}>
+            </Button></Dica>
+            <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" onClick={copiarLinkCliente} disabled={gerandoLink}>
               {gerandoLink ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <LinkIcon className="h-4 w-4 mr-1" />
               )}
               Link do cliente
-            </Button>
-            <Button variant="outline" onClick={enviarWhatsApp} disabled={gerandoLink}>
+            </Button></Dica>
+            <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" onClick={enviarWhatsApp} disabled={gerandoLink}>
               <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
-            </Button>
+            </Button></Dica>
 
             {orc.status !== "convertido" && !orc.os_id && (
               <Button onClick={converterEmOS}>
