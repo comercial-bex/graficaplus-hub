@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { Card, CardContent } from "@/components/ui/card";
 import { mapaNodes, mapaEdges, perfisAtividades, type MapaNode } from "@/lib/system-map";
@@ -48,6 +49,7 @@ function MapaSistemaPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/mapa-sistema")}
         breadcrumb="Arquitetura"
         title="Mapa visual do sistema"
         description="Camadas, entidades, relações e fluxos. Cada bloco leva à rota correspondente do ERP."

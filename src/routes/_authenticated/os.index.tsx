@@ -37,6 +37,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/os/")({
   head: () => ({ meta: [{ title: "Ordens de Serviço — BEX PRINT OS" }] }),
   component: OSPage,
@@ -106,7 +108,10 @@ function OSPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Ordens de Serviço</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Ordens de Serviço</h1>
+            <DicaIcone texto={dicaTela("/os")} rotulo="Ordens de Serviço" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">Acompanhe todas as OS da produção</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

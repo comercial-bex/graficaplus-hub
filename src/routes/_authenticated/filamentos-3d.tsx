@@ -26,6 +26,8 @@ import { Boxes, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/filamentos-3d")({
   head: () => ({ meta: [{ title: "Filamentos 3D — BEX PRINT OS" }] }),
   component: FilamentosPage,
@@ -137,7 +139,10 @@ function FilamentosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Filamentos 3D</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Filamentos 3D</h1>
+            <DicaIcone texto={dicaTela("/filamentos-3d")} rotulo="Filamentos 3D" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">
             Cadastro de filamentos com valor por kg — base do custo de material dos orçamentos 3D
           </p>

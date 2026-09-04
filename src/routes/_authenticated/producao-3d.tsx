@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,7 @@ function Producao3DPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/producao-3d")}
         breadcrumb="Produção · Impressão 3D"
         title="Produção 3D — Jobs & Apontamentos"
         description="Gerencie jobs de impressão, registre apontamentos e sincronize status da OS"

@@ -10,6 +10,8 @@ import { ArrowLeft, Zap, Calculator, Users, Percent } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/configuracoes-3d")({
   head: () => ({ meta: [{ title: "Configurações 3D — BEX PRINT OS" }] }),
   component: Configuracoes3D,
@@ -173,7 +175,10 @@ function Configuracoes3D() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Configurações 3D · Energia</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Configurações 3D · Energia</h1>
+            <DicaIcone texto={dicaTela("/configuracoes-3d")} rotulo="Configurações 3D · Energia" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">
             Base herdada por novos orçamentos e pelas máquinas — sem mexer no banco.
           </p>

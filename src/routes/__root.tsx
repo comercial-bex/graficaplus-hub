@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth-context";
 import { Toaster } from "../components/ui/sonner";
+import { TooltipProvider } from "../components/ui/tooltip";
 import { supabase } from "../integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -126,11 +127,15 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AuthInvalidator />
-        <Outlet />
-        <Toaster richColors position="top-right" />
-      </AuthProvider>
+      {/* provider único das dicas: cada tela só usa Tooltip, sem repetir o provider */}
+      <TooltipProvider delayDuration={200} skipDelayDuration={300}>
+        <AuthProvider>
+          <AuthInvalidator />
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </AuthProvider>
+      </TooltipProvider>
     </QueryClientProvider>
+
   );
 }

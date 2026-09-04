@@ -38,6 +38,8 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/orcamentos/")({
   head: () => ({ meta: [{ title: "Orçamentos — BEX PRINT OS" }] }),
   component: OrcamentosPage,
@@ -155,6 +157,7 @@ function OrcamentosPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/orcamentos")}
         breadcrumb="Print OS · Comercial"
         title="Orçamentos"
         description="Propostas comerciais e conversão em Ordens de Serviço."
@@ -171,7 +174,7 @@ function OrcamentosPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Cliente</Label>
+                  <Label className="flex items-center gap-1.5">Cliente<DicaIcone texto={dicaCampo("/orcamentos", "Cliente")} rotulo="Cliente" /></Label>
                   <Select
                     value={form.cliente_id || "__avulso"}
                     onValueChange={(v) =>
@@ -197,7 +200,7 @@ function OrcamentosPage() {
                 {!form.cliente_id && (
                   <div className="grid gap-3 sm:grid-cols-3 rounded-lg border border-border/60 bg-card/40 p-3">
                     <div className="space-y-2">
-                      <Label>Nome do contato *</Label>
+                      <Label className="flex items-center gap-1.5">Nome do contato *<DicaIcone texto={dicaCampo("/orcamentos", "Nome do contato *")} rotulo="Nome do contato *" /></Label>
                       <Input
                         value={form.contato_nome}
                         onChange={(e) => setForm({ ...form, contato_nome: e.target.value })}
@@ -205,7 +208,7 @@ function OrcamentosPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Telefone</Label>
+                      <Label className="flex items-center gap-1.5">Telefone<DicaIcone texto={dicaCampo("/orcamentos", "Telefone")} rotulo="Telefone" /></Label>
                       <Input
                         value={form.contato_telefone}
                         onChange={(e) => setForm({ ...form, contato_telefone: e.target.value })}
@@ -213,7 +216,7 @@ function OrcamentosPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>E-mail</Label>
+                      <Label className="flex items-center gap-1.5">E-mail<DicaIcone texto={dicaCampo("/orcamentos", "E-mail")} rotulo="E-mail" /></Label>
                       <Input
                         value={form.contato_email}
                         onChange={(e) => setForm({ ...form, contato_email: e.target.value })}
@@ -224,14 +227,14 @@ function OrcamentosPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label>Título *</Label>
+                  <Label className="flex items-center gap-1.5">Título *<DicaIcone texto={dicaCampo("/orcamentos", "Título *")} rotulo="Título *" /></Label>
                   <Input
                     value={form.titulo}
                     onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor total (R$)</Label>
+                  <Label className="flex items-center gap-1.5">Valor total (R$)<DicaIcone texto={dicaCampo("/orcamentos", "Valor total (R$)")} rotulo="Valor total (R$)" /></Label>
                   <Input
                     type="number"
                     step="0.01"

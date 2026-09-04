@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import {
@@ -152,6 +153,7 @@ function PortalClientePage() {
     return (
       <div className="space-y-6">
         <SectionHeader
+        ajuda={dicaTela("/portal-cliente")}
           breadcrumb="Área do Cliente"
           title="Portal do Cliente"
           description="Acompanhe suas OS, pagamentos e documentos"

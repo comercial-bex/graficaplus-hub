@@ -17,6 +17,8 @@ import {
   User,
   Tag,
 } from "lucide-react";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 import { detectsHumanHandoff, getWhatsAppBotTransition, whatsappBotFlow } from "@/lib/whatsapp-bot";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
@@ -118,7 +120,11 @@ function WhatsAppPage() {
   return (
     <div className="h-[calc(100vh-8rem)] grid grid-cols-12 gap-4">
       <Card className="col-span-3 flex flex-col overflow-hidden">
-        <div className="p-3 border-b">
+        <div className="p-3 border-b space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold tracking-tight">Conversas</span>
+            <DicaIcone texto={dicaTela("/whatsapp")} rotulo="WhatsApp" lado="bottom" />
+          </div>
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -129,6 +135,7 @@ function WhatsAppPage() {
             />
           </div>
         </div>
+
         <div className="flex-1 overflow-auto">
           {conversas.map((c) => (
             <button

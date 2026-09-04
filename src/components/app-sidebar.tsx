@@ -51,6 +51,8 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import type { Permission } from "@/lib/permissions";
+import { dicaMenu } from "@/lib/dicas";
+import { Dica } from "@/components/bex/Dica";
 
 type Item = { title: string; url: string; icon: LucideIcon; permission?: Permission };
 
@@ -197,12 +199,23 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {visibleItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                        <Link to={item.url}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
+                      <Dica
+                        texto={dicaMenu(item.url)}
+                        lado="right"
+                        className="w-full"
+                      >
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive(item.url)}
+                          tooltip={collapsed ? item.title : undefined}
+                          className="w-full"
+                        >
+                          <Link to={item.url}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </Dica>
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>

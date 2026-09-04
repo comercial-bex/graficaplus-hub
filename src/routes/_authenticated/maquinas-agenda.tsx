@@ -10,6 +10,8 @@ import { db, formatDateTime } from "@/lib/module-data";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/maquinas-agenda")({
   head: () => ({ meta: [{ title: "Agenda de máquinas — BEX PRINT OS" }] }),
   component: AgendaPage,
@@ -69,7 +71,10 @@ function AgendaPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Agenda de máquinas</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Agenda de máquinas</h1>
+          <DicaIcone texto={dicaTela("/maquinas-agenda")} rotulo="Agenda de máquinas" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">
           Ocupação por equipamento com dados reais do Supabase
         </p>

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,7 @@ function PosVendaPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/pos-venda")}
         breadcrumb="Análise · Pós-venda"
         title="Pós-venda & NPS"
         description="Pesquisas agendadas automaticamente pelo fechar_os. Colete NPS, comentários e feedback do cliente."

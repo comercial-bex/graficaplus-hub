@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 import {
   Table,
   TableBody,
@@ -368,7 +370,10 @@ function RelatPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
+            <DicaIcone texto={dicaTela("/relatorios")} rotulo="Relatórios" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">
             Indicadores gerenciais e operacionais com dados reais do Supabase
           </p>

@@ -29,6 +29,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/materiais")({
   head: () => ({ meta: [{ title: "Materiais — BEX PRINT OS" }] }),
   component: MateriaisPage,
@@ -80,7 +82,10 @@ function MateriaisPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Materiais</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Materiais</h1>
+            <DicaIcone texto={dicaTela("/materiais")} rotulo="Materiais" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">Insumos e matéria-prima em estoque</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -96,7 +101,7 @@ function MateriaisPage() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Nome *</Label>
+                <Label className="flex items-center gap-1.5">Nome *<DicaIcone texto={dicaCampo("/materiais", "Nome *")} rotulo="Nome *" /></Label>
                 <Input
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
@@ -105,7 +110,7 @@ function MateriaisPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Unidade</Label>
+                  <Label className="flex items-center gap-1.5">Unidade<DicaIcone texto={dicaCampo("/materiais", "Unidade")} rotulo="Unidade" /></Label>
                   <Input
                     value={form.unidade}
                     onChange={(e) => setForm({ ...form, unidade: e.target.value })}
@@ -113,7 +118,7 @@ function MateriaisPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Estoque inicial</Label>
+                  <Label className="flex items-center gap-1.5">Estoque inicial<DicaIcone texto={dicaCampo("/materiais", "Estoque inicial")} rotulo="Estoque inicial" /></Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -124,7 +129,7 @@ function MateriaisPage() {
               </div>
               {canSeeFinancials && (
                 <div className="space-y-2">
-                  <Label>Custo unitário (R$)</Label>
+                  <Label className="flex items-center gap-1.5">Custo unitário (R$)<DicaIcone texto={dicaCampo("/materiais", "Custo unitário (R$)")} rotulo="Custo unitário (R$)" /></Label>
                   <Input
                     type="number"
                     step="0.01"

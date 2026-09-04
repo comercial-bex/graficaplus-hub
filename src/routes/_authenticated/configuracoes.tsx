@@ -3,13 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: () => {
     const { user, roles } = useAuth();
     return (
       <div className="space-y-6 max-w-2xl">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
+            <DicaIcone texto={dicaTela("/configuracoes")} rotulo="Configurações" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">Seu perfil e preferências</p>
         </div>
         <Card>

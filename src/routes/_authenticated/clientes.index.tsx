@@ -19,6 +19,8 @@ import { formatarCEP, formatarTelefone } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/clientes/")({
   head: () => ({ meta: [{ title: "Clientes — BEX PRINT OS" }] }),
   component: ClientesPage,
@@ -159,7 +161,10 @@ function ClientesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
+            <DicaIcone texto={dicaTela("/clientes")} rotulo="Clientes" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">{stats.total} cliente(s) · {stats.pj} PJ · {stats.pf} PF</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

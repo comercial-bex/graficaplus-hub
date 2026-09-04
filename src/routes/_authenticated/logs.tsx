@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/logs")({
   head: () => ({ meta: [{ title: "Logs & Auditoria — BEX PRINT OS" }] }),
   component: LogsPage,
@@ -20,7 +22,10 @@ function LogsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Logs & Auditoria</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Logs & Auditoria</h1>
+          <DicaIcone texto={dicaTela("/logs")} rotulo="Logs e Auditoria" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">Histórico de ações no sistema</p>
       </div>
       <Card>

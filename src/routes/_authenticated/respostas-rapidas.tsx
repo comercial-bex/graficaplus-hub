@@ -11,6 +11,8 @@ import { db } from "@/lib/module-data";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/respostas-rapidas")({
   head: () => ({ meta: [{ title: "Respostas rápidas — BEX PRINT OS" }] }),
   component: RespPage,
@@ -64,7 +66,10 @@ function RespPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Respostas rápidas</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Respostas rápidas</h1>
+            <DicaIcone texto={dicaTela("/respostas-rapidas")} rotulo="Respostas rápidas" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">Biblioteca de mensagens prontas para WhatsApp</p>
         </div>
       </div>

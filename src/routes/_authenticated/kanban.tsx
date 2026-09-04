@@ -48,6 +48,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { mensagemErro } from "@/lib/erros";
 
@@ -382,6 +383,7 @@ function KanbanPage() {
   return (
     <div className="space-y-4 h-full">
       <SectionHeader
+        ajuda={dicaTela("/kanban")}
         breadcrumb="Print OS · Operação · Kanban"
         title="Kanban de Produção"
         description="Arraste e solte cartões entre estágios. As mudanças são registradas no histórico."
