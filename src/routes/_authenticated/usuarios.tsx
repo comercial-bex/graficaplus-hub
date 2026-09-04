@@ -65,13 +65,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SectionHeader } from "@/components/bex/SectionHeader";
-import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { useAuth, type AppRole } from "@/lib/auth-context";
 import { DicaIcone } from "@/components/bex/Dica";
-import { dicaCampo } from "@/lib/dicas";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 import {
   atribuirPerfil,
   atualizarUsuario,

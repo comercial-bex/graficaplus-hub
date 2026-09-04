@@ -30,8 +30,7 @@ import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
-import { dicaTela } from "@/lib/dicas";
-import { dicaCampo } from "@/lib/dicas";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/materiais")({
   head: () => ({ meta: [{ title: "Materiais — BEX PRINT OS" }] }),
   component: MateriaisPage,

@@ -36,8 +36,7 @@ import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
-import { dicaTela } from "@/lib/dicas";
-import { dicaCampo } from "@/lib/dicas";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/financeiro")({
   head: () => ({ meta: [{ title: "Financeiro — BEX PRINT OS" }] }),
   component: FinanceiroPage,

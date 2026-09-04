@@ -26,14 +26,13 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip,
 import { Plus, TrendingDown, Recycle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/bex/SectionHeader";
-import { dicaTela } from "@/lib/dicas";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
-import { dicaCampo } from "@/lib/dicas";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/perdas")({
   head: () => ({
     meta: [

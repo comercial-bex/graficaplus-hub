@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
 import { DicaIcone } from "@/components/bex/Dica";
-import { dicaTela } from "@/lib/dicas";
-import { dicaCampo } from "@/lib/dicas";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({ meta: [{ title: "Precificação — BEX PRINT OS" }] }),
   component: PrecificacaoPage,
