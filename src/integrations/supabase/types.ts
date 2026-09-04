@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       apontamentos_producao: {
         Row: {
+          agenda_id: string | null
           created_at: string
           etapa: string
           finalizado_em: string | null
@@ -29,6 +30,7 @@ export type Database = {
           setor: string | null
         }
         Insert: {
+          agenda_id?: string | null
           created_at?: string
           etapa: string
           finalizado_em?: string | null
@@ -42,6 +44,7 @@ export type Database = {
           setor?: string | null
         }
         Update: {
+          agenda_id?: string | null
           created_at?: string
           etapa?: string
           finalizado_em?: string | null
@@ -55,6 +58,20 @@ export type Database = {
           setor?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "apontamentos_producao_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apontamentos_producao_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_agenda"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "apontamentos_producao_maquina_id_fkey"
             columns: ["maquina_id"]
@@ -1975,7 +1992,7 @@ export type Database = {
           janela_inicio: string | null
           observacoes: string | null
           ocorrencia: string | null
-          os_id: string | null
+          os_id: string
           os_item_id: string | null
           responsavel_id: string | null
           rota: Json
@@ -1997,7 +2014,7 @@ export type Database = {
           janela_inicio?: string | null
           observacoes?: string | null
           ocorrencia?: string | null
-          os_id?: string | null
+          os_id: string
           os_item_id?: string | null
           responsavel_id?: string | null
           rota?: Json
@@ -2019,7 +2036,7 @@ export type Database = {
           janela_inicio?: string | null
           observacoes?: string | null
           ocorrencia?: string | null
-          os_id?: string | null
+          os_id?: string
           os_item_id?: string | null
           responsavel_id?: string | null
           rota?: Json
@@ -11421,6 +11438,8 @@ export type Database = {
         Row: {
           atraso: boolean | null
           custo_previsto: number | null
+          custo_previsto_materiais: number | null
+          custo_previsto_origem: string | null
           custo_realizado: number | null
           custo_reservado: number | null
           descontos: number | null
@@ -11774,6 +11793,37 @@ export type Database = {
         Args: { p_consumos?: Json; p_os_id: string }
         Returns: Json
       }
+      base_de_consumo_item: {
+        Args: { p_area_cobrada: number; p_quantidade: number }
+        Returns: number
+      }
+      breakdown_3d: {
+        Args: { p_fim?: string; p_inicio?: string }
+        Returns: {
+          cliente: string
+          custo_acabamento: number
+          custo_energia: number
+          custo_indireto: number
+          custo_mao_obra: number
+          custo_maquina: number
+          custo_maquina_real: number
+          custo_material: number
+          custo_material_real: number
+          custo_operacional: number
+          divergencia_material: number
+          gramas_reais: number
+          horas_reais: number
+          margem: number
+          markup: number
+          orcamento_id: string
+          preco: number
+          produzido: boolean
+          quantidade: number
+          status: string
+          titulo: string
+          valor_unitario: number
+        }[]
+      }
       buscar_usuario_para_portal: {
         Args: { p_busca: string }
         Returns: {
@@ -11867,6 +11917,10 @@ export type Database = {
         Returns: Json
       }
       criar_eventos_automacoes_recorrentes: { Args: never; Returns: number }
+      criar_jobs_3d_da_os: {
+        Args: { p_orcamento_3d_id: string; p_os_id: string }
+        Returns: number
+      }
       criar_link_aprovacao: {
         Args: { p_arquivo_id: string; p_dias?: number }
         Returns: Json
@@ -11923,6 +11977,29 @@ export type Database = {
         Args: { p_motivo: string; p_novo_status: string; p_os_id: string }
         Returns: Json
       }
+      funil_comercial: {
+        Args: { p_fim?: string; p_inicio?: string }
+        Returns: {
+          campanha: string
+          cliente: string
+          cliente_id: string
+          criado_em: string
+          dias_parado: number
+          estagio: string
+          etapa: string
+          lead_id: string
+          nome: string
+          orcamentos: number
+          orcamentos_aprovados: number
+          ordens: number
+          ordens_concluidas: number
+          origem: string
+          status: string
+          valor_fechado: number
+          valor_orcado: number
+          valor_potencial: number
+        }[]
+      }
       gerar_materiais_previstos_os: {
         Args: { p_os_id: string }
         Returns: number
@@ -11948,6 +12025,7 @@ export type Database = {
       iniciar_apontamento: {
         Args: { p_etapa?: string; p_maquina_id: string; p_os_id: string }
         Returns: {
+          agenda_id: string | null
           created_at: string
           etapa: string
           finalizado_em: string | null
@@ -11968,6 +12046,10 @@ export type Database = {
         }
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      marcar_lead_perdido: {
+        Args: { p_lead_id: string; p_motivo: string }
+        Returns: Json
+      }
       marco_notificavel_os: {
         Args: { _status: Database["public"]["Enums"]["status_os"] }
         Returns: string
@@ -11997,6 +12079,27 @@ export type Database = {
           proxima_faixa: number
           quantidade_minima: number
           vigencia_fim: string
+        }[]
+      }
+      produtividade_3d: {
+        Args: { p_fim?: string; p_inicio?: string }
+        Returns: {
+          custo_energia: number
+          custo_hora: number
+          custo_maquina: number
+          custo_material: number
+          custo_por_peca: number
+          custo_total: number
+          gramas_consumidas: number
+          horas_impressas: number
+          horas_previstas: number
+          jobs_concluidos: number
+          jobs_falha: number
+          maquina: string
+          maquina_id: string
+          minutos_por_peca: number
+          pecas_produzidas: number
+          taxa_falha_pct: number
         }[]
       }
       recalcular_estoque_material: {
