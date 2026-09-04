@@ -4937,6 +4937,65 @@ export type Database = {
           },
         ]
       }
+      orcamento_item_arquivos: {
+        Row: {
+          arquivo_id: string
+          capa: boolean
+          created_at: string
+          id: string
+          item_id: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          arquivo_id: string
+          capa?: boolean
+          created_at?: string
+          id?: string
+          item_id: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          arquivo_id?: string
+          capa?: boolean
+          created_at?: string
+          id?: string
+          item_id?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_item_arquivos_arquivo_id_fkey"
+            columns: ["arquivo_id"]
+            isOneToOne: false
+            referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_item_arquivos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_item_arquivos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_item_arquivos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orcamento_item_custos: {
         Row: {
           custo_unitario: number
@@ -5266,6 +5325,8 @@ export type Database = {
       orcamentos: {
         Row: {
           aprovado_em: string | null
+          aprovado_ip: string | null
+          aprovado_por_nome: string | null
           briefing: string | null
           cliente_id: string | null
           condicao_pagamento: Json
@@ -5296,6 +5357,7 @@ export type Database = {
           precisa_instalacao: boolean
           status: Database["public"]["Enums"]["status_orcamento"]
           titulo: string
+          token_publico: string | null
           updated_at: string
           validade_dias: number
           valor_subtotal: number
@@ -5305,6 +5367,8 @@ export type Database = {
         }
         Insert: {
           aprovado_em?: string | null
+          aprovado_ip?: string | null
+          aprovado_por_nome?: string | null
           briefing?: string | null
           cliente_id?: string | null
           condicao_pagamento?: Json
@@ -5335,6 +5399,7 @@ export type Database = {
           precisa_instalacao?: boolean
           status?: Database["public"]["Enums"]["status_orcamento"]
           titulo: string
+          token_publico?: string | null
           updated_at?: string
           validade_dias?: number
           valor_subtotal?: number
@@ -5344,6 +5409,8 @@ export type Database = {
         }
         Update: {
           aprovado_em?: string | null
+          aprovado_ip?: string | null
+          aprovado_por_nome?: string | null
           briefing?: string | null
           cliente_id?: string | null
           condicao_pagamento?: Json
@@ -5374,6 +5441,7 @@ export type Database = {
           precisa_instalacao?: boolean
           status?: Database["public"]["Enums"]["status_orcamento"]
           titulo?: string
+          token_publico?: string | null
           updated_at?: string
           validade_dias?: number
           valor_subtotal?: number
