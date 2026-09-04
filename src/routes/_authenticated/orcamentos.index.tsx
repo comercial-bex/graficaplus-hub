@@ -299,7 +299,7 @@ function OrcamentosPage() {
                         {o.titulo}
                       </Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {mapa3d[o.id] ? (
                         <Link to="/orcamento-3d/$id" params={{ id: mapa3d[o.id] }}>
                           <StatusChip label="Impressão 3D" tone="magenta" />
