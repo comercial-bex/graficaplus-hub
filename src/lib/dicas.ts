@@ -283,12 +283,42 @@ export function dicaTela(rota: string): string | undefined {
   return (dicas as Record<string, DicasTela>)[rota]?.tela;
 }
 
+/**
+ * Normaliza o rótulo para casar com a chave da dica.
+ *
+ * As telas passam o texto do rótulo como está na interface ("Custo unitário
+ * (R$) *"), então tiramos acento, asterisco, unidade entre parênteses e
+ * espaços. Assim a mesma dica serve para variações de escrita do mesmo campo.
+ */
+function chave(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/[*:]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
+function buscar(
+  mapa: Record<string, string> | undefined,
+  termo: string,
+): string | undefined {
+  if (!mapa) return undefined;
+  const alvo = chave(termo);
+  if (mapa[alvo]) return mapa[alvo];
+  for (const [k, v] of Object.entries(mapa)) if (chave(k) === alvo) return v;
+  return undefined;
+}
+
 /** Dica de um campo específico de uma tela. */
 export function dicaCampo(rota: string, campo: string): string | undefined {
-  return (dicas as Record<string, DicasTela>)[rota]?.campos?.[campo];
+  return buscar((dicas as Record<string, DicasTela>)[rota]?.campos, campo);
 }
 
 /** Dica de uma ação (botão) de uma tela. */
 export function dicaAcao(rota: string, acao: string): string | undefined {
-  return (dicas as Record<string, DicasTela>)[rota]?.acoes?.[acao];
+  return buscar((dicas as Record<string, DicasTela>)[rota]?.acoes, acao);
 }
+
