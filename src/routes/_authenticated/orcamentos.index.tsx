@@ -284,7 +284,11 @@ function OrcamentosPage() {
               )}
               {orcamentos.map((o: any) => {
                 return (
-                  <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow
+                    key={o.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
+                  >
                     <TableCell>
                       <Link to="/orcamentos/$id" params={{ id: o.id }} className="font-mono text-xs text-muted-foreground hover:text-[color:var(--bex-cyan)]">
                         #{o.numero}
