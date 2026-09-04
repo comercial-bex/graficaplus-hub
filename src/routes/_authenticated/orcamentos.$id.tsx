@@ -42,7 +42,6 @@ import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { SectionHeader } from "@/components/bex/SectionHeader";
-import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
   areaTotal,
@@ -56,7 +55,7 @@ import {
 import { mensagemErro } from "@/lib/erros";
 
 import { Dica } from "@/components/bex/Dica";
-import { dicaAcao } from "@/lib/dicas";
+import { dicaAcao, dicaTela } from "@/lib/dicas";
 const itemVazio = {
   descricao: "",
   quantidade: "1",
