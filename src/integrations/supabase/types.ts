@@ -12342,6 +12342,19 @@ export type Database = {
           vigencia_fim: string
         }[]
       }
+      previsoes_desatualizadas: {
+        Args: never
+        Returns: {
+          custo_atual: number
+          custo_previsto: number
+          diferenca: number
+          material: string
+          numero: number
+          os_id: string
+          quantidade: number
+          titulo: string
+        }[]
+      }
       produtividade_3d: {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: {
@@ -12367,6 +12380,7 @@ export type Database = {
         Args: { p_material_id: string }
         Returns: undefined
       }
+      recalcular_previsao_custos: { Args: { p_os_id?: string }; Returns: Json }
       recalcular_status_financeiro_os: {
         Args: { p_os_id: string }
         Returns: undefined
