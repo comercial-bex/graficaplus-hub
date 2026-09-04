@@ -317,6 +317,21 @@ function OrcamentoDetailPage() {
             <Button variant="outline" onClick={() => setPreviewOpen(true)}>
               <FileDown className="h-4 w-4 mr-1" /> PDF
             </Button>
+            <Button variant="outline" onClick={() => setPreviewProducaoOpen(true)}>
+              <Printer className="h-4 w-4 mr-1" /> Via de produção
+            </Button>
+            <Button variant="outline" onClick={copiarLinkCliente} disabled={gerandoLink}>
+              {gerandoLink ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <LinkIcon className="h-4 w-4 mr-1" />
+              )}
+              Link do cliente
+            </Button>
+            <Button variant="outline" onClick={enviarWhatsApp} disabled={gerandoLink}>
+              <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+            </Button>
+
             {orc.status !== "convertido" && !orc.os_id && (
               <Button onClick={converterEmOS}>
                 Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
