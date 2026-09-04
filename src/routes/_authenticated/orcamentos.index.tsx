@@ -237,15 +237,10 @@ function OrcamentosPage() {
                     onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Valor total (R$)<DicaIcone texto={dicaCampo("/orcamentos", "Valor total (R$)")} rotulo="Valor total (R$)" /></Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.valor_total}
-                    onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  O valor é calculado automaticamente pelos produtos que você lançar na próxima
+                  tela.
+                </p>
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>
