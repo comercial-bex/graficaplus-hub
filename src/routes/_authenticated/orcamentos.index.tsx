@@ -114,6 +114,31 @@ function OrcamentosPage() {
     },
   });
 
+  const filtrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return orcamentos as any[];
+    return (orcamentos as any[]).filter((o) =>
+      [o.numero, o.titulo, o.cliente_nome, o.contato_nome]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(termo)),
+    );
+  }, [orcamentos, busca]);
+
+  const kpis = useMemo(() => {
+    const lista = orcamentos as any[];
+    const abertos = lista.filter((o) => !["convertido", "rejeitado", "expirado"].includes(o.status));
+    const enviados = lista.filter((o) => o.status === "enviado" || o.status === "aprovado");
+    return {
+      abertos: abertos.length,
+      enviados: enviados.length,
+      convertidos: lista.filter((o) => o.status === "convertido").length,
+      valorEnviados: enviados.reduce((a, o) => a + Number(o.valor_total ?? 0), 0),
+      valorTotal: lista.reduce((a, o) => a + Number(o.valor_total ?? 0), 0),
+    };
+  }, [orcamentos]);
+
+
+
   async function handleCreate() {
     if (!form.titulo) return toast.error("Título é obrigatório");
     if (!form.cliente_id && !form.contato_nome.trim())
