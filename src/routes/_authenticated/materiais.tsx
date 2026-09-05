@@ -156,7 +156,10 @@ function MateriaisPage() {
   });
 
   const resumoPorMaterial = useMemo(() => {
-    const mapa = new Map<string, { saidas: number; consumoOS: number; perdaQtd: number; perdaCusto: number }>();
+    const mapa = new Map<
+      string,
+      { saidas: number; consumoOS: number; perdaQtd: number; perdaCusto: number }
+    >();
     const pega = (id: string) =>
       mapa.get(id) ?? { saidas: 0, consumoOS: 0, perdaQtd: 0, perdaCusto: 0 };
     for (const m of movimentos as any[]) {
@@ -186,7 +189,8 @@ function MateriaisPage() {
         estoque: Number(form.estoque) || 0,
         estoque_minimo: Number(form.estoque_minimo) || 0,
         fornecedor: form.fornecedor || null,
-        custo_unitario: canSeeFinancials && form.custo_unitario ? Number(form.custo_unitario) : null,
+        custo_unitario:
+          canSeeFinancials && form.custo_unitario ? Number(form.custo_unitario) : null,
         custo_medio: canSeeFinancials && form.custo_unitario ? Number(form.custo_unitario) : null,
       });
       if (error) throw error;
@@ -195,7 +199,14 @@ function MateriaisPage() {
       toast.success("Material cadastrado");
       qc.invalidateQueries({ queryKey: ["materiais"] });
       setOpen(false);
-      setForm({ nome: "", unidade: "un", estoque: "0", custo_unitario: "", estoque_minimo: "0", fornecedor: "" });
+      setForm({
+        nome: "",
+        unidade: "un",
+        estoque: "0",
+        custo_unitario: "",
+        estoque_minimo: "0",
+        fornecedor: "",
+      });
     },
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
@@ -235,7 +246,8 @@ function MateriaisPage() {
       let novoCustoMedio = custoAtual;
       if (mov.tipo === "entrada" && custoInformado != null) {
         const total = estoqueAtual + qtd;
-        novoCustoMedio = total > 0 ? (estoqueAtual * custoAtual + qtd * custoInformado) / total : custoInformado;
+        novoCustoMedio =
+          total > 0 ? (estoqueAtual * custoAtual + qtd * custoInformado) / total : custoInformado;
       }
 
       const patch: {
@@ -384,7 +396,9 @@ function MateriaisPage() {
                       {num(minimo)}
                     </TableCell>
                     {canSeeFinancials && (
-                      <TableCell className="text-right font-mono">{custo ? brl(custo) : "—"}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {custo ? brl(custo) : "—"}
+                      </TableCell>
                     )}
                     {canSeeFinancials && (
                       <TableCell className="text-right font-mono">{brl(estoque * custo)}</TableCell>
@@ -403,7 +417,10 @@ function MateriaisPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <StatusChip label={baixo ? "Repor" : "OK"} tone={baixo ? "magenta" : "lime"} />
+                      <StatusChip
+                        label={baixo ? "Repor" : "OK"}
+                        tone={baixo ? "magenta" : "lime"}
+                      />
                     </TableCell>
                   </TableRow>
                 );
@@ -451,7 +468,10 @@ function MateriaisPage() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
                 Estoque mínimo
-                <DicaIcone texto="Abaixo desse número o material aparece como 'Repor'." rotulo="Estoque mínimo" />
+                <DicaIcone
+                  texto="Abaixo desse número o material aparece como 'Repor'."
+                  rotulo="Estoque mínimo"
+                />
               </Label>
               <Input
                 type="number"

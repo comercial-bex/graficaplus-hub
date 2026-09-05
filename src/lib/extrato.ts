@@ -18,7 +18,10 @@ export type LinhaExtrato = {
 function normalizarData(bruto: string): string | null {
   // O OFX costuma trazer o fuso entre colchetes ("20260103120000[-3:BRT]"),
   // que atrapalha os testes de formato abaixo — por isso sai antes de tudo.
-  const t = bruto.trim().replace(/\[[^\]]*\]/g, "").trim();
+  const t = bruto
+    .trim()
+    .replace(/\[[^\]]*\]/g, "")
+    .trim();
   if (!t) return null;
   // OFX: 20260105 ou 20260105120000[-3:BRT]
   const ofx = t.match(/^(\d{4})(\d{2})(\d{2})/);
@@ -44,7 +47,10 @@ function normalizarValor(bruto: string): number {
   t = t.replace(/[()]/g, "").replace(/^-/, "");
   // 1.234,56 -> 1234.56 | 1,234.56 -> 1234.56
   if (t.includes(",") && t.includes(".")) {
-    t = t.lastIndexOf(",") > t.lastIndexOf(".") ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+    t =
+      t.lastIndexOf(",") > t.lastIndexOf(".")
+        ? t.replace(/\./g, "").replace(",", ".")
+        : t.replace(/,/g, "");
   } else if (t.includes(",")) {
     t = t.replace(",", ".");
   }
@@ -102,14 +108,18 @@ export function parseCSV(conteudo: string): LinhaExtrato[] {
     .filter(Boolean);
   if (linhasTexto.length === 0) return [];
 
-  const sep = (linhasTexto[0].match(/;/g)?.length ?? 0) >= (linhasTexto[0].match(/,/g)?.length ?? 0) ? ";" : ",";
+  const sep =
+    (linhasTexto[0].match(/;/g)?.length ?? 0) >= (linhasTexto[0].match(/,/g)?.length ?? 0)
+      ? ";"
+      : ",";
   const cabecalho = separarColunas(linhasTexto[0], sep).map((c) =>
     c
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, ""),
   );
-  const temCabecalho = cabecalho.some((c) => c.includes("data")) && !normalizarData(cabecalho[0] ?? "");
+  const temCabecalho =
+    cabecalho.some((c) => c.includes("data")) && !normalizarData(cabecalho[0] ?? "");
 
   const idx = (nomes: string[]) => cabecalho.findIndex((c) => nomes.some((n) => c.includes(n)));
   const iData = temCabecalho ? idx(["data", "date"]) : 0;

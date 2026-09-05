@@ -40,9 +40,7 @@ async function montarItens(
   linhas: Record<string, unknown>[],
   mostrarValores: boolean,
 ): Promise<DocItem[]> {
-  const idsItens = linhas
-    .map((i) => i.id as string | undefined)
-    .filter((id): id is string => !!id);
+  const idsItens = linhas.map((i) => i.id as string | undefined).filter((id): id is string => !!id);
 
   // artes por item, em ordem: capa primeiro
   const artesPorItem = new Map<string, string[]>();
@@ -108,7 +106,6 @@ async function montarItens(
   });
 }
 
-
 const somaArea = (itens: DocItem[]) => {
   const soma = itens.reduce((total, i) => total + Number(i.area_total ?? 0), 0);
   return soma > 0 ? Math.round(soma * 1000) / 1000 : null;
@@ -119,8 +116,9 @@ function descreverEntrega(entrega: unknown): string | null {
   if (!entrega || typeof entrega !== "object") return null;
   const e = entrega as Record<string, unknown>;
   if (typeof e.descricao === "string" && e.descricao.trim()) return e.descricao;
-  const partes = [e.logradouro, e.numero, e.bairro, e.cidade, e.estado, e.cep]
-    .filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  const partes = [e.logradouro, e.numero, e.bairro, e.cidade, e.estado, e.cep].filter(
+    (v): v is string => typeof v === "string" && v.trim() !== "",
+  );
   return partes.length > 0 ? partes.join(", ") : null;
 }
 
@@ -167,10 +165,7 @@ async function carregarCustosPlanilha(
 
     const custoItens = ((itens ?? []) as any[]).reduce(
       (a, i) =>
-        a +
-        Number(
-          i.custo_previsto ?? Number(i.custo_unitario ?? 0) * Number(i.quantidade ?? 0),
-        ),
+        a + Number(i.custo_previsto ?? Number(i.custo_unitario ?? 0) * Number(i.quantidade ?? 0)),
       0,
     );
 
@@ -228,9 +223,7 @@ export async function carregarPropsOrcamento(
     numero: orc.numero,
     data_solicitacao: fmt(orc.created_at),
     data_validade: validade,
-    data_entrega: fmt(
-      (orc as any).data_entrega_prometida ?? (orc as any).prazo,
-    ),
+    data_entrega: fmt((orc as any).data_entrega_prometida ?? (orc as any).prazo),
     vendedor: (vendedor as any)?.nome ?? null,
     status: orc.status,
     empresa,
@@ -254,13 +247,9 @@ export async function carregarPropsOrcamento(
     itens: itensDoc,
     soma_area: somaArea(itensDoc),
     subtotal: mostrarValores ? Number((orc as any).valor_subtotal ?? total) : null,
-    desconto: mostrarValores
-      ? Number((orc as any).valor_subtotal ?? total) - total
-      : null,
+    desconto: mostrarValores ? Number((orc as any).valor_subtotal ?? total) - total : null,
     total,
-    pagamento: mostrarValores
-      ? descreverPagamento((orc as any).condicao_pagamento, total)
-      : null,
+    pagamento: mostrarValores ? descreverPagamento((orc as any).condicao_pagamento, total) : null,
     entrega: descreverEntrega((orc as any).endereco_entrega),
     observacoes: orc.observacoes,
     mostrarValores,
@@ -338,15 +327,18 @@ export async function carregarPropsOS(
     subtotal: null,
     desconto: mostrarValores ? Number((os as any).desconto ?? 0) : null,
     total,
-    pagamento: mostrarValores
-      ? descreverPagamento((os as any).condicao_pagamento, total)
-      : null,
+    pagamento: mostrarValores ? descreverPagamento((os as any).condicao_pagamento, total) : null,
     entrega: descreverEntrega((os as any).endereco_entrega),
     observacoes: os.observacoes ?? os.briefing,
     mostrarValores,
     custos: mostrarValores
       ? null
-      : await carregarCustosPlanilha("itens_os", "os_id", osId, Number((os as any).valor_total ?? 0)),
+      : await carregarCustosPlanilha(
+          "itens_os",
+          "os_id",
+          osId,
+          Number((os as any).valor_total ?? 0),
+        ),
   };
 }
 
@@ -371,7 +363,8 @@ export async function carregarPropsOrcamento3d(
 
   const qtd = Number(orc.quantidade ?? 1) || 1;
   const preco = Number(orc.preco_comercial ?? 0);
-  const unit = calc?.valor_unitario != null ? Number(calc.valor_unitario) : qtd > 0 ? preco / qtd : preco;
+  const unit =
+    calc?.valor_unitario != null ? Number(calc.valor_unitario) : qtd > 0 ? preco / qtd : preco;
   const validade = orc.validade
     ? new Date(orc.validade).toLocaleDateString("pt-BR")
     : orc.created_at

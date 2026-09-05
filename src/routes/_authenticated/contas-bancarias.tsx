@@ -213,7 +213,9 @@ function ContasBancariasPage() {
     const texto = await file.text();
     const lidas = lerExtrato(file.name, texto);
     if (lidas.length === 0) {
-      toast.error("Não encontramos lançamentos nesse arquivo. Use OFX do banco ou CSV com data, descrição e valor.");
+      toast.error(
+        "Não encontramos lançamentos nesse arquivo. Use OFX do banco ou CSV com data, descrição e valor.",
+      );
       return;
     }
     setArquivoNome(file.name);
@@ -236,8 +238,12 @@ function ContasBancariasPage() {
     const naoConc = contas.reduce((a, c) => a + Number(c.nao_conciliados ?? 0), 0);
     const limite = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const recentes = transacoes.filter((t) => t.data >= limite);
-    const entradas = recentes.filter((t) => t.tipo === "credito").reduce((a, t) => a + Number(t.valor), 0);
-    const saidas = recentes.filter((t) => t.tipo !== "credito").reduce((a, t) => a + Number(t.valor), 0);
+    const entradas = recentes
+      .filter((t) => t.tipo === "credito")
+      .reduce((a, t) => a + Number(t.valor), 0);
+    const saidas = recentes
+      .filter((t) => t.tipo !== "credito")
+      .reduce((a, t) => a + Number(t.valor), 0);
     return { saldo, naoConc, entradas, saidas };
   }, [contas, transacoes]);
 
@@ -249,10 +255,7 @@ function ContasBancariasPage() {
     );
   }, [transacoes, busca]);
 
-  const previaValor = linhas.reduce(
-    (a, l) => a + (l.tipo === "credito" ? l.valor : -l.valor),
-    0,
-  );
+  const previaValor = linhas.reduce((a, l) => a + (l.tipo === "credito" ? l.valor : -l.valor), 0);
 
   return (
     <div>
@@ -276,9 +279,26 @@ function ContasBancariasPage() {
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Saldo real das contas" value={brl(kpis.saldo)} icon={Wallet} tone={kpis.saldo >= 0 ? "cyan" : "magenta"} />
-        <KpiCard label="Entradas (30 dias)" value={brl(kpis.entradas)} icon={ArrowUpCircle} tone="lime" hint="Conta selecionada" />
-        <KpiCard label="Saídas (30 dias)" value={brl(kpis.saidas)} icon={ArrowDownCircle} tone="magenta" hint="Conta selecionada" />
+        <KpiCard
+          label="Saldo real das contas"
+          value={brl(kpis.saldo)}
+          icon={Wallet}
+          tone={kpis.saldo >= 0 ? "cyan" : "magenta"}
+        />
+        <KpiCard
+          label="Entradas (30 dias)"
+          value={brl(kpis.entradas)}
+          icon={ArrowUpCircle}
+          tone="lime"
+          hint="Conta selecionada"
+        />
+        <KpiCard
+          label="Saídas (30 dias)"
+          value={brl(kpis.saidas)}
+          icon={ArrowDownCircle}
+          tone="magenta"
+          hint="Conta selecionada"
+        />
         <KpiCard
           label="A conciliar"
           value={kpis.naoConc}
@@ -326,7 +346,9 @@ function ContasBancariasPage() {
                   tone={c.nao_conciliados > 0 ? "amber" : "lime"}
                 />
               </div>
-              <div className="mt-4 text-2xl font-bold tabular-nums">{brl(Number(c.saldo_atual ?? 0))}</div>
+              <div className="mt-4 text-2xl font-bold tabular-nums">
+                {brl(Number(c.saldo_atual ?? 0))}
+              </div>
               <div className="mt-1 text-[11px] text-muted-foreground">
                 {c.lancamentos} lançamento(s)
                 {c.ultimo_lancamento ? ` · último em ${dataBR(c.ultimo_lancamento)}` : ""}
@@ -363,8 +385,12 @@ function ContasBancariasPage() {
                 <TableRow key={t.id}>
                   <TableCell className="whitespace-nowrap tabular-nums">{dataBR(t.data)}</TableCell>
                   <TableCell className="max-w-[380px] truncate">{t.descricao}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{t.documento || "—"}</TableCell>
-                  <TableCell className="text-xs uppercase text-muted-foreground">{t.origem}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {t.documento || "—"}
+                  </TableCell>
+                  <TableCell className="text-xs uppercase text-muted-foreground">
+                    {t.origem}
+                  </TableCell>
                   <TableCell
                     className={`text-right font-bold tabular-nums ${
                       t.tipo === "credito"
@@ -397,13 +423,24 @@ function ContasBancariasPage() {
             <div className="space-y-2 sm:col-span-2">
               <Label className="flex items-center gap-1.5">
                 Nome da conta *
-                <DicaIcone texto="Como você chama essa conta no dia a dia, ex.: Itaú Movimento." rotulo="Nome da conta" />
+                <DicaIcone
+                  texto="Como você chama essa conta no dia a dia, ex.: Itaú Movimento."
+                  rotulo="Nome da conta"
+                />
               </Label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Itaú movimento" />
+              <Input
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                placeholder="Itaú movimento"
+              />
             </div>
             <div className="space-y-2">
               <Label>Banco</Label>
-              <Input value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} placeholder="Itaú" />
+              <Input
+                value={form.banco}
+                onChange={(e) => setForm({ ...form, banco: e.target.value })}
+                placeholder="Itaú"
+              />
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
@@ -421,16 +458,25 @@ function ContasBancariasPage() {
             </div>
             <div className="space-y-2">
               <Label>Agência</Label>
-              <Input value={form.agencia} onChange={(e) => setForm({ ...form, agencia: e.target.value })} />
+              <Input
+                value={form.agencia}
+                onChange={(e) => setForm({ ...form, agencia: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
               <Label>Conta</Label>
-              <Input value={form.conta} onChange={(e) => setForm({ ...form, conta: e.target.value })} />
+              <Input
+                value={form.conta}
+                onChange={(e) => setForm({ ...form, conta: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
                 Saldo de partida (R$)
-                <DicaIcone texto="Saldo que a conta tinha na data abaixo. O extrato importado soma a partir daqui." rotulo="Saldo de partida" />
+                <DicaIcone
+                  texto="Saldo que a conta tinha na data abaixo. O extrato importado soma a partir daqui."
+                  rotulo="Saldo de partida"
+                />
               </Label>
               <Input
                 type="number"
@@ -449,7 +495,10 @@ function ContasBancariasPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => criarConta.mutate()} disabled={!form.nome || criarConta.isPending}>
+            <Button
+              onClick={() => criarConta.mutate()}
+              disabled={!form.nome || criarConta.isPending}
+            >
               Salvar conta
             </Button>
           </DialogFooter>
@@ -499,8 +548,13 @@ function ContasBancariasPage() {
                   </TableHeader>
                   <TableBody>
                     {linhas.map((l, i) => (
-                      <TableRow key={`${chaveLinha(l)}-${i}`} className={repetidasNoArquivo.has(i) ? "opacity-50" : ""}>
-                        <TableCell className="whitespace-nowrap tabular-nums">{dataBR(l.data)}</TableCell>
+                      <TableRow
+                        key={`${chaveLinha(l)}-${i}`}
+                        className={repetidasNoArquivo.has(i) ? "opacity-50" : ""}
+                      >
+                        <TableCell className="whitespace-nowrap tabular-nums">
+                          {dataBR(l.data)}
+                        </TableCell>
                         <TableCell className="max-w-[420px] truncate">
                           {l.descricao}
                           {repetidasNoArquivo.has(i) && (
@@ -535,7 +589,10 @@ function ContasBancariasPage() {
             <Button variant="outline" onClick={() => setImportOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={() => importar.mutate()} disabled={linhas.length === 0 || importar.isPending}>
+            <Button
+              onClick={() => importar.mutate()}
+              disabled={linhas.length === 0 || importar.isPending}
+            >
               {importar.isPending ? "Importando..." : `Importar ${linhas.length} lançamento(s)`}
             </Button>
           </DialogFooter>

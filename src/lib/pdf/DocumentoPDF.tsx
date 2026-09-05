@@ -70,7 +70,6 @@ export type DocumentoPDFProps = {
   } | null;
 };
 
-
 /**
  * Layout espelhado no orçamento que a gráfica já entrega hoje: blocos com
  * moldura, títulos centralizados e sublinhados, metragem dentro da coluna de
@@ -199,7 +198,13 @@ const criarEstilos = (C: string) =>
     aceiteLabel: { fontSize: 8, textAlign: "center" },
 
     signRow: { flexDirection: "row", marginTop: 30, gap: 40 },
-    signBox: { flex: 1, borderTopWidth: 1, borderTopColor: "#111", paddingTop: 3, alignItems: "center" },
+    signBox: {
+      flex: 1,
+      borderTopWidth: 1,
+      borderTopColor: "#111",
+      paddingTop: 3,
+      alignItems: "center",
+    },
     signLabel: { fontSize: 8 },
 
     footer: {
@@ -260,7 +265,8 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
   const s = criarEstilos(C);
 
   const isOrc = p.tipo === "orcamento" || p.tipo === "orcamento_3d";
-  const titulo = p.tipo === "os" ? "Ordem de Serviço" : p.tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento";
+  const titulo =
+    p.tipo === "os" ? "Ordem de Serviço" : p.tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento";
   const mostrar = p.mostrarValores ?? true;
   const agora = new Date().toLocaleString("pt-BR");
 
@@ -304,7 +310,9 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             </View>
           )}
           <View style={s.empresaCol}>
-            <Text style={s.empresaNome}>{(empresa.razao_social ?? empresa.nome).toUpperCase()}</Text>
+            <Text style={s.empresaNome}>
+              {(empresa.razao_social ?? empresa.nome).toUpperCase()}
+            </Text>
             {enderecoEmpresa && <Text style={s.empresaInfo}>{enderecoEmpresa.toUpperCase()}</Text>}
             <Text style={s.empresaInfo}>
               {[
@@ -408,9 +416,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           })}
 
           <View style={s.totaisItens}>
-            {mostrar && (
-              <Text style={s.totalItensTxt}>Total Produtos {money(totalItens)}</Text>
-            )}
+            {mostrar && <Text style={s.totalItensTxt}>Total Produtos {money(totalItens)}</Text>}
             {temArea && (
               <Text style={s.totalItensTxt}>Soma área total: {m2(Number(p.soma_area))}</Text>
             )}
@@ -446,7 +452,9 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
         {mostrar && (
           <View style={s.totaisDir}>
             <Text style={s.totalLinha}>Valor Desconto: {money(desconto)}</Text>
-            <Text style={s.totalForte}>Valor Total do {titulo}: {money(p.total)}</Text>
+            <Text style={s.totalForte}>
+              Valor Total do {titulo}: {money(p.total)}
+            </Text>
           </View>
         )}
 

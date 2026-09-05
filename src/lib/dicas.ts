@@ -27,7 +27,8 @@ export const dicas = {
     menu: "Arraste as ordens de serviço entre as etapas da produção.",
     tela: "Quadro da produção. Arraste o cartão para mudar a etapa da ordem de serviço — cada mudança fica registrada no histórico. Cartões em vermelho estão com o prazo estourado.",
     acoes: {
-      filtros: "Mostra só as ordens que interessam agora: por cliente, responsável, etapa ou prazo.",
+      filtros:
+        "Mostra só as ordens que interessam agora: por cliente, responsável, etapa ou prazo.",
     },
   },
   "/os": {
@@ -42,33 +43,38 @@ export const dicas = {
     tela: "Base de clientes. Um cliente cadastrado é o que permite converter orçamento em ordem de serviço, emitir documentos e acompanhar o histórico de compras.",
     campos: {
       tipo: "Pessoa física usa CPF; pessoa jurídica usa CNPJ e razão social.",
-      documento: "CPF ou CNPJ. Com o CNPJ, o sistema tenta preencher endereço e razão social sozinho.",
+      documento:
+        "CPF ou CNPJ. Com o CNPJ, o sistema tenta preencher endereço e razão social sozinho.",
       whatsapp: "Número usado para enviar orçamento, arte e aviso de entrega. Com DDD.",
       logo: "Logotipo do cliente. Aparece no cadastro e ajuda a identificar a arte na produção.",
       vendedor: "Quem responde por esse cliente. Usado nas metas e nos relatórios de vendas.",
     },
     acoes: {
       novo: "Abre o cadastro de um novo cliente.",
-      excluir: "Remove o cliente. Não é possível quando já existem orçamentos ou ordens de serviço ligados a ele.",
+      excluir:
+        "Remove o cliente. Não é possível quando já existem orçamentos ou ordens de serviço ligados a ele.",
     },
   },
   "/leads": {
     menu: "Contatos interessados que ainda não viraram cliente.",
     tela: "Funil de primeiros contatos. Registre a origem, acompanhe a conversa e converta em cliente quando o negócio avançar.",
     acoes: {
-      converter: "Transforma o contato em cliente cadastrado, aproveitando nome, telefone e e-mail.",
+      converter:
+        "Transforma o contato em cliente cadastrado, aproveitando nome, telefone e e-mail.",
     },
   },
   "/orcamentos": {
     menu: "Propostas para o cliente e conversão em ordem de serviço.",
     tela: "Todas as propostas comerciais. Monte os itens, envie ao cliente e, quando ele aprovar, converta em ordem de serviço com um clique.",
     campos: {
-      cliente: "Cliente cadastrado. Sem cadastro dá para orçar, mas não dá para converter em ordem de serviço.",
+      cliente:
+        "Cliente cadastrado. Sem cadastro dá para orçar, mas não dá para converter em ordem de serviço.",
       contato: "Nome de quem pediu o orçamento, para contatos que ainda não estão na base.",
       titulo: "Nome curto do trabalho, como o cliente reconhece: 'Fachada loja Centro'.",
       valor: "Valor total da proposta. Ao lançar itens, ele é recalculado automaticamente.",
       data_inicio: "Quando a produção começa, se o cliente aprovar.",
-      prazo: "Data prometida de entrega. Alimenta o prazo da ordem de serviço e os alertas de atraso.",
+      prazo:
+        "Data prometida de entrega. Alimenta o prazo da ordem de serviço e os alertas de atraso.",
     },
     acoes: {
       converter: "Cria a ordem de serviço a partir desta proposta. Exige um cliente cadastrado.",
@@ -76,7 +82,8 @@ export const dicas = {
       producao: "Mesma impressão, sem valores — a via que vai para a oficina.",
       link: "Copia o endereço em que o cliente vê o orçamento e aprova pela internet.",
       whatsapp: "Abre a conversa no WhatsApp já com a mensagem e o link prontos.",
-      artes: "Anexa as artes do item. A marcada com estrela é a que sai no PDF e no link do cliente.",
+      artes:
+        "Anexa as artes do item. A marcada com estrela é a que sai no PDF e no link do cliente.",
     },
   },
   "/impressao-3d": {
@@ -134,7 +141,8 @@ export const dicas = {
     menu: "Equipamentos da gráfica e custo por hora.",
     tela: "Parque de máquinas com velocidade e custo por hora. Esses valores entram no custo de produção de cada trabalho.",
     campos: {
-      custo_hora: "Quanto custa manter a máquina ligada por uma hora, somando energia, manutenção e depreciação.",
+      custo_hora:
+        "Quanto custa manter a máquina ligada por uma hora, somando energia, manutenção e depreciação.",
       velocidade: "Produção média por hora. Usada para estimar o tempo de cada trabalho.",
     },
   },
@@ -170,7 +178,8 @@ export const dicas = {
       unidade: "Como o produto é vendido: metro quadrado, unidade, hora.",
       custo: "Quanto custa produzir uma unidade. Base do cálculo de margem.",
       margem: "Percentual de lucro sobre o custo. O preço sugerido sai daqui.",
-      materiais: "Materiais consumidos por unidade. É o que permite baixar o estoque automaticamente.",
+      materiais:
+        "Materiais consumidos por unidade. É o que permite baixar o estoque automaticamente.",
     },
   },
   "/precificacao": {
@@ -214,7 +223,8 @@ export const dicas = {
     menu: "Saldo das contas e movimento de caixa.",
     tela: "Caixa e contas bancárias. Mostra o saldo real das contas e o previsto com base no que ainda vai entrar e sair.",
     campos: {
-      saldo_inicial: "Saldo da conta na data em que você começou a usar o sistema. Serve de ponto de partida.",
+      saldo_inicial:
+        "Saldo da conta na data em que você começou a usar o sistema. Serve de ponto de partida.",
       conta: "A qual conta bancária o lançamento pertence.",
     },
     acoes: {
@@ -241,7 +251,8 @@ export const dicas = {
     menu: "Cadastro da equipe e níveis de acesso.",
     tela: "Pessoas com acesso ao sistema. O perfil define o que cada uma enxerga e pode fazer.",
     campos: {
-      perfil: "Define o acesso: administrador vê tudo; vendedor vê comercial; operador vê produção.",
+      perfil:
+        "Define o acesso: administrador vê tudo; vendedor vê comercial; operador vê produção.",
       email: "É o login da pessoa. A senha inicial é enviada para esse endereço.",
     },
     acoes: {
@@ -305,10 +316,7 @@ function chave(texto: string): string {
     .replace(/\s+/g, "_");
 }
 
-function buscar(
-  mapa: Record<string, string> | undefined,
-  termo: string,
-): string | undefined {
+function buscar(mapa: Record<string, string> | undefined, termo: string): string | undefined {
   if (!mapa) return undefined;
   const alvo = chave(termo);
   if (mapa[alvo]) return mapa[alvo];
@@ -325,4 +333,3 @@ export function dicaCampo(rota: string, campo: string): string | undefined {
 export function dicaAcao(rota: string, acao: string): string | undefined {
   return buscar((dicas as Record<string, DicasTela>)[rota]?.acoes, acao);
 }
-
