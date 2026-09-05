@@ -164,6 +164,23 @@ function OrcamentoDetailPage() {
     },
   });
 
+  // Tabela de preço por quantidade do produto — o degrau muda o preço unitário
+  // sugerido conforme o vendedor mexe na quantidade.
+  const { data: faixas = [] } = useQuery({
+    queryKey: ["produto-faixas-preco", form.produto_id],
+    enabled: !!form.produto_id && canSeeFinancials,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_faixas_preco")
+        .select(
+          "id, quantidade_minima, preco_unitario, preco_m2_referencia, observacao, vigencia_inicio, vigencia_fim",
+        )
+        .eq("produto_id", form.produto_id);
+      if (error) throw error;
+      return (data ?? []) as FaixaPreco[];
+    },
+  });
+
   function aplicarTamanho(t: TamanhoProduto) {
     setForm((atual) => ({
       ...atual,
@@ -171,6 +188,16 @@ function OrcamentoDetailPage() {
       altura: String(t.altura),
     }));
   }
+
+  // Tamanho marcado como padrão entra sozinho: é a medida que a gráfica mais
+  // vende daquele produto, e medida redigitada é onde nasce erro de produção.
+  useEffect(() => {
+    if (!form.produto_id || form.largura || form.altura) return;
+    const padrao = tamanhos.find((t) => t.padrao);
+    if (padrao) aplicarTamanho(padrao);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tamanhos, form.produto_id]);
+
 
   async function recalcular() {
     if (!canSeeFinancials) return;
