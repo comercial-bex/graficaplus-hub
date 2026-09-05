@@ -5,10 +5,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
+import { KpiCard } from "@/components/bex/KpiCard";
+import { DataPanel } from "@/components/bex/DataPanel";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,8 +68,20 @@ type FormState = {
 };
 
 const emptyForm: FormState = {
-  tipo: "pj", nome: "", razao_social: "", documento: "", email: "", telefone: "",
-  endereco: "", bairro: "", cidade: "", estado: "", cep: "", vendedor_id: "", observacoes: "", logo_url: "",
+  tipo: "pj",
+  nome: "",
+  razao_social: "",
+  documento: "",
+  email: "",
+  telefone: "",
+  endereco: "",
+  bairro: "",
+  cidade: "",
+  estado: "",
+  cep: "",
+  vendedor_id: "",
+  observacoes: "",
+  logo_url: "",
 };
 
 function ClientesPage() {
@@ -60,7 +96,9 @@ function ClientesPage() {
 
   const { data: vendedores = [] } = useQuery({
     queryKey: ["vendedores"],
-    queryFn: async () => (await supabase.from("usuarios").select("id, nome").eq("ativo", true).order("nome")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("usuarios").select("id, nome").eq("ativo", true).order("nome")).data ??
+      [],
   });
 
   const { data: clientes = [], isLoading } = useQuery({
@@ -80,16 +118,18 @@ function ClientesPage() {
   const filtered = useMemo(() => {
     if (!search) return clientes;
     const s = search.toLowerCase();
-    return clientes.filter((c: any) =>
-      c.nome?.toLowerCase().includes(s) ||
-      c.documento?.toLowerCase().includes(s) ||
-      c.email?.toLowerCase().includes(s) ||
-      c.telefone?.includes(s)
+    return clientes.filter(
+      (c: any) =>
+        c.nome?.toLowerCase().includes(s) ||
+        c.documento?.toLowerCase().includes(s) ||
+        c.email?.toLowerCase().includes(s) ||
+        c.telefone?.includes(s),
     );
   }, [clientes, search]);
 
   async function handleLogoUpload(file: File) {
-    if (!file.type.startsWith("image/")) return toast.error("Envie um arquivo de imagem (PNG ou JPG).");
+    if (!file.type.startsWith("image/"))
+      return toast.error("Envie um arquivo de imagem (PNG ou JPG).");
     if (file.size > 2 * 1024 * 1024) return toast.error("A imagem deve ter no máximo 2 MB.");
     setUploading(true);
     try {
@@ -111,7 +151,9 @@ function ClientesPage() {
         .from("avatares")
         .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
       if (erroUrl || !data?.signedUrl) {
-        return toast.error(mensagemErro(erroUrl, "Logo enviada, mas não foi possível gerar o link de exibição."));
+        return toast.error(
+          mensagemErro(erroUrl, "Logo enviada, mas não foi possível gerar o link de exibição."),
+        );
       }
       setForm((atual) => ({ ...atual, logo_url: data.signedUrl }));
       toast.success("Logo enviada");
@@ -119,7 +161,6 @@ function ClientesPage() {
       setUploading(false);
     }
   }
-
 
   // Preenche o cadastro com os dados públicos da Receita, sem sobrescrever o
   // que já foi digitado à mão. O nome fantasia cai para a razão social quando a
@@ -151,151 +192,236 @@ function ClientesPage() {
     qc.invalidateQueries({ queryKey: ["clientes"] });
   }
 
-  const stats = useMemo(() => ({
-    total: clientes.length,
-    pj: clientes.filter((c: any) => c.tipo === "pj").length,
-    pf: clientes.filter((c: any) => c.tipo === "pf").length,
-  }), [clientes]);
+  const stats = useMemo(
+    () => ({
+      total: clientes.length,
+      pj: clientes.filter((c: any) => c.tipo === "pj").length,
+      pf: clientes.filter((c: any) => c.tipo === "pf").length,
+    }),
+    [clientes],
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
-            <DicaIcone texto={dicaTela("/clientes")} rotulo="Clientes" lado="bottom" className="h-5 w-5" />
-          </div>
-          <p className="text-muted-foreground">{stats.total} cliente(s) · {stats.pj} PJ · {stats.pf} PF</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" /> Novo cliente</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={form.logo_url ?? undefined} />
-                  <AvatarFallback>{form.nome.charAt(0).toUpperCase() || "?"}</AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                  <Label htmlFor="logo-upload" className="cursor-pointer">
-                    <div className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-md hover:bg-accent">
-                      <Upload className="h-4 w-4" /> {uploading ? "Enviando..." : "Enviar logo"}
-                    </div>
-                    <input id="logo-upload" type="file" accept="image/*" className="hidden"
-                      onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
-                  </Label>
-                  <p className="text-xs text-muted-foreground">PNG/JPG, máx 2MB</p>
-                </div>
-              </div>
+      <SectionHeader
+        ajuda={dicaTela("/clientes")}
+        breadcrumb="Print OS · Comercial"
+        title="Clientes"
+        description="Cadastro, histórico e responsáveis de cada cliente."
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Novo cliente
+              </Button>
+            </DialogTrigger>
 
-              <div className="grid md:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <Select value={form.tipo} onValueChange={(v: "pf" | "pj") => setForm({ ...form, tipo: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pj">Pessoa Jurídica</SelectItem>
-                      <SelectItem value="pf">Pessoa Física</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Novo cliente</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={form.logo_url ?? undefined} />
+                    <AvatarFallback>{form.nome.charAt(0).toUpperCase() || "?"}</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <Label htmlFor="logo-upload" className="cursor-pointer">
+                      <div className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-md hover:bg-accent">
+                        <Upload className="h-4 w-4" /> {uploading ? "Enviando..." : "Enviar logo"}
+                      </div>
+                      <input
+                        id="logo-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
+                      />
+                    </Label>
+                    <p className="text-xs text-muted-foreground">PNG/JPG, máx 2MB</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Vendedor responsável</Label>
-                  <Select value={form.vendedor_id || "none"} onValueChange={(v) => setForm({ ...form, vendedor_id: v === "none" ? "" : v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem responsável</SelectItem>
-                      {vendedores.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Nome fantasia *</Label>
-                  <Input maxLength={200} value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-                </div>
-                {form.tipo === "pj" && (
+
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Tipo</Label>
+                    <Select
+                      value={form.tipo}
+                      onValueChange={(v: "pf" | "pj") => setForm({ ...form, tipo: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pj">Pessoa Jurídica</SelectItem>
+                        <SelectItem value="pf">Pessoa Física</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Vendedor responsável</Label>
+                    <Select
+                      value={form.vendedor_id || "none"}
+                      onValueChange={(v) =>
+                        setForm({ ...form, vendedor_id: v === "none" ? "" : v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem responsável</SelectItem>
+                        {vendedores.map((v: any) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Razão social</Label>
-                    <Input maxLength={200} value={form.razao_social} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} />
+                    <Label>Nome fantasia *</Label>
+                    <Input
+                      maxLength={200}
+                      value={form.nome}
+                      onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                    />
                   </div>
-                )}
-                <div className="space-y-2">
-                  <CampoDocumento
-                    tipo={form.tipo === "pj" ? "cnpj" : "cpf"}
-                    // Mantém o seletor Pessoa Jurídica/Física em sincronia: são
-                    // duas formas de dizer a mesma coisa e não podem divergir.
-                    // Forma funcional obrigatória: o componente chama
-                    // onTipoChange e onValorChange em sequência, e com spread do
-                    // `form` da closure o segundo desfazia a troca de tipo feita
-                    // pelo primeiro.
-                    onTipoChange={(t) =>
-                      setForm((atual) => ({
-                        ...atual,
-                        tipo: t === "cnpj" ? "pj" : "pf",
-                        documento: "",
-                      }))
-                    }
-                    valor={form.documento}
-                    onValorChange={(v) => setForm((atual) => ({ ...atual, documento: v }))}
-                    onDadosEncontrados={preencherComReceita}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input maxLength={20} value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>E-mail</Label>
-                  <Input type="email" maxLength={150} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Endereço</Label>
-                  <Input maxLength={250} value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Bairro</Label>
-                  <Input maxLength={100} value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cidade</Label>
-                  <Input maxLength={100} value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+                  {form.tipo === "pj" && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Razão social</Label>
+                      <Input
+                        maxLength={200}
+                        value={form.razao_social}
+                        onChange={(e) => setForm({ ...form, razao_social: e.target.value })}
+                      />
+                    </div>
+                  )}
                   <div className="space-y-2">
-                    <Label>UF</Label>
-                    <Input maxLength={2} value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })} />
+                    <CampoDocumento
+                      tipo={form.tipo === "pj" ? "cnpj" : "cpf"}
+                      // Mantém o seletor Pessoa Jurídica/Física em sincronia: são
+                      // duas formas de dizer a mesma coisa e não podem divergir.
+                      // Forma funcional obrigatória: o componente chama
+                      // onTipoChange e onValorChange em sequência, e com spread do
+                      // `form` da closure o segundo desfazia a troca de tipo feita
+                      // pelo primeiro.
+                      onTipoChange={(t) =>
+                        setForm((atual) => ({
+                          ...atual,
+                          tipo: t === "cnpj" ? "pj" : "pf",
+                          documento: "",
+                        }))
+                      }
+                      valor={form.documento}
+                      onValorChange={(v) => setForm((atual) => ({ ...atual, documento: v }))}
+                      onDadosEncontrados={preencherComReceita}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>CEP</Label>
-                    <Input maxLength={10} value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} />
+                    <Label>Telefone</Label>
+                    <Input
+                      maxLength={20}
+                      value={form.telefone}
+                      onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                    />
                   </div>
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Observações</Label>
-                  <Textarea rows={3} maxLength={1000} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>E-mail</Label>
+                    <Input
+                      type="email"
+                      maxLength={150}
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Endereço</Label>
+                    <Input
+                      maxLength={250}
+                      value={form.endereco}
+                      onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Bairro</Label>
+                    <Input
+                      maxLength={100}
+                      value={form.bairro}
+                      onChange={(e) => setForm({ ...form, bairro: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cidade</Label>
+                    <Input
+                      maxLength={100}
+                      value={form.cidade}
+                      onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <Label>UF</Label>
+                      <Input
+                        maxLength={2}
+                        value={form.estado}
+                        onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CEP</Label>
+                      <Input
+                        maxLength={10}
+                        value={form.cep}
+                        onChange={(e) => setForm({ ...form, cep: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Observações</Label>
+                    <Textarea
+                      rows={3}
+                      maxLength={1000}
+                      value={form.observacoes}
+                      onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreate}>Cadastrar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreate}>Cadastrar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
+
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="Clientes" value={stats.total} tone="cyan" />
+        <KpiCard label="Pessoa jurídica" value={stats.pj} tone="magenta" />
+        <KpiCard label="Pessoa física" value={stats.pf} tone="amber" />
+        <KpiCard label="Na busca atual" value={filtered.length} tone="cyan" />
       </div>
 
-      <Card>
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar nome, CNPJ, e-mail, telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
+      <DataPanel
+        busca={search}
+        onBusca={setSearch}
+        placeholder="Buscar nome, CNPJ, e-mail, telefone..."
+        rodape={
+          <span>
+            Mostrando {filtered.length} de {clientes.length} clientes
+          </span>
+        }
+        filtros={
+          <>
             <Select value={filtroTipo} onValueChange={(v: any) => setFiltroTipo(v)}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os tipos</SelectItem>
                 <SelectItem value="pj">PJ</SelectItem>
@@ -303,7 +429,9 @@ function ClientesPage() {
               </SelectContent>
             </Select>
             <Select value={filtroAtivo} onValueChange={(v: any) => setFiltroAtivo(v)}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ativos">Ativos</SelectItem>
                 <SelectItem value="inativos">Inativos</SelectItem>
@@ -311,57 +439,94 @@ function ClientesPage() {
               </SelectContent>
             </Select>
             <Select value={filtroVendedor} onValueChange={setFiltroVendedor}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos vendedores</SelectItem>
-                {vendedores.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>)}
+                {vendedores.map((v: any) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <Table>
-            <TableHeader>
+          </>
+        }
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12"></TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Documento</TableHead>
+              <TableHead>Contato</TableHead>
+              <TableHead>Cidade/UF</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
               <TableRow>
-                <TableHead className="w-12"></TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Cidade/UF</TableHead>
-                <TableHead>Status</TableHead>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  Carregando...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>}
-              {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum cliente</TableCell></TableRow>}
-              {filtered.map((c: any) => (
-                <TableRow key={c.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={c.logo_url ?? undefined} />
-                      <AvatarFallback>{c.nome.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <Link to="/clientes/$id" params={{ id: c.id }} className="text-accent hover:underline">{c.nome}</Link>
-                    {c.razao_social && <div className="text-xs text-muted-foreground">{c.razao_social}</div>}
-                  </TableCell>
-                  <TableCell><Badge variant="secondary">{c.tipo.toUpperCase()}</Badge></TableCell>
-                  <TableCell>{c.documento || "—"}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">{c.email || "—"}</div>
-                    <div className="text-xs text-muted-foreground">{c.telefone || "—"}</div>
-                  </TableCell>
-                  <TableCell>{c.cidade ? `${c.cidade}/${c.estado || ""}` : "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={c.ativo ? "default" : "outline"}>{c.ativo ? "Ativo" : "Inativo"}</Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            )}
+            {!isLoading && filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  Nenhum cliente
+                </TableCell>
+              </TableRow>
+            )}
+            {filtered.map((c: any) => (
+              <TableRow key={c.id}>
+                <TableCell>
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={c.logo_url ?? undefined} />
+                    <AvatarFallback>{c.nome.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </TableCell>
+                <TableCell className="font-bold text-foreground">
+                  <Link
+                    to="/clientes/$id"
+                    params={{ id: c.id }}
+                    className="hover:text-[color:var(--bex-cyan)]"
+                  >
+                    {c.nome}
+                  </Link>
+                  {c.razao_social && (
+                    <div className="text-[10px] font-medium text-muted-foreground">
+                      {c.razao_social}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <StatusChip label={c.tipo.toUpperCase()} tone="muted" />
+                </TableCell>
+                <TableCell className="font-mono text-[11px] text-muted-foreground">
+                  {c.documento || "—"}
+                </TableCell>
+                <TableCell>
+                  <div>{c.email || "—"}</div>
+                  <div className="text-[10px] text-muted-foreground">{c.telefone || "—"}</div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {c.cidade ? `${c.cidade}/${c.estado || ""}` : "—"}
+                </TableCell>
+                <TableCell>
+                  <StatusChip
+                    label={c.ativo ? "Ativo" : "Inativo"}
+                    tone={c.ativo ? "cyan" : "muted"}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </DataPanel>
     </div>
   );
 }

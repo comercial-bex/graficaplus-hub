@@ -20,7 +20,9 @@ export function BexLogo({
 }) {
   return (
     <div className={cn("inline-flex flex-col items-center", className)}>
-      <div className={cn("font-black tracking-tighter leading-none flex items-center", sizes[size])}>
+      <div
+        className={cn("font-black tracking-tighter leading-none flex items-center", sizes[size])}
+      >
         <span className="text-foreground">BE</span>
         <span className="bex-gradient-text">X</span>
       </div>

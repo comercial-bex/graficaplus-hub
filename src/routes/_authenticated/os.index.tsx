@@ -1,9 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
-import { Card, CardContent } from "@/components/ui/card";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
+import { KpiCard } from "@/components/bex/KpiCard";
+import { DataPanel } from "@/components/bex/DataPanel";
+
 import {
   Table,
   TableBody,
@@ -44,10 +48,20 @@ export const Route = createFileRoute("/_authenticated/os/")({
   component: OSPage,
 });
 
+const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const toneOS = (status: string): "cyan" | "magenta" | "amber" | "muted" => {
+  if (["entregue", "concluida", "finalizada"].includes(status)) return "amber";
+  if (["cancelada", "atrasada"].includes(status)) return "magenta";
+  if (status === "rascunho" || status === "aguardando") return "muted";
+  return "cyan";
+};
+
 function OSPage() {
   const qc = useQueryClient();
   const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
+  const [buscaOS, setBuscaOS] = useState("");
   const [form, setForm] = useState({
     cliente_id: "",
     titulo: "",
@@ -75,6 +89,29 @@ function OSPage() {
       return data ?? [];
     },
   });
+
+  const osFiltradas = useMemo(() => {
+    const termo = buscaOS.trim().toLowerCase();
+    if (!termo) return os as any[];
+    return (os as any[]).filter((o) =>
+      [o.numero, o.titulo, o.cliente_nome]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(termo)),
+    );
+  }, [os, buscaOS]);
+
+  const kpisOS = useMemo(() => {
+    const lista = os as any[];
+    const finalizadas = ["entregue", "concluida", "finalizada", "cancelada"];
+    const abertas = lista.filter((o) => !finalizadas.includes(o.status));
+    return {
+      abertas: abertas.length,
+      producao: lista.filter((o) => String(o.status).includes("producao")).length,
+      entregues: lista.filter((o) => ["entregue", "concluida", "finalizada"].includes(o.status))
+        .length,
+      valorAberto: abertas.reduce((a, o) => a + Number(o.valor_total ?? 0), 0),
+    };
+  }, [os]);
 
   async function handleCreate() {
     if (!form.cliente_id || !form.titulo) return toast.error("Cliente e título são obrigatórios");
@@ -106,163 +143,185 @@ function OSPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Ordens de Serviço</h1>
-            <DicaIcone texto={dicaTela("/os")} rotulo="Ordens de Serviço" lado="bottom" className="h-5 w-5" />
-          </div>
-          <p className="text-muted-foreground">Acompanhe todas as OS da produção</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Nova OS
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Nova Ordem de Serviço</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Cliente *</Label>
-                <Select
-                  value={form.cliente_id}
-                  onValueChange={(v) => setForm({ ...form, cliente_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Título *</Label>
-                <Input
-                  value={form.titulo}
-                  onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Briefing</Label>
-                <Textarea
-                  rows={3}
-                  value={form.briefing}
-                  onChange={(e) => setForm({ ...form, briefing: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+      <SectionHeader
+        ajuda={dicaTela("/os")}
+        breadcrumb="Print OS · Produção"
+        title="Ordens de Serviço"
+        description="Acompanhe todas as OS da produção."
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Nova OS
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Prazo entrega</Label>
-                  <Input
-                    type="date"
-                    value={form.prazo_entrega}
-                    onChange={(e) => setForm({ ...form, prazo_entrega: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Prioridade</Label>
+                  <Label>Cliente *</Label>
                   <Select
-                    value={form.prioridade}
-                    onValueChange={(v) => setForm({ ...form, prioridade: v })}
+                    value={form.cliente_id}
+                    onValueChange={(v) => setForm({ ...form, cliente_id: v })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 — Urgente</SelectItem>
-                      <SelectItem value="2">2 — Alta</SelectItem>
-                      <SelectItem value="3">3 — Normal</SelectItem>
-                      <SelectItem value="4">4 — Baixa</SelectItem>
+                      {clientes.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              {canSeeFinancials && (
                 <div className="space-y-2">
-                  <Label>Valor total (R$)</Label>
+                  <Label>Título *</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={form.valor_total}
-                    onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
+                    value={form.titulo}
+                    onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                   />
                 </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreate}>Criar OS</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                <div className="space-y-2">
+                  <Label>Briefing</Label>
+                  <Textarea
+                    rows={3}
+                    value={form.briefing}
+                    onChange={(e) => setForm({ ...form, briefing: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Prazo entrega</Label>
+                    <Input
+                      type="date"
+                      value={form.prazo_entrega}
+                      onChange={(e) => setForm({ ...form, prazo_entrega: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Prioridade</Label>
+                    <Select
+                      value={form.prioridade}
+                      onValueChange={(v) => setForm({ ...form, prioridade: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 — Urgente</SelectItem>
+                        <SelectItem value="2">2 — Alta</SelectItem>
+                        <SelectItem value="3">3 — Normal</SelectItem>
+                        <SelectItem value="4">4 — Baixa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {canSeeFinancials && (
+                  <div className="space-y-2">
+                    <Label>Valor total (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.valor_total}
+                      onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreate}>Criar OS</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
+
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="OS em aberto" value={kpisOS.abertas} tone="cyan" />
+        <KpiCard label="Em produção" value={kpisOS.producao} tone="magenta" />
+        <KpiCard label="Entregues" value={kpisOS.entregues} tone="amber" />
+        <KpiCard
+          label={canSeeFinancials ? "Valor em produção" : "Total de OS"}
+          value={canSeeFinancials ? moeda(kpisOS.valorAberto) : os.length}
+          tone="cyan"
+        />
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <Table>
-            <TableHeader>
+      <DataPanel
+        busca={buscaOS}
+        onBusca={setBuscaOS}
+        placeholder="Buscar OS..."
+        rodape={
+          <span>
+            Mostrando {osFiltradas.length} de {os.length} ordens
+          </span>
+        }
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>Título</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Prazo</TableHead>
+              {canSeeFinancials && <TableHead>Valor</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
               <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Prazo</TableHead>
-                {canSeeFinancials && <TableHead>Valor</TableHead>}
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  Carregando...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    Carregando...
+            )}
+            {!isLoading && osFiltradas.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  Nenhuma OS
+                </TableCell>
+              </TableRow>
+            )}
+            {osFiltradas.map((o: any) => (
+              <TableRow key={o.id} className="cursor-pointer">
+                <TableCell>
+                  <Link
+                    to="/os/$id"
+                    params={{ id: o.id }}
+                    className="font-mono text-xs text-[color:var(--bex-cyan)]"
+                  >
+                    #{o.numero}
+                  </Link>
+                </TableCell>
+                <TableCell className="font-bold text-foreground">
+                  <Link to="/os/$id" params={{ id: o.id }}>
+                    {o.titulo}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
+                <TableCell>
+                  <StatusChip label={o.status.replace(/_/g, " ")} tone={toneOS(o.status)} />
+                </TableCell>
+                <TableCell>{o.prazo_entrega ?? "—"}</TableCell>
+                {canSeeFinancials && (
+                  <TableCell className="font-bold text-foreground">
+                    {moeda(Number(o.valor_total))}
                   </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && os.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    Nenhuma OS
-                  </TableCell>
-                </TableRow>
-              )}
-              {os.map((o: any) => (
-                <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell>
-                    <Link
-                      to="/os/$id"
-                      params={{ id: o.id }}
-                      className="text-accent hover:underline"
-                    >
-                      #{o.numero}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <Link to="/os/$id" params={{ id: o.id }}>
-                      {o.titulo}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{o.cliente_nome}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{o.status.replace(/_/g, " ")}</Badge>
-                  </TableCell>
-                  <TableCell>{o.prazo_entrega ?? "—"}</TableCell>
-                  {canSeeFinancials && <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </DataPanel>
     </div>
   );
 }
