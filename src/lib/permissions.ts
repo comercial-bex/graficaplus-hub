@@ -60,6 +60,7 @@ export const routePermissions: { path: string; permission: Permission }[] = [
   { path: "/perdas", permission: "os.update" },
   { path: "/custos-producao", permission: "custos.read" },
   { path: "/fluxo-caixa", permission: "financeiro.read" },
+  { path: "/contas-bancarias", permission: "financeiro.read" },
   { path: "/maquinas-agenda", permission: "os.read" },
   { path: "/manutencao", permission: "os.update" },
   { path: "/design", permission: "os.update" },
