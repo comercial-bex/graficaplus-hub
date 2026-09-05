@@ -63,11 +63,16 @@ const statusLabel: Record<string, string> = {
   convertido: "Convertido em OS",
 };
 
+const moeda = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 function OrcamentosPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
+  const [busca, setBusca] = useState("");
+
   const [form, setForm] = useState({
     cliente_id: "",
     contato_nome: "",
