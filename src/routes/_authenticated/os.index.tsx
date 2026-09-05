@@ -248,41 +248,45 @@ function OSPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && os.length === 0 && (
+              {!isLoading && osFiltradas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground">
                     Nenhuma OS
                   </TableCell>
                 </TableRow>
               )}
-              {os.map((o: any) => (
-                <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
+              {osFiltradas.map((o: any) => (
+                <TableRow key={o.id} className="cursor-pointer">
                   <TableCell>
                     <Link
                       to="/os/$id"
                       params={{ id: o.id }}
-                      className="text-accent hover:underline"
+                      className="font-mono text-xs text-[color:var(--bex-cyan)]"
                     >
                       #{o.numero}
                     </Link>
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-bold text-foreground">
                     <Link to="/os/$id" params={{ id: o.id }}>
                       {o.titulo}
                     </Link>
                   </TableCell>
-                  <TableCell>{o.cliente_nome}</TableCell>
+                  <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{o.status.replace(/_/g, " ")}</Badge>
+                    <StatusChip label={o.status.replace(/_/g, " ")} tone={toneOS(o.status)} />
                   </TableCell>
                   <TableCell>{o.prazo_entrega ?? "—"}</TableCell>
-                  {canSeeFinancials && <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>}
+                  {canSeeFinancials && (
+                    <TableCell className="font-bold text-foreground">
+                      {moeda(Number(o.valor_total))}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+      </DataPanel>
+
     </div>
   );
 }
