@@ -59,7 +59,17 @@ export type DocumentoPDFProps = {
   entrega?: string | null;
   observacoes?: string | null;
   mostrarValores?: boolean;
+  /**
+   * Composição de custos da planilha (tabela custos_tabela) + custo previsto
+   * dos itens. Só é impressa na via interna/produção — nunca na via do cliente.
+   */
+  custos?: {
+    linhas: { descricao: string; unidade?: string | null; valor: number }[];
+    custo_itens?: number | null;
+    receita?: number | null;
+  } | null;
 };
+
 
 /**
  * Layout espelhado no orçamento que a gráfica já entrega hoje: blocos com
