@@ -91,6 +91,31 @@ function OSPage() {
     },
   });
 
+  const osFiltradas = useMemo(() => {
+    const termo = buscaOS.trim().toLowerCase();
+    if (!termo) return os as any[];
+    return (os as any[]).filter((o) =>
+      [o.numero, o.titulo, o.cliente_nome]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(termo)),
+    );
+  }, [os, buscaOS]);
+
+  const kpisOS = useMemo(() => {
+    const lista = os as any[];
+    const finalizadas = ["entregue", "concluida", "finalizada", "cancelada"];
+    const abertas = lista.filter((o) => !finalizadas.includes(o.status));
+    return {
+      abertas: abertas.length,
+      producao: lista.filter((o) => String(o.status).includes("producao")).length,
+      entregues: lista.filter((o) => ["entregue", "concluida", "finalizada"].includes(o.status))
+        .length,
+      valorAberto: abertas.reduce((a, o) => a + Number(o.valor_total ?? 0), 0),
+    };
+  }, [os]);
+
+
+
   async function handleCreate() {
     if (!form.cliente_id || !form.titulo) return toast.error("Cliente e título são obrigatórios");
     const { data, error } = await supabase
