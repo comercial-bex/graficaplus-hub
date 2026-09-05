@@ -822,6 +822,7 @@ export type Database = {
           descricao: string
           documento: string | null
           fitid: string | null
+          hash_dedup: string | null
           id: string
           origem: string
           tipo: string
@@ -837,6 +838,7 @@ export type Database = {
           descricao?: string
           documento?: string | null
           fitid?: string | null
+          hash_dedup?: string | null
           id?: string
           origem?: string
           tipo?: string
@@ -852,6 +854,7 @@ export type Database = {
           descricao?: string
           documento?: string | null
           fitid?: string | null
+          hash_dedup?: string | null
           id?: string
           origem?: string
           tipo?: string
@@ -871,6 +874,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banco_transacoes_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_saldo_conta"
+            referencedColumns: ["conta_id"]
           },
           {
             foreignKeyName: "banco_transacoes_conta_id_fkey"
@@ -940,6 +950,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixa_movimentos_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_saldo_conta"
+            referencedColumns: ["conta_id"]
           },
           {
             foreignKeyName: "caixa_movimentos_conta_id_fkey"
@@ -11751,6 +11768,25 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_saldo_conta: {
+        Row: {
+          agencia: string | null
+          ativo: boolean | null
+          banco: string | null
+          conta: string | null
+          conta_id: string | null
+          lancamentos: number | null
+          movimento: number | null
+          nao_conciliados: number | null
+          nome: string | null
+          saldo_atual: number | null
+          saldo_inicial: number | null
+          saldo_inicial_data: string | null
+          tipo: string | null
+          ultimo_lancamento: string | null
+        }
+        Relationships: []
+      }
       vw_saldo_contas: {
         Row: {
           ativo: boolean | null
@@ -12381,7 +12417,7 @@ export type Database = {
       hash_token_aprovacao: { Args: { p_token: string }; Returns: string }
       identificacao_legal_os: { Args: { p_os_id: string }; Returns: string }
       importar_extrato: {
-        Args: { p_conta_id: string; p_lancamentos: Json }
+        Args: { p_conta_id: string; p_linhas: Json }
         Returns: Json
       }
       iniciar_apontamento: {
