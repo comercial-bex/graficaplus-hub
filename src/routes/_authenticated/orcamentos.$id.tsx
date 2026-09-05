@@ -391,6 +391,42 @@ function OrcamentoDetailPage() {
     await recalcular();
   }
 
+  /** Copia o item para a lista: mesma arte e mesmo preço, medida ajustável. */
+  async function duplicarItem(item: any) {
+    const { data: novo, error } = await (supabase as any)
+      .from("orcamento_itens")
+      .insert({
+        orcamento_id: id,
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        unidade: item.unidade,
+        largura: item.largura,
+        altura: item.altura,
+        acabamento: item.acabamento,
+        preco_m2: canSeeFinancials ? item.preco_m2 : null,
+        valor_unitario: canSeeFinancials ? item.valor_unitario : 0,
+        custo_unitario: item.custo_unitario,
+        ordem: itens.length,
+        produto_id: item.produto_id,
+        arquivo_id: item.arquivo_id,
+      })
+      .select("id")
+      .single();
+    if (error) return toast.error(mensagemErro(error));
+    if (item.arquivo_id && novo?.id) {
+      await (supabase as any).from("orcamento_item_arquivos").insert({
+        item_id: novo.id,
+        arquivo_id: item.arquivo_id,
+        capa: true,
+        ordem: 0,
+      });
+    }
+    toast.success("Item duplicado");
+    await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+    await recalcular();
+  }
+
+
   /** Link de aprovação do cliente: mesma URL sempre, gerada uma única vez. */
   async function obterLinkCliente() {
     const { token } = await gerarLinkPublicoOrcamento({ data: { orcamentoId: id } });
