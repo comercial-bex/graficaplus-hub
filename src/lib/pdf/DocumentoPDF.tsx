@@ -450,7 +450,35 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           </View>
         )}
 
+        {/* COMPOSIÇÃO DE CUSTOS — via interna */}
+        {p.custos && p.custos.linhas.length > 0 && (
+          <View style={s.bloco}>
+            <Text style={s.blocoTitulo}>COMPOSIÇÃO DE CUSTOS — USO INTERNO</Text>
+            {p.custos.linhas.map((c, idx) => (
+              <Text style={s.td} key={`custo-${idx}`}>
+                <Text style={s.campoLabel}>{c.descricao}: </Text>
+                {money(c.valor)}
+                {c.unidade ? ` / ${c.unidade}` : ""}
+              </Text>
+            ))}
+            {p.custos.custo_itens != null && (
+              <Text style={s.td}>
+                <Text style={s.campoLabel}>Custo previsto dos itens: </Text>
+                {money(Number(p.custos.custo_itens))}
+                {p.custos.receita
+                  ? ` — margem prevista ${(
+                      ((Number(p.custos.receita) - Number(p.custos.custo_itens)) /
+                        Number(p.custos.receita)) *
+                      100
+                    ).toFixed(1)}%`
+                  : ""}
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* PAGAMENTO */}
+
         {mostrar && p.pagamento && (
           <View style={s.bloco} wrap={false}>
             <Text style={s.blocoTitulo}>PAGAMENTO</Text>
