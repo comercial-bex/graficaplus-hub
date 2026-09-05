@@ -376,9 +376,7 @@ function OrcamentoDetailPage() {
               </div>
               <div className="mt-1 flex items-center gap-2 min-w-0">
                 <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{orc.titulo}</h1>
-                <Dica texto={dicaTela("/orcamentos")}>
-                  <span className="inline-flex" />
-                </Dica>
+                <DicaIcone texto={dicaTela("/orcamentos")} rotulo="Orçamento" lado="bottom" className="h-5 w-5" />
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {orc.cliente_nome ? (
