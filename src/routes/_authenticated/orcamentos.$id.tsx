@@ -576,24 +576,24 @@ function OrcamentoDetailPage() {
 
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="flex justify-end">
-            <ProdutoAutocomplete
-              onSelect={(p) =>
-                setForm({
-                  ...itemVazio,
-                  descricao: p.nome,
-                  quantidade: form.quantidade || "1",
-                  unidade: p.unidade,
-                  // produto medido em área já entra no modo de venda por m²;
-                  // o catálogo usa "m2", mas "m²" aparece digitado à mão
-                  preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
-                  valor_unitario: String(p.preco_base ?? 0),
-                  custo_unitario: String(p.custo_medio ?? 0),
-                  produto_id: p.id,
-                })
-              }
+          {/* Escolher do catálogo é o caminho principal: traz medida, preço,
+              custo e material certos. Digitar à mão continua liberado. */}
+          <div className="space-y-1">
+            <OrcamentoProdutoPicker
+              clienteId={(orc as any)?.cliente_id ?? null}
+              produtosNoOrcamento={[
+                ...new Set(
+                  (itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[],
+                ),
+              ]}
+              onSelect={aplicarProduto}
             />
+            <p className="text-xs text-muted-foreground">
+              Escolha um produto do catálogo ou preencha os campos abaixo para um item fora
+              do padrão.
+            </p>
           </div>
+
           <div className="space-y-2">
             <div className="grid grid-cols-12 gap-2 items-end">
               <div className="col-span-6">
