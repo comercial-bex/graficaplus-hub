@@ -135,6 +135,52 @@ function descreverPagamento(condicao: unknown, total: number) {
   };
 }
 
+/**
+ * Bloco "composição de custos" da via interna: tarifas reais da planilha de
+ * custos (tabela custos_tabela) + custo previsto somado dos itens. Se o
+ * usuário não tiver permissão para ver custos, o bloco simplesmente não sai.
+ */
+async function carregarCustosPlanilha(
+  tabelaItens: "orcamento_itens" | "itens_os",
+  campoPai: "orcamento_id" | "os_id",
+  paiId: string,
+  receita: number,
+): Promise<DocumentoPDFProps["custos"]> {
+  try {
+    const [{ data: tabela }, { data: itens }] = await Promise.all([
+      supabase
+        .from("custos_tabela")
+        .select("categoria, descricao, unidade, valor, ativo")
+        .eq("ativo", true)
+        .order("categoria"),
+      (supabase as any)
+        .from(tabelaItens)
+        .select("quantidade, custo_unitario, custo_previsto")
+        .eq(campoPai, paiId),
+    ]);
+
+    const linhas = ((tabela ?? []) as any[]).map((c) => ({
+      descricao: `${String(c.categoria ?? "").replace(/_/g, " ")} · ${c.descricao ?? ""}`.trim(),
+      unidade: c.unidade ?? null,
+      valor: Number(c.valor ?? 0),
+    }));
+
+    const custoItens = ((itens ?? []) as any[]).reduce(
+      (a, i) =>
+        a +
+        Number(
+          i.custo_previsto ?? Number(i.custo_unitario ?? 0) * Number(i.quantidade ?? 0),
+        ),
+      0,
+    );
+
+    if (linhas.length === 0 && custoItens <= 0) return null;
+    return { linhas, custo_itens: custoItens, receita };
+  } catch {
+    return null;
+  }
+}
+
 export async function carregarPropsOrcamento(
   orcamentoId: string,
   mostrarValores = true,
@@ -218,6 +264,15 @@ export async function carregarPropsOrcamento(
     entrega: descreverEntrega((orc as any).endereco_entrega),
     observacoes: orc.observacoes,
     mostrarValores,
+    // a via do cliente nunca leva custo; a via interna leva a planilha real
+    custos: mostrarValores
+      ? null
+      : await carregarCustosPlanilha(
+          "orcamento_itens",
+          "orcamento_id",
+          orcamentoId,
+          Number((orc as any).valor_total ?? 0),
+        ),
   };
 }
 
@@ -289,6 +344,9 @@ export async function carregarPropsOS(
     entrega: descreverEntrega((os as any).endereco_entrega),
     observacoes: os.observacoes ?? os.briefing,
     mostrarValores,
+    custos: mostrarValores
+      ? null
+      : await carregarCustosPlanilha("itens_os", "os_id", osId, Number((os as any).valor_total ?? 0)),
   };
 }
 
