@@ -929,6 +929,14 @@ function OrcamentoDetailPage() {
                       orcamentoId={id}
                       clienteId={(orc as any)?.cliente_id ?? null}
                     />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Duplicar item"
+                      onClick={() => duplicarItem(i)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => removeItem(i.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -938,12 +946,22 @@ function OrcamentoDetailPage() {
             </TableBody>
           </Table>
           <div className="flex justify-end gap-6 text-sm pt-3 border-t">
+            <div>
+              <span className="text-muted-foreground">Itens:</span>{" "}
+              <strong>{itens.length}</strong>
+            </div>
+            {(itens as any[]).some((i) => !i.arquivo_id) && (
+              <div className="text-amber-500">
+                {(itens as any[]).filter((i) => !i.arquivo_id).length} sem arte anexada
+              </div>
+            )}
             {somaAreaTotal(itens) > 0 && (
               <div>
                 <span className="text-muted-foreground">Soma área:</span>{" "}
                 <strong>{somaAreaTotal(itens).toFixed(3).replace(".", ",")}m²</strong>
               </div>
             )}
+
             {canSeeFinancials && (
               <>
                 <div>
