@@ -204,11 +204,32 @@ function OSPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        }
+      />
+
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="OS em aberto" value={kpisOS.abertas} tone="cyan" />
+        <KpiCard label="Em produção" value={kpisOS.producao} tone="magenta" />
+        <KpiCard label="Entregues" value={kpisOS.entregues} tone="amber" />
+        <KpiCard
+          label={canSeeFinancials ? "Valor em produção" : "Total de OS"}
+          value={canSeeFinancials ? moeda(kpisOS.valorAberto) : os.length}
+          tone="cyan"
+        />
       </div>
 
-      <Card>
-        <CardContent className="p-4">
+      <DataPanel
+        busca={buscaOS}
+        onBusca={setBuscaOS}
+        placeholder="Buscar OS..."
+        rodape={
+          <span>
+            Mostrando {osFiltradas.length} de {os.length} ordens
+          </span>
+        }
+      >
           <Table>
+
             <TableHeader>
               <TableRow>
                 <TableHead>#</TableHead>
