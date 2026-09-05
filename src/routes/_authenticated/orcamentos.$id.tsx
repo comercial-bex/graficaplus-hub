@@ -34,24 +34,35 @@ import {
   Link as LinkIcon,
   MessageCircle,
   Loader2,
+  Copy,
+  TrendingDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
-import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
+import { OrcamentoProdutoPicker } from "@/components/orcamento-produto-picker";
+import { OrcamentoMaterialCheck } from "@/components/orcamento-material-check";
 import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
+  areaCobrada,
   areaTotal,
   areaUnitaria,
   descreverMetragem,
   ehUnidadeDeArea,
   somaAreaTotal,
   temDimensoes,
+  valorUnitarioComMinimo,
   valorUnitarioPorM2,
 } from "@/domain/orcamentos/area";
+import {
+  descreverFaixa,
+  faixaAplicada,
+  proximaFaixa,
+  type FaixaPreco,
+} from "@/domain/orcamentos/faixas";
 import { mensagemErro } from "@/lib/erros";
 
 import { Dica, DicaIcone } from "@/components/bex/Dica";
@@ -69,7 +80,11 @@ const itemVazio = {
   produto_id: null as string | null,
   arquivo_id: null as string | null,
   arquivo_nome: null as string | null,
+  area_minima: null as number | null,
+  margem_minima: null as number | null,
+  tempo_producao_min: null as number | null,
 };
+
 
 const paraNumero = (texto: string) => {
   const n = Number(String(texto).replace(",", "."));
