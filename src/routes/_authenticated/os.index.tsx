@@ -48,11 +48,22 @@ export const Route = createFileRoute("/_authenticated/os/")({
   component: OSPage,
 });
 
+const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const toneOS = (status: string): "cyan" | "magenta" | "amber" | "muted" => {
+  if (["entregue", "concluida", "finalizada"].includes(status)) return "amber";
+  if (["cancelada", "atrasada"].includes(status)) return "magenta";
+  if (status === "rascunho" || status === "aguardando") return "muted";
+  return "cyan";
+};
+
 function OSPage() {
   const qc = useQueryClient();
   const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
+  const [buscaOS, setBuscaOS] = useState("");
   const [form, setForm] = useState({
+
     cliente_id: "",
     titulo: "",
     briefing: "",
