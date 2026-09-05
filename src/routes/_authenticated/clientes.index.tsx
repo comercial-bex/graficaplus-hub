@@ -159,18 +159,17 @@ function ClientesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
-            <DicaIcone texto={dicaTela("/clientes")} rotulo="Clientes" lado="bottom" className="h-5 w-5" />
-          </div>
-          <p className="text-muted-foreground">{stats.total} cliente(s) · {stats.pj} PJ · {stats.pf} PF</p>
-        </div>
+      <SectionHeader
+        ajuda={dicaTela("/clientes")}
+        breadcrumb="Print OS · Comercial"
+        title="Clientes"
+        description="Cadastro, histórico e responsáveis de cada cliente."
+        actions={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Novo cliente</Button>
           </DialogTrigger>
+
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
             <div className="space-y-4">
