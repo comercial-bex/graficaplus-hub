@@ -360,59 +360,78 @@ function OrcamentoDetailPage() {
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        ajuda={dicaTela("/orcamentos")}
-        breadcrumb={`Orçamento · #${orc.numero}`}
-        title={orc.titulo}
-        description={
-          orc.cliente_nome ? `Cliente: ${orc.cliente_nome}` : undefined
-        }
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link to="/orcamentos">
-              <Button variant="ghost" size="icon" title="Voltar">
+      <header className="space-y-4 border-b border-border pb-5 mb-2">
+        {/* Linha 1 — identificação */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0">
+            <Button asChild variant="ghost" size="icon" className="mt-1 shrink-0" title="Voltar para orçamentos">
+              <Link to="/orcamentos">
                 <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <StatusChip label={orc.status} tone={statusTone[orc.status] ?? "muted"} />
-            <Select value={orc.status} onValueChange={setStatus}>
-              <SelectTrigger className="w-40 h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {["rascunho", "enviado", "aprovado", "rejeitado", "expirado"].map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Dica texto={dicaAcao("/orcamentos", "pdf")}><Button variant="outline" onClick={() => setPreviewOpen(true)}>
-              <FileDown className="h-4 w-4 mr-1" /> PDF
-            </Button></Dica>
-            <Dica texto={dicaAcao("/orcamentos", "producao")}><Button variant="outline" onClick={() => setPreviewProducaoOpen(true)}>
-              <Printer className="h-4 w-4 mr-1" /> Via de produção
-            </Button></Dica>
-            <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" onClick={copiarLinkCliente} disabled={gerandoLink}>
-              {gerandoLink ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <LinkIcon className="h-4 w-4 mr-1" />
-              )}
-              Link do cliente
-            </Button></Dica>
-            <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" onClick={enviarWhatsApp} disabled={gerandoLink}>
-              <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
-            </Button></Dica>
-
-            {orc.status !== "convertido" && !orc.os_id && (
-              <Button onClick={converterEmOS}>
-                Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            )}
+              </Link>
+            </Button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                <span>Orçamento #{orc.numero}</span>
+                <StatusChip label={orc.status} tone={statusTone[orc.status] ?? "muted"} />
+              </div>
+              <div className="mt-1 flex items-center gap-2 min-w-0">
+                <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{orc.titulo}</h1>
+                <Dica texto={dicaTela("/orcamentos")}>
+                  <span className="inline-flex" />
+                </Dica>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {orc.cliente_nome ? (
+                  <>Cliente: <span className="text-foreground font-medium">{orc.cliente_nome}</span></>
+                ) : (
+                  "Sem cliente vinculado"
+                )}
+              </p>
+            </div>
           </div>
-        }
-      />
+
+          {orc.status !== "convertido" && !orc.os_id && (
+            <Button onClick={converterEmOS} className="shrink-0">
+              Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          )}
+        </div>
+
+        {/* Linha 2 — ações secundárias */}
+        <div className="flex items-center gap-2 flex-wrap pl-12">
+          <Select value={orc.status} onValueChange={setStatus}>
+            <SelectTrigger className="w-40 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["rascunho", "enviado", "aprovado", "rejeitado", "expirado"].map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="h-6 w-px bg-border mx-1" />
+          <Dica texto={dicaAcao("/orcamentos", "pdf")}><Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF
+          </Button></Dica>
+          <Dica texto={dicaAcao("/orcamentos", "producao")}><Button variant="outline" size="sm" onClick={() => setPreviewProducaoOpen(true)}>
+            <Printer className="h-4 w-4 mr-1" /> Via de produção
+          </Button></Dica>
+          <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" size="sm" onClick={copiarLinkCliente} disabled={gerandoLink}>
+            {gerandoLink ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <LinkIcon className="h-4 w-4 mr-1" />
+            )}
+            Link do cliente
+          </Button></Dica>
+          <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
+            <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+          </Button></Dica>
+        </div>
+      </header>
+
 
       <Card>
         <CardContent className="p-4 space-y-4">
