@@ -660,6 +660,83 @@ function OrcamentoDetailPage() {
               </div>
             )}
 
+            {/* Preço por quantidade: mostra o degrau atingido e o próximo. */}
+            {canSeeFinancials && faixas.length > 0 && (
+              <div className="flex items-center gap-3 flex-wrap text-xs">
+                {faixaAtual ? (
+                  <>
+                    <span className="text-muted-foreground">
+                      Faixa aplicada: <strong className="text-foreground">{descreverFaixa(faixaAtual, form.unidade)}</strong>
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-normal"
+                      onClick={() => aplicarFaixa(faixaAtual)}
+                    >
+                      Usar este preço
+                    </Button>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
+                    Quantidade abaixo da primeira faixa de preço.
+                  </span>
+                )}
+                {faixaSeguinte && (
+                  <span className="text-accent">
+                    {descreverFaixa(faixaSeguinte, form.unidade)} — vale sugerir ao cliente.
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Área mínima faturada: o vendedor precisa saber por que a conta
+                deu mais que a área da peça. */}
+            {minimoAplicado && (
+              <p className="text-xs text-amber-500">
+                Área mínima do produto aplicada: serão cobrados{" "}
+                {areaFaturada.toFixed(3).replace(".", ",")}m² em vez de{" "}
+                {areaTotal(dimensoesForm).toFixed(3).replace(".", ",")}m².
+              </p>
+            )}
+
+            {/* Conferência de material e estoque, só aviso. */}
+            <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
+
+            {/* Margem do item comparada à mínima do produto. */}
+            {canSeeFinancials && margemItem !== null && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Margem do item:</span>
+                <strong
+                  className={
+                    margemAbaixoDoMinimo
+                      ? "text-destructive"
+                      : margemMinimaItem !== null && margemItem < margemMinimaItem + 5
+                        ? "text-amber-500"
+                        : "text-accent"
+                  }
+                >
+                  {margemItem.toFixed(1)}%
+                </strong>
+                {margemMinimaItem !== null && (
+                  <span className="text-muted-foreground">
+                    (mínima do produto: {margemMinimaItem.toFixed(1)}%)
+                  </span>
+                )}
+                {margemAbaixoDoMinimo && (
+                  <span className="flex items-center gap-1 text-destructive">
+                    <TrendingDown className="h-3 w-3" /> abaixo do mínimo
+                  </span>
+                )}
+                {form.tempo_producao_min && (
+                  <span className="text-muted-foreground">
+                    · produção estimada: {Math.round((form.tempo_producao_min * quantidadeForm) / 60 * 10) / 10}h
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Medidas em metros: preencher as duas liga a venda por m². */}
             <div className="grid grid-cols-12 gap-2 items-end">
               <div className="col-span-2">
