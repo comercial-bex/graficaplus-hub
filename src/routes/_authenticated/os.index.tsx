@@ -1,9 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
-import { Card, CardContent } from "@/components/ui/card";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
+import { KpiCard } from "@/components/bex/KpiCard";
+import { DataPanel } from "@/components/bex/DataPanel";
+
 import {
   Table,
   TableBody,
