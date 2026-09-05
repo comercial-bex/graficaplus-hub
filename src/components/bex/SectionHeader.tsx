@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { DicaIcone } from "@/components/bex/Dica";
 
+/** Barra de cabeçalho da tela: caminho, título e ações. */
 export function SectionHeader({
   breadcrumb,
   title,
@@ -20,27 +21,25 @@ export function SectionHeader({
   return (
     <header
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 pb-6 border-b border-border mb-6",
+        "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border pb-4 mb-6",
         className,
       )}
     >
       <div className="min-w-0">
-        {breadcrumb && (
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">
-            {breadcrumb}
-          </div>
-        )}
         <div className="flex items-center gap-2 min-w-0">
-          <h1 className="truncate text-2xl md:text-3xl font-black tracking-tight text-foreground">
-            {title}
-          </h1>
+          <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{title}</h1>
           <DicaIcone texto={ajuda} rotulo={title} lado="bottom" className="h-5 w-5" />
         </div>
+        {breadcrumb && (
+          <p className="mt-0.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+            {breadcrumb}
+          </p>
+        )}
         {description && (
-          <p className="mt-1 text-sm text-muted-foreground max-w-2xl">{description}</p>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2 flex-wrap justify-end">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
     </header>
   );
 }
