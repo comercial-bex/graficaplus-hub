@@ -239,9 +239,74 @@ function OrcamentoDetailPage() {
   const precoM2Form = paraNumero(form.preco_m2);
   const vendidoPorArea = temDimensoes(dimensoesForm);
   // Com preço/m² informado, o valor unitário é derivado — o trigger no banco
-  // aplica a mesma regra, então o campo fica só como leitura.
+  // aplica a mesma regra, então o campo fica só como leitura. Com área mínima
+  // cadastrada, a peça pequena paga o mínimo (setup e refile não encolhem).
   const valorUnitarioDerivado =
-    vendidoPorArea && precoM2Form > 0 ? valorUnitarioPorM2(dimensoesForm, precoM2Form) : null;
+    vendidoPorArea && precoM2Form > 0
+      ? valorUnitarioComMinimo(dimensoesForm, precoM2Form, form.area_minima)
+      : null;
+  const areaFaturada = vendidoPorArea ? areaCobrada(dimensoesForm, form.area_minima) : 0;
+  const minimoAplicado = areaFaturada > areaTotal(dimensoesForm) + 0.0001;
+
+  // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
+  const quantidadeForm = paraNumero(form.quantidade) || 1;
+  const faixaAtual = faixaAplicada(faixas, quantidadeForm);
+  const faixaSeguinte = proximaFaixa(faixas, quantidadeForm);
+
+  // Preço unitário efetivo do item em edição, para conferir a margem na hora.
+  const valorUnitarioEfetivo =
+    valorUnitarioDerivado !== null ? valorUnitarioDerivado : paraNumero(form.valor_unitario);
+  const custoUnitarioForm = paraNumero(form.custo_unitario);
+  const margemItem =
+    valorUnitarioEfetivo > 0
+      ? ((valorUnitarioEfetivo - custoUnitarioForm) / valorUnitarioEfetivo) * 100
+      : null;
+  const margemMinimaItem = form.margem_minima ?? null;
+  const margemAbaixoDoMinimo =
+    margemItem !== null && margemMinimaItem !== null && margemItem < margemMinimaItem;
+
+  // Base que multiplica o consumo de material: m² cobrados quando vendido por
+  // área, senão a quantidade de peças.
+  const baseConsumo = vendidoPorArea ? areaFaturada : quantidadeForm;
+
+  /** Aplica o produto do catálogo ao formulário, já com preço, custo e limites. */
+  function aplicarProduto(p: {
+    id: string;
+    nome: string;
+    unidade: string;
+    preco_base: number | null;
+    custo_medio: number;
+    margem_minima: number;
+    area_minima_cobrada: number | null;
+    tempo_producao_min: number | null;
+  }) {
+    setForm({
+      ...itemVazio,
+      descricao: p.nome,
+      quantidade: form.quantidade || "1",
+      unidade: p.unidade,
+      preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
+      valor_unitario: String(p.preco_base ?? 0),
+      custo_unitario: String(p.custo_medio ?? 0),
+      produto_id: p.id,
+      area_minima: p.area_minima_cobrada ?? null,
+      margem_minima: Number(p.margem_minima ?? 0) || null,
+      tempo_producao_min: p.tempo_producao_min ?? null,
+    });
+  }
+
+  /** Usa o preço da faixa atingida no item em edição. */
+  function aplicarFaixa(faixa: FaixaPreco) {
+    setForm((atual) => ({
+      ...atual,
+      valor_unitario: String(faixa.preco_unitario),
+      preco_m2:
+        ehUnidadeDeArea(atual.unidade) && faixa.preco_m2_referencia
+          ? String(faixa.preco_m2_referencia)
+          : atual.preco_m2,
+    }));
+  }
+
 
   async function enviarLayout(arquivo: File) {
     setEnviandoLayout(true);
