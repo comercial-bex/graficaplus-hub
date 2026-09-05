@@ -284,15 +284,27 @@ function ClientesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        }
+      />
+
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="Clientes" value={stats.total} tone="cyan" />
+        <KpiCard label="Pessoa jurídica" value={stats.pj} tone="magenta" />
+        <KpiCard label="Pessoa física" value={stats.pf} tone="amber" />
+        <KpiCard label="Na busca atual" value={filtered.length} tone="cyan" />
       </div>
 
-      <Card>
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar nome, CNPJ, e-mail, telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
+      <DataPanel
+        busca={search}
+        onBusca={setSearch}
+        placeholder="Buscar nome, CNPJ, e-mail, telefone..."
+        rodape={
+          <span>
+            Mostrando {filtered.length} de {clientes.length} clientes
+          </span>
+        }
+        filtros={
+          <>
             <Select value={filtroTipo} onValueChange={(v: any) => setFiltroTipo(v)}>
               <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -316,9 +328,11 @@ function ClientesPage() {
                 {vendedores.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
-
+          </>
+        }
+      >
           <Table>
+
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12"></TableHead>
