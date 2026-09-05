@@ -15,6 +15,10 @@ export type DicasTela = {
 };
 
 export const dicas = {
+  "/contas-bancarias": {
+    menu: "Saldo real das contas e importação do extrato do banco.",
+    tela: "Cadastre as contas da gráfica e envie o extrato (OFX do banco ou planilha CSV). Cada lançamento novo entra no caixa e atualiza o saldo real; lançamentos já importados são ignorados, então pode reenviar o mesmo arquivo sem duplicar nada.",
+  },
   "/dashboard": {
     menu: "Visão geral do dia: vendas, produção e o que precisa de atenção.",
     tela: "Resumo do negócio em números reais do sistema. Os cartões mudam conforme os orçamentos, as ordens de serviço e os pagamentos registrados.",

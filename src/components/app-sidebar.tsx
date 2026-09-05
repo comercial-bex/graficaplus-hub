@@ -33,6 +33,7 @@ import {
   Network,
   TrendingDown,
   Wallet,
+  Landmark,
   type LucideIcon,
 } from "lucide-react";
 import {
