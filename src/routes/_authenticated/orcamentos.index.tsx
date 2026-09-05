@@ -253,92 +253,114 @@ function OrcamentosPage() {
         }
       />
 
-      <Card>
-        <CardContent className="p-4">
-          <Table>
-            <TableHeader>
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="Orçamentos em aberto" value={kpis.abertos} tone="cyan" icon={FileText} />
+        <KpiCard
+          label="Aguardando aprovação"
+          value={kpis.enviados}
+          tone="amber"
+          hint={canSeeFinancials ? `Total ${moeda(kpis.valorEnviados)}` : undefined}
+        />
+        <KpiCard label="Convertidos em OS" value={kpis.convertidos} tone="magenta" />
+        <KpiCard
+          label={canSeeFinancials ? "Valor total" : "Total de orçamentos"}
+          value={canSeeFinancials ? moeda(kpis.valorTotal) : orcamentos.length}
+          tone="cyan"
+        />
+      </div>
+
+      <DataPanel
+        busca={busca}
+        onBusca={setBusca}
+        placeholder="Buscar orçamento..."
+        rodape={
+          <>
+            <span>
+              Mostrando {filtrados.length} de {orcamentos.length} orçamentos
+            </span>
+          </>
+        }
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>Título</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Status</TableHead>
+              {canSeeFinancials && <TableHead>Valor</TableHead>}
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
               <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
-                {canSeeFinancials && <TableHead>Valor</TableHead>}
-                <TableHead className="text-right">Ações</TableHead>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  Carregando...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    Carregando...
+            )}
+            {!isLoading && filtrados.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  Nenhum orçamento
+                </TableCell>
+              </TableRow>
+            )}
+            {filtrados.map((o: any) => {
+              return (
+                <TableRow
+                  key={o.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
+                >
+                  <TableCell className="font-mono text-xs text-[color:var(--bex-cyan)]">
+                    #{o.numero}
                   </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && orcamentos.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    Nenhum orçamento
-                  </TableCell>
-                </TableRow>
-              )}
-              {orcamentos.map((o: any) => {
-                return (
-                  <TableRow
-                    key={o.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
-                  >
-                    <TableCell>
-                      <Link to="/orcamentos/$id" params={{ id: o.id }} className="font-mono text-xs text-muted-foreground hover:text-[color:var(--bex-cyan)]">
-                        #{o.numero}
+                  <TableCell className="font-bold text-foreground">{o.titulo}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {mapa3d[o.id] ? (
+                      <Link to="/orcamento-3d/$id" params={{ id: mapa3d[o.id] }}>
+                        <StatusChip label="Impressão 3D" tone="magenta" />
                       </Link>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <Link to="/orcamentos/$id" params={{ id: o.id }} className="hover:underline">
-                        {o.titulo}
-                      </Link>
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      {mapa3d[o.id] ? (
-                        <Link to="/orcamento-3d/$id" params={{ id: mapa3d[o.id] }}>
-                          <StatusChip label="Impressão 3D" tone="magenta" />
-                        </Link>
-                      ) : (
-                        <StatusChip label="Comunicação visual" tone="cyan" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {o.cliente_nome ?? (
-                        <span className="inline-flex items-center gap-1.5">
-                          {o.contato_nome ?? "—"}
-                          <StatusChip label="sem cadastro" tone="amber" />
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <StatusChip
-                        label={statusLabel[o.status] ?? o.status}
-                        tone={statusTone[o.status] ?? "muted"}
-                      />
-                    </TableCell>
-                    {canSeeFinancials && (
-                      <TableCell className="font-mono text-sm">R$ {Number(o.valor_total).toFixed(2)}</TableCell>
+                    ) : (
+                      <StatusChip label="Comunicação visual" tone="cyan" />
                     )}
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      {o.status !== "convertido" && (
-                        <Button size="sm" variant="outline" onClick={() => converterEmOS(o)}>
-                          Converter em OS <ArrowRight className="h-3 w-3 ml-1" />
-                        </Button>
-                      )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {o.cliente_nome ?? (
+                      <span className="inline-flex items-center gap-1.5">
+                        {o.contato_nome ?? "—"}
+                        <StatusChip label="sem cadastro" tone="amber" />
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <StatusChip
+                      label={statusLabel[o.status] ?? o.status}
+                      tone={statusTone[o.status] ?? "muted"}
+                    />
+                  </TableCell>
+                  {canSeeFinancials && (
+                    <TableCell className="font-bold text-foreground">
+                      {moeda(Number(o.valor_total))}
                     </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  )}
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    {o.status !== "convertido" && (
+                      <Button size="sm" variant="outline" onClick={() => converterEmOS(o)}>
+                        Converter em OS <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </DataPanel>
+
     </div>
   );
 }
