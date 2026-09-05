@@ -162,21 +162,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2.5 px-2 py-3">
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 font-black text-sm"
-            style={{ background: "var(--gradient-cmyk)", color: "#050507" }}
+            className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 font-bold text-sm"
+            style={{ background: "var(--gradient-cmyk)", color: "#050506" }}
           >
-            X
+            B
           </div>
           {!collapsed && (
             <div className="leading-tight">
-              <div className="text-sm font-black tracking-tight text-sidebar-foreground">
-                BE<span className="bex-gradient-text">X</span>{" "}
-                <span className="font-medium">PRINT</span>
+              <div className="text-lg font-bold tracking-tight text-white">
+                Bex <span className="text-[color:var(--bex-cyan)]">Print</span>
               </div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-sidebar-foreground/50">
+              <div className="text-[9px] uppercase tracking-[0.2em] text-sidebar-foreground/50">
                 Print OS · v4.2
               </div>
             </div>
@@ -184,7 +183,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="py-2">
         {groups.map((group) => {
           if (group.gate === "financial" && !canSeeFinancials) return null;
           if (group.gate === "admin" && !hasRole("admin")) return null;
@@ -193,10 +192,12 @@ export function AppSidebar() {
           );
           if (visibleItems.length === 0) return null;
           return (
-            <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroup key={group.label} className="mb-4">
+              <SidebarGroupLabel className="px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                {group.label}
+              </SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu>
+                <SidebarMenu className="gap-1">
                   {visibleItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
                       <Dica
@@ -208,7 +209,7 @@ export function AppSidebar() {
                           asChild
                           isActive={isActive(item.url)}
                           tooltip={collapsed ? item.title : undefined}
-                          className="w-full"
+                          className="w-full rounded-md border-l-2 border-transparent text-sm font-medium data-[active=true]:border-l-[color:var(--bex-cyan)] data-[active=true]:bg-[color:var(--bex-cyan)]/5 data-[active=true]:text-[color:var(--bex-cyan)]"
                         >
                           <Link to={item.url}>
                             <item.icon />
@@ -225,10 +226,18 @@ export function AppSidebar() {
         })}
       </SidebarContent>
 
-      <SidebarFooter>
-        <div className="px-2 py-2 space-y-2">
+      <SidebarFooter className="border-t border-sidebar-border">
+        <div className="space-y-2 px-2 py-2">
           {!collapsed && user && (
-            <div className="text-xs text-sidebar-foreground/70 truncate">{user.email}</div>
+            <div className="flex items-center gap-3 rounded-lg bg-foreground/5 p-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--bex-magenta)] text-xs font-bold text-[color:var(--primary-foreground)]">
+                {(user.email ?? "?").slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-bold text-white">{user.email}</p>
+                <p className="truncate text-[10px] text-muted-foreground">Usuário do sistema</p>
+              </div>
+            </div>
           )}
           <Button
             variant="ghost"
@@ -244,3 +253,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
