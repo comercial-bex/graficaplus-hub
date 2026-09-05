@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,24 +34,35 @@ import {
   Link as LinkIcon,
   MessageCircle,
   Loader2,
+  Copy,
+  TrendingDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
-import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
+import { OrcamentoProdutoPicker } from "@/components/orcamento-produto-picker";
+import { OrcamentoMaterialCheck } from "@/components/orcamento-material-check";
 import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
+  areaCobrada,
   areaTotal,
   areaUnitaria,
   descreverMetragem,
   ehUnidadeDeArea,
   somaAreaTotal,
   temDimensoes,
-  valorUnitarioPorM2,
+  valorUnitarioComMinimo,
+
 } from "@/domain/orcamentos/area";
+import {
+  descreverFaixa,
+  faixaAplicada,
+  proximaFaixa,
+  type FaixaPreco,
+} from "@/domain/orcamentos/faixas";
 import { mensagemErro } from "@/lib/erros";
 
 import { Dica, DicaIcone } from "@/components/bex/Dica";
@@ -69,7 +80,11 @@ const itemVazio = {
   produto_id: null as string | null,
   arquivo_id: null as string | null,
   arquivo_nome: null as string | null,
+  area_minima: null as number | null,
+  margem_minima: null as number | null,
+  tempo_producao_min: null as number | null,
 };
+
 
 const paraNumero = (texto: string) => {
   const n = Number(String(texto).replace(",", "."));
@@ -149,6 +164,23 @@ function OrcamentoDetailPage() {
     },
   });
 
+  // Tabela de preço por quantidade do produto — o degrau muda o preço unitário
+  // sugerido conforme o vendedor mexe na quantidade.
+  const { data: faixas = [] } = useQuery({
+    queryKey: ["produto-faixas-preco", form.produto_id],
+    enabled: !!form.produto_id && canSeeFinancials,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_faixas_preco")
+        .select(
+          "id, quantidade_minima, preco_unitario, preco_m2_referencia, observacao, vigencia_inicio, vigencia_fim",
+        )
+        .eq("produto_id", form.produto_id);
+      if (error) throw error;
+      return (data ?? []) as FaixaPreco[];
+    },
+  });
+
   function aplicarTamanho(t: TamanhoProduto) {
     setForm((atual) => ({
       ...atual,
@@ -156,6 +188,16 @@ function OrcamentoDetailPage() {
       altura: String(t.altura),
     }));
   }
+
+  // Tamanho marcado como padrão entra sozinho: é a medida que a gráfica mais
+  // vende daquele produto, e medida redigitada é onde nasce erro de produção.
+  useEffect(() => {
+    if (!form.produto_id || form.largura || form.altura) return;
+    const padrao = tamanhos.find((t) => t.padrao);
+    if (padrao) aplicarTamanho(padrao);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tamanhos, form.produto_id]);
+
 
   async function recalcular() {
     if (!canSeeFinancials) return;
@@ -197,9 +239,74 @@ function OrcamentoDetailPage() {
   const precoM2Form = paraNumero(form.preco_m2);
   const vendidoPorArea = temDimensoes(dimensoesForm);
   // Com preço/m² informado, o valor unitário é derivado — o trigger no banco
-  // aplica a mesma regra, então o campo fica só como leitura.
+  // aplica a mesma regra, então o campo fica só como leitura. Com área mínima
+  // cadastrada, a peça pequena paga o mínimo (setup e refile não encolhem).
   const valorUnitarioDerivado =
-    vendidoPorArea && precoM2Form > 0 ? valorUnitarioPorM2(dimensoesForm, precoM2Form) : null;
+    vendidoPorArea && precoM2Form > 0
+      ? valorUnitarioComMinimo(dimensoesForm, precoM2Form, form.area_minima)
+      : null;
+  const areaFaturada = vendidoPorArea ? areaCobrada(dimensoesForm, form.area_minima) : 0;
+  const minimoAplicado = areaFaturada > areaTotal(dimensoesForm) + 0.0001;
+
+  // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
+  const quantidadeForm = paraNumero(form.quantidade) || 1;
+  const faixaAtual = faixaAplicada(faixas, quantidadeForm);
+  const faixaSeguinte = proximaFaixa(faixas, quantidadeForm);
+
+  // Preço unitário efetivo do item em edição, para conferir a margem na hora.
+  const valorUnitarioEfetivo =
+    valorUnitarioDerivado !== null ? valorUnitarioDerivado : paraNumero(form.valor_unitario);
+  const custoUnitarioForm = paraNumero(form.custo_unitario);
+  const margemItem =
+    valorUnitarioEfetivo > 0
+      ? ((valorUnitarioEfetivo - custoUnitarioForm) / valorUnitarioEfetivo) * 100
+      : null;
+  const margemMinimaItem = form.margem_minima ?? null;
+  const margemAbaixoDoMinimo =
+    margemItem !== null && margemMinimaItem !== null && margemItem < margemMinimaItem;
+
+  // Base que multiplica o consumo de material: m² cobrados quando vendido por
+  // área, senão a quantidade de peças.
+  const baseConsumo = vendidoPorArea ? areaFaturada : quantidadeForm;
+
+  /** Aplica o produto do catálogo ao formulário, já com preço, custo e limites. */
+  function aplicarProduto(p: {
+    id: string;
+    nome: string;
+    unidade: string;
+    preco_base: number | null;
+    custo_medio: number;
+    margem_minima: number;
+    area_minima_cobrada: number | null;
+    tempo_producao_min: number | null;
+  }) {
+    setForm({
+      ...itemVazio,
+      descricao: p.nome,
+      quantidade: form.quantidade || "1",
+      unidade: p.unidade,
+      preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
+      valor_unitario: String(p.preco_base ?? 0),
+      custo_unitario: String(p.custo_medio ?? 0),
+      produto_id: p.id,
+      area_minima: p.area_minima_cobrada ?? null,
+      margem_minima: Number(p.margem_minima ?? 0) || null,
+      tempo_producao_min: p.tempo_producao_min ?? null,
+    });
+  }
+
+  /** Usa o preço da faixa atingida no item em edição. */
+  function aplicarFaixa(faixa: FaixaPreco) {
+    setForm((atual) => ({
+      ...atual,
+      valor_unitario: String(faixa.preco_unitario),
+      preco_m2:
+        ehUnidadeDeArea(atual.unidade) && faixa.preco_m2_referencia
+          ? String(faixa.preco_m2_referencia)
+          : atual.preco_m2,
+    }));
+  }
+
 
   async function enviarLayout(arquivo: File) {
     setEnviandoLayout(true);
@@ -283,6 +390,42 @@ function OrcamentoDetailPage() {
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     await recalcular();
   }
+
+  /** Copia o item para a lista: mesma arte e mesmo preço, medida ajustável. */
+  async function duplicarItem(item: any) {
+    const { data: novo, error } = await (supabase as any)
+      .from("orcamento_itens")
+      .insert({
+        orcamento_id: id,
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        unidade: item.unidade,
+        largura: item.largura,
+        altura: item.altura,
+        acabamento: item.acabamento,
+        preco_m2: canSeeFinancials ? item.preco_m2 : null,
+        valor_unitario: canSeeFinancials ? item.valor_unitario : 0,
+        custo_unitario: item.custo_unitario,
+        ordem: itens.length,
+        produto_id: item.produto_id,
+        arquivo_id: item.arquivo_id,
+      })
+      .select("id")
+      .single();
+    if (error) return toast.error(mensagemErro(error));
+    if (item.arquivo_id && novo?.id) {
+      await (supabase as any).from("orcamento_item_arquivos").insert({
+        item_id: novo.id,
+        arquivo_id: item.arquivo_id,
+        capa: true,
+        ordem: 0,
+      });
+    }
+    toast.success("Item duplicado");
+    await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+    await recalcular();
+  }
+
 
   /** Link de aprovação do cliente: mesma URL sempre, gerada uma única vez. */
   async function obterLinkCliente() {
@@ -433,24 +576,24 @@ function OrcamentoDetailPage() {
 
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="flex justify-end">
-            <ProdutoAutocomplete
-              onSelect={(p) =>
-                setForm({
-                  ...itemVazio,
-                  descricao: p.nome,
-                  quantidade: form.quantidade || "1",
-                  unidade: p.unidade,
-                  // produto medido em área já entra no modo de venda por m²;
-                  // o catálogo usa "m2", mas "m²" aparece digitado à mão
-                  preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
-                  valor_unitario: String(p.preco_base ?? 0),
-                  custo_unitario: String(p.custo_medio ?? 0),
-                  produto_id: p.id,
-                })
-              }
+          {/* Escolher do catálogo é o caminho principal: traz medida, preço,
+              custo e material certos. Digitar à mão continua liberado. */}
+          <div className="space-y-1">
+            <OrcamentoProdutoPicker
+              clienteId={(orc as any)?.cliente_id ?? null}
+              produtosNoOrcamento={[
+                ...new Set(
+                  (itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[],
+                ),
+              ]}
+              onSelect={aplicarProduto}
             />
+            <p className="text-xs text-muted-foreground">
+              Escolha um produto do catálogo ou preencha os campos abaixo para um item fora
+              do padrão.
+            </p>
           </div>
+
           <div className="space-y-2">
             <div className="grid grid-cols-12 gap-2 items-end">
               <div className="col-span-6">
@@ -514,6 +657,83 @@ function OrcamentoDetailPage() {
                     </Button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Preço por quantidade: mostra o degrau atingido e o próximo. */}
+            {canSeeFinancials && faixas.length > 0 && (
+              <div className="flex items-center gap-3 flex-wrap text-xs">
+                {faixaAtual ? (
+                  <>
+                    <span className="text-muted-foreground">
+                      Faixa aplicada: <strong className="text-foreground">{descreverFaixa(faixaAtual, form.unidade)}</strong>
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-normal"
+                      onClick={() => aplicarFaixa(faixaAtual)}
+                    >
+                      Usar este preço
+                    </Button>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
+                    Quantidade abaixo da primeira faixa de preço.
+                  </span>
+                )}
+                {faixaSeguinte && (
+                  <span className="text-accent">
+                    {descreverFaixa(faixaSeguinte, form.unidade)} — vale sugerir ao cliente.
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Área mínima faturada: o vendedor precisa saber por que a conta
+                deu mais que a área da peça. */}
+            {minimoAplicado && (
+              <p className="text-xs text-amber-500">
+                Área mínima do produto aplicada: serão cobrados{" "}
+                {areaFaturada.toFixed(3).replace(".", ",")}m² em vez de{" "}
+                {areaTotal(dimensoesForm).toFixed(3).replace(".", ",")}m².
+              </p>
+            )}
+
+            {/* Conferência de material e estoque, só aviso. */}
+            <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
+
+            {/* Margem do item comparada à mínima do produto. */}
+            {canSeeFinancials && margemItem !== null && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Margem do item:</span>
+                <strong
+                  className={
+                    margemAbaixoDoMinimo
+                      ? "text-destructive"
+                      : margemMinimaItem !== null && margemItem < margemMinimaItem + 5
+                        ? "text-amber-500"
+                        : "text-accent"
+                  }
+                >
+                  {margemItem.toFixed(1)}%
+                </strong>
+                {margemMinimaItem !== null && (
+                  <span className="text-muted-foreground">
+                    (mínima do produto: {margemMinimaItem.toFixed(1)}%)
+                  </span>
+                )}
+                {margemAbaixoDoMinimo && (
+                  <span className="flex items-center gap-1 text-destructive">
+                    <TrendingDown className="h-3 w-3" /> abaixo do mínimo
+                  </span>
+                )}
+                {form.tempo_producao_min && (
+                  <span className="text-muted-foreground">
+                    · produção estimada: {Math.round((form.tempo_producao_min * quantidadeForm) / 60 * 10) / 10}h
+                  </span>
+                )}
               </div>
             )}
 
@@ -709,6 +929,14 @@ function OrcamentoDetailPage() {
                       orcamentoId={id}
                       clienteId={(orc as any)?.cliente_id ?? null}
                     />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Duplicar item"
+                      onClick={() => duplicarItem(i)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => removeItem(i.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -718,12 +946,22 @@ function OrcamentoDetailPage() {
             </TableBody>
           </Table>
           <div className="flex justify-end gap-6 text-sm pt-3 border-t">
+            <div>
+              <span className="text-muted-foreground">Itens:</span>{" "}
+              <strong>{itens.length}</strong>
+            </div>
+            {(itens as any[]).some((i) => !i.arquivo_id) && (
+              <div className="text-amber-500">
+                {(itens as any[]).filter((i) => !i.arquivo_id).length} sem arte anexada
+              </div>
+            )}
             {somaAreaTotal(itens) > 0 && (
               <div>
                 <span className="text-muted-foreground">Soma área:</span>{" "}
                 <strong>{somaAreaTotal(itens).toFixed(3).replace(".", ",")}m²</strong>
               </div>
             )}
+
             {canSeeFinancials && (
               <>
                 <div>
