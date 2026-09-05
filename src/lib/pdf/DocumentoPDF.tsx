@@ -457,8 +457,10 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             {p.custos.linhas.map((c, idx) => (
               <Text style={s.td} key={`custo-${idx}`}>
                 <Text style={s.campoLabel}>{c.descricao}: </Text>
-                {money(c.valor)}
-                {c.unidade ? ` / ${c.unidade}` : ""}
+                {/* tarifa em porcentagem não leva R$ */}
+                {c.unidade && c.unidade.includes("%")
+                  ? `${c.valor.toFixed(2).replace(".", ",")}%`
+                  : `${money(c.valor)}${c.unidade ? ` / ${c.unidade}` : ""}`}
               </Text>
             ))}
             {p.custos.custo_itens != null && (
