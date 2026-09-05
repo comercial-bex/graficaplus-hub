@@ -238,7 +238,12 @@ function MateriaisPage() {
         novoCustoMedio = total > 0 ? (estoqueAtual * custoAtual + qtd * custoInformado) / total : custoInformado;
       }
 
-      const patch: Record<string, unknown> = {
+      const patch: {
+        estoque: number;
+        updated_at: string;
+        custo_medio?: number;
+        custo_unitario?: number;
+      } = {
         estoque: mov.tipo === "entrada" ? estoqueAtual + qtd : estoqueAtual - qtd,
         updated_at: new Date().toISOString(),
       };
