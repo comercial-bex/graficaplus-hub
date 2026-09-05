@@ -55,7 +55,7 @@ import {
   somaAreaTotal,
   temDimensoes,
   valorUnitarioComMinimo,
-  valorUnitarioPorM2,
+  valorUnitarioComMinimo,
 } from "@/domain/orcamentos/area";
 import {
   descreverFaixa,
