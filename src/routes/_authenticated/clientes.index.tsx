@@ -348,33 +348,33 @@ function ClientesPage() {
               {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>}
               {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum cliente</TableCell></TableRow>}
               {filtered.map((c: any) => (
-                <TableRow key={c.id} className="hover:bg-muted/50">
+                <TableRow key={c.id}>
                   <TableCell>
                     <Avatar className="h-9 w-9">
                       <AvatarImage src={c.logo_url ?? undefined} />
                       <AvatarFallback>{c.nome.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </TableCell>
-                  <TableCell className="font-medium">
-                    <Link to="/clientes/$id" params={{ id: c.id }} className="text-accent hover:underline">{c.nome}</Link>
-                    {c.razao_social && <div className="text-xs text-muted-foreground">{c.razao_social}</div>}
+                  <TableCell className="font-bold text-foreground">
+                    <Link to="/clientes/$id" params={{ id: c.id }} className="hover:text-[color:var(--bex-cyan)]">{c.nome}</Link>
+                    {c.razao_social && <div className="text-[10px] font-medium text-muted-foreground">{c.razao_social}</div>}
                   </TableCell>
-                  <TableCell><Badge variant="secondary">{c.tipo.toUpperCase()}</Badge></TableCell>
-                  <TableCell>{c.documento || "—"}</TableCell>
+                  <TableCell><StatusChip label={c.tipo.toUpperCase()} tone="muted" /></TableCell>
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">{c.documento || "—"}</TableCell>
                   <TableCell>
-                    <div className="text-sm">{c.email || "—"}</div>
-                    <div className="text-xs text-muted-foreground">{c.telefone || "—"}</div>
+                    <div>{c.email || "—"}</div>
+                    <div className="text-[10px] text-muted-foreground">{c.telefone || "—"}</div>
                   </TableCell>
-                  <TableCell>{c.cidade ? `${c.cidade}/${c.estado || ""}` : "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.cidade ? `${c.cidade}/${c.estado || ""}` : "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={c.ativo ? "default" : "outline"}>{c.ativo ? "Ativo" : "Inativo"}</Badge>
+                    <StatusChip label={c.ativo ? "Ativo" : "Inativo"} tone={c.ativo ? "cyan" : "muted"} />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+      </DataPanel>
+
     </div>
   );
 }
