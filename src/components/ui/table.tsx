@@ -83,7 +83,6 @@ const TableCell = React.forwardRef<
 ));
 TableCell.displayName = "TableCell";
 
-
 const TableCaption = React.forwardRef<
   HTMLTableCaptionElement,
   React.HTMLAttributes<HTMLTableCaptionElement>

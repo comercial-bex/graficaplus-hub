@@ -63,7 +63,6 @@ function OSPage() {
   const [open, setOpen] = useState(false);
   const [buscaOS, setBuscaOS] = useState("");
   const [form, setForm] = useState({
-
     cliente_id: "",
     titulo: "",
     briefing: "",
@@ -114,8 +113,6 @@ function OSPage() {
     };
   }, [os]);
 
-
-
   async function handleCreate() {
     if (!form.cliente_id || !form.titulo) return toast.error("Cliente e título são obrigatórios");
     const { data, error } = await supabase
@@ -159,91 +156,91 @@ function OSPage() {
               </Button>
             </DialogTrigger>
 
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Nova Ordem de Serviço</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Cliente *</Label>
-                <Select
-                  value={form.cliente_id}
-                  onValueChange={(v) => setForm({ ...form, cliente_id: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Título *</Label>
-                <Input
-                  value={form.titulo}
-                  onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Briefing</Label>
-                <Textarea
-                  rows={3}
-                  value={form.briefing}
-                  onChange={(e) => setForm({ ...form, briefing: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Prazo entrega</Label>
-                  <Input
-                    type="date"
-                    value={form.prazo_entrega}
-                    onChange={(e) => setForm({ ...form, prazo_entrega: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Prioridade</Label>
+                  <Label>Cliente *</Label>
                   <Select
-                    value={form.prioridade}
-                    onValueChange={(v) => setForm({ ...form, prioridade: v })}
+                    value={form.cliente_id}
+                    onValueChange={(v) => setForm({ ...form, cliente_id: v })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 — Urgente</SelectItem>
-                      <SelectItem value="2">2 — Alta</SelectItem>
-                      <SelectItem value="3">3 — Normal</SelectItem>
-                      <SelectItem value="4">4 — Baixa</SelectItem>
+                      {clientes.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              {canSeeFinancials && (
                 <div className="space-y-2">
-                  <Label>Valor total (R$)</Label>
+                  <Label>Título *</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={form.valor_total}
-                    onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
+                    value={form.titulo}
+                    onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                   />
                 </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreate}>Criar OS</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                <div className="space-y-2">
+                  <Label>Briefing</Label>
+                  <Textarea
+                    rows={3}
+                    value={form.briefing}
+                    onChange={(e) => setForm({ ...form, briefing: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Prazo entrega</Label>
+                    <Input
+                      type="date"
+                      value={form.prazo_entrega}
+                      onChange={(e) => setForm({ ...form, prazo_entrega: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Prioridade</Label>
+                    <Select
+                      value={form.prioridade}
+                      onValueChange={(v) => setForm({ ...form, prioridade: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 — Urgente</SelectItem>
+                        <SelectItem value="2">2 — Alta</SelectItem>
+                        <SelectItem value="3">3 — Normal</SelectItem>
+                        <SelectItem value="4">4 — Baixa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {canSeeFinancials && (
+                  <div className="space-y-2">
+                    <Label>Valor total (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.valor_total}
+                      onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreate}>Criar OS</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         }
       />
 
@@ -268,65 +265,63 @@ function OSPage() {
           </span>
         }
       >
-          <Table>
-
-            <TableHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>Título</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Prazo</TableHead>
+              {canSeeFinancials && <TableHead>Valor</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
               <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Prazo</TableHead>
-                {canSeeFinancials && <TableHead>Valor</TableHead>}
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  Carregando...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    Carregando...
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && osFiltradas.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    Nenhuma OS
-                  </TableCell>
-                </TableRow>
-              )}
-              {osFiltradas.map((o: any) => (
-                <TableRow key={o.id} className="cursor-pointer">
-                  <TableCell>
-                    <Link
-                      to="/os/$id"
-                      params={{ id: o.id }}
-                      className="font-mono text-xs text-[color:var(--bex-cyan)]"
-                    >
-                      #{o.numero}
-                    </Link>
-                  </TableCell>
+            )}
+            {!isLoading && osFiltradas.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  Nenhuma OS
+                </TableCell>
+              </TableRow>
+            )}
+            {osFiltradas.map((o: any) => (
+              <TableRow key={o.id} className="cursor-pointer">
+                <TableCell>
+                  <Link
+                    to="/os/$id"
+                    params={{ id: o.id }}
+                    className="font-mono text-xs text-[color:var(--bex-cyan)]"
+                  >
+                    #{o.numero}
+                  </Link>
+                </TableCell>
+                <TableCell className="font-bold text-foreground">
+                  <Link to="/os/$id" params={{ id: o.id }}>
+                    {o.titulo}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
+                <TableCell>
+                  <StatusChip label={o.status.replace(/_/g, " ")} tone={toneOS(o.status)} />
+                </TableCell>
+                <TableCell>{o.prazo_entrega ?? "—"}</TableCell>
+                {canSeeFinancials && (
                   <TableCell className="font-bold text-foreground">
-                    <Link to="/os/$id" params={{ id: o.id }}>
-                      {o.titulo}
-                    </Link>
+                    {moeda(Number(o.valor_total))}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
-                  <TableCell>
-                    <StatusChip label={o.status.replace(/_/g, " ")} tone={toneOS(o.status)} />
-                  </TableCell>
-                  <TableCell>{o.prazo_entrega ?? "—"}</TableCell>
-                  {canSeeFinancials && (
-                    <TableCell className="font-bold text-foreground">
-                      {moeda(Number(o.valor_total))}
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </DataPanel>
-
     </div>
   );
 }

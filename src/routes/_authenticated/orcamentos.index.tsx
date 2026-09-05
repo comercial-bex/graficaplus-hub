@@ -63,8 +63,7 @@ const statusLabel: Record<string, string> = {
   convertido: "Convertido em OS",
 };
 
-const moeda = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function OrcamentosPage() {
   const qc = useQueryClient();
@@ -126,7 +125,9 @@ function OrcamentosPage() {
 
   const kpis = useMemo(() => {
     const lista = orcamentos as any[];
-    const abertos = lista.filter((o) => !["convertido", "rejeitado", "expirado"].includes(o.status));
+    const abertos = lista.filter(
+      (o) => !["convertido", "rejeitado", "expirado"].includes(o.status),
+    );
     const enviados = lista.filter((o) => o.status === "enviado" || o.status === "aprovado");
     return {
       abertos: abertos.length,
@@ -136,8 +137,6 @@ function OrcamentosPage() {
       valorTotal: lista.reduce((a, o) => a + Number(o.valor_total ?? 0), 0),
     };
   }, [orcamentos]);
-
-
 
   async function handleCreate() {
     if (!form.titulo) return toast.error("Título é obrigatório");
@@ -184,7 +183,8 @@ function OrcamentosPage() {
           p_opcoes: {},
         });
     if (error) return toast.error(mensagemErro(error));
-    const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
+    const osId =
+      typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
     toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
     qc.invalidateQueries({ queryKey: ["orcamentos"] });
   }
@@ -209,7 +209,10 @@ function OrcamentosPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Cliente<DicaIcone texto={dicaCampo("/orcamentos", "Cliente")} rotulo="Cliente" /></Label>
+                  <Label className="flex items-center gap-1.5">
+                    Cliente
+                    <DicaIcone texto={dicaCampo("/orcamentos", "Cliente")} rotulo="Cliente" />
+                  </Label>
                   <Select
                     value={form.cliente_id || "__avulso"}
                     onValueChange={(v) =>
@@ -235,7 +238,13 @@ function OrcamentosPage() {
                 {!form.cliente_id && (
                   <div className="grid gap-3 sm:grid-cols-3 rounded-lg border border-border/60 bg-card/40 p-3">
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5">Nome do contato *<DicaIcone texto={dicaCampo("/orcamentos", "Nome do contato *")} rotulo="Nome do contato *" /></Label>
+                      <Label className="flex items-center gap-1.5">
+                        Nome do contato *
+                        <DicaIcone
+                          texto={dicaCampo("/orcamentos", "Nome do contato *")}
+                          rotulo="Nome do contato *"
+                        />
+                      </Label>
                       <Input
                         value={form.contato_nome}
                         onChange={(e) => setForm({ ...form, contato_nome: e.target.value })}
@@ -243,7 +252,10 @@ function OrcamentosPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5">Telefone<DicaIcone texto={dicaCampo("/orcamentos", "Telefone")} rotulo="Telefone" /></Label>
+                      <Label className="flex items-center gap-1.5">
+                        Telefone
+                        <DicaIcone texto={dicaCampo("/orcamentos", "Telefone")} rotulo="Telefone" />
+                      </Label>
                       <Input
                         value={form.contato_telefone}
                         onChange={(e) => setForm({ ...form, contato_telefone: e.target.value })}
@@ -251,7 +263,10 @@ function OrcamentosPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5">E-mail<DicaIcone texto={dicaCampo("/orcamentos", "E-mail")} rotulo="E-mail" /></Label>
+                      <Label className="flex items-center gap-1.5">
+                        E-mail
+                        <DicaIcone texto={dicaCampo("/orcamentos", "E-mail")} rotulo="E-mail" />
+                      </Label>
                       <Input
                         value={form.contato_email}
                         onChange={(e) => setForm({ ...form, contato_email: e.target.value })}
@@ -262,7 +277,10 @@ function OrcamentosPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Título *<DicaIcone texto={dicaCampo("/orcamentos", "Título *")} rotulo="Título *" /></Label>
+                  <Label className="flex items-center gap-1.5">
+                    Título *
+                    <DicaIcone texto={dicaCampo("/orcamentos", "Título *")} rotulo="Título *" />
+                  </Label>
                   <Input
                     value={form.titulo}
                     onChange={(e) => setForm({ ...form, titulo: e.target.value })}
@@ -391,7 +409,6 @@ function OrcamentosPage() {
           </TableBody>
         </Table>
       </DataPanel>
-
     </div>
   );
 }

@@ -26,7 +26,12 @@ export function DataPanel({
 }) {
   const temBarra = onBusca !== undefined || filtros !== undefined;
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-border bg-card shadow-2xl", className)}>
+    <div
+      className={cn(
+        "overflow-hidden rounded-xl border border-border bg-card shadow-2xl",
+        className,
+      )}
+    >
       {temBarra && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
           {onBusca ? (

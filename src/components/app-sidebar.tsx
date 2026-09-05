@@ -96,7 +96,12 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
         icon: Truck,
         permission: "os.status.advance",
       },
-      { title: "Perdas & desperdício", url: "/perdas", icon: TrendingDown, permission: "os.update" },
+      {
+        title: "Perdas & desperdício",
+        url: "/perdas",
+        icon: TrendingDown,
+        permission: "os.update",
+      },
       { title: "Ocorrências", url: "/ocorrencias", icon: AlertTriangle },
     ],
   },
@@ -136,7 +141,6 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Pós-venda / NPS", url: "/pos-venda", icon: ListChecks },
     ],
   },
-
 
   {
     label: "Administração",
@@ -200,11 +204,7 @@ export function AppSidebar() {
                 <SidebarMenu className="gap-1">
                   {visibleItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
-                      <Dica
-                        texto={dicaMenu(item.url)}
-                        lado="right"
-                        className="w-full"
-                      >
+                      <Dica texto={dicaMenu(item.url)} lado="right" className="w-full">
                         <SidebarMenuButton
                           asChild
                           isActive={isActive(item.url)}
@@ -253,4 +253,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
