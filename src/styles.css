@@ -50,8 +50,10 @@
   --color-bex-cyan: var(--bex-cyan);
   --color-bex-magenta: var(--bex-magenta);
   --color-bex-lime: var(--bex-lime);
+  --color-bex-amber: var(--bex-amber);
   --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
 }
 
 /* BEX PRINT OS — Industrial Grid / dark CMYK */
