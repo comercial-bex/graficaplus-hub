@@ -106,20 +106,19 @@ function OSPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Ordens de Serviço</h1>
-            <DicaIcone texto={dicaTela("/os")} rotulo="Ordens de Serviço" lado="bottom" className="h-5 w-5" />
-          </div>
-          <p className="text-muted-foreground">Acompanhe todas as OS da produção</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Nova OS
-            </Button>
-          </DialogTrigger>
+      <SectionHeader
+        ajuda={dicaTela("/os")}
+        breadcrumb="Print OS · Produção"
+        title="Ordens de Serviço"
+        description="Acompanhe todas as OS da produção."
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Nova OS
+              </Button>
+            </DialogTrigger>
+
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Nova Ordem de Serviço</DialogTitle>
