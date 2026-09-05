@@ -174,8 +174,12 @@ export async function carregarPropsOrcamento(
     itens: itensDoc,
     soma_area: somaArea(itensDoc),
     subtotal: mostrarValores ? Number((orc as any).valor_subtotal ?? total) : null,
+    // Desconto é ABATIMENTO, nunca acréscimo. `valor_subtotal` é NOT NULL
+    // DEFAULT 0, então um orçamento gravado só com o total daria subtotal
+    // menor que o total e IMPRIMIRIA um desconto negativo no documento do
+    // cliente — o mesmo defeito já corrigido em converter_orcamento_em_os.
     desconto: mostrarValores
-      ? Number((orc as any).valor_subtotal ?? total) - total
+      ? Math.max(0, Number((orc as any).valor_subtotal ?? total) - total)
       : null,
     total,
     pagamento: mostrarValores
@@ -184,6 +188,76 @@ export async function carregarPropsOrcamento(
     entrega: descreverEntrega((orc as any).endereco_entrega),
     observacoes: orc.observacoes,
     mostrarValores,
+  };
+}
+
+/**
+ * Via INTERNA do orçamento: o mesmo documento com a base de custo anexada.
+ *
+ * Mostra com que números o preço foi montado — a tarifa de energia, a hora de
+ * mão de obra, o custo do material — e, quando já houve produção, o que a peça
+ * custou de verdade, com o desperdício dentro. Conferir um orçamento antigo sem
+ * isso é arqueologia.
+ *
+ * Nunca é o documento do cliente: quem chama decide, e o preview marca a via.
+ */
+export async function carregarPropsOrcamentoComCustos(
+  orcamentoId: string,
+): Promise<DocumentoPDFProps> {
+  const base = await carregarPropsOrcamento(orcamentoId, true);
+
+  const [{ data: config }, { data: maoDeObra = [] }, { data: orc }] = await Promise.all([
+    (supabase as any).from("config_precificacao_3d").select("*").limit(1).maybeSingle(),
+    (supabase as any).from("custos_mao_de_obra").select("funcao, custo_hora, encargos_pct").eq("ativo", true).order("funcao"),
+    (supabase as any).from("orcamentos").select("os_id").eq("id", orcamentoId).maybeSingle(),
+  ]);
+
+  const num = (v: unknown) => Number(v ?? 0);
+  const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const tarifas: { rotulo: string; valor: string }[] = [];
+  if (config) {
+    tarifas.push({ rotulo: "Energia", valor: `${brl(num(config.tarifa_kwh_padrao))}/kWh` });
+    tarifas.push({ rotulo: "Mão de obra", valor: `${brl(num(config.mo_custo_hora_padrao))}/h` });
+    if (num(config.mo_encargos_pct) > 0) {
+      tarifas.push({ rotulo: "Encargos", valor: `${num(config.mo_encargos_pct)}%` });
+    }
+    tarifas.push({ rotulo: "Markup", valor: `${num(config.markup_padrao).toFixed(2)}x` });
+    // Zerado não é "de graça", é "ninguém preencheu" — e some da conta igual.
+    if (num(config.custo_admin_padrao) === 0) {
+      tarifas.push({ rotulo: "Custo admin", valor: "não informado" });
+    }
+  }
+  for (const m of (maoDeObra ?? []) as any[]) {
+    const cheia = num(m.custo_hora) * (1 + num(m.encargos_pct) / 100);
+    tarifas.push({ rotulo: m.funcao, valor: `${brl(cheia)}/h` });
+  }
+
+  // Custo realizado só existe depois que virou OS e produziu.
+  let realizados: Record<string, any> = {};
+  const osId = (orc as any)?.os_id;
+  if (osId) {
+    const { data: pecas } = await (supabase.rpc as any)("custo_real_por_peca", { p_os_id: osId });
+    for (const p of (pecas ?? []) as any[]) realizados[String(p.descricao)] = p;
+  }
+
+  return {
+    ...base,
+    custos: {
+      tarifas,
+      itens: base.itens.map((i) => {
+        const r = realizados[i.descricao];
+        return {
+          descricao: i.descricao,
+          quantidade: i.quantidade,
+          custo_previsto_unitario: r ? num(r.custo_previsto_unitario) : 0,
+          custo_real_unitario: r ? num(r.custo_real_unitario) : null,
+          custo_perda: r && num(r.custo_perda) > 0 ? num(r.custo_perda) : null,
+          preco_unitario: i.valor_unitario,
+          margem_real: r?.margem_real != null ? Number(r.margem_real) : null,
+        };
+      }),
+    },
   };
 }
 
@@ -531,11 +605,14 @@ export async function salvarERegistrarPDF(opts: {
   tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material" | "fatura";
   referencia_id: string;
   numero: number | string;
-  variante: "cliente" | "producao";
+  /** `custos` é a via interna: mesma folha, com a base de custo anexada. */
+  variante: "cliente" | "producao" | "custos";
 }) {
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
-  const filename = `${opts.tipo}-${opts.numero}${opts.variante === "producao" ? "-producao" : ""}.pdf`;
+  const sufixo =
+    opts.variante === "producao" ? "-producao" : opts.variante === "custos" ? "-custos" : "";
+  const filename = `${opts.tipo}-${opts.numero}${sufixo}.pdf`;
   const path = `${opts.tipo}/${opts.referencia_id}/${Date.now()}-${filename}`;
 
   const { error: upErr } = await supabase.storage

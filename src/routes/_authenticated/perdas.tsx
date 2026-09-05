@@ -29,6 +29,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/perdas")({
   head: () => ({
@@ -91,6 +92,7 @@ const emptyForm: Form = {
 };
 
 function PerdasPage() {
+  const { canSeeFinancials } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(emptyForm);
@@ -121,12 +123,27 @@ function PerdasPage() {
     },
   });
 
+  /**
+   * O custo vem do cadastro, não da memória de quem registra.
+   *
+   * Antes esta consulta pedia só `id, nome, unidade`, e o formulário exigia o
+   * custo unitário digitado — com padrão ZERO. Resultado: a tela de Perdas
+   * somava R$ 0,00 e parecia dizer "não há desperdício", quando dizia "ninguém
+   * digitou o preço".
+   *
+   * `materiais_financeiro` é a via oficial do custo (a tabela base não expõe a
+   * coluna nem para quem pode vê-la). Quem não pode ver valores continua
+   * registrando a perda — só não vê o custo, e o gatilho no banco preenche.
+   */
   const { data: materiais = [] } = useQuery({
-    queryKey: ["materiais-simples"],
+    queryKey: ["materiais-com-custo"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("materiais").select("id, nome, unidade").order("nome");
+      const { data, error } = await (supabase as any)
+        .from(canSeeFinancials ? "materiais_financeiro" : "materiais")
+        .select(canSeeFinancials ? "id, nome, unidade, custo_unitario" : "id, nome, unidade")
+        .order("nome");
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 
@@ -147,6 +164,8 @@ function PerdasPage() {
         maquina_id: form.maquina_id || null,
         motivo: form.motivo,
         quantidade_perdida: Number(form.quantidade) || 0,
+        // 0 é sinal para o gatilho buscar o custo real do material — deixar em
+        // branco é melhor que chutar, porque zero explícito seria aceito.
         custo_unitario: Number(form.custo_unitario) || 0,
         unidade: form.unidade || "un",
         observacoes: form.observacoes || null,
@@ -316,13 +335,24 @@ function PerdasPage() {
               <Label>Material</Label>
               <Select
                 value={form.material_id}
-                onValueChange={(v) => setForm((f) => ({ ...f, material_id: v }))}
+                onValueChange={(v) => {
+                  const m = (materiais as any[]).find((x) => x.id === v);
+                  setForm((f) => ({
+                    ...f,
+                    material_id: v,
+                    // Puxa unidade e custo do cadastro: digitar de novo é como
+                    // o número diverge.
+                    unidade: m?.unidade ?? f.unidade,
+                    custo_unitario:
+                      m?.custo_unitario != null ? String(m.custo_unitario) : f.custo_unitario,
+                  }));
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  {materiais.map((m) => (
+                  {(materiais as any[]).map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.nome}
                     </SelectItem>

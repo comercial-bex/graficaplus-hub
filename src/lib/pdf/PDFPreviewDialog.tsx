@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   carregarPropsOrcamento,
+  carregarPropsOrcamentoComCustos,
   carregarPropsOrcamento3d,
   carregarPropsOS,
   renderPDFBlob,
@@ -19,9 +20,11 @@ type Props = {
   tipo: "orcamento" | "os" | "orcamento_3d";
   referencia_id: string;
   mostrarValores?: boolean;
+  /** Via interna: anexa a base de custo (tarifas e custo real por peça). */
+  comCustos?: boolean;
 };
 
-export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, mostrarValores = true }: Props) {
+export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, mostrarValores = true, comCustos = false }: Props) {
   const qc = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -37,7 +40,9 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
     (async () => {
       try {
         const p = tipo === "orcamento"
-          ? await carregarPropsOrcamento(referencia_id, mostrarValores)
+          ? comCustos
+            ? await carregarPropsOrcamentoComCustos(referencia_id)
+            : await carregarPropsOrcamento(referencia_id, mostrarValores)
           : tipo === "orcamento_3d"
             ? await carregarPropsOrcamento3d(referencia_id, mostrarValores)
             : await carregarPropsOS(referencia_id, mostrarValores);
@@ -56,7 +61,7 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
     return () => {
       cancelled = true;
     };
-  }, [open, tipo, referencia_id, mostrarValores, onOpenChange]);
+  }, [open, tipo, referencia_id, mostrarValores, comCustos, onOpenChange]);
 
   useEffect(() => {
     return () => {
@@ -70,7 +75,7 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
     try {
       const { filename } = await salvarERegistrarPDF({
         blob, tipo, referencia_id, numero: props.numero,
-        variante: mostrarValores ? "cliente" : "producao",
+        variante: comCustos ? "custos" : mostrarValores ? "cliente" : "producao",
       });
       const a = document.createElement("a");
       a.href = blobUrl!;
@@ -93,7 +98,7 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
         <DialogHeader className="p-4 border-b">
           <DialogTitle>
             Preview · {tipo === "os" ? "OS" : tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento"}
-            {!mostrarValores && " (Produção)"}
+            {comCustos ? " (uso interno — com custos)" : !mostrarValores ? " (Produção)" : ""}
           </DialogTitle>
         </DialogHeader>
         {/* Documento sai para o cliente: faltar CNPJ ou endereço no cabeçalho é o

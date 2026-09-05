@@ -120,6 +120,7 @@ function OrcamentoDetailPage() {
   const { canSeeFinancials, hasPermission } = useAuth();
   const [form, setForm] = useState({ ...itemVazio });
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewCustos, setPreviewCustos] = useState(false);
   const [enviandoLayout, setEnviandoLayout] = useState(false);
   const [calculadoraAberta, setCalculadoraAberta] = useState(false);
 
@@ -355,9 +356,27 @@ function OrcamentoDetailPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPreviewCustos(false);
+                setPreviewOpen(true);
+              }}
+            >
               <FileDown className="h-4 w-4 mr-1" /> PDF
             </Button>
+            {canSeeFinancials && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPreviewCustos(true);
+                  setPreviewOpen(true);
+                }}
+                title="Mesma folha, com a base de custo anexada. Não é o documento do cliente."
+              >
+                <FileDown className="h-4 w-4 mr-1" /> PDF c/ custos
+              </Button>
+            )}
             {orc.status !== "convertido" && !orc.os_id && (
               <Button onClick={converterEmOS}>
                 Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
@@ -816,6 +835,7 @@ function OrcamentoDetailPage() {
         onOpenChange={setPreviewOpen}
         tipo="orcamento"
         referencia_id={id}
+        comCustos={previewCustos}
       />
     </div>
   );

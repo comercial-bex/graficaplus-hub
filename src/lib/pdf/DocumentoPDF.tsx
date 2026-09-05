@@ -71,6 +71,26 @@ export type DocumentoPDFProps = {
    */
   assinaturas?: { esquerda: string; direita: string } | null;
   mostrarValores?: boolean;
+  /**
+   * Quebra de custo para a via INTERNA — nunca sai no documento do cliente.
+   *
+   * Existe porque quem forma preço precisa ver, na mesma folha que o cliente
+   * assina, com que números o preço foi montado: a tarifa de energia daquele
+   * dia, a hora de mão de obra, o custo do material que estava no estoque. Sem
+   * isso, conferir um orçamento antigo vira arqueologia.
+   */
+  custos?: {
+    tarifas: { rotulo: string; valor: string }[];
+    itens: {
+      descricao: string;
+      quantidade: number;
+      custo_previsto_unitario: number;
+      custo_real_unitario: number | null;
+      custo_perda: number | null;
+      preco_unitario: number;
+      margem_real: number | null;
+    }[];
+  } | null;
 };
 
 // Os estilos dependem da cor da marca, que agora vem do banco — daí a fábrica.
@@ -439,6 +459,27 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
                   ? ` · vence em ${new Date(`${parcela.vencimento}T00:00:00`).toLocaleDateString("pt-BR")}`
                   : ""}
                 {parcela.pago ? " · PAGA" : ""}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        {p.custos && (
+          <View style={s.obs} wrap={false}>
+            <Text style={s.obsTitle}>USO INTERNO — BASE DE CUSTO</Text>
+            <Text>
+              {p.custos.tarifas.map((t) => `${t.rotulo}: ${t.valor}`).join("   ·   ")}
+            </Text>
+            {p.custos.itens.map((item, i) => (
+              <Text key={i}>
+                {item.descricao} — previsto {money(item.custo_previsto_unitario)}/un
+                {item.custo_real_unitario != null
+                  ? `, real ${money(item.custo_real_unitario)}/un`
+                  : ", sem custo realizado ainda"}
+                {item.custo_perda ? `, perda ${money(item.custo_perda)}` : ""}
+                {" · preço "}
+                {money(item.preco_unitario)}
+                {item.margem_real != null ? ` · margem ${(item.margem_real * 100).toFixed(1)}%` : ""}
               </Text>
             ))}
           </View>
