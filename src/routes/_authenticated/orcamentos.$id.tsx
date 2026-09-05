@@ -54,7 +54,7 @@ import {
 } from "@/domain/orcamentos/area";
 import { mensagemErro } from "@/lib/erros";
 
-import { Dica } from "@/components/bex/Dica";
+import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaAcao, dicaTela } from "@/lib/dicas";
 const itemVazio = {
   descricao: "",
