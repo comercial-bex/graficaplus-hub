@@ -33,6 +33,7 @@ import {
   Network,
   TrendingDown,
   Wallet,
+  Landmark,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -131,8 +132,15 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     items: [
       { title: "Financeiro", url: "/financeiro", icon: DollarSign, permission: "financeiro.read" },
       { title: "Fluxo de caixa", url: "/fluxo-caixa", icon: Wallet, permission: "financeiro.read" },
+      {
+        title: "Contas bancárias",
+        url: "/contas-bancarias",
+        icon: Landmark,
+        permission: "financeiro.read",
+      },
     ],
   },
+
   {
     label: "Análise",
     items: [

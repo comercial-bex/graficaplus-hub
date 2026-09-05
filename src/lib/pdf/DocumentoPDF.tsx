@@ -59,6 +59,15 @@ export type DocumentoPDFProps = {
   entrega?: string | null;
   observacoes?: string | null;
   mostrarValores?: boolean;
+  /**
+   * Composição de custos da planilha (tabela custos_tabela) + custo previsto
+   * dos itens. Só é impressa na via interna/produção — nunca na via do cliente.
+   */
+  custos?: {
+    linhas: { descricao: string; unidade?: string | null; valor: number }[];
+    custo_itens?: number | null;
+    receita?: number | null;
+  } | null;
 };
 
 /**
@@ -189,7 +198,13 @@ const criarEstilos = (C: string) =>
     aceiteLabel: { fontSize: 8, textAlign: "center" },
 
     signRow: { flexDirection: "row", marginTop: 30, gap: 40 },
-    signBox: { flex: 1, borderTopWidth: 1, borderTopColor: "#111", paddingTop: 3, alignItems: "center" },
+    signBox: {
+      flex: 1,
+      borderTopWidth: 1,
+      borderTopColor: "#111",
+      paddingTop: 3,
+      alignItems: "center",
+    },
     signLabel: { fontSize: 8 },
 
     footer: {
@@ -250,7 +265,8 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
   const s = criarEstilos(C);
 
   const isOrc = p.tipo === "orcamento" || p.tipo === "orcamento_3d";
-  const titulo = p.tipo === "os" ? "Ordem de Serviço" : p.tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento";
+  const titulo =
+    p.tipo === "os" ? "Ordem de Serviço" : p.tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento";
   const mostrar = p.mostrarValores ?? true;
   const agora = new Date().toLocaleString("pt-BR");
 
@@ -294,7 +310,9 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             </View>
           )}
           <View style={s.empresaCol}>
-            <Text style={s.empresaNome}>{(empresa.razao_social ?? empresa.nome).toUpperCase()}</Text>
+            <Text style={s.empresaNome}>
+              {(empresa.razao_social ?? empresa.nome).toUpperCase()}
+            </Text>
             {enderecoEmpresa && <Text style={s.empresaInfo}>{enderecoEmpresa.toUpperCase()}</Text>}
             <Text style={s.empresaInfo}>
               {[
@@ -398,9 +416,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           })}
 
           <View style={s.totaisItens}>
-            {mostrar && (
-              <Text style={s.totalItensTxt}>Total Produtos {money(totalItens)}</Text>
-            )}
+            {mostrar && <Text style={s.totalItensTxt}>Total Produtos {money(totalItens)}</Text>}
             {temArea && (
               <Text style={s.totalItensTxt}>Soma área total: {m2(Number(p.soma_area))}</Text>
             )}
@@ -436,11 +452,43 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
         {mostrar && (
           <View style={s.totaisDir}>
             <Text style={s.totalLinha}>Valor Desconto: {money(desconto)}</Text>
-            <Text style={s.totalForte}>Valor Total do {titulo}: {money(p.total)}</Text>
+            <Text style={s.totalForte}>
+              Valor Total do {titulo}: {money(p.total)}
+            </Text>
+          </View>
+        )}
+
+        {/* COMPOSIÇÃO DE CUSTOS — via interna */}
+        {p.custos && p.custos.linhas.length > 0 && (
+          <View style={s.bloco}>
+            <Text style={s.blocoTitulo}>COMPOSIÇÃO DE CUSTOS — USO INTERNO</Text>
+            {p.custos.linhas.map((c, idx) => (
+              <Text style={s.td} key={`custo-${idx}`}>
+                <Text style={s.campoLabel}>{c.descricao}: </Text>
+                {/* tarifa em porcentagem não leva R$ */}
+                {c.unidade && c.unidade.includes("%")
+                  ? `${c.valor.toFixed(2).replace(".", ",")}%`
+                  : `${money(c.valor)}${c.unidade ? ` / ${c.unidade}` : ""}`}
+              </Text>
+            ))}
+            {p.custos.custo_itens != null && (
+              <Text style={s.td}>
+                <Text style={s.campoLabel}>Custo previsto dos itens: </Text>
+                {money(Number(p.custos.custo_itens))}
+                {p.custos.receita
+                  ? ` — margem prevista ${(
+                      ((Number(p.custos.receita) - Number(p.custos.custo_itens)) /
+                        Number(p.custos.receita)) *
+                      100
+                    ).toFixed(1)}%`
+                  : ""}
+              </Text>
+            )}
           </View>
         )}
 
         {/* PAGAMENTO */}
+
         {mostrar && p.pagamento && (
           <View style={s.bloco} wrap={false}>
             <Text style={s.blocoTitulo}>PAGAMENTO</Text>
