@@ -48,6 +48,7 @@ import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustosProducaoRouteImport } from './routes/_authenticated/custos-producao'
+import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_authenticated/contas-bancarias'
 import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -270,6 +271,12 @@ const AuthenticatedCustosProducaoRoute =
     path: '/custos-producao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedContasBancariasRoute =
+  AuthenticatedContasBancariasRouteImport.update({
+    id: '/contas-bancarias',
+    path: '/contas-bancarias',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesEmpresaRoute =
   AuthenticatedConfiguracoesEmpresaRouteImport.update({
     id: '/configuracoes-empresa',
@@ -354,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
+  '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -407,6 +415,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
+  '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -462,6 +471,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
+  '/_authenticated/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/_authenticated/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/design': typeof AuthenticatedDesignRoute
@@ -517,6 +527,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-empresa'
+    | '/contas-bancarias'
     | '/custos-producao'
     | '/dashboard'
     | '/design'
@@ -570,6 +581,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-empresa'
+    | '/contas-bancarias'
     | '/custos-producao'
     | '/dashboard'
     | '/design'
@@ -624,6 +636,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
     | '/_authenticated/configuracoes-empresa'
+    | '/_authenticated/contas-bancarias'
     | '/_authenticated/custos-producao'
     | '/_authenticated/dashboard'
     | '/_authenticated/design'
@@ -952,6 +965,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCustosProducaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/contas-bancarias': {
+      id: '/_authenticated/contas-bancarias'
+      path: '/contas-bancarias'
+      fullPath: '/contas-bancarias'
+      preLoaderRoute: typeof AuthenticatedContasBancariasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes-empresa': {
       id: '/_authenticated/configuracoes-empresa'
       path: '/configuracoes-empresa'
@@ -1053,6 +1073,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
   AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
+  AuthenticatedContasBancariasRoute: typeof AuthenticatedContasBancariasRoute
   AuthenticatedCustosProducaoRoute: typeof AuthenticatedCustosProducaoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
@@ -1102,6 +1123,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
   AuthenticatedConfiguracoesEmpresaRoute:
     AuthenticatedConfiguracoesEmpresaRoute,
+  AuthenticatedContasBancariasRoute: AuthenticatedContasBancariasRoute,
   AuthenticatedCustosProducaoRoute: AuthenticatedCustosProducaoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
