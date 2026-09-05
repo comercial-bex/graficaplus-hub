@@ -16,7 +16,9 @@ export type LinhaExtrato = {
 };
 
 function normalizarData(bruto: string): string | null {
-  const t = bruto.trim();
+  // O OFX costuma trazer o fuso entre colchetes ("20260103120000[-3:BRT]"),
+  // que atrapalha os testes de formato abaixo — por isso sai antes de tudo.
+  const t = bruto.trim().replace(/\[[^\]]*\]/g, "").trim();
   if (!t) return null;
   // OFX: 20260105 ou 20260105120000[-3:BRT]
   const ofx = t.match(/^(\d{4})(\d{2})(\d{2})/);
