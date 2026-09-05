@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +42,6 @@ import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
-import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
   areaTotal,
