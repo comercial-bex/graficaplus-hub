@@ -89,6 +89,15 @@ begin
 end;
 $$;
 
+-- `perda` não estava na lista de categorias permitidas: o gatilho acima falharia
+-- na primeira inserção. É acréscimo à lista, então não invalida nada existente.
+alter table public.custos_operacionais_os
+  drop constraint if exists custos_operacionais_os_categoria_check;
+alter table public.custos_operacionais_os
+  add constraint custos_operacionais_os_categoria_check
+  check (categoria = any (array['material','mao_obra','maquina','terceiros','acabamento',
+                                'logistica','retrabalho','taxa','comissao','perda']));
+
 drop trigger if exists tg_perda_custo_os on public.os_perdas;
 create trigger tg_perda_custo_os
   after insert on public.os_perdas
@@ -122,8 +131,12 @@ as $$
     select c.os_item_id, c.os_id,
            sum(c.total) filter (where c.categoria = 'material') as material,
            sum(c.total) filter (where c.categoria = 'perda') as perda,
-           sum(c.total) filter (where c.categoria in ('mao_de_obra','maquina')) as mao_obra,
-           sum(c.total) filter (where c.categoria not in ('material','perda','mao_de_obra','maquina')) as outros,
+           -- A categoria é `mao_obra`, SEM o "de". Escrevi `mao_de_obra` na
+           -- primeira versão e o filtro não casava com nada: a mão de obra
+           -- saía sempre ZERO, numa tela de custo de gráfica — onde ela é o
+           -- maior custo. Só apareceu porque rodei o caso real.
+           sum(c.total) filter (where c.categoria in ('mao_obra','maquina')) as mao_obra,
+           sum(c.total) filter (where c.categoria not in ('material','perda','mao_obra','maquina')) as outros,
            sum(c.total) as total
     from public.custos_operacionais_os c
     group by c.os_item_id, c.os_id
