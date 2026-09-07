@@ -241,6 +241,10 @@ function OrcamentoDetailPage() {
           tipo: "arte",
           cliente_id: (orc as any)?.cliente_id ?? null,
           tamanho_bytes: arquivo.size,
+          // Quem enviou. Sem isso, os 3 arquivos que existem no sistema têm
+          // apenas o cliente preenchido: não dá para saber quem subiu a arte
+          // nem cobrar de alguém quando ela vem errada.
+          enviado_por: (await supabase.auth.getUser()).data.user?.id ?? null,
         } as any)
         .select("id, nome")
         .single();
