@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -529,6 +530,18 @@ function FluxoCaixaPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nova conta a pagar</DialogTitle>
+            {/* Este diálogo lança UMA conta. Quem cai aqui para lançar a
+                parcela do financiamento vai voltar todo mês para lançar a
+                próxima — e é isso que Compromissos existe para evitar. */}
+            <DialogDescription>
+              Conta avulsa. Se for parcela de financiamento, locação, aluguel ou
+              assinatura, cadastre em{" "}
+              <Link to="/compromissos" className="underline font-medium">
+                Compromissos
+              </Link>{" "}
+              — lá o contrato gera as parcelas de uma vez, com saldo devedor e
+              data de término.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-2">

@@ -54,6 +54,7 @@ import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_auth
 import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedCompromissosRouteImport } from './routes/_authenticated/compromissos'
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedCasosDeUsoRouteImport } from './routes/_authenticated/casos-de-uso'
 import { Route as AuthenticatedBreakdown3dRouteImport } from './routes/_authenticated/breakdown-3d'
@@ -310,6 +311,12 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCompromissosRoute =
+  AuthenticatedCompromissosRouteImport.update({
+    id: '/compromissos',
+    path: '/compromissos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedComprasRoute = AuthenticatedComprasRouteImport.update({
   id: '/compras',
   path: '/compras',
@@ -386,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/compras': typeof AuthenticatedComprasRoute
+  '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -444,6 +452,7 @@ export interface FileRoutesByTo {
   '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/compras': typeof AuthenticatedComprasRoute
+  '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -504,6 +513,7 @@ export interface FileRoutesById {
   '/_authenticated/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/_authenticated/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/_authenticated/compras': typeof AuthenticatedComprasRoute
+  '/_authenticated/compromissos': typeof AuthenticatedCompromissosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/breakdown-3d'
     | '/casos-de-uso'
     | '/compras'
+    | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-empresa'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/breakdown-3d'
     | '/casos-de-uso'
     | '/compras'
+    | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-empresa'
@@ -681,6 +693,7 @@ export interface FileRouteTypes {
     | '/_authenticated/breakdown-3d'
     | '/_authenticated/casos-de-uso'
     | '/_authenticated/compras'
+    | '/_authenticated/compromissos'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
     | '/_authenticated/configuracoes-empresa'
@@ -1057,6 +1070,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/compromissos': {
+      id: '/_authenticated/compromissos'
+      path: '/compromissos'
+      fullPath: '/compromissos'
+      preLoaderRoute: typeof AuthenticatedCompromissosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/compras': {
       id: '/_authenticated/compras'
       path: '/compras'
@@ -1150,6 +1170,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBreakdown3dRoute: typeof AuthenticatedBreakdown3dRoute
   AuthenticatedCasosDeUsoRoute: typeof AuthenticatedCasosDeUsoRoute
   AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
+  AuthenticatedCompromissosRoute: typeof AuthenticatedCompromissosRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
   AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -1203,6 +1224,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBreakdown3dRoute: AuthenticatedBreakdown3dRoute,
   AuthenticatedCasosDeUsoRoute: AuthenticatedCasosDeUsoRoute,
   AuthenticatedComprasRoute: AuthenticatedComprasRoute,
+  AuthenticatedCompromissosRoute: AuthenticatedCompromissosRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
   AuthenticatedConfiguracoesEmpresaRoute:

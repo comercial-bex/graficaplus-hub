@@ -1364,9 +1364,88 @@ export type Database = {
           },
         ]
       }
+      compromissos_financeiros: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          created_by: string | null
+          credor: string
+          credor_documento: string | null
+          descricao: string
+          documento_url: string | null
+          encerrado_em: string | null
+          id: string
+          maquina_id: string | null
+          numero_contrato: string | null
+          observacoes: string | null
+          periodicidade: string
+          primeira_parcela: string
+          tipo: string
+          total_parcelas: number | null
+          updated_at: string
+          valor_entrada: number
+          valor_parcela: number
+          valor_total: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          credor: string
+          credor_documento?: string | null
+          descricao: string
+          documento_url?: string | null
+          encerrado_em?: string | null
+          id?: string
+          maquina_id?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          periodicidade?: string
+          primeira_parcela: string
+          tipo?: string
+          total_parcelas?: number | null
+          updated_at?: string
+          valor_entrada?: number
+          valor_parcela: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          credor?: string
+          credor_documento?: string | null
+          descricao?: string
+          documento_url?: string | null
+          encerrado_em?: string | null
+          id?: string
+          maquina_id?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          periodicidade?: string
+          primeira_parcela?: string
+          tipo?: string
+          total_parcelas?: number | null
+          updated_at?: string
+          valor_entrada?: number
+          valor_parcela?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_pagar: {
         Row: {
           categoria: string
+          compromisso_id: string | null
           comprovante_url: string | null
           created_at: string
           created_by: string | null
@@ -1378,6 +1457,7 @@ export type Database = {
           material_id: string | null
           observacoes: string | null
           os_id: string | null
+          parcela_numero: number | null
           periodicidade: string | null
           recorrente: boolean
           status: Database["public"]["Enums"]["status_conta_pagar"]
@@ -1387,6 +1467,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string
+          compromisso_id?: string | null
           comprovante_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -1398,6 +1479,7 @@ export type Database = {
           material_id?: string | null
           observacoes?: string | null
           os_id?: string | null
+          parcela_numero?: number | null
           periodicidade?: string | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["status_conta_pagar"]
@@ -1407,6 +1489,7 @@ export type Database = {
         }
         Update: {
           categoria?: string
+          compromisso_id?: string | null
           comprovante_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -1418,6 +1501,7 @@ export type Database = {
           material_id?: string | null
           observacoes?: string | null
           os_id?: string | null
+          parcela_numero?: number | null
           periodicidade?: string | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["status_conta_pagar"]

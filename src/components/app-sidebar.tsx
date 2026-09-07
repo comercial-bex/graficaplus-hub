@@ -34,6 +34,7 @@ import {
   Workflow,
   Network,
   TrendingDown,
+  Repeat,
   Wallet,
   Landmark,
   type LucideIcon,
@@ -128,6 +129,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     items: [
       { title: "Financeiro", url: "/financeiro", icon: DollarSign },
       { title: "Fluxo de caixa", url: "/fluxo-caixa", icon: Wallet },
+      { title: "Compromissos", url: "/compromissos", icon: Repeat },
       { title: "Contas bancárias", url: "/contas-bancarias", icon: Landmark },
     ],
   },
