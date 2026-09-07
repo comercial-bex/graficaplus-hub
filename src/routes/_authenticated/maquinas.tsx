@@ -19,6 +19,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/maquinas")({
   head: () => ({
@@ -51,6 +52,10 @@ type Form = {
   setup_min: string;
   velocidade_m2_h: string;
   disponibilidade_pct: string;
+  fabricante: string;
+  modelo: string;
+  numero_serie: string;
+  largura_util_m: string;
 };
 
 const emptyForm: Form = {
@@ -62,6 +67,10 @@ const emptyForm: Form = {
   setup_min: "0",
   velocidade_m2_h: "0",
   disponibilidade_pct: "100",
+  fabricante: "",
+  modelo: "",
+  numero_serie: "",
+  largura_util_m: "",
 };
 
 const brl = (n: number) =>
@@ -69,6 +78,7 @@ const brl = (n: number) =>
 
 function MaquinasPage() {
   const qc = useQueryClient();
+  const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(emptyForm);
 
@@ -84,6 +94,64 @@ function MaquinasPage() {
     },
   });
 
+  /**
+   * Contratos das máquinas — bloco separado de propósito.
+   *
+   * `maquinas` é lida por toda a equipe (`is_staff`), então valor de parcela e
+   * total financiado não podem morar lá. Ficam em `maquinas_contrato`, com RLS
+   * de `financeiro.read`: quem não pode ver dinheiro recebe zero linhas e a
+   * tela simplesmente não mostra o bloco.
+   */
+  const { data: contratos = [] } = useQuery({
+    queryKey: ["maquinas-contrato"],
+    enabled: canSeeFinancials,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("maquinas_contrato")
+        .select("*");
+      return (data ?? []) as Record<string, any>[];
+    },
+  });
+  const contratoPorMaquina = new Map(contratos.map((c) => [c.maquina_id as string, c]));
+
+  const [enviandoFoto, setEnviandoFoto] = useState<string | null>(null);
+
+  /**
+   * Foto do equipamento.
+   *
+   * Bucket público, ao contrário dos outros do projeto: foto de máquina não é
+   * dado de cliente, aparece em lista e em card, e exigir URL assinada a cada
+   * render trocaria um risco que não existe por lentidão que existe.
+   */
+  async function enviarFoto(maquinaId: string, arquivo: File) {
+    setEnviandoFoto(maquinaId);
+    try {
+      const ext = arquivo.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const caminho = `${maquinaId}/${Date.now()}.${ext}`;
+      const { error: erroUpload } = await supabase.storage
+        .from("maquinas-fotos")
+        .upload(caminho, arquivo, { contentType: arquivo.type, upsert: true });
+      if (erroUpload) throw erroUpload;
+
+      const { data: pub } = supabase.storage.from("maquinas-fotos").getPublicUrl(caminho);
+      const { data, error } = await (supabase as any)
+        .from("maquinas")
+        .update({ imagem_url: pub.publicUrl })
+        .eq("id", maquinaId)
+        .select("id");
+      if (error) throw error;
+      // Escrita barrada por RLS devolve 0 linhas e nenhum erro.
+      if (!data || data.length === 0) throw new Error("Seu perfil não pode alterar máquinas.");
+
+      toast.success("Foto atualizada");
+      qc.invalidateQueries({ queryKey: ["maquinas"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar a foto");
+    } finally {
+      setEnviandoFoto(null);
+    }
+  }
+
   const save = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -95,6 +163,13 @@ function MaquinasPage() {
         setup_min: Number(form.setup_min) || 0,
         velocidade_m2_h: Number(form.velocidade_m2_h) || 0,
         disponibilidade_pct: Number(form.disponibilidade_pct) || 0,
+        fabricante: form.fabricante.trim() || null,
+        modelo: form.modelo.trim() || null,
+        // O "neurônio" da Vuze. É por ele que se abre chamado de garantia —
+        // sem ele, achar a máquina no fabricante vira arqueologia de e-mail.
+        numero_serie: form.numero_serie.trim() || null,
+        // Boca da máquina: o gargalo do encaixe de bobina no orçamento.
+        largura_util_m: form.largura_util_m ? Number(form.largura_util_m) : null,
       };
       if (form.id) {
         const { error } = await supabase.from("maquinas").update(payload).eq("id", form.id);
@@ -144,6 +219,10 @@ function MaquinasPage() {
       setup_min: String(m.setup_min ?? 0),
       velocidade_m2_h: String(m.velocidade_m2_h ?? 0),
       disponibilidade_pct: String(m.disponibilidade_pct ?? 100),
+      fabricante: (m as any).fabricante ?? "",
+      modelo: (m as any).modelo ?? "",
+      numero_serie: (m as any).numero_serie ?? "",
+      largura_util_m: (m as any).largura_util_m != null ? String((m as any).largura_util_m) : "",
     });
     setOpen(true);
   };
@@ -207,15 +286,46 @@ function MaquinasPage() {
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                      <Factory className="h-5 w-5 text-[color:var(--bex-cyan)]" />
-                    </div>
+                    <label
+                      className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden cursor-pointer relative group"
+                      title="Trocar a foto"
+                    >
+                      {m.imagem_url ? (
+                        <img
+                          src={m.imagem_url}
+                          alt={m.nome}
+                          className="h-full w-full object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Factory className="h-5 w-5 text-[color:var(--bex-cyan)]" />
+                      )}
+                      <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-background/80 text-[10px] font-medium">
+                        {enviandoFoto === m.id ? "..." : "trocar"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) enviarFoto(m.id, f);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
                     <div className="min-w-0">
                       <div className="font-bold truncate">{m.nome}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {m.tipo || "—"}
                         {m.setor ? ` · ${m.setor}` : ""}
                       </div>
+                      {(m.fabricante || m.modelo) && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          {[m.fabricante, m.modelo].filter(Boolean).join(" ")}
+                          {m.numero_serie ? ` · nº ${m.numero_serie}` : ""}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <StatusChip
@@ -250,6 +360,69 @@ function MaquinasPage() {
                     <div className="font-bold">{Number(m.velocidade_m2_h ?? 0)} m²/h</div>
                   </div>
                 </div>
+
+                {m.largura_util_m != null && (
+                  <div className="text-xs text-muted-foreground">
+                    Boca de {Number(m.largura_util_m).toLocaleString("pt-BR")} m — é ela que
+                    define quantas peças cabem na bobina.
+                  </div>
+                )}
+
+                {/* Ficha técnica em formato livre: cada tipo de máquina tem a sua.
+                    Uma fresa a laser fala em tubo e área de gravação; um plotter,
+                    em força de corte. */}
+                {m.especificacoes && Object.keys(m.especificacoes as object).length > 0 && (
+                  <details className="rounded-md border bg-muted/30 p-2">
+                    <summary className="cursor-pointer text-xs font-medium">
+                      Ficha técnica
+                    </summary>
+                    <dl className="mt-2 space-y-1 text-xs">
+                      {Object.entries(m.especificacoes as Record<string, unknown>)
+                        .filter(([chave]) => chave !== "fonte_ficha")
+                        .map(([chave, valor]) => (
+                          <div key={chave} className="flex justify-between gap-3">
+                            <dt className="text-muted-foreground">
+                              {chave.replace(/_/g, " ")}
+                            </dt>
+                            <dd className="font-mono text-right">
+                              {typeof valor === "boolean" ? (valor ? "sim" : "não") : String(valor)}
+                            </dd>
+                          </div>
+                        ))}
+                    </dl>
+                    {(m.especificacoes as Record<string, unknown>).fonte_ficha ? (
+                      <p className="mt-2 text-[10px] text-muted-foreground">
+                        Fonte: {String((m.especificacoes as Record<string, unknown>).fonte_ficha)}
+                      </p>
+                    ) : null}
+                  </details>
+                )}
+
+                {canSeeFinancials && contratoPorMaquina.get(m.id) && (
+                  <div className="rounded-md border border-[color:var(--bex-cyan)]/30 bg-[color:var(--bex-cyan)]/5 p-2 text-xs space-y-1">
+                    <div className="font-medium">
+                      {contratoPorMaquina.get(m.id)!.condicao_comercial ?? "Contrato"}
+                    </div>
+                    {contratoPorMaquina.get(m.id)!.valor_parcela ? (
+                      <div>
+                        {contratoPorMaquina.get(m.id)!.parcelas}× de{" "}
+                        {brl(Number(contratoPorMaquina.get(m.id)!.valor_parcela))}
+                      </div>
+                    ) : null}
+                    {contratoPorMaquina.get(m.id)!.valor_total ? (
+                      <div>Valor: {brl(Number(contratoPorMaquina.get(m.id)!.valor_total))}</div>
+                    ) : null}
+                    {contratoPorMaquina.get(m.id)!.creditos != null ? (
+                      <div>Créditos: {contratoPorMaquina.get(m.id)!.creditos}</div>
+                    ) : null}
+                    <div className="text-muted-foreground">
+                      Contrato{" "}
+                      {contratoPorMaquina.get(m.id)!.numero_contrato ??
+                        contratoPorMaquina.get(m.id)!.numero_negociacao ??
+                        "—"}
+                    </div>
+                  </div>
+                )}
 
                 {Number(m.custo_hora ?? 0) <= 0 && (
                   <div className="flex items-center gap-2 text-xs text-[color:var(--bex-magenta)]">
@@ -286,6 +459,10 @@ function MaquinasPage() {
             <div className="sm:col-span-2">{field("nome", "Nome *", "Plotter Roland XR-640")}</div>
             {field("tipo", "Tipo", "Impressão eco-solvente")}
             {field("setor", "Setor", "Impressão")}
+            {field("fabricante", "Fabricante", "Vuze")}
+            {field("modelo", "Modelo", "VC10060-LM")}
+            {field("numero_serie", "Nº de série / neurônio", "FD2D54")}
+            {field("largura_util_m", "Boca da máquina (m)", "1.80", "number")}
             {field("custo_hora", "Custo/hora (R$)", "40", "number")}
             {field("potencia_kw", "Potência (kW)", "1.5", "number")}
             {field("setup_min", "Setup (min)", "15", "number")}

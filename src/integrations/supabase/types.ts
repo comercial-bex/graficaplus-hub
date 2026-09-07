@@ -2930,8 +2930,15 @@ export type Database = {
           created_at: string
           custo_hora: number
           disponibilidade_pct: number
+          especificacoes: Json
+          fabricante: string | null
           id: string
+          imagem_url: string | null
+          largura_util_m: number | null
+          margem_lateral_m: number
+          modelo: string | null
           nome: string
+          numero_serie: string | null
           potencia_kw: number
           setor: string | null
           setup_min: number
@@ -2944,8 +2951,15 @@ export type Database = {
           created_at?: string
           custo_hora?: number
           disponibilidade_pct?: number
+          especificacoes?: Json
+          fabricante?: string | null
           id?: string
+          imagem_url?: string | null
+          largura_util_m?: number | null
+          margem_lateral_m?: number
+          modelo?: string | null
           nome: string
+          numero_serie?: string | null
           potencia_kw?: number
           setor?: string | null
           setup_min?: number
@@ -2958,8 +2972,15 @@ export type Database = {
           created_at?: string
           custo_hora?: number
           disponibilidade_pct?: number
+          especificacoes?: Json
+          fabricante?: string | null
           id?: string
+          imagem_url?: string | null
+          largura_util_m?: number | null
+          margem_lateral_m?: number
+          modelo?: string | null
           nome?: string
+          numero_serie?: string | null
           potencia_kw?: number
           setor?: string | null
           setup_min?: number
