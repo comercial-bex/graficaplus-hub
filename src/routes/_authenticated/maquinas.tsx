@@ -410,6 +410,38 @@ function MaquinasPage() {
                   </div>
                 )}
 
+                {/* O número em que a gráfica pensa.
+                    Ninguém precifica banner por hora de máquina: precifica por
+                    metro quadrado. Custo/hora sozinho engana — R$ 14,43 parece
+                    caro até dividir pelos 14 m² que a máquina faz nessa hora. */}
+                {Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) > 0 && (
+                  <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                    <div className="font-medium">
+                      {brl(Number(m.custo_hora) / Number(m.velocidade_m2_h))} por m² de máquina
+                    </div>
+                    <div className="text-muted-foreground">
+                      {brl(Number(m.custo_hora))}/h ÷ {Number(m.velocidade_m2_h)} m²/h. É este
+                      valor que entra no orçamento, proporcional à metragem da peça — não a
+                      hora cheia.
+                    </div>
+                  </div>
+                )}
+
+                {/* Sem velocidade, a hora é digitada à mão — e digitar "1 hora"
+                    num banner de 2 m² cobra a hora inteira em vez do minuto que
+                    a peça usou. É assim que o orçamento estoura. */}
+                {Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) <= 0 && (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
+                    <div className="font-medium text-amber-700 dark:text-amber-500">
+                      Sem velocidade cadastrada
+                    </div>
+                    <div className="text-muted-foreground">
+                      O orçamento vai pedir as horas digitadas. Uma hora cheia numa peça de
+                      poucos minutos cobra {brl(Number(m.custo_hora))} a mais do que devia.
+                    </div>
+                  </div>
+                )}
+
                 {/* Ficha técnica em formato livre: cada tipo de máquina tem a sua.
                     Uma fresa a laser fala em tubo e área de gravação; um plotter,
                     em força de corte. */}

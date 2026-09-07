@@ -460,6 +460,31 @@ export function CalculadoraCusto({
                       )
                     }
                   />
+                  {/* A hora vem da metragem, não do relógio.
+                      Uma peça de 2 m² numa máquina de 14 m²/h usa 0,14 h. Se
+                      alguém digitar "1", o orçamento cobra a hora inteira e a
+                      peça sai cara sem motivo — que é exatamente como um preço
+                      justo vira um preço perdido. */}
+                  {(() => {
+                    const maq: any = maquinas.find((x: any) => x.id === l.maquina_id);
+                    const vel = Number(maq?.velocidade_m2_h ?? 0);
+                    if (!maq) return null;
+                    if (vel > 0 && baseConsumo > 0) {
+                      return (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {baseConsumo.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} m² ÷{" "}
+                          {vel} m²/h = {(baseConsumo / vel).toFixed(2)} h ·{" "}
+                          {brl(num(l.custoHora) / vel)}/m²
+                        </p>
+                      );
+                    }
+                    return (
+                      <p className="mt-1 text-[11px] text-amber-600">
+                        Sem velocidade cadastrada: a hora é digitada. Confira — hora cheia em
+                        peça de minutos infla o orçamento.
+                      </p>
+                    );
+                  })()}
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Custo/h</Label>
