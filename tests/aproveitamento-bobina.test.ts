@@ -138,3 +138,57 @@ test("peça de medida ruim para a bobina desperdiça de verdade", () => {
   expect(r.plano.colunas).toBe(1);
   expect(r.plano.aproveitamentoPct).toBeLessThan(0.6);
 });
+
+/* -------------------------------------------------------------------------- */
+/* Sobra de avanço                                                             */
+/* -------------------------------------------------------------------------- */
+
+test("o avanço soma ao metro linear: o rolo puxa material para carregar e para cortar", () => {
+  const semAvanco = planejarBobina({
+    larguraPeca: 0.5, alturaPeca: 1, quantidade: 2, ...MAQUINA, ...BOBINA,
+  });
+  const comAvanco = planejarBobina({
+    larguraPeca: 0.5, alturaPeca: 1, quantidade: 2, ...MAQUINA, ...BOBINA, avancoM: 0.2,
+  });
+  expect(semAvanco.cabe && comAvanco.cabe).toBe(true);
+  if (!semAvanco.cabe || !comAvanco.cabe) return;
+  expect(comAvanco.plano.metrosLineares - semAvanco.plano.metrosLineares).toBeCloseTo(0.2, 3);
+  expect(comAvanco.plano.avanco).toBe(0.2);
+  // O m² consumido segue o metro linear: é a mesma bobina mais comprida.
+  expect(comAvanco.plano.m2Consumidos).toBeCloseTo(1.06 * comAvanco.plano.metrosLineares, 3);
+});
+
+test("em peça pequena o avanço É o consumo — 20 cm de avanço numa tira de 20 cm", () => {
+  const r = planejarBobina({
+    larguraPeca: 0.2, alturaPeca: 0.2, quantidade: 1, ...MAQUINA, ...BOBINA, avancoM: 0.2,
+  });
+  expect(r.cabe).toBe(true);
+  if (!r.cabe) return;
+  // 0,20 de peça + 0,20 de avanço: metade do material vai embora.
+  expect(r.plano.metrosLineares).toBeCloseTo(0.4, 3);
+  expect(r.plano.avanco / r.plano.metrosLineares).toBeCloseTo(0.5, 2);
+});
+
+test("o avanço entra uma vez por trabalho, não por fileira", () => {
+  const uma = planejarBobina({
+    larguraPeca: 0.5, alturaPeca: 1, quantidade: 2, ...MAQUINA, ...BOBINA, avancoM: 0.3,
+  });
+  const dez = planejarBobina({
+    larguraPeca: 0.5, alturaPeca: 1, quantidade: 20, ...MAQUINA, ...BOBINA, avancoM: 0.3,
+  });
+  expect(uma.cabe && dez.cabe).toBe(true);
+  if (!uma.cabe || !dez.cabe) return;
+  expect(uma.plano.avanco).toBe(dez.plano.avanco);
+  // 10 fileiras contra 1: a diferença é só de peça, o avanço não multiplica.
+  expect(dez.plano.metrosLineares - uma.plano.metrosLineares).toBeCloseTo(9 * 1.003, 2);
+});
+
+test("avanço negativo não vira crédito de material", () => {
+  const r = planejarBobina({
+    larguraPeca: 0.5, alturaPeca: 1, quantidade: 2, ...MAQUINA, ...BOBINA, avancoM: -5,
+  });
+  expect(r.cabe).toBe(true);
+  if (!r.cabe) return;
+  expect(r.plano.avanco).toBe(0);
+  expect(r.plano.metrosLineares).toBeGreaterThan(0);
+});

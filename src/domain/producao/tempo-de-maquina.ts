@@ -54,10 +54,18 @@ export type VelocidadePorMaterial = {
   material: string;
   espessuraMm: number;
   velocidadeMmS: number;
+  /** Material que esta máquina NÃO pode processar. */
+  vetado?: boolean;
+  motivo?: string;
 };
 
 /**
  * Escolhe a velocidade da tabela para o material e a espessura.
+ *
+ * O VETO vem antes de tudo: material vetado não tem espessura que sirva, e a
+ * linha é devolvida inteira para quem chamou recusar com o motivo na mão.
+ * "Não medimos ainda" e "isso libera cloro dentro da sua máquina" não podem sair
+ * na tela com a mesma cara.
  *
  * Espessura sem linha exata usa a MAIS PRÓXIMA ACIMA: cortar 4 mm com a
  * velocidade dos 5 mm é mais lento do que precisa, mas cortar com a dos 3 mm
@@ -72,6 +80,8 @@ export function velocidadeDeCorte(
     .filter((v) => v.material.toLowerCase() === material.toLowerCase())
     .sort((a, b) => a.espessuraMm - b.espessuraMm);
   if (doMaterial.length === 0) return null;
+  const vetado = doMaterial.find((v) => v.vetado);
+  if (vetado) return vetado;
   return doMaterial.find((v) => v.espessuraMm >= espessuraMm) ?? doMaterial[doMaterial.length - 1];
 }
 
@@ -95,6 +105,13 @@ export function tempoCorteLaser(entrada: {
   if (setup > 0) partes.push(`${min(setup)} de setup`);
 
   const vel = velocidadeDeCorte(entrada.tabela, entrada.material, entrada.espessuraMm);
+
+  // Veto antes da conta: não existe tempo para um trabalho que não pode ser
+  // feito, e o orçamento tem que recusar em vez de pedir a hora à mão.
+  if (vel?.vetado) {
+    return { minutos: 0, derivado: false, vetado: true, memoria: vel.motivo ?? `${entrada.material} não pode ser processado nesta máquina` };
+  }
+
   const comprimento = num(entrada.comprimentoCorteM);
   let derivado = false;
 
@@ -103,6 +120,7 @@ export function tempoCorteLaser(entrada: {
       return {
         minutos: Math.max(minimo, setup),
         derivado: false,
+        vetado: false,
         memoria: `sem velocidade cadastrada para ${entrada.material} — informe o tempo`,
       };
     }
@@ -135,7 +153,7 @@ export function tempoCorteLaser(entrada: {
   const cobrado = Math.max(minutos, minimo);
   if (minimo > 0 && cobrado > minutos) partes.push(`mínimo de ${min(minimo)} aplicado`);
 
-  return { minutos: r2(cobrado), derivado, memoria: partes.join(" · ") || "nada a cortar" };
+  return { minutos: r2(cobrado), derivado, vetado: false, memoria: partes.join(" · ") || "nada a cortar" };
 }
 
 /* ------------------------------------------------------------------------ */

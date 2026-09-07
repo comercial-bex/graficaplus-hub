@@ -168,3 +168,68 @@ describe("tempo vira dinheiro", () => {
     expect(r.total).toBeCloseTo(8.85, 2);
   });
 });
+
+describe("material que a máquina não pode processar", () => {
+  // O veto é do MATERIAL, não da espessura: não existe PVC fino o bastante
+  // para o laser não liberar cloro.
+  const COM_VETO: VelocidadePorMaterial[] = [
+    ...TABELA,
+    { material: "pvc", espessuraMm: 0, velocidadeMmS: 1, vetado: true, motivo: "PVC no laser libera cloro: corrói a máquina e é tóxico." },
+    { material: "acm", espessuraMm: 0, velocidadeMmS: 1, vetado: true, motivo: "ACM tem miolo entre chapas de alumínio — CO2 não corta metal." },
+  ];
+
+  it("qualquer espessura de material vetado devolve o veto, não uma velocidade", () => {
+    expect(velocidadeDeCorte(COM_VETO, "pvc", 3)?.vetado).toBe(true);
+    expect(velocidadeDeCorte(COM_VETO, "pvc", 20)?.vetado).toBe(true);
+    expect(velocidadeDeCorte(COM_VETO, "PVC", 0.5)?.vetado).toBe(true);
+  });
+
+  it("o veto ganha da linha de velocidade do mesmo material", () => {
+    // Alguém pode ter medido o PVC antes de saber do cloro. O veto vem antes.
+    const tabela: VelocidadePorMaterial[] = [
+      { material: "pvc", espessuraMm: 3, velocidadeMmS: 30 },
+      { material: "pvc", espessuraMm: 0, velocidadeMmS: 1, vetado: true, motivo: "libera cloro" },
+    ];
+    expect(velocidadeDeCorte(tabela, "pvc", 3)?.vetado).toBe(true);
+  });
+
+  it("a conta recusa com o motivo e não cobra nada — nem o mínimo", () => {
+    const r = tempoCorteLaser({
+      comprimentoCorteM: 2, material: "pvc", espessuraMm: 3, tabela: COM_VETO,
+      setupMin: 5, minimoMin: 10,
+    });
+    expect(r.vetado).toBe(true);
+    expect(r.derivado).toBe(false);
+    expect(r.minutos).toBe(0);
+    expect(r.memoria).toContain("cloro");
+  });
+
+  it("recusa mesmo sem traçado: o material já basta", () => {
+    const r = tempoCorteLaser({
+      comprimentoCorteM: 0, material: "acm", espessuraMm: 3, tabela: COM_VETO,
+      areaGravacaoCm2: 50,
+    });
+    expect(r.vetado).toBe(true);
+    expect(r.minutos).toBe(0);
+  });
+
+  it("material só não cadastrado NÃO é veto — pede o tempo, sem alarme falso", () => {
+    const r = tempoCorteLaser({ comprimentoCorteM: 2, material: "vidro", espessuraMm: 3, tabela: COM_VETO });
+    expect(r.vetado).toBe(false);
+    expect(r.memoria).toContain("sem velocidade cadastrada");
+  });
+
+  it("material liberado segue calculando com o veto na tabela ao lado", () => {
+    const r = tempoCorteLaser({ comprimentoCorteM: 2, material: "acrilico", espessuraMm: 3, tabela: COM_VETO });
+    expect(r.vetado).toBe(false);
+    expect(r.derivado).toBe(true);
+  });
+});
+
+describe("modo de qualidade da impressora", () => {
+  it("mais passadas, mais tempo: alta qualidade leva o dobro da produção", () => {
+    const producao = tempoImpressao({ areaM2: 6, velocidadeM2H: 14 });
+    const alta = tempoImpressao({ areaM2: 6, velocidadeM2H: 7 });
+    expect(alta.minutos / producao.minutos).toBeCloseTo(2, 2);
+  });
+});

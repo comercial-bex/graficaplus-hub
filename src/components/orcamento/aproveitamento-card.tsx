@@ -14,6 +14,8 @@ type Contexto = {
   espacamento: number;
   larguraUtilMaquina: number | null;
   margemLateral: number;
+  /** metros lineares perdidos por trabalho no carregamento e no corte */
+  avanco: number;
   nomeMaquina: string | null;
   /** true quando a máquina não veio do produto e foi escolhida a mais larga. */
   maquinaInferida: boolean;
@@ -52,12 +54,14 @@ export function useContextoDeBobina(produtoId: string | null) {
       //
       // A largura útil é o gargalo do encaixe — usar a da máquina errada muda
       // quantas peças cabem, que é a única coisa que este cálculo responde.
-      let maquina: { nome: string; largura_util_m: number | null; margem_lateral_m: number | null } | undefined;
+      let maquina:
+        | { nome: string; largura_util_m: number | null; margem_lateral_m: number | null; avanco_m: number | null }
+        | undefined;
 
       if (produto.maquina_padrao_id) {
         const { data } = await (supabase as any)
           .from("maquinas")
-          .select("nome, largura_util_m, margem_lateral_m")
+          .select("nome, largura_util_m, margem_lateral_m, avanco_m")
           .eq("id", produto.maquina_padrao_id)
           .maybeSingle();
         maquina = data ?? undefined;
@@ -72,7 +76,7 @@ export function useContextoDeBobina(produtoId: string | null) {
           // pai-arbitrario-ok: fallback deliberado quando o produto não tem
           // máquina padrão. Não grava vínculo nenhum — só estima a boca para o
           // cálculo, e o card avisa na tela que a máquina foi suposta.
-          .select("nome, largura_util_m, margem_lateral_m")
+          .select("nome, largura_util_m, margem_lateral_m, avanco_m")
           .eq("ativa", true)
           .not("largura_util_m", "is", null)
           .order("largura_util_m", { ascending: false })
@@ -92,6 +96,7 @@ export function useContextoDeBobina(produtoId: string | null) {
         espacamento: Number(produto.espacamento_pecas_m ?? 0.003),
         larguraUtilMaquina: maquina?.largura_util_m != null ? Number(maquina.largura_util_m) : null,
         margemLateral: Number(maquina?.margem_lateral_m ?? 0.01),
+        avanco: Number(maquina?.avanco_m ?? 0),
         nomeMaquina: maquina?.nome ?? null,
         maquinaInferida,
       };
@@ -147,6 +152,7 @@ export function AproveitamentoDeBobina({
     larguraUtilMaquina: contexto.larguraUtilMaquina,
     margemLateral: contexto.margemLateral,
     espacamento: contexto.espacamento,
+    avancoM: contexto.avanco,
   });
 
   if (!r.cabe) {
@@ -211,6 +217,16 @@ export function AproveitamentoDeBobina({
         {(p.sobraLateral * 100).toFixed(1)} cm de faixa lateral em todo o comprimento
         {desperdicio && " — vale testar outra medida ou outra bobina"}
       </div>
+
+      {/* O avanço é material que sai do rolo em todo trabalho, tenha ele 20 cm
+          ou 20 m. Fica escrito porque num pedido pequeno ele É o consumo. */}
+      {p.avanco > 0 && (
+        <div className={p.avanco / p.metrosLineares > 0.3 ? "text-amber-600" : "text-muted-foreground"}>
+          Inclui <strong>{m(p.avanco)}</strong> de avanço de carregamento e corte
+          {p.avanco / p.metrosLineares > 0.3 &&
+            ` — ${pct(p.avanco / p.metrosLineares)} do consumo é só avanço; juntar com outro pedido na mesma passada economiza material`}
+        </div>
+      )}
     </div>
   );
 }

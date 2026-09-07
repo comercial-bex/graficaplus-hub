@@ -2927,6 +2927,7 @@ export type Database = {
       maquinas: {
         Row: {
           ativa: boolean
+          avanco_m: number
           base_cobranca: string
           created_at: string
           custo_hora: number
@@ -2954,6 +2955,7 @@ export type Database = {
         }
         Insert: {
           ativa?: boolean
+          avanco_m?: number
           base_cobranca?: string
           created_at?: string
           custo_hora?: number
@@ -2981,6 +2983,7 @@ export type Database = {
         }
         Update: {
           ativa?: boolean
+          avanco_m?: number
           base_cobranca?: string
           created_at?: string
           custo_hora?: number
@@ -3008,10 +3011,55 @@ export type Database = {
         }
         Relationships: []
       }
+      maquinas_modos_impressao: {
+        Row: {
+          created_at: string
+          id: string
+          maquina_id: string
+          nome: string
+          observacao: string | null
+          ordem: number
+          padrao: boolean
+          passadas: number | null
+          velocidade_m2_h: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          maquina_id: string
+          nome: string
+          observacao?: string | null
+          ordem?: number
+          padrao?: boolean
+          passadas?: number | null
+          velocidade_m2_h: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          maquina_id?: string
+          nome?: string
+          observacao?: string | null
+          ordem?: number
+          padrao?: boolean
+          passadas?: number | null
+          velocidade_m2_h?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_modos_impressao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maquinas_velocidades: {
         Row: {
           created_at: string
           espessura_mm: number
+          motivo: string | null
           fonte: string | null
           id: string
           maquina_id: string
@@ -3019,10 +3067,12 @@ export type Database = {
           observacao: string | null
           operacao: string
           velocidade_mm_s: number
+          vetado: boolean
         }
         Insert: {
           created_at?: string
           espessura_mm?: number
+          motivo?: string | null
           fonte?: string | null
           id?: string
           maquina_id: string
@@ -3030,10 +3080,12 @@ export type Database = {
           observacao?: string | null
           operacao?: string
           velocidade_mm_s: number
+          vetado?: boolean
         }
         Update: {
           created_at?: string
           espessura_mm?: number
+          motivo?: string | null
           fonte?: string | null
           id?: string
           maquina_id?: string
@@ -3041,6 +3093,7 @@ export type Database = {
           observacao?: string | null
           operacao?: string
           velocidade_mm_s?: number
+          vetado?: boolean
         }
         Relationships: [
           {

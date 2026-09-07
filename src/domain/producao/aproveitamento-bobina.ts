@@ -30,6 +30,14 @@ export type EntradaBobina = {
   margemLateral?: number;
   /** metros entre peças, para o recorte; padrão 3 mm */
   espacamento?: number;
+  /**
+   * Metros lineares perdidos POR TRABALHO no carregamento e no corte.
+   *
+   * O rolo avança antes de a impressão começar e de novo depois que ela
+   * termina. Em pedido grande é ruído; em peça pequena é a maior parte do
+   * consumo — 20 cm de avanço numa tira de 20 cm dobra o material.
+   */
+  avancoM?: number;
   /** girar a peça 90° quando render mais por fileira */
   permitirRotacao?: boolean;
 };
@@ -41,8 +49,10 @@ export type PlanoBobina = {
   colunas: number;
   /** fileiras necessárias para a quantidade pedida */
   linhas: number;
-  /** metros lineares de bobina consumidos */
+  /** metros lineares de bobina consumidos, avanço incluído */
   metrosLineares: number;
+  /** metros lineares que são só avanço de carregamento e corte */
+  avanco: number;
   /** m² de bobina consumidos — a largura inteira do rolo entra na conta */
   m2Consumidos: number;
   /** m² úteis das peças ÷ m² consumidos */
@@ -80,6 +90,7 @@ export function colunasQueCabem(disponivel: number, largura: number, espacamento
 export function planejarBobina(entrada: EntradaBobina): ResultadoBobina {
   const margem = entrada.margemLateral ?? 0.01;
   const espaco = entrada.espacamento ?? 0.003;
+  const avanco = Math.max(0, entrada.avancoM ?? 0);
   const permitirRotacao = entrada.permitirRotacao ?? true;
 
   if (entrada.quantidade <= 0) return { cabe: false, motivo: "Informe a quantidade." };
@@ -115,8 +126,10 @@ export function planejarBobina(entrada: EntradaBobina): ResultadoBobina {
     if (colunas === 0) continue;
 
     const linhas = Math.ceil(entrada.quantidade / colunas);
-    // A última fileira não precisa do espaçamento depois dela.
-    const metrosLineares = arred(linhas * (o.a + espaco) - espaco);
+    // A última fileira não precisa do espaçamento depois dela. O avanço, sim:
+    // é o material que a máquina puxa para carregar e para cortar, e ele sai do
+    // rolo tenha o trabalho 20 cm ou 20 m.
+    const metrosLineares = arred(linhas * (o.a + espaco) - espaco + avanco);
     // Consome a largura INTEIRA do rolo, inclusive a faixa lateral que sobrou:
     // aquele material não volta para a prateleira.
     const m2Consumidos = arred(entrada.larguraBobina * metrosLineares, 4);
@@ -127,6 +140,7 @@ export function planejarBobina(entrada: EntradaBobina): ResultadoBobina {
       colunas,
       linhas,
       metrosLineares,
+      avanco: arred(avanco),
       m2Consumidos,
       aproveitamentoPct: m2Consumidos > 0 ? arred(m2Uteis / m2Consumidos, 4) : 0,
       sobraLateral: arred(larguraUtilizavel - (colunas * o.l + (colunas - 1) * espaco)),

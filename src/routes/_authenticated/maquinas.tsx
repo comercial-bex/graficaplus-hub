@@ -20,6 +20,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { useAuth } from "@/lib/auth-context";
+import { ParametrosDeMaquina } from "@/components/maquinas/parametros-de-maquina";
 
 export const Route = createFileRoute("/_authenticated/maquinas")({
   head: () => ({
@@ -56,6 +57,7 @@ type Form = {
   modelo: string;
   numero_serie: string;
   largura_util_m: string;
+  avanco_m: string;
 };
 
 const emptyForm: Form = {
@@ -71,6 +73,7 @@ const emptyForm: Form = {
   modelo: "",
   numero_serie: "",
   largura_util_m: "",
+  avanco_m: "",
 };
 
 const brl = (n: number) =>
@@ -212,6 +215,7 @@ function MaquinasPage() {
         numero_serie: form.numero_serie.trim() || null,
         // Boca da máquina: o gargalo do encaixe de bobina no orçamento.
         largura_util_m: form.largura_util_m ? Number(form.largura_util_m) : null,
+        avanco_m: Number(form.avanco_m) || 0,
       };
       if (form.id) {
         const { error } = await supabase.from("maquinas").update(payload).eq("id", form.id);
@@ -265,6 +269,7 @@ function MaquinasPage() {
       modelo: (m as any).modelo ?? "",
       numero_serie: (m as any).numero_serie ?? "",
       largura_util_m: (m as any).largura_util_m != null ? String((m as any).largura_util_m) : "",
+      avanco_m: (m as any).avanco_m != null ? String((m as any).avanco_m) : "",
     });
     setOpen(true);
   };
@@ -442,6 +447,12 @@ function MaquinasPage() {
                   </div>
                 )}
 
+                {/* Os parâmetros que fazem o preço, editáveis aqui: modos de
+                    qualidade na impressora, tabela de velocidade no laser.
+                    Semear na migração e não dar onde corrigir seria congelar
+                    uma estimativa dentro do preço de venda. */}
+                <ParametrosDeMaquina maquinaId={m.id} base={(m as any).base_cobranca ?? null} />
+
                 {/* Ficha técnica em formato livre: cada tipo de máquina tem a sua.
                     Uma fresa a laser fala em tubo e área de gravação; um plotter,
                     em força de corte. */}
@@ -569,6 +580,10 @@ function MaquinasPage() {
             {field("potencia_kw", "Potência (kW)", "1.5", "number")}
             {field("setup_min", "Setup (min)", "15", "number")}
             {field("velocidade_m2_h", "Velocidade (m²/h)", "12", "number")}
+            {/* O rolo avança para carregar e para cortar. Em peça pequena esse
+                avanço É o consumo: 20 cm perdidos numa tira de 20 cm dobram o
+                material, e a conta de aproveitamento ignorava isso. */}
+            {field("avanco_m", "Avanço por trabalho (m)", "0.20", "number")}
             <div className="sm:col-span-2">
               {field("disponibilidade_pct", "Disponibilidade (%)", "85", "number")}
             </div>

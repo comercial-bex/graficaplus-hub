@@ -58,15 +58,19 @@ type LinhaMat = { key: string; material_id: string | null; descricao: string; un
 type LinhaProc = {
   key: string; maquina_id: string | null; descricao: string; horas: string; custoHora: string; setupMin: string; potenciaKw: string;
   base: BaseCobranca; memoria: string; derivado: boolean;
+  /** Material que esta máquina não pode processar: a linha recusa, não pede a hora. */
+  vetado: boolean;
   /** Minutos de decapagem e fita quando a base é metro linear; vira linha de mão de obra. */
   maoDeObraMin: string;
+  /** Modo de qualidade da impressora — muda a velocidade em 2 a 4 vezes. */
+  modoId: string | null;
   material: string; espessuraMm: string; comprimentoM: string; areaGravacaoCm2: string;
   complexidade: ComplexidadeDecapagem; pecas: string; areaPecaCm2: string; rotativo: boolean;
 };
 
 const linhaProcVazia = (): Omit<LinhaProc, "key"> => ({
   maquina_id: null, descricao: "", horas: "0", custoHora: "0", setupMin: "0", potenciaKw: "0",
-  base: "tempo", memoria: "", derivado: false, maoDeObraMin: "",
+  base: "tempo", memoria: "", derivado: false, vetado: false, maoDeObraMin: "", modoId: null,
   material: "", espessuraMm: "", comprimentoM: "", areaGravacaoCm2: "",
   complexidade: "media", pecas: "1", areaPecaCm2: "", rotativo: false,
 });
@@ -159,16 +163,44 @@ export function CalculadoraCusto({
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("maquinas_velocidades")
-        .select("maquina_id, operacao, material, espessura_mm, velocidade_mm_s")
+        .select("maquina_id, operacao, material, espessura_mm, velocidade_mm_s, vetado, motivo")
         .in("maquina_id", idsMaquinas.split(","));
-      return (data ?? []) as { maquina_id: string; operacao: string; material: string; espessura_mm: number; velocidade_mm_s: number }[];
+      return (data ?? []) as { maquina_id: string; operacao: string; material: string; espessura_mm: number; velocidade_mm_s: number; vetado: boolean; motivo: string | null }[];
     },
   });
+
+  /**
+   * Modos de qualidade da impressora.
+   *
+   * A mesma máquina faz 28 m²/h em rascunho e 7 em alta qualidade. Cobrar
+   * sempre pelo modo de produção subestima em 2× o trabalho caprichado — e o
+   * caprichado é justamente o que o cliente paga mais caro.
+   */
+  const { data: modos = [] } = useQuery({
+    queryKey: ["calc-modos", idsMaquinas],
+    enabled: open && idsMaquinas.length > 0,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("maquinas_modos_impressao")
+        .select("id, maquina_id, nome, velocidade_m2_h, passadas, padrao, ordem")
+        .in("maquina_id", idsMaquinas.split(","))
+        .order("ordem");
+      return (data ?? []) as { id: string; maquina_id: string; nome: string; velocidade_m2_h: number; passadas: number | null; padrao: boolean; ordem: number }[];
+    },
+  });
+
+  const modosDe = (maquinaId: string | null) => modos.filter((m) => m.maquina_id === maquinaId);
 
   const tabelaDe = (maquinaId: string | null, operacao: "corte" | "gravacao"): VelocidadePorMaterial[] =>
     velocidades
       .filter((v) => v.maquina_id === maquinaId && v.operacao === operacao)
-      .map((v) => ({ material: v.material, espessuraMm: Number(v.espessura_mm), velocidadeMmS: Number(v.velocidade_mm_s) }));
+      .map((v) => ({
+        material: v.material,
+        espessuraMm: Number(v.espessura_mm),
+        velocidadeMmS: Number(v.velocidade_mm_s),
+        vetado: !!v.vetado,
+        motivo: v.motivo ?? undefined,
+      }));
 
   /**
    * Deriva as horas da linha pela base de cobrança da máquina.
@@ -183,8 +215,12 @@ export function CalculadoraCusto({
     if (!maq) return {};
     const setup = num(l.setupMin);
     if (l.base === "area") {
-      const r = tempoImpressao({ areaM2: baseConsumo, velocidadeM2H: Number(maq.velocidade_m2_h ?? 0), setupMin: setup });
-      return r.derivado ? { horas: (r.minutos / 60).toFixed(3), memoria: r.memoria, derivado: true } : { memoria: r.memoria, derivado: false };
+      // O modo escolhido manda; sem modo cadastrado, a velocidade da máquina.
+      const modo = modosDe(l.maquina_id).find((m) => m.id === l.modoId);
+      const velocidade = modo ? Number(modo.velocidade_m2_h) : Number(maq.velocidade_m2_h ?? 0);
+      const r = tempoImpressao({ areaM2: baseConsumo, velocidadeM2H: velocidade, setupMin: setup });
+      const memoria = modo ? `${modo.nome}${modo.passadas ? ` (${modo.passadas} passadas)` : ""}: ${r.memoria}` : r.memoria;
+      return r.derivado ? { horas: (r.minutos / 60).toFixed(3), memoria, derivado: true } : { memoria, derivado: false };
     }
     if (l.base === "tempo") {
       const gravacao = tabelaDe(l.maquina_id, "gravacao")[0];
@@ -194,7 +230,12 @@ export function CalculadoraCusto({
         areaGravacaoCm2: num(l.areaGravacaoCm2), velocidadeGravacaoMmS: gravacao?.velocidadeMmS,
         setupMin: setup, minimoMin: Number(maq.tempo_minimo_min ?? 0),
       });
-      return r.derivado ? { horas: (r.minutos / 60).toFixed(3), memoria: r.memoria, derivado: true } : { memoria: r.memoria, derivado: false };
+      // Material vetado zera a hora: cobrar por um trabalho que não pode ser
+      // feito é pior do que não orçar.
+      if (r.vetado) return { horas: "0", memoria: r.memoria, derivado: false, vetado: true };
+      return r.derivado
+        ? { horas: (r.minutos / 60).toFixed(3), memoria: r.memoria, derivado: true, vetado: false }
+        : { memoria: r.memoria, derivado: false, vetado: false };
     }
     if (l.base === "metro_linear") {
       const r = tempoRecorte({
@@ -230,10 +271,20 @@ export function CalculadoraCusto({
   const velocidadesKey = velocidades
     .map((v) => `${v.maquina_id}|${v.operacao}|${v.material}|${v.espessura_mm}|${v.velocidade_mm_s}`)
     .join(";");
+  const modosKey = modos.map((m) => `${m.maquina_id}|${m.id}|${m.velocidade_m2_h}`).join(";");
   useEffect(() => {
-    setProcessos((a) => a.map((l) => (l.maquina_id ? { ...l, maoDeObraMin: "", ...derivarHoras(l) } : l)));
+    setProcessos((a) =>
+      a.map((l) => {
+        if (!l.maquina_id) return l;
+        // Modo padrão só entra na linha que ainda não tem modo: se a vendedora
+        // escolheu "Alta qualidade", o padrão não pode puxar de volta.
+        const modoId = l.modoId ?? modosDe(l.maquina_id).find((m) => m.padrao)?.id ?? null;
+        const base = { ...l, modoId, maoDeObraMin: "" };
+        return { ...base, ...derivarHoras(base) };
+      }),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseConsumo, velocidadesKey]);
+  }, [baseConsumo, velocidadesKey, modosKey]);
 
   function atualizarLinha(key: string, patch: Partial<LinhaProc>) {
     setProcessos((a) =>
@@ -328,7 +379,9 @@ export function CalculadoraCusto({
         custoUnitario: num(m.custoUnitario),
         perdaPct: Math.min(num(m.perdaPct) / 100, 0.99),
       })),
-      processos: processos.map((p) => ({
+      // Linha vetada não entra no cálculo: um trabalho que não pode ser feito
+      // não tem preço, e deixá-la somar zero esconderia a recusa.
+      processos: processos.filter((p) => !p.vetado).map((p) => ({
         descricao: p.descricao || "Processo",
         horas: num(p.horas),
         custoHora: num(p.custoHora),
@@ -358,6 +411,7 @@ export function CalculadoraCusto({
   }, [entrada]);
 
   const temAlgumaLinha = materiais.length + processos.length + maoDeObra.length > 0;
+  const temVetada = processos.some((p) => p.vetado);
 
   function addMaterial() {
     setMateriais((a) => [
@@ -404,6 +458,9 @@ export function CalculadoraCusto({
       setupMin: String(maq?.setup_min ?? 0),
       potenciaKw: String(maq?.potencia_kw ?? 0),
       base: (maq?.base_cobranca ?? "tempo") as BaseCobranca,
+      // Trocar de máquina troca o modo: o "Alta qualidade" de uma não é o da
+      // outra, e um id órfão faria a linha cair na velocidade da máquina.
+      modoId: modosDe(maquinaId).find((m) => m.padrao)?.id ?? null,
     });
   }
 
@@ -642,8 +699,18 @@ export function CalculadoraCusto({
                       <Select value={l.material} onValueChange={(v) => atualizarLinha(l.key, { material: v })}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Material" /></SelectTrigger>
                         <SelectContent>
-                          {[...new Set(tabelaDe(l.maquina_id, "corte").map((v) => v.material))].map((m) => (
-                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                          {/* Vetado aparece na lista, marcado. Esconder faria a
+                              vendedora procurar o material e concluir que
+                              faltou cadastrar — e ligar a máquina para ver. */}
+                          {[
+                            ...new Map(
+                              tabelaDe(l.maquina_id, "corte").map((v) => [v.material, v.vetado]),
+                            ).entries(),
+                          ].map(([m, vetado]) => (
+                            <SelectItem key={m} value={m}>
+                              {m}
+                              {vetado ? " · não pode nesta máquina" : ""}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -666,6 +733,22 @@ export function CalculadoraCusto({
                         onChange={(e) => atualizarLinha(l.key, { areaGravacaoCm2: e.target.value })} />
                     </div>
                   </>
+                )}
+                {l.maquina_id && l.base === "area" && modosDe(l.maquina_id).length > 0 && (
+                  <div className="col-span-5">
+                    <Label className="text-xs">Modo de qualidade</Label>
+                    <Select value={l.modoId ?? ""} onValueChange={(v) => atualizarLinha(l.key, { modoId: v })}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolher modo" /></SelectTrigger>
+                      <SelectContent>
+                        {modosDe(l.maquina_id).map((mo) => (
+                          <SelectItem key={mo.id} value={mo.id}>
+                            {mo.nome} · {Number(mo.velocidade_m2_h).toLocaleString("pt-BR")} m²/h
+                            {mo.passadas ? ` (${mo.passadas} passadas)` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
                 {l.maquina_id && l.base === "metro_linear" && (
                   <>
@@ -709,8 +792,24 @@ export function CalculadoraCusto({
                   </>
                 )}
                 {l.maquina_id && l.memoria && (
-                  <p className={`col-span-12 text-[11px] ${l.derivado ? "text-muted-foreground" : "text-amber-600"}`}>
-                    {l.derivado ? "Conta: " : "Atenção: "}{l.memoria}
+                  // Veto em vermelho e com nome próprio: "não pode" e "falta
+                  // cadastrar" saíam na mesma cor, e um deles estraga a máquina.
+                  <p
+                    className={`col-span-12 text-[11px] ${
+                      l.vetado ? "text-destructive font-medium" : l.derivado ? "text-muted-foreground" : "text-amber-600"
+                    }`}
+                  >
+                    {l.vetado ? "Não pode ser feito nesta máquina: " : l.derivado ? "Conta: " : "Atenção: "}
+                    {l.memoria}
+                  </p>
+                )}
+                {/* Custo/hora zero é o zero disfarçado clássico: a linha soma
+                    R$ 0,00 e parece calculada. O aviso é por LINHA porque o
+                    aviso do bloco só aparece quando NENHUMA máquina tem custo. */}
+                {l.maquina_id && num(l.custoHora) <= 0 && !l.vetado && (
+                  <p className="col-span-12 text-[11px] text-amber-600">
+                    Esta máquina está sem custo/hora: o processo entra como R$ 0,00. Preencha em
+                    Máquinas (o valor de compra ou a parcela calcula sozinho).
                   </p>
                 )}
               </div>
@@ -884,12 +983,19 @@ export function CalculadoraCusto({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row sm:items-center gap-2">
+          {/* Sair daqui com uma linha vetada seria vender um trabalho que a
+              oficina não pode fazer. Trave, e diga qual linha. */}
+          {temVetada && (
+            <p className="text-xs text-destructive mr-auto">
+              Tire ou troque a linha em vermelho para aplicar: essa máquina não pode processar esse material.
+            </p>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button
-            disabled={!resultado || !temAlgumaLinha || resultado.custoTotal <= 0}
+            disabled={!resultado || !temAlgumaLinha || resultado.custoTotal <= 0 || temVetada}
             onClick={() => {
               if (!resultado) return;
               onAplicar({
