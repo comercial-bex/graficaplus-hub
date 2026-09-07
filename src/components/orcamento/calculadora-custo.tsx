@@ -31,6 +31,11 @@ import {
   type VelocidadePorMaterial,
 } from "@/domain/producao/tempo-de-maquina";
 import {
+  sincronizarDecapagem,
+  type FuncaoMO,
+  type LinhaMOSync as LinhaMO,
+} from "./decapagem-segue-o-recorte";
+import {
   calcularOrcamento,
   type EntradaCalculo,
   type ResultadoCalculo,
@@ -53,17 +58,20 @@ type LinhaMat = { key: string; material_id: string | null; descricao: string; un
 type LinhaProc = {
   key: string; maquina_id: string | null; descricao: string; horas: string; custoHora: string; setupMin: string; potenciaKw: string;
   base: BaseCobranca; memoria: string; derivado: boolean;
+  /** Minutos de decapagem e fita quando a base é metro linear; vira linha de mão de obra. */
+  maoDeObraMin: string;
   material: string; espessuraMm: string; comprimentoM: string; areaGravacaoCm2: string;
   complexidade: ComplexidadeDecapagem; pecas: string; areaPecaCm2: string; rotativo: boolean;
 };
 
 const linhaProcVazia = (): Omit<LinhaProc, "key"> => ({
   maquina_id: null, descricao: "", horas: "0", custoHora: "0", setupMin: "0", potenciaKw: "0",
-  base: "tempo", memoria: "", derivado: false,
+  base: "tempo", memoria: "", derivado: false, maoDeObraMin: "",
   material: "", espessuraMm: "", comprimentoM: "", areaGravacaoCm2: "",
   complexidade: "media", pecas: "1", areaPecaCm2: "", rotativo: false,
 });
-type LinhaMO = { key: string; funcao_id: string | null; descricao: string; horas: string; custoHora: string; encargosPct: string };
+// LinhaMO vem de decapagem-segue-o-recorte.ts: a linha de mão de obra sabe se
+// segue uma linha de recorte e se foi ajustada à mão.
 
 const num = (t: string) => {
   const n = Number(String(t).replace(",", "."));
@@ -193,8 +201,15 @@ export function CalculadoraCusto({
         comprimentoCorteM: num(l.comprimentoM), velocidadeMmS: Number(maq.velocidade_mm_s ?? 0),
         areaM2: baseConsumo, complexidade: l.complexidade, setupMin: setup,
       });
-      // Só a MÁQUINA entra nesta linha. A decapagem é gente, e vai para mão de obra.
-      return { horas: (r.minutosMaquina / 60).toFixed(3), memoria: r.memoria, derivado: true };
+      // Só a MÁQUINA entra nesta linha. A decapagem é gente: sai daqui em
+      // `maoDeObraMin` e vira uma linha de mão de obra que segue esta (ver
+      // decapagem-segue-o-recorte.ts).
+      return {
+        horas: (r.minutosMaquina / 60).toFixed(3),
+        memoria: r.memoria,
+        derivado: true,
+        maoDeObraMin: String(r.minutosMaoDeObra),
+      };
     }
     if (l.base === "peca") {
       const r = tempoMarcacaoFiber({
@@ -208,17 +223,26 @@ export function CalculadoraCusto({
   }
 
   // A área do item pode mudar depois da máquina escolhida: recalcula todas.
+  //
+  // A dependência é uma CHAVE, não o array: `velocidades` vale um `[]` novo a
+  // cada render enquanto a query está desligada, e array novo a cada render
+  // faria este efeito setar estado a cada render — loop infinito, tela travada.
+  const velocidadesKey = velocidades
+    .map((v) => `${v.maquina_id}|${v.operacao}|${v.material}|${v.espessura_mm}|${v.velocidade_mm_s}`)
+    .join(";");
   useEffect(() => {
-    setProcessos((a) => a.map((l) => (l.maquina_id ? { ...l, ...derivarHoras(l) } : l)));
+    setProcessos((a) => a.map((l) => (l.maquina_id ? { ...l, maoDeObraMin: "", ...derivarHoras(l) } : l)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseConsumo, velocidades]);
+  }, [baseConsumo, velocidadesKey]);
 
   function atualizarLinha(key: string, patch: Partial<LinhaProc>) {
     setProcessos((a) =>
       a.map((l) => {
         if (l.key !== key) return l;
         const base = { ...l, ...patch };
-        return { ...base, ...derivarHoras(base) };
+        // `maoDeObraMin` zera antes de derivar: só o recorte a preenche, e uma
+        // linha que troca de máquina não pode carregar a decapagem da anterior.
+        return { ...base, maoDeObraMin: "", ...derivarHoras(base) };
       }),
     );
   }
@@ -235,6 +259,15 @@ export function CalculadoraCusto({
       return (data ?? []) as any[];
     },
   });
+
+  // A decapagem segue o recorte: cada linha de máquina cobrada por metro linear
+  // tem a sua linha de mão de obra, que nasce, recalcula e some junto com ela.
+  // Chave em vez do array pelo mesmo motivo de `velocidadesKey`.
+  const funcoesKey = funcoes.map((f: any) => `${f.id}|${f.custo_hora}|${f.encargos_pct}`).join(";");
+  useEffect(() => {
+    setMaoDeObra((atual) => sincronizarDecapagem(processos, atual, funcoes as FuncaoMO[], novaKey));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [processos, funcoesKey]);
 
   // Ficha técnica do produto: é o que evita a vendedora ter que lembrar de cor,
   // gramatura e consumo. A quantidade da ficha é POR UNIDADE DE VENDA — para
@@ -729,7 +762,13 @@ export function CalculadoraCusto({
                     value={l.horas}
                     onChange={(e) =>
                       setMaoDeObra((a) =>
-                        a.map((x) => (x.key === l.key ? { ...x, horas: e.target.value } : x)),
+                        a.map((x) =>
+                          x.key === l.key
+                            // Hora mexida à mão numa linha que segue o recorte:
+                            // a partir daqui a sincronização não encosta nela.
+                            ? { ...x, horas: e.target.value, ajustada: x.segueProcesso ? true : x.ajustada }
+                            : x,
+                        ),
                       )
                     }
                   />
@@ -773,6 +812,14 @@ export function CalculadoraCusto({
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+                {l.segueProcesso && (
+                  <p className={`col-span-12 text-[11px] ${l.funcao_id ? "text-muted-foreground" : "text-amber-600"}`}>
+                    {l.ajustada
+                      ? `Decapagem e fita do recorte, ajustada à mão: ${Math.round(num(l.horas) * 60)} min.`
+                      : `Decapagem e fita do recorte: ${Math.round(num(l.horas) * 60)} min — segue o traçado e a complexidade da linha de máquina.`}
+                    {!l.funcao_id && " Escolha quem decapa: sem função, entra a R$ 0."}
+                  </p>
+                )}
               </div>
             ))}
           </section>
