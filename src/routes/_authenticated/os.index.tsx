@@ -51,6 +51,7 @@ function OSPage() {
     briefing: "",
     prazo_entrega: "",
     prioridade: "3",
+    responsavel_id: "",
     valor_total: "",
   });
 
@@ -73,6 +74,26 @@ function OSPage() {
     },
   });
 
+  /**
+   * Quem responde pela OS.
+   *
+   * O banco preenche com quem abriu quando ninguém escolhe — melhor um palpite
+   * corrigível que um vazio. Mas o palpite costuma errar: quem digita a OS é o
+   * balcão, e quem responde por ela é a produção. Oferecer a escolha aqui é o
+   * que faz a OS ter dono de verdade em vez de ter um nome qualquer.
+   */
+  const { data: equipe = [] } = useQuery({
+    queryKey: ["equipe-os"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("usuarios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
   async function handleCreate() {
     if (!form.cliente_id || !form.titulo) return toast.error("Cliente e título são obrigatórios");
     const { data, error } = await supabase
@@ -83,6 +104,7 @@ function OSPage() {
         briefing: form.briefing || null,
         prazo_entrega: form.prazo_entrega || null,
         prioridade: parseInt(form.prioridade),
+        responsavel_id: form.responsavel_id || null,
         valor_total: canSeeFinancials ? parseFloat(form.valor_total || "0") : 0,
       })
       .select("id, numero")
@@ -96,6 +118,7 @@ function OSPage() {
       briefing: "",
       prazo_entrega: "",
       prioridade: "3",
+      responsavel_id: "",
       valor_total: "",
     });
     qc.invalidateQueries({ queryKey: ["os-list"] });
@@ -178,6 +201,28 @@ function OSPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Select
+                  value={form.responsavel_id}
+                  onValueChange={(v) => setForm({ ...form, responsavel_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Quem abrir a OS" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(equipe as { id: string; nome: string }[]).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Sem escolha, fica com quem abriu. É quem a OS vai cobrar quando o prazo
+                  apertar.
+                </p>
               </div>
               {canSeeFinancials && (
                 <div className="space-y-2">
