@@ -22,6 +22,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Calculator, Plus, Trash2 } from "lucide-react";
 import {
+  tempoCorteLaser,
+  tempoImpressao,
+  tempoMarcacaoFiber,
+  tempoRecorte,
+  type BaseCobranca,
+  type ComplexidadeDecapagem,
+  type VelocidadePorMaterial,
+} from "@/domain/producao/tempo-de-maquina";
+import {
   calcularOrcamento,
   type EntradaCalculo,
   type ResultadoCalculo,
@@ -35,7 +44,25 @@ type Material = {
 };
 
 type LinhaMat = { key: string; material_id: string | null; descricao: string; unidade: string; quantidade: string; custoUnitario: string; perdaPct: string };
-type LinhaProc = { key: string; maquina_id: string | null; descricao: string; horas: string; custoHora: string; setupMin: string; potenciaKw: string };
+/**
+ * Linha de processo. Além das horas, guarda o que cada BASE DE COBRANÇA
+ * precisa para derivá-las: a impressora quer área; o laser quer material,
+ * espessura e traçado; o recorte quer traçado e complexidade da decapagem; a
+ * fiber quer peças e área por peça. `memoria` é a conta em português.
+ */
+type LinhaProc = {
+  key: string; maquina_id: string | null; descricao: string; horas: string; custoHora: string; setupMin: string; potenciaKw: string;
+  base: BaseCobranca; memoria: string; derivado: boolean;
+  material: string; espessuraMm: string; comprimentoM: string; areaGravacaoCm2: string;
+  complexidade: ComplexidadeDecapagem; pecas: string; areaPecaCm2: string; rotativo: boolean;
+};
+
+const linhaProcVazia = (): Omit<LinhaProc, "key"> => ({
+  maquina_id: null, descricao: "", horas: "0", custoHora: "0", setupMin: "0", potenciaKw: "0",
+  base: "tempo", memoria: "", derivado: false,
+  material: "", espessuraMm: "", comprimentoM: "", areaGravacaoCm2: "",
+  complexidade: "media", pecas: "1", areaPecaCm2: "", rotativo: false,
+});
 type LinhaMO = { key: string; funcao_id: string | null; descricao: string; horas: string; custoHora: string; encargosPct: string };
 
 const num = (t: string) => {
@@ -104,12 +131,97 @@ export function CalculadoraCusto({
     queryFn: async () => {
       const { data } = await supabase
         .from("maquinas")
-        .select("id, nome, custo_hora, potencia_kw, setup_min, velocidade_m2_h")
+        .select("id, nome, custo_hora, potencia_kw, setup_min, velocidade_m2_h, base_cobranca, velocidade_mm_s, tempo_minimo_min")
         .eq("ativa", true)
         .order("nome");
       return data ?? [];
     },
   });
+
+  /**
+   * Velocidades por material e espessura das máquinas em uso.
+   *
+   * Um mm/s único por máquina erraria por 8× entre acrílico de 3 mm e de
+   * 10 mm — por isso é tabela, e por isso é carregada por máquina.
+   */
+  const idsMaquinas = processos.map((l) => l.maquina_id).filter(Boolean).join(",");
+  const { data: velocidades = [] } = useQuery({
+    queryKey: ["calc-velocidades", idsMaquinas],
+    enabled: open && idsMaquinas.length > 0,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("maquinas_velocidades")
+        .select("maquina_id, operacao, material, espessura_mm, velocidade_mm_s")
+        .in("maquina_id", idsMaquinas.split(","));
+      return (data ?? []) as { maquina_id: string; operacao: string; material: string; espessura_mm: number; velocidade_mm_s: number }[];
+    },
+  });
+
+  const tabelaDe = (maquinaId: string | null, operacao: "corte" | "gravacao"): VelocidadePorMaterial[] =>
+    velocidades
+      .filter((v) => v.maquina_id === maquinaId && v.operacao === operacao)
+      .map((v) => ({ material: v.material, espessuraMm: Number(v.espessura_mm), velocidadeMmS: Number(v.velocidade_mm_s) }));
+
+  /**
+   * Deriva as horas da linha pela base de cobrança da máquina.
+   *
+   * É aqui que "hora cheia num banner de 2 m²" deixa de acontecer: a hora vem
+   * da área, do traçado ou das peças, com a conta escrita ao lado. Quando não
+   * dá para derivar (sem velocidade, sem material na tabela), a linha diz isso
+   * e deixa a hora para digitar — em vez de fingir zero.
+   */
+  function derivarHoras(l: LinhaProc): Partial<LinhaProc> {
+    const maq: any = maquinas.find((m: any) => m.id === l.maquina_id);
+    if (!maq) return {};
+    const setup = num(l.setupMin);
+    if (l.base === "area") {
+      const r = tempoImpressao({ areaM2: baseConsumo, velocidadeM2H: Number(maq.velocidade_m2_h ?? 0), setupMin: setup });
+      return r.derivado ? { horas: (r.minutos / 60).toFixed(3), memoria: r.memoria, derivado: true } : { memoria: r.memoria, derivado: false };
+    }
+    if (l.base === "tempo") {
+      const gravacao = tabelaDe(l.maquina_id, "gravacao")[0];
+      const r = tempoCorteLaser({
+        comprimentoCorteM: num(l.comprimentoM), material: l.material, espessuraMm: num(l.espessuraMm),
+        tabela: tabelaDe(l.maquina_id, "corte"),
+        areaGravacaoCm2: num(l.areaGravacaoCm2), velocidadeGravacaoMmS: gravacao?.velocidadeMmS,
+        setupMin: setup, minimoMin: Number(maq.tempo_minimo_min ?? 0),
+      });
+      return r.derivado ? { horas: (r.minutos / 60).toFixed(3), memoria: r.memoria, derivado: true } : { memoria: r.memoria, derivado: false };
+    }
+    if (l.base === "metro_linear") {
+      const r = tempoRecorte({
+        comprimentoCorteM: num(l.comprimentoM), velocidadeMmS: Number(maq.velocidade_mm_s ?? 0),
+        areaM2: baseConsumo, complexidade: l.complexidade, setupMin: setup,
+      });
+      // Só a MÁQUINA entra nesta linha. A decapagem é gente, e vai para mão de obra.
+      return { horas: (r.minutosMaquina / 60).toFixed(3), memoria: r.memoria, derivado: true };
+    }
+    if (l.base === "peca") {
+      const r = tempoMarcacaoFiber({
+        pecas: num(l.pecas), areaMarcacaoCm2: num(l.areaPecaCm2), velocidadeMmS: Number(maq.velocidade_mm_s ?? 0),
+        setupMin: setup, rotativo: l.rotativo,
+      });
+      const minutos = Math.max(r.minutos, Number(maq.tempo_minimo_min ?? 0));
+      return r.derivado ? { horas: (minutos / 60).toFixed(3), memoria: r.memoria, derivado: true } : { memoria: r.memoria, derivado: false };
+    }
+    return {};
+  }
+
+  // A área do item pode mudar depois da máquina escolhida: recalcula todas.
+  useEffect(() => {
+    setProcessos((a) => a.map((l) => (l.maquina_id ? { ...l, ...derivarHoras(l) } : l)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseConsumo, velocidades]);
+
+  function atualizarLinha(key: string, patch: Partial<LinhaProc>) {
+    setProcessos((a) =>
+      a.map((l) => {
+        if (l.key !== key) return l;
+        const base = { ...l, ...patch };
+        return { ...base, ...derivarHoras(base) };
+      }),
+    );
+  }
 
   const { data: funcoes = [] } = useQuery({
     queryKey: ["calc-mao-de-obra"],
@@ -223,7 +335,7 @@ export function CalculadoraCusto({
   function addProcesso() {
     setProcessos((a) => [
       ...a,
-      { key: novaKey(), maquina_id: null, descricao: "", horas: "0", custoHora: "0", setupMin: "0", potenciaKw: "0" },
+      { key: novaKey(), ...linhaProcVazia() },
     ]);
   }
   function addMaoDeObra() {
@@ -252,27 +364,14 @@ export function CalculadoraCusto({
 
   function escolherMaquina(key: string, maquinaId: string) {
     const maq: any = maquinas.find((m: any) => m.id === maquinaId);
-    // Máquina com velocidade cadastrada sabe estimar as horas da própria tarefa:
-    // metragem ÷ m²/h. Sem isso a vendedora chutaria o tempo de impressão.
-    const horasEstimadas =
-      maq && Number(maq.velocidade_m2_h) > 0 && baseConsumo > 0
-        ? (baseConsumo / Number(maq.velocidade_m2_h)).toFixed(3)
-        : undefined;
-    setProcessos((a) =>
-      a.map((l) =>
-        l.key === key
-          ? {
-              ...l,
-              maquina_id: maquinaId,
-              descricao: maq?.nome ?? l.descricao,
-              custoHora: String(maq?.custo_hora ?? 0),
-              setupMin: String(maq?.setup_min ?? 0),
-              potenciaKw: String(maq?.potencia_kw ?? 0),
-              horas: horasEstimadas ?? l.horas,
-            }
-          : l,
-      ),
-    );
+    atualizarLinha(key, {
+      maquina_id: maquinaId,
+      descricao: maq?.nome ?? "",
+      custoHora: String(maq?.custo_hora ?? 0),
+      setupMin: String(maq?.setup_min ?? 0),
+      potenciaKw: String(maq?.potencia_kw ?? 0),
+      base: (maq?.base_cobranca ?? "tempo") as BaseCobranca,
+    });
   }
 
   function escolherFuncao(key: string, funcaoId: string) {
@@ -448,43 +547,18 @@ export function CalculadoraCusto({
                   </Select>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-xs">Horas</Label>
+                  <Label className="text-xs">Horas{l.derivado ? " (calculadas)" : ""}</Label>
                   <Input
-                    className="h-9 font-mono"
+                    className={`h-9 font-mono ${l.derivado ? "bg-muted/40" : ""}`}
                     type="number"
-                    step="0.01"
+                    step="0.001"
                     value={l.horas}
                     onChange={(e) =>
                       setProcessos((a) =>
-                        a.map((x) => (x.key === l.key ? { ...x, horas: e.target.value } : x)),
+                        a.map((x) => (x.key === l.key ? { ...x, horas: e.target.value, derivado: false, memoria: "hora digitada à mão" } : x)),
                       )
                     }
                   />
-                  {/* A hora vem da metragem, não do relógio.
-                      Uma peça de 2 m² numa máquina de 14 m²/h usa 0,14 h. Se
-                      alguém digitar "1", o orçamento cobra a hora inteira e a
-                      peça sai cara sem motivo — que é exatamente como um preço
-                      justo vira um preço perdido. */}
-                  {(() => {
-                    const maq: any = maquinas.find((x: any) => x.id === l.maquina_id);
-                    const vel = Number(maq?.velocidade_m2_h ?? 0);
-                    if (!maq) return null;
-                    if (vel > 0 && baseConsumo > 0) {
-                      return (
-                        <p className="mt-1 text-[11px] text-muted-foreground">
-                          {baseConsumo.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} m² ÷{" "}
-                          {vel} m²/h = {(baseConsumo / vel).toFixed(2)} h ·{" "}
-                          {brl(num(l.custoHora) / vel)}/m²
-                        </p>
-                      );
-                    }
-                    return (
-                      <p className="mt-1 text-[11px] text-amber-600">
-                        Sem velocidade cadastrada: a hora é digitada. Confira — hora cheia em
-                        peça de minutos infla o orçamento.
-                      </p>
-                    );
-                  })()}
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Custo/h</Label>
@@ -525,6 +599,87 @@ export function CalculadoraCusto({
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+                {/* Campos que a base de cobrança da máquina precisa. Aparecem só
+                    os da máquina escolhida: laser não pergunta m², fiber não
+                    pergunta espessura. */}
+                {l.maquina_id && l.base === "tempo" && (
+                  <>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Material</Label>
+                      <Select value={l.material} onValueChange={(v) => atualizarLinha(l.key, { material: v })}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Material" /></SelectTrigger>
+                        <SelectContent>
+                          {[...new Set(tabelaDe(l.maquina_id, "corte").map((v) => v.material))].map((m) => (
+                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Espessura (mm)</Label>
+                      <Input className="h-9 font-mono" type="number" step="0.5" value={l.espessuraMm}
+                        onChange={(e) => atualizarLinha(l.key, { espessuraMm: e.target.value })} />
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Traçado de corte (m)</Label>
+                      <Input className="h-9 font-mono" type="number" step="0.1" value={l.comprimentoM}
+                        placeholder="perímetro total"
+                        onChange={(e) => atualizarLinha(l.key, { comprimentoM: e.target.value })} />
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Área gravada (cm²)</Label>
+                      <Input className="h-9 font-mono" type="number" step="1" value={l.areaGravacaoCm2}
+                        placeholder="0 se só corte"
+                        onChange={(e) => atualizarLinha(l.key, { areaGravacaoCm2: e.target.value })} />
+                    </div>
+                  </>
+                )}
+                {l.maquina_id && l.base === "metro_linear" && (
+                  <>
+                    <div className="col-span-4">
+                      <Label className="text-xs">Traçado de corte (m)</Label>
+                      <Input className="h-9 font-mono" type="number" step="0.1" value={l.comprimentoM}
+                        onChange={(e) => atualizarLinha(l.key, { comprimentoM: e.target.value })} />
+                    </div>
+                    <div className="col-span-4">
+                      <Label className="text-xs">Decapagem</Label>
+                      <Select value={l.complexidade} onValueChange={(v) => atualizarLinha(l.key, { complexidade: v as ComplexidadeDecapagem })}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="simples">Simples — letras grandes (3 min/m²)</SelectItem>
+                          <SelectItem value="media">Média — logos e textos (8 min/m²)</SelectItem>
+                          <SelectItem value="detalhada">Detalhada — texto pequeno (20 min/m²)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+                {l.maquina_id && l.base === "peca" && (
+                  <>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Peças</Label>
+                      <Input className="h-9 font-mono" type="number" step="1" min="0" value={l.pecas}
+                        onChange={(e) => atualizarLinha(l.key, { pecas: e.target.value })} />
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Área marcada por peça (cm²)</Label>
+                      <Input className="h-9 font-mono" type="number" step="0.5" value={l.areaPecaCm2}
+                        onChange={(e) => atualizarLinha(l.key, { areaPecaCm2: e.target.value })} />
+                    </div>
+                    <div className="col-span-3 flex items-end pb-2">
+                      <label className="flex items-center gap-2 text-xs">
+                        <input type="checkbox" checked={l.rotativo}
+                          onChange={(e) => atualizarLinha(l.key, { rotativo: e.target.checked })} />
+                        Eixo rotativo (copo, garrafa)
+                      </label>
+                    </div>
+                  </>
+                )}
+                {l.maquina_id && l.memoria && (
+                  <p className={`col-span-12 text-[11px] ${l.derivado ? "text-muted-foreground" : "text-amber-600"}`}>
+                    {l.derivado ? "Conta: " : "Atenção: "}{l.memoria}
+                  </p>
+                )}
               </div>
             ))}
           </section>
@@ -722,3 +877,4 @@ function Cifra({ rotulo, valor, destaque }: { rotulo: string; valor: number; des
     </div>
   );
 }
+

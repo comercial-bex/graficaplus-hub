@@ -2927,11 +2927,13 @@ export type Database = {
       maquinas: {
         Row: {
           ativa: boolean
+          base_cobranca: string
           created_at: string
           custo_hora: number
           disponibilidade_pct: number
           especificacoes: Json
           fabricante: string | null
+          horas_produtivas_mensais: number | null
           id: string
           imagem_url: string | null
           largura_util_m: number | null
@@ -2942,17 +2944,23 @@ export type Database = {
           potencia_kw: number
           setor: string | null
           setup_min: number
+          tempo_minimo_min: number
           tipo: string | null
           updated_at: string
+          valor_residual: number | null
           velocidade_m2_h: number
+          velocidade_mm_s: number | null
+          vida_util_horas: number | null
         }
         Insert: {
           ativa?: boolean
+          base_cobranca?: string
           created_at?: string
           custo_hora?: number
           disponibilidade_pct?: number
           especificacoes?: Json
           fabricante?: string | null
+          horas_produtivas_mensais?: number | null
           id?: string
           imagem_url?: string | null
           largura_util_m?: number | null
@@ -2963,17 +2971,23 @@ export type Database = {
           potencia_kw?: number
           setor?: string | null
           setup_min?: number
+          tempo_minimo_min?: number
           tipo?: string | null
           updated_at?: string
+          valor_residual?: number | null
           velocidade_m2_h?: number
+          velocidade_mm_s?: number | null
+          vida_util_horas?: number | null
         }
         Update: {
           ativa?: boolean
+          base_cobranca?: string
           created_at?: string
           custo_hora?: number
           disponibilidade_pct?: number
           especificacoes?: Json
           fabricante?: string | null
+          horas_produtivas_mensais?: number | null
           id?: string
           imagem_url?: string | null
           largura_util_m?: number | null
@@ -2984,11 +2998,59 @@ export type Database = {
           potencia_kw?: number
           setor?: string | null
           setup_min?: number
+          tempo_minimo_min?: number
           tipo?: string | null
           updated_at?: string
+          valor_residual?: number | null
           velocidade_m2_h?: number
+          velocidade_mm_s?: number | null
+          vida_util_horas?: number | null
         }
         Relationships: []
+      }
+      maquinas_velocidades: {
+        Row: {
+          created_at: string
+          espessura_mm: number
+          fonte: string | null
+          id: string
+          maquina_id: string
+          material: string
+          observacao: string | null
+          operacao: string
+          velocidade_mm_s: number
+        }
+        Insert: {
+          created_at?: string
+          espessura_mm?: number
+          fonte?: string | null
+          id?: string
+          maquina_id: string
+          material: string
+          observacao?: string | null
+          operacao?: string
+          velocidade_mm_s: number
+        }
+        Update: {
+          created_at?: string
+          espessura_mm?: number
+          fonte?: string | null
+          id?: string
+          maquina_id?: string
+          material?: string
+          observacao?: string | null
+          operacao?: string
+          velocidade_mm_s?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       maquinas_3d_config: {
         Row: {
