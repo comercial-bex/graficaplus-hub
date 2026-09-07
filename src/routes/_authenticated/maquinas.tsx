@@ -117,6 +117,48 @@ function MaquinasPage() {
   const [enviandoFoto, setEnviandoFoto] = useState<string | null>(null);
 
   /**
+   * Custo/hora sugerido pelo contrato.
+   *
+   * As 5 máquinas estavam com custo/hora zero, e zero aqui não é "de graça": é
+   * a hora de máquina e a energia saindo do orçamento sem entrar no preço.
+   * Pedir para alguém digitar não resolve — ninguém sabe de cabeça quanto custa
+   * a hora de uma impressora.
+   *
+   * O contrato sabe. Locação divide a parcela pelas horas do mês; compra dilui
+   * o valor pela vida útil. A função devolve a conta junto, porque número de
+   * custo sem a memória de cálculo ao lado ninguém confere — e este vai para
+   * dentro do preço de venda.
+   */
+  const { data: sugestoes = {} } = useQuery({
+    queryKey: ["custo-hora-sugerido", maquinas.map((m) => m.id).join(",")],
+    enabled: maquinas.length > 0,
+    queryFn: async () => {
+      const mapa: Record<string, any> = {};
+      for (const m of maquinas) {
+        const { data } = await (supabase.rpc as any)("custo_hora_sugerido", { p_maquina_id: m.id });
+        if (data) mapa[m.id] = data;
+      }
+      return mapa;
+    },
+  });
+
+  const aplicarCusto = useMutation({
+    mutationFn: async (maquinaId: string) => {
+      const { data, error } = await (supabase.rpc as any)("aplicar_custo_hora_sugerido", {
+        p_maquina_id: maquinaId,
+      });
+      if (error) throw error;
+      return data as { custo_hora: number };
+    },
+    onSuccess: (r) => {
+      toast.success(`Custo/hora definido em ${brl(Number(r.custo_hora))}`);
+      qc.invalidateQueries({ queryKey: ["maquinas"] });
+      qc.invalidateQueries({ queryKey: ["custo-hora-sugerido"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  /**
    * Foto do equipamento.
    *
    * Bucket público, ao contrário dos outros do projeto: foto de máquina não é
@@ -424,12 +466,40 @@ function MaquinasPage() {
                   </div>
                 )}
 
-                {Number(m.custo_hora ?? 0) <= 0 && (
-                  <div className="flex items-center gap-2 text-xs text-[color:var(--bex-magenta)]">
-                    <Zap className="h-3.5 w-3.5" />
-                    Defina o custo/hora para esta máquina entrar no cálculo
-                  </div>
-                )}
+                {Number(m.custo_hora ?? 0) <= 0 &&
+                  (sugestoes[m.id]?.custo_hora ? (
+                    <div className="rounded-md border border-[color:var(--bex-magenta)]/40 bg-[color:var(--bex-magenta)]/5 p-2 text-xs space-y-2">
+                      <div className="flex items-center gap-2 font-medium">
+                        <Zap className="h-3.5 w-3.5" />
+                        Sugestão: {brl(Number(sugestoes[m.id].custo_hora))}/hora
+                      </div>
+                      <div className="text-muted-foreground">{sugestoes[m.id].conta}</div>
+                      {sugestoes[m.id].horas_presumidas && (
+                        <div className="text-muted-foreground">
+                          As 160 h/mês são presumidas (8 h × 20 dias). Com a hora real, o custo
+                          muda na mesma proporção.
+                        </div>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={aplicarCusto.isPending}
+                        onClick={() => aplicarCusto.mutate(m.id)}
+                      >
+                        Usar este valor
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 text-xs text-[color:var(--bex-magenta)]">
+                      <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>
+                        Sem custo/hora, esta máquina sai de graça no orçamento.
+                        {sugestoes[m.id]?.metodo === "sem_dados"
+                          ? " Cadastre o valor de aquisição ou a parcela para o sistema calcular."
+                          : ""}
+                      </span>
+                    </div>
+                  ))}
 
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(m)}>
