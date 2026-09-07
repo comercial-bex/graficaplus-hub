@@ -40,15 +40,31 @@ export type Permission = (typeof permissions)[number];
 
 const allPermissions = [...permissions];
 
+/**
+ * Fallback de permissões por perfil.
+ *
+ * NÃO é a fonte de verdade: `auth-context` lê `role_permission_matrix` do banco,
+ * e a tela de Matriz de Permissões deixa o admin ligar e desligar permissão em
+ * tempo de execução. Esta lista só entra quando a matriz não carrega — rede
+ * ruim, sessão nova, primeiro render.
+ *
+ * Por isso ela é um RETRATO, não um espelho: vai divergir do banco assim que
+ * alguém mudar uma permissão pela tela, e isso é esperado. O que não pode
+ * acontecer é o retrato ficar anos atrasado, como estava: o fallback concedia
+ * 29 permissões ao gestor enquanto o banco concedia 39, e as telas que exibiam
+ * essa contagem mentiam no momento de dar acesso a alguém.
+ *
+ * Sincronizado com o banco em 05/09/2026.
+ */
 export const rolePermissions = {
   admin: allPermissions,
-  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance", "resultado.read"],
+  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "maquinas.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance", "producao.read", "qualidade.manage", "qualidade.read", "resultado.read", "tarefas.assign", "tarefas.complete", "tarefas.create", "tarefas.read", "tarefas.reopen", "tarefas.update"],
   financeiro: ["clientes.read", "compras.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read"],
   vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "whatsapp.read", "whatsapp.reply"],
   designer: ["arquivos.finalize", "arquivos.read", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.read", "os.read", "os.status.advance", "os.update", "tarefas.complete", "tarefas.read", "tarefas.update"],
-  operador: ["agenda.operate", "agenda.read", "arquivos.read", "impressao3d.production.update", "impressao3d.read", "os.read", "os.status.advance", "os.update", "producao.finish", "producao.pause", "producao.read", "producao.start", "qualidade.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
-  estoque: ["compras.create", "compras.read", "compras.receive", "custos.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "os.read"],
-  instalador: ["arquivos.read", "clientes.read", "entregas.manage", "entregas.read", "instalacoes.manage", "instalacoes.read", "os.read", "os.status.advance"],
+  operador: ["agenda.operate", "agenda.read", "arquivos.read", "impressao3d.production.update", "impressao3d.read", "maquinas.read", "os.read", "os.status.advance", "os.update", "producao.finish", "producao.pause", "producao.read", "producao.start", "qualidade.manage", "qualidade.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
+  estoque: ["compras.create", "compras.read", "compras.receive", "custos.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "os.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
+  instalador: ["arquivos.read", "clientes.read", "entregas.manage", "entregas.read", "instalacoes.manage", "instalacoes.read", "os.read", "os.status.advance", "tarefas.complete", "tarefas.read", "tarefas.update"],
   cliente: ["portal.read"],
 } satisfies Record<AppRole, readonly Permission[]>;
 

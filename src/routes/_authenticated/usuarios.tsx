@@ -50,6 +50,29 @@ const descricaoDoPapel: Record<AppRole, string> = {
 
 function UsuariosPage() {
   const qc = useQueryClient();
+
+  /**
+   * Quantas permissões cada perfil concede — lida do BANCO.
+   *
+   * Antes vinha de `rolePermissions`, a lista estática do front, que é apenas
+   * o fallback de quando a matriz não carrega. As duas divergiam: o seletor
+   * dizia "29 permissões" para gestor e o banco concedia 39. Informação errada
+   * bem no momento em que se decide dar acesso a alguém.
+   */
+  const { data: totaisPorPerfil } = useQuery({
+    queryKey: ["total-permissoes-por-perfil"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("role_permission_matrix" as never)
+        .select("role, permission");
+      if (error || !data) return null;
+      const contagem: Record<string, number> = {};
+      for (const linha of data as unknown as { role: string }[]) {
+        contagem[linha.role] = (contagem[linha.role] ?? 0) + 1;
+      }
+      return contagem;
+    },
+  });
   const { user } = useAuth();
   const [novoRole, setNovoRole] = useState<Record<string, AppRole>>({});
   const [criarAberto, setCriarAberto] = useState(false);
@@ -257,7 +280,7 @@ function UsuariosPage() {
                             <SelectItem key={r} value={r}>
                               {r}
                               <span className="ml-2 text-xs text-muted-foreground">
-                                {rolePermissions[r].length} permissões
+                                {totaisPorPerfil?.[r] ?? rolePermissions[r].length} permissões
                               </span>
                             </SelectItem>
                           ))}
