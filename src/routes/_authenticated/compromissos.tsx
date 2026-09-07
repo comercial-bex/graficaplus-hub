@@ -33,11 +33,22 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { KpiCard } from "@/components/bex/KpiCard";
-import { AlertTriangle, CalendarClock, CheckCheck, Plus, Repeat, Wallet } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  CheckCheck,
+  ExternalLink,
+  FileCheck2,
+  Paperclip,
+  Plus,
+  Repeat,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   custoMensal,
   parcelaAtual,
+  pendencias,
   progresso,
   saldoDevedorTotal,
   situacao,
@@ -93,6 +104,8 @@ const vazio = {
   periodicidade: "mensal",
   valor_entrada: "0",
   maquina_id: "",
+  financeira: "",
+  portal_url: "",
   observacoes: "",
 };
 
@@ -114,6 +127,10 @@ function CompromissosPage() {
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState(vazio);
   const [detalhe, setDetalhe] = useState<string | null>(null);
+  const [baixa, setBaixa] = useState<any | null>(null);
+  const [baixaData, setBaixaData] = useState(hoje());
+  const [baixaCaixa, setBaixaCaixa] = useState(true);
+  const [enviando, setEnviando] = useState(false);
 
   const { data: compromissos = [], isLoading } = useQuery({
     queryKey: ["compromissos"],
@@ -151,7 +168,7 @@ function CompromissosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas_pagar")
-        .select("id, parcela_numero, descricao, valor, vencimento, status, data_pagamento")
+        .select("id, parcela_numero, descricao, valor, vencimento, status, data_pagamento, comprovante_url, nosso_numero, forma_pagamento")
         .eq("compromisso_id", detalhe!)
         .order("parcela_numero");
       if (error) throw error;
@@ -182,12 +199,14 @@ function CompromissosPage() {
         periodicidade: form.periodicidade,
         valor_entrada: Number(form.valor_entrada.replace(",", ".")) || 0,
         maquina_id: form.maquina_id || null,
+        financeira: form.financeira || null,
+        portal_url: form.portal_url || null,
         observacoes: form.observacoes || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Compromisso cadastrado — agora gere as parcelas");
+      toast.success("Compromisso cadastrado — agora lance o cronograma");
       recarregar();
       setAberto(false);
       setForm(vazio);
@@ -219,6 +238,77 @@ function CompromissosPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  /**
+   * O comprovante é o ponto do módulo.
+   *
+   * O sistema não emite boleto — quem emite é a financeira. O que ele guarda é
+   * a PROVA de que a parcela foi paga, ligada ao título pelo nosso número. Por
+   * isso o arquivo sobe antes de a baixa acontecer: baixa sem comprovante é
+   * afirmação sem prova, e é o estado que o painel mais esconde.
+   */
+  async function subirComprovante(parcelaId: string, arquivo: File): Promise<string> {
+    const ext = arquivo.name.split(".").pop() ?? "pdf";
+    // Caminho com carimbo de tempo: o bucket não tem policy de UPDATE, então
+    // reenviar cria um arquivo novo em vez de falhar silenciosamente.
+    const caminho = `compromissos/${parcelaId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("comprovantes").upload(caminho, arquivo);
+    if (error) throw error;
+    return caminho;
+  }
+
+  const darBaixa = useMutation({
+    mutationFn: async (v: { id: string; data: string; caixa: boolean; arquivo: File | null }) => {
+      const url = v.arquivo ? await subirComprovante(v.id, v.arquivo) : null;
+      const { data, error } = await (supabase.rpc as any)("baixar_parcela_compromisso", {
+        p_conta_id: v.id,
+        p_data_pagamento: v.data,
+        p_comprovante_url: url,
+        p_forma_pagamento: null,
+        p_lancar_caixa: v.caixa,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (r: any) => {
+      toast.success(
+        r?.com_comprovante ? "Baixa registrada com comprovante" : "Baixa registrada — sem comprovante anexado",
+      );
+      recarregar();
+      setBaixa(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const anexar = useMutation({
+    mutationFn: async (v: { id: string; arquivo: File }) => {
+      const url = await subirComprovante(v.id, v.arquivo);
+      const { error } = await (supabase.rpc as any)("anexar_comprovante_parcela", {
+        p_conta_id: v.id,
+        p_comprovante_url: url,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Comprovante anexado");
+      recarregar();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  /**
+   * O bucket é privado: o caminho guardado não é um endereço público. Precisa
+   * de URL assinada na hora de abrir — link direto devolveria 400 e pareceria
+   * comprovante perdido.
+   */
+  async function abrirComprovante(caminho: string) {
+    const { data, error } = await supabase.storage.from("comprovantes").createSignedUrl(caminho, 60);
+    if (error || !data?.signedUrl) {
+      toast.error("Não deu para abrir o comprovante");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
 
   const quitar = useMutation({
     mutationFn: async (id: string) => {
@@ -265,7 +355,7 @@ function CompromissosPage() {
     <div className="space-y-6">
       <SectionHeader
         title="Compromissos e despesas fixas"
-        description="Financiamentos, locações, aluguéis e assinaturas — o que sai todo mês e por quanto tempo ainda"
+        description="Quem emite o boleto é a financeira. Aqui a casa espelha o cronograma, guarda o comprovante de cada parcela e acompanha o saldo devedor até quitar."
         actions={
           <Button onClick={() => setAberto(true)}>
             <Plus className="h-4 w-4 mr-1" /> Novo compromisso
@@ -293,7 +383,7 @@ function CompromissosPage() {
               .
             </strong>{" "}
             Sem parcela nada vence, nada atrasa e o fluxo de caixa não sabe que
-            existe. Clique em <em>Gerar parcelas</em> em {semParcelas.map((c) => c.descricao).join(", ")}.
+            existe. Clique em <em>Lançar cronograma</em> em {semParcelas.map((c) => c.descricao).join(", ")}.
           </div>
         </div>
       )}
@@ -347,8 +437,11 @@ function CompromissosPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {c.credor}
+                        {/* Quem vende e quem cobra podem ser empresas diferentes:
+                            o CNC é da Ideal Commerce e o boleto é do Bradesco. */}
+                        {c.financeira && ` · boleto ${c.financeira}`}
                         {c.numero_contrato && ` · contrato ${c.numero_contrato}`}
-                        {(c as any).maquina_nome && ` · ${(c as any).maquina_nome}`}
+                        {c.maquina_nome && ` · ${c.maquina_nome}`}
                       </p>
                     </div>
                     <div className="text-right">
@@ -380,13 +473,28 @@ function CompromissosPage() {
                     </div>
                   </div>
 
+                  {/* O que falta para este contrato estar em ordem, dito por
+                      extenso. Painel verde com parcela paga sem comprovante é
+                      exatamente o que este bloco existe para não deixar passar. */}
+                  {pendencias(c).length > 0 && (
+                    <ul className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs space-y-1">
+                      {pendencias(c).map((t) => (
+                        <li key={t} className="flex gap-1.5">
+                          <span className="text-amber-600">•</span>
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
                   {c.total_parcelas != null && (
                     <div className="space-y-1">
                       <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                         <div className="h-full bg-primary" style={{ width: `${pct * 100}%` }} />
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {(pct * 100).toFixed(0)}% pago
+                        {(pct * 100).toFixed(0)}% pago · {c.parcelas_pagas} de {c.total_parcelas} parcelas
+                        {c.com_comprovante > 0 && ` · ${c.com_comprovante} com comprovante`}
                         {fim && ` · termina em ${fim.toLocaleDateString("pt-BR")}`}
                       </div>
                     </div>
@@ -400,9 +508,20 @@ function CompromissosPage() {
                   )}
 
                   <div className="flex flex-wrap gap-2">
+                    {/* "Lançar cronograma" e não "gerar parcelas": quem gera
+                        boleto é a financeira. Aqui só se espelha o que o portal
+                        do fornecedor mostra, para ter onde guardar a prova. */}
                     <Button size="sm" variant="outline" disabled={gerar.isPending} onClick={() => gerar.mutate(c.id)}>
-                      <Repeat className="h-3.5 w-3.5 mr-1" /> Gerar parcelas
+                      <Repeat className="h-3.5 w-3.5 mr-1" />
+                      {c.parcelas_geradas === 0 ? "Lançar cronograma" : "Realinhar cronograma"}
                     </Button>
+                    {c.portal_url && (
+                      <Button size="sm" variant="ghost" asChild>
+                        <a href={c.portal_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" /> Portal do fornecedor
+                        </a>
+                      </Button>
+                    )}
                     {c.parcelas_atrasadas > 0 && (
                       <Button size="sm" variant="outline" disabled={quitar.isPending} onClick={() => quitar.mutate(c.id)}>
                         <CheckCheck className="h-3.5 w-3.5 mr-1" /> Quitar vencidas
@@ -423,6 +542,8 @@ function CompromissosPage() {
                             <TableHead className="text-right">Valor</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Pago em</TableHead>
+                            <TableHead>Nosso número</TableHead>
+                            <TableHead>Comprovante</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -441,6 +562,52 @@ function CompromissosPage() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="font-mono">{dia(p.data_pagamento)}</TableCell>
+                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                  {p.nosso_numero ?? "—"}
+                                </TableCell>
+                                <TableCell>
+                                  {p.comprovante_url ? (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => abrirComprovante(p.comprovante_url)}
+                                    >
+                                      <FileCheck2 className="h-3.5 w-3.5 mr-1 text-emerald-600" /> ver
+                                    </Button>
+                                  ) : p.status === "paga" ? (
+                                    // Paga e sem prova: o estado que o painel
+                                    // esconde, porque some do saldo e do atraso.
+                                    <label className="inline-flex items-center gap-1 text-xs text-amber-600 cursor-pointer">
+                                      <Paperclip className="h-3.5 w-3.5" />
+                                      anexar
+                                      <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*,application/pdf"
+                                        disabled={anexar.isPending}
+                                        onChange={(e) => {
+                                          const f = e.target.files?.[0];
+                                          if (f) anexar.mutate({ id: p.id, arquivo: f });
+                                          e.target.value = "";
+                                        }}
+                                      />
+                                    </label>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => {
+                                        setBaixa(p);
+                                        setBaixaData(p.vencimento);
+                                        setBaixaCaixa(true);
+                                      }}
+                                    >
+                                      <CheckCheck className="h-3.5 w-3.5 mr-1" /> dar baixa
+                                    </Button>
+                                  )}
+                                </TableCell>
                               </TableRow>
                             );
                           })}
@@ -454,6 +621,78 @@ function CompromissosPage() {
           })}
         </div>
       )}
+
+      <Dialog open={!!baixa} onOpenChange={(v) => !v && setBaixa(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Baixa da parcela {baixa?.parcela_numero} — {brl(Number(baixa?.valor ?? 0))}
+            </DialogTitle>
+            <DialogDescription>
+              Vencimento {dia(baixa?.vencimento)}
+              {baixa?.nosso_numero && ` · nosso número ${baixa.nosso_numero}`}. Anexe o
+              comprovante: é ele que transforma "está pago" em prova.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Data em que foi pago</Label>
+              <Input type="date" value={baixaData} onChange={(e) => setBaixaData(e.target.value)} />
+              <p className="text-[11px] text-muted-foreground">
+                A data real do pagamento, não a de hoje — é ela que vai para o caixa.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Comprovante</Label>
+              <Input
+                id="comprovante-baixa"
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={() => setEnviando(false)}
+              />
+            </div>
+
+            {/* Parcela paga antes de o sistema existir não pode virar lançamento
+                de caixa: o dinheiro saiu de uma conta que ele não acompanhava, e
+                o saldo e a conciliação passariam a mentir. */}
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={baixaCaixa}
+                onChange={(e) => setBaixaCaixa(e.target.checked)}
+              />
+              <span>
+                Lançar a saída no fluxo de caixa
+                <span className="block text-[11px] text-muted-foreground">
+                  Desmarque se esta parcela foi paga antes de o sistema existir — aí a
+                  obrigação fica quitada sem inventar movimento no caixa.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixa(null)}>Cancelar</Button>
+            <Button
+              disabled={darBaixa.isPending || enviando || !baixaData}
+              onClick={() => {
+                const input = document.getElementById("comprovante-baixa") as HTMLInputElement | null;
+                darBaixa.mutate({
+                  id: baixa.id,
+                  data: baixaData,
+                  caixa: baixaCaixa,
+                  arquivo: input?.files?.[0] ?? null,
+                });
+              }}
+            >
+              {darBaixa.isPending ? "Salvando…" : "Dar baixa"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
@@ -520,6 +759,8 @@ function CompromissosPage() {
               </Select>
             </div>
 
+            {campo("financeira", "Financeira (quem emite o boleto)", "Bradesco")}
+            {campo("portal_url", "Portal do fornecedor", "https://...")}
             <div className="sm:col-span-2">{campo("observacoes", "Observações", "Garantias, fiador, condições")}</div>
           </div>
 

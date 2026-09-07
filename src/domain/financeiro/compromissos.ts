@@ -15,6 +15,12 @@ export type Compromisso = {
   numero_contrato: string | null;
   observacoes: string | null;
   maquina_nome?: string | null;
+  financeira: string | null;
+  portal_url: string | null;
+  /** false = valores do contrato, ainda não batidos com o boleto da financeira. */
+  cronograma_confirmado: boolean;
+  com_comprovante: number;
+  sem_comprovante: number;
   valor_parcela: number;
   total_parcelas: number | null;
   primeira_parcela: string;
@@ -122,14 +128,41 @@ export function terminaEm(c: Compromisso): Date | null {
 /**
  * O compromisso precisa de atenção agora?
  *
- * Três estados, em ordem de urgência. `sem_parcelas` é o que mais engana: o
- * contrato está cadastrado, aparece na lista, e não gerou uma conta a pagar
- * sequer — nada vence, nada atrasa, e o fluxo de caixa não sabe que ele existe.
- * Cadastro sem parcela é compromisso invisível.
+ * Em ordem de urgência. `sem_parcelas` é o que mais engana: o contrato está
+ * cadastrado, aparece na lista, e não tem uma conta a pagar sequer — nada
+ * vence, nada atrasa, e o fluxo de caixa não sabe que ele existe. Cadastro sem
+ * parcela é compromisso invisível.
  */
 export function situacao(c: Compromisso): "atrasado" | "sem_parcelas" | "quitado" | "em_dia" {
   if (num(c.parcelas_atrasadas) > 0) return "atrasado";
   if (num(c.parcelas_geradas) === 0) return "sem_parcelas";
   if (c.total_parcelas != null && num(c.parcelas_pagas) >= c.total_parcelas) return "quitado";
   return "em_dia";
+}
+
+/**
+ * O que ainda falta para este compromisso estar em ordem, em ordem de peso.
+ *
+ * O sistema não emite boleto: ele espelha o cronograma da financeira e guarda a
+ * prova. Então "em ordem" quer dizer três coisas — o cronograma bate com o
+ * título, as parcelas existem, e toda parcela paga tem comprovante anexado.
+ *
+ * O caso mais silencioso é o último: uma parcela marcada como paga SEM
+ * comprovante é uma afirmação sem prova. Ela some do saldo devedor e do
+ * atrasado, o painel fica verde, e no dia em que alguém pedir o recibo não tem.
+ */
+export function pendencias(c: Compromisso): string[] {
+  const p: string[] = [];
+  if (num(c.parcelas_geradas) === 0) {
+    p.push("as parcelas do contrato ainda não foram lançadas");
+  } else if (!c.cronograma_confirmado) {
+    p.push("o cronograma é o do contrato e ainda não foi conferido no boleto da financeira");
+  }
+  if (num(c.parcelas_atrasadas) > 0) {
+    p.push(`${c.parcelas_atrasadas} parcela(s) vencida(s) sem baixa`);
+  }
+  if (num(c.sem_comprovante) > 0) {
+    p.push(`${c.sem_comprovante} parcela(s) dada(s) como paga(s) sem comprovante anexado`);
+  }
+  return p;
 }

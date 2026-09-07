@@ -1374,12 +1374,15 @@ export type Database = {
           credor_documento: string | null
           descricao: string
           documento_url: string | null
+          cronograma_confirmado: boolean
           encerrado_em: string | null
+          financeira: string | null
           id: string
           maquina_id: string | null
           numero_contrato: string | null
           observacoes: string | null
           periodicidade: string
+          portal_url: string | null
           primeira_parcela: string
           tipo: string
           total_parcelas: number | null
@@ -1397,12 +1400,15 @@ export type Database = {
           credor_documento?: string | null
           descricao: string
           documento_url?: string | null
+          cronograma_confirmado?: boolean
           encerrado_em?: string | null
+          financeira?: string | null
           id?: string
           maquina_id?: string | null
           numero_contrato?: string | null
           observacoes?: string | null
           periodicidade?: string
+          portal_url?: string | null
           primeira_parcela: string
           tipo?: string
           total_parcelas?: number | null
@@ -1419,12 +1425,15 @@ export type Database = {
           credor_documento?: string | null
           descricao?: string
           documento_url?: string | null
+          cronograma_confirmado?: boolean
           encerrado_em?: string | null
+          financeira?: string | null
           id?: string
           maquina_id?: string | null
           numero_contrato?: string | null
           observacoes?: string | null
           periodicidade?: string
+          portal_url?: string | null
           primeira_parcela?: string
           tipo?: string
           total_parcelas?: number | null
@@ -1455,6 +1464,7 @@ export type Database = {
           fornecedor: string | null
           id: string
           material_id: string | null
+          nosso_numero: string | null
           observacoes: string | null
           os_id: string | null
           parcela_numero: number | null
@@ -1477,6 +1487,7 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           material_id?: string | null
+          nosso_numero?: string | null
           observacoes?: string | null
           os_id?: string | null
           parcela_numero?: number | null
@@ -1499,6 +1510,7 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           material_id?: string | null
+          nosso_numero?: string | null
           observacoes?: string | null
           os_id?: string | null
           parcela_numero?: number | null

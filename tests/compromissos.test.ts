@@ -4,6 +4,7 @@ import {
   parcelaAtual,
   progresso,
   saldoDevedorTotal,
+  pendencias,
   situacao,
   terminaEm,
   totalAtrasado,
@@ -17,6 +18,11 @@ const base: Compromisso = {
   tipo: "locacao",
   numero_contrato: "12608505",
   observacoes: null,
+  financeira: "Bradesco",
+  portal_url: null,
+  cronograma_confirmado: true,
+  com_comprovante: 0,
+  sem_comprovante: 0,
   valor_parcela: 2309,
   total_parcelas: 36,
   primeira_parcela: "2026-06-05",
@@ -146,5 +152,36 @@ describe("situação", () => {
 describe("atrasado", () => {
   it("soma o atraso de todos, inclusive o inativo — dívida não some por desligar o contrato", () => {
     expect(totalAtrasado([base, com({ ativo: false, valor_atrasado: 100 })])).toBe(9336);
+  });
+});
+
+describe("o que falta para estar em ordem", () => {
+  it("parcela paga sem comprovante é o caso silencioso: some do saldo e não deixa prova", () => {
+    const c = com({ parcelas_pagas: 3, sem_comprovante: 3, parcelas_atrasadas: 0 });
+    expect(pendencias(c)).toContain("3 parcela(s) dada(s) como paga(s) sem comprovante anexado");
+  });
+
+  it("cronograma não conferido aparece enquanto o boleto não bateu com o contrato", () => {
+    const c = com({ cronograma_confirmado: false, parcelas_atrasadas: 0 });
+    expect(pendencias(c)[0]).toContain("não foi conferido no boleto");
+  });
+
+  it("sem parcela lançada, essa é a pendência — não a de cronograma", () => {
+    const c = com({ parcelas_geradas: 0, cronograma_confirmado: false, parcelas_atrasadas: 0 });
+    expect(pendencias(c)[0]).toContain("ainda não foram lançadas");
+    expect(pendencias(c).join(" ")).not.toContain("conferido no boleto");
+  });
+
+  it("compromisso em ordem não inventa pendência", () => {
+    const c = com({ parcelas_atrasadas: 0, sem_comprovante: 0, com_comprovante: 1, parcelas_pagas: 1 });
+    expect(pendencias(c)).toEqual([]);
+  });
+
+  it("atraso e comprovante faltando aparecem juntos, na ordem de peso", () => {
+    const c = com({ parcelas_atrasadas: 2, sem_comprovante: 1, parcelas_pagas: 1 });
+    const r = pendencias(c);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toContain("vencida");
+    expect(r[1]).toContain("comprovante");
   });
 });
