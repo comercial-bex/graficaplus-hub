@@ -60,11 +60,20 @@ describe("nenhuma tela escolhe o pai arbitrariamente", () => {
         const alcance = corta > 0 ? cadeia.slice(0, corta) : cadeia;
 
         if (!/\.limit\(1\)/.test(alcance)) continue;
-        // Com filtro é legítimo: "o mais recente DESTE registro".
-        if (/\.eq\(|\.in\(|\.match\(|\.filter\(|\.or\(/.test(alcance)) continue;
+        // Filtro só isenta quando MIRA um registro: `.eq("id", x)` ou
+        // `.eq("os_id", x)`. Um `.eq("ativa", true)` filtra e não mira — foi
+        // exatamente assim que o cálculo de bobina passou batido, escolhendo a
+        // máquina MAIS LARGA da casa em vez da máquina do produto.
+        const miraRegistro = /\.(eq|in|match)\(\s*["'`](id|[\w]+_id)["'`]/.test(alcance)
+          || /\.filter\(|\.or\(/.test(alcance);
+        if (miraRegistro) continue;
 
         const tabela = alcance.match(/^["'`]([\w.]+)["'`]/)?.[1] ?? "?";
         if (CONFIG_SINGLETON.includes(tabela)) continue;
+        // Escape explícito, para quem tem motivo. Guarda que acusa caso
+        // legítimo vira ruído, e ruído é como um guarda é desligado — mas o
+        // motivo tem que estar escrito ao lado, não presumido.
+        if (/pai-arbitrario-ok:/.test(alcance)) continue;
         suspeitos.push(`${caminho}: from("${tabela}") … .limit(1) sem filtro`);
       }
     }

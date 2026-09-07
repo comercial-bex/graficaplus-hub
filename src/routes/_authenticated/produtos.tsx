@@ -100,6 +100,8 @@ type FormState = {
   margem_minima: string;
   area_minima_cobrada: string;
   tempo_producao_min: string;
+  maquina_padrao_id: string;
+  material_principal_id: string;
   observacoes_internas: string;
   ativo: boolean;
 };
@@ -116,6 +118,8 @@ const emptyForm: FormState = {
   margem_minima: "40",
   area_minima_cobrada: "",
   tempo_producao_min: "",
+  maquina_padrao_id: "",
+  material_principal_id: "",
   observacoes_internas: "",
   ativo: true,
 };
@@ -197,6 +201,11 @@ function ProdutosPage() {
         tempo_producao_min: f.tempo_producao_min
           ? Number(f.tempo_producao_min)
           : null,
+        // Em qual equipamento a peça é feita e de que material. Os dois campos
+        // existiam na tabela e NÃO existiam nesta tela — por isso estavam em
+        // 0 de 31 e 9 de 31. Não dava para preencher nem querendo.
+        maquina_padrao_id: f.maquina_padrao_id || null,
+        material_principal_id: f.material_principal_id || null,
         observacoes_internas: f.observacoes_internas.trim() || null,
         ativo: f.ativo,
       };
@@ -278,6 +287,8 @@ function ProdutosPage() {
       preco_base: String(p.preco_base ?? 0),
       margem_minima: String(p.margem_minima ?? 0),
       area_minima_cobrada: p.area_minima_cobrada ? String(p.area_minima_cobrada) : "",
+      maquina_padrao_id: p.maquina_padrao_id ?? "",
+      material_principal_id: p.material_principal_id ?? "",
       tempo_producao_min: p.tempo_producao_min ? String(p.tempo_producao_min) : "",
       observacoes_internas: p.observacoes_internas ?? "",
       ativo: p.ativo,
@@ -296,6 +307,8 @@ function ProdutosPage() {
       preco_base: String(p.preco_base ?? 0),
       margem_minima: String(p.margem_minima ?? 0),
       area_minima_cobrada: p.area_minima_cobrada ? String(p.area_minima_cobrada) : "",
+      maquina_padrao_id: p.maquina_padrao_id ?? "",
+      material_principal_id: p.material_principal_id ?? "",
       tempo_producao_min: p.tempo_producao_min ? String(p.tempo_producao_min) : "",
       observacoes_internas: p.observacoes_internas ?? "",
       ativo: true,
@@ -699,6 +712,39 @@ function ProdutoFormDialog({
   onSubmit: () => void;
   saving: boolean;
 }) {
+  /**
+   * Máquinas e materiais para o cadastro do produto.
+   *
+   * `produtos.maquina_padrao_id` estava em 0 de 31 e `material_principal_id` em
+   * 9 de 31 — e a razão não era desleixo de cadastro: os dois campos NÃO
+   * existiam nesta tela. Não dava para preencher nem querendo.
+   *
+   * Com eles preenchidos, o orçamento para de pedir a largura da bobina a cada
+   * item (vem da máquina) e a agenda passa a saber onde a peça cabe.
+   */
+  const { data: maquinas = [] } = useQuery({
+    queryKey: ["maquinas-para-produto"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("maquinas")
+        .select("id, nome")
+        .eq("ativa", true)
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: materiais = [] } = useQuery({
+    queryKey: ["materiais-para-produto"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("materiais")
+        .select("id, nome, unidade")
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
   const custo = Number(form.custo_medio) || 0;
   const preco = Number(form.preco_base) || 0;
   const minima = Number(form.margem_minima) || 0;
@@ -875,6 +921,59 @@ function ProdutoFormDialog({
                   </p>
                 </div>
               )}
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="produto-maquina">Máquina padrão</Label>
+                  <Select
+                    value={form.maquina_padrao_id || "nenhuma"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, maquina_padrao_id: v === "nenhuma" ? "" : v })
+                    }
+                  >
+                    <SelectTrigger id="produto-maquina">
+                      <SelectValue placeholder="Nenhuma" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nenhuma">Nenhuma</SelectItem>
+                      {(maquinas as { id: string; nome: string }[]).map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Onde a peça é feita. É daqui que sai a largura da bobina no orçamento —
+                    sem isso, ela é digitada a cada item.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="produto-material">Material principal</Label>
+                  <Select
+                    value={form.material_principal_id || "nenhum"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, material_principal_id: v === "nenhum" ? "" : v })
+                    }
+                  >
+                    <SelectTrigger id="produto-material">
+                      <SelectValue placeholder="Nenhum" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nenhum">Nenhum</SelectItem>
+                      {(materiais as { id: string; nome: string; unidade: string }[]).map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.nome} ({m.unidade})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O insumo que domina o custo. A ficha técnica continua valendo para o
+                    consumo exato.
+                  </p>
+                </div>
+              </div>
 
               {/* Calculadora ao vivo */}
               <div className="grid grid-cols-3 gap-3 rounded-lg border bg-muted/30 p-3">

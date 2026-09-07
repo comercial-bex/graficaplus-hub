@@ -11,6 +11,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Camera, CheckCircle2, ShieldCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Inspecao = {
   id: string;
@@ -72,18 +79,50 @@ export function QualidadeDaOS({ osId }: { osId: string }) {
     },
   });
 
-  const { data: checklist } = useQuery({
-    queryKey: ["checklist-qualidade"],
+  /**
+   * Checklists ativos, TODOS.
+   *
+   * Antes esta consulta pegava o primeiro (`.limit(1)`), o que dá certo
+   * enquanto existe um só — e passa a inspecionar impressão com o checklist de
+   * acabamento no dia em que o segundo for cadastrado. O erro não apareceria:
+   * a tela mostraria uma lista de itens plausível, só que da operação errada.
+   *
+   * A escolha é explícita quando há mais de um, e o padrão é o checklist da
+   * etapa em que a OS está.
+   */
+  const { data: checklists = [] } = useQuery({
+    queryKey: ["checklists-qualidade"],
     enabled: podeInspecionar,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("qualidade_checklists")
         .select("id, operacao, itens")
         .eq("ativo", true)
-        .limit(1);
-      return data?.[0] ?? null;
+        .order("operacao");
+      return (data ?? []) as { id: string; operacao: string | null; itens: string[] }[];
     },
   });
+
+  const { data: etapaDaOS } = useQuery({
+    queryKey: ["os-etapa-qualidade", osId],
+    enabled: podeInspecionar,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("ordens_servico_operacional")
+        .select("status")
+        .eq("id", osId)
+        .maybeSingle();
+      return (data?.status as string | null) ?? null;
+    },
+  });
+
+  const [checklistEscolhido, setChecklistEscolhido] = useState<string>("");
+
+  const checklist =
+    checklists.find((c) => c.id === checklistEscolhido) ??
+    checklists.find((c) => c.operacao && etapaDaOS && c.operacao === etapaDaOS) ??
+    checklists[0] ??
+    null;
 
   const { data: inspecoes = [] } = useQuery({
     queryKey: ["inspecoes", osId],
@@ -176,6 +215,29 @@ export function QualidadeDaOS({ osId }: { osId: string }) {
       <CardContent className="space-y-4">
         {podeInspecionar && (
           <div className="space-y-3 rounded-md border p-3">
+            {/* Só aparece quando há escolha a fazer. Com um checklist só, o
+                seletor seria ruído; com dois, a ausência dele é o defeito. */}
+            {checklists.length > 1 && (
+              <div className="space-y-1">
+                <Label className="text-xs">Checklist</Label>
+                <Select
+                  value={checklist?.id ?? ""}
+                  onValueChange={setChecklistEscolhido}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {checklists.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.operacao ?? "geral"}
+                        {c.operacao && etapaDaOS === c.operacao ? " (etapa atual)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {itens.length > 0 ? (
               <div className="space-y-2">
                 <Label className="text-xs">Confira antes de decidir</Label>

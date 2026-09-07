@@ -15,6 +15,8 @@ type Contexto = {
   larguraUtilMaquina: number | null;
   margemLateral: number;
   nomeMaquina: string | null;
+  /** true quando a máquina não veio do produto e foi escolhida a mais larga. */
+  maquinaInferida: boolean;
 };
 
 /**
@@ -35,20 +37,51 @@ export function useContextoDeBobina(produtoId: string | null) {
       const { data: produto } = await (supabase as any)
         .from("produtos_operacional")
         .select(
-          "espacamento_pecas_m, materiais_operacional:material_principal_id(nome, largura_bobina_m, comprimento_bobina_m)",
+          "espacamento_pecas_m, maquina_padrao_id, materiais_operacional:material_principal_id(nome, largura_bobina_m, comprimento_bobina_m)",
         )
         .eq("id", produtoId)
         .maybeSingle();
       if (!produto) return null;
 
-      const { data: maquinas } = await (supabase as any)
-        .from("maquinas")
-        .select("nome, largura_util_m, margem_lateral_m")
-        .eq("ativa", true)
-        .not("largura_util_m", "is", null)
-        .order("largura_util_m", { ascending: false })
-        .limit(1);
-      const maquina = maquinas?.[0];
+      // A máquina é a DO PRODUTO, não a mais larga da casa.
+      //
+      // Antes esta consulta ordenava por `largura_util_m` e pegava a primeira:
+      // com uma Wizer de 1,60 m e uma Bambu, toda peça era calculada como se
+      // saísse da Wizer. O aproveitamento de bobina saía plausível e errado
+      // para tudo que não fosse grande formato.
+      //
+      // A largura útil é o gargalo do encaixe — usar a da máquina errada muda
+      // quantas peças cabem, que é a única coisa que este cálculo responde.
+      let maquina: { nome: string; largura_util_m: number | null; margem_lateral_m: number | null } | undefined;
+
+      if (produto.maquina_padrao_id) {
+        const { data } = await (supabase as any)
+          .from("maquinas")
+          .select("nome, largura_util_m, margem_lateral_m")
+          .eq("id", produto.maquina_padrao_id)
+          .maybeSingle();
+        maquina = data ?? undefined;
+      }
+
+      // Sem máquina no produto, cai na mais larga ativa — é um palpite, e o
+      // card avisa que é, para ninguém confundir com a máquina de verdade.
+      let maquinaInferida = false;
+      if (!maquina?.largura_util_m) {
+        const { data: candidatas } = await (supabase as any)
+          .from("maquinas")
+          // pai-arbitrario-ok: fallback deliberado quando o produto não tem
+          // máquina padrão. Não grava vínculo nenhum — só estima a boca para o
+          // cálculo, e o card avisa na tela que a máquina foi suposta.
+          .select("nome, largura_util_m, margem_lateral_m")
+          .eq("ativa", true)
+          .not("largura_util_m", "is", null)
+          .order("largura_util_m", { ascending: false })
+          .limit(1);
+        if (candidatas?.[0]) {
+          maquina = candidatas[0];
+          maquinaInferida = true;
+        }
+      }
       const bobina = produto.materiais_operacional;
 
       return {
@@ -60,6 +93,7 @@ export function useContextoDeBobina(produtoId: string | null) {
         larguraUtilMaquina: maquina?.largura_util_m != null ? Number(maquina.largura_util_m) : null,
         margemLateral: Number(maquina?.margem_lateral_m ?? 0.01),
         nomeMaquina: maquina?.nome ?? null,
+        maquinaInferida,
       };
     },
   });
@@ -153,7 +187,13 @@ export function AproveitamentoDeBobina({
 
       <div className="text-muted-foreground">
         Bobina {contexto.nomeBobina ?? "—"} de {m(contexto.larguraBobina)}
-        {contexto.nomeMaquina && ` na ${contexto.nomeMaquina}`} · consome{" "}
+        {contexto.nomeMaquina && ` na ${contexto.nomeMaquina}`}
+        {contexto.maquinaInferida && (
+          <span className="text-amber-600">
+            {" "}(máquina suposta — este produto não tem máquina padrão)
+          </span>
+        )}{" "}
+        · consome{" "}
         <strong className="text-foreground">
           {p.m2Consumidos.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} m²
         </strong>{" "}
