@@ -8,6 +8,7 @@ import {
   situacao,
   terminaEm,
   totalAtrasado,
+  totalPresumido,
   type Compromisso,
 } from "../src/domain/financeiro/compromissos";
 
@@ -18,6 +19,7 @@ const base: Compromisso = {
   tipo: "locacao",
   numero_contrato: "12608505",
   observacoes: null,
+  maquina_id: null,
   financeira: "Bradesco",
   portal_url: null,
   cronograma_confirmado: true,
@@ -149,9 +151,39 @@ describe("situação", () => {
   });
 });
 
-describe("atrasado", () => {
-  it("soma o atraso de todos, inclusive o inativo — dívida não some por desligar o contrato", () => {
+describe("atrasado x presumido", () => {
+  it("soma o atraso de todos os conferidos, inclusive o inativo — dívida não some por desligar o contrato", () => {
     expect(totalAtrasado([base, com({ ativo: false, valor_atrasado: 100 })])).toBe(9336);
+  });
+
+  it("data que eu presumi NÃO vira número vermelho", () => {
+    // O cronograma do contrato do CNC errou a 1ª parcela em dois meses. Cobrar
+    // atraso em cima de uma data dessas é inventar dívida.
+    const presumido = com({ cronograma_confirmado: false, valor_atrasado: 9236 });
+    expect(totalAtrasado([presumido])).toBe(0);
+    expect(totalPresumido([presumido])).toBe(9236);
+  });
+
+  it("os dois totais são disjuntos: nada é contado duas vezes", () => {
+    const lista = [base, com({ id: "c2", cronograma_confirmado: false, valor_atrasado: 500 })];
+    expect(totalAtrasado(lista) + totalPresumido(lista)).toBe(9236 + 500);
+  });
+
+  it("cronograma não conferido tem situação própria, e ela vem antes de atrasado", () => {
+    expect(situacao(com({ cronograma_confirmado: false }))).toBe("cronograma_presumido");
+    expect(situacao(base)).toBe("atrasado");
+  });
+
+  it("sem parcela nenhuma, a situação é essa — não a de cronograma presumido", () => {
+    const c = com({ cronograma_confirmado: false, parcelas_geradas: 0 });
+    expect(situacao(c)).toBe("sem_parcelas");
+  });
+
+  it("a pendência de atraso muda de tom conforme o cronograma foi conferido", () => {
+    expect(pendencias(base).join(" ")).toContain("vencida(s) sem baixa");
+    const presumido = com({ cronograma_confirmado: false });
+    expect(pendencias(presumido).join(" ")).toContain("apareceriam vencidas");
+    expect(pendencias(presumido).join(" ")).not.toContain("sem baixa");
   });
 });
 

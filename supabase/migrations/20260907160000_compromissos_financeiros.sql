@@ -391,6 +391,8 @@ where not exists (select 1 from public.compromissos_financeiros where numero_con
 
 -- Os contratos também completam a ficha das máquinas, que estava pela metade:
 -- a do CNC não tinha parcela e a da impressora não tinha total.
+-- Valor do CONTRATO. A migração seguinte corrige para o do boleto (R$ 1.726,74)
+-- depois de conferir o portal — as duas ficam, na ordem em que a casa soube.
 update public.maquinas_contrato c
    set valor_parcela = 1750.38,
        parcelas = 36,

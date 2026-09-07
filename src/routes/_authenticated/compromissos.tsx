@@ -54,6 +54,7 @@ import {
   situacao,
   terminaEm,
   totalAtrasado,
+  totalPresumido,
   type Compromisso,
 } from "@/domain/financeiro/compromissos";
 
@@ -157,8 +158,24 @@ function CompromissosPage() {
   const { data: maquinas = [] } = useQuery({
     queryKey: ["compromissos-maquinas"],
     queryFn: async () => {
-      const { data } = await supabase.from("maquinas").select("id, nome").eq("ativa", true).order("nome");
+      const { data } = await supabase.from("maquinas").select("id, nome, custo_hora").eq("ativa", true).order("nome");
       return data ?? [];
+    },
+  });
+
+  /**
+   * A negociação de cada máquina, quando existe.
+   *
+   * É o número que leva ao portal do fornecedor, onde estão as parcelas. Sem
+   * ele o aviso de "falta cadastrar" mandaria alguém procurar sem pista.
+   */
+  const { data: negociacoes = [] } = useQuery({
+    queryKey: ["compromissos-negociacoes"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("maquinas_contrato")
+        .select("maquina_id, numero_negociacao, numero_contrato, condicao_comercial");
+      return (data ?? []) as any[];
     },
   });
 
@@ -331,7 +348,10 @@ function CompromissosPage() {
   const mensal = custoMensal(compromissos);
   const devedor = saldoDevedorTotal(compromissos);
   const atrasado = totalAtrasado(compromissos);
+  const presumido = totalPresumido(compromissos);
   const semParcelas = compromissos.filter((c) => c.ativo && situacao(c) === "sem_parcelas");
+  const comCompromisso = new Set(compromissos.filter((c) => c.ativo).map((c) => c.maquina_id));
+  const semCompromisso = maquinas.filter((m: any) => !comCompromisso.has(m.id));
 
   const campo = (
     chave: keyof typeof vazio,
@@ -366,6 +386,8 @@ function CompromissosPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Sai por mês" value={brl(mensal)} icon={Repeat} />
         <KpiCard label="Saldo devedor" value={brl(devedor)} icon={Wallet} />
+        {/* Só entra aqui o que veio de cronograma conferido no boleto. Data que
+            eu presumi não pinta número vermelho — ela tem aviso próprio. */}
         <KpiCard label="Vencido em aberto" value={brl(atrasado)} icon={AlertTriangle} />
         <KpiCard label="Compromissos ativos" value={String(compromissos.filter((c) => c.ativo).length)} icon={CalendarClock} />
       </div>
@@ -394,9 +416,25 @@ function CompromissosPage() {
           <div>
             Há <strong>{brl(atrasado)}</strong> em parcelas vencidas e ainda em aberto. Se
             elas já foram pagas antes de o sistema existir, use{" "}
-            <em>Quitar vencidas</em> no compromisso — isso marca a obrigação como
-            cumprida e <strong>não</strong> lança movimento de caixa, porque aquele
-            dinheiro saiu de uma conta que este sistema não acompanhava.
+            <em>Quitar vencidas</em> — isso marca a obrigação como cumprida e{" "}
+            <strong>não</strong> lança movimento de caixa, porque aquele dinheiro saiu de
+            uma conta que este sistema não acompanhava. Elas ficam <strong>sem
+            comprovante</strong>, e o próprio card vai cobrar o anexo de cada uma.
+          </div>
+        </div>
+      )}
+
+      {/* Aviso separado, e de propósito: misturar isto com o vencido de verdade
+          transformaria uma data que eu presumi em cobrança. */}
+      {presumido > 0 && (
+        <div className="rounded-md border border-sky-500/40 bg-sky-500/10 p-3 text-sm flex gap-2">
+          <CalendarClock className="h-4 w-4 text-sky-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <strong>{brl(presumido)}</strong> apareceriam como vencidos em cronograma que
+            ainda não foi conferido no boleto da financeira — por isso ficam fora do
+            vencido acima. No CNC o contrato assinado errou a 1ª parcela em dois meses e o
+            valor em R$ 23,64; abra o portal do fornecedor, corrija a 1ª parcela e o valor
+            no compromisso, e clique em <em>Realinhar cronograma</em>.
           </div>
         </div>
       )}
@@ -428,6 +466,11 @@ function CompromissosPage() {
                         <h3 className="font-semibold">{c.descricao}</h3>
                         <Badge variant="outline" className="font-normal capitalize">{c.tipo}</Badge>
                         {s === "atrasado" && <Badge variant="destructive">{c.parcelas_atrasadas} vencida(s)</Badge>}
+                        {s === "cronograma_presumido" && (
+                          <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-400 hover:bg-sky-500/15">
+                            cronograma presumido
+                          </Badge>
+                        )}
                         {s === "sem_parcelas" && (
                           <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-500 hover:bg-amber-500/15">
                             sem parcelas
@@ -522,7 +565,10 @@ function CompromissosPage() {
                         </a>
                       </Button>
                     )}
-                    {c.parcelas_atrasadas > 0 && (
+                    {/* Quitar em lote em cima de data presumida marcaria como
+                        pagas parcelas cujo vencimento talvez nem exista. Confira
+                        o cronograma no portal primeiro. */}
+                    {c.parcelas_atrasadas > 0 && c.cronograma_confirmado && (
                       <Button size="sm" variant="outline" disabled={quitar.isPending} onClick={() => quitar.mutate(c.id)}>
                         <CheckCheck className="h-3.5 w-3.5 mr-1" /> Quitar vencidas
                       </Button>
@@ -620,6 +666,51 @@ function CompromissosPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Máquina financiada sem compromisso cadastrado é dívida que o sistema
+          não enxerga — e é também por que a hora-máquina dela sai R$ 0,00 no
+          orçamento. As duas coisas se resolvem com o mesmo cadastro. */}
+      {semCompromisso.length > 0 && (
+        <Card>
+          <CardContent className="p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <h3 className="font-semibold text-sm">
+                {semCompromisso.length === 1
+                  ? "1 máquina ativa sem compromisso cadastrado"
+                  : `${semCompromisso.length} máquinas ativas sem compromisso cadastrado`}
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Enquanto o compromisso não existe, a dívida fica fora do saldo devedor e do
+              fluxo de caixa. E quando a máquina também está sem custo/hora, o processo
+              dela entra no orçamento a R$ 0,00 — as duas coisas se resolvem com o mesmo
+              cadastro.
+            </p>
+            <ul className="space-y-1.5 text-sm">
+              {semCompromisso.map((m: any) => {
+                const n = negociacoes.find((x: any) => x.maquina_id === m.id);
+                return (
+                  <li key={m.id} className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-medium">{m.nome}</span>
+                    {n?.numero_negociacao && (
+                      <span className="font-mono text-xs text-muted-foreground">
+                        negociação {n.numero_negociacao}
+                      </span>
+                    )}
+                    {n?.condicao_comercial && (
+                      <span className="text-xs text-muted-foreground">· {n.condicao_comercial}</span>
+                    )}
+                    {Number(m.custo_hora ?? 0) <= 0 && (
+                      <span className="text-xs text-amber-600">· sem custo/hora</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
       <Dialog open={!!baixa} onOpenChange={(v) => !v && setBaixa(null)}>

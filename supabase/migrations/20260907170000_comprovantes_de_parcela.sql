@@ -206,3 +206,27 @@ update public.contas_pagar p
        updated_at = now()
   from public.compromissos_financeiros c
  where p.compromisso_id = c.id and c.numero_contrato = '12608350' and p.parcela_numero = 1;
+
+-- ---------------------------------------------------------------------------
+-- A ficha comercial das máquinas segue o boleto.
+--
+-- Estava pela metade: a do CNC sem parcela, a da impressora sem total. E a
+-- parcela do CNC tem que ser a do boleto, não a do contrato.
+--
+-- Nenhuma das duas mexe no custo/hora: `custo_hora_sugerido` decide o método
+-- pela condição comercial, e "PRONTA ENTREGA - FINANCIAMENTO" continua caindo
+-- em depreciação, "Locação Especial" continua caindo em locação.
+-- ---------------------------------------------------------------------------
+update public.maquinas_contrato c
+   set valor_parcela = 1726.74, parcelas = 36, entrada_valor = 3966.00, entrada_forma = 'PIX',
+       observacoes = coalesce(c.observacoes || ' · ','') || 'parcela conferida no portal Blips (Bradesco): R$ 1.726,74; o contrato assinado trazia R$ 1.750,38',
+       atualizado_em = now()
+  from public.maquinas m
+ where m.id = c.maquina_id and m.numero_serie = 'FD2D54'
+   and coalesce(c.valor_parcela, 0) <> 1726.74;
+
+update public.maquinas_contrato c
+   set valor_total = 83124.00, parcelas = 36, entrada_valor = 2309.00, entrada_forma = 'PIX',
+       atualizado_em = now()
+  from public.maquinas m
+ where m.id = c.maquina_id and m.numero_serie = '12608505' and c.valor_total is null;

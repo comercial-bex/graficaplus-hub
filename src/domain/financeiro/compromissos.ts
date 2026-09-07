@@ -14,6 +14,7 @@ export type Compromisso = {
   tipo: string;
   numero_contrato: string | null;
   observacoes: string | null;
+  maquina_id: string | null;
   maquina_nome?: string | null;
   financeira: string | null;
   portal_url: string | null;
@@ -77,8 +78,25 @@ export function saldoDevedorTotal(compromissos: Compromisso[]): number {
     .reduce((soma, c) => soma + Math.max(0, num(c.saldo_devedor)), 0);
 }
 
+/**
+ * Vencido de verdade: só de contrato cujo cronograma foi conferido no boleto.
+ *
+ * Data presumida não gera número vermelho. O cronograma do i1600 foi montado a
+ * partir do contrato, e o contrato do CNC errou a data da 1ª parcela em dois
+ * meses e o valor em R$ 23,64 — cobrar atraso em cima disso é inventar dívida.
+ * O que é presumido aparece à parte, dizendo que é.
+ */
 export function totalAtrasado(compromissos: Compromisso[]): number {
-  return compromissos.reduce((soma, c) => soma + num(c.valor_atrasado), 0);
+  return compromissos
+    .filter((c) => c.cronograma_confirmado)
+    .reduce((soma, c) => soma + num(c.valor_atrasado), 0);
+}
+
+/** O que parece vencido, mas em cronograma que ninguém bateu com o boleto. */
+export function totalPresumido(compromissos: Compromisso[]): number {
+  return compromissos
+    .filter((c) => !c.cronograma_confirmado)
+    .reduce((soma, c) => soma + num(c.valor_atrasado), 0);
 }
 
 /**
@@ -133,9 +151,14 @@ export function terminaEm(c: Compromisso): Date | null {
  * vence, nada atrasa, e o fluxo de caixa não sabe que ele existe. Cadastro sem
  * parcela é compromisso invisível.
  */
-export function situacao(c: Compromisso): "atrasado" | "sem_parcelas" | "quitado" | "em_dia" {
-  if (num(c.parcelas_atrasadas) > 0) return "atrasado";
+export function situacao(
+  c: Compromisso,
+): "atrasado" | "cronograma_presumido" | "sem_parcelas" | "quitado" | "em_dia" {
   if (num(c.parcelas_geradas) === 0) return "sem_parcelas";
+  // Antes de "atrasado": um vencimento que ninguém conferiu no boleto não
+  // sustenta a acusação de atraso.
+  if (!c.cronograma_confirmado) return "cronograma_presumido";
+  if (num(c.parcelas_atrasadas) > 0) return "atrasado";
   if (c.total_parcelas != null && num(c.parcelas_pagas) >= c.total_parcelas) return "quitado";
   return "em_dia";
 }
@@ -159,7 +182,13 @@ export function pendencias(c: Compromisso): string[] {
     p.push("o cronograma é o do contrato e ainda não foi conferido no boleto da financeira");
   }
   if (num(c.parcelas_atrasadas) > 0) {
-    p.push(`${c.parcelas_atrasadas} parcela(s) vencida(s) sem baixa`);
+    // A mesma contagem, dita de dois jeitos: com cronograma conferido é dívida
+    // vencida; sem, é só o que a data presumida sugere.
+    p.push(
+      c.cronograma_confirmado
+        ? `${c.parcelas_atrasadas} parcela(s) vencida(s) sem baixa`
+        : `${c.parcelas_atrasadas} parcela(s) apareceriam vencidas por essa data presumida — confira antes de tratar como atraso`,
+    );
   }
   if (num(c.sem_comprovante) > 0) {
     p.push(`${c.sem_comprovante} parcela(s) dada(s) como paga(s) sem comprovante anexado`);
