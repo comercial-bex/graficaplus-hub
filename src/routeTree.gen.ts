@@ -58,6 +58,7 @@ import { Route as AuthenticatedCompromissosRouteImport } from './routes/_authent
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedCasosDeUsoRouteImport } from './routes/_authenticated/casos-de-uso'
 import { Route as AuthenticatedBreakdown3dRouteImport } from './routes/_authenticated/breakdown-3d'
+import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated/avisos'
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
 import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
@@ -333,6 +334,11 @@ const AuthenticatedBreakdown3dRoute =
     path: '/breakdown-3d',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAvisosRoute = AuthenticatedAvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAutomacoesRoute = AuthenticatedAutomacoesRouteImport.update({
   id: '/automacoes',
   path: '/automacoes',
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/avisos': typeof AuthenticatedAvisosRoute
   '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/compras': typeof AuthenticatedComprasRoute
@@ -449,6 +456,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/avisos': typeof AuthenticatedAvisosRoute
   '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/compras': typeof AuthenticatedComprasRoute
@@ -510,6 +518,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/_authenticated/avisos': typeof AuthenticatedAvisosRoute
   '/_authenticated/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/_authenticated/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/_authenticated/compras': typeof AuthenticatedComprasRoute
@@ -571,6 +580,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/arquivos'
     | '/automacoes'
+    | '/avisos'
     | '/breakdown-3d'
     | '/casos-de-uso'
     | '/compras'
@@ -630,6 +640,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/arquivos'
     | '/automacoes'
+    | '/avisos'
     | '/breakdown-3d'
     | '/casos-de-uso'
     | '/compras'
@@ -690,6 +701,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authenticated/arquivos'
     | '/_authenticated/automacoes'
+    | '/_authenticated/avisos'
     | '/_authenticated/breakdown-3d'
     | '/_authenticated/casos-de-uso'
     | '/_authenticated/compras'
@@ -1098,6 +1110,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBreakdown3dRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/avisos': {
+      id: '/_authenticated/avisos'
+      path: '/avisos'
+      fullPath: '/avisos'
+      preLoaderRoute: typeof AuthenticatedAvisosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/automacoes': {
       id: '/_authenticated/automacoes'
       path: '/automacoes'
@@ -1167,6 +1186,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedArquivosRoute: typeof AuthenticatedArquivosRoute
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
+  AuthenticatedAvisosRoute: typeof AuthenticatedAvisosRoute
   AuthenticatedBreakdown3dRoute: typeof AuthenticatedBreakdown3dRoute
   AuthenticatedCasosDeUsoRoute: typeof AuthenticatedCasosDeUsoRoute
   AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
@@ -1221,6 +1241,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedArquivosRoute: AuthenticatedArquivosRoute,
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
+  AuthenticatedAvisosRoute: AuthenticatedAvisosRoute,
   AuthenticatedBreakdown3dRoute: AuthenticatedBreakdown3dRoute,
   AuthenticatedCasosDeUsoRoute: AuthenticatedCasosDeUsoRoute,
   AuthenticatedComprasRoute: AuthenticatedComprasRoute,

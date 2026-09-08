@@ -34,6 +34,7 @@ import {
   Workflow,
   Network,
   TrendingDown,
+  BellRing,
   Repeat,
   Wallet,
   Landmark,
@@ -82,6 +83,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
   {
     label: "Atendimento",
     items: [
+      { title: "Avisos ao cliente", url: "/avisos", icon: BellRing },
       { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
       { title: "Respostas rápidas", url: "/respostas-rapidas", icon: ListChecks },
       { title: "Automações", url: "/automacoes", icon: Bot },

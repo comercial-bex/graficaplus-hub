@@ -112,6 +112,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/contas-bancarias", permissions: ["financeiro.read"] },
   { path: "/fluxo-caixa", permissions: ["financeiro.read"] },
   { path: "/compromissos", permissions: ["financeiro.read"] },
+  { path: "/avisos", permissions: ["os.read", "orcamentos.read"] },
   { path: "/manutencao", permissions: ["manutencao.read", "os.read"] },
   { path: "/design", permissions: ["arquivos.read", "arquivos.approve"] },
   { path: "/produtos", permissions: ["custos.read"] },
