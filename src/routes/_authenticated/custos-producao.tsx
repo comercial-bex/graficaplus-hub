@@ -14,12 +14,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Users, Plus, Pencil, Calculator } from "lucide-react";
+import { AlertTriangle, Users, Plus, Pencil, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
+import { CalculadoraDeEncargos } from "@/components/custos/calculadora-de-encargos";
+import { quantoFalta } from "@/domain/financeiro/encargos";
 
 export const Route = createFileRoute("/_authenticated/custos-producao")({
   head: () => ({
@@ -116,6 +118,7 @@ function CustosProducaoPage() {
     0,
   );
   const medio = ativos.length > 0 ? custoTotalHora / ativos.length : 0;
+  const semEncargos = ativos.filter((f) => Number(f.encargos_pct ?? 0) <= 0);
 
   return (
     <div>
@@ -146,6 +149,28 @@ function CustosProducaoPage() {
           hint="Se toda a equipe estiver alocada ao mesmo tempo"
         />
       </div>
+
+      {/* Encargo zerado é zero disfarçado: a conta roda, o número sai plausível,
+          e o bloco de mão de obra do orçamento sai menor do que devia. */}
+      {semEncargos.length > 0 && (
+        <div className="mb-6 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <strong>
+              {semEncargos.length === ativos.length
+                ? "Todas as funções estão com encargos em 0%"
+                : `${semEncargos.length} função(ões) está(ão) com encargos em 0%`}
+              .
+            </strong>{" "}
+            O valor em Custo/h é o salário-hora; o que sai do bolso da empresa inclui FGTS,
+            13º, férias e provisão de rescisão. Com os ~32% do Simples, o bloco de mão de
+            obra de todo orçamento está{" "}
+            <strong>{(quantoFalta(0.3219) * 100).toFixed(0)}% menor</strong> do que deveria —
+            e fora do Simples, {(quantoFalta(0.5999) * 100).toFixed(0)}%. Edite a função e
+            use <em>Calcular do salário</em>.
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-muted-foreground">Carregando...</div>
@@ -262,6 +287,20 @@ function CustosProducaoPage() {
                 onCheckedChange={(v) => setForm((f) => ({ ...f, ativo: v }))}
               />
               <Label>Ativa</Label>
+            </div>
+            {/* Ninguém sabe de cabeça quanto custa a hora de uma pessoa com
+                encargos. Pedir para digitar é como estava — e como estava, todo
+                mundo digitou zero. */}
+            <div className="sm:col-span-2">
+              <CalculadoraDeEncargos
+                onAplicar={({ custoHora, encargosPct }) =>
+                  setForm((f) => ({
+                    ...f,
+                    custo_hora: String(custoHora),
+                    encargos_pct: String(encargosPct),
+                  }))
+                }
+              />
             </div>
           </div>
           <DialogFooter>
