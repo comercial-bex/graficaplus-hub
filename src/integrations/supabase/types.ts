@@ -3023,6 +3023,8 @@ export type Database = {
       maquinas: {
         Row: {
           ativa: boolean
+          data_aquisicao: string | null
+          forma_aquisicao: string
           avanco_m: number
           base_cobranca: string
           created_at: string
@@ -3044,6 +3046,7 @@ export type Database = {
           tempo_minimo_min: number
           tipo: string | null
           updated_at: string
+          valor_aquisicao: number | null
           valor_residual: number | null
           velocidade_m2_h: number
           velocidade_mm_s: number | null
@@ -3051,6 +3054,8 @@ export type Database = {
         }
         Insert: {
           ativa?: boolean
+          data_aquisicao?: string | null
+          forma_aquisicao?: string
           avanco_m?: number
           base_cobranca?: string
           created_at?: string
@@ -3072,6 +3077,7 @@ export type Database = {
           tempo_minimo_min?: number
           tipo?: string | null
           updated_at?: string
+          valor_aquisicao?: number | null
           valor_residual?: number | null
           velocidade_m2_h?: number
           velocidade_mm_s?: number | null
@@ -3079,6 +3085,8 @@ export type Database = {
         }
         Update: {
           ativa?: boolean
+          data_aquisicao?: string | null
+          forma_aquisicao?: string
           avanco_m?: number
           base_cobranca?: string
           created_at?: string
@@ -3100,6 +3108,7 @@ export type Database = {
           tempo_minimo_min?: number
           tipo?: string | null
           updated_at?: string
+          valor_aquisicao?: number | null
           valor_residual?: number | null
           velocidade_m2_h?: number
           velocidade_mm_s?: number | null

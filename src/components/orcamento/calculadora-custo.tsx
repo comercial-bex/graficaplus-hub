@@ -30,6 +30,7 @@ import {
   type ComplexidadeDecapagem,
   type VelocidadePorMaterial,
 } from "@/domain/producao/tempo-de-maquina";
+import { BarraDeComposicao } from "./barra-de-composicao";
 import {
   sincronizarDecapagem,
   type FuncaoMO,
@@ -979,6 +980,18 @@ export function CalculadoraCusto({
                   {pct(resultado.margemPct)}
                 </div>
               </div>
+            </section>
+          )}
+
+          {/* O resumo acima diz quanto custa. Esta barra diz até onde dá para
+              baixar — que é a pergunta que se faz na frente do cliente. */}
+          {resultado && temAlgumaLinha && (
+            <section className="rounded-md border p-4">
+              <BarraDeComposicao
+                resultado={resultado}
+                taxasVendaPct={num(taxasVenda) / 100}
+                quantidade={quantidade || 1}
+              />
             </section>
           )}
         </div>

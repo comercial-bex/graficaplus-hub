@@ -40,11 +40,13 @@ import {
   ExternalLink,
   FileCheck2,
   Paperclip,
+  Landmark,
   Plus,
   Repeat,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { pagoDoBem, resumoPatrimonio, type MaquinaPatrimonio } from "@/domain/financeiro/patrimonio";
 import {
   custoMensal,
   parcelaAtual,
@@ -169,6 +171,23 @@ function CompromissosPage() {
    * É o número que leva ao portal do fornecedor, onde estão as parcelas. Sem
    * ele o aviso de "falta cadastrar" mandaria alguém procurar sem pista.
    */
+  const { data: patrimonio = [] } = useQuery({
+    queryKey: ["patrimonio-maquinas"],
+    queryFn: async (): Promise<MaquinaPatrimonio[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_patrimonio_maquinas")
+        .select("*")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []).map((m: any) => ({
+        ...m,
+        valor_aquisicao: m.valor_aquisicao == null ? null : Number(m.valor_aquisicao),
+        patrimonio: Number(m.patrimonio ?? 0),
+        divida: Number(m.divida ?? 0),
+      }));
+    },
+  });
+
   const { data: negociacoes = [] } = useQuery({
     queryKey: ["compromissos-negociacoes"],
     queryFn: async () => {
@@ -391,6 +410,104 @@ function CompromissosPage() {
         <KpiCard label="Vencido em aberto" value={brl(atrasado)} icon={AlertTriangle} />
         <KpiCard label="Compromissos ativos" value={String(compromissos.filter((c) => c.ativo).length)} icon={CalendarClock} />
       </div>
+
+      {/* Patrimônio e dívida na mesma tela, porque a pergunta é uma só: o que
+          a casa tem em máquina e o que ela ainda deve por elas. */}
+      {patrimonio.length > 0 && (() => {
+        const r = resumoPatrimonio(patrimonio);
+        const proprias = patrimonio.filter((m) => m.ativa && m.forma_aquisicao !== "locada");
+        const alugadas = patrimonio.filter((m) => m.ativa && m.forma_aquisicao === "locada");
+        return (
+          <Card>
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Landmark className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Patrimônio em máquinas</h3>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-4 text-sm">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Bens da casa
+                  </div>
+                  <div className="font-bold font-mono">{brl(r.patrimonioBruto)}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {r.quitadas} quitada(s) · {r.financiadas} financiada(s)
+                  </div>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Dívida sobre eles
+                  </div>
+                  <div className="font-bold font-mono">{brl(r.dividaSobreBens)}</div>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Patrimônio líquido
+                  </div>
+                  <div className="font-bold font-mono text-emerald-600">{brl(r.patrimonioLiquido)}</div>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Locação a pagar
+                  </div>
+                  <div className="font-bold font-mono">{brl(r.compromissoLocacao)}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {r.locadas} alugada(s) — não é patrimônio
+                  </div>
+                </div>
+              </div>
+
+              <ul className="space-y-2">
+                {proprias.map((mq) => {
+                  const p = pagoDoBem(mq);
+                  return (
+                    <li key={mq.id} className="space-y-1">
+                      <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                        <span className="font-medium">{mq.nome}</span>
+                        <Badge variant="outline" className="font-normal text-[10px] capitalize">
+                          {mq.forma_aquisicao}
+                        </Badge>
+                        <span className="ml-auto font-mono text-xs">
+                          {mq.patrimonio > 0 ? brl(mq.patrimonio) : "—"}
+                          {mq.divida > 0 && (
+                            <span className="text-muted-foreground"> · devo {brl(mq.divida)}</span>
+                          )}
+                        </span>
+                      </div>
+                      {p != null && (
+                        <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                          <div className="h-full bg-emerald-500" style={{ width: `${p * 100}%` }} />
+                        </div>
+                      )}
+                      {(mq.pendencia_patrimonio || mq.pendencia_divida) && (
+                        <p className="text-[11px] text-amber-600">
+                          {[mq.pendencia_patrimonio, mq.pendencia_divida].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {alugadas.length > 0 && (
+                <p className="text-xs text-muted-foreground border-t pt-3">
+                  <strong>Fora do patrimônio:</strong>{" "}
+                  {alugadas.map((mq) => mq.nome).join(", ")} — o bem é do locador e volta
+                  para ele no fim do contrato. A parcela é despesa, não compra de ativo.
+                </p>
+              )}
+
+              {r.incompletas.length > 0 && (
+                <p className="text-xs text-amber-600 border-t pt-3">
+                  Este total está incompleto para menos: {r.incompletas.length} máquina(s)
+                  sem valor do bem ou sem contrato cadastrado.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Diagnóstico só no banco não muda comportamento: o aviso diz o que
           fazer e some sozinho quando está resolvido. */}
