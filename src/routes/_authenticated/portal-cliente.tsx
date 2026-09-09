@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ClipboardList, FileText, DollarSign, Truck, Download, Upload, MessageSquare } from "lucide-react";
 import { mensagemErro } from "@/lib/erros";
+import { formatarData } from "@/domain/os/prazo";
 
 
 export const Route = createFileRoute("/_authenticated/portal-cliente")({
@@ -250,9 +251,10 @@ function PortalClientePage() {
                       />
                     </TableCell>
                     <TableCell className="text-xs">
-                      {o.prazo_entrega
-                        ? new Date(o.prazo_entrega).toLocaleDateString("pt-BR")
-                        : "—"}
+                      {/* Aqui o erro de fuso era o mais caro: mostrava ao
+                          CLIENTE uma data de entrega um dia antes da combinada.
+                          Ver domain/os/prazo. */}
+                      {formatarData(o.prazo_entrega)}
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       R$ {Number(o.valor_total ?? 0).toFixed(2)}

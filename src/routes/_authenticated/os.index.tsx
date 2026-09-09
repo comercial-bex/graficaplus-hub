@@ -40,6 +40,8 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
+import { rotuloDe } from "@/domain/os/etapas";
+import { formatarData } from "@/domain/os/prazo";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
@@ -309,9 +311,12 @@ function OSPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
                 <TableCell>
-                  <StatusChip label={o.status.replace(/_/g, " ")} tone={toneOS(o.status)} />
+                  {/* Trocar "_" por espaço mostrava "aguardando aprovacao
+                      arte" — o valor do enum com um retoque, não o nome que a
+                      equipe usa. O rótulo vem da mesma fonte do quadro. */}
+                  <StatusChip label={rotuloDe(o.status)} tone={toneOS(o.status)} />
                 </TableCell>
-                <TableCell>{o.prazo_entrega ?? "—"}</TableCell>
+                <TableCell>{formatarData(o.prazo_entrega)}</TableCell>
                 {canSeeFinancials && (
                   <TableCell className="font-bold text-foreground">
                     {moeda(Number(o.valor_total))}

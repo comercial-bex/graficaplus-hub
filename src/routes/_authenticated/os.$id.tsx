@@ -46,6 +46,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Clock, Package, Factory as FactoryIcon, DollarSign } from "lucide-react";
 import { mensagemErro } from "@/lib/erros";
+import { atrasado, formatarData } from "@/domain/os/prazo";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -196,13 +197,12 @@ function OSDetailPage() {
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Prazo"
-          value={os.prazo_entrega ? new Date(os.prazo_entrega).toLocaleDateString("pt-BR") : "—"}
+          // `prazo_entrega` é DATE: `new Date("2026-09-09")` cai em UTC e, no
+          // horário de Brasília, exibia 08/09 — um dia a menos do que está no
+          // banco. Ver domain/os/prazo.
+          value={formatarData(os.prazo_entrega)}
           icon={Clock}
-          tone={
-            os.prazo_entrega && new Date(os.prazo_entrega) < new Date() && os.status !== "concluido"
-              ? "magenta"
-              : "cyan"
-          }
+          tone={atrasado(os.prazo_entrega) && os.status !== "concluido" ? "magenta" : "cyan"}
         />
         <KpiCard
           label="Produto"

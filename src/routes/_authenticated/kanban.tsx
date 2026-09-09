@@ -1,16 +1,16 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   DESCRICAO_ETAPA,
+  ETAPAS_QUADRO,
   ROTULO_ETAPA,
-  STATUS,
-  fluxo,
+  etapaDe,
+  statusPadraoDaEtapa,
   type Etapa,
 } from "@/domain/os/etapas";
+import { atrasado, paradaHa } from "@/domain/os/prazo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -43,21 +42,13 @@ import {
   type ColunaAlvo,
 } from "@/domain/kanban/navegacao-teclado";
 import { useState, useMemo } from "react";
-import {
-  Search,
-  AlertTriangle,
-  X,
-  Package,
-  Factory,
-  Palette,
-  Paperclip,
-  Clock,
-  DollarSign,
-} from "lucide-react";
+import { Search, AlertTriangle, X, Pause } from "lucide-react";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { mensagemErro } from "@/lib/erros";
+import { CartaoOs, type BloqueioOs } from "@/components/kanban/cartao-os";
+import { FichaDaOs } from "@/components/kanban/ficha-da-os";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Kanban — BEX PRINT OS" }] }),
@@ -65,34 +56,24 @@ export const Route = createFileRoute("/_authenticated/kanban")({
 });
 
 /**
- * As colunas vêm da FONTE ÚNICA (`domain/os/etapas`), não de uma lista local.
+ * UMA COLUNA POR ETAPA — cinco, não vinte e cinco.
  *
- * A lista que morava aqui tinha 25 entradas para um enum de 26: uma OS em
- * `em_producao` não caía em coluna nenhuma e sumia do quadro. Enquanto houver
- * duas listas, uma delas vai ficar para trás — e ninguém percebe, porque a OS
- * some sem erro.
+ * A versão anterior transformava cada status numa coluna e depois empilhava as
+ * vinte e cinco em cinco faixas, cada faixa com a própria rolagem horizontal.
+ * Continuava sendo lista deitada: para achar uma OS era preciso rolar duas
+ * dimensões. A literatura de Kanban converge em três a cinco colunas, e o teste
+ * prático é o mesmo: se não dá para entender o quadro num olhar, é complexidade
+ * demais.
+ *
+ * O status detalhado não sumiu — desceu para dentro do cartão, que é onde ele
+ * responde "em qual máquina" sem custar uma coluna vazia na tela.
  */
-type ColunaKanban = { id: string; label: string; setor: string; etapa: Etapa; paralela?: boolean; observacao?: string };
-
-const COLUNAS: ColunaKanban[] = STATUS.map((s) => ({
-  id: s.status,
-  label: s.rotulo,
-  setor: s.setor,
-  etapa: s.etapa,
-  paralela: s.paralela,
-  observacao: s.observacao,
-}));
-
-const COLUNAS_BY_ID = Object.fromEntries(COLUNAS.map((c) => [c.id, c]));
+const COLUNAS_BY_ID = Object.fromEntries(ETAPAS_QUADRO.map((e) => [e, true]));
 
 /**
  * Seta horizontal salta uma coluna inteira. A aritmética vive em
  * @/domain/kanban/navegacao-teclado (testada sem navegador); aqui fica apenas a
  * extração dos retângulos do contexto do dnd-kit.
- *
- * Seta vertical não é tratada de propósito: só as colunas são droppables (o
- * cartão não é ordenável dentro da coluna), então subir ou descer não muda o
- * destino de soltar.
  */
 const saltarEntreColunas: KeyboardCoordinateGetter = (
   event,
@@ -105,7 +86,6 @@ const saltarEntreColunas: KeyboardCoordinateGetter = (
   const colunas: ColunaAlvo[] = [];
   for (const container of droppableContainers.getEnabled()) {
     const rect = droppableRects.get(container.id);
-    // ignora qualquer droppable que não seja uma coluna do quadro
     if (rect && COLUNAS_BY_ID[String(container.id)]) {
       colunas.push({
         id: String(container.id),
@@ -122,10 +102,7 @@ const saltarEntreColunas: KeyboardCoordinateGetter = (
     collisionRect.left + collisionRect.width / 2,
     event.code === KeyboardCode.Right ? 1 : -1,
   );
-  // Já na primeira ou na última: não devolver coordenada mantém o cartão na
-  // faixa das colunas.
   if (!destino) return;
-
   return coordenadaNaColuna(destino, collisionRect.width);
 };
 
@@ -137,74 +114,19 @@ const PRIORIDADES = [
   { v: "5", label: "Mínima" },
 ];
 
-function isOverdue(prazo?: string | null) {
-  if (!prazo) return false;
-  return new Date(prazo) < new Date(new Date().toDateString());
-}
-
-function formatDateTime(value?: string | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getStatusFinanceiro(os: any) {
-  const pagamentos = os.pagamentos ?? [];
-  if (pagamentos.length === 0) return "Não lançado";
-  if (
-    pagamentos.some(
-      (p: any) => p.status === "atrasado" || (p.status !== "pago" && isOverdue(p.data_vencimento)),
-    )
-  )
-    return "Atrasado";
-  if (pagamentos.every((p: any) => p.status === "pago")) return "Pago";
-  if (pagamentos.some((p: any) => p.status === "parcial" || p.status === "pago")) return "Parcial";
-  return "Pendente";
-}
-
-function getStatusArte(os: any) {
-  if (os.status === "arte_aprovada") return "Aprovada";
-  if (os.status === "arte_rejeitada") return "Rejeitada";
-  if (os.status === "aguardando_aprovacao_arte") return "Em aprovação";
-  const aprovacoes = [...(os.aprovacoes ?? [])].sort(
-    (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  );
-  if (aprovacoes[0]?.aprovado === true) return "Aprovada";
-  if (aprovacoes[0]?.aprovado === false) return "Rejeitada";
-  return os.status === "design" ? "Em design" : "Pendente";
-}
-
-function hasPendencia(os: any) {
-  const tarefas = os.tarefas ?? [];
-  return (
-    os.status === "pausado" ||
-    os.status === "arte_rejeitada" ||
-    // os_tarefas não tem coluna booleana `concluida`: o estado fica em `status`
-    // ('pendente' por padrão, 'concluida' quando fecha). Comparando com a coluna
-    // inexistente, tarefa vencida nunca contava como pendência.
-    tarefas.some((t: any) => t.status !== "concluida" && isOverdue(t.prazo))
-  );
-}
-
 function KanbanPage() {
   const qc = useQueryClient();
-  const { canSeeFinancials, user } = useAuth();
+  const { canSeeFinancials } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
-  // KeyboardSensor não é opcional aqui: o dnd-kit já anuncia ao leitor de tela
-  // "To pick up a draggable item, press the space bar", e sem este sensor a
-  // instrução era falsa — o quadro só funcionava com mouse. O coordinateGetter
-  // é o que torna a promessa verdadeira: sem ele a seta anda 25px e não troca de
-  // coluna. scrollBehavior traz a coluna de destino para a área visível.
+  const [fichaId, setFichaId] = useState<string | null>(null);
+
+  // KeyboardSensor não é opcional: o dnd-kit anuncia ao leitor de tela "To pick
+  // up a draggable item, press the space bar", e sem este sensor a instrução era
+  // falsa. A distância de 5px no PointerSensor é o que deixa o cartão ser
+  // clicável E arrastável: clique parado nunca vira arrasto.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: saltarEntreColunas,
-      scrollBehavior: "smooth",
-    }),
+    useSensor(KeyboardSensor, { coordinateGetter: saltarEntreColunas, scrollBehavior: "smooth" }),
   );
 
   const [search, setSearch] = useState("");
@@ -226,18 +148,19 @@ function KanbanPage() {
       const ids = ordens.map((o) => o.id as string);
       if (ids.length === 0) return ordens;
 
-      // Os indicadores do cartão (financeiro, arte, anexos, pendência) dependem
-      // de pagamentos/aprovações/arquivos/tarefas da OS. A leitura vem de uma
-      // VIEW, e view não tem FK declarada — logo o embed do PostgREST não
-      // funciona e essas relações chegavam sempre undefined. Resultado: todo
-      // cartão exibia "Fin.: Não lançado", "Arte: Pendente" e "0 anexo(s)",
-      // mesmo com pagamento registrado e arte aprovada. Buscar em paralelo e
-      // agrupar por os_id resolve sem abrir mão das views.
-      const [pagamentos, aprovacoes, arquivos, tarefas] = await Promise.all([
-        supabase.from("pagamentos").select("os_id, valor, status, data_vencimento").in("os_id", ids),
-        supabase.from("aprovacoes").select("os_id, tipo, aprovado, created_at").in("os_id", ids),
+      // A leitura vem de uma VIEW, e view não tem FK declarada — logo o embed do
+      // PostgREST não funciona e estas relações chegavam sempre undefined.
+      // Buscar em paralelo e agrupar por os_id resolve sem abrir mão das views.
+      const [arquivos, tarefas, itens] = await Promise.all([
         supabase.from("arquivos").select("os_id").in("os_id", ids),
         supabase.from("os_tarefas").select("os_id, status, prazo").in("os_id", ids),
+        // Os itens são o que a OS manda produzir. Faltavam no cartão, que
+        // preferia anunciar "Produto não definido".
+        supabase
+          .from("itens_os")
+          .select("id, os_id, descricao, quantidade, unidade, largura, altura, area_total, acabamento, valor_total")
+          .in("os_id", ids)
+          .order("ordem"),
       ]);
 
       const agrupar = <T extends { os_id?: string | null }>(linhas: T[] | null) => {
@@ -252,33 +175,50 @@ function KanbanPage() {
         return mapa;
       };
       const porOs = {
-        pagamentos: agrupar(pagamentos.data as { os_id?: string | null }[] | null),
-        aprovacoes: agrupar(aprovacoes.data as { os_id?: string | null }[] | null),
         arquivos: agrupar(arquivos.data as { os_id?: string | null }[] | null),
         tarefas: agrupar(tarefas.data as { os_id?: string | null }[] | null),
+        itens: agrupar(itens.data as { os_id?: string | null }[] | null),
       };
 
       return ordens.map((o) => ({
         ...o,
-        pagamentos: porOs.pagamentos.get(o.id as string) ?? [],
-        aprovacoes: porOs.aprovacoes.get(o.id as string) ?? [],
         arquivos: porOs.arquivos.get(o.id as string) ?? [],
         tarefas: porOs.tarefas.get(o.id as string) ?? [],
+        itens: porOs.itens.get(o.id as string) ?? [],
       }));
+    },
+  });
+
+  /**
+   * As travas de produção, numa chamada só.
+   *
+   * São as MESMAS regras que `avancar_os_status` aplica — a RPC e esta consulta
+   * chamam a mesma função no banco. Enquanto isso morava só dentro do RAISE, a
+   * única forma de descobrir um impedimento era arrastar o cartão e tomar erro,
+   * um impedimento por arrasto.
+   */
+  const { data: bloqueios = new Map<string, BloqueioOs[]>() } = useQuery({
+    queryKey: ["kanban-bloqueios"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("os_bloqueios_do_quadro");
+      if (error) throw error;
+      const mapa = new Map<string, BloqueioOs[]>();
+      for (const linha of (data ?? []) as { os_id: string; bloqueios: BloqueioOs[] }[]) {
+        mapa.set(linha.os_id, linha.bloqueios ?? []);
+      }
+      return mapa;
     },
   });
 
   const { data: clientes = [] } = useQuery({
     queryKey: ["kanban-filtro-clientes"],
     queryFn: async () =>
-      (await supabase.from("clientes").select("id, nome").eq("ativo", true).order("nome")).data ??
-      [],
+      (await supabase.from("clientes").select("id, nome").eq("ativo", true).order("nome")).data ?? [],
   });
   const { data: usuarios = [] } = useQuery({
     queryKey: ["kanban-filtro-usuarios"],
     queryFn: async () =>
-      (await supabase.from("usuarios").select("id, nome").eq("ativo", true).order("nome")).data ??
-      [],
+      (await supabase.from("usuarios").select("id, nome").eq("ativo", true).order("nome")).data ?? [],
   });
 
   const filtered = useMemo(() => {
@@ -293,7 +233,7 @@ function KanbanPage() {
       )
         return false;
       if (fPrio !== "todos" && String(o.prioridade) !== fPrio) return false;
-      if (soAtrasadas && !isOverdue(o.prazo_entrega)) return false;
+      if (soAtrasadas && !atrasado(o.prazo_entrega)) return false;
       if (search) {
         const s = search.toLowerCase();
         if (
@@ -308,8 +248,17 @@ function KanbanPage() {
   }, [os, fCliente, fResp, fPrio, soAtrasadas, search]);
 
   const atrasadasCount = useMemo(
-    () => (os as any[]).filter((o) => isOverdue(o.prazo_entrega)).length,
+    () => (os as any[]).filter((o) => atrasado(o.prazo_entrega)).length,
     [os],
+  );
+
+  // Pausadas não ocupam coluna: não são estágio da produção, são exceção. Ficam
+  // numa faixa própria, embaixo, onde não atrapalham a leitura do fluxo.
+  const noQuadro = filtered.filter((o: any) => etapaDe(o.status) !== "fora_do_fluxo");
+  const foraDoFluxo = filtered.filter((o: any) => etapaDe(o.status) === "fora_do_fluxo");
+  const fichaOs = useMemo(
+    () => (os as any[]).find((o) => o.id === fichaId) ?? null,
+    [os, fichaId],
   );
 
   async function mover(osId: string, novoStatus: string) {
@@ -320,14 +269,8 @@ function KanbanPage() {
           .filter((o) => o.status === novoStatus && o.id !== osId)
           .map((o) => Number(o.ordem_kanban) || 0),
       ) + 1;
-    qc.setQueryData(["kanban-os"], (prev: any) =>
-      prev?.map((o: any) => (o.id === osId ? { ...o, status: novoStatus } : o)),
-    );
 
-    // A assinatura real é avancar_os_status(os_id, novo_status) — sem prefixo p_
-    // e sem justificativa. Com os nomes errados o PostgREST não encontrava a
-    // função ("Could not find the function ... in the schema cache") e mover
-    // cartão no Kanban falhava sempre.
+    // A assinatura real é avancar_os_status(os_id, novo_status) — sem prefixo p_.
     const { error } = await (supabase.rpc as any)("avancar_os_status", {
       os_id: osId,
       novo_status: novoStatus,
@@ -338,10 +281,7 @@ function KanbanPage() {
       return;
     }
 
-    // A própria RPC grava o log de auditoria, com status anterior e novo; o
-    // insert que havia aqui duplicaria o registro com menos informação.
-    // ordem_kanban não é tocada pela RPC — persistir aqui para a posição dentro
-    // da coluna sobreviver ao recarregar.
+    // A própria RPC grava o log de auditoria. ordem_kanban não é tocada por ela.
     const { error: erroOrdem } = await supabase
       .from("ordens_servico")
       .update({ ordem_kanban: novaOrdem })
@@ -349,6 +289,7 @@ function KanbanPage() {
     if (erroOrdem) toast.warning("Status alterado, mas a posição no quadro não foi salva.");
 
     qc.invalidateQueries({ queryKey: ["kanban-os"] });
+    qc.invalidateQueries({ queryKey: ["kanban-bloqueios"] });
     toast.success("Status atualizado");
   }
 
@@ -359,10 +300,14 @@ function KanbanPage() {
     setActiveOs(null);
     if (!e.over) return;
     const osId = String(e.active.id);
-    const novoStatus = String(e.over.id);
-    const current = (os as any[]).find((o) => o.id === osId);
-    if (!current || current.status === novoStatus || !COLUNAS_BY_ID[novoStatus]) return;
-    mover(osId, novoStatus);
+    const etapa = String(e.over.id) as Etapa;
+    if (!COLUNAS_BY_ID[etapa]) return;
+    const atual = (os as any[]).find((o) => o.id === osId);
+    if (!atual) return;
+    // Soltar na coluna onde já está não é movimento. Sem esta guarda, largar o
+    // cartão de volta rebaixaria uma OS "Em impressão" para "Em produção".
+    if (etapaDe(atual.status) === etapa) return;
+    mover(osId, statusPadraoDaEtapa(etapa, atual));
   }
 
   function limparFiltros() {
@@ -377,35 +322,33 @@ function KanbanPage() {
     fCliente !== "todos" || fResp !== "todos" || fPrio !== "todos" || soAtrasadas || search;
 
   return (
-    <div className="space-y-4 h-full">
+    <div className="h-full space-y-4">
       <SectionHeader
         ajuda={dicaTela("/kanban")}
         breadcrumb="Print OS · Operação · Kanban"
         title="Kanban de Produção"
-        description="Arraste e solte cartões entre estágios. As mudanças são registradas no histórico."
+        description="Uma coluna por etapa. Arraste para mudar de etapa; clique no cartão para ver a ficha e escolher o passo exato."
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusChip label={`${filtered.length}/${os.length} OS`} tone="cyan" />
-            {atrasadasCount > 0 && (
-              <StatusChip label={`${atrasadasCount} atrasada(s)`} tone="magenta" />
-            )}
+            {atrasadasCount > 0 && <StatusChip label={`${atrasadasCount} atrasada(s)`} tone="magenta" />}
           </div>
         }
       />
 
       <div className="rounded-xl border border-border bg-card/60 p-3">
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[220px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar título, nº ou cliente..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9"
+              className="h-9 pl-9"
             />
           </div>
           <Select value={fCliente} onValueChange={setFCliente}>
-            <SelectTrigger className="w-[180px] h-9">
+            <SelectTrigger className="h-9 w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -418,7 +361,7 @@ function KanbanPage() {
             </SelectContent>
           </Select>
           <Select value={fResp} onValueChange={setFResp}>
-            <SelectTrigger className="w-[180px] h-9">
+            <SelectTrigger className="h-9 w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -431,7 +374,7 @@ function KanbanPage() {
             </SelectContent>
           </Select>
           <Select value={fPrio} onValueChange={setFPrio}>
-            <SelectTrigger className="w-[140px] h-9">
+            <SelectTrigger className="h-9 w-[140px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -449,93 +392,145 @@ function KanbanPage() {
             onClick={() => setSoAtrasadas(!soAtrasadas)}
             className="h-9"
           >
-            <AlertTriangle className="h-4 w-4 mr-1" /> Atrasadas
+            <AlertTriangle className="mr-1 h-4 w-4" /> Atrasadas
           </Button>
           {ativosFiltros && (
             <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-9">
-              <X className="h-4 w-4 mr-1" /> Limpar
+              <X className="mr-1 h-4 w-4" /> Limpar
             </Button>
           )}
         </div>
       </div>
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        {/* Agrupado pelas cinco etapas do fluxo de gráfica. Vinte e cinco
-            colunas soltas numa faixa horizontal não é quadro, é lista deitada:
-            ninguém enxerga onde a peça está sem rolar até o fim. */}
-        <div className="space-y-5">
-          {fluxo().map((et) => {
-            const total = et.status.reduce(
-              (n, st) => n + filtered.filter((o: any) => o.status === st.status).length,
-              0,
-            );
-            return (
-              <section key={et.etapa}>
-                <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
-                  <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                    {ROTULO_ETAPA[et.etapa]}
-                  </h2>
-                  <span className="font-mono text-[11px] text-muted-foreground">· {total}</span>
-                  <span className="text-[11px] text-muted-foreground">{DESCRICAO_ETAPA[et.etapa]}</span>
-                </div>
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {et.status.map((st) => (
-                    <Coluna
-                      key={st.status}
-                      id={st.status}
-                      label={st.rotulo}
-                      paralela={st.paralela}
-                      observacao={st.observacao}
-                      itens={filtered.filter((o: any) => o.status === st.status)}
-                      canSeeFinancials={canSeeFinancials}
-                    />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+        {/* Uma rolagem horizontal para o quadro inteiro — o padrão de todo
+            Kanban. A versão anterior tinha CINCO barras de rolagem, uma por
+            faixa empilhada, e ainda exigia rolar na vertical para achar a
+            etapa. */}
+        <div className="grid grid-cols-[repeat(5,minmax(220px,1fr))] gap-3 overflow-x-auto pb-2">
+          {ETAPAS_QUADRO.map((etapa) => (
+            <Coluna
+              key={etapa}
+              etapa={etapa}
+              itens={noQuadro.filter((o: any) => etapaDe(o.status) === etapa)}
+              bloqueios={bloqueios}
+              canSeeFinancials={canSeeFinancials}
+              onAbrir={setFichaId}
+            />
+          ))}
         </div>
+
+        {foraDoFluxo.length > 0 && (
+          <section className="mt-4 rounded-xl border border-dashed border-border bg-muted/20 p-3">
+            <h2 className="mb-2 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              <Pause className="h-3 w-3" />
+              Fora do fluxo · {foraDoFluxo.length}
+              <span className="ml-1 font-sans normal-case tracking-normal">
+                Pausadas — não contam como fila. Arraste de volta para retomar.
+              </span>
+            </h2>
+            <div className="flex gap-3 overflow-x-auto">
+              {foraDoFluxo.map((o: any) => (
+                <div key={o.id} className="w-64 shrink-0">
+                  <CartaoArrastavel
+                    os={o}
+                    bloqueios={bloqueios.get(o.id) ?? []}
+                    canSeeFinancials={canSeeFinancials}
+                    onAbrir={() => setFichaId(o.id)}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <DragOverlay>
-          {activeOs && <OSCard os={activeOs} canSeeFinancials={canSeeFinancials} dragging />}
+          {activeOs && (
+            <CartaoOs
+              os={activeOs}
+              bloqueios={bloqueios.get(activeOs.id) ?? []}
+              canSeeFinancials={canSeeFinancials}
+              dragging
+            />
+          )}
         </DragOverlay>
       </DndContext>
+
+      <FichaDaOs
+        os={fichaOs}
+        bloqueios={fichaId ? (bloqueios.get(fichaId) ?? []) : []}
+        canSeeFinancials={canSeeFinancials}
+        aberto={fichaId !== null}
+        onFechar={() => setFichaId(null)}
+        onMudarStatus={(osId, novo) => mover(osId, novo)}
+      />
     </div>
   );
 }
 
-function Coluna({ id, label, itens, canSeeFinancials, paralela, observacao }: any) {
-  const { isOver, setNodeRef } = useDroppable({ id });
+function Coluna({
+  etapa,
+  itens,
+  bloqueios,
+  canSeeFinancials,
+  onAbrir,
+}: {
+  etapa: Etapa;
+  itens: any[];
+  bloqueios: Map<string, BloqueioOs[]>;
+  canSeeFinancials?: boolean;
+  onAbrir: (id: string) => void;
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id: etapa });
+
+  // A OS parada há mais tempo nesta etapa. É a pergunta que o quadro existe
+  // para responder — onde está encalhado — e não precisa de configuração
+  // nenhuma para ser respondida.
+  const maisAntiga = itens.reduce<string | null>((pior, o) => {
+    if (!o.updated_at) return pior;
+    return !pior || o.updated_at < pior ? o.updated_at : pior;
+  }, null);
+  const encalhe = itens.length > 0 ? paradaHa(maisAntiga) : null;
+
   return (
-    <div className="w-72 shrink-0">
-      <div className="flex items-center justify-between mb-2 px-1">
-        <h3
-          className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
-          // A ressalva mora no title porque é exceção, não regra: poluir a
-          // coluna com ela empurraria o nome para fora.
-          title={observacao ? `${label} — ${observacao}` : label}
-        >
-          {label}
-          {/* Caminho paralelo: a peça entra em UMA das máquinas, não em todas. */}
-          {paralela && <span className="ml-1 text-muted-foreground/60" aria-hidden>·</span>}
-          {observacao && <span className="ml-1 text-amber-600" aria-hidden>!</span>}
-        </h3>
-        <span className="font-mono text-[10px] text-muted-foreground/80 rounded border border-border px-1.5 py-0.5">
-          {itens.length.toString().padStart(2, "0")}
-        </span>
+    <div className="flex min-w-0 flex-col">
+      <div className="mb-2 px-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="truncate font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/80">
+            {ROTULO_ETAPA[etapa]}
+          </h3>
+          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/80">
+            {itens.length.toString().padStart(2, "0")}
+          </span>
+        </div>
+        <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
+          {DESCRICAO_ETAPA[etapa]}
+        </p>
+        {encalhe && encalhe !== "agora" && (
+          <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+            mais antiga: {encalhe}
+          </p>
+        )}
       </div>
       <div
         ref={setNodeRef}
-        className={`space-y-2 p-2 rounded-lg min-h-[220px] border transition-colors ${
+        className={`min-h-[240px] flex-1 space-y-2 rounded-lg border p-2 transition-colors ${
           isOver
-            ? "bg-[color:var(--bex-cyan)]/5 border-[color:var(--bex-cyan)]/40"
-            : "bg-muted/30 border-border/50"
+            ? "border-[color:var(--bex-cyan)]/40 bg-[color:var(--bex-cyan)]/5"
+            : "border-border/50 bg-muted/30"
         }`}
       >
-        {itens.map((o: any) => (
-          <DraggableCard key={o.id} os={o} canSeeFinancials={canSeeFinancials} />
+        {itens.map((o) => (
+          <CartaoArrastavel
+            key={o.id}
+            os={o}
+            bloqueios={bloqueios.get(o.id) ?? []}
+            canSeeFinancials={canSeeFinancials}
+            onAbrir={() => onAbrir(o.id)}
+          />
         ))}
         {itens.length === 0 && (
-          <div className="text-center text-[11px] text-muted-foreground/60 font-mono py-4">
+          <div className="py-6 text-center font-mono text-[11px] text-muted-foreground/60">
             — vazio —
           </div>
         )}
@@ -544,122 +539,26 @@ function Coluna({ id, label, itens, canSeeFinancials, paralela, observacao }: an
   );
 }
 
-function DraggableCard({ os, canSeeFinancials }: any) {
+function CartaoArrastavel({
+  os,
+  bloqueios,
+  canSeeFinancials,
+  onAbrir,
+}: {
+  os: any;
+  bloqueios: BloqueioOs[];
+  canSeeFinancials?: boolean;
+  onAbrir: () => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: os.id });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} className={isDragging ? "opacity-30" : ""}>
-      <OSCard os={os} canSeeFinancials={canSeeFinancials} />
-    </div>
-  );
-}
-
-const PRIO_COLOR: Record<number, string> = {
-  1: "bg-[color:var(--bex-magenta)]",
-  2: "bg-amber-400",
-  3: "bg-[color:var(--bex-cyan)]",
-  4: "bg-muted-foreground/40",
-  5: "bg-muted-foreground/30",
-};
-
-function OSCard({ os, canSeeFinancials, dragging }: any) {
-  const overdue = isOverdue(os.prazo_entrega);
-  const urgent = Number(os.prioridade) <= 2;
-  const pending = hasPendencia(os);
-  const responsaveis = [os.designer, os.operador].filter(Boolean);
-  const setor = os.setor_atual || COLUNAS_BY_ID[os.status]?.setor || "—";
-  const anexos = os.arquivos?.length ?? 0;
-  const financeiro = getStatusFinanceiro(os);
-  const arte = getStatusArte(os);
-  return (
-    <Card
-      className={`relative p-3 cursor-grab active:cursor-grabbing bg-card hover:border-[color:var(--bex-cyan)]/50 transition-colors overflow-hidden ${dragging ? "shadow-[0_0_24px_-6px_rgba(0,212,255,0.5)] rotate-1" : ""} ${overdue ? "border-[color:var(--bex-magenta)]/60" : ""}`}
-    >
-      <div
-        className={`absolute left-0 top-0 bottom-0 w-1 ${PRIO_COLOR[os.prioridade] || "bg-muted"}`}
+      <CartaoOs
+        os={os}
+        bloqueios={bloqueios}
+        canSeeFinancials={canSeeFinancials}
+        onAbrir={onAbrir}
       />
-      <div className="pl-1">
-        <div className="flex items-center justify-between gap-2">
-          <Link
-            to="/os/$id"
-            params={{ id: os.id }}
-            className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-[color:var(--bex-cyan)]"
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            #{os.numero}
-          </Link>
-          {overdue && <StatusChip label="Atrasada" tone="magenta" />}
-          {!overdue && urgent && <StatusChip label="Urgente" tone="magenta" />}
-          {!overdue && !urgent && pending && <StatusChip label="Pendência" tone="amber" />}
-        </div>
-        <div className="font-semibold text-sm mt-1.5 line-clamp-2 text-foreground">{os.titulo}</div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1.5">
-          {os.cliente_logo_url && (
-            <Avatar className="h-4 w-4">
-              <AvatarImage src={os.cliente_logo_url} />
-              <AvatarFallback className="text-[8px]">{os.cliente_nome?.charAt(0)}</AvatarFallback>
-            </Avatar>
-          )}
-          <span className="truncate">{os.cliente_nome}</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1 min-w-0">
-            <Package className="h-3 w-3 shrink-0" />
-            <span className="truncate">{os.produtos?.nome ?? "Produto não definido"}</span>
-          </span>
-          <span className="flex items-center gap-1 min-w-0">
-            <Factory className="h-3 w-3 shrink-0" />
-            <span className="truncate">{os.maquinas?.nome ?? "Máquina não definida"}</span>
-          </span>
-          <span className="truncate">
-            Setor: <strong className="font-medium text-foreground/80">{setor}</strong>
-          </span>
-          <span className="flex items-center gap-1">
-            <Paperclip className="h-3 w-3" />
-            {anexos} anexo(s)
-          </span>
-          <span className="flex items-center gap-1 min-w-0">
-            <Palette className="h-3 w-3 shrink-0" />
-            <span className="truncate">Arte: {arte}</span>
-          </span>
-          {canSeeFinancials && (
-            <span className="flex items-center gap-1 min-w-0">
-              <DollarSign className="h-3 w-3 shrink-0" />
-              <span className="truncate">Fin.: {financeiro}</span>
-            </span>
-          )}
-          <span className="flex items-center gap-1 col-span-2">
-            <Clock className="h-3 w-3" />
-            Última mov.: {formatDateTime(os.updated_at)}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex -space-x-1.5">
-            {responsaveis.map((r: any) => (
-              <Avatar key={r.id} className="h-5 w-5 border border-background" title={r.nome}>
-                <AvatarImage src={r.avatar_url ?? undefined} />
-                <AvatarFallback className="text-[9px]">{r.nome?.charAt(0)}</AvatarFallback>
-              </Avatar>
-            ))}
-          </div>
-          {os.prazo_entrega && (
-            <span
-              className={`text-[11px] ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}
-            >
-              {new Date(os.prazo_entrega).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "2-digit",
-              })}
-            </span>
-          )}
-        </div>
-        {canSeeFinancials && Number(os.valor_total) > 0 && (
-          <div className="mt-1 font-mono text-xs text-[color:var(--bex-lime)]">
-            R$ {Number(os.valor_total).toFixed(2)}
-          </div>
-        )}
-      </div>
-    </Card>
+    </div>
   );
 }

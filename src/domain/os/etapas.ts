@@ -28,6 +28,18 @@
  * PARALELAS, não sequenciais. Um banner passa só pela impressora. Uma placa de
  * acrílico passa só pelo laser. Enfileirar impressão → corte → laser → 3D
  * sugere um caminho que nenhuma peça percorre.
+ *
+ * ETAPA É COLUNA; STATUS É DETALHE DO CARTÃO
+ * Na primeira versão do quadro cada status virou uma coluna: vinte e cinco
+ * colunas, depois empilhadas em cinco faixas com rolagem horizontal em cada
+ * uma. Não era quadro, era lista deitada — e a literatura de Kanban é direta a
+ * respeito: três a cinco colunas, e se não dá para entender num olhar, é
+ * complexidade demais.
+ *
+ * Então a coluna passou a ser a ETAPA (cinco), e o status virou informação
+ * DENTRO do cartão, onde ele responde "em qual máquina" sem custar uma coluna
+ * vazia na tela. Arrastar entre colunas move para o status de entrada da etapa;
+ * refinar o status é escolha no próprio cartão.
  */
 
 export const ETAPAS = [
@@ -157,6 +169,54 @@ export function fluxo(): { etapa: Etapa; rotulo: string; descricao: string; stat
     descricao: DESCRICAO_ETAPA[etapa],
     status: porEtapa(etapa),
   }));
+}
+
+/**
+ * As colunas do quadro: as cinco etapas do fluxo.
+ *
+ * `fora_do_fluxo` NÃO é coluna. Uma OS pausada não é um estágio da produção, é
+ * uma exceção — vira selo no cartão e filtro, e some do caminho de todo dia.
+ */
+export const ETAPAS_QUADRO = ETAPAS.filter((e) => e !== "fora_do_fluxo") as Exclude<
+  Etapa,
+  "fora_do_fluxo"
+>[];
+
+export function etapaDe(status: string | null | undefined): Etapa | null {
+  return statusInfo(status)?.etapa ?? null;
+}
+
+/**
+ * O status que a OS assume ao ser solta numa coluna.
+ *
+ * Arrastar diz a ETAPA; o status exato dentro dela é detalhe que o operador
+ * refina no cartão. O padrão é o começo da etapa, porque é onde a peça entra.
+ *
+ * A saída é a única que olha a própria OS: quem entrega e quem retira esperam
+ * coisas diferentes, e a OS já sabe qual é o caso (`precisa_entrega` /
+ * `precisa_instalacao`). Chutar "aguardando retirada" para uma OS que vai ser
+ * instalada seria inventar um combinado que não existe.
+ */
+export function statusPadraoDaEtapa(
+  etapa: Etapa,
+  os?: { precisa_entrega?: boolean | null; precisa_instalacao?: boolean | null } | null,
+): string {
+  switch (etapa) {
+    case "entrada":
+      return "entrada";
+    case "pre_impressao":
+      return "design";
+    case "producao":
+      return "em_producao";
+    case "acabamento":
+      return "em_acabamento";
+    case "saida":
+      if (os?.precisa_instalacao) return "em_instalacao";
+      if (os?.precisa_entrega) return "aguardando_entrega";
+      return "aguardando_retirada";
+    case "fora_do_fluxo":
+      return "pausado";
+  }
 }
 
 /**
