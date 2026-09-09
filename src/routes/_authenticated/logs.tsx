@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShieldCheck } from "lucide-react";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/logs")({
   head: () => ({ meta: [{ title: "Logs & Auditoria — BEX PRINT OS" }] }),
   component: LogsPage,
@@ -98,10 +100,11 @@ function LogsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Logs &amp; Auditoria</h1>
-        <p className="text-muted-foreground">
-          Quem mexeu em papéis, acessos, dinheiro e nas mensagens que saem em nome da gráfica
-        </p>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Logs & Auditoria</h1>
+          <DicaIcone texto={dicaTela("/logs")} rotulo="Logs e Auditoria" lado="bottom" className="h-5 w-5" />
+        </div>
+        <p className="text-muted-foreground">Histórico de ações no sistema</p>
       </div>
 
       <div className="flex gap-2 flex-wrap">

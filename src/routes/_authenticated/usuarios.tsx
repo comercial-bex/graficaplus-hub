@@ -1,13 +1,44 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { mensagemErro } from "@/lib/erros";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { useMemo, useState } from "react";
+import {
+  KeyRound,
+  Mail,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Shield,
+  Trash2,
+  UserCheck,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -16,548 +47,643 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, KeyRound, Pencil, Power, UserPlus, X } from "lucide-react";
-import { toast } from "sonner";
-import type { AppRole } from "@/lib/auth-context";
-import { useAuth } from "@/lib/auth-context";
 import {
-  criarUsuarioComPapel,
-  motivoParaNaoDesativar,
-  motivoParaNaoRemoverPapel,
-} from "@/lib/criar-usuario";
-import { rolePermissions } from "@/lib/permissions";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
+import { KpiCard } from "@/components/bex/KpiCard";
+import { NeonButton } from "@/components/bex/NeonButton";
+import { useAuth, type AppRole } from "@/lib/auth-context";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
+import {
+  atribuirPerfil,
+  atualizarUsuario,
+  criarUsuario,
+  definirAtivo,
+  definirSenha,
+  enviarResetSenha,
+  excluirUsuario,
+  listarUsuarios,
+  removerPerfil,
+  type UsuarioAdmin,
+} from "@/lib/api/usuarios.functions";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
-  head: () => ({ meta: [{ title: "Usuários — BEX PRINT OS" }] }),
+  head: () => ({
+    meta: [
+      { title: "Usuários & Permissões — BEX PRINT OS" },
+      {
+        name: "description",
+        content:
+          "Cadastre usuários, edite dados, defina perfis de acesso e gerencie senhas do BEX PRINT OS.",
+      },
+      { property: "og:title", content: "Usuários & Permissões — BEX PRINT OS" },
+      {
+        property: "og:description",
+        content: "Gestão completa de usuários e perfis de acesso do ERP BEX PRINT.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: UsuariosPage,
 });
 
-const ROLES: AppRole[] = ["admin","gestor","financeiro","vendedor","designer","operador","estoque","instalador","cliente"];
+const ROLES: AppRole[] = [
+  "admin",
+  "gestor",
+  "financeiro",
+  "vendedor",
+  "designer",
+  "operador",
+  "estoque",
+  "instalador",
+  "cliente",
+];
 
-/** O que cada papel faz, em uma linha — escolher "operador" sem saber é o normal. */
-const descricaoDoPapel: Record<AppRole, string> = {
-  admin: "Acesso total, inclusive usuários e configurações",
-  gestor: "Comercial, produção e financeiro; aprova arte e orçamento",
-  financeiro: "Pagamentos, custos e resultado",
-  vendedor: "Clientes, leads, orçamentos e WhatsApp",
-  designer: "Arquivos, arte e tarefas da OS",
-  operador: "Produção, agenda de máquina e apontamento",
-  estoque: "Entrada, saída, inventário e recibo de material",
-  instalador: "Entregas e instalações",
-  cliente: "Só o portal do cliente",
+function gerarSenha() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  let out = "";
+  const buf = new Uint32Array(10);
+  crypto.getRandomValues(buf);
+  for (const n of buf) out += chars[n % chars.length];
+  return `${out}@7`;
+}
+
+type FormState = {
+  id?: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  cargo: string;
+  ativo: boolean;
+  senha: string;
+  role: AppRole | "";
+};
+
+const emptyForm: FormState = {
+  nome: "",
+  email: "",
+  telefone: "",
+  cargo: "",
+  ativo: true,
+  senha: "",
+  role: "",
 };
 
 function UsuariosPage() {
   const qc = useQueryClient();
-
-  /**
-   * Quantas permissões cada perfil concede — lida do BANCO.
-   *
-   * Antes vinha de `rolePermissions`, a lista estática do front, que é apenas
-   * o fallback de quando a matriz não carrega. As duas divergiam: o seletor
-   * dizia "29 permissões" para gestor e o banco concedia 39. Informação errada
-   * bem no momento em que se decide dar acesso a alguém.
-   */
-  const { data: totaisPorPerfil } = useQuery({
-    queryKey: ["total-permissoes-por-perfil"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("role_permission_matrix" as never)
-        .select("role, permission");
-      if (error || !data) return null;
-      const contagem: Record<string, number> = {};
-      for (const linha of data as unknown as { role: string }[]) {
-        contagem[linha.role] = (contagem[linha.role] ?? 0) + 1;
-      }
-      return contagem;
-    },
-  });
   const { user } = useAuth();
-  const [novoRole, setNovoRole] = useState<Record<string, AppRole>>({});
-  const [criarAberto, setCriarAberto] = useState(false);
-  const [editando, setEditando] = useState<any | null>(null);
 
-  const { data: users = [], isLoading } = useQuery({
+  const listar = useServerFn(listarUsuarios);
+  const criar = useServerFn(criarUsuario);
+  const atualizar = useServerFn(atualizarUsuario);
+  const setAtivo = useServerFn(definirAtivo);
+  const setSenha = useServerFn(definirSenha);
+  const resetSenha = useServerFn(enviarResetSenha);
+  const excluir = useServerFn(excluirUsuario);
+  const addRole = useServerFn(atribuirPerfil);
+  const delRole = useServerFn(removerPerfil);
+
+  const [busca, setBusca] = useState("");
+  const [filtroPerfil, setFiltroPerfil] = useState<string>("todos");
+  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+
+  const [form, setForm] = useState<FormState | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [senhaAlvo, setSenhaAlvo] = useState<UsuarioAdmin | null>(null);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [excluirAlvo, setExcluirAlvo] = useState<UsuarioAdmin | null>(null);
+  const [novoRole, setNovoRole] = useState<Record<string, AppRole>>({});
+
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["usuarios-admin"],
-    queryFn: async () => {
-      const { data: usuarios } = await supabase
-        .from("usuarios")
-        .select("id, nome, email, telefone, ativo, cargo_pretendido, created_at")
-        .order("nome");
-      const { data: roles } = await supabase.from("user_roles").select("*");
-      const lista = (usuarios ?? []).map((u) => ({
-        ...u,
-        roles: (roles ?? []).filter((r) => r.user_id === u.id).map((r) => r.role),
-      }));
-      // Quem está sem papel vai para o topo: é a única linha que exige ação.
-      return lista.sort((a, b) => a.roles.length - b.roles.length);
-    },
+    queryFn: () => listar({ data: undefined }),
   });
 
-  const totalDeAdmins = users.filter((u: any) => u.roles.includes("admin")).length;
-  const totalDeAdminsAtivos = users.filter(
-    (u: any) => u.roles.includes("admin") && u.ativo !== false,
-  ).length;
-  const semPapel = users.filter((u: any) => u.roles.length === 0).length;
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
 
-  async function addRole(userId: string) {
-    const role = novoRole[userId];
-    if (!role) return;
-    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
-    if (error) return toast.error(error.message);
-    toast.success("Papel atribuído");
-    setNovoRole((r) => ({ ...r, [userId]: undefined as unknown as AppRole }));
-    qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
-  }
-
-  async function removeRole(userId: string, role: string) {
-    const impedimento = motivoParaNaoRemoverPapel({
-      papel: role,
-      usuarioId: userId,
-      usuarioLogadoId: user?.id ?? null,
-      totalDeAdmins,
-    });
-    if (impedimento) return toast.error(impedimento);
-
-    const pessoa = users.find((u: any) => u.id === userId) as any;
-    if (!window.confirm(`Remover o papel "${role}" de ${pessoa?.nome ?? "esta pessoa"}?`)) return;
-
-    // Escrita barrada por RLS devolve 0 linhas e nenhum erro — sem conferir o
-    // retorno, o papel sumiria da tela e continuaria valendo no banco.
-    const { data, error } = await supabase
-      .from("user_roles")
-      .delete()
-      .eq("user_id", userId)
-      .eq("role", role as any)
-      .select("role");
-    if (error) return toast.error(error.message);
-    if (!data || data.length === 0) {
-      return toast.error("Seu perfil não tem permissão para remover papéis.");
+  const run = async (fn: () => Promise<unknown>, ok: string) => {
+    try {
+      await fn();
+      toast.success(ok);
+      invalidate();
+      return true;
+    } catch (e) {
+      toast.error(mensagemErro(e));
+      return false;
     }
-    toast.success("Papel removido");
-    qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
-  }
+  };
 
-  async function liberarComoPediu(u: any) {
-    // "administrador" é o rótulo do cadastro; o papel no sistema é `admin`.
-    const papel = (u.cargo_pretendido === "administrador" ? "admin" : u.cargo_pretendido) as AppRole;
-    if (!ROLES.includes(papel)) {
-      return toast.error(`"${u.cargo_pretendido}" não corresponde a um perfil. Escolha na lista.`);
-    }
-    if (!window.confirm(`Liberar ${u.nome} como ${papel}?`)) return;
-    const { error } = await supabase.from("user_roles").insert({ user_id: u.id, role: papel });
-    if (error) return toast.error(error.message);
-    toast.success(`${u.nome} liberado como ${papel}`);
-    qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
-  }
-
-  async function alternarAtivo(u: any) {
-    const impedimento = motivoParaNaoDesativar({
-      usuarioId: u.id,
-      usuarioLogadoId: user?.id ?? null,
-      ehAdmin: u.roles.includes("admin"),
-      totalDeAdminsAtivos,
+  const filtrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return users.filter((u) => {
+      if (termo && !`${u.nome} ${u.email}`.toLowerCase().includes(termo)) return false;
+      if (filtroPerfil !== "todos" && !u.roles.includes(filtroPerfil)) return false;
+      if (filtroStatus === "ativos" && !u.ativo) return false;
+      if (filtroStatus === "inativos" && u.ativo) return false;
+      return true;
     });
-    // Só barra ao DESATIVAR: religar alguém nunca deixa o sistema sem dono.
-    if (u.ativo !== false && impedimento) return toast.error(impedimento);
+  }, [users, busca, filtroPerfil, filtroStatus]);
 
-    const novo = u.ativo === false;
-    if (
-      !novo &&
-      !window.confirm(
-        `Desativar ${u.nome}? A pessoa perde o acesso imediatamente, mas o histórico dela continua no sistema.`,
-      )
-    )
+  const totais = useMemo(
+    () => ({
+      total: users.length,
+      ativos: users.filter((u) => u.ativo).length,
+      admins: users.filter((u) => u.roles.includes("admin")).length,
+      semPerfil: users.filter((u) => u.roles.length === 0).length,
+    }),
+    [users],
+  );
+
+  async function salvarForm() {
+    if (!form) return;
+    if (!form.nome.trim() || !form.email.trim()) {
+      toast.error("Nome e e-mail são obrigatórios");
       return;
-
-    const { data, error } = await supabase
-      .from("usuarios")
-      .update({ ativo: novo })
-      .eq("id", u.id)
-      .select("id");
-    if (error) return toast.error(error.message);
-    if (!data || data.length === 0) {
-      return toast.error("Seu perfil não tem permissão para alterar usuários.");
     }
-    toast.success(novo ? "Acesso reativado" : "Acesso desativado");
-    qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
-  }
-
-  async function enviarRedefinicaoDeSenha(u: any) {
-    // Trocar a senha de outra pessoa exigiria a chave de serviço, que não vive no
-    // navegador. O caminho honesto é a própria pessoa redefinir pelo e-mail.
-    const { error } = await supabase.auth.resetPasswordForEmail(u.email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) return toast.error(error.message);
-    toast.success(`Enviamos o link de redefinição para ${u.email}`);
+    setSaving(true);
+    const isEdit = Boolean(form.id);
+    if (!isEdit && form.senha.length < 8) {
+      toast.error("A senha inicial precisa de ao menos 8 caracteres");
+      setSaving(false);
+      return;
+    }
+    const ok = await run(
+      () =>
+        isEdit
+          ? atualizar({
+              data: {
+                id: form.id!,
+                nome: form.nome.trim(),
+                email: form.email.trim(),
+                telefone: form.telefone.trim() || null,
+                cargo: form.cargo.trim() || null,
+                ativo: form.ativo,
+              },
+            })
+          : criar({
+              data: {
+                nome: form.nome.trim(),
+                email: form.email.trim(),
+                senha: form.senha,
+                telefone: form.telefone.trim() || null,
+                cargo: form.cargo.trim() || null,
+                ativo: form.ativo,
+                ...(form.role ? { role: form.role } : {}),
+              },
+            }),
+      isEdit ? "Usuário atualizado" : "Usuário criado",
+    );
+    setSaving(false);
+    if (ok) setForm(null);
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Usuários &amp; Permissões</h1>
-          <p className="text-muted-foreground">
-            Quem entra no sistema e o que cada um enxerga
-          </p>
-        </div>
-        <Button onClick={() => setCriarAberto(true)}>
-          <UserPlus className="h-4 w-4 mr-1" /> Adicionar pessoa
-        </Button>
+      <SectionHeader
+        ajuda={dicaTela("/usuarios")}
+        breadcrumb="Administração"
+        title="Usuários & Permissões"
+        description="Cadastre a equipe, defina perfis de acesso, altere senhas e controle quem pode entrar no sistema."
+        actions={
+          <NeonButton onClick={() => setForm({ ...emptyForm, senha: gerarSenha() })}>
+            <Plus className="h-4 w-4" /> Novo usuário
+          </NeonButton>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="Usuários" value={totais.total} icon={Users} />
+        <KpiCard label="Ativos" value={totais.ativos} icon={UserCheck} tone="lime" />
+        <KpiCard label="Administradores" value={totais.admins} icon={Shield} tone="magenta" />
+        <KpiCard label="Sem perfil" value={totais.semPerfil} tone="muted" />
       </div>
 
-      {semPapel > 0 && (
-        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            {semPapel === 1 ? "Uma pessoa se cadastrou e está" : `${semPapel} pessoas se cadastraram e estão`}{" "}
-            aguardando liberação. Sem papel, elas entram e veem apenas um aviso de espera.
-          </div>
-        </div>
-      )}
-
       <Card>
-        <CardContent className="p-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Perfis</TableHead>
-                <TableHead>Atribuir</TableHead>
-                <TableHead className="text-right">Conta</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>}
-              {users.map((u: any) => (
-                <TableRow key={u.id} className={u.ativo === false ? "opacity-55" : undefined}>
-                  <TableCell className="font-medium">
-                    {u.nome}
-                    {u.id === user?.id && (
-                      <span className="ml-2 text-xs text-muted-foreground">(você)</span>
-                    )}
-                    {u.ativo === false && (
-                      <Badge variant="outline" className="ml-2 font-normal">
-                        desativado
-                      </Badge>
-                    )}
-                    {u.telefone && (
-                      <div className="text-xs text-muted-foreground">{u.telefone}</div>
-                    )}
-                  </TableCell>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {u.roles.length === 0 && (
-                        <span className="text-xs text-muted-foreground">Aguardando liberação</span>
-                      )}
-                      {u.roles.map((r: string) => (
-                        <Badge key={r} variant="secondary" className="gap-1">
-                          {r}
-                          <button
-                            type="button"
-                            aria-label={`Remover papel ${r} de ${u.nome}`}
-                            onClick={() => removeRole(u.id, r)}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Select
-                        value={novoRole[u.id] ?? ""}
-                        onValueChange={(v: AppRole) => setNovoRole({ ...novoRole, [u.id]: v })}
-                      >
-                        <SelectTrigger className="w-44"><SelectValue placeholder="Perfil" /></SelectTrigger>
-                        <SelectContent>
-                          {ROLES.filter((r) => !u.roles.includes(r)).map((r) => (
-                            <SelectItem key={r} value={r}>
-                              {r}
-                              <span className="ml-2 text-xs text-muted-foreground">
-                                {totaisPorPerfil?.[r] ?? rolePermissions[r].length} permissões
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button size="sm" onClick={() => addRole(u.id)} disabled={!novoRole[u.id]}>
-                        +
-                      </Button>
-                    </div>
-                    {/* O que a pessoa declarou no cadastro. É sugestão: liberar
-                        continua sendo uma decisão explícita de quem administra. */}
-                    {u.roles.length === 0 && u.cargo_pretendido && (
-                      <button
-                        type="button"
-                        onClick={() => liberarComoPediu(u)}
-                        className="mt-1 text-xs text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground"
-                      >
-                        pediu acesso como <strong>{u.cargo_pretendido}</strong> — liberar assim
-                      </button>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Editar nome e telefone"
-                      aria-label={`Editar ${u.nome}`}
-                      onClick={() => setEditando(u)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Enviar link de redefinição de senha"
-                      aria-label={`Redefinir senha de ${u.nome}`}
-                      onClick={() => enviarRedefinicaoDeSenha(u)}
-                    >
-                      <KeyRound className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title={u.ativo === false ? "Reativar acesso" : "Desativar acesso"}
-                      aria-label={`${u.ativo === false ? "Reativar" : "Desativar"} ${u.nome}`}
-                      onClick={() => alternarAtivo(u)}
-                    >
-                      <Power
-                        className={`h-4 w-4 ${u.ativo === false ? "text-muted-foreground" : ""}`}
-                      />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <EditarPessoaDialog
-        pessoa={editando}
-        onOpenChange={(v) => !v && setEditando(null)}
-        onSalvo={() => qc.invalidateQueries({ queryKey: ["usuarios-admin"] })}
-      />
-
-      <CriarPessoaDialog
-        open={criarAberto}
-        onOpenChange={setCriarAberto}
-        onCriado={() => qc.invalidateQueries({ queryKey: ["usuarios-admin"] })}
-      />
-    </div>
-  );
-}
-
-function CriarPessoaDialog({
-  open,
-  onOpenChange,
-  onCriado,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  onCriado: () => void;
-}) {
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [papel, setPapel] = useState<AppRole | "">("");
-  const [salvando, setSalvando] = useState(false);
-
-  function limpar() {
-    setNome("");
-    setEmail("");
-    setSenha("");
-    setPapel("");
-  }
-
-  async function salvar() {
-    if (!nome.trim()) return toast.error("Informe o nome");
-    if (!email.includes("@")) return toast.error("E-mail inválido");
-    if (senha.length < 8) return toast.error("A senha provisória precisa de ao menos 8 caracteres");
-    if (!papel) return toast.error("Escolha o perfil");
-
-    setSalvando(true);
-    const r = await criarUsuarioComPapel({ nome, email, senha, papel });
-    setSalvando(false);
-
-    if (!r.ok) return toast.error(r.erro);
-    toast.success(
-      r.precisaConfirmarEmail
-        ? "Conta criada. A pessoa precisa confirmar o e-mail antes de entrar."
-        : "Conta criada. Já pode entrar com a senha provisória.",
-    );
-    limpar();
-    onOpenChange(false);
-    onCriado();
-  }
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) limpar();
-        onOpenChange(v);
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Adicionar pessoa</DialogTitle>
-          <DialogDescription>
-            A conta é criada já com o perfil escolhido. Combine a senha provisória com a
-            pessoa — ela pode trocar depois em &quot;esqueci minha senha&quot;.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="novo-nome">Nome</Label>
-            <Input id="novo-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="novo-email">E-mail</Label>
-            <Input
-              id="novo-email"
-              type="email"
-              autoComplete="off"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="nova-senha">Senha provisória</Label>
-            <Input
-              id="nova-senha"
-              type="text"
-              autoComplete="off"
-              placeholder="mínimo 8 caracteres"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>Perfil</Label>
-            <Select value={papel} onValueChange={(v: AppRole) => setPapel(v)}>
-              <SelectTrigger><SelectValue placeholder="O que essa pessoa faz" /></SelectTrigger>
+        <CardContent className="space-y-4 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por nome ou e-mail"
+                className="pl-9"
+              />
+            </div>
+            <Select value={filtroPerfil} onValueChange={setFiltroPerfil}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Perfil" />
+              </SelectTrigger>
               <SelectContent>
+                <SelectItem value="todos">Todos os perfis</SelectItem>
                 {ROLES.map((r) => (
                   <SelectItem key={r} value={r}>
-                    <span className="font-medium">{r}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {descricaoDoPapel[r]}
-                    </span>
+                    {r}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="ativos">Ativos</SelectItem>
+                <SelectItem value="inativos">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={salvar} disabled={salvando}>
-            {salvando ? "Criando…" : "Criar conta"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/**
- * Editar cadastro.
- *
- * Só nome e telefone: o e-mail é a identidade de login e vive em auth.users —
- * mudar aqui deixaria os dois lados divergentes e a pessoa entrando pelo e-mail
- * antigo. Trocar e-mail é operação da própria pessoa, pela conta dela.
- */
-function EditarPessoaDialog({
-  pessoa,
-  onOpenChange,
-  onSalvo,
-}: {
-  pessoa: { id: string; nome: string; email: string; telefone: string | null } | null;
-  onOpenChange: (v: boolean) => void;
-  onSalvo: () => void;
-}) {
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [salvando, setSalvando] = useState(false);
-
-  useEffect(() => {
-    if (pessoa) {
-      setNome(pessoa.nome ?? "");
-      setTelefone(pessoa.telefone ?? "");
-    }
-  }, [pessoa]);
-
-  async function salvar() {
-    if (!pessoa) return;
-    if (!nome.trim()) return toast.error("Informe o nome");
-    setSalvando(true);
-    const { data, error } = await supabase
-      .from("usuarios")
-      .update({ nome: nome.trim(), telefone: telefone.trim() || null })
-      .eq("id", pessoa.id)
-      .select("id");
-    setSalvando(false);
-    if (error) return toast.error(error.message);
-    if (!data || data.length === 0) {
-      return toast.error("Seu perfil não tem permissão para editar usuários.");
-    }
-    toast.success("Cadastro atualizado");
-    onOpenChange(false);
-    onSalvo();
-  }
-
-  return (
-    <Dialog open={!!pessoa} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Editar cadastro</DialogTitle>
-          <DialogDescription>
-            O e-mail não muda por aqui: ele é o login da pessoa e a troca precisa ser feita
-            por ela, na própria conta.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="edit-nome">Nome</Label>
-            <Input id="edit-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Contato</TableHead>
+                  <TableHead>Cargo</TableHead>
+                  <TableHead>Perfis</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      Carregando usuários...
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && error && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-destructive">
+                      {error instanceof Error ? error.message : "Falha ao carregar usuários"}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoading && !error && filtrados.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      Nenhum usuário encontrado com esses filtros.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filtrados.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          {u.avatar_url && <AvatarImage src={u.avatar_url} alt={u.nome} />}
+                          <AvatarFallback className="text-xs font-bold">
+                            {u.nome.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{u.nome}</div>
+                          <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {u.ultimo_acesso
+                              ? `Último acesso ${new Date(u.ultimo_acesso).toLocaleDateString("pt-BR")}`
+                              : "Nunca acessou"}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{u.email}</div>
+                      <div className="text-xs text-muted-foreground">{u.telefone ?? "—"}</div>
+                    </TableCell>
+                    <TableCell className="text-sm">{u.cargo_pretendido ?? "—"}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1">
+                        {u.roles.length === 0 && (
+                          <span className="text-xs text-muted-foreground">Sem perfil</span>
+                        )}
+                        {u.roles.map((r) => (
+                          <Badge
+                            key={r}
+                            variant="secondary"
+                            className="cursor-pointer"
+                            title="Remover perfil"
+                            onClick={() =>
+                              run(
+                                () => delRole({ data: { id: u.id, role: r as AppRole } }),
+                                "Perfil removido",
+                              )
+                            }
+                          >
+                            {r} ×
+                          </Badge>
+                        ))}
+                        <div className="flex items-center gap-1">
+                          <Select
+                            value={novoRole[u.id] ?? ""}
+                            onValueChange={(v: AppRole) => setNovoRole({ ...novoRole, [u.id]: v })}
+                          >
+                            <SelectTrigger className="h-7 w-28 text-xs">
+                              <SelectValue placeholder="+ perfil" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ROLES.filter((r) => !u.roles.includes(r)).map((r) => (
+                                <SelectItem key={r} value={r}>
+                                  {r}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2"
+                            disabled={!novoRole[u.id]}
+                            onClick={() =>
+                              run(
+                                () => addRole({ data: { id: u.id, role: novoRole[u.id]! } }),
+                                "Perfil atribuído",
+                              )
+                            }
+                          >
+                            +
+                          </Button>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={u.ativo}
+                          disabled={u.id === user?.id}
+                          onCheckedChange={(v) =>
+                            run(
+                              () => setAtivo({ data: { id: u.id, ativo: v } }),
+                              v ? "Usuário ativado" : "Usuário inativado",
+                            )
+                          }
+                        />
+                        <StatusChip
+                          label={u.ativo ? "Ativo" : "Inativo"}
+                          tone={u.ativo ? "lime" : "muted"}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" aria-label="Ações do usuário">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              setForm({
+                                id: u.id,
+                                nome: u.nome,
+                                email: u.email,
+                                telefone: u.telefone ?? "",
+                                cargo: u.cargo_pretendido ?? "",
+                                ativo: u.ativo,
+                                senha: "",
+                                role: "",
+                              })
+                            }
+                          >
+                            <Pencil className="mr-2 h-4 w-4" /> Editar dados
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSenhaAlvo(u);
+                              setNovaSenha(gerarSenha());
+                            }}
+                          >
+                            <KeyRound className="mr-2 h-4 w-4" /> Alterar senha
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              run(
+                                () =>
+                                  resetSenha({
+                                    data: {
+                                      email: u.email,
+                                      redirectTo: `${window.location.origin}/reset-password`,
+                                    },
+                                  }),
+                                "Link de redefinição enviado",
+                              )
+                            }
+                          >
+                            <Mail className="mr-2 h-4 w-4" /> Enviar link de redefinição
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            disabled={u.id === user?.id}
+                            onClick={() => setExcluirAlvo(u)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Excluir usuário
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-          <div>
-            <Label htmlFor="edit-telefone">Telefone</Label>
-            <Input
-              id="edit-telefone"
-              placeholder="(96) 99111-6169"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>E-mail</Label>
-            <Input value={pessoa?.email ?? ""} readOnly className="bg-muted/40" />
-          </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={salvar} disabled={salvando}>
-            {salvando ? "Salvando…" : "Salvar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {/* Criar / editar */}
+      <Dialog open={Boolean(form)} onOpenChange={(o) => !o && setForm(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{form?.id ? "Editar usuário" : "Novo usuário"}</DialogTitle>
+            <DialogDescription>
+              {form?.id
+                ? "Atualize os dados cadastrais e o status de acesso."
+                : "Cria o acesso e o cadastro do usuário de uma só vez."}
+            </DialogDescription>
+          </DialogHeader>
+          {form && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label className="flex items-center gap-1.5">Nome completo<DicaIcone texto={dicaCampo("/usuarios", "Nome completo")} rotulo="Nome completo" /></Label>
+                <Input
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  placeholder="Ex.: Maria Souza"
+                />
+              </div>
+              <div>
+                <Label className="flex items-center gap-1.5">E-mail<DicaIcone texto={dicaCampo("/usuarios", "E-mail")} rotulo="E-mail" /></Label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="nome@empresa.com"
+                />
+              </div>
+              <div>
+                <Label className="flex items-center gap-1.5">Telefone<DicaIcone texto={dicaCampo("/usuarios", "Telefone")} rotulo="Telefone" /></Label>
+                <Input
+                  value={form.telefone}
+                  onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div>
+                <Label className="flex items-center gap-1.5">Cargo<DicaIcone texto={dicaCampo("/usuarios", "Cargo")} rotulo="Cargo" /></Label>
+                <Input
+                  value={form.cargo}
+                  onChange={(e) => setForm({ ...form, cargo: e.target.value })}
+                  placeholder="Ex.: Designer"
+                />
+              </div>
+              {!form.id && (
+                <div>
+                  <Label className="flex items-center gap-1.5">Perfil inicial<DicaIcone texto={dicaCampo("/usuarios", "Perfil inicial")} rotulo="Perfil inicial" /></Label>
+                  <Select
+                    value={form.role}
+                    onValueChange={(v: AppRole) => setForm({ ...form, role: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {!form.id && (
+                <div className="sm:col-span-2">
+                  <Label className="flex items-center gap-1.5">Senha inicial<DicaIcone texto={dicaCampo("/usuarios", "Senha inicial")} rotulo="Senha inicial" /></Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.senha}
+                      onChange={(e) => setForm({ ...form, senha: e.target.value })}
+                      placeholder="Mínimo 8 caracteres"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setForm({ ...form, senha: gerarSenha() })}
+                    >
+                      Gerar
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-3 sm:col-span-2">
+                <Switch
+                  checked={form.ativo}
+                  onCheckedChange={(v) => setForm({ ...form, ativo: v })}
+                />
+                <span className="text-sm text-muted-foreground">
+                  Usuário ativo (pode acessar o sistema)
+                </span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForm(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={salvarForm} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alterar senha */}
+      <Dialog open={Boolean(senhaAlvo)} onOpenChange={(o) => !o && setSenhaAlvo(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alterar senha</DialogTitle>
+            <DialogDescription>
+              Defina uma nova senha para {senhaAlvo?.nome}. Informe-a ao usuário por um canal
+              seguro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Input value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} />
+            <Button type="button" variant="outline" onClick={() => setNovaSenha(gerarSenha())}>
+              Gerar
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSenhaAlvo(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (novaSenha.length < 8) return toast.error("Mínimo de 8 caracteres");
+                const ok = await run(
+                  () => setSenha({ data: { id: senhaAlvo!.id, senha: novaSenha } }),
+                  "Senha atualizada",
+                );
+                if (ok) setSenhaAlvo(null);
+              }}
+            >
+              Salvar senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Excluir */}
+      <AlertDialog open={Boolean(excluirAlvo)} onOpenChange={(o) => !o && setExcluirAlvo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {excluirAlvo?.nome}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O acesso, os perfis e o cadastro serão removidos permanentemente. Esta ação não pode
+              ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const ok = await run(
+                  () => excluir({ data: { id: excluirAlvo!.id } }),
+                  "Usuário excluído",
+                );
+                if (ok) setExcluirAlvo(null);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

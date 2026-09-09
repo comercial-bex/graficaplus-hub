@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { Card, CardContent } from "@/components/ui/card";
 import { casosDeUso } from "@/lib/system-map";
@@ -32,6 +33,7 @@ function CasosDeUsoPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/casos-de-uso")}
         breadcrumb="Documentação viva"
         title="Casos de uso do sistema"
         description="Entrada → Orçamento → OS → Produção → Entrega. Cada etapa lista onde ocorrem as validações e onde há transferência de dados entre módulos e sistemas externos."

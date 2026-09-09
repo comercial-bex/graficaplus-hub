@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Check, Minus } from "lucide-react";
@@ -151,6 +152,7 @@ function MatrizPermissoesPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/matriz-permissoes")}
         breadcrumb="Administração"
         title="Matriz de permissões por perfil"
         description={`Clique para conceder ou remover. Cada linha é uma ação, cada coluna é um perfil. Fonte de verdade: ${fonte}.`}

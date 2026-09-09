@@ -31,6 +31,7 @@ import {
   type PublicLinkScope,
 } from "@/lib/public-access";
 import { submitPublicPortalAction, verifyPublicAccessToken } from "@/lib/public-access.server";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/publico/$token")({
   head: () => ({ meta: [{ title: "Portal do Cliente — BEX PRINT OS" }] }),
@@ -64,7 +65,7 @@ function PublicPortalPage() {
       action: "approve_quote" | "upload_file" | "approve_art" | "reject_art" | "upload_payment",
     ) => submitPublicPortalAction({ data: { token, action, notes, fileName } }),
     onSuccess: (result) => {
-      if (!result.ok) return toast.error(result.message);
+      if (!result.ok) return toast.error(mensagemErro(result));
       toast.success(`${result.message} Protocolo: ${result.protocol}`);
       setNotes("");
       setFileName("");

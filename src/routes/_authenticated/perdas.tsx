@@ -30,7 +30,10 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { useAuth } from "@/lib/auth-context";
+import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/perdas")({
   head: () => ({
     meta: [
@@ -178,7 +181,7 @@ function PerdasPage() {
       setOpen(false);
       setForm(emptyForm);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const kpis = useMemo(() => {
@@ -204,6 +207,7 @@ function PerdasPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/perdas")}
         breadcrumb="Produção"
         title="Perdas e desperdício"
         description="Todo refugo custa material, hora-máquina e prazo. Registrar o motivo é o que permite reduzir."
@@ -302,7 +306,7 @@ function PerdasPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>OS</Label>
+              <Label className="flex items-center gap-1.5">OS<DicaIcone texto={dicaCampo("/perdas", "OS")} rotulo="OS" /></Label>
               <Select value={form.os_id} onValueChange={(v) => setForm((f) => ({ ...f, os_id: v }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
@@ -317,7 +321,7 @@ function PerdasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Motivo *</Label>
+              <Label className="flex items-center gap-1.5">Motivo *<DicaIcone texto={dicaCampo("/perdas", "Motivo *")} rotulo="Motivo *" /></Label>
               <Select value={form.motivo} onValueChange={(v) => setForm((f) => ({ ...f, motivo: v as Motivo }))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -332,7 +336,7 @@ function PerdasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Material</Label>
+              <Label className="flex items-center gap-1.5">Material<DicaIcone texto={dicaCampo("/perdas", "Material")} rotulo="Material" /></Label>
               <Select
                 value={form.material_id}
                 onValueChange={(v) => {
@@ -361,7 +365,7 @@ function PerdasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Máquina</Label>
+              <Label className="flex items-center gap-1.5">Máquina<DicaIcone texto={dicaCampo("/perdas", "Máquina")} rotulo="Máquina" /></Label>
               <Select
                 value={form.maquina_id}
                 onValueChange={(v) => setForm((f) => ({ ...f, maquina_id: v }))}
@@ -379,7 +383,7 @@ function PerdasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Quantidade perdida</Label>
+              <Label className="flex items-center gap-1.5">Quantidade perdida<DicaIcone texto={dicaCampo("/perdas", "Quantidade perdida")} rotulo="Quantidade perdida" /></Label>
               <Input
                 type="number"
                 step="0.01"
@@ -388,7 +392,7 @@ function PerdasPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Custo unitário (R$)</Label>
+              <Label className="flex items-center gap-1.5">Custo unitário (R$)<DicaIcone texto={dicaCampo("/perdas", "Custo unitário (R$)")} rotulo="Custo unitário (R$)" /></Label>
               <Input
                 type="number"
                 step="0.01"
@@ -397,7 +401,7 @@ function PerdasPage() {
               />
             </div>
             <div className="sm:col-span-2 space-y-2">
-              <Label>Observações</Label>
+              <Label className="flex items-center gap-1.5">Observações<DicaIcone texto={dicaCampo("/perdas", "Observações")} rotulo="Observações" /></Label>
               <Textarea
                 value={form.observacoes}
                 onChange={(e) => setForm((f) => ({ ...f, observacoes: e.target.value }))}

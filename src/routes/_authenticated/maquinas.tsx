@@ -16,11 +16,13 @@ import {
 import { Factory, Plus, Pencil, Zap, Gauge, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { useAuth } from "@/lib/auth-context";
 import { ParametrosDeMaquina } from "@/components/maquinas/parametros-de-maquina";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/maquinas")({
   head: () => ({
@@ -231,7 +233,7 @@ function MaquinasPage() {
       setOpen(false);
       setForm(emptyForm);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const toggle = useMutation({
@@ -289,6 +291,7 @@ function MaquinasPage() {
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/maquinas")}
         breadcrumb="Produção"
         title="Máquinas e hora-máquina"
         description="Cada equipamento precisa de custo/hora para que o orçamento e o resultado da OS fechem com a realidade."

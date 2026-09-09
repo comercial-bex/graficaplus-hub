@@ -34,6 +34,7 @@ import { Plus, ClipboardCheck, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 
 export const Route = createFileRoute("/_authenticated/movimentacoes")({
   head: () => ({ meta: [{ title: "Movimentações de estoque — BEX PRINT OS" }] }),
@@ -216,6 +217,7 @@ function MovimentacoesPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/movimentacoes")}
         breadcrumb="Print OS · Estoque"
         title="Movimentações de estoque"
         description="Toda entrada, baixa e ajuste de material, com origem e responsável"

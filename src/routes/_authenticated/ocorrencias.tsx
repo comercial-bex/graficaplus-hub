@@ -29,7 +29,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { SETORES, TIPOS_OCORRENCIA } from "@/domain/producao/setores";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/ocorrencias")({
   head: () => ({ meta: [{ title: "Ocorrências — BEX PRINT OS" }] }),
   component: OcorrPage,
@@ -135,7 +138,7 @@ function OcorrPage() {
       setF({ ...vazio });
       qc.invalidateQueries({ queryKey: ["ocorrencias"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const update = useMutation({
@@ -144,16 +147,17 @@ function OcorrPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ocorrencias"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Ocorrências &amp; Retrabalho</h1>
-        <p className="text-muted-foreground">
-          O que deu errado, em qual OS, e quanto custou.
-        </p>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Ocorrências & Retrabalho</h1>
+          <DicaIcone texto={dicaTela("/ocorrencias")} rotulo="Ocorrências e Retrabalho" lado="bottom" className="h-5 w-5" />
+        </div>
+        <p className="text-muted-foreground">Registro de problemas e custos gerados</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

@@ -1,19 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -22,371 +20,557 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth-context";
-import { SectionHeader } from "@/components/bex/SectionHeader";
-import { lerExtrato, somarExtrato } from "@/domain/financeiro/extrato";
-import { AlertTriangle, Upload, Landmark } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Banknote,
+  Landmark,
+  Plus,
+  Upload,
+  Wallet,
+  ArrowUpCircle,
+  ArrowDownCircle,
+} from "lucide-react";
 import { toast } from "sonner";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { KpiCard } from "@/components/bex/KpiCard";
+import { StatusChip } from "@/components/bex/StatusChip";
+import { DataPanel } from "@/components/bex/DataPanel";
+import { NeonButton } from "@/components/bex/NeonButton";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
+import { mensagemErro } from "@/lib/erros";
+import { chaveLinha, lerExtrato, type LinhaExtrato } from "@/lib/extrato";
 
 export const Route = createFileRoute("/_authenticated/contas-bancarias")({
-  head: () => ({ meta: [{ title: "Contas bancárias — BEX PRINT OS" }] }),
-  component: ContasPage,
+  head: () => ({
+    meta: [
+      { title: "Contas bancárias — BEX PRINT OS" },
+      {
+        name: "description",
+        content:
+          "Saldo real das contas da gráfica, importação de extrato OFX/CSV com validação de duplicidade e integração com o fluxo de caixa.",
+      },
+      { property: "og:title", content: "Contas bancárias — BEX PRINT OS" },
+      {
+        property: "og:description",
+        content: "Importe o extrato do banco e veja o saldo real do caixa atualizar sozinho.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: ContasBancariasPage,
 });
 
-const brl = (n: number | null | undefined) =>
-  n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const dataBR = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
+const hoje = () => new Date().toISOString().slice(0, 10);
 
-const dia = (d: string | null) =>
-  d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—";
+type ContaForm = {
+  nome: string;
+  banco: string;
+  agencia: string;
+  conta: string;
+  tipo: string;
+  saldo_inicial: string;
+  saldo_inicial_data: string;
+};
 
-const contaVazia = {
+const contaVazia: ContaForm = {
   nome: "",
   banco: "",
   agencia: "",
   conta: "",
   tipo: "corrente",
-  saldo_inicial: "",
-  saldo_inicial_data: new Date().toISOString().slice(0, 10),
+  saldo_inicial: "0",
+  saldo_inicial_data: hoje(),
 };
 
-/**
- * Contas bancárias e extrato.
- *
- * As tabelas `contas_bancarias` e `banco_transacoes` já existiam, bem modeladas
- * — a segunda com índice único em (conta_id, fitid), a trava certa contra
- * importar o mesmo lançamento duas vezes. E nenhuma tela lia ou escrevia nelas.
- *
- * Enquanto isso o "saldo real" do Fluxo de Caixa era entradas menos saídas de
- * `caixa_movimentos`: ignora o saldo inicial e ignora tudo que passou pelo banco
- * sem alguém lançar. Movimento líquido registrado com nome de saldo.
- */
-function ContasPage() {
-  const qc = useQueryClient();
-  const { canSeeFinancials, hasPermission } = useAuth();
-  const podeGerenciar = hasPermission("financeiro.read");
-  const [form, setForm] = useState({ ...contaVazia });
-  const [contaSelecionada, setContaSelecionada] = useState<string>("");
-  const [importando, setImportando] = useState(false);
-  const arquivo = useRef<HTMLInputElement>(null);
+type SaldoConta = {
+  conta_id: string;
+  nome: string;
+  banco: string | null;
+  agencia: string | null;
+  conta: string | null;
+  tipo: string | null;
+  ativo: boolean;
+  saldo_inicial: number;
+  saldo_atual: number;
+  movimento: number;
+  lancamentos: number;
+  nao_conciliados: number;
+  ultimo_lancamento: string | null;
+};
 
-  const { data: contas = [] } = useQuery({
+type Transacao = {
+  id: string;
+  data: string;
+  descricao: string;
+  valor: number;
+  tipo: string;
+  documento: string | null;
+  origem: string;
+  conciliado: boolean;
+};
+
+function ContasBancariasPage() {
+  const qc = useQueryClient();
+  const [contaOpen, setContaOpen] = useState(false);
+  const [form, setForm] = useState<ContaForm>(contaVazia);
+  const [selecionada, setSelecionada] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [arquivoNome, setArquivoNome] = useState("");
+  const [linhas, setLinhas] = useState<LinhaExtrato[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: contas = [], isLoading } = useQuery({
     queryKey: ["saldo-contas"],
-    enabled: canSeeFinancials,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("saldo_contas_bancarias");
+      const { data, error } = await (supabase as any)
+        .from("vw_saldo_conta")
+        .select("*")
+        .order("nome");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as SaldoConta[];
     },
   });
 
-  const contaAtiva = contaSelecionada || contas[0]?.conta_id || "";
+  const contaAtiva = selecionada ?? contas[0]?.conta_id ?? null;
 
-  const { data: lancamentos = [] } = useQuery({
+  const { data: transacoes = [] } = useQuery({
     queryKey: ["banco-transacoes", contaAtiva],
-    enabled: !!contaAtiva && canSeeFinancials,
+    enabled: !!contaAtiva,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("banco_transacoes")
-        .select("id, data, descricao, valor, tipo, documento, conciliado, origem")
-        .eq("conta_id", contaAtiva)
+        .select("id, data, descricao, valor, tipo, documento, origem, conciliado")
+        .eq("conta_id", contaAtiva!)
         .order("data", { ascending: false })
         .limit(300);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Transacao[];
     },
   });
 
   const criarConta = useMutation({
     mutationFn: async () => {
-      if (!form.nome.trim()) throw new Error("Dê um nome à conta.");
-      const { data, error } = await (supabase as any)
-        .from("contas_bancarias")
-        .insert({
-          nome: form.nome.trim(),
-          banco: form.banco.trim() || null,
-          agencia: form.agencia.trim() || null,
-          conta: form.conta.trim() || null,
-          tipo: form.tipo,
-          saldo_inicial: form.saldo_inicial ? Number(form.saldo_inicial) : 0,
-          saldo_inicial_data: form.saldo_inicial_data || null,
-          ativo: true,
-        })
-        .select("id");
+      const { error } = await supabase.from("contas_bancarias").insert({
+        nome: form.nome,
+        banco: form.banco || null,
+        agencia: form.agencia || null,
+        conta: form.conta || null,
+        tipo: form.tipo,
+        saldo_inicial: Number(form.saldo_inicial) || 0,
+        saldo_inicial_data: form.saldo_inicial_data || hoje(),
+      });
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Seu perfil não pode cadastrar conta bancária.");
     },
     onSuccess: () => {
       toast.success("Conta cadastrada");
-      setForm({ ...contaVazia });
       qc.invalidateQueries({ queryKey: ["saldo-contas"] });
+      setContaOpen(false);
+      setForm(contaVazia);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
-  async function importarArquivo(f: File) {
-    if (!contaAtiva) {
-      toast.error("Escolha a conta antes de importar.");
-      return;
-    }
-    setImportando(true);
-    try {
-      // Banco costuma entregar OFX em Latin-1; ler como UTF-8 estraga acento.
-      // Tenta UTF-8 e cai para windows-1252 quando aparece o caractere de
-      // substituição, que é o sinal de que a leitura errou.
-      const bytes = new Uint8Array(await f.arrayBuffer());
-      let texto = new TextDecoder("utf-8").decode(bytes);
-      if (texto.includes("�")) {
-        texto = new TextDecoder("windows-1252").decode(bytes);
-      }
-
-      const r = lerExtrato(texto);
-      if (r.lancamentos.length === 0) {
-        toast.error(
-          r.ignoradas.length > 0
-            ? `Nenhum lançamento aproveitável. ${r.ignoradas.length} linha(s) sem data ou sem valor.`
-            : "Não reconheci lançamentos neste arquivo (esperado OFX ou CSV de extrato).",
-        );
-        return;
-      }
-
-      // Aviso, não bloqueio: a conta do arquivo pode estar escrita de outro
-      // jeito. Quem decide é quem está olhando.
-      const daTela = contas.find((c: any) => c.conta_id === contaAtiva);
-      if (r.conta?.numero && daTela?.conta && !String(daTela.conta).includes(r.conta.numero)) {
-        toast.warning(
-          `O arquivo é da conta ${r.conta.numero} e você está importando em ${daTela.conta}. Confira.`,
-        );
-      }
-
-      const { data, error } = await (supabase.rpc as any)("importar_extrato", {
+  const importar = useMutation({
+    mutationFn: async () => {
+      if (!contaAtiva) throw new Error("Selecione a conta bancária antes de importar.");
+      const { data, error } = await (supabase as any).rpc("importar_extrato", {
         p_conta_id: contaAtiva,
-        p_lancamentos: r.lancamentos,
+        p_linhas: linhas,
       });
       if (error) throw error;
-
-      const res = data as { recebidos: number; novos: number; ja_existiam: number };
-      const soma = somarExtrato(r.lancamentos);
+      return data as { importadas: number; duplicadas: number; saldo_atual: number };
+    },
+    onSuccess: (r) => {
       toast.success(
-        `${res.novos} lançamento(s) novo(s)` +
-          (res.ja_existiam > 0 ? `, ${res.ja_existiam} já importado(s) antes` : "") +
-          `. Líquido do arquivo: ${brl(soma.liquido)}.`,
+        `${r.importadas} lançamento(s) importado(s)` +
+          (r.duplicadas > 0 ? ` · ${r.duplicadas} já existiam e foram ignorados` : ""),
       );
       qc.invalidateQueries({ queryKey: ["saldo-contas"] });
-      qc.invalidateQueries({ queryKey: ["banco-transacoes", contaAtiva] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao importar extrato");
-    } finally {
-      setImportando(false);
+      qc.invalidateQueries({ queryKey: ["banco-transacoes"] });
+      qc.invalidateQueries({ queryKey: ["vw-fluxo-caixa"] });
+      qc.invalidateQueries({ queryKey: ["caixa-movimentos"] });
+      setImportOpen(false);
+      setLinhas([]);
+      setArquivoNome("");
+    },
+    onError: (e: Error) => toast.error(mensagemErro(e)),
+  });
+
+  async function escolherArquivo(file: File | undefined) {
+    if (!file) return;
+    const texto = await file.text();
+    const lidas = lerExtrato(file.name, texto);
+    if (lidas.length === 0) {
+      toast.error(
+        "Não encontramos lançamentos nesse arquivo. Use OFX do banco ou CSV com data, descrição e valor.",
+      );
+      return;
     }
+    setArquivoNome(file.name);
+    setLinhas(lidas);
   }
 
-  if (!canSeeFinancials) {
-    return (
-      <div>
-        <SectionHeader breadcrumb="Financeiro" title="Contas bancárias" />
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            Seu perfil não tem acesso a valores financeiros.
-          </CardContent>
-        </Card>
-      </div>
+  const repetidasNoArquivo = useMemo(() => {
+    const vistos = new Set<string>();
+    const dup = new Set<number>();
+    linhas.forEach((l, i) => {
+      const k = chaveLinha(l);
+      if (vistos.has(k)) dup.add(i);
+      vistos.add(k);
+    });
+    return dup;
+  }, [linhas]);
+
+  const kpis = useMemo(() => {
+    const saldo = contas.reduce((a, c) => a + Number(c.saldo_atual ?? 0), 0);
+    const naoConc = contas.reduce((a, c) => a + Number(c.nao_conciliados ?? 0), 0);
+    const limite = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const recentes = transacoes.filter((t) => t.data >= limite);
+    const entradas = recentes
+      .filter((t) => t.tipo === "credito")
+      .reduce((a, t) => a + Number(t.valor), 0);
+    const saidas = recentes
+      .filter((t) => t.tipo !== "credito")
+      .reduce((a, t) => a + Number(t.valor), 0);
+    return { saldo, naoConc, entradas, saidas };
+  }, [contas, transacoes]);
+
+  const filtradas = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    if (!q) return transacoes;
+    return transacoes.filter(
+      (t) => t.descricao.toLowerCase().includes(q) || (t.documento ?? "").toLowerCase().includes(q),
     );
-  }
+  }, [transacoes, busca]);
 
-  const saldoTotal = contas.reduce((s: number, c: any) => s + Number(c.saldo_atual ?? 0), 0);
-  const naoConciliados = contas.reduce((s: number, c: any) => s + Number(c.nao_conciliados ?? 0), 0);
+  const previaValor = linhas.reduce((a, l) => a + (l.tipo === "credito" ? l.valor : -l.valor), 0);
 
   return (
     <div>
       <SectionHeader
+        ajuda={dicaTela("/contas-bancarias")}
         breadcrumb="Financeiro"
         title="Contas bancárias"
-        description="Saldo real de cada conta, a partir do saldo inicial e do extrato importado."
+        description="Saldo real de cada conta. Importe o extrato do banco (OFX ou CSV) e cada lançamento novo entra no caixa automaticamente — os repetidos são ignorados."
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setContaOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova conta
+            </Button>
+            <NeonButton onClick={() => setImportOpen(true)} disabled={!contaAtiva}>
+              <Upload className="h-4 w-4" />
+              Importar extrato
+            </NeonButton>
+          </>
+        }
       />
 
-      {contas.length > 0 && (
-        <div className="mb-4 grid overflow-hidden rounded-md border sm:grid-cols-3">
-          <div className="border-r bg-card p-4">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Saldo somado
-            </div>
-            <div className={`mt-1 text-2xl font-semibold ${saldoTotal < 0 ? "text-destructive" : ""}`}>
-              {brl(saldoTotal)}
-            </div>
-            <div className="text-xs text-muted-foreground">{contas.length} conta(s) ativa(s)</div>
-          </div>
-          <div className="border-r bg-card p-4">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              A conciliar
-            </div>
-            <div className="mt-1 text-2xl font-semibold">{naoConciliados}</div>
-            <div className="text-xs text-muted-foreground">
-              lançamentos sem par no caixa
-            </div>
-          </div>
-          <div className="bg-card p-4">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Último extrato
-            </div>
-            <div className="mt-1 text-2xl font-semibold">
-              {dia(
-                contas
-                  .map((c: any) => c.ultimo_lancamento)
-                  .filter(Boolean)
-                  .sort()
-                  .pop() ?? null,
-              )}
-            </div>
-            <div className="text-xs text-muted-foreground">data do lançamento mais recente</div>
-          </div>
-        </div>
-      )}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          label="Saldo real das contas"
+          value={brl(kpis.saldo)}
+          icon={Wallet}
+          tone={kpis.saldo >= 0 ? "cyan" : "magenta"}
+        />
+        <KpiCard
+          label="Entradas (30 dias)"
+          value={brl(kpis.entradas)}
+          icon={ArrowUpCircle}
+          tone="lime"
+          hint="Conta selecionada"
+        />
+        <KpiCard
+          label="Saídas (30 dias)"
+          value={brl(kpis.saidas)}
+          icon={ArrowDownCircle}
+          tone="magenta"
+          hint="Conta selecionada"
+        />
+        <KpiCard
+          label="A conciliar"
+          value={kpis.naoConc}
+          icon={Banknote}
+          tone={kpis.naoConc > 0 ? "amber" : "muted"}
+          hint="Lançamentos sem par no caixa"
+        />
+      </div>
 
-      <Card className="mb-4">
-        <CardContent className="p-0">
+      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {isLoading && <div className="text-sm text-muted-foreground">Carregando contas...</div>}
+        {!isLoading && contas.length === 0 && (
+          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+            Nenhuma conta cadastrada. Comece cadastrando a conta usada pela gráfica e informe o
+            saldo do dia — a partir daí o extrato mantém o saldo em dia.
+          </div>
+        )}
+        {contas.map((c) => {
+          const ativa = c.conta_id === contaAtiva;
+          return (
+            <button
+              key={c.conta_id}
+              type="button"
+              onClick={() => setSelecionada(c.conta_id)}
+              className={`rounded-xl border p-5 text-left transition ${
+                ativa
+                  ? "border-[color:var(--bex-cyan)] bg-card shadow-lg"
+                  : "border-border bg-card/60 hover:border-muted-foreground/40"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Landmark className="h-4 w-4 text-[color:var(--bex-cyan)]" />
+                    <span className="truncate font-semibold">{c.nome}</span>
+                  </div>
+                  <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {[c.banco, c.agencia && `Ag. ${c.agencia}`, c.conta && `C/C ${c.conta}`]
+                      .filter(Boolean)
+                      .join(" · ") || "sem dados bancários"}
+                  </div>
+                </div>
+                <StatusChip
+                  label={c.nao_conciliados > 0 ? `${c.nao_conciliados} a conciliar` : "Conciliada"}
+                  tone={c.nao_conciliados > 0 ? "amber" : "lime"}
+                />
+              </div>
+              <div className="mt-4 text-2xl font-bold tabular-nums">
+                {brl(Number(c.saldo_atual ?? 0))}
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                {c.lancamentos} lançamento(s)
+                {c.ultimo_lancamento ? ` · último em ${dataBR(c.ultimo_lancamento)}` : ""}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <DataPanel
+        busca={busca}
+        onBusca={setBusca}
+        placeholder="Buscar lançamento..."
+        rodape={<span>{filtradas.length} lançamento(s) no extrato desta conta</span>}
+      >
+        {filtradas.length === 0 ? (
+          <div className="p-12 text-center text-sm text-muted-foreground">
+            Nenhum lançamento importado nesta conta ainda.
+          </div>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Conta</TableHead>
-                <TableHead className="text-right">Saldo inicial</TableHead>
-                <TableHead className="text-right">Entradas</TableHead>
-                <TableHead className="text-right">Saídas</TableHead>
-                <TableHead className="text-right">Saldo atual</TableHead>
-                <TableHead className="text-right">A conciliar</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Documento</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Situação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="p-6 text-sm text-muted-foreground">
-                    Nenhuma conta cadastrada. Cadastre abaixo com o saldo do dia em que começar a
-                    usar — o saldo inicial é o ponto de partida da conta.
+              {filtradas.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="whitespace-nowrap tabular-nums">{dataBR(t.data)}</TableCell>
+                  <TableCell className="max-w-[380px] truncate">{t.descricao}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {t.documento || "—"}
+                  </TableCell>
+                  <TableCell className="text-xs uppercase text-muted-foreground">
+                    {t.origem}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right font-bold tabular-nums ${
+                      t.tipo === "credito"
+                        ? "text-[color:var(--bex-amber)]"
+                        : "text-[color:var(--bex-magenta)]"
+                    }`}
+                  >
+                    {t.tipo === "credito" ? "+" : "−"} {brl(Number(t.valor))}
+                  </TableCell>
+                  <TableCell>
+                    <StatusChip
+                      label={t.conciliado ? "No caixa" : "Pendente"}
+                      tone={t.conciliado ? "lime" : "amber"}
+                    />
                   </TableCell>
                 </TableRow>
-              ) : (
-                contas.map((c: any) => (
-                  <TableRow key={c.conta_id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2 font-medium">
-                        <Landmark className="h-4 w-4 text-muted-foreground" />
-                        {c.nome}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {[c.banco, c.agencia, c.conta].filter(Boolean).join(" · ") || "sem dados bancários"}
-                        {c.saldo_inicial_data && ` · desde ${dia(c.saldo_inicial_data)}`}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">{brl(c.saldo_inicial)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm text-emerald-600">
-                      {Number(c.entradas) > 0 ? brl(c.entradas) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-destructive">
-                      {Number(c.saidas) < 0 ? brl(c.saidas) : "—"}
-                    </TableCell>
-                    <TableCell
-                      className={`text-right font-mono font-semibold ${Number(c.saldo_atual) < 0 ? "text-destructive" : ""}`}
-                    >
-                      {brl(c.saldo_atual)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {Number(c.nao_conciliados) > 0 ? (
-                        <Badge variant="outline" className="font-normal text-amber-600">
-                          {c.nao_conciliados}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        )}
+      </DataPanel>
 
-      {contas.length > 0 && (
-        <Card className="mb-4">
-          <CardHeader className="flex-row flex-wrap items-end justify-between gap-3 space-y-0">
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <Label htmlFor="conta" className="text-xs">Conta</Label>
-                <Select value={contaAtiva} onValueChange={setContaSelecionada}>
-                  <SelectTrigger id="conta" className="w-[16rem]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contas.map((c: any) => (
-                      <SelectItem key={c.conta_id} value={c.conta_id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {podeGerenciar && (
-                <>
-                  <input
-                    ref={arquivo}
-                    type="file"
-                    accept=".ofx,.csv,.txt,text/csv,text/plain"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) importarArquivo(f);
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button variant="outline" disabled={importando} onClick={() => arquivo.current?.click()}>
-                    <Upload className="mr-1 h-4 w-4" />
-                    {importando ? "Importando…" : "Importar extrato (OFX ou CSV)"}
-                  </Button>
-                </>
+      {/* Nova conta */}
+      <Dialog open={contaOpen} onOpenChange={setContaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova conta bancária</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label className="flex items-center gap-1.5">
+                Nome da conta *
+                <DicaIcone
+                  texto="Como você chama essa conta no dia a dia, ex.: Itaú Movimento."
+                  rotulo="Nome da conta"
+                />
+              </Label>
+              <Input
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                placeholder="Itaú movimento"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Banco</Label>
+              <Input
+                value={form.banco}
+                onChange={(e) => setForm({ ...form, banco: e.target.value })}
+                placeholder="Itaú"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="corrente">Conta corrente</SelectItem>
+                  <SelectItem value="poupanca">Poupança</SelectItem>
+                  <SelectItem value="pagamento">Conta de pagamento</SelectItem>
+                  <SelectItem value="caixa">Caixa interno</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Agência</Label>
+              <Input
+                value={form.agencia}
+                onChange={(e) => setForm({ ...form, agencia: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Conta</Label>
+              <Input
+                value={form.conta}
+                onChange={(e) => setForm({ ...form, conta: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                Saldo de partida (R$)
+                <DicaIcone
+                  texto="Saldo que a conta tinha na data abaixo. O extrato importado soma a partir daqui."
+                  rotulo="Saldo de partida"
+                />
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.saldo_inicial}
+                onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data do saldo</Label>
+              <Input
+                type="date"
+                value={form.saldo_inicial_data}
+                onChange={(e) => setForm({ ...form, saldo_inicial_data: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => criarConta.mutate()}
+              disabled={!form.nome || criarConta.isPending}
+            >
+              Salvar conta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Importar extrato */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Importar extrato bancário</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border border-dashed border-border p-6 text-center">
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".ofx,.csv,.txt"
+                className="hidden"
+                onChange={(e) => void escolherArquivo(e.target.files?.[0])}
+              />
+              <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Envie o arquivo OFX do banco ou uma planilha CSV com data, descrição e valor.
+              </p>
+              <Button variant="outline" className="mt-3" onClick={() => inputRef.current?.click()}>
+                Escolher arquivo
+              </Button>
+              {arquivoNome && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {arquivoNome} · {linhas.length} lançamento(s) lido(s) · resultado{" "}
+                  <strong className="text-foreground">{brl(previaValor)}</strong>
+                </p>
               )}
             </div>
-            <CardTitle className="text-sm font-medium">
-              Lançamentos ({lancamentos.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 sm:p-6 sm:pt-0">
-            {lancamentos.length === 0 ? (
-              <div className="p-6 text-sm text-muted-foreground">
-                Nenhum lançamento importado nesta conta. Baixe o extrato no site do banco em OFX
-                (“Money 2000”) ou CSV e importe aqui — reimportar o mesmo período é seguro, o
-                sistema descarta o que já entrou.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
+
+            {linhas.length > 0 && (
+              <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
                       <TableHead>Descrição</TableHead>
-                      <TableHead>Documento</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Conciliado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {lancamentos.map((l: any) => (
-                      <TableRow key={l.id}>
-                        <TableCell className="whitespace-nowrap text-sm">{dia(l.data)}</TableCell>
-                        <TableCell className="max-w-[24rem] text-sm">{l.descricao}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {l.documento || "—"}
+                    {linhas.map((l, i) => (
+                      <TableRow
+                        key={`${chaveLinha(l)}-${i}`}
+                        className={repetidasNoArquivo.has(i) ? "opacity-50" : ""}
+                      >
+                        <TableCell className="whitespace-nowrap tabular-nums">
+                          {dataBR(l.data)}
+                        </TableCell>
+                        <TableCell className="max-w-[420px] truncate">
+                          {l.descricao}
+                          {repetidasNoArquivo.has(i) && (
+                            <span className="ml-2 text-[10px] uppercase text-[color:var(--bex-amber)]">
+                              repetido no arquivo
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell
-                          className={`text-right font-mono text-sm ${Number(l.valor) < 0 ? "text-destructive" : "text-emerald-600"}`}
+                          className={`text-right tabular-nums ${
+                            l.tipo === "credito"
+                              ? "text-[color:var(--bex-amber)]"
+                              : "text-[color:var(--bex-magenta)]"
+                          }`}
                         >
-                          {brl(l.valor)}
-                        </TableCell>
-                        <TableCell>
-                          {l.conciliado ? (
-                            <Badge variant="secondary" className="font-normal">sim</Badge>
-                          ) : (
-                            <span className="text-xs text-amber-600">pendente</span>
-                          )}
+                          {l.tipo === "credito" ? "+" : "−"} {brl(l.valor)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -394,70 +578,26 @@ function ContasPage() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
 
-      {podeGerenciar && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Nova conta</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="lg:col-span-2">
-              <Label htmlFor="nome" className="text-xs">Nome *</Label>
-              <Input id="nome" value={form.nome} placeholder="Conta corrente Banco do Brasil"
-                     onChange={(e) => setForm({ ...form, nome: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="banco" className="text-xs">Banco</Label>
-              <Input id="banco" value={form.banco} placeholder="001"
-                     onChange={(e) => setForm({ ...form, banco: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="tipo" className="text-xs">Tipo</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                <SelectTrigger id="tipo"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="corrente">Corrente</SelectItem>
-                  <SelectItem value="poupanca">Poupança</SelectItem>
-                  <SelectItem value="caixa">Caixa (dinheiro)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="agencia" className="text-xs">Agência</Label>
-              <Input id="agencia" value={form.agencia}
-                     onChange={(e) => setForm({ ...form, agencia: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="numero" className="text-xs">Conta</Label>
-              <Input id="numero" value={form.conta}
-                     onChange={(e) => setForm({ ...form, conta: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="saldo" className="text-xs">Saldo inicial (R$)</Label>
-              <Input id="saldo" type="number" step="0.01" value={form.saldo_inicial}
-                     onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="desde" className="text-xs">Saldo na data de</Label>
-              <Input id="desde" type="date" value={form.saldo_inicial_data}
-                     onChange={(e) => setForm({ ...form, saldo_inicial_data: e.target.value })} />
-            </div>
-            <div className="lg:col-span-4">
-              <Button onClick={() => criarConta.mutate()} disabled={!form.nome.trim() || criarConta.isPending}>
-                {criarConta.isPending ? "Cadastrando…" : "Cadastrar conta"}
-              </Button>
-              <p className="mt-2 flex gap-2 text-xs text-muted-foreground">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                A data do saldo inicial importa: só o extrato a partir dela entra na conta. Sem
-                isso, um extrato antigo importado depois somaria movimento que o saldo já continha.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            <p className="text-xs text-muted-foreground">
+              Lançamentos que já existem nesta conta são ignorados automaticamente — pode reenviar o
+              mesmo extrato sem medo de duplicar o saldo.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => importar.mutate()}
+              disabled={linhas.length === 0 || importar.isPending}
+            >
+              {importar.isPending ? "Importando..." : `Importar ${linhas.length} lançamento(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

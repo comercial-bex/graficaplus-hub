@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import {
@@ -22,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ClipboardList, FileText, DollarSign, Truck, Download, Upload, MessageSquare } from "lucide-react";
+import { mensagemErro } from "@/lib/erros";
 
 
 export const Route = createFileRoute("/_authenticated/portal-cliente")({
@@ -136,7 +138,7 @@ function PortalClientePage() {
       mensagem: solicitacaoMsg,
       status: "aberta",
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Solicitação enviada à equipe BEX");
     setSolicitacaoMsg("");
     qc.invalidateQueries({ queryKey: ["portal-solicitacoes"] });
@@ -151,6 +153,7 @@ function PortalClientePage() {
     return (
       <div className="space-y-6">
         <SectionHeader
+        ajuda={dicaTela("/portal-cliente")}
           breadcrumb="Área do Cliente"
           title="Portal do Cliente"
           description="Acompanhe suas OS, pagamentos e documentos"

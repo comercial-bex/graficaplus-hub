@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Activity, Cuboid, Clock, Plus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/producao-3d")({
   head: () => ({ meta: [{ title: "Produção 3D — BEX PRINT OS" }] }),
@@ -96,7 +98,7 @@ function Producao3DPage() {
       .from("producao_3d_jobs")
       .update({ status })
       .eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Status do job atualizado");
     qc.invalidateQueries({ queryKey: ["producao-3d-jobs-full"] });
   }
@@ -117,7 +119,7 @@ function Producao3DPage() {
     const { error } = await (supabase as any)
       .from("producao_3d_apontamentos")
       .insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     // Auto-avança status do job de acordo com resultado
     if (novoResultado === "sucesso" && job) {
       await updateJobStatus(selectedJob, "concluido");
@@ -142,6 +144,7 @@ function Producao3DPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/producao-3d")}
         breadcrumb="Produção · Impressão 3D"
         title="Produção 3D — Jobs & Apontamentos"
         description="Gerencie jobs de impressão, registre apontamentos e sincronize status da OS"

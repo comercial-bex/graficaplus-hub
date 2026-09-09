@@ -12,6 +12,7 @@ import { Building2, Save, Image as ImageIcon, Trash2, Loader2 } from "lucide-rea
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { CampoDocumento } from "@/components/campo-documento";
 import { formatarCEP, formatarTelefone, type TipoDocumento } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
@@ -238,6 +239,7 @@ function ConfiguracoesEmpresaPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <SectionHeader
+        ajuda={dicaTela("/configuracoes-empresa")}
         breadcrumb="Configurações"
         title="Dados da empresa"
         description="Aparecem no cabeçalho dos orçamentos e ordens de serviço enviados ao cliente"

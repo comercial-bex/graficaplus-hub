@@ -29,54 +29,81 @@ export async function renderPDFBlob(props: DocumentoPDFProps): Promise<Blob> {
 }
 
 /**
- * Monta os itens do documento com metragem, acabamento e o layout de cada um.
+ * Monta os itens do documento com metragem, acabamento e as artes de cada um.
  *
- * O bucket arquivos-clientes é privado, então a arte precisa de URL assinada —
- * o caminho gravado NÃO é público. A assinatura vale 5 min, o suficiente para o
- * @react-pdf/renderer buscar a imagem enquanto monta o PDF.
+ * Cada item pode ter várias artes (tabela orcamento_item_arquivos); a marcada
+ * como capa é a que abre o bloco LAYOUT, as demais entram numeradas em seguida.
+ * O bucket arquivos-clientes é privado, então cada arte precisa de URL assinada
+ * — vale 5 min, o suficiente para o @react-pdf/renderer buscar a imagem.
  */
 async function montarItens(
   linhas: Record<string, unknown>[],
   mostrarValores: boolean,
 ): Promise<DocItem[]> {
-  const caminhoPorArquivo = new Map<string, string>();
-  const idsLayout = linhas
-    .map((i) => i.arquivo_id as string | null)
-    .filter((id): id is string => !!id);
+  const idsItens = linhas.map((i) => i.id as string | undefined).filter((id): id is string => !!id);
 
-  if (idsLayout.length > 0) {
-    const { data: arquivos } = await supabase
-      .from("arquivos")
-      .select("id, caminho")
-      .in("id", idsLayout);
-    for (const a of arquivos ?? []) {
-      const registro = a as { id: string; caminho: string };
-      caminhoPorArquivo.set(registro.id, registro.caminho);
+  // artes por item, em ordem: capa primeiro
+  const artesPorItem = new Map<string, string[]>();
+  if (idsItens.length > 0) {
+    const { data: vinculos } = await (supabase as any)
+      .from("orcamento_item_arquivos")
+      .select("item_id, arquivo_id, capa, ordem")
+      .in("item_id", idsItens)
+      .order("capa", { ascending: false })
+      .order("ordem");
+    for (const v of (vinculos ?? []) as {
+      item_id: string;
+      arquivo_id: string;
+    }[]) {
+      const lista = artesPorItem.get(v.item_id) ?? [];
+      lista.push(v.arquivo_id);
+      artesPorItem.set(v.item_id, lista);
     }
   }
 
-  const urlPorArquivo = new Map<string, string>();
-  await Promise.all(
-    [...caminhoPorArquivo.entries()].map(async ([id, caminho]) => {
-      const { data } = await supabase.storage
-        .from("arquivos-clientes")
-        .createSignedUrl(caminho, 300);
-      if (data?.signedUrl) urlPorArquivo.set(id, data.signedUrl);
-    }),
-  );
+  // itens antigos que só têm arquivo_id continuam funcionando
+  for (const i of linhas) {
+    const itemId = i.id as string | undefined;
+    const legado = i.arquivo_id as string | null | undefined;
+    if (itemId && legado && !artesPorItem.has(itemId)) artesPorItem.set(itemId, [legado]);
+  }
 
-  return linhas.map((i) => ({
-    descricao: String(i.descricao ?? ""),
-    unidade: (i.unidade as string) ?? undefined,
-    quantidade: Number(i.quantidade ?? 0),
-    largura: i.largura != null ? Number(i.largura) : null,
-    altura: i.altura != null ? Number(i.altura) : null,
-    area_total: i.area_total != null ? Number(i.area_total) : null,
-    acabamento: (i.acabamento as string) ?? null,
-    layout_url: i.arquivo_id ? (urlPorArquivo.get(i.arquivo_id as string) ?? null) : null,
-    valor_unitario: mostrarValores ? Number(i.valor_unitario ?? 0) : 0,
-    valor_total: mostrarValores ? Number(i.valor_total ?? 0) : 0,
-  }));
+  const todosIds = [...new Set([...artesPorItem.values()].flat())];
+  const urlPorArquivo = new Map<string, string>();
+
+  if (todosIds.length > 0) {
+    const { data: arquivos } = await supabase
+      .from("arquivos")
+      .select("id, caminho")
+      .in("id", todosIds);
+    await Promise.all(
+      ((arquivos ?? []) as { id: string; caminho: string }[]).map(async (a) => {
+        const { data } = await supabase.storage
+          .from("arquivos-clientes")
+          .createSignedUrl(a.caminho, 300);
+        if (data?.signedUrl) urlPorArquivo.set(a.id, data.signedUrl);
+      }),
+    );
+  }
+
+  return linhas.map((i) => {
+    const artes = (artesPorItem.get(i.id as string) ?? [])
+      .map((id) => urlPorArquivo.get(id))
+      .filter((url): url is string => !!url);
+    return {
+      descricao: String(i.descricao ?? ""),
+      unidade: (i.unidade as string) ?? undefined,
+      quantidade: Number(i.quantidade ?? 0),
+      largura: i.largura != null ? Number(i.largura) : null,
+      altura: i.altura != null ? Number(i.altura) : null,
+      area_total: i.area_total != null ? Number(i.area_total) : null,
+      acabamento: (i.acabamento as string) ?? null,
+      layout_url: artes[0] ?? null,
+      layouts_extras: artes.slice(1),
+      valor_unitario: mostrarValores ? Number(i.valor_unitario ?? 0) : 0,
+      valor_total: mostrarValores ? Number(i.valor_total ?? 0) : 0,
+    };
+  });
 }
 
 const somaArea = (itens: DocItem[]) => {
@@ -89,8 +116,9 @@ function descreverEntrega(entrega: unknown): string | null {
   if (!entrega || typeof entrega !== "object") return null;
   const e = entrega as Record<string, unknown>;
   if (typeof e.descricao === "string" && e.descricao.trim()) return e.descricao;
-  const partes = [e.logradouro, e.numero, e.bairro, e.cidade, e.estado, e.cep]
-    .filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  const partes = [e.logradouro, e.numero, e.bairro, e.cidade, e.estado, e.cep].filter(
+    (v): v is string => typeof v === "string" && v.trim() !== "",
+  );
   return partes.length > 0 ? partes.join(", ") : null;
 }
 
@@ -103,6 +131,49 @@ function descreverPagamento(condicao: unknown, total: number) {
     parcelas,
     valor_parcela: parcelas && parcelas > 0 ? Math.round((total / parcelas) * 100) / 100 : null,
   };
+}
+
+/**
+ * Bloco "composição de custos" da via interna: tarifas reais da planilha de
+ * custos (tabela custos_tabela) + custo previsto somado dos itens. Se o
+ * usuário não tiver permissão para ver custos, o bloco simplesmente não sai.
+ */
+async function carregarCustosPlanilha(
+  tabelaItens: "orcamento_itens" | "itens_os",
+  campoPai: "orcamento_id" | "os_id",
+  paiId: string,
+  receita: number,
+): Promise<DocumentoPDFProps["custos"]> {
+  try {
+    const [{ data: tabela }, { data: itens }] = await Promise.all([
+      supabase
+        .from("custos_tabela")
+        .select("categoria, descricao, unidade, valor, ativo")
+        .eq("ativo", true)
+        .order("categoria"),
+      (supabase as any)
+        .from(tabelaItens)
+        .select("quantidade, custo_unitario, custo_previsto")
+        .eq(campoPai, paiId),
+    ]);
+
+    const linhas = ((tabela ?? []) as any[]).map((c) => ({
+      descricao: `${String(c.categoria ?? "").replace(/_/g, " ")} · ${c.descricao ?? ""}`.trim(),
+      unidade: c.unidade ?? null,
+      valor: Number(c.valor ?? 0),
+    }));
+
+    const custoItens = ((itens ?? []) as any[]).reduce(
+      (a, i) =>
+        a + Number(i.custo_previsto ?? Number(i.custo_unitario ?? 0) * Number(i.quantidade ?? 0)),
+      0,
+    );
+
+    if (linhas.length === 0 && custoItens <= 0) return null;
+    return { linhas, custo_itens: custoItens, receita };
+  } catch {
+    return null;
+  }
 }
 
 export async function carregarPropsOrcamento(
@@ -152,15 +223,17 @@ export async function carregarPropsOrcamento(
     numero: orc.numero,
     data_solicitacao: fmt(orc.created_at),
     data_validade: validade,
-    data_entrega: fmt((orc as any).prazo),
+    data_entrega: fmt((orc as any).data_entrega_prometida ?? (orc as any).prazo),
     vendedor: (vendedor as any)?.nome ?? null,
     status: orc.status,
     empresa,
     cliente: {
       nome: c.nome ?? (orc as any).cliente_nome ?? (orc as any).contato_nome ?? "—",
-      razao_social: c.razao_social,
+      razao_social: c.razao_social ?? c.nome ?? (orc as any).contato_nome,
       nome_fantasia: c.nome_fantasia,
       documento: c.documento ?? c.cpf_cnpj,
+      inscricao_estadual: c.inscricao_estadual,
+
       endereco: c.endereco,
       bairro: c.bairro,
       cidade: c.cidade,
@@ -182,12 +255,19 @@ export async function carregarPropsOrcamento(
       ? Math.max(0, Number((orc as any).valor_subtotal ?? total) - total)
       : null,
     total,
-    pagamento: mostrarValores
-      ? descreverPagamento((orc as any).condicao_pagamento, total)
-      : null,
+    pagamento: mostrarValores ? descreverPagamento((orc as any).condicao_pagamento, total) : null,
     entrega: descreverEntrega((orc as any).endereco_entrega),
     observacoes: orc.observacoes,
     mostrarValores,
+    // a via do cliente nunca leva custo; a via interna leva a planilha real
+    custos: mostrarValores
+      ? null
+      : await carregarCustosPlanilha(
+          "orcamento_itens",
+          "orcamento_id",
+          orcamentoId,
+          Number((orc as any).valor_total ?? 0),
+        ),
   };
 }
 
@@ -330,9 +410,7 @@ export async function carregarPropsOS(
     subtotal: null,
     desconto: mostrarValores ? Number((os as any).desconto ?? 0) : null,
     total,
-    pagamento: mostrarValores
-      ? descreverPagamento((os as any).condicao_pagamento, total)
-      : null,
+    pagamento: mostrarValores ? descreverPagamento((os as any).condicao_pagamento, total) : null,
     entrega: descreverEntrega((os as any).endereco_entrega),
     // A identificação legal vai junto das observações da OS, que é o bloco que a
     // produção lê antes de imprimir.
@@ -340,6 +418,14 @@ export async function carregarPropsOS(
       .filter(Boolean)
       .join("\n\n"),
     mostrarValores,
+    custos: mostrarValores
+      ? null
+      : await carregarCustosPlanilha(
+          "itens_os",
+          "os_id",
+          osId,
+          Number((os as any).valor_total ?? 0),
+        ),
   };
 }
 
@@ -364,7 +450,8 @@ export async function carregarPropsOrcamento3d(
 
   const qtd = Number(orc.quantidade ?? 1) || 1;
   const preco = Number(orc.preco_comercial ?? 0);
-  const unit = calc?.valor_unitario != null ? Number(calc.valor_unitario) : qtd > 0 ? preco / qtd : preco;
+  const unit =
+    calc?.valor_unitario != null ? Number(calc.valor_unitario) : qtd > 0 ? preco / qtd : preco;
   const validade = orc.validade
     ? new Date(orc.validade).toLocaleDateString("pt-BR")
     : orc.created_at

@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Image, Check, X, MessageSquare } from "lucide-react";
 import { db, formatDateTime } from "@/lib/module-data";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/design")({
   head: () => ({ meta: [{ title: "Design & Arte — BEX PRINT OS" }] }),
   component: DesignPage,
@@ -45,7 +48,7 @@ function DesignPage() {
       toast.success("Aprovação registrada");
       qc.invalidateQueries({ queryKey: ["design-aprovacoes"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   const concluir = useMutation({
     mutationFn: async (id: string) => {
@@ -53,12 +56,15 @@ function DesignPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["design-aprovacoes"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Design & Aprovação de Arte</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Design & Aprovação de Arte</h1>
+          <DicaIcone texto={dicaTela("/design")} rotulo="Design e Aprovação de Arte" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">
           Fila de artes aguardando aprovação interna ou do cliente
         </p>

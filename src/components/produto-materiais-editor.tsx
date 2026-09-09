@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Trash2, Boxes } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 type ProdutoMaterial = {
   id: string;
@@ -91,7 +92,7 @@ export function ProdutoMateriaisEditor({
       material_id: selectedMat.id,
       quantidade_por_unidade: qtd,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     setSelectedMat(null);
     setQtdNova("1");
     qc.invalidateQueries({ queryKey: ["produto-materiais", produtoId] });
@@ -104,7 +105,7 @@ export function ProdutoMateriaisEditor({
       .from("produto_materiais" as any)
       .update({ quantidade_por_unidade: qtd })
       .eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["produto-materiais", produtoId] });
   }
 
@@ -113,7 +114,7 @@ export function ProdutoMateriaisEditor({
       .from("produto_materiais" as any)
       .delete()
       .eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["produto-materiais", produtoId] });
   }
 

@@ -36,7 +36,10 @@ import { Plus, CheckCircle2 , Undo2} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { Textarea } from "@/components/ui/textarea";
+import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/financeiro")({
   head: () => ({ meta: [{ title: "Financeiro — BEX PRINT OS" }] }),
   component: FinanceiroPage,
@@ -110,7 +113,7 @@ function FinanceiroPage() {
       total_parcelas: parseInt(form.total_parcelas),
       status: "pendente",
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Pagamento registrado");
     setOpen(false);
     setForm({
@@ -155,7 +158,7 @@ function FinanceiroPage() {
       p_data: today,
       p_referencia_externa: null,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Pagamento confirmado");
     qc.invalidateQueries({ queryKey: ["pagamentos"] });
   }
@@ -164,7 +167,10 @@ function FinanceiroPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Financeiro</h1>
+            <DicaIcone texto={dicaTela("/financeiro")} rotulo="Financeiro" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">Pagamentos e recebimentos</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -179,7 +185,7 @@ function FinanceiroPage() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>OS *</Label>
+                <Label className="flex items-center gap-1.5">OS *<DicaIcone texto={dicaCampo("/financeiro", "OS *")} rotulo="OS *" /></Label>
                 <Select value={form.os_id} onValueChange={(v) => setForm({ ...form, os_id: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -195,7 +201,7 @@ function FinanceiroPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Valor (R$) *</Label>
+                  <Label className="flex items-center gap-1.5">Valor (R$) *<DicaIcone texto={dicaCampo("/financeiro", "Valor (R$) *")} rotulo="Valor (R$) *" /></Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -204,7 +210,7 @@ function FinanceiroPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Vencimento</Label>
+                  <Label className="flex items-center gap-1.5">Vencimento<DicaIcone texto={dicaCampo("/financeiro", "Vencimento")} rotulo="Vencimento" /></Label>
                   <Input
                     type="date"
                     value={form.data_vencimento}
@@ -214,7 +220,7 @@ function FinanceiroPage() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <Label>Forma</Label>
+                  <Label className="flex items-center gap-1.5">Forma<DicaIcone texto={dicaCampo("/financeiro", "Forma")} rotulo="Forma" /></Label>
                   <Select
                     value={form.forma_pagamento}
                     onValueChange={(v) => setForm({ ...form, forma_pagamento: v })}
@@ -232,7 +238,7 @@ function FinanceiroPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Parcela</Label>
+                  <Label className="flex items-center gap-1.5">Parcela<DicaIcone texto={dicaCampo("/financeiro", "Parcela")} rotulo="Parcela" /></Label>
                   <Input
                     type="number"
                     min="1"
@@ -241,7 +247,7 @@ function FinanceiroPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Total parcelas</Label>
+                  <Label className="flex items-center gap-1.5">Total parcelas<DicaIcone texto={dicaCampo("/financeiro", "Total parcelas")} rotulo="Total parcelas" /></Label>
                   <Input
                     type="number"
                     min="1"

@@ -6,12 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Star, Smile, Meh, Frown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/pos-venda")({
   head: () => ({ meta: [{ title: "Pós-venda / NPS — BEX PRINT OS" }] }),
@@ -77,7 +79,7 @@ function PosVendaPage() {
       nota,
       comentario: comentario || null,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     await (supabase as any)
       .from("pos_venda_pesquisas")
       .update({ status: "respondida" })
@@ -95,7 +97,7 @@ function PosVendaPage() {
       .from("pos_venda_pesquisas")
       .update({ status: "enviada", enviada_em: new Date().toISOString() })
       .eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Pesquisa marcada como enviada");
     qc.invalidateQueries({ queryKey: ["pos-venda-pesquisas"] });
   }
@@ -103,6 +105,7 @@ function PosVendaPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/pos-venda")}
         breadcrumb="Análise · Pós-venda"
         title="Pós-venda & NPS"
         description="Pesquisas agendadas automaticamente pelo fechar_os. Colete NPS, comentários e feedback do cliente."

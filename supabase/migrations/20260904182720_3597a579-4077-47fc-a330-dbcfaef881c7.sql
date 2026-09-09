@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.custos_tabela_log() FROM PUBLIC, anon, authenticated;

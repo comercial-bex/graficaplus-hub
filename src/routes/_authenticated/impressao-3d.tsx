@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
   operationalCost,
   MOTOR_VERSION,
 } from "@/domain/impressao3d/cost-engine";
+import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/impressao-3d")({
   head: () => ({ meta: [{ title: "Impressão 3D — BEX PRINT OS" }] }),
@@ -62,7 +64,7 @@ function Impressao3DPage() {
       qc.invalidateQueries({ queryKey: ["orcamentos-3d"] });
       if (res?.os_id) navigate({ to: "/os/$id", params: { id: res.os_id } });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   const { data: orcamentos = [], isLoading } = useQuery({
@@ -130,6 +132,7 @@ function Impressao3DPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/impressao-3d")}
         breadcrumb="Comercial · Impressão 3D"
         title="Impressão 3D"
         description="Orçamentos 3D com motor de custo Decimal, produção e apontamentos"

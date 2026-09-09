@@ -8,7 +8,10 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { ArrowLeft, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/orcamento-3d/$id")({
   head: () => ({ meta: [{ title: "Orçamento 3D — BEX PRINT OS" }] }),
   component: OrcamentoDetalhe,
@@ -82,7 +85,7 @@ function OrcamentoDetalhe() {
       qc.invalidateQueries({ queryKey: ["orcamento-3d", id] });
       if (res?.os_id) navigate({ to: "/os/$id", params: { id: res.os_id } });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
   if (isLoading) return <div className="text-muted-foreground">Carregando...</div>;
@@ -107,7 +110,10 @@ function OrcamentoDetalhe() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">{orc.titulo}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">{orc.titulo}</h1>
+            <DicaIcone texto={dicaTela("/orcamento-3d")} rotulo="Orçamento 3D" lado="bottom" className="h-5 w-5" />
+          </div>
           <p className="text-muted-foreground">
             {orc.clientes?.nome ?? orc.contato_nome ?? "Sem cliente"} · Qtd {Number(orc.quantidade ?? 1)}
           </p>

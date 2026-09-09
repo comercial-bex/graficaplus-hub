@@ -18,7 +18,10 @@ import { db, formatDateTime } from "@/lib/module-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/maquinas-agenda")({
   head: () => ({ meta: [{ title: "Agenda de máquinas — BEX PRINT OS" }] }),
   component: AgendaPage,
@@ -158,7 +161,7 @@ function AgendaPage() {
       setOperador("");
       qc.invalidateQueries({ queryKey: ["maquinas-agenda"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const update = useMutation({
@@ -167,7 +170,7 @@ function AgendaPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["maquinas-agenda"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const nomePorId = new Map(equipe.map((p: any) => [p.id, p.nome]));
@@ -175,7 +178,10 @@ function AgendaPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Agenda de máquinas</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Agenda de máquinas</h1>
+          <DicaIcone texto={dicaTela("/maquinas-agenda")} rotulo="Agenda de máquinas" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">
           Quem ocupa qual equipamento, quando — e quanto tempo levou de verdade.
         </p>

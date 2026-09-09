@@ -5,6 +5,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,7 @@ function WhatsappMonitorPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
+        ajuda={dicaTela("/whatsapp-monitor")}
         breadcrumb="Atendimento · WhatsApp"
         title="Monitor de automações WhatsApp por OS"
         description="Acompanhe mensagens enviadas pelas automações, status de entrega e reenvie manualmente quando necessário"

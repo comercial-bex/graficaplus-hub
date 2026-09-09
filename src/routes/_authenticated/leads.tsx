@@ -37,7 +37,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { UserCheck, XCircle } from "lucide-react";
+import { mensagemErro } from "@/lib/erros";
 
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({ meta: [{ title: "Leads — BEX PRINT OS" }] }),
   component: LeadsPage,
@@ -148,7 +151,7 @@ function LeadsPage() {
       setForm({ ...vazio });
       qc.invalidateQueries({ queryKey: ["leads"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const mudarEstagio = useMutation({
@@ -157,7 +160,7 @@ function LeadsPage() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const converterLead = useMutation({
@@ -220,7 +223,10 @@ function LeadsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
+          <DicaIcone texto={dicaTela("/leads")} rotulo="Leads" lado="bottom" className="h-5 w-5" />
+        </div>
         <p className="text-muted-foreground">
           Quem procurou a gráfica e ainda não virou cliente.{" "}
           <Link to="/funil" className="underline">

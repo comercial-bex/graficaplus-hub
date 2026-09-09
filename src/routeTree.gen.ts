@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
+import { Route as OrcamentoPublicoTokenRouteImport } from './routes/orcamento-publico.$token'
 import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
@@ -24,6 +25,7 @@ import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedProdutividade3dRouteImport } from './routes/_authenticated/produtividade-3d'
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
+import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authenticated/planilha-custos'
@@ -98,6 +100,11 @@ const PublicoTokenRoute = PublicoTokenRouteImport.update({
   path: '/publico/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrcamentoPublicoTokenRoute = OrcamentoPublicoTokenRouteImport.update({
+  id: '/orcamento-publico/$token',
+  path: '/orcamento-publico/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AprovarTokenRoute = AprovarTokenRouteImport.update({
   id: '/aprovar/$token',
   path: '/aprovar/$token',
@@ -146,6 +153,12 @@ const AuthenticatedProducao3dRoute = AuthenticatedProducao3dRouteImport.update({
   path: '/producao-3d',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPrecificacaoRoute =
+  AuthenticatedPrecificacaoRouteImport.update({
+    id: '/precificacao',
+    path: '/precificacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPosVendaRoute = AuthenticatedPosVendaRouteImport.update({
   id: '/pos-venda',
   path: '/pos-venda',
@@ -431,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
+  '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -440,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
@@ -491,6 +506,7 @@ export interface FileRoutesByTo {
   '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
+  '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -500,6 +516,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
@@ -553,6 +570,7 @@ export interface FileRoutesById {
   '/_authenticated/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
+  '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
   '/_authenticated/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
@@ -562,6 +580,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
@@ -615,6 +634,7 @@ export interface FileRouteTypes {
     | '/planilha-custos'
     | '/portal-cliente'
     | '/pos-venda'
+    | '/precificacao'
     | '/producao-3d'
     | '/produtividade-3d'
     | '/produtos'
@@ -624,6 +644,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/orcamento-publico/$token'
     | '/publico/$token'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
@@ -675,6 +696,7 @@ export interface FileRouteTypes {
     | '/planilha-custos'
     | '/portal-cliente'
     | '/pos-venda'
+    | '/precificacao'
     | '/producao-3d'
     | '/produtividade-3d'
     | '/produtos'
@@ -684,6 +706,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/orcamento-publico/$token'
     | '/publico/$token'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
@@ -736,6 +759,7 @@ export interface FileRouteTypes {
     | '/_authenticated/planilha-custos'
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
+    | '/_authenticated/precificacao'
     | '/_authenticated/producao-3d'
     | '/_authenticated/produtividade-3d'
     | '/_authenticated/produtos'
@@ -745,6 +769,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/orcamento-publico/$token'
     | '/publico/$token'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamento-3d/$id'
@@ -762,6 +787,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   AprovarTokenRoute: typeof AprovarTokenRoute
+  OrcamentoPublicoTokenRoute: typeof OrcamentoPublicoTokenRoute
   PublicoTokenRoute: typeof PublicoTokenRoute
 }
 
@@ -807,6 +833,13 @@ declare module '@tanstack/react-router' {
       path: '/publico/$token'
       fullPath: '/publico/$token'
       preLoaderRoute: typeof PublicoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orcamento-publico/$token': {
+      id: '/orcamento-publico/$token'
+      path: '/orcamento-publico/$token'
+      fullPath: '/orcamento-publico/$token'
+      preLoaderRoute: typeof OrcamentoPublicoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aprovar/$token': {
@@ -870,6 +903,13 @@ declare module '@tanstack/react-router' {
       path: '/producao-3d'
       fullPath: '/producao-3d'
       preLoaderRoute: typeof AuthenticatedProducao3dRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/precificacao': {
+      id: '/_authenticated/precificacao'
+      path: '/precificacao'
+      fullPath: '/precificacao'
+      preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pos-venda': {
@@ -1221,6 +1261,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlanilhaCustosRoute: typeof AuthenticatedPlanilhaCustosRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
+  AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
   AuthenticatedProdutividade3dRoute: typeof AuthenticatedProdutividade3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
@@ -1277,6 +1318,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlanilhaCustosRoute: AuthenticatedPlanilhaCustosRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
+  AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
   AuthenticatedProdutividade3dRoute: AuthenticatedProdutividade3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
@@ -1304,6 +1346,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   AprovarTokenRoute: AprovarTokenRoute,
+  OrcamentoPublicoTokenRoute: OrcamentoPublicoTokenRoute,
   PublicoTokenRoute: PublicoTokenRoute,
 }
 export const routeTree = rootRouteImport

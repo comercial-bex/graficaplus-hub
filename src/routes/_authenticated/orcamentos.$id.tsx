@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,45 +24,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, ArrowRight, FileDown, Calculator } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  ArrowRight,
+  FileDown,
+  Printer,
+  Link as LinkIcon,
+  MessageCircle,
+  Loader2,
+  Copy,
+  TrendingDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
-import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
-import { SectionHeader } from "@/components/bex/SectionHeader";
+import { OrcamentoProdutoPicker } from "@/components/orcamento-produto-picker";
+import { OrcamentoMaterialCheck } from "@/components/orcamento-material-check";
+import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
+import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
+  areaCobrada,
   areaTotal,
   areaUnitaria,
-  baseDeConsumo,
   descreverMetragem,
   ehUnidadeDeArea,
   somaAreaTotal,
   temDimensoes,
-  valorUnitarioPorM2,
+  valorUnitarioComMinimo,
+
 } from "@/domain/orcamentos/area";
-import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
-import { PrazosCard } from "@/components/orcamento/prazos-card";
 import {
-  FaixaDePrecoAviso,
-  RestricoesDoProduto,
-  ValidadeDaTabela,
-  useFaixaDePreco,
-  usePedidoMinimo,
-  useRestricaoProduto,
-} from "@/components/orcamento/faixa-de-preco";
-import {
-  AproveitamentoDeBobina,
-  useContextoDeBobina,
-} from "@/components/orcamento/aproveitamento-card";
+  descreverFaixa,
+  faixaAplicada,
+  proximaFaixa,
+  type FaixaPreco,
+} from "@/domain/orcamentos/faixas";
+import { mensagemErro } from "@/lib/erros";
 
-const rotuloOrigem: Record<string, string> = {
-  manual: "digitado",
-  catalogo: "catálogo",
-  motor: "calculado",
-};
-
+import { Dica, DicaIcone } from "@/components/bex/Dica";
+import { dicaAcao, dicaTela } from "@/lib/dicas";
 const itemVazio = {
   descricao: "",
   quantidade: "1",
@@ -75,16 +80,11 @@ const itemVazio = {
   produto_id: null as string | null,
   arquivo_id: null as string | null,
   arquivo_nome: null as string | null,
-  // De onde saiu o custo. Enquanto era sempre null, "custo" e "chute" eram a
-  // mesma coisa no relatório de margem — não dava para saber qual item tinha
-  // conta feita por trás. 'manual' é o padrão porque o campo é digitável.
-  origem_calculo: "manual" as "manual" | "catalogo" | "motor",
-  // "tabela" = veio da faixa de quantidade; "manual" = o vendedor digitou.
-  origem_preco: "manual" as "manual" | "tabela",
-  custo_previsto: null as number | null,
-  margem_prevista: null as number | null,
-  parametros: null as Record<string, unknown> | null,
+  area_minima: null as number | null,
+  margem_minima: null as number | null,
+  tempo_producao_min: null as number | null,
 };
+
 
 const paraNumero = (texto: string) => {
   const n = Number(String(texto).replace(",", "."));
@@ -117,12 +117,13 @@ export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
 function OrcamentoDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
-  const { canSeeFinancials, hasPermission } = useAuth();
+  const { canSeeFinancials } = useAuth();
   const [form, setForm] = useState({ ...itemVazio });
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewCustos, setPreviewCustos] = useState(false);
+  const [previewProducaoOpen, setPreviewProducaoOpen] = useState(false);
+  const [gerandoLink, setGerandoLink] = useState(false);
   const [enviandoLayout, setEnviandoLayout] = useState(false);
-  const [calculadoraAberta, setCalculadoraAberta] = useState(false);
+
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id, canSeeFinancials ? "financeiro" : "operacional"],
@@ -163,6 +164,23 @@ function OrcamentoDetailPage() {
     },
   });
 
+  // Tabela de preço por quantidade do produto — o degrau muda o preço unitário
+  // sugerido conforme o vendedor mexe na quantidade.
+  const { data: faixas = [] } = useQuery({
+    queryKey: ["produto-faixas-preco", form.produto_id],
+    enabled: !!form.produto_id && canSeeFinancials,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_faixas_preco")
+        .select(
+          "id, quantidade_minima, preco_unitario, preco_m2_referencia, observacao, vigencia_inicio, vigencia_fim",
+        )
+        .eq("produto_id", form.produto_id);
+      if (error) throw error;
+      return (data ?? []) as FaixaPreco[];
+    },
+  });
+
   function aplicarTamanho(t: TamanhoProduto) {
     setForm((atual) => ({
       ...atual,
@@ -170,6 +188,16 @@ function OrcamentoDetailPage() {
       altura: String(t.altura),
     }));
   }
+
+  // Tamanho marcado como padrão entra sozinho: é a medida que a gráfica mais
+  // vende daquele produto, e medida redigitada é onde nasce erro de produção.
+  useEffect(() => {
+    if (!form.produto_id || form.largura || form.altura) return;
+    const padrao = tamanhos.find((t) => t.padrao);
+    if (padrao) aplicarTamanho(padrao);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tamanhos, form.produto_id]);
+
 
   async function recalcular() {
     if (!canSeeFinancials) return;
@@ -208,19 +236,77 @@ function OrcamentoDetailPage() {
     altura: paraNumero(form.altura),
     quantidade: paraNumero(form.quantidade),
   };
-  // Produto de tabela por faixa (catálogo de campanha): o preço vem da faixa,
-  // não do preço-base único do cadastro.
-  const { data: faixa } = useFaixaDePreco(form.produto_id, paraNumero(form.quantidade));
-  const { data: pedidoMinimo } = usePedidoMinimo(form.produto_id);
-  const { data: restricao } = useRestricaoProduto(form.produto_id);
-  const { data: contextoBobina } = useContextoDeBobina(form.produto_id);
-
   const precoM2Form = paraNumero(form.preco_m2);
   const vendidoPorArea = temDimensoes(dimensoesForm);
   // Com preço/m² informado, o valor unitário é derivado — o trigger no banco
-  // aplica a mesma regra, então o campo fica só como leitura.
+  // aplica a mesma regra, então o campo fica só como leitura. Com área mínima
+  // cadastrada, a peça pequena paga o mínimo (setup e refile não encolhem).
   const valorUnitarioDerivado =
-    vendidoPorArea && precoM2Form > 0 ? valorUnitarioPorM2(dimensoesForm, precoM2Form) : null;
+    vendidoPorArea && precoM2Form > 0
+      ? valorUnitarioComMinimo(dimensoesForm, precoM2Form, form.area_minima)
+      : null;
+  const areaFaturada = vendidoPorArea ? areaCobrada(dimensoesForm, form.area_minima) : 0;
+  const minimoAplicado = areaFaturada > areaTotal(dimensoesForm) + 0.0001;
+
+  // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
+  const quantidadeForm = paraNumero(form.quantidade) || 1;
+  const faixaAtual = faixaAplicada(faixas, quantidadeForm);
+  const faixaSeguinte = proximaFaixa(faixas, quantidadeForm);
+
+  // Preço unitário efetivo do item em edição, para conferir a margem na hora.
+  const valorUnitarioEfetivo =
+    valorUnitarioDerivado !== null ? valorUnitarioDerivado : paraNumero(form.valor_unitario);
+  const custoUnitarioForm = paraNumero(form.custo_unitario);
+  const margemItem =
+    valorUnitarioEfetivo > 0
+      ? ((valorUnitarioEfetivo - custoUnitarioForm) / valorUnitarioEfetivo) * 100
+      : null;
+  const margemMinimaItem = form.margem_minima ?? null;
+  const margemAbaixoDoMinimo =
+    margemItem !== null && margemMinimaItem !== null && margemItem < margemMinimaItem;
+
+  // Base que multiplica o consumo de material: m² cobrados quando vendido por
+  // área, senão a quantidade de peças.
+  const baseConsumo = vendidoPorArea ? areaFaturada : quantidadeForm;
+
+  /** Aplica o produto do catálogo ao formulário, já com preço, custo e limites. */
+  function aplicarProduto(p: {
+    id: string;
+    nome: string;
+    unidade: string;
+    preco_base: number | null;
+    custo_medio: number;
+    margem_minima: number;
+    area_minima_cobrada: number | null;
+    tempo_producao_min: number | null;
+  }) {
+    setForm({
+      ...itemVazio,
+      descricao: p.nome,
+      quantidade: form.quantidade || "1",
+      unidade: p.unidade,
+      preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
+      valor_unitario: String(p.preco_base ?? 0),
+      custo_unitario: String(p.custo_medio ?? 0),
+      produto_id: p.id,
+      area_minima: p.area_minima_cobrada ?? null,
+      margem_minima: Number(p.margem_minima ?? 0) || null,
+      tempo_producao_min: p.tempo_producao_min ?? null,
+    });
+  }
+
+  /** Usa o preço da faixa atingida no item em edição. */
+  function aplicarFaixa(faixa: FaixaPreco) {
+    setForm((atual) => ({
+      ...atual,
+      valor_unitario: String(faixa.preco_unitario),
+      preco_m2:
+        ehUnidadeDeArea(atual.unidade) && faixa.preco_m2_referencia
+          ? String(faixa.preco_m2_referencia)
+          : atual.preco_m2,
+    }));
+  }
+
 
   async function enviarLayout(arquivo: File) {
     setEnviandoLayout(true);
@@ -241,10 +327,6 @@ function OrcamentoDetailPage() {
           tipo: "arte",
           cliente_id: (orc as any)?.cliente_id ?? null,
           tamanho_bytes: arquivo.size,
-          // Quem enviou. Sem isso, os 3 arquivos que existem no sistema têm
-          // apenas o cliente preenchido: não dá para saber quem subiu a arte
-          // nem cobrar de alguém quando ela vem errada.
-          enviado_por: (await supabase.auth.getUser()).data.user?.id ?? null,
         } as any)
         .select("id, nome")
         .single();
@@ -272,7 +354,7 @@ function OrcamentoDetailPage() {
     // valor_total e (quando há preço/m²) valor_unitario são derivados pelo
     // trigger tg_orcamento_itens_precificar — não são enviados daqui para não
     // haver dois lugares calculando o mesmo número.
-    const { error } = await supabase.from("orcamento_itens").insert({
+    const { data: novoItem, error } = await supabase.from("orcamento_itens").insert({
       orcamento_id: id,
       descricao: form.descricao,
       quantidade: qtd,
@@ -286,12 +368,18 @@ function OrcamentoDetailPage() {
       ordem: itens.length,
       produto_id: form.produto_id,
       arquivo_id: form.arquivo_id,
-      origem_calculo: form.origem_calculo,
-      custo_previsto: form.custo_previsto,
-      margem_prevista: form.margem_prevista,
-      parametros: form.parametros,
-    } as any);
-    if (error) return toast.error(error.message);
+    } as any).select("id").single();
+    if (error) return toast.error(mensagemErro(error));
+    // a arte enviada no formulário vira a capa do item; as demais são
+    // anexadas depois pelo botão de artes na linha
+    if (form.arquivo_id && (novoItem as any)?.id) {
+      await (supabase as any).from("orcamento_item_arquivos").insert({
+        item_id: (novoItem as any).id,
+        arquivo_id: form.arquivo_id,
+        capa: true,
+        ordem: 0,
+      });
+    }
     setForm({ ...itemVazio });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     await recalcular();
@@ -303,12 +391,93 @@ function OrcamentoDetailPage() {
     await recalcular();
   }
 
+  /** Copia o item para a lista: mesma arte e mesmo preço, medida ajustável. */
+  async function duplicarItem(item: any) {
+    const { data: novo, error } = await (supabase as any)
+      .from("orcamento_itens")
+      .insert({
+        orcamento_id: id,
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        unidade: item.unidade,
+        largura: item.largura,
+        altura: item.altura,
+        acabamento: item.acabamento,
+        preco_m2: canSeeFinancials ? item.preco_m2 : null,
+        valor_unitario: canSeeFinancials ? item.valor_unitario : 0,
+        custo_unitario: item.custo_unitario,
+        ordem: itens.length,
+        produto_id: item.produto_id,
+        arquivo_id: item.arquivo_id,
+      })
+      .select("id")
+      .single();
+    if (error) return toast.error(mensagemErro(error));
+    if (item.arquivo_id && novo?.id) {
+      await (supabase as any).from("orcamento_item_arquivos").insert({
+        item_id: novo.id,
+        arquivo_id: item.arquivo_id,
+        capa: true,
+        ordem: 0,
+      });
+    }
+    toast.success("Item duplicado");
+    await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+    await recalcular();
+  }
+
+
+  /** Link de aprovação do cliente: mesma URL sempre, gerada uma única vez. */
+  async function obterLinkCliente() {
+    const { token } = await gerarLinkPublicoOrcamento({ data: { orcamentoId: id } });
+    return `${window.location.origin}/orcamento-publico/${token}`;
+  }
+
+  async function copiarLinkCliente() {
+    setGerandoLink(true);
+    try {
+      const url = await obterLinkCliente();
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado. É só colar para o cliente.");
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível gerar o link"));
+    } finally {
+      setGerandoLink(false);
+    }
+  }
+
+  async function enviarWhatsApp() {
+    setGerandoLink(true);
+    try {
+      const url = await obterLinkCliente();
+      const telefone = String(
+        (orc as any)?.cliente_whatsapp ??
+          (orc as any)?.cliente_telefone ??
+          (orc as any)?.contato_telefone ??
+          "",
+      ).replace(/\D/g, "");
+      const destino = telefone ? (telefone.length > 11 ? telefone : `55${telefone}`) : "";
+      const texto = `Olá! Segue o orçamento nº ${(orc as any).numero} — ${(orc as any).titulo}.\nVocê pode conferir e aprovar por aqui: ${url}`;
+      window.open(
+        `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`,
+        "_blank",
+        "noopener",
+      );
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível abrir o WhatsApp"));
+    } finally {
+      setGerandoLink(false);
+    }
+  }
+
+
+
   async function setStatus(novoStatus: string) {
     const update: any = { status: novoStatus };
     if (novoStatus === "enviado") update.enviado_em = new Date().toISOString();
     if (novoStatus === "aprovado") update.aprovado_em = new Date().toISOString();
     const { error } = await supabase.from("orcamentos").update(update).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     toast.success("Status atualizado");
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }
@@ -318,7 +487,7 @@ function OrcamentoDetailPage() {
       p_orcamento_id: id,
       p_opcoes: {},
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(mensagemErro(error));
     const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
     toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
@@ -334,94 +503,104 @@ function OrcamentoDetailPage() {
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        breadcrumb={`Orçamento · #${orc.numero}`}
-        title={orc.titulo}
-        description={
-          orc.cliente_nome ? `Cliente: ${orc.cliente_nome}` : undefined
-        }
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link to="/orcamentos">
-              <Button variant="ghost" size="icon" title="Voltar">
+      <header className="space-y-4 border-b border-border pb-5 mb-2">
+        {/* Linha 1 — identificação */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0">
+            <Button asChild variant="ghost" size="icon" className="mt-1 shrink-0" title="Voltar para orçamentos">
+              <Link to="/orcamentos">
                 <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <StatusChip label={orc.status} tone={statusTone[orc.status] ?? "muted"} />
-            <Select value={orc.status} onValueChange={setStatus}>
-              <SelectTrigger className="w-40 h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {["rascunho", "enviado", "aprovado", "rejeitado", "expirado"].map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPreviewCustos(false);
-                setPreviewOpen(true);
-              }}
-            >
-              <FileDown className="h-4 w-4 mr-1" /> PDF
+              </Link>
             </Button>
-            {canSeeFinancials && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setPreviewCustos(true);
-                  setPreviewOpen(true);
-                }}
-                title="Mesma folha, com a base de custo anexada. Não é o documento do cliente."
-              >
-                <FileDown className="h-4 w-4 mr-1" /> PDF c/ custos
-              </Button>
-            )}
-            {orc.status !== "convertido" && !orc.os_id && (
-              <Button onClick={converterEmOS}>
-                Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                <span>Orçamento #{orc.numero}</span>
+                <StatusChip label={orc.status} tone={statusTone[orc.status] ?? "muted"} />
+              </div>
+              <div className="mt-1 flex items-center gap-2 min-w-0">
+                <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{orc.titulo}</h1>
+                <DicaIcone texto={dicaTela("/orcamentos")} rotulo="Orçamento" lado="bottom" className="h-5 w-5" />
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {orc.cliente_nome ? (
+                  <>Cliente: <span className="text-foreground font-medium">{orc.cliente_nome}</span></>
+                ) : (
+                  "Sem cliente vinculado"
+                )}
+              </p>
+            </div>
           </div>
-        }
-      />
 
-      <div className="mb-4">
-        <PrazosCard orcamento={orc as any} podeEditar={hasPermission("orcamentos.update")} />
-      </div>
+          {orc.status !== "convertido" && !orc.os_id && (
+            <Button onClick={converterEmOS} className="shrink-0">
+              Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          )}
+        </div>
+
+        {/* Linha 2 — ações secundárias */}
+        <div className="flex items-center gap-2 flex-wrap pl-12">
+          <Select value={orc.status} onValueChange={setStatus}>
+            <SelectTrigger className="w-40 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["rascunho", "enviado", "aprovado", "rejeitado", "expirado"].map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="h-6 w-px bg-border mx-1" />
+          <Dica texto={dicaAcao("/orcamentos", "pdf")}><Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF
+          </Button></Dica>
+          <Dica texto={dicaAcao("/orcamentos", "producao")}><Button variant="outline" size="sm" onClick={() => setPreviewProducaoOpen(true)}>
+            <Printer className="h-4 w-4 mr-1" /> Via de produção
+          </Button></Dica>
+          <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" size="sm" onClick={copiarLinkCliente} disabled={gerandoLink}>
+            {gerandoLink ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <LinkIcon className="h-4 w-4 mr-1" />
+            )}
+            Link do cliente
+          </Button></Dica>
+          <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
+            <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+          </Button></Dica>
+        </div>
+      </header>
+
 
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="flex justify-end">
-            <ProdutoAutocomplete
-              onSelect={(p) =>
-                setForm({
-                  ...itemVazio,
-                  descricao: p.nome,
-                  quantidade: form.quantidade || "1",
-                  unidade: p.unidade,
-                  // produto medido em área já entra no modo de venda por m²;
-                  // o catálogo usa "m2", mas "m²" aparece digitado à mão
-                  preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
-                  valor_unitario: String(p.preco_base ?? 0),
-                  custo_unitario: String(p.custo_medio ?? 0),
-                  produto_id: p.id,
-                  // custo_medio do catálogo é média histórica, não conta deste item
-                  origem_calculo: "catalogo",
-                })
-              }
+          {/* Escolher do catálogo é o caminho principal: traz medida, preço,
+              custo e material certos. Digitar à mão continua liberado. */}
+          <div className="space-y-1">
+            <OrcamentoProdutoPicker
+              clienteId={(orc as any)?.cliente_id ?? null}
+              produtosNoOrcamento={[
+                ...new Set(
+                  (itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[],
+                ),
+              ]}
+              onSelect={aplicarProduto}
             />
+            <p className="text-xs text-muted-foreground">
+              Escolha um produto do catálogo ou preencha os campos abaixo para um item fora
+              do padrão.
+            </p>
           </div>
+
           <div className="space-y-2">
             <div className="grid grid-cols-12 gap-2 items-end">
               <div className="col-span-6">
                 <Label htmlFor="item-descricao">Descrição</Label>
                 <Input
                   id="item-descricao"
+                  autoFocus={itens.length === 0}
                   value={form.descricao}
                   onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                 />
@@ -481,40 +660,81 @@ function OrcamentoDetailPage() {
               </div>
             )}
 
-            {/* Restrição legal aparece para todo mundo, inclusive quem não vê
-                valor: é informação de produção e de venda, não de dinheiro. */}
-            {form.produto_id && <RestricoesDoProduto restricao={restricao} />}
-
-            {/* Quantas peças saem da bobina que está na máquina. Vale para todo
-                mundo: é informação de produção, não de preço. */}
-            {form.produto_id && (
-              <AproveitamentoDeBobina
-                contexto={contextoBobina}
-                largura={dimensoesForm.largura || restricao?.largura || 0}
-                altura={dimensoesForm.altura || restricao?.altura || 0}
-                quantidade={paraNumero(form.quantidade)}
-              />
+            {/* Preço por quantidade: mostra o degrau atingido e o próximo. */}
+            {canSeeFinancials && faixas.length > 0 && (
+              <div className="flex items-center gap-3 flex-wrap text-xs">
+                {faixaAtual ? (
+                  <>
+                    <span className="text-muted-foreground">
+                      Faixa aplicada: <strong className="text-foreground">{descreverFaixa(faixaAtual, form.unidade)}</strong>
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-normal"
+                      onClick={() => aplicarFaixa(faixaAtual)}
+                    >
+                      Usar este preço
+                    </Button>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
+                    Quantidade abaixo da primeira faixa de preço.
+                  </span>
+                )}
+                {faixaSeguinte && (
+                  <span className="text-accent">
+                    {descreverFaixa(faixaSeguinte, form.unidade)} — vale sugerir ao cliente.
+                  </span>
+                )}
+              </div>
             )}
 
-            {canSeeFinancials && form.produto_id && <ValidadeDaTabela faixa={faixa} />}
+            {/* Área mínima faturada: o vendedor precisa saber por que a conta
+                deu mais que a área da peça. */}
+            {minimoAplicado && (
+              <p className="text-xs text-amber-500">
+                Área mínima do produto aplicada: serão cobrados{" "}
+                {areaFaturada.toFixed(3).replace(".", ",")}m² em vez de{" "}
+                {areaTotal(dimensoesForm).toFixed(3).replace(".", ",")}m².
+              </p>
+            )}
 
-            {canSeeFinancials && form.produto_id && (
-              <FaixaDePrecoAviso
-                faixa={faixa}
-                pedidoMinimo={pedidoMinimo}
-                quantidade={paraNumero(form.quantidade)}
-                aoAplicar={(preco) =>
-                  setForm((atual) =>
-                    // Não sobrescreve preço já negociado à mão: só preenche o que
-                    // ainda está no valor de tabela ou zerado.
-                    paraNumero(atual.valor_unitario) === 0 ||
-                    atual.origem_preco === "tabela"
-                      ? { ...atual, valor_unitario: preco.toFixed(2), origem_preco: "tabela" }
-                      : atual,
-                  )
-                }
-                aoSubirFaixa={(q) => setForm((atual) => ({ ...atual, quantidade: String(q) }))}
-              />
+            {/* Conferência de material e estoque, só aviso. */}
+            <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
+
+            {/* Margem do item comparada à mínima do produto. */}
+            {canSeeFinancials && margemItem !== null && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Margem do item:</span>
+                <strong
+                  className={
+                    margemAbaixoDoMinimo
+                      ? "text-destructive"
+                      : margemMinimaItem !== null && margemItem < margemMinimaItem + 5
+                        ? "text-amber-500"
+                        : "text-accent"
+                  }
+                >
+                  {margemItem.toFixed(1)}%
+                </strong>
+                {margemMinimaItem !== null && (
+                  <span className="text-muted-foreground">
+                    (mínima do produto: {margemMinimaItem.toFixed(1)}%)
+                  </span>
+                )}
+                {margemAbaixoDoMinimo && (
+                  <span className="flex items-center gap-1 text-destructive">
+                    <TrendingDown className="h-3 w-3" /> abaixo do mínimo
+                  </span>
+                )}
+                {form.tempo_producao_min && (
+                  <span className="text-muted-foreground">
+                    · produção estimada: {Math.round((form.tempo_producao_min * quantidadeForm) / 60 * 10) / 10}h
+                  </span>
+                )}
+              </div>
             )}
 
             {/* Medidas em metros: preencher as duas liga a venda por m². */}
@@ -592,45 +812,14 @@ function OrcamentoDetailPage() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <div className="flex items-center justify-between gap-1">
-                      <Label htmlFor="item-custo-un">Custo un.</Label>
-                      <Badge
-                        variant={form.origem_calculo === "motor" ? "secondary" : "outline"}
-                        className="font-normal text-[10px] px-1.5 py-0"
-                      >
-                        {rotuloOrigem[form.origem_calculo]}
-                      </Badge>
-                    </div>
-                    <div className="flex gap-1">
-                      <Input
-                        id="item-custo-un"
-                        type="number"
-                        step="0.01"
-                        value={form.custo_unitario}
-                        onChange={(e) =>
-                          // digitar no campo desfaz o vínculo com a conta: o número
-                          // deixa de ser rastreável, e o rótulo tem que dizer isso
-                          setForm({
-                            ...form,
-                            custo_unitario: e.target.value,
-                            origem_calculo: "manual",
-                            custo_previsto: null,
-                            margem_prevista: null,
-                            parametros: null,
-                          })
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        title="Calcular a partir de materiais, máquina e mão de obra"
-                        aria-label="Calcular custo do item"
-                        onClick={() => setCalculadoraAberta(true)}
-                      >
-                        <Calculator className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Label htmlFor="item-custo-un">Custo un.</Label>
+                    <Input
+                      id="item-custo-un"
+                      type="number"
+                      step="0.01"
+                      value={form.custo_unitario}
+                      onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
+                    />
                   </div>
                 </>
               )}
@@ -677,39 +866,6 @@ function OrcamentoDetailPage() {
               </Button>
             </div>
           </div>
-
-          {canSeeFinancials && (
-            <CalculadoraCusto
-              open={calculadoraAberta}
-              onOpenChange={setCalculadoraAberta}
-              produtoId={form.produto_id}
-              quantidade={paraNumero(form.quantidade) || 1}
-              // A ficha técnica dá consumo por unidade de venda: para produto
-              // medido em m², a base é a metragem cobrada, não o número de peças.
-              baseConsumo={baseDeConsumo(dimensoesForm)}
-              unidadeBase={vendidoPorArea ? "m²" : form.unidade || "un"}
-              onAplicar={({ resultado, parametros }) => {
-                const qtd = paraNumero(form.quantidade) || 1;
-                setForm((atual) => ({
-                  ...atual,
-                  custo_unitario: (resultado.custoTotal / qtd).toFixed(2),
-                  custo_previsto: resultado.custoTotal,
-                  margem_prevista: resultado.margemPct,
-                  parametros: parametros as unknown as Record<string, unknown>,
-                  origem_calculo: "motor",
-                  // Só sugere preço em campo que ainda está no zero: sobrescrever
-                  // preço já negociado com o cliente seria pior que não sugerir.
-                  valor_unitario:
-                    paraNumero(atual.valor_unitario) > 0
-                      ? atual.valor_unitario
-                      : resultado.precoUnitario.toFixed(2),
-                }));
-                toast.success(
-                  `Custo calculado: ${resultado.custoTotal.toFixed(2)} · margem ${(resultado.margemPct * 100).toFixed(1)}%`,
-                );
-              }}
-            />
-          )}
           <Table>
             <TableHeader>
               <TableRow>
@@ -722,7 +878,6 @@ function OrcamentoDetailPage() {
                   <>
                     <TableHead>Valor un.</TableHead>
                     <TableHead>Total</TableHead>
-                    <TableHead>Custo un.</TableHead>
                   </>
                 )}
                 <TableHead></TableHead>
@@ -731,7 +886,7 @@ function OrcamentoDetailPage() {
             <TableBody>
               {itens.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canSeeFinancials ? 9 : 6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={canSeeFinancials ? 8 : 6} className="text-center text-muted-foreground">
                     Sem itens
                   </TableCell>
                 </TableRow>
@@ -766,33 +921,22 @@ function OrcamentoDetailPage() {
                     <>
                       <TableCell>R$ {Number(i.valor_unitario).toFixed(2)}</TableCell>
                       <TableCell>R$ {Number(i.valor_total).toFixed(2)}</TableCell>
-                      {/* Custo com conta por trás e custo chutado valem o mesmo na
-                          soma da margem — quem revisa precisa distinguir os dois. */}
-                      <TableCell className="text-xs">
-                        <div className="flex flex-col gap-0.5">
-                          <span>R$ {Number(i.custo_unitario ?? 0).toFixed(2)}</span>
-                          <Badge
-                            variant={i.origem_calculo === "motor" ? "secondary" : "outline"}
-                            className="font-normal text-[10px] px-1.5 py-0 w-fit"
-                          >
-                            {rotuloOrigem[i.origem_calculo ?? "manual"] ?? "digitado"}
-                          </Badge>
-                          {i.margem_prevista != null && (
-                            <span
-                              className={
-                                Number(i.margem_prevista) < 0.2
-                                  ? "text-destructive"
-                                  : "text-muted-foreground"
-                              }
-                            >
-                              margem {(Number(i.margem_prevista) * 100).toFixed(1)}%
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
                     </>
                   )}
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <OrcamentoItemArtes
+                      itemId={i.id}
+                      orcamentoId={id}
+                      clienteId={(orc as any)?.cliente_id ?? null}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Duplicar item"
+                      onClick={() => duplicarItem(i)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => removeItem(i.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -802,12 +946,22 @@ function OrcamentoDetailPage() {
             </TableBody>
           </Table>
           <div className="flex justify-end gap-6 text-sm pt-3 border-t">
+            <div>
+              <span className="text-muted-foreground">Itens:</span>{" "}
+              <strong>{itens.length}</strong>
+            </div>
+            {(itens as any[]).some((i) => !i.arquivo_id) && (
+              <div className="text-amber-500">
+                {(itens as any[]).filter((i) => !i.arquivo_id).length} sem arte anexada
+              </div>
+            )}
             {somaAreaTotal(itens) > 0 && (
               <div>
                 <span className="text-muted-foreground">Soma área:</span>{" "}
                 <strong>{somaAreaTotal(itens).toFixed(3).replace(".", ",")}m²</strong>
               </div>
             )}
+
             {canSeeFinancials && (
               <>
                 <div>
@@ -839,7 +993,14 @@ function OrcamentoDetailPage() {
         onOpenChange={setPreviewOpen}
         tipo="orcamento"
         referencia_id={id}
-        comCustos={previewCustos}
+      />
+
+      <PDFPreviewDialog
+        open={previewProducaoOpen}
+        onOpenChange={setPreviewProducaoOpen}
+        tipo="orcamento"
+        referencia_id={id}
+        mostrarValores={false}
       />
     </div>
   );

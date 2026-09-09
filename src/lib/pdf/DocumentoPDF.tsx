@@ -80,8 +80,12 @@ export type DocumentoPDFProps = {
    * isso, conferir um orçamento antigo vira arqueologia.
    */
   custos?: {
-    tarifas: { rotulo: string; valor: string }[];
-    itens: {
+    /** Planilha de custos (custos_tabela) — via interna do orçamento e da OS. */
+    linhas?: { descricao: string; unidade?: string | null; valor: number }[];
+    custo_itens?: number;
+    receita?: number;
+    tarifas?: { rotulo: string; valor: string }[];
+    itens?: {
       descricao: string;
       quantidade: number;
       custo_previsto_unitario: number;
@@ -468,9 +472,9 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           <View style={s.obs} wrap={false}>
             <Text style={s.obsTitle}>USO INTERNO — BASE DE CUSTO</Text>
             <Text>
-              {p.custos.tarifas.map((t) => `${t.rotulo}: ${t.valor}`).join("   ·   ")}
+              {(p.custos.tarifas ?? []).map((t) => `${t.rotulo}: ${t.valor}`).join("   ·   ")}
             </Text>
-            {p.custos.itens.map((item, i) => (
+            {(p.custos.itens ?? []).map((item, i) => (
               <Text key={i}>
                 {item.descricao} — previsto {money(item.custo_previsto_unitario)}/un
                 {item.custo_real_unitario != null
