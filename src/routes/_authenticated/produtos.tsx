@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { SugestaoDeMaquina } from "@/components/produtos/sugestao-de-maquina";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -440,6 +441,10 @@ function ProdutosPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* A sugestão fica ANTES da lista: quem abre esta tela precisa ver que o
+          vínculo falta antes de rolar 31 cartões procurando. */}
+      <SugestaoDeMaquina produtos={produtos as any} />
 
       {/* Lista */}
       {isLoading ? (
