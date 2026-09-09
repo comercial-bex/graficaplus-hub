@@ -87,6 +87,13 @@ export type Database = {
             referencedColumns: ["maquina_id"]
           },
           {
+            foreignKeyName: "apontamentos_producao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "apontamentos_producao_operador_id_fkey"
             columns: ["operador_id"]
             isOneToOne: false
@@ -1438,6 +1445,109 @@ export type Database = {
           },
         ]
       }
+      compromissos_financeiros: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          created_by: string | null
+          credor: string
+          credor_documento: string | null
+          cronograma_confirmado: boolean
+          descricao: string
+          documento_url: string | null
+          encerrado_em: string | null
+          financeira: string | null
+          id: string
+          maquina_id: string | null
+          numero_contrato: string | null
+          observacoes: string | null
+          periodicidade: string
+          portal_url: string | null
+          primeira_parcela: string
+          tipo: string
+          total_parcelas: number | null
+          updated_at: string
+          valor_entrada: number
+          valor_parcela: number
+          valor_total: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          credor: string
+          credor_documento?: string | null
+          cronograma_confirmado?: boolean
+          descricao: string
+          documento_url?: string | null
+          encerrado_em?: string | null
+          financeira?: string | null
+          id?: string
+          maquina_id?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          periodicidade?: string
+          portal_url?: string | null
+          primeira_parcela: string
+          tipo?: string
+          total_parcelas?: number | null
+          updated_at?: string
+          valor_entrada?: number
+          valor_parcela: number
+          valor_total?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          credor?: string
+          credor_documento?: string | null
+          cronograma_confirmado?: boolean
+          descricao?: string
+          documento_url?: string | null
+          encerrado_em?: string | null
+          financeira?: string | null
+          id?: string
+          maquina_id?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          periodicidade?: string
+          portal_url?: string | null
+          primeira_parcela?: string
+          tipo?: string
+          total_parcelas?: number | null
+          updated_at?: string
+          valor_entrada?: number
+          valor_parcela?: number
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       config_precificacao_3d: {
         Row: {
           atualizado_em: string
@@ -1523,93 +1633,6 @@ export type Database = {
             columns: ["atualizado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      compromissos_financeiros: {
-        Row: {
-          ativo: boolean
-          categoria: string | null
-          created_at: string
-          created_by: string | null
-          credor: string
-          credor_documento: string | null
-          descricao: string
-          documento_url: string | null
-          cronograma_confirmado: boolean
-          encerrado_em: string | null
-          financeira: string | null
-          id: string
-          maquina_id: string | null
-          numero_contrato: string | null
-          observacoes: string | null
-          periodicidade: string
-          portal_url: string | null
-          primeira_parcela: string
-          tipo: string
-          total_parcelas: number | null
-          updated_at: string
-          valor_entrada: number
-          valor_parcela: number
-          valor_total: number | null
-        }
-        Insert: {
-          ativo?: boolean
-          categoria?: string | null
-          created_at?: string
-          created_by?: string | null
-          credor: string
-          credor_documento?: string | null
-          descricao: string
-          documento_url?: string | null
-          cronograma_confirmado?: boolean
-          encerrado_em?: string | null
-          financeira?: string | null
-          id?: string
-          maquina_id?: string | null
-          numero_contrato?: string | null
-          observacoes?: string | null
-          periodicidade?: string
-          portal_url?: string | null
-          primeira_parcela: string
-          tipo?: string
-          total_parcelas?: number | null
-          updated_at?: string
-          valor_entrada?: number
-          valor_parcela: number
-        }
-        Update: {
-          ativo?: boolean
-          categoria?: string | null
-          created_at?: string
-          created_by?: string | null
-          credor?: string
-          credor_documento?: string | null
-          descricao?: string
-          documento_url?: string | null
-          cronograma_confirmado?: boolean
-          encerrado_em?: string | null
-          financeira?: string | null
-          id?: string
-          maquina_id?: string | null
-          numero_contrato?: string | null
-          observacoes?: string | null
-          periodicidade?: string
-          portal_url?: string | null
-          primeira_parcela?: string
-          tipo?: string
-          total_parcelas?: number | null
-          updated_at?: string
-          valor_entrada?: number
-          valor_parcela?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
-            columns: ["maquina_id"]
-            isOneToOne: false
-            referencedRelation: "maquinas"
             referencedColumns: ["id"]
           },
         ]
@@ -1727,6 +1750,27 @@ export type Database = {
           vencimento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_compromisso_id_fkey"
+            columns: ["compromisso_id"]
+            isOneToOne: false
+            referencedRelation: "compromissos_financeiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_compromisso_id_fkey"
+            columns: ["compromisso_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compromissos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_compromisso_id_fkey"
+            columns: ["compromisso_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["compromisso_id"]
+          },
           {
             foreignKeyName: "contas_pagar_material_id_fkey"
             columns: ["material_id"]
@@ -3275,6 +3319,13 @@ export type Database = {
             referencedColumns: ["maquina_id"]
           },
           {
+            foreignKeyName: "manutencoes_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "manutencoes_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -3331,6 +3382,13 @@ export type Database = {
             referencedColumns: ["maquina_id"]
           },
           {
+            foreignKeyName: "maquina_compatibilidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maquina_compatibilidades_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
@@ -3356,15 +3414,15 @@ export type Database = {
       maquinas: {
         Row: {
           ativa: boolean
-          data_aquisicao: string | null
-          forma_aquisicao: string
           avanco_m: number
           base_cobranca: string
           created_at: string
           custo_hora: number
+          data_aquisicao: string | null
           disponibilidade_pct: number
           especificacoes: Json
           fabricante: string | null
+          forma_aquisicao: string
           horas_produtivas_mensais: number | null
           id: string
           imagem_url: string | null
@@ -3387,15 +3445,15 @@ export type Database = {
         }
         Insert: {
           ativa?: boolean
-          data_aquisicao?: string | null
-          forma_aquisicao?: string
           avanco_m?: number
           base_cobranca?: string
           created_at?: string
           custo_hora?: number
+          data_aquisicao?: string | null
           disponibilidade_pct?: number
           especificacoes?: Json
           fabricante?: string | null
+          forma_aquisicao?: string
           horas_produtivas_mensais?: number | null
           id?: string
           imagem_url?: string | null
@@ -3418,15 +3476,15 @@ export type Database = {
         }
         Update: {
           ativa?: boolean
-          data_aquisicao?: string | null
-          forma_aquisicao?: string
           avanco_m?: number
           base_cobranca?: string
           created_at?: string
           custo_hora?: number
+          data_aquisicao?: string | null
           disponibilidade_pct?: number
           especificacoes?: Json
           fabricante?: string | null
+          forma_aquisicao?: string
           horas_produtivas_mensais?: number | null
           id?: string
           imagem_url?: string | null
@@ -3448,100 +3506,6 @@ export type Database = {
           vida_util_horas?: number | null
         }
         Relationships: []
-      }
-      maquinas_modos_impressao: {
-        Row: {
-          created_at: string
-          id: string
-          maquina_id: string
-          nome: string
-          observacao: string | null
-          ordem: number
-          padrao: boolean
-          passadas: number | null
-          velocidade_m2_h: number
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          maquina_id: string
-          nome: string
-          observacao?: string | null
-          ordem?: number
-          padrao?: boolean
-          passadas?: number | null
-          velocidade_m2_h: number
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          maquina_id?: string
-          nome?: string
-          observacao?: string | null
-          ordem?: number
-          padrao?: boolean
-          passadas?: number | null
-          velocidade_m2_h?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "maquinas_modos_impressao_maquina_id_fkey"
-            columns: ["maquina_id"]
-            isOneToOne: false
-            referencedRelation: "maquinas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      maquinas_velocidades: {
-        Row: {
-          created_at: string
-          espessura_mm: number
-          motivo: string | null
-          fonte: string | null
-          id: string
-          maquina_id: string
-          material: string
-          observacao: string | null
-          operacao: string
-          velocidade_mm_s: number
-          vetado: boolean
-        }
-        Insert: {
-          created_at?: string
-          espessura_mm?: number
-          motivo?: string | null
-          fonte?: string | null
-          id?: string
-          maquina_id: string
-          material: string
-          observacao?: string | null
-          operacao?: string
-          velocidade_mm_s: number
-          vetado?: boolean
-        }
-        Update: {
-          created_at?: string
-          espessura_mm?: number
-          motivo?: string | null
-          fonte?: string | null
-          id?: string
-          maquina_id?: string
-          material?: string
-          observacao?: string | null
-          operacao?: string
-          velocidade_mm_s?: number
-          vetado?: boolean
-        }
-        Relationships: [
-          {
-            foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
-            columns: ["maquina_id"]
-            isOneToOne: false
-            referencedRelation: "maquinas"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       maquinas_3d_config: {
         Row: {
@@ -3680,6 +3644,13 @@ export type Database = {
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
+          {
+            foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maquinas_agenda: {
@@ -3778,6 +3749,13 @@ export type Database = {
             referencedColumns: ["maquina_id"]
           },
           {
+            foreignKeyName: "maquinas_agenda_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maquinas_agenda_operador_id_fkey"
             columns: ["operador_id"]
             isOneToOne: false
@@ -3859,6 +3837,211 @@ export type Database = {
             columns: ["os_item_id"]
             isOneToOne: false
             referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maquinas_contrato: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          condicao_comercial: string | null
+          creditos: number | null
+          entrada_forma: string | null
+          entrada_valor: number | null
+          maquina_id: string
+          numero_contrato: string | null
+          numero_negociacao: string | null
+          observacoes: string | null
+          parcelas: number | null
+          tipo_venda: string | null
+          ultima_conexao: string | null
+          valor_parcela: number | null
+          valor_total: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          condicao_comercial?: string | null
+          creditos?: number | null
+          entrada_forma?: string | null
+          entrada_valor?: number | null
+          maquina_id: string
+          numero_contrato?: string | null
+          numero_negociacao?: string | null
+          observacoes?: string | null
+          parcelas?: number | null
+          tipo_venda?: string | null
+          ultima_conexao?: string | null
+          valor_parcela?: number | null
+          valor_total?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          condicao_comercial?: string | null
+          creditos?: number | null
+          entrada_forma?: string | null
+          entrada_valor?: number | null
+          maquina_id?: string
+          numero_contrato?: string | null
+          numero_negociacao?: string | null
+          observacoes?: string | null
+          parcelas?: number | null
+          tipo_venda?: string | null
+          ultima_conexao?: string | null
+          valor_parcela?: number | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_contrato_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_contrato_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_contrato_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "maquinas_contrato_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maquinas_modos_impressao: {
+        Row: {
+          created_at: string
+          id: string
+          maquina_id: string
+          nome: string
+          observacao: string | null
+          ordem: number
+          padrao: boolean
+          passadas: number | null
+          velocidade_m2_h: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          maquina_id: string
+          nome: string
+          observacao?: string | null
+          ordem?: number
+          padrao?: boolean
+          passadas?: number | null
+          velocidade_m2_h: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          maquina_id?: string
+          nome?: string
+          observacao?: string | null
+          ordem?: number
+          padrao?: boolean
+          passadas?: number | null
+          velocidade_m2_h?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_modos_impressao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_modos_impressao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "maquinas_modos_impressao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maquinas_velocidades: {
+        Row: {
+          created_at: string
+          espessura_mm: number
+          fonte: string | null
+          id: string
+          maquina_id: string
+          material: string
+          motivo: string | null
+          observacao: string | null
+          operacao: string
+          velocidade_mm_s: number
+          vetado: boolean
+        }
+        Insert: {
+          created_at?: string
+          espessura_mm?: number
+          fonte?: string | null
+          id?: string
+          maquina_id: string
+          material: string
+          motivo?: string | null
+          observacao?: string | null
+          operacao?: string
+          velocidade_mm_s: number
+          vetado?: boolean
+        }
+        Update: {
+          created_at?: string
+          espessura_mm?: number
+          fonte?: string | null
+          id?: string
+          maquina_id?: string
+          material?: string
+          motivo?: string | null
+          observacao?: string | null
+          operacao?: string
+          velocidade_mm_s?: number
+          vetado?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
             referencedColumns: ["id"]
           },
         ]
@@ -4438,11 +4621,13 @@ export type Database = {
           entidade_id: string
           entregue_em: string | null
           enviado_em: string | null
+          enviado_manualmente: boolean
           evento: string
           id: string
           idempotency_key: string
           lido_em: string | null
           max_tentativas: number
+          observacao: string | null
           provider_message_id: string | null
           provider_status: string | null
           proxima_tentativa_em: string
@@ -4462,11 +4647,13 @@ export type Database = {
           entidade_id: string
           entregue_em?: string | null
           enviado_em?: string | null
+          enviado_manualmente?: boolean
           evento: string
           id?: string
           idempotency_key: string
           lido_em?: string | null
           max_tentativas?: number
+          observacao?: string | null
           provider_message_id?: string | null
           provider_status?: string | null
           proxima_tentativa_em?: string
@@ -4486,11 +4673,13 @@ export type Database = {
           entidade_id?: string
           entregue_em?: string | null
           enviado_em?: string | null
+          enviado_manualmente?: boolean
           evento?: string
           id?: string
           idempotency_key?: string
           lido_em?: string | null
           max_tentativas?: number
+          observacao?: string | null
           provider_message_id?: string | null
           provider_status?: string | null
           proxima_tentativa_em?: string
@@ -5073,6 +5262,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "orcamento_3d_placas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "orcamento_3d_placas_orcamento_3d_id_fkey"
@@ -6185,6 +6381,13 @@ export type Database = {
             referencedColumns: ["maquina_id"]
           },
           {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ordens_servico_operador_id_fkey"
             columns: ["operador_id"]
             isOneToOne: false
@@ -6583,6 +6786,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "os_perdas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "os_perdas_material_id_fkey"
@@ -8653,6 +8863,13 @@ export type Database = {
             referencedColumns: ["maquina_id"]
           },
           {
+            foreignKeyName: "producao_3d_jobs_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "producao_3d_jobs_orcamento_3d_id_fkey"
             columns: ["orcamento_3d_id"]
             isOneToOne: false
@@ -8951,6 +9168,13 @@ export type Database = {
             referencedColumns: ["maquina_id"]
           },
           {
+            foreignKeyName: "produto_precificacao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "produto_precificacao_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
@@ -9216,6 +9440,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "produtos_material_principal_id_fkey"
@@ -9626,8 +9857,8 @@ export type Database = {
       usuarios: {
         Row: {
           ativo: boolean
-          cargo_pretendido: string | null
           avatar_url: string | null
+          cargo_pretendido: string | null
           created_at: string
           email: string
           id: string
@@ -9637,8 +9868,8 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
-          cargo_pretendido?: string | null
           avatar_url?: string | null
+          cargo_pretendido?: string | null
           created_at?: string
           email: string
           id: string
@@ -9648,8 +9879,8 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
-          cargo_pretendido?: string | null
           avatar_url?: string | null
+          cargo_pretendido?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -10446,6 +10677,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "maquinas_agenda_operador_id_fkey"
@@ -11439,6 +11677,13 @@ export type Database = {
             referencedColumns: ["maquina_id"]
           },
           {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "produtos_material_principal_id_fkey"
             columns: ["material_principal_id"]
             isOneToOne: false
@@ -11546,6 +11791,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "produtos_material_principal_id_fkey"
@@ -11727,6 +11979,99 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "permissoes"
             referencedColumns: ["chave"]
+          },
+        ]
+      }
+      vw_avisos_pendentes: {
+        Row: {
+          canal: string | null
+          cliente: string | null
+          cliente_id: string | null
+          cliente_visivel: boolean | null
+          created_at: string | null
+          destinatario: string | null
+          dias_parado: number | null
+          entidade: string | null
+          entidade_id: string | null
+          evento: string | null
+          id: string | null
+          nunca_tentado: boolean | null
+          observacao: string | null
+          os_numero: string | null
+          sem_vinculo: boolean | null
+          status: string | null
+          tentativas: number | null
+          titulo: string | null
+          ultimo_erro: string | null
+          whatsapp_configurado: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_fila_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_compromissos: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          com_comprovante: number | null
+          credor: string | null
+          cronograma_confirmado: boolean | null
+          descricao: string | null
+          documento_url: string | null
+          encerrado_em: string | null
+          financeira: string | null
+          id: string | null
+          maquina_id: string | null
+          maquina_nome: string | null
+          numero_contrato: string | null
+          observacoes: string | null
+          parcelas_abertas: number | null
+          parcelas_atrasadas: number | null
+          parcelas_geradas: number | null
+          parcelas_pagas: number | null
+          periodicidade: string | null
+          portal_url: string | null
+          primeira_parcela: string | null
+          proximo_vencimento: string | null
+          saldo_devedor: number | null
+          sem_comprovante: number | null
+          tipo: string | null
+          total_parcelas: number | null
+          ultimo_vencimento: string | null
+          valor_aberto: number | null
+          valor_atrasado: number | null
+          valor_entrada: number | null
+          valor_pago: number | null
+          valor_parcela: number | null
+          valor_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11963,6 +12308,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vw_patrimonio_maquinas: {
+        Row: {
+          ativa: boolean | null
+          compromisso: string | null
+          compromisso_id: string | null
+          cronograma_confirmado: boolean | null
+          custo_hora: number | null
+          data_aquisicao: string | null
+          divida: number | null
+          forma_aquisicao: string | null
+          id: string | null
+          modelo: string | null
+          nome: string | null
+          numero_serie: string | null
+          patrimonio: number | null
+          pendencia_divida: string | null
+          pendencia_patrimonio: string | null
+          valor_aquisicao: number | null
+        }
+        Relationships: []
       }
       vw_resultado_operacional_os: {
         Row: {
@@ -12303,6 +12669,14 @@ export type Database = {
         }
         Returns: Json
       }
+      anexar_comprovante_parcela: {
+        Args: { p_comprovante_url: string; p_conta_id: string }
+        Returns: Json
+      }
+      aplicar_custo_hora_sugerido: {
+        Args: { p_maquina_id: string }
+        Returns: Json
+      }
       aprovar_orcamento: {
         Args: {
           p_observacao?: string
@@ -12389,8 +12763,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      avisar_manualmente: {
+        Args: { p_id: string; p_observacao?: string }
+        Returns: Json
+      }
       baixar_estoque_os: {
         Args: { p_consumos?: Json; p_os_id: string }
+        Returns: Json
+      }
+      baixar_parcela_compromisso: {
+        Args: {
+          p_comprovante_url?: string
+          p_conta_id: string
+          p_data_pagamento: string
+          p_forma_pagamento?: string
+          p_lancar_caixa?: boolean
+        }
         Returns: Json
       }
       base_de_consumo_item: {
@@ -12433,6 +12821,11 @@ export type Database = {
         }[]
       }
       can_see_financials: { Args: { _user_id: string }; Returns: boolean }
+      cancelar_aviso: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      cancelar_avisos_orfaos: { Args: never; Returns: Json }
       conciliar_transacao: {
         Args: { p_caixa_movimento_id: string; p_transacao_id: string }
         Returns: Json
@@ -12529,6 +12922,7 @@ export type Database = {
         Args: { p_arquivo_id: string; p_dias?: number }
         Returns: Json
       }
+      custo_hora_sugerido: { Args: { p_maquina_id: string }; Returns: Json }
       custo_real_por_peca: {
         Args: { p_os_id?: string }
         Returns: {
@@ -12598,6 +12992,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fmt_brl: { Args: { p: number }; Returns: string }
       forcar_transicao_os: {
         Args: { p_motivo: string; p_novo_status: string; p_os_id: string }
         Returns: Json
@@ -12632,6 +13027,10 @@ export type Database = {
       gerar_materiais_previstos_os: {
         Args: { p_os_id: string }
         Returns: number
+      }
+      gerar_parcelas_compromisso: {
+        Args: { p_ate?: string; p_compromisso_id: string }
+        Returns: Json
       }
       get_relatorios_prioritarios: {
         Args: { p_fim?: string; p_inicio?: string }
@@ -12748,6 +13147,10 @@ export type Database = {
           taxa_falha_pct: number
         }[]
       }
+      quitar_parcelas_ate: {
+        Args: { p_ate: string; p_compromisso_id: string }
+        Returns: Json
+      }
       recalcular_estoque_material: {
         Args: { p_material_id: string }
         Returns: undefined
@@ -12839,11 +13242,13 @@ export type Database = {
           entidade_id: string
           entregue_em: string | null
           enviado_em: string | null
+          enviado_manualmente: boolean
           evento: string
           id: string
           idempotency_key: string
           lido_em: string | null
           max_tentativas: number
+          observacao: string | null
           provider_message_id: string | null
           provider_status: string | null
           proxima_tentativa_em: string
