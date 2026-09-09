@@ -22,9 +22,31 @@ export type Direcao = 1 | -1;
 
 const centro = (c: ColunaAlvo) => c.left + c.width / 2;
 
-/** Colunas na ordem em que aparecem na tela (esquerda para a direita). */
+/**
+ * Tolerância vertical para duas colunas contarem como a MESMA linha.
+ *
+ * Colunas lado a lado nunca ficam com o `top` idêntico ao pixel — cabeçalho de
+ * altura diferente, arredondamento do layout. Sem a folga, uma diferença de 2px
+ * partiria a linha em duas e a seta pularia para a etapa de baixo no meio do
+ * caminho.
+ */
+const MESMA_LINHA_PX = 40;
+
+/**
+ * Colunas na ordem em que aparecem na tela.
+ *
+ * Ordena por LINHA e depois por coluna. Enquanto o quadro era uma faixa
+ * horizontal única, ordenar só por `left` bastava. Agora ele é agrupado nas
+ * cinco etapas da gráfica, em linhas empilhadas — e todas as linhas começam no
+ * mesmo x. Ordenar só por `left` faria a seta saltar da primeira coluna da
+ * Entrada para a primeira da Pré-impressão, depois para a primeira da Produção:
+ * a ordem visual seria ignorada e o cartão andaria de etapa em etapa.
+ */
 export function ordenarColunas(colunas: ColunaAlvo[]): ColunaAlvo[] {
-  return [...colunas].sort((a, b) => a.left - b.left);
+  return [...colunas].sort((a, b) => {
+    const mesmaLinha = Math.abs(a.top - b.top) < MESMA_LINHA_PX;
+    return mesmaLinha ? a.left - b.left : a.top - b.top;
+  });
 }
 
 /**

@@ -1,4 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  DESCRICAO_ETAPA,
+  ROTULO_ETAPA,
+  STATUS,
+  fluxo,
+  type Etapa,
+} from "@/domain/os/etapas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
@@ -57,35 +64,24 @@ export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
 });
 
-type ColunaKanban = { id: string; label: string; setor: string };
+/**
+ * As colunas vêm da FONTE ÚNICA (`domain/os/etapas`), não de uma lista local.
+ *
+ * A lista que morava aqui tinha 25 entradas para um enum de 26: uma OS em
+ * `em_producao` não caía em coluna nenhuma e sumia do quadro. Enquanto houver
+ * duas listas, uma delas vai ficar para trás — e ninguém percebe, porque a OS
+ * some sem erro.
+ */
+type ColunaKanban = { id: string; label: string; setor: string; etapa: Etapa; paralela?: boolean; observacao?: string };
 
-const COLUNAS: ColunaKanban[] = [
-  { id: "entrada", label: "Entrada", setor: "Atendimento" },
-  { id: "aguardando_briefing", label: "Aguardando briefing", setor: "Atendimento" },
-  { id: "briefing_ok", label: "Briefing OK", setor: "Atendimento" },
-  { id: "design", label: "Design", setor: "Design" },
-  { id: "aguardando_aprovacao_arte", label: "Aprovação de arte", setor: "Design" },
-  { id: "arte_aprovada", label: "Arte aprovada", setor: "Design" },
-  { id: "arte_rejeitada", label: "Arte rejeitada", setor: "Design" },
-  { id: "aguardando_producao", label: "Aguardando produção", setor: "PCP" },
-  { id: "producao", label: "Produção", setor: "Produção" },
-  { id: "em_impressao", label: "Impressão", setor: "Produção" },
-  { id: "em_corte", label: "Corte", setor: "Produção" },
-  { id: "em_acabamento", label: "Acabamento", setor: "Produção" },
-  { id: "em_uv", label: "UV", setor: "Produção" },
-  { id: "em_laser_cnc", label: "Laser/CNC", setor: "Produção" },
-  { id: "em_3d", label: "3D", setor: "Produção" },
-  { id: "controle_qualidade", label: "Controle de qualidade", setor: "Qualidade" },
-  { id: "aguardando_retirada", label: "Aguardando retirada", setor: "Expedição" },
-  { id: "aguardando_entrega", label: "Aguardando entrega", setor: "Expedição" },
-  { id: "em_entrega", label: "Em entrega", setor: "Logística" },
-  { id: "em_instalacao", label: "Instalação", setor: "Instalação" },
-  { id: "concluido", label: "Concluído", setor: "Finalização" },
-  { id: "faturado", label: "Faturado", setor: "Financeiro" },
-  { id: "cancelado", label: "Cancelado", setor: "Cancelado" },
-  { id: "retrabalho", label: "Retrabalho", setor: "Qualidade" },
-  { id: "pausado", label: "Pausado", setor: "Pendência" },
-];
+const COLUNAS: ColunaKanban[] = STATUS.map((s) => ({
+  id: s.status,
+  label: s.rotulo,
+  setor: s.setor,
+  etapa: s.etapa,
+  paralela: s.paralela,
+  observacao: s.observacao,
+}));
 
 const COLUNAS_BY_ID = Object.fromEntries(COLUNAS.map((c) => [c.id, c]));
 
@@ -464,16 +460,40 @@ function KanbanPage() {
       </div>
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4">
-          {COLUNAS.map((col) => (
-            <Coluna
-              key={col.id}
-              id={col.id}
-              label={col.label}
-              itens={filtered.filter((o: any) => o.status === col.id)}
-              canSeeFinancials={canSeeFinancials}
-            />
-          ))}
+        {/* Agrupado pelas cinco etapas do fluxo de gráfica. Vinte e cinco
+            colunas soltas numa faixa horizontal não é quadro, é lista deitada:
+            ninguém enxerga onde a peça está sem rolar até o fim. */}
+        <div className="space-y-5">
+          {fluxo().map((et) => {
+            const total = et.status.reduce(
+              (n, st) => n + filtered.filter((o: any) => o.status === st.status).length,
+              0,
+            );
+            return (
+              <section key={et.etapa}>
+                <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
+                  <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    {ROTULO_ETAPA[et.etapa]}
+                  </h2>
+                  <span className="font-mono text-[11px] text-muted-foreground">· {total}</span>
+                  <span className="text-[11px] text-muted-foreground">{DESCRICAO_ETAPA[et.etapa]}</span>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {et.status.map((st) => (
+                    <Coluna
+                      key={st.status}
+                      id={st.status}
+                      label={st.rotulo}
+                      paralela={st.paralela}
+                      observacao={st.observacao}
+                      itens={filtered.filter((o: any) => o.status === st.status)}
+                      canSeeFinancials={canSeeFinancials}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
         <DragOverlay>
           {activeOs && <OSCard os={activeOs} canSeeFinancials={canSeeFinancials} dragging />}
@@ -483,13 +503,21 @@ function KanbanPage() {
   );
 }
 
-function Coluna({ id, label, itens, canSeeFinancials }: any) {
+function Coluna({ id, label, itens, canSeeFinancials, paralela, observacao }: any) {
   const { isOver, setNodeRef } = useDroppable({ id });
   return (
-    <div className="w-80 shrink-0">
+    <div className="w-72 shrink-0">
       <div className="flex items-center justify-between mb-2 px-1">
-        <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <h3
+          className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+          // A ressalva mora no title porque é exceção, não regra: poluir a
+          // coluna com ela empurraria o nome para fora.
+          title={observacao ? `${label} — ${observacao}` : label}
+        >
           {label}
+          {/* Caminho paralelo: a peça entra em UMA das máquinas, não em todas. */}
+          {paralela && <span className="ml-1 text-muted-foreground/60" aria-hidden>·</span>}
+          {observacao && <span className="ml-1 text-amber-600" aria-hidden>!</span>}
         </h3>
         <span className="font-mono text-[10px] text-muted-foreground/80 rounded border border-border px-1.5 py-0.5">
           {itens.length.toString().padStart(2, "0")}

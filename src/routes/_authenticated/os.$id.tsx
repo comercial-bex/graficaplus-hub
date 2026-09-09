@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { STATUS, rotuloDe } from "@/domain/os/etapas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,33 +54,14 @@ export const Route = createFileRoute("/_authenticated/os/$id")({
   notFoundComponent: () => <div className="p-6">OS não encontrada</div>,
 });
 
-const STATUS_OS = [
-  "novo",
-  "aguardando_briefing",
-  "briefing_ok",
-  "em_design",
-  "aguardando_aprovacao_arte",
-  "arte_aprovada",
-  "arte_rejeitada",
-  "aguardando_producao",
-  "em_producao",
-  "em_impressao",
-  "em_corte",
-  "em_acabamento",
-  "em_uv",
-  "em_laser_cnc",
-  "em_3d",
-  "controle_qualidade",
-  "aguardando_retirada",
-  "aguardando_entrega",
-  "em_entrega",
-  "em_instalacao",
-  "concluido",
-  "faturado",
-  "cancelado",
-  "retrabalho",
-  "pausado",
-];
+/**
+ * Os status vêm da fonte única, não de uma lista escrita à mão aqui.
+ *
+ * A lista que morava neste arquivo oferecia "novo" e "em_design" — nenhum dos
+ * dois existe no enum `status_os`. Escolher qualquer um e salvar devolvia
+ * "invalid input value for enum". Ficou assim porque eram quatro listas para a
+ * mesma verdade e nada conferia uma contra a outra.
+ */
 
 function OSDetailPage() {
   const { id } = Route.useParams();
@@ -170,15 +152,15 @@ function OSDetailPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <StatusChip label={os.status.replace(/_/g, " ")} tone="cyan" />
+            <StatusChip label={rotuloDe(os.status)} tone="cyan" />
             <Select value={os.status} onValueChange={updateStatus}>
               <SelectTrigger className="w-56 h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_OS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s.replace(/_/g, " ")}
+                {STATUS.map((st) => (
+                  <SelectItem key={st.status} value={st.status}>
+                    {st.rotulo}
                   </SelectItem>
                 ))}
               </SelectContent>
