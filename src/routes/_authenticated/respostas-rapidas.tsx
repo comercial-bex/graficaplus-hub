@@ -2,6 +2,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { TemplatesAutomaticosCard } from "@/components/notificacoes/templates-automaticos-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,8 @@ function RespPage() {
           <p className="text-muted-foreground">Biblioteca de mensagens prontas para WhatsApp</p>
         </div>
       </div>
+
+      <TemplatesAutomaticosCard />
 
       <Card>
         <CardHeader>

@@ -30,6 +30,10 @@ export type Produto = {
   /** Área mínima faturada por peça, em m². Nulo = cobra a área real. */
   area_minima_cobrada: number | null;
   tempo_producao_min: number | null;
+  /** Em qual equipamento a peça é feita. Alimenta a largura de bobina no orçamento. */
+  maquina_padrao_id: string | null;
+  /** O insumo que domina o custo. A ficha técnica segue valendo para o consumo exato. */
+  material_principal_id: string | null;
   imagem_url: string | null;
   observacoes_internas: string | null;
   ativo: boolean;

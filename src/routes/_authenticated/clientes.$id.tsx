@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { AcessoPortalCard } from "@/components/cliente/acesso-portal-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -188,6 +189,7 @@ function ClienteDetailPage() {
           <TabsTrigger value="contatos">Responsáveis</TabsTrigger>
           <TabsTrigger value="os">OS</TabsTrigger>
           <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
+          <TabsTrigger value="portal">Portal</TabsTrigger>
           {canSeeFinancials && <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>}
         </TabsList>
         <TabsContent value="resumo">
@@ -201,6 +203,9 @@ function ClienteDetailPage() {
         </TabsContent>
         <TabsContent value="orcamentos">
           <OrcamentosTab clienteId={id} canSeeFinancials={canSeeFinancials} />
+        </TabsContent>
+        <TabsContent value="portal">
+          <AcessoPortalCard clienteId={id} />
         </TabsContent>
         {canSeeFinancials && (
           <TabsContent value="pagamentos">

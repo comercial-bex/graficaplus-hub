@@ -139,3 +139,64 @@ test("OS usa bloco de assinaturas em vez do termo de aceite", async () => {
   const buffer = await renderizar({ ...props, tipo: "os", numero: 10 });
   expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
 }, 30_000);
+
+test("recibo de retirada renderiza sem valores e com as assinaturas próprias", async () => {
+  const buffer = await renderizar({
+    ...props,
+    tipo: "recibo_material",
+    numero: 1042,
+    data_validade: null,
+    data_entrega: null,
+    vendedor: null,
+    itens: [
+      { descricao: "Lona 440g", unidade: "m2", quantidade: 12.6, valor_unitario: 0, valor_total: 0 },
+      { descricao: "Ilhós latão", unidade: "un", quantidade: 24, valor_unitario: 0, valor_total: 0 },
+    ],
+    soma_area: null,
+    subtotal: null,
+    desconto: null,
+    total: 0,
+    pagamento: null,
+    entrega: null,
+    observacoes: "Material retirado do estoque para a OS 1042 por Fulano.",
+    assinaturas: { esquerda: "Entregue por (GRAFICA TESTE LTDA)", direita: "Retirado por Fulano" },
+    mostrarValores: false,
+  });
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+}, 30_000);
+
+test("fatura mostra parcelas, saldo em aberto e identificação legal", async () => {
+  const buffer = await renderizar({
+    ...props,
+    tipo: "fatura",
+    numero: 31,
+    data_validade: null,
+    vendedor: null,
+    subtotal: 1110,
+    desconto: 0,
+    total: 1110,
+    // Entrada já paga: a fatura precisa mostrar o SALDO, não o total cheio.
+    valor_pago: 555,
+    parcelas: [
+      { numero: 1, valor: 555, vencimento: "2026-09-05", pago: true },
+      { numero: 2, valor: 555, vencimento: "2026-09-20", pago: false },
+    ],
+    pagamento: { forma: "PIX", parcelas: 2, valor_parcela: 555 },
+    observacoes:
+      "Impresso por CNPJ 68.726.406/0001-90 para AGENCIA BEX MCP (37.914.628/0001-02). Tiragem: 3000 exemplares. Art. 38, Lei 9.504/1997.",
+    mostrarValores: true,
+  });
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+}, 30_000);
+
+test("fatura sem parcelas e sem pagamento continua renderizando", async () => {
+  const buffer = await renderizar({
+    ...props,
+    tipo: "fatura",
+    numero: 32,
+    parcelas: [],
+    valor_pago: 0,
+    pagamento: null,
+  });
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+}, 30_000);

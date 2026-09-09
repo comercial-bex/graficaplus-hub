@@ -19,6 +19,20 @@ type AutomationExecution = {
   } | null;
 };
 
+type NotificacaoFila = {
+  id: string;
+  canal: string;
+  destinatario: string | null;
+  template: string;
+  variaveis: JsonRecord | null;
+};
+
+type TemplateNotificacao = {
+  evento: string;
+  corpo: string;
+  ativo: boolean;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -164,6 +178,82 @@ async function processExecution(execution: AutomationExecution) {
   return responsePayload;
 }
 
+/**
+ * Consome notificacoes_fila — a fila que os gatilhos de orçamento e OS alimentam.
+ *
+ * Existiam duas filas e só uma era drenada: automacao_execucoes (automações que o
+ * usuário monta) tinha worker, notificacoes_fila (marcos de produção) não tinha
+ * ninguém. O cliente nunca recebia o "entrou em produção" que o gatilho enfileirou.
+ *
+ * reservar_notificacoes usa FOR UPDATE SKIP LOCKED e já incrementa a tentativa,
+ * então duas execuções simultâneas não mandam a mesma mensagem duas vezes.
+ * concluir_notificacao decide entre reagendar com recuo e desistir no limite.
+ */
+async function drenarFilaNotificacoes(limite: number) {
+  const { data: reservadas, error } = await supabase.rpc("reservar_notificacoes", {
+    p_limite: limite,
+  });
+  if (error) throw error;
+
+  const pendentes = (reservadas ?? []) as NotificacaoFila[];
+  if (pendentes.length === 0) return [];
+
+  // Um SELECT só para todos os templates: a fila costuma repetir o mesmo evento.
+  const { data: templates } = await supabase
+    .from("notificacao_templates")
+    .select("evento, corpo, ativo");
+  const porEvento = new Map(
+    ((templates ?? []) as TemplateNotificacao[]).map((t) => [t.evento, t]),
+  );
+
+  const resultados = [];
+  for (const item of pendentes) {
+    try {
+      const template = porEvento.get(item.template);
+      if (!template) {
+        throw new Error(`Sem template cadastrado para o evento "${item.template}".`);
+      }
+      if (!template.ativo) {
+        // Desligado de propósito não é falha: encerra sem erro e sem reenvio.
+        await supabase.rpc("concluir_notificacao", {
+          p_id: item.id,
+          p_ok: true,
+          p_provider_message_id: null,
+          p_erro: "template desativado",
+        });
+        resultados.push({ id: item.id, status: "ignorada" });
+        continue;
+      }
+
+      const mensagem = renderTemplate(template.corpo, (item.variaveis ?? {}) as JsonRecord).trim();
+      if (!mensagem) throw new Error("Template rendeu mensagem vazia.");
+
+      const destino = onlyDigits(item.destinatario ?? "");
+      if (!destino) throw new Error("Notificação sem telefone de destino.");
+
+      const resposta = await sendZapiText(destino, mensagem);
+      await supabase.rpc("concluir_notificacao", {
+        p_id: item.id,
+        p_ok: true,
+        p_provider_message_id:
+          typeof resposta?.messageId === "string" ? resposta.messageId : null,
+        p_erro: null,
+      });
+      resultados.push({ id: item.id, status: "enviada" });
+    } catch (erro) {
+      const mensagem = erro instanceof Error ? erro.message : String(erro);
+      await supabase.rpc("concluir_notificacao", {
+        p_id: item.id,
+        p_ok: false,
+        p_provider_message_id: null,
+        p_erro: mensagem,
+      });
+      resultados.push({ id: item.id, status: "erro", error: mensagem });
+    }
+  }
+  return resultados;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -259,9 +349,29 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ processed: results.length, results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // A fila de marcos é drenada na mesma chamada, mas em bloco separado: uma
+    // falha de Z-API numa automação não pode impedir o aviso de produção de sair.
+    let notificacoes: unknown[] = [];
+    let erroNotificacoes: string | null = null;
+    try {
+      notificacoes = await drenarFilaNotificacoes(limit);
+    } catch (erro) {
+      erroNotificacoes = erro instanceof Error ? erro.message : String(erro);
+    }
+
+    return new Response(
+      JSON.stringify({
+        processed: results.length,
+        results,
+        notificacoes: notificacoes.length,
+        notificacoes_detalhe: notificacoes,
+        notificacoes_erro: erroNotificacoes,
+        // Marcador de versão: deploy "concluído" pode subir bundle antigo, e a
+        // única prova de que o código novo subiu é ele responder isto.
+        worker: "fila-notificacoes-v1",
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({ error: message }), {

@@ -1527,6 +1527,93 @@ export type Database = {
           },
         ]
       }
+      compromissos_financeiros: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          created_by: string | null
+          credor: string
+          credor_documento: string | null
+          descricao: string
+          documento_url: string | null
+          cronograma_confirmado: boolean
+          encerrado_em: string | null
+          financeira: string | null
+          id: string
+          maquina_id: string | null
+          numero_contrato: string | null
+          observacoes: string | null
+          periodicidade: string
+          portal_url: string | null
+          primeira_parcela: string
+          tipo: string
+          total_parcelas: number | null
+          updated_at: string
+          valor_entrada: number
+          valor_parcela: number
+          valor_total: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          credor: string
+          credor_documento?: string | null
+          descricao: string
+          documento_url?: string | null
+          cronograma_confirmado?: boolean
+          encerrado_em?: string | null
+          financeira?: string | null
+          id?: string
+          maquina_id?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          periodicidade?: string
+          portal_url?: string | null
+          primeira_parcela: string
+          tipo?: string
+          total_parcelas?: number | null
+          updated_at?: string
+          valor_entrada?: number
+          valor_parcela: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          credor?: string
+          credor_documento?: string | null
+          descricao?: string
+          documento_url?: string | null
+          cronograma_confirmado?: boolean
+          encerrado_em?: string | null
+          financeira?: string | null
+          id?: string
+          maquina_id?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          periodicidade?: string
+          portal_url?: string | null
+          primeira_parcela?: string
+          tipo?: string
+          total_parcelas?: number | null
+          updated_at?: string
+          valor_entrada?: number
+          valor_parcela?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_bancarias: {
         Row: {
           agencia: string | null
@@ -1572,6 +1659,7 @@ export type Database = {
       contas_pagar: {
         Row: {
           categoria: string
+          compromisso_id: string | null
           comprovante_url: string | null
           created_at: string
           created_by: string | null
@@ -1581,8 +1669,10 @@ export type Database = {
           fornecedor: string | null
           id: string
           material_id: string | null
+          nosso_numero: string | null
           observacoes: string | null
           os_id: string | null
+          parcela_numero: number | null
           periodicidade: string | null
           recorrente: boolean
           status: Database["public"]["Enums"]["status_conta_pagar"]
@@ -1592,6 +1682,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string
+          compromisso_id?: string | null
           comprovante_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -1601,8 +1692,10 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           material_id?: string | null
+          nosso_numero?: string | null
           observacoes?: string | null
           os_id?: string | null
+          parcela_numero?: number | null
           periodicidade?: string | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["status_conta_pagar"]
@@ -1612,6 +1705,7 @@ export type Database = {
         }
         Update: {
           categoria?: string
+          compromisso_id?: string | null
           comprovante_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -1621,8 +1715,10 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           material_id?: string | null
+          nosso_numero?: string | null
           observacoes?: string | null
           os_id?: string | null
+          parcela_numero?: number | null
           periodicidade?: string | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["status_conta_pagar"]
@@ -3260,53 +3356,192 @@ export type Database = {
       maquinas: {
         Row: {
           ativa: boolean
+          data_aquisicao: string | null
+          forma_aquisicao: string
+          avanco_m: number
+          base_cobranca: string
           created_at: string
           custo_hora: number
           disponibilidade_pct: number
+          especificacoes: Json
+          fabricante: string | null
+          horas_produtivas_mensais: number | null
           id: string
+          imagem_url: string | null
           largura_util_m: number | null
           margem_lateral_m: number
+          modelo: string | null
           nome: string
+          numero_serie: string | null
           potencia_kw: number
           setor: string | null
           setup_min: number
+          tempo_minimo_min: number
           tipo: string | null
           updated_at: string
+          valor_aquisicao: number | null
+          valor_residual: number | null
           velocidade_m2_h: number
+          velocidade_mm_s: number | null
+          vida_util_horas: number | null
         }
         Insert: {
           ativa?: boolean
+          data_aquisicao?: string | null
+          forma_aquisicao?: string
+          avanco_m?: number
+          base_cobranca?: string
           created_at?: string
           custo_hora?: number
           disponibilidade_pct?: number
+          especificacoes?: Json
+          fabricante?: string | null
+          horas_produtivas_mensais?: number | null
           id?: string
+          imagem_url?: string | null
           largura_util_m?: number | null
           margem_lateral_m?: number
+          modelo?: string | null
           nome: string
+          numero_serie?: string | null
           potencia_kw?: number
           setor?: string | null
           setup_min?: number
+          tempo_minimo_min?: number
           tipo?: string | null
           updated_at?: string
+          valor_aquisicao?: number | null
+          valor_residual?: number | null
           velocidade_m2_h?: number
+          velocidade_mm_s?: number | null
+          vida_util_horas?: number | null
         }
         Update: {
           ativa?: boolean
+          data_aquisicao?: string | null
+          forma_aquisicao?: string
+          avanco_m?: number
+          base_cobranca?: string
           created_at?: string
           custo_hora?: number
           disponibilidade_pct?: number
+          especificacoes?: Json
+          fabricante?: string | null
+          horas_produtivas_mensais?: number | null
           id?: string
+          imagem_url?: string | null
           largura_util_m?: number | null
           margem_lateral_m?: number
+          modelo?: string | null
           nome?: string
+          numero_serie?: string | null
           potencia_kw?: number
           setor?: string | null
           setup_min?: number
+          tempo_minimo_min?: number
           tipo?: string | null
           updated_at?: string
+          valor_aquisicao?: number | null
+          valor_residual?: number | null
           velocidade_m2_h?: number
+          velocidade_mm_s?: number | null
+          vida_util_horas?: number | null
         }
         Relationships: []
+      }
+      maquinas_modos_impressao: {
+        Row: {
+          created_at: string
+          id: string
+          maquina_id: string
+          nome: string
+          observacao: string | null
+          ordem: number
+          padrao: boolean
+          passadas: number | null
+          velocidade_m2_h: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          maquina_id: string
+          nome: string
+          observacao?: string | null
+          ordem?: number
+          padrao?: boolean
+          passadas?: number | null
+          velocidade_m2_h: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          maquina_id?: string
+          nome?: string
+          observacao?: string | null
+          ordem?: number
+          padrao?: boolean
+          passadas?: number | null
+          velocidade_m2_h?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_modos_impressao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maquinas_velocidades: {
+        Row: {
+          created_at: string
+          espessura_mm: number
+          motivo: string | null
+          fonte: string | null
+          id: string
+          maquina_id: string
+          material: string
+          observacao: string | null
+          operacao: string
+          velocidade_mm_s: number
+          vetado: boolean
+        }
+        Insert: {
+          created_at?: string
+          espessura_mm?: number
+          motivo?: string | null
+          fonte?: string | null
+          id?: string
+          maquina_id: string
+          material: string
+          observacao?: string | null
+          operacao?: string
+          velocidade_mm_s: number
+          vetado?: boolean
+        }
+        Update: {
+          created_at?: string
+          espessura_mm?: number
+          motivo?: string | null
+          fonte?: string | null
+          id?: string
+          maquina_id?: string
+          material?: string
+          observacao?: string | null
+          operacao?: string
+          velocidade_mm_s?: number
+          vetado?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       maquinas_3d_config: {
         Row: {
@@ -9391,8 +9626,8 @@ export type Database = {
       usuarios: {
         Row: {
           ativo: boolean
-          avatar_url: string | null
           cargo_pretendido: string | null
+          avatar_url: string | null
           created_at: string
           email: string
           id: string
@@ -9402,8 +9637,8 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
-          avatar_url?: string | null
           cargo_pretendido?: string | null
+          avatar_url?: string | null
           created_at?: string
           email: string
           id: string
@@ -9413,8 +9648,8 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
-          avatar_url?: string | null
           cargo_pretendido?: string | null
+          avatar_url?: string | null
           created_at?: string
           email?: string
           id?: string

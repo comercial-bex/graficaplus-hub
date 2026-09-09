@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, X } from "lucide-react";
+import { AlertTriangle, Loader2, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   carregarPropsOrcamento,
+  carregarPropsOrcamentoComCustos,
   carregarPropsOrcamento3d,
   carregarPropsOS,
   renderPDFBlob,
@@ -20,9 +21,11 @@ type Props = {
   tipo: "orcamento" | "os" | "orcamento_3d";
   referencia_id: string;
   mostrarValores?: boolean;
+  /** Via interna: anexa a base de custo (tarifas e custo real por peça). */
+  comCustos?: boolean;
 };
 
-export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, mostrarValores = true }: Props) {
+export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, mostrarValores = true, comCustos = false }: Props) {
   const qc = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -38,7 +41,9 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
     (async () => {
       try {
         const p = tipo === "orcamento"
-          ? await carregarPropsOrcamento(referencia_id, mostrarValores)
+          ? comCustos
+            ? await carregarPropsOrcamentoComCustos(referencia_id)
+            : await carregarPropsOrcamento(referencia_id, mostrarValores)
           : tipo === "orcamento_3d"
             ? await carregarPropsOrcamento3d(referencia_id, mostrarValores)
             : await carregarPropsOS(referencia_id, mostrarValores);
@@ -57,7 +62,7 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
     return () => {
       cancelled = true;
     };
-  }, [open, tipo, referencia_id, mostrarValores, onOpenChange]);
+  }, [open, tipo, referencia_id, mostrarValores, comCustos, onOpenChange]);
 
   useEffect(() => {
     return () => {
@@ -71,7 +76,7 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
     try {
       const { filename } = await salvarERegistrarPDF({
         blob, tipo, referencia_id, numero: props.numero,
-        variante: mostrarValores ? "cliente" : "producao",
+        variante: comCustos ? "custos" : mostrarValores ? "cliente" : "producao",
       });
       const a = document.createElement("a");
       a.href = blobUrl!;
@@ -94,9 +99,21 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
         <DialogHeader className="p-4 border-b">
           <DialogTitle>
             Preview · {tipo === "os" ? "OS" : tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento"}
-            {!mostrarValores && " (Produção)"}
+            {comCustos ? " (uso interno — com custos)" : !mostrarValores ? " (Produção)" : ""}
           </DialogTitle>
         </DialogHeader>
+        {/* Documento sai para o cliente: faltar CNPJ ou endereço no cabeçalho é o
+            tipo de coisa que ninguém percebe até o cliente perguntar. */}
+        {props && !loading && dadosDaEmpresaFaltando(props.empresa).length > 0 && (
+          <div className="mx-4 mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              Este documento vai sair sem{" "}
+              <strong>{dadosDaEmpresaFaltando(props.empresa).join(", ")}</strong>. Preencha em
+              Configurações › Dados da empresa.
+            </div>
+          </div>
+        )}
         <div className="flex-1 bg-muted relative overflow-hidden">
           {loading && (
             <div className="absolute inset-0 grid place-items-center text-muted-foreground">
@@ -119,4 +136,18 @@ export function PDFPreviewDialog({ open, onOpenChange, tipo, referencia_id, most
       </DialogContent>
     </Dialog>
   );
+}
+
+/**
+ * O que falta no cabeçalho do emissor.
+ *
+ * empresa_config nasce como uma linha de rascunho só com o nome — sem isto, o
+ * orçamento chega ao cliente sem CNPJ e sem endereço e nada avisa.
+ */
+function dadosDaEmpresaFaltando(empresa: DocumentoPDFProps["empresa"]) {
+  const faltando: string[] = [];
+  if (!empresa.cnpj) faltando.push("CNPJ");
+  if (!empresa.endereco) faltando.push("endereço");
+  if (!empresa.telefones) faltando.push("telefone");
+  return faltando;
 }

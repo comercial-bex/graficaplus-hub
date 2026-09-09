@@ -16,16 +16,19 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
 import { Route as OrcamentoPublicoTokenRouteImport } from './routes/orcamento-publico.$token'
+import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_authenticated/respostas-rapidas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedProdutividade3dRouteImport } from './routes/_authenticated/produtividade-3d'
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
+import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authenticated/planilha-custos'
 import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
@@ -41,6 +44,7 @@ import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedImpressoras3dRouteImport } from './routes/_authenticated/impressoras-3d'
 import { Route as AuthenticatedImpressao3dRouteImport } from './routes/_authenticated/impressao-3d'
+import { Route as AuthenticatedFunilRouteImport } from './routes/_authenticated/funil'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedFilamentos3dRouteImport } from './routes/_authenticated/filamentos-3d'
@@ -52,7 +56,11 @@ import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_auth
 import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedCompromissosRouteImport } from './routes/_authenticated/compromissos'
+import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedCasosDeUsoRouteImport } from './routes/_authenticated/casos-de-uso'
+import { Route as AuthenticatedBreakdown3dRouteImport } from './routes/_authenticated/breakdown-3d'
+import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated/avisos'
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
 import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
@@ -97,6 +105,11 @@ const OrcamentoPublicoTokenRoute = OrcamentoPublicoTokenRouteImport.update({
   path: '/orcamento-publico/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AprovarTokenRoute = AprovarTokenRouteImport.update({
+  id: '/aprovar/$token',
+  path: '/aprovar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWhatsappMonitorRoute =
   AuthenticatedWhatsappMonitorRouteImport.update({
     id: '/whatsapp-monitor',
@@ -129,6 +142,12 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProdutividade3dRoute =
+  AuthenticatedProdutividade3dRouteImport.update({
+    id: '/produtividade-3d',
+    path: '/produtividade-3d',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProducao3dRoute = AuthenticatedProducao3dRouteImport.update({
   id: '/producao-3d',
   path: '/producao-3d',
@@ -149,6 +168,12 @@ const AuthenticatedPortalClienteRoute =
   AuthenticatedPortalClienteRouteImport.update({
     id: '/portal-cliente',
     path: '/portal-cliente',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPlanilhaCustosRoute =
+  AuthenticatedPlanilhaCustosRouteImport.update({
+    id: '/planilha-custos',
+    path: '/planilha-custos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPerdasRoute = AuthenticatedPerdasRouteImport.update({
@@ -234,6 +259,11 @@ const AuthenticatedImpressao3dRoute =
     path: '/impressao-3d',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFunilRoute = AuthenticatedFunilRouteImport.update({
+  id: '/funil',
+  path: '/funil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFluxoCaixaRoute = AuthenticatedFluxoCaixaRouteImport.update({
   id: '/fluxo-caixa',
   path: '/fluxo-caixa',
@@ -295,9 +325,31 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCompromissosRoute =
+  AuthenticatedCompromissosRouteImport.update({
+    id: '/compromissos',
+    path: '/compromissos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedComprasRoute = AuthenticatedComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCasosDeUsoRoute = AuthenticatedCasosDeUsoRouteImport.update({
   id: '/casos-de-uso',
   path: '/casos-de-uso',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBreakdown3dRoute =
+  AuthenticatedBreakdown3dRouteImport.update({
+    id: '/breakdown-3d',
+    path: '/breakdown-3d',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAvisosRoute = AuthenticatedAvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAutomacoesRoute = AuthenticatedAutomacoesRouteImport.update({
@@ -357,7 +409,11 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/avisos': typeof AuthenticatedAvisosRoute
+  '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
+  '/compras': typeof AuthenticatedComprasRoute
+  '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -369,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/funil': typeof AuthenticatedFunilRoute
   '/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -384,16 +441,19 @@ export interface FileRoutesByFullPath {
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/perdas': typeof AuthenticatedPerdasRoute
+  '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
+  '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/aprovar/$token': typeof AprovarTokenRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
@@ -411,7 +471,11 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/avisos': typeof AuthenticatedAvisosRoute
+  '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
+  '/compras': typeof AuthenticatedComprasRoute
+  '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -423,6 +487,7 @@ export interface FileRoutesByTo {
   '/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/funil': typeof AuthenticatedFunilRoute
   '/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -438,16 +503,19 @@ export interface FileRoutesByTo {
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/perdas': typeof AuthenticatedPerdasRoute
+  '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
+  '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/aprovar/$token': typeof AprovarTokenRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
@@ -467,7 +535,11 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/_authenticated/avisos': typeof AuthenticatedAvisosRoute
+  '/_authenticated/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
   '/_authenticated/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
+  '/_authenticated/compras': typeof AuthenticatedComprasRoute
+  '/_authenticated/compromissos': typeof AuthenticatedCompromissosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -479,6 +551,7 @@ export interface FileRoutesById {
   '/_authenticated/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/_authenticated/funil': typeof AuthenticatedFunilRoute
   '/_authenticated/impressao-3d': typeof AuthenticatedImpressao3dRoute
   '/_authenticated/impressoras-3d': typeof AuthenticatedImpressoras3dRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
@@ -494,16 +567,19 @@ export interface FileRoutesById {
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
+  '/_authenticated/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
+  '/_authenticated/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/aprovar/$token': typeof AprovarTokenRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/publico/$token': typeof PublicoTokenRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
@@ -523,7 +599,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/arquivos'
     | '/automacoes'
+    | '/avisos'
+    | '/breakdown-3d'
     | '/casos-de-uso'
+    | '/compras'
+    | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-empresa'
@@ -535,6 +615,7 @@ export interface FileRouteTypes {
     | '/filamentos-3d'
     | '/financeiro'
     | '/fluxo-caixa'
+    | '/funil'
     | '/impressao-3d'
     | '/impressoras-3d'
     | '/kanban'
@@ -550,16 +631,19 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/orcamento-3d-novo'
     | '/perdas'
+    | '/planilha-custos'
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
     | '/producao-3d'
+    | '/produtividade-3d'
     | '/produtos'
     | '/relatorios'
     | '/respostas-rapidas'
     | '/usuarios'
     | '/whatsapp'
     | '/whatsapp-monitor'
+    | '/aprovar/$token'
     | '/orcamento-publico/$token'
     | '/publico/$token'
     | '/clientes/$id'
@@ -577,7 +661,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/arquivos'
     | '/automacoes'
+    | '/avisos'
+    | '/breakdown-3d'
     | '/casos-de-uso'
+    | '/compras'
+    | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-empresa'
@@ -589,6 +677,7 @@ export interface FileRouteTypes {
     | '/filamentos-3d'
     | '/financeiro'
     | '/fluxo-caixa'
+    | '/funil'
     | '/impressao-3d'
     | '/impressoras-3d'
     | '/kanban'
@@ -604,16 +693,19 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/orcamento-3d-novo'
     | '/perdas'
+    | '/planilha-custos'
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
     | '/producao-3d'
+    | '/produtividade-3d'
     | '/produtos'
     | '/relatorios'
     | '/respostas-rapidas'
     | '/usuarios'
     | '/whatsapp'
     | '/whatsapp-monitor'
+    | '/aprovar/$token'
     | '/orcamento-publico/$token'
     | '/publico/$token'
     | '/clientes/$id'
@@ -632,7 +724,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authenticated/arquivos'
     | '/_authenticated/automacoes'
+    | '/_authenticated/avisos'
+    | '/_authenticated/breakdown-3d'
     | '/_authenticated/casos-de-uso'
+    | '/_authenticated/compras'
+    | '/_authenticated/compromissos'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
     | '/_authenticated/configuracoes-empresa'
@@ -644,6 +740,7 @@ export interface FileRouteTypes {
     | '/_authenticated/filamentos-3d'
     | '/_authenticated/financeiro'
     | '/_authenticated/fluxo-caixa'
+    | '/_authenticated/funil'
     | '/_authenticated/impressao-3d'
     | '/_authenticated/impressoras-3d'
     | '/_authenticated/kanban'
@@ -659,16 +756,19 @@ export interface FileRouteTypes {
     | '/_authenticated/ocorrencias'
     | '/_authenticated/orcamento-3d-novo'
     | '/_authenticated/perdas'
+    | '/_authenticated/planilha-custos'
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
     | '/_authenticated/precificacao'
     | '/_authenticated/producao-3d'
+    | '/_authenticated/produtividade-3d'
     | '/_authenticated/produtos'
     | '/_authenticated/relatorios'
     | '/_authenticated/respostas-rapidas'
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-monitor'
+    | '/aprovar/$token'
     | '/orcamento-publico/$token'
     | '/publico/$token'
     | '/_authenticated/clientes/$id'
@@ -686,6 +786,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  AprovarTokenRoute: typeof AprovarTokenRoute
   OrcamentoPublicoTokenRoute: typeof OrcamentoPublicoTokenRoute
   PublicoTokenRoute: typeof PublicoTokenRoute
 }
@@ -741,6 +842,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrcamentoPublicoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aprovar/$token': {
+      id: '/aprovar/$token'
+      path: '/aprovar/$token'
+      fullPath: '/aprovar/$token'
+      preLoaderRoute: typeof AprovarTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/whatsapp-monitor': {
       id: '/_authenticated/whatsapp-monitor'
       path: '/whatsapp-monitor'
@@ -783,6 +891,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/produtividade-3d': {
+      id: '/_authenticated/produtividade-3d'
+      path: '/produtividade-3d'
+      fullPath: '/produtividade-3d'
+      preLoaderRoute: typeof AuthenticatedProdutividade3dRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/producao-3d': {
       id: '/_authenticated/producao-3d'
       path: '/producao-3d'
@@ -809,6 +924,13 @@ declare module '@tanstack/react-router' {
       path: '/portal-cliente'
       fullPath: '/portal-cliente'
       preLoaderRoute: typeof AuthenticatedPortalClienteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planilha-custos': {
+      id: '/_authenticated/planilha-custos'
+      path: '/planilha-custos'
+      fullPath: '/planilha-custos'
+      preLoaderRoute: typeof AuthenticatedPlanilhaCustosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perdas': {
@@ -916,6 +1038,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImpressao3dRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/funil': {
+      id: '/_authenticated/funil'
+      path: '/funil'
+      fullPath: '/funil'
+      preLoaderRoute: typeof AuthenticatedFunilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/fluxo-caixa': {
       id: '/_authenticated/fluxo-caixa'
       path: '/fluxo-caixa'
@@ -993,11 +1122,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/compromissos': {
+      id: '/_authenticated/compromissos'
+      path: '/compromissos'
+      fullPath: '/compromissos'
+      preLoaderRoute: typeof AuthenticatedCompromissosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/compras': {
+      id: '/_authenticated/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof AuthenticatedComprasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/casos-de-uso': {
       id: '/_authenticated/casos-de-uso'
       path: '/casos-de-uso'
       fullPath: '/casos-de-uso'
       preLoaderRoute: typeof AuthenticatedCasosDeUsoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/breakdown-3d': {
+      id: '/_authenticated/breakdown-3d'
+      path: '/breakdown-3d'
+      fullPath: '/breakdown-3d'
+      preLoaderRoute: typeof AuthenticatedBreakdown3dRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/avisos': {
+      id: '/_authenticated/avisos'
+      path: '/avisos'
+      fullPath: '/avisos'
+      preLoaderRoute: typeof AuthenticatedAvisosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/automacoes': {
@@ -1069,7 +1226,11 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedArquivosRoute: typeof AuthenticatedArquivosRoute
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
+  AuthenticatedAvisosRoute: typeof AuthenticatedAvisosRoute
+  AuthenticatedBreakdown3dRoute: typeof AuthenticatedBreakdown3dRoute
   AuthenticatedCasosDeUsoRoute: typeof AuthenticatedCasosDeUsoRoute
+  AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
+  AuthenticatedCompromissosRoute: typeof AuthenticatedCompromissosRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
   AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -1081,6 +1242,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFilamentos3dRoute: typeof AuthenticatedFilamentos3dRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
+  AuthenticatedFunilRoute: typeof AuthenticatedFunilRoute
   AuthenticatedImpressao3dRoute: typeof AuthenticatedImpressao3dRoute
   AuthenticatedImpressoras3dRoute: typeof AuthenticatedImpressoras3dRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
@@ -1096,10 +1258,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
   AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
+  AuthenticatedPlanilhaCustosRoute: typeof AuthenticatedPlanilhaCustosRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
+  AuthenticatedProdutividade3dRoute: typeof AuthenticatedProdutividade3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRespostasRapidasRoute: typeof AuthenticatedRespostasRapidasRoute
@@ -1118,7 +1282,11 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedArquivosRoute: AuthenticatedArquivosRoute,
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
+  AuthenticatedAvisosRoute: AuthenticatedAvisosRoute,
+  AuthenticatedBreakdown3dRoute: AuthenticatedBreakdown3dRoute,
   AuthenticatedCasosDeUsoRoute: AuthenticatedCasosDeUsoRoute,
+  AuthenticatedComprasRoute: AuthenticatedComprasRoute,
+  AuthenticatedCompromissosRoute: AuthenticatedCompromissosRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
   AuthenticatedConfiguracoesEmpresaRoute:
@@ -1131,6 +1299,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFilamentos3dRoute: AuthenticatedFilamentos3dRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
+  AuthenticatedFunilRoute: AuthenticatedFunilRoute,
   AuthenticatedImpressao3dRoute: AuthenticatedImpressao3dRoute,
   AuthenticatedImpressoras3dRoute: AuthenticatedImpressoras3dRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
@@ -1146,10 +1315,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
   AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
+  AuthenticatedPlanilhaCustosRoute: AuthenticatedPlanilhaCustosRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
+  AuthenticatedProdutividade3dRoute: AuthenticatedProdutividade3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRespostasRapidasRoute: AuthenticatedRespostasRapidasRoute,
@@ -1174,6 +1345,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  AprovarTokenRoute: AprovarTokenRoute,
   OrcamentoPublicoTokenRoute: OrcamentoPublicoTokenRoute,
   PublicoTokenRoute: PublicoTokenRoute,
 }

@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -31,8 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, CheckCircle2 } from "lucide-react";
+import { Plus, CheckCircle2 , Undo2} from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
+import { Textarea } from "@/components/ui/textarea";
 import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
@@ -51,6 +54,10 @@ const statusVariant: Record<string, any> = {
 
 function FinanceiroPage() {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  const podeEstornar = hasPermission("pagamentos.reverse");
+  const [estorno, setEstorno] = useState<any | null>(null);
+  const [motivoEstorno, setMotivoEstorno] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     os_id: "",
@@ -118,6 +125,31 @@ function FinanceiroPage() {
       total_parcelas: "1",
     });
     qc.invalidateQueries({ queryKey: ["pagamentos"] });
+  }
+
+  /**
+   * Estorno de pagamento.
+   *
+   * Confirmar já existia; desfazer, não. Um lançamento errado só saía do
+   * sistema por SQL — e a função `estornar_pagamento` estava pronta e sem
+   * chamador desde sempre.
+   *
+   * O motivo é obrigatório de propósito: estorno sem justificativa transforma o
+   * histórico financeiro em algo que não dá para auditar. Quem confere depois
+   * precisa saber se foi engano de digitação, devolução ou cancelamento.
+   */
+  async function estornar() {
+    if (!estorno || !motivoEstorno.trim()) return;
+    const { error } = await (supabase.rpc as any)("estornar_pagamento", {
+      p_pagamento_id: estorno.id,
+      p_motivo: motivoEstorno.trim(),
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Pagamento estornado");
+    setEstorno(null);
+    setMotivoEstorno("");
+    qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    qc.invalidateQueries({ queryKey: ["fluxo-caixa"] });
   }
 
   async function marcarPago(p: any) {
@@ -308,10 +340,25 @@ function FinanceiroPage() {
                       <Badge variant={statusVariant[status] ?? "outline"}>{status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {p.status !== "pago" && (
+                      {p.status !== "pago" ? (
                         <Button size="sm" variant="outline" onClick={() => marcarPago(p)}>
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar pago
                         </Button>
+                      ) : p.pagamento_estornado_id ? (
+                        <span className="text-xs text-muted-foreground">estorno</span>
+                      ) : (
+                        podeEstornar && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEstorno(p);
+                              setMotivoEstorno("");
+                            }}
+                          >
+                            <Undo2 className="h-3 w-3 mr-1" /> Estornar
+                          </Button>
+                        )
                       )}
                     </TableCell>
                   </TableRow>
@@ -321,6 +368,37 @@ function FinanceiroPage() {
           </Table>
         </CardContent>
       </Card>
+      <Dialog open={!!estorno} onOpenChange={(o) => !o && setEstorno(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Estornar pagamento</DialogTitle>
+            <DialogDescription>
+              {estorno
+                ? `R$ ${Number(estorno.valor).toFixed(2)} da OS #${estorno.ordens_servico?.numero ?? "—"}. O valor volta a constar como pendente.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="motivo-estorno">Por que está estornando? *</Label>
+            <Textarea
+              id="motivo-estorno"
+              rows={3}
+              value={motivoEstorno}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMotivoEstorno(e.target.value)}
+              placeholder="Erro de digitação · devolução ao cliente · cobrança cancelada"
+            />
+            <p className="text-xs text-muted-foreground">
+              Estorno sem justificativa deixa o histórico financeiro impossível de auditar.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEstorno(null)}>Cancelar</Button>
+            <Button variant="destructive" disabled={!motivoEstorno.trim()} onClick={estornar}>
+              Estornar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

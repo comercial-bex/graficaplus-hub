@@ -105,6 +105,23 @@ export function valorUnitarioComMinimo(
   return round(daPeca * numero(precoM2), 2);
 }
 
+/**
+ * Quantas unidades de venda o item consome — a base que multiplica a ficha
+ * técnica do produto.
+ *
+ * `produto_materiais.quantidade_por_unidade` é consumo por unidade DE VENDA, e a
+ * unidade de venda de um produto medido em área é o m², não a peça. Um banner
+ * 3 × 2 m em duas vias consome 12 m² de lona, não 2: usar a quantidade de peças
+ * aqui erraria o custo do material por um fator igual à área da peça.
+ *
+ * Quando o item não é vendido por área, a base é a própria quantidade.
+ */
+export function baseDeConsumo(item: ItemDimensionado, areaMinima?: number | null): number {
+  const qtd = numero(item.quantidade) > 0 ? numero(item.quantidade) : 1;
+  if (!temDimensoes(item)) return qtd;
+  return areaCobrada(item, areaMinima);
+}
+
 /** Soma da área de todos os itens dimensionados, em m². */
 export function somaAreaTotal(itens: ItemDimensionado[]): number {
   return round(

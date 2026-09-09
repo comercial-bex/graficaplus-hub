@@ -10,7 +10,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { History } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { History, Receipt } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { gerarESalvarPDF } from "@/lib/pdf/generate";
 
 type Movimento = {
   id: string;
@@ -23,6 +27,7 @@ type Movimento = {
 };
 
 export function HistoricoEstoqueCard({ osId }: { osId: string }) {
+  const [gerando, setGerando] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["historico-estoque", osId],
     queryFn: async () => {
@@ -55,14 +60,37 @@ export function HistoricoEstoqueCard({ osId }: { osId: string }) {
   });
 
   const movimentos = data?.movimentos ?? [];
+  const temSaida = movimentos.some((m) => m.tipo === "saida");
+
+  async function emitirRecibo() {
+    setGerando(true);
+    try {
+      await gerarESalvarPDF({ tipo: "recibo_material", referencia_id: osId });
+      toast.success("Recibo gerado");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar o recibo");
+    } finally {
+      setGerando(false);
+    }
+  }
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <History className="h-4 w-4" />
-          Histórico de baixa de estoque
-        </CardTitle>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Histórico de baixa de estoque
+          </CardTitle>
+          {/* Só há recibo a emitir quando material de fato saiu: entrada e
+              inventário não geram retirada para alguém assinar. */}
+          {temSaida && (
+            <Button variant="outline" size="sm" disabled={gerando} onClick={emitirRecibo}>
+              <Receipt className="h-4 w-4 mr-1" />
+              {gerando ? "Gerando…" : "Recibo de retirada"}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (

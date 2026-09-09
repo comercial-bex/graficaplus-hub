@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/module-data";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import {
+  BellRing,
   Users,
   FileText,
   ClipboardList,
@@ -110,6 +111,25 @@ function DashboardPage() {
   const osAtrasadas = useCount("ordens_servico", (q) =>
     q.lt("prazo_entrega", today).not("status", "in", "(concluido,faturado,cancelado)"),
   );
+
+  /**
+   * Avisos ao cliente parados na fila.
+   *
+   * Fica no Dashboard porque a tela de Avisos não resolve nada se ninguém
+   * entrar nela: a fila enchia desde agosto e NENHUMA tela do sistema a lia.
+   * Só conta os que têm cliente vinculado: os sem vínculo não têm a quem ser
+   * entregues e esconderiam os de verdade.
+   */
+  const avisosParados = useQuery({
+    queryKey: ["dash-avisos-parados"],
+    queryFn: async () => {
+      const { count } = await (supabase as any)
+        .from("vw_avisos_pendentes")
+        .select("id", { count: "exact", head: true })
+        .not("cliente_id", "is", null);
+      return count ?? 0;
+    },
+  });
 
   const { data: dashViews } = useQuery({
     queryKey: ["vw-dashboards"],
@@ -267,6 +287,25 @@ function DashboardPage() {
           </div>
         }
       />
+
+      {Number(avisosParados.data ?? 0) > 0 && (
+        <Link
+          to="/avisos"
+          className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm hover:bg-amber-500/15"
+        >
+          <BellRing className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-600" />
+          <span>
+            <strong>
+              {avisosParados.data === 1
+                ? "1 aviso ao cliente não saiu"
+                : `${avisosParados.data} avisos ao cliente não saíram`}
+              .
+            </strong>{" "}
+            Arte pronta, serviço concluído e orçamento aprovado ficaram na fila sem canal
+            de envio configurado. Abra para avisar à mão ou dar baixa.
+          </span>
+        </Link>
+      )}
 
       {/* KPIs operacionais */}
       <section className="space-y-3">

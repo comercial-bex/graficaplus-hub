@@ -20,6 +20,8 @@ import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
+import { useAuth } from "@/lib/auth-context";
+import { ParametrosDeMaquina } from "@/components/maquinas/parametros-de-maquina";
 import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/maquinas")({
@@ -53,6 +55,11 @@ type Form = {
   setup_min: string;
   velocidade_m2_h: string;
   disponibilidade_pct: string;
+  fabricante: string;
+  modelo: string;
+  numero_serie: string;
+  largura_util_m: string;
+  avanco_m: string;
 };
 
 const emptyForm: Form = {
@@ -64,6 +71,11 @@ const emptyForm: Form = {
   setup_min: "0",
   velocidade_m2_h: "0",
   disponibilidade_pct: "100",
+  fabricante: "",
+  modelo: "",
+  numero_serie: "",
+  largura_util_m: "",
+  avanco_m: "",
 };
 
 const brl = (n: number) =>
@@ -71,6 +83,7 @@ const brl = (n: number) =>
 
 function MaquinasPage() {
   const qc = useQueryClient();
+  const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(emptyForm);
 
@@ -86,6 +99,106 @@ function MaquinasPage() {
     },
   });
 
+  /**
+   * Contratos das máquinas — bloco separado de propósito.
+   *
+   * `maquinas` é lida por toda a equipe (`is_staff`), então valor de parcela e
+   * total financiado não podem morar lá. Ficam em `maquinas_contrato`, com RLS
+   * de `financeiro.read`: quem não pode ver dinheiro recebe zero linhas e a
+   * tela simplesmente não mostra o bloco.
+   */
+  const { data: contratos = [] } = useQuery({
+    queryKey: ["maquinas-contrato"],
+    enabled: canSeeFinancials,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("maquinas_contrato")
+        .select("*");
+      return (data ?? []) as Record<string, any>[];
+    },
+  });
+  const contratoPorMaquina = new Map(contratos.map((c) => [c.maquina_id as string, c]));
+
+  const [enviandoFoto, setEnviandoFoto] = useState<string | null>(null);
+
+  /**
+   * Custo/hora sugerido pelo contrato.
+   *
+   * As 5 máquinas estavam com custo/hora zero, e zero aqui não é "de graça": é
+   * a hora de máquina e a energia saindo do orçamento sem entrar no preço.
+   * Pedir para alguém digitar não resolve — ninguém sabe de cabeça quanto custa
+   * a hora de uma impressora.
+   *
+   * O contrato sabe. Locação divide a parcela pelas horas do mês; compra dilui
+   * o valor pela vida útil. A função devolve a conta junto, porque número de
+   * custo sem a memória de cálculo ao lado ninguém confere — e este vai para
+   * dentro do preço de venda.
+   */
+  const { data: sugestoes = {} } = useQuery({
+    queryKey: ["custo-hora-sugerido", maquinas.map((m) => m.id).join(",")],
+    enabled: maquinas.length > 0,
+    queryFn: async () => {
+      const mapa: Record<string, any> = {};
+      for (const m of maquinas) {
+        const { data } = await (supabase.rpc as any)("custo_hora_sugerido", { p_maquina_id: m.id });
+        if (data) mapa[m.id] = data;
+      }
+      return mapa;
+    },
+  });
+
+  const aplicarCusto = useMutation({
+    mutationFn: async (maquinaId: string) => {
+      const { data, error } = await (supabase.rpc as any)("aplicar_custo_hora_sugerido", {
+        p_maquina_id: maquinaId,
+      });
+      if (error) throw error;
+      return data as { custo_hora: number };
+    },
+    onSuccess: (r) => {
+      toast.success(`Custo/hora definido em ${brl(Number(r.custo_hora))}`);
+      qc.invalidateQueries({ queryKey: ["maquinas"] });
+      qc.invalidateQueries({ queryKey: ["custo-hora-sugerido"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  /**
+   * Foto do equipamento.
+   *
+   * Bucket público, ao contrário dos outros do projeto: foto de máquina não é
+   * dado de cliente, aparece em lista e em card, e exigir URL assinada a cada
+   * render trocaria um risco que não existe por lentidão que existe.
+   */
+  async function enviarFoto(maquinaId: string, arquivo: File) {
+    setEnviandoFoto(maquinaId);
+    try {
+      const ext = arquivo.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const caminho = `${maquinaId}/${Date.now()}.${ext}`;
+      const { error: erroUpload } = await supabase.storage
+        .from("maquinas-fotos")
+        .upload(caminho, arquivo, { contentType: arquivo.type, upsert: true });
+      if (erroUpload) throw erroUpload;
+
+      const { data: pub } = supabase.storage.from("maquinas-fotos").getPublicUrl(caminho);
+      const { data, error } = await (supabase as any)
+        .from("maquinas")
+        .update({ imagem_url: pub.publicUrl })
+        .eq("id", maquinaId)
+        .select("id");
+      if (error) throw error;
+      // Escrita barrada por RLS devolve 0 linhas e nenhum erro.
+      if (!data || data.length === 0) throw new Error("Seu perfil não pode alterar máquinas.");
+
+      toast.success("Foto atualizada");
+      qc.invalidateQueries({ queryKey: ["maquinas"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar a foto");
+    } finally {
+      setEnviandoFoto(null);
+    }
+  }
+
   const save = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -97,6 +210,14 @@ function MaquinasPage() {
         setup_min: Number(form.setup_min) || 0,
         velocidade_m2_h: Number(form.velocidade_m2_h) || 0,
         disponibilidade_pct: Number(form.disponibilidade_pct) || 0,
+        fabricante: form.fabricante.trim() || null,
+        modelo: form.modelo.trim() || null,
+        // O "neurônio" da Vuze. É por ele que se abre chamado de garantia —
+        // sem ele, achar a máquina no fabricante vira arqueologia de e-mail.
+        numero_serie: form.numero_serie.trim() || null,
+        // Boca da máquina: o gargalo do encaixe de bobina no orçamento.
+        largura_util_m: form.largura_util_m ? Number(form.largura_util_m) : null,
+        avanco_m: Number(form.avanco_m) || 0,
       };
       if (form.id) {
         const { error } = await supabase.from("maquinas").update(payload).eq("id", form.id);
@@ -146,6 +267,11 @@ function MaquinasPage() {
       setup_min: String(m.setup_min ?? 0),
       velocidade_m2_h: String(m.velocidade_m2_h ?? 0),
       disponibilidade_pct: String(m.disponibilidade_pct ?? 100),
+      fabricante: (m as any).fabricante ?? "",
+      modelo: (m as any).modelo ?? "",
+      numero_serie: (m as any).numero_serie ?? "",
+      largura_util_m: (m as any).largura_util_m != null ? String((m as any).largura_util_m) : "",
+      avanco_m: (m as any).avanco_m != null ? String((m as any).avanco_m) : "",
     });
     setOpen(true);
   };
@@ -210,15 +336,46 @@ function MaquinasPage() {
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                      <Factory className="h-5 w-5 text-[color:var(--bex-cyan)]" />
-                    </div>
+                    <label
+                      className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden cursor-pointer relative group"
+                      title="Trocar a foto"
+                    >
+                      {m.imagem_url ? (
+                        <img
+                          src={m.imagem_url}
+                          alt={m.nome}
+                          className="h-full w-full object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Factory className="h-5 w-5 text-[color:var(--bex-cyan)]" />
+                      )}
+                      <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-background/80 text-[10px] font-medium">
+                        {enviandoFoto === m.id ? "..." : "trocar"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) enviarFoto(m.id, f);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
                     <div className="min-w-0">
                       <div className="font-bold truncate">{m.nome}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {m.tipo || "—"}
                         {m.setor ? ` · ${m.setor}` : ""}
                       </div>
+                      {(m.fabricante || m.modelo) && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          {[m.fabricante, m.modelo].filter(Boolean).join(" ")}
+                          {m.numero_serie ? ` · nº ${m.numero_serie}` : ""}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <StatusChip
@@ -254,12 +411,141 @@ function MaquinasPage() {
                   </div>
                 </div>
 
-                {Number(m.custo_hora ?? 0) <= 0 && (
-                  <div className="flex items-center gap-2 text-xs text-[color:var(--bex-magenta)]">
-                    <Zap className="h-3.5 w-3.5" />
-                    Defina o custo/hora para esta máquina entrar no cálculo
+                {m.largura_util_m != null && (
+                  <div className="text-xs text-muted-foreground">
+                    Boca de {Number(m.largura_util_m).toLocaleString("pt-BR")} m — é ela que
+                    define quantas peças cabem na bobina.
                   </div>
                 )}
+
+                {/* O número em que a gráfica pensa.
+                    Ninguém precifica banner por hora de máquina: precifica por
+                    metro quadrado. Custo/hora sozinho engana — R$ 14,43 parece
+                    caro até dividir pelos 14 m² que a máquina faz nessa hora. */}
+                {Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) > 0 && (
+                  <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                    <div className="font-medium">
+                      {brl(Number(m.custo_hora) / Number(m.velocidade_m2_h))} por m² de máquina
+                    </div>
+                    <div className="text-muted-foreground">
+                      {brl(Number(m.custo_hora))}/h ÷ {Number(m.velocidade_m2_h)} m²/h. É este
+                      valor que entra no orçamento, proporcional à metragem da peça — não a
+                      hora cheia.
+                    </div>
+                  </div>
+                )}
+
+                {/* Sem velocidade, a hora é digitada à mão — e digitar "1 hora"
+                    num banner de 2 m² cobra a hora inteira em vez do minuto que
+                    a peça usou. É assim que o orçamento estoura. */}
+                {Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) <= 0 && (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
+                    <div className="font-medium text-amber-700 dark:text-amber-500">
+                      Sem velocidade cadastrada
+                    </div>
+                    <div className="text-muted-foreground">
+                      O orçamento vai pedir as horas digitadas. Uma hora cheia numa peça de
+                      poucos minutos cobra {brl(Number(m.custo_hora))} a mais do que devia.
+                    </div>
+                  </div>
+                )}
+
+                {/* Os parâmetros que fazem o preço, editáveis aqui: modos de
+                    qualidade na impressora, tabela de velocidade no laser.
+                    Semear na migração e não dar onde corrigir seria congelar
+                    uma estimativa dentro do preço de venda. */}
+                <ParametrosDeMaquina maquinaId={m.id} base={(m as any).base_cobranca ?? null} />
+
+                {/* Ficha técnica em formato livre: cada tipo de máquina tem a sua.
+                    Uma fresa a laser fala em tubo e área de gravação; um plotter,
+                    em força de corte. */}
+                {m.especificacoes && Object.keys(m.especificacoes as object).length > 0 && (
+                  <details className="rounded-md border bg-muted/30 p-2">
+                    <summary className="cursor-pointer text-xs font-medium">
+                      Ficha técnica
+                    </summary>
+                    <dl className="mt-2 space-y-1 text-xs">
+                      {Object.entries(m.especificacoes as Record<string, unknown>)
+                        .filter(([chave]) => chave !== "fonte_ficha")
+                        .map(([chave, valor]) => (
+                          <div key={chave} className="flex justify-between gap-3">
+                            <dt className="text-muted-foreground">
+                              {chave.replace(/_/g, " ")}
+                            </dt>
+                            <dd className="font-mono text-right">
+                              {typeof valor === "boolean" ? (valor ? "sim" : "não") : String(valor)}
+                            </dd>
+                          </div>
+                        ))}
+                    </dl>
+                    {(m.especificacoes as Record<string, unknown>).fonte_ficha ? (
+                      <p className="mt-2 text-[10px] text-muted-foreground">
+                        Fonte: {String((m.especificacoes as Record<string, unknown>).fonte_ficha)}
+                      </p>
+                    ) : null}
+                  </details>
+                )}
+
+                {canSeeFinancials && contratoPorMaquina.get(m.id) && (
+                  <div className="rounded-md border border-[color:var(--bex-cyan)]/30 bg-[color:var(--bex-cyan)]/5 p-2 text-xs space-y-1">
+                    <div className="font-medium">
+                      {contratoPorMaquina.get(m.id)!.condicao_comercial ?? "Contrato"}
+                    </div>
+                    {contratoPorMaquina.get(m.id)!.valor_parcela ? (
+                      <div>
+                        {contratoPorMaquina.get(m.id)!.parcelas}× de{" "}
+                        {brl(Number(contratoPorMaquina.get(m.id)!.valor_parcela))}
+                      </div>
+                    ) : null}
+                    {contratoPorMaquina.get(m.id)!.valor_total ? (
+                      <div>Valor: {brl(Number(contratoPorMaquina.get(m.id)!.valor_total))}</div>
+                    ) : null}
+                    {contratoPorMaquina.get(m.id)!.creditos != null ? (
+                      <div>Créditos: {contratoPorMaquina.get(m.id)!.creditos}</div>
+                    ) : null}
+                    <div className="text-muted-foreground">
+                      Contrato{" "}
+                      {contratoPorMaquina.get(m.id)!.numero_contrato ??
+                        contratoPorMaquina.get(m.id)!.numero_negociacao ??
+                        "—"}
+                    </div>
+                  </div>
+                )}
+
+                {Number(m.custo_hora ?? 0) <= 0 &&
+                  (sugestoes[m.id]?.custo_hora ? (
+                    <div className="rounded-md border border-[color:var(--bex-magenta)]/40 bg-[color:var(--bex-magenta)]/5 p-2 text-xs space-y-2">
+                      <div className="flex items-center gap-2 font-medium">
+                        <Zap className="h-3.5 w-3.5" />
+                        Sugestão: {brl(Number(sugestoes[m.id].custo_hora))}/hora
+                      </div>
+                      <div className="text-muted-foreground">{sugestoes[m.id].conta}</div>
+                      {sugestoes[m.id].horas_presumidas && (
+                        <div className="text-muted-foreground">
+                          As 160 h/mês são presumidas (8 h × 20 dias). Com a hora real, o custo
+                          muda na mesma proporção.
+                        </div>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={aplicarCusto.isPending}
+                        onClick={() => aplicarCusto.mutate(m.id)}
+                      >
+                        Usar este valor
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 text-xs text-[color:var(--bex-magenta)]">
+                      <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>
+                        Sem custo/hora, esta máquina sai de graça no orçamento.
+                        {sugestoes[m.id]?.metodo === "sem_dados"
+                          ? " Cadastre o valor de aquisição ou a parcela para o sistema calcular."
+                          : ""}
+                      </span>
+                    </div>
+                  ))}
 
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(m)}>
@@ -289,10 +575,18 @@ function MaquinasPage() {
             <div className="sm:col-span-2">{field("nome", "Nome *", "Plotter Roland XR-640")}</div>
             {field("tipo", "Tipo", "Impressão eco-solvente")}
             {field("setor", "Setor", "Impressão")}
+            {field("fabricante", "Fabricante", "Vuze")}
+            {field("modelo", "Modelo", "VC10060-LM")}
+            {field("numero_serie", "Nº de série / neurônio", "FD2D54")}
+            {field("largura_util_m", "Boca da máquina (m)", "1.80", "number")}
             {field("custo_hora", "Custo/hora (R$)", "40", "number")}
             {field("potencia_kw", "Potência (kW)", "1.5", "number")}
             {field("setup_min", "Setup (min)", "15", "number")}
             {field("velocidade_m2_h", "Velocidade (m²/h)", "12", "number")}
+            {/* O rolo avança para carregar e para cortar. Em peça pequena esse
+                avanço É o consumo: 20 cm perdidos numa tira de 20 cm dobram o
+                material, e a conta de aproveitamento ignorava isso. */}
+            {field("avanco_m", "Avanço por trabalho (m)", "0.20", "number")}
             <div className="sm:col-span-2">
               {field("disponibilidade_pct", "Disponibilidade (%)", "85", "number")}
             </div>
