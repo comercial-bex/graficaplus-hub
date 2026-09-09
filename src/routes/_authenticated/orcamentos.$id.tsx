@@ -42,6 +42,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { OrcamentoProdutoPicker } from "@/components/orcamento-produto-picker";
+import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
 import { OrcamentoMaterialCheck } from "@/components/orcamento-material-check";
 import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
@@ -83,6 +84,12 @@ const itemVazio = {
   area_minima: null as number | null,
   margem_minima: null as number | null,
   tempo_producao_min: null as number | null,
+  // De onde saiu o custo. 'manual' é o padrão porque o campo é digitável;
+  // a calculadora troca para 'motor' e guarda a memória do cálculo.
+  origem_calculo: "manual" as string,
+  custo_previsto: null as number | null,
+  margem_prevista: null as number | null,
+  parametros: null as Record<string, unknown> | null,
 };
 
 
@@ -119,6 +126,7 @@ function OrcamentoDetailPage() {
   const qc = useQueryClient();
   const { canSeeFinancials } = useAuth();
   const [form, setForm] = useState({ ...itemVazio });
+  const [calculadoraAberta, setCalculadoraAberta] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewProducaoOpen, setPreviewProducaoOpen] = useState(false);
   const [gerandoLink, setGerandoLink] = useState(false);
@@ -368,6 +376,10 @@ function OrcamentoDetailPage() {
       ordem: itens.length,
       produto_id: form.produto_id,
       arquivo_id: form.arquivo_id,
+      origem_calculo: form.origem_calculo,
+      custo_previsto: form.custo_previsto,
+      margem_prevista: form.margem_prevista,
+      parametros: form.parametros,
     } as any).select("id").single();
     if (error) return toast.error(mensagemErro(error));
     // a arte enviada no formulário vira a capa do item; as demais são
@@ -704,6 +716,41 @@ function OrcamentoDetailPage() {
             {/* Conferência de material e estoque, só aviso. */}
             <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
 
+            {/* A calculadora é diálogo: não ocupa espaço na tela até ser aberta,
+                e por isso volta sem mexer no desenho de uma etapa só. */}
+            {canSeeFinancials && (
+              <CalculadoraCusto
+                open={calculadoraAberta}
+                onOpenChange={setCalculadoraAberta}
+                produtoId={form.produto_id}
+                quantidade={paraNumero(form.quantidade) || 1}
+                // A ficha técnica dá consumo por unidade de venda: em produto
+                // medido em m², a base é a metragem cobrada, não o nº de peças.
+                baseConsumo={baseConsumo}
+                unidadeBase={vendidoPorArea ? "m²" : form.unidade || "un"}
+                onAplicar={({ resultado, parametros }) => {
+                  const qtd = paraNumero(form.quantidade) || 1;
+                  setForm((atual) => ({
+                    ...atual,
+                    custo_unitario: (resultado.custoTotal / qtd).toFixed(2),
+                    custo_previsto: resultado.custoTotal,
+                    margem_prevista: resultado.margemPct,
+                    parametros: parametros as unknown as Record<string, unknown>,
+                    origem_calculo: "motor",
+                    // Só sugere preço em campo ainda no zero: sobrescrever preço
+                    // já negociado com o cliente é pior que não sugerir nada.
+                    valor_unitario:
+                      paraNumero(atual.valor_unitario) > 0
+                        ? atual.valor_unitario
+                        : resultado.precoUnitario.toFixed(2),
+                  }));
+                  toast.success(
+                    `Custo calculado: ${resultado.custoTotal.toFixed(2)} · margem ${(resultado.margemPct * 100).toFixed(1)}%`,
+                  );
+                }}
+              />
+            )}
+
             {/* Margem do item comparada à mínima do produto. */}
             {canSeeFinancials && margemItem !== null && (
               <div className="flex items-center gap-2 text-xs">
@@ -812,14 +859,33 @@ function OrcamentoDetailPage() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="item-custo-un">Custo un.</Label>
+                    <div className="flex items-center justify-between gap-1">
+                      <Label htmlFor="item-custo-un">Custo un.</Label>
+                      {/* Abre a calculadora: material, máquina e mão de obra viram
+                          custo com a conta à vista, em vez de número digitado. */}
+                      <button
+                        type="button"
+                        className="text-[11px] text-primary hover:underline"
+                        onClick={() => setCalculadoraAberta(true)}
+                      >
+                        calcular
+                      </button>
+                    </div>
                     <Input
                       id="item-custo-un"
                       type="number"
                       step="0.01"
                       value={form.custo_unitario}
-                      onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
+                      onChange={(e) =>
+                        // Digitou à mão: o custo deixa de ser "calculado".
+                        setForm({ ...form, custo_unitario: e.target.value, origem_calculo: "manual" })
+                      }
                     />
+                    {form.origem_calculo === "motor" && form.margem_prevista != null && (
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        calculado · margem {(form.margem_prevista * 100).toFixed(1)}%
+                      </p>
+                    )}
                   </div>
                 </>
               )}

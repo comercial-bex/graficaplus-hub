@@ -40,9 +40,9 @@ const INFRAESTRUTURA = new Set(["routeTree.gen", "types", "styles", "router", "s
  */
 const CONHECIDOS: Record<string, string> = {
   // Desligados pela fusão de 08/09: a tela de orçamento foi refeita no Lovable
-  // e não chama mais estes. Religar é decisão do Harison, não minha.
+  // e não chama mais estes. A calculadora JÁ foi religada (é diálogo, cabe sem
+  // mexer no layout). Estes três mudam o desenho da tela e esperam decisão.
   "src/components/orcamento/aproveitamento-card.tsx": "tela de orçamento refeita não chama mais — aguarda decisão de religar",
-  "src/components/orcamento/calculadora-custo.tsx": "idem — junto vão barra-de-composicao, decapagem e tempo-de-maquina",
   "src/components/orcamento/faixa-de-preco.tsx": "idem — FaixaDePrecoAviso e RestricoesDoProduto",
   "src/components/orcamento/prazos-card.tsx": "idem",
 
