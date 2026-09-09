@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { describe, it, test, expect } from "vitest";
 import {
   coordenadaNaColuna,
   indiceColunaAtual,
@@ -101,4 +101,51 @@ test("uma única coluna não tem para onde saltar", () => {
   const so = [coluna("entrada", 0)];
   expect(proximaColuna(so, 160, 1)).toBeNull();
   expect(proximaColuna(so, 160, -1)).toBeNull();
+});
+
+describe("quadro agrupado em cinco etapas: linhas empilhadas", () => {
+  /**
+   * Depois que o Kanban passou a agrupar as colunas pelas etapas da gráfica, o
+   * quadro deixou de ser uma faixa horizontal e virou cinco linhas. Todas
+   * começam no mesmo x — então ordenar só por `left`, como era antes, faria a
+   * seta saltar da 1ª coluna da Entrada para a 1ª da Pré-impressão.
+   */
+  const col = (id: string, left: number, top: number): ColunaAlvo => ({
+    id, left, right: left + 288, width: 288, top,
+  });
+
+  // Duas linhas de três colunas, na ordem visual A B C / D E F.
+  const quadro = [
+    col("D", 0, 400), col("E", 300, 400), col("F", 600, 400),
+    col("A", 0, 0), col("B", 300, 0), col("C", 600, 2),
+  ];
+
+  it("a ordem é linha por linha, da esquerda para a direita", () => {
+    expect(ordenarColunas(quadro).map((c) => c.id)).toEqual(["A", "B", "C", "D", "E", "F"]);
+  });
+
+  it("2px de diferença no topo não parte a linha em duas", () => {
+    // "C" está 2px abaixo de "A" e "B" — cabeçalho de altura diferente, e não
+    // linha nova. Sem a folga ela seria empurrada para depois de F.
+    const ordem = ordenarColunas(quadro).map((c) => c.id);
+    expect(ordem.indexOf("C")).toBe(2);
+  });
+
+  it("a seta anda dentro da linha antes de descer para a próxima etapa", () => {
+    // Do centro de B, a direita é C — não D, que é a primeira da linha de baixo.
+    expect(proximaColuna(quadro, 300 + 144, 1)?.id).toBe("C");
+    // E do fim de uma linha, a próxima é a primeira da linha seguinte.
+    expect(proximaColuna(quadro, 600 + 144, 1)?.id).toBe("D");
+  });
+
+  it("para trás segue a mesma ordem", () => {
+    expect(proximaColuna(quadro, 144, -1)).toBeNull();
+    expect(proximaColuna(quadro, 0 + 144 + 400 * 0, -1)).toBeNull();
+    expect(proximaColuna(quadro, 300 + 144, -1)?.id).toBe("A");
+  });
+
+  it("faixa única continua funcionando como antes", () => {
+    const faixa = [col("Z", 600, 0), col("X", 0, 0), col("Y", 300, 0)];
+    expect(ordenarColunas(faixa).map((c) => c.id)).toEqual(["X", "Y", "Z"]);
+  });
 });

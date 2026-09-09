@@ -55,7 +55,6 @@ const CONHECIDOS: Record<string, string> = {
   "src/domain/financeiro/schemas.ts": "schema sem consumidor",
   "src/domain/impressao3d/slicer-import.ts": "o assistente 3D lê o .3mf por outro caminho",
   "src/domain/orcamentos/schemas.ts": "schema sem consumidor",
-  "src/domain/os/workflow.ts": "as transições de status vivem no banco",
   "src/domain/whatsapp/schemas.ts": "schema sem consumidor",
 };
 
