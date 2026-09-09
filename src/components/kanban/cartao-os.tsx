@@ -4,7 +4,9 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { rotuloDe } from "@/domain/os/etapas";
 import { areaEmTexto, resumoDaProducao } from "@/domain/os/o-que-produzir";
 import { paradaHa, prazoEmPalavras } from "@/domain/os/prazo";
-import { AlertTriangle, Factory, Layers, Lock } from "lucide-react";
+import { AlertTriangle, Layers, Lock } from "lucide-react";
+import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
+import { identidadeDaMaquina, statusIndicaMaquina } from "@/domain/producao/identidade-da-maquina";
 
 /**
  * O cartão do quadro.
@@ -49,6 +51,9 @@ export function CartaoOs({
   const parada = paradaHa(os.updated_at);
   const responsaveis = [os.designer, os.operador].filter(Boolean);
   const pausada = os.status === "pausado";
+  // Vem da máquina vinculada quando existe; do status quando ninguém escolheu
+  // ainda. Ver domain/producao/identidade-da-maquina.
+  const maquina = identidadeDaMaquina(os);
 
   return (
     <Card
@@ -105,20 +110,21 @@ export function CartaoOs({
         )}
 
         {/* O status exato dentro da etapa: a coluna diz o estágio, o cartão diz
-            o passo. É o que substituiu vinte e cinco colunas. */}
+            o passo. É o que substituiu vinte e cinco colunas. E o selo da
+            máquina diz o caminho, sem custar coluna nenhuma. */}
         <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-          <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5 font-medium text-foreground/80">
-            {rotuloDe(os.status)}
-          </span>
+          {/* Com o selo ao lado, "Laser / CNC · Laser CO2" é a mesma coisa dita
+              duas vezes — e o selo é o mais específico. Já "Em produção ·
+              Fiber" soma: estágio genérico mais a máquina. */}
+          {!(maquina && statusIndicaMaquina(os.status)) && (
+            <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5 font-medium text-foreground/80">
+              {rotuloDe(os.status)}
+            </span>
+          )}
+          {maquina && <SeloDaMaquina identidade={maquina} />}
           {parada && (
             <span className="font-mono text-muted-foreground" title="Tempo desde a última mudança">
               parada há {parada}
-            </span>
-          )}
-          {os.maquinas?.nome && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Factory className="h-3 w-3" />
-              {os.maquinas.nome}
             </span>
           )}
         </div>

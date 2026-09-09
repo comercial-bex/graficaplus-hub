@@ -29,6 +29,8 @@ import { areaEmTexto, descreverItem, resumoDaProducao } from "@/domain/os/o-que-
 import { formatarData, paradaHa, prazoEmPalavras } from "@/domain/os/prazo";
 import type { BloqueioOs } from "@/components/kanban/cartao-os";
 import { Check, Circle, ExternalLink, Lock, Pause } from "lucide-react";
+import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
+import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -65,6 +67,7 @@ export function FichaDaOs({
   const producao = resumoDaProducao(os.itens);
   const parada = paradaHa(os.updated_at);
   const foraDoFluxo = etapaAtual === "fora_do_fluxo";
+  const maquina = identidadeDaMaquina(os);
 
   return (
     <Sheet open={aberto} onOpenChange={(v) => !v && onFechar()}>
@@ -150,8 +153,9 @@ export function FichaDaOs({
                           )}
                         </div>
                         {estado === "atual" && (
-                          <div className="text-[11px] text-muted-foreground">
-                            Setor: {setorDe(os.status)}
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                            <span>Setor: {setorDe(os.status)}</span>
+                            {maquina && <SeloDaMaquina identidade={maquina} />}
                           </div>
                         )}
                       </div>
@@ -249,6 +253,10 @@ export function FichaDaOs({
               <Linha rotulo="Responsável" valor={os.responsavel?.nome ?? "não definido"} />
               <Linha rotulo="Designer" valor={os.designer?.nome ?? "não definido"} />
               <Linha rotulo="Operador" valor={os.operador?.nome ?? "não definido"} />
+              <Linha
+                rotulo="Máquina"
+                valor={os.maquinas?.nome ?? (maquina ? `${maquina.curto} (não vinculada)` : "não definida")}
+              />
               <Linha rotulo="Anexos" valor={`${os.arquivos?.length ?? 0} arquivo(s)`} />
             </dl>
             {os.briefing && (
