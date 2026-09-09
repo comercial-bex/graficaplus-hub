@@ -39,6 +39,8 @@ import {
   Wallet,
   Landmark,
   type LucideIcon,
+  FileCheck2,
+  Ruler,
 } from "lucide-react";
 import {
   Sidebar,
@@ -78,6 +80,8 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Leads", url: "/leads", icon: UserPlus },
       { title: "Funil", url: "/funil", icon: Workflow },
       { title: "Orçamentos", url: "/orcamentos", icon: FileText },
+      { title: "Aprovações", url: "/aprovacoes", icon: FileCheck2 },
+      { title: "Metragem por cliente", url: "/metragem", icon: Ruler },
       { title: "Impressão 3D", url: "/impressao-3d", icon: Cuboid },
       { title: "Produtividade 3D", url: "/produtividade-3d", icon: Gauge },
       { title: "Custo por peça 3D", url: "/breakdown-3d", icon: Calculator },

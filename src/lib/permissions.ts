@@ -117,6 +117,8 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/manutencao", permissions: ["manutencao.read", "os.read"] },
   { path: "/design", permissions: ["arquivos.read", "arquivos.approve"] },
   { path: "/produtos", permissions: ["custos.read"] },
+  { path: "/aprovacoes", permissions: ["orcamentos.read", "arquivos.approve"] },
+  { path: "/metragem", permissions: ["orcamentos.read", "os.read"] },
   { path: "/ocorrencias", permissions: ["os.read"] },
   { path: "/relatorios", permissions: ["resultado.read"] },
   { path: "/portal-cliente", permissions: ["portal.read", "clientes.read"] },

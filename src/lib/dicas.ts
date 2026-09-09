@@ -191,6 +191,14 @@ export const dicas = {
       perda: "Percentual de material perdido que já entra no preço, para não sair no prejuízo.",
     },
   },
+  "/aprovacoes": {
+    menu: "O que o cliente aprovou, o que pediu ajuste e o que já foi entregue.",
+    tela: "Situação de cada orçamento na visão do cliente. Junta três coisas que costumam ficar separadas: o status do orçamento, a resposta do cliente em cada arte e os pedidos de ajuste abertos no portal. Se aparecer 'Pediu ajuste', não mande produzir.",
+  },
+  "/metragem": {
+    menu: "Metros quadrados por cliente: orçado, aprovado e produzido.",
+    tela: "Quanto cada cliente já orçou, aprovou, colocou em ordem de serviço e quanto ainda falta produzir. 'Aprovado sem OS' é trabalho vendido que ainda não entrou na produção — normalmente é aí que o dinheiro trava.",
+  },
   "/materiais": {
     menu: "Estoque de materiais, com saldo e custo unitário.",
     tela: "Materiais em estoque com saldo, custo unitário e ponto de reposição. O saldo cai sozinho quando a produção baixa material.",
