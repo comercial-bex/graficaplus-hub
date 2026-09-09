@@ -43,6 +43,10 @@ import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { OrcamentoProdutoPicker } from "@/components/orcamento-produto-picker";
 import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
+import {
+  RestricaoDoProduto,
+  useRestricaoProduto,
+} from "@/components/orcamento/restricao-do-produto";
 import { OrcamentoMaterialCheck } from "@/components/orcamento-material-check";
 import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
@@ -127,6 +131,9 @@ function OrcamentoDetailPage() {
   const { canSeeFinancials } = useAuth();
   const [form, setForm] = useState({ ...itemVazio });
   const [calculadoraAberta, setCalculadoraAberta] = useState(false);
+  // Exigência legal do produto (limite eleitoral, por exemplo). Sem gate de
+  // financeiro: é informação de venda e de produção, não de dinheiro.
+  const { data: restricao } = useRestricaoProduto(form.produto_id);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewProducaoOpen, setPreviewProducaoOpen] = useState(false);
   const [gerandoLink, setGerandoLink] = useState(false);
@@ -714,6 +721,8 @@ function OrcamentoDetailPage() {
             )}
 
             {/* Conferência de material e estoque, só aviso. */}
+            {form.produto_id && <RestricaoDoProduto restricao={restricao} />}
+
             <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
 
             {/* A calculadora é diálogo: não ocupa espaço na tela até ser aberta,
