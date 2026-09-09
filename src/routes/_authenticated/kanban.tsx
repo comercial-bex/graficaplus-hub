@@ -49,6 +49,8 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { mensagemErro } from "@/lib/erros";
 import { CartaoOs, type BloqueioOs } from "@/components/kanban/cartao-os";
 import { FichaDaOs } from "@/components/kanban/ficha-da-os";
+import { IconeDaMaquina } from "@/components/kanban/icone-da-maquina";
+import { legendaDeMaquinas } from "@/domain/producao/identidade-da-maquina";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Kanban — BEX PRINT OS" }] }),
@@ -151,7 +153,7 @@ function KanbanPage() {
       // A leitura vem de uma VIEW, e view não tem FK declarada — logo o embed do
       // PostgREST não funciona e estas relações chegavam sempre undefined.
       // Buscar em paralelo e agrupar por os_id resolve sem abrir mão das views.
-      const [arquivos, tarefas, itens] = await Promise.all([
+      const [arquivos, tarefas, itens, maquinas, pessoas] = await Promise.all([
         supabase.from("arquivos").select("os_id").in("os_id", ids),
         supabase.from("os_tarefas").select("os_id, status, prazo").in("os_id", ids),
         // Os itens são o que a OS manda produzir. Faltavam no cartão, que
@@ -161,6 +163,10 @@ function KanbanPage() {
           .select("id, os_id, descricao, quantidade, unidade, largura, altura, area_total, acabamento, valor_total")
           .in("os_id", ids)
           .order("ordem"),
+        // Cinco linhas: cabe inteira, e resolver por id no cliente é o único
+        // caminho — view não tem FK, então o embed do PostgREST não existe.
+        supabase.from("maquinas").select("id, nome, tipo"),
+        supabase.from("usuarios").select("id, nome, avatar_url"),
       ]);
 
       const agrupar = <T extends { os_id?: string | null }>(linhas: T[] | null) => {
@@ -179,12 +185,24 @@ function KanbanPage() {
         tarefas: agrupar(tarefas.data as { os_id?: string | null }[] | null),
         itens: agrupar(itens.data as { os_id?: string | null }[] | null),
       };
+      // `os.maquinas`, `os.designer` e `os.operador` eram lidos de objetos que a
+      // consulta nunca trouxe: a view não declara FK, logo não há embed. O
+      // cartão anunciava "Máquina não definida" e "sem equipe" em toda OS, e
+      // não era falta de cadastro — era promessa impossível.
+      const porId = <T extends { id: string }>(linhas: T[] | null) =>
+        new Map((linhas ?? []).map((l) => [l.id, l]));
+      const mapaMaquinas = porId(maquinas.data as { id: string }[] | null);
+      const mapaPessoas = porId(pessoas.data as { id: string }[] | null);
 
       return ordens.map((o) => ({
         ...o,
         arquivos: porOs.arquivos.get(o.id as string) ?? [],
         tarefas: porOs.tarefas.get(o.id as string) ?? [],
         itens: porOs.itens.get(o.id as string) ?? [],
+        maquinas: o.maquina_id ? (mapaMaquinas.get(o.maquina_id as string) ?? null) : null,
+        responsavel: o.responsavel_id ? (mapaPessoas.get(o.responsavel_id as string) ?? null) : null,
+        designer: o.designer_id ? (mapaPessoas.get(o.designer_id as string) ?? null) : null,
+        operador: o.operador_id ? (mapaPessoas.get(o.operador_id as string) ?? null) : null,
       }));
     },
   });
@@ -506,6 +524,24 @@ function Coluna({
         <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
           {DESCRICAO_ETAPA[etapa]}
         </p>
+        {/* A legenda mora aqui e só aqui: é na Produção que o ícone do cartão
+            precisa ser lido, e uma legenda no topo do quadro estaria longe
+            justamente de onde ela é usada. */}
+        {etapa === "producao" && (
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            {legendaDeMaquinas().map((m) => (
+              <span
+                key={m.chave}
+                className="flex items-center gap-0.5 text-[9px]"
+                style={{ color: m.cor }}
+                title={m.curto}
+              >
+                <IconeDaMaquina identidade={m} className="h-2.5 w-2.5" />
+                {m.curto}
+              </span>
+            ))}
+          </div>
+        )}
         {encalhe && encalhe !== "agora" && (
           <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
             mais antiga: {encalhe}
