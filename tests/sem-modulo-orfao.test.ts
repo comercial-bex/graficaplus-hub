@@ -39,11 +39,13 @@ const INFRAESTRUTURA = new Set(["routeTree.gen", "types", "styles", "router", "s
  * quebra o teste — que é exatamente o ponto.
  */
 const CONHECIDOS: Record<string, string> = {
-  // Desligados pela fusão de 08/09: a tela de orçamento foi refeita no Lovable
-  // e não chama mais estes. A calculadora JÁ foi religada (é diálogo, cabe sem
-  // mexer no layout). Estes três mudam o desenho da tela e esperam decisão.
+  // Desligados pela fusão de 08/09, quando a tela de orçamento foi refeita.
+  //   calculadora   → RELIGADA: é diálogo, coube sem mexer no layout.
+  //   faixa-de-preco → APAGADA: `domain/orcamentos/faixas.ts` dele faz o mesmo.
+  //                    Só a exigência legal do produto era única, e virou
+  //                    `restricao-do-produto.tsx`, já religada.
+  // Os dois abaixo são BLOCOS: ocupam área e mudariam o desenho da tela.
   "src/components/orcamento/aproveitamento-card.tsx": "tela de orçamento refeita não chama mais — aguarda decisão de religar",
-  "src/components/orcamento/faixa-de-preco.tsx": "idem — FaixaDePrecoAviso e RestricoesDoProduto",
   "src/components/orcamento/prazos-card.tsx": "idem",
 
   // Mortos que já vinham de antes da fusão.
