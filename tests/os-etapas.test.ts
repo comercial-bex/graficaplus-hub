@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   ETAPAS,
+  ETAPAS_QUADRO,
   STATUS,
+  etapaDe,
   fluxo,
   porEtapa,
   progressoDaEtapa,
   rotuloDe,
   setorDe,
   statusInfo,
+  statusPadraoDaEtapa,
 } from "../src/domain/os/etapas";
 
 /**
@@ -78,6 +81,50 @@ describe("as cinco etapas do fluxo", () => {
   it("os dois status de produção genérica dizem que se duplicam", () => {
     expect(statusInfo("producao")?.observacao).toContain("duplica");
     expect(statusInfo("em_producao")?.observacao).toContain("genérico");
+  });
+});
+
+describe("o quadro tem cinco colunas, não vinte e cinco", () => {
+  it("a coluna é a etapa, e pausado/cancelado não são coluna", () => {
+    // Vinte e cinco colunas não é quadro, é lista deitada. E OS pausada não é
+    // estágio da produção: é exceção, vira selo no cartão.
+    expect(ETAPAS_QUADRO).toEqual(["entrada", "pre_impressao", "producao", "acabamento", "saida"]);
+    expect(ETAPAS_QUADRO.length).toBeLessThanOrEqual(5);
+  });
+
+  it("todo status do banco cai em alguma coluna, ou no fora do fluxo", () => {
+    for (const s of ENUM_STATUS_OS) {
+      const etapa = etapaDe(s);
+      expect(etapa, `${s} não tem etapa — a OS nele sumiria do quadro`).not.toBeNull();
+    }
+  });
+});
+
+describe("soltar o cartão numa coluna", () => {
+  it("o status de entrada de cada etapa existe no banco", () => {
+    // Se a coluna mandasse um status inventado, arrastar devolveria
+    // "invalid input value for enum status_os" — o mesmo defeito que a tela de
+    // detalhe tinha, só que agora no gesto principal do quadro.
+    for (const etapa of ETAPAS) {
+      const padrao = statusPadraoDaEtapa(etapa);
+      expect(ENUM_STATUS_OS, `etapa ${etapa} → ${padrao}`).toContain(padrao);
+    }
+  });
+
+  it("o status de entrada pertence à própria etapa", () => {
+    for (const etapa of ETAPAS) {
+      expect(etapaDe(statusPadraoDaEtapa(etapa))).toBe(etapa);
+    }
+  });
+
+  it("a saída pergunta à OS se é retirada, entrega ou instalação", () => {
+    expect(statusPadraoDaEtapa("saida", null)).toBe("aguardando_retirada");
+    expect(statusPadraoDaEtapa("saida", { precisa_entrega: true })).toBe("aguardando_entrega");
+    expect(statusPadraoDaEtapa("saida", { precisa_instalacao: true })).toBe("em_instalacao");
+    // Instalação manda: quem instala também entrega, e o contrário não vale.
+    expect(statusPadraoDaEtapa("saida", { precisa_entrega: true, precisa_instalacao: true })).toBe(
+      "em_instalacao",
+    );
   });
 });
 
