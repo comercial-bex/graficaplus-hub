@@ -63,6 +63,7 @@ import {
   LayoutGrid,
   Rows3,
   Calculator,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -157,6 +158,26 @@ function ProdutosPage() {
       return (data ?? []) as unknown as Produto[];
     },
   });
+
+  /**
+   * Quais produtos têm receita de material.
+   *
+   * Sem receita, `gerar_materiais_previstos_os` não tem o que explodir: a OS
+   * nasce sem material previsto, sem reserva e sem baixa — e o custo real fica
+   * zero, o que fazia o resultado da OS anunciar margem de 100%. É o primeiro
+   * elo da corrente do custo, e ele falhava em silêncio: nada na tela dizia
+   * que o produto estava pela metade.
+   */
+  const { data: comReceita = new Set<string>() } = useQuery({
+    queryKey: ["produtos-com-receita"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("produto_materiais").select("produto_id");
+      if (error) throw error;
+      return new Set((data ?? []).map((r: { produto_id: string }) => r.produto_id));
+    },
+  });
+
+  const semReceita = produtos.filter((p) => p.ativo && !comReceita.has(p.id));
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -342,6 +363,17 @@ function ProdutosPage() {
           <p className="text-muted-foreground">
             Catálogo da gráfica — base para orçamentos, OS e estoque
           </p>
+          {semReceita.length > 0 && (
+            <div className="mt-2 flex items-start gap-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2 text-xs text-[color:var(--bex-amber)] max-w-xl">
+              <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+              <span>
+                <strong>{semReceita.length}</strong> de {produtos.filter((p) => p.ativo).length}{" "}
+                produtos ativos não têm receita de material. Sem ela a OS nasce sem material
+                previsto, o estoque não baixa e o custo real da OS fica zero — o resultado passa a
+                mostrar lucro que não existe.
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
@@ -497,6 +529,15 @@ function ProdutosPage() {
                         <div className="text-xs text-muted-foreground flex gap-2">
                           {p.sku && <span className="font-mono">{p.sku}</span>}
                           {p.tipo === "servico" && <Badge variant="outline" className="text-[10px] h-4">serviço</Badge>}
+                          {p.ativo && !comReceita.has(p.id) && (
+                            <Badge
+                              variant="outline"
+                              className="h-4 border-[color:var(--bex-amber)]/50 text-[10px] text-[color:var(--bex-amber)]"
+                              title="Sem receita de material: a OS deste produto nasce sem previsão, sem baixa de estoque e sem custo real."
+                            >
+                              sem receita
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">

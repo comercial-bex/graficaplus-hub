@@ -44,9 +44,17 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
-import { Clock, Package, Factory as FactoryIcon, DollarSign } from "lucide-react";
+import { Clock, Package, Factory as FactoryIcon, DollarSign, AlertTriangle } from "lucide-react";
 import { mensagemErro } from "@/lib/erros";
 import { atrasado, formatarData } from "@/domain/os/prazo";
+import {
+  dinheiro,
+  divergencia,
+  origemDoPrevisto,
+  porcentagem,
+  realizados,
+  type Campo,
+} from "@/domain/os/resultado";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -122,7 +130,15 @@ function OSDetailPage() {
       }
       toast.success("OS concluída — snapshot de resultado gerado e pesquisa de pós-venda agendada");
     } else {
-      const { error } = await (supabase.rpc as any)("avancar_os_status", { p_os_id: id, p_novo_status: novoStatus, p_justificativa: "Alteração pela tela da OS" });
+      // A assinatura real é avancar_os_status(os_id, novo_status) — SEM prefixo
+      // p_ e sem justificativa. Esta tela mandava p_os_id/p_novo_status/
+      // p_justificativa, e o PostgREST não achava a função: trocar status pela
+      // tela da OS falhava sempre. O Kanban chamava certo; este ponto ficou
+      // para trás. tests/rpc-assinaturas guarda os dois lados agora.
+      const { error } = await (supabase.rpc as any)("avancar_os_status", {
+        os_id: id,
+        novo_status: novoStatus,
+      });
       if (error) return toast.error(mensagemErro(error));
       toast.success("Status atualizado");
     }
@@ -906,17 +922,42 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
         </CardHeader>
         <CardContent>
           {resultado ? (
-            <div className="grid md:grid-cols-3 gap-3 text-sm">
-              <div className="rounded border p-3"><div className="text-muted-foreground">Receita líquida</div><div className="font-semibold">R$ {Number(resultado.receita_liquida ?? 0).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Custo previsto</div><div className="font-semibold">R$ {Number(resultado.custo_previsto ?? 0).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Custo realizado</div><div className="font-semibold">R$ {Number(resultado.custo_realizado ?? 0).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro previsto</div><div className="font-semibold">R$ {Number(resultado.lucro_previsto ?? 0).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Lucro realizado</div><div className="font-semibold">R$ {Number(resultado.lucro_realizado ?? 0).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Margem prevista</div><div className="font-semibold">{resultado.margem_prevista == null ? "—" : `${Number(resultado.margem_prevista).toFixed(2)}%`}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Margem realizada</div><div className="font-semibold">{resultado.margem_realizada == null ? "—" : `${Number(resultado.margem_realizada).toFixed(2)}%`}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Divergência custo</div><div className="font-semibold">R$ {Number(resultado.divergencia_custo ?? 0).toFixed(2)}</div></div>
-              <div className="rounded border p-3"><div className="text-muted-foreground">Status</div><div className="font-semibold">{resultado.atraso ? "Com atraso" : "No prazo"} · {resultado.status_financeiro ?? "—"}</div></div>
-            </div>
+            <>
+              {/* Aviso antes dos números, não depois: enquanto não houver custo
+                  lançado, metade deste quadro é previsão e a outra metade não
+                  existe. Antes desta correção a tela preenchia a metade que não
+                  existe com 100% de margem. */}
+              {!realizados(resultado).custoLancado && (
+                <div className="mb-3 flex items-start gap-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2 text-xs text-[color:var(--bex-amber)]">
+                  <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Nenhum custo foi lançado nesta OS, então lucro e margem realizados não podem
+                    ser calculados. Registre a baixa de material ou finalize um apontamento de
+                    máquina.
+                  </span>
+                </div>
+              )}
+              <div className="grid md:grid-cols-3 gap-3 text-sm">
+                <CelulaResultado rotulo="Receita líquida" campo={dinheiro(resultado.receita_liquida)} />
+                <CelulaResultado
+                  rotulo="Custo previsto"
+                  campo={dinheiro(resultado.custo_previsto)}
+                  nota={origemDoPrevisto(resultado.custo_previsto_origem)}
+                />
+                <CelulaResultado rotulo="Custo realizado" campo={realizados(resultado).custo} />
+                <CelulaResultado rotulo="Lucro previsto" campo={dinheiro(resultado.lucro_previsto)} />
+                <CelulaResultado rotulo="Lucro realizado" campo={realizados(resultado).lucro} />
+                <CelulaResultado rotulo="Margem prevista" campo={porcentagem(resultado.margem_prevista)} />
+                <CelulaResultado rotulo="Margem realizada" campo={realizados(resultado).margem} />
+                <CelulaResultado rotulo="Divergência custo" campo={divergencia(resultado)} />
+                <div className="rounded border p-3">
+                  <div className="text-muted-foreground">Status</div>
+                  <div className="font-semibold">
+                    {resultado.atraso ? "Com atraso" : "No prazo"} · {resultado.status_financeiro ?? "—"}
+                  </div>
+                </div>
+              </div>
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">O resultado será calculado quando houver custos operacionais e pagamentos registrados. Valor atual da OS: R$ {Number(os.valor_total ?? 0).toFixed(2)}.</p>
           )}
@@ -1028,6 +1069,26 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
         </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Uma célula do quadro de resultado.
+ *
+ * O que muda em relação ao que havia aqui: um valor ausente aparece como
+ * ausente e diz o motivo, em vez de virar "R$ 0,00" — que se lê como um custo
+ * medido de zero reais e não como "ninguém lançou".
+ */
+function CelulaResultado({ rotulo, campo, nota }: { rotulo: string; campo: Campo; nota?: string }) {
+  const ausente = campo.tipo === "ausente";
+  return (
+    <div className="rounded border p-3" title={ausente ? campo.motivo : undefined}>
+      <div className="text-muted-foreground">{rotulo}</div>
+      <div className={ausente ? "font-medium text-muted-foreground" : "font-semibold"}>
+        {campo.texto}
+      </div>
+      {nota && <div className="mt-0.5 text-[11px] text-muted-foreground">{nota}</div>}
     </div>
   );
 }
