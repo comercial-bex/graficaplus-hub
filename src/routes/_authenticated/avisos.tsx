@@ -9,6 +9,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { AlertTriangle, BellRing, Check, Clock, Trash2, UserX } from "lucide-react";
 import { toast } from "sonner";
+import { ehOrfao, resumoDaLimpeza, rotuloOrfao } from "@/domain/avisos/orfao";
 
 export const Route = createFileRoute("/_authenticated/avisos")({
   head: () => ({ meta: [{ title: "Avisos ao cliente — BEX PRINT OS" }] }),
@@ -90,19 +91,21 @@ function AvisosPage() {
       return data;
     },
     onSuccess: (r: any) => {
-      // Contar o que a escrita fez: "limpou" sem número esconde o caso de zero.
+      // Contar o que a escrita fez, por tipo: "limpou" sem número esconde o
+      // caso de zero, e "N sem cliente" mentia quando o motivo era outro.
       const n = Number(r?.cancelados ?? 0);
-      if (n === 0) toast.info("Nenhum aviso órfão para limpar");
-      else toast.success(`${n} aviso(s) sem cliente cancelado(s)`);
+      if (n === 0) toast.info(resumoDaLimpeza(r));
+      else toast.success(resumoDaLimpeza(r));
       recarregar();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Sem vínculo é fato do dado (cliente_id nulo). "Não visível" seria conclusão
-  // sobre RLS, e esta view roda com a permissão de quem chama.
-  const orfaos = avisos.filter((a) => a.sem_vinculo);
-  const reais = avisos.filter((a) => !a.sem_vinculo);
+  // Quem é órfão NÃO é decidido aqui: é a coluna motivo_orfao da view, a mesma
+  // que a função de limpeza usa. Antes a tela olhava só para "tem cliente?", e
+  // 7 avisos sobre OS apagadas apareciam como reais, com o botão "Já avisei".
+  const orfaos = avisos.filter((a) => ehOrfao(a.motivo_orfao));
+  const reais = avisos.filter((a) => !ehOrfao(a.motivo_orfao));
   const nuncaTentados = avisos.filter((a) => a.nunca_tentado).length;
   const canalOk = avisos[0]?.whatsapp_configurado ?? false;
   const maisAntigo = reais.reduce((m, a) => Math.max(m, Number(a.dias_parado ?? 0)), 0);
@@ -115,7 +118,7 @@ function AvisosPage() {
         actions={
           orfaos.length > 0 ? (
             <Button variant="outline" disabled={limparOrfaos.isPending} onClick={() => limparOrfaos.mutate()}>
-              <Trash2 className="h-4 w-4 mr-1" /> Limpar {orfaos.length} sem cliente
+              <Trash2 className="h-4 w-4 mr-1" /> Limpar {orfaos.length} órfão(s)
             </Button>
           ) : undefined
         }
@@ -123,7 +126,7 @@ function AvisosPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Avisos parados" value={String(avisos.length)} icon={BellRing} />
-        <KpiCard label="Com cliente vinculado" value={String(reais.length)} icon={AlertTriangle} />
+        <KpiCard label="Para avisar de verdade" value={String(reais.length)} icon={AlertTriangle} />
         <KpiCard label="Nunca tentados" value={String(nuncaTentados)} icon={Clock} />
         <KpiCard label="Mais antigo" value={maisAntigo > 0 ? `${maisAntigo} dias` : "—"} icon={Clock} />
       </div>
@@ -155,8 +158,10 @@ function AvisosPage() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {[...reais, ...orfaos].map((a) => (
-            <Card key={a.id} className={a.sem_vinculo ? "opacity-60" : ""}>
+          {[...reais, ...orfaos].map((a) => {
+            const orfao = rotuloOrfao(a.motivo_orfao);
+            return (
+            <Card key={a.id} className={orfao ? "opacity-60" : ""}>
               <CardContent className="p-4 flex flex-wrap items-start gap-3">
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -164,9 +169,9 @@ function AvisosPage() {
                     <Badge variant="outline" className="font-normal">
                       {ROTULO[a.evento] ?? a.evento}
                     </Badge>
-                    {a.sem_vinculo && (
-                      <Badge variant="secondary" className="gap-1">
-                        <UserX className="h-3 w-3" /> sem cliente vinculado
+                    {orfao && (
+                      <Badge variant="secondary" className="gap-1" title={orfao.explicacao}>
+                        <UserX className="h-3 w-3" /> {orfao.curto}
                       </Badge>
                     )}
                     {a.nunca_tentado && (
@@ -184,17 +189,23 @@ function AvisosPage() {
                     Na fila desde {dia(a.created_at)} · {a.dias_parado} dia(s) · canal {a.canal}
                     {a.ultimo_erro && ` · último erro: ${a.ultimo_erro}`}
                   </p>
+                  {orfao && <p className="text-xs text-muted-foreground">{orfao.explicacao}</p>}
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={avisar.isPending}
-                    onClick={() => avisar.mutate(a.id)}
-                  >
-                    <Check className="h-3.5 w-3.5 mr-1" /> Já avisei
-                  </Button>
+                  {/* Órfão não tem "Já avisei": não há o que avisar sobre um
+                      serviço apagado. Oferecer o botão era o caminho para
+                      mandar mensagem ao cliente sobre algo que não existe. */}
+                  {!orfao && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={avisar.isPending}
+                      onClick={() => avisar.mutate(a.id)}
+                    >
+                      <Check className="h-3.5 w-3.5 mr-1" /> Já avisei
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
@@ -207,7 +218,8 @@ function AvisosPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
