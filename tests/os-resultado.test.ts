@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  coberturaDoCusto,
   dinheiro,
   divergencia,
+  mediaDoQueExiste,
   origemDoPrevisto,
   porcentagem,
   realizados,
+  somaDoQueExiste,
 } from "../src/domain/os/resultado";
 
 /**
@@ -127,5 +130,48 @@ describe("origem do custo previsto", () => {
     expect(origemDoPrevisto("previsao_de_material")).toBe("somado da previsão de material");
     expect(origemDoPrevisto("sem_custo")).toBe("não há custo previsto");
     expect(origemDoPrevisto(null)).toBe("não há custo previsto");
+  });
+});
+
+describe("soma e média só do que existe", () => {
+  it("o vazio fica de fora — não entra como zero", () => {
+    // O caso da tela de relatórios: uma OS com 40% e outra sem custo.
+    // `Number(x ?? 0)` fazia (40 + 0) / 2 = 20%. A média real é 40%.
+    expect(mediaDoQueExiste([40, null])).toBe(40);
+    expect(somaDoQueExiste([100, null, undefined])).toBe(100);
+  });
+
+  it("nada existe → null, não zero", () => {
+    // "Não há o que somar" e "a soma deu zero" são coisas diferentes.
+    expect(somaDoQueExiste([null, null])).toBeNull();
+    expect(mediaDoQueExiste([])).toBeNull();
+  });
+
+  it("zero medido é valor e entra na conta", () => {
+    expect(somaDoQueExiste([0, null])).toBe(0);
+    expect(mediaDoQueExiste([0, 50])).toBe(25);
+  });
+
+  it("aceita string, que é como o numeric chega do PostgREST", () => {
+    expect(somaDoQueExiste(["10.50", "4.50"])).toBeCloseTo(15, 5);
+  });
+});
+
+describe("de quantas OS vem o número", () => {
+  it("o caso de hoje: nenhuma com custo", () => {
+    expect(coberturaDoCusto(0, 2)).toBe("nenhuma das 2 OS tem custo lançado");
+  });
+
+  it("diz a base quando é parcial", () => {
+    expect(coberturaDoCusto(1, 3)).toBe("calculado sobre 1 de 3 OS — as outras não têm custo lançado");
+  });
+
+  it("diz quando é o todo", () => {
+    expect(coberturaDoCusto(4, 4)).toBe("todas as 4 OS com custo lançado");
+  });
+
+  it("período vazio", () => {
+    expect(coberturaDoCusto(0, 0)).toBe("nenhuma OS no período");
+    expect(coberturaDoCusto(null, null)).toBe("nenhuma OS no período");
   });
 });

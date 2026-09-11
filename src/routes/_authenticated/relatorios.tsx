@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { coberturaDoCusto, mediaDoQueExiste, somaDoQueExiste } from "@/domain/os/resultado";
 import {
   Table,
   TableBody,
@@ -76,9 +77,12 @@ type LucroOsRow = {
   criada_em: string;
   status: string;
   receita: number;
-  custo: number;
-  lucro: number;
+  // custo e lucro são NULL quando nenhum custo foi lançado — ausência, não zero.
+  custo: number | null;
+  lucro: number | null;
   margem_percentual: number | null;
+  custo_previsto?: number | null;
+  custo_lancado?: boolean;
 };
 type MargemProdutoRow = {
   produto: string;
@@ -152,11 +156,12 @@ type PrevistoRealizadoRow = {
   receita_liquida: number;
   custo_previsto: number;
   custo_realizado: number;
-  divergencia_custo: number;
+  divergencia_custo: number | null;
   divergencia_pct: number | null;
   margem_prevista: number | null;
   margem_realizada: number | null;
-  variacao_margem: number;
+  variacao_margem: number | null;
+  custo_lancado?: boolean;
   retrabalho: number;
   atraso: boolean;
 };
@@ -183,6 +188,9 @@ function asNumber(value: unknown) {
 }
 
 function formatMoney(value: unknown) {
+  // Vazio é "—", não "R$ 0,00": um custo não lançado escrito como zero se lê
+  // como custo medido de zero reais, e é daí que saía a margem de 100%.
+  if (value === null || value === undefined) return "—";
   return money.format(asNumber(value));
 }
 
@@ -266,7 +274,14 @@ function buildFinancialSections(data: ReportResponse): ExportSection[] {
   if (!financeiro) return [];
   return [
     { title: "Faturamento por período", rows: financeiro.faturamentoPorPeriodo },
-    { title: "Lucro por OS", rows: financeiro.lucroPorOs },
+    {
+      title: "Lucro por OS",
+      // Mesma regra do `atraso`: booleano vira "sim/não" na planilha.
+      rows: financeiro.lucroPorOs.map((row) => ({
+        ...row,
+        custo_lancado: row.custo_lancado ? "sim" : "não",
+      })),
+    },
     { title: "Margem por produto", rows: financeiro.margemPorProduto },
     {
       title: "Previsto x realizado",
@@ -275,6 +290,7 @@ function buildFinancialSections(data: ReportResponse): ExportSection[] {
       rows: financeiro.previstoRealizado.map((row) => ({
         ...row,
         atraso: row.atraso ? "sim" : "não",
+        custo_lancado: row.custo_lancado ? "sim" : "não",
       })),
     },
   ];
@@ -359,11 +375,14 @@ function RelatPage() {
     const faturamento =
       financeiro?.faturamentoPorPeriodo.reduce((sum, row) => sum + asNumber(row.faturamento), 0) ??
       0;
-    const lucro = financeiro?.lucroPorOs.reduce((sum, row) => sum + asNumber(row.lucro), 0) ?? 0;
-    const margemMedia = financeiro?.lucroPorOs.length
-      ? financeiro.lucroPorOs.reduce((sum, row) => sum + asNumber(row.margem_percentual), 0) /
-        financeiro.lucroPorOs.length
-      : null;
+    // Soma e média SÓ das OS com custo lançado. Antes o vazio entrava como
+    // zero: a margem média dividia pelo total, e uma OS com 40% ao lado de
+    // uma sem custo aparecia como 20%.
+    const linhasLucro = financeiro?.lucroPorOs ?? [];
+    const lucro = somaDoQueExiste(linhasLucro.map((row) => row.lucro));
+    const margemMedia = mediaDoQueExiste(linhasLucro.map((row) => row.margem_percentual));
+    const osComCusto = linhasLucro.filter((row) => row.custo_lancado).length;
+    const osTotal = linhasLucro.length;
     const retrabalhos =
       operacional?.retrabalhoPorSetor.reduce((sum, row) => sum + asNumber(row.retrabalhos), 0) ?? 0;
     const horasProducao =
@@ -382,6 +401,8 @@ function RelatPage() {
       faturamento,
       lucro,
       margemMedia,
+      osComCusto,
+      osTotal,
       atrasadas: operacional?.osAtrasadas.length ?? 0,
       retrabalhos,
       horasProducao,
@@ -476,7 +497,11 @@ function RelatPage() {
               title="Lucro"
               value={formatMoney(metrics.lucro)}
               icon={TrendingUp}
-              description={`Margem média ${formatPercent(metrics.margemMedia)}`}
+              description={
+                metrics.lucro === null
+                  ? coberturaDoCusto(metrics.osComCusto, metrics.osTotal)
+                  : `Margem média ${formatPercent(metrics.margemMedia)} · ${coberturaDoCusto(metrics.osComCusto, metrics.osTotal)}`
+              }
               tone="text-blue-600"
             />
           </>
