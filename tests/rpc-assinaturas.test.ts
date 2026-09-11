@@ -80,6 +80,13 @@ const ASSINATURAS: Record<string, string[]> = {
   situacao_qualidade_os: ["p_os_id"],
   sugerir_compra_da_os: ["p_os_id"],
   vincular_usuario_ao_portal: ["p_usuario_id", "p_cliente_id"],
+  // Migração 20260911120000 (entrada do WhatsApp), conferidas no Postgres.
+  whatsapp_configurar_instancia: ["p_zapi_instance_id", "p_nome", "p_numero", "p_webhook_secret_hash"],
+  whatsapp_registrar_mensagem: [
+    "p_instancia_id", "p_zapi_message_id", "p_telefone", "p_direcao", "p_tipo",
+    "p_texto", "p_legenda", "p_media_url", "p_nome_contato", "p_payload", "p_momento",
+  ],
+  whatsapp_registrar_status: ["p_instancia_id", "p_ids", "p_status", "p_momento"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */

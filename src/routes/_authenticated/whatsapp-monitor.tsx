@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { MessageCircle, Send, AlertTriangle, RefreshCw, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
+import { ConexaoZapi } from "@/components/whatsapp/conexao-zapi";
 
 export const Route = createFileRoute("/_authenticated/whatsapp-monitor")({
   head: () => ({ meta: [{ title: "Monitor WhatsApp — BEX PRINT OS" }] }),
@@ -126,6 +127,8 @@ function WhatsappMonitorPage() {
           </Button>
         }
       />
+
+      <ConexaoZapi />
 
       <Card>
         <CardHeader>
