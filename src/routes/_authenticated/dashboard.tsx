@@ -25,6 +25,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { coberturaDoCusto } from "@/domain/os/resultado";
 import {
   AreaChart,
   Area,
@@ -362,7 +363,10 @@ function DashboardPage() {
               delta={dashViews?.financeiro?.margem != null ? `${Number(dashViews.financeiro.margem).toFixed(1)}%` : undefined}
               icon={TrendingUp}
               tone="lime"
-              hint="margem oficial"
+              // A margem vem só das OS com custo lançado. Sem dizer a base, a
+              // média de um subconjunto se apresentava como o todo — e sem
+              // nenhuma, o painel mostrava 0%, que se lê "trabalhamos de graça".
+              hint={coberturaDoCusto(dashViews?.financeiro?.os_com_custo, dashViews?.financeiro?.os_total)}
             />
             <KpiCard
               label="Ticket médio"
@@ -376,6 +380,7 @@ function DashboardPage() {
               value={dashViews?.financeiro?.custo != null ? `R$ ${Number(dashViews.financeiro.custo).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}
               icon={Wallet}
               tone="cyan"
+              hint={dashViews?.financeiro?.custo == null ? "nenhum custo lançado ainda" : "só o que foi lançado"}
             />
           </div>
         </section>

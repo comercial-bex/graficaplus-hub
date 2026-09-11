@@ -100,6 +100,41 @@ export function origemDoPrevisto(origem: string | null | undefined): string {
 }
 
 /**
+ * Soma e média SÓ do que existe.
+ *
+ * A view passou a devolver NULL onde não há custo lançado — e a tela de
+ * relatórios desfazia isso: `Number(valor ?? 0)` somava os vazios como zero, e
+ * a margem média dividia pelo TOTAL de OS, contando as sem custo como 0%. Uma
+ * OS com 40% ao lado de uma sem custo aparecia como "margem média de 20%" —
+ * a média real diluída por zeros que ninguém mediu.
+ *
+ * Aqui o vazio fica de fora da conta. Se nada existe, o resultado é null, não
+ * zero: "não há o que somar" e "a soma deu zero" são coisas diferentes.
+ */
+export function somaDoQueExiste(valores: Array<number | string | null | undefined>): number | null {
+  const existentes = valores.map(num).filter((v): v is number => v != null);
+  return existentes.length === 0 ? null : existentes.reduce((s, v) => s + v, 0);
+}
+
+export function mediaDoQueExiste(valores: Array<number | string | null | undefined>): number | null {
+  const existentes = valores.map(num).filter((v): v is number => v != null);
+  return existentes.length === 0 ? null : existentes.reduce((s, v) => s + v, 0) / existentes.length;
+}
+
+/**
+ * De quantas OS vem o número. Uma margem média que não diz a base apresenta a
+ * média de um subconjunto como se fosse o todo.
+ */
+export function coberturaDoCusto(comCusto: number | null | undefined, total: number | null | undefined): string {
+  const c = Number(comCusto ?? 0);
+  const t = Number(total ?? 0);
+  if (t === 0) return "nenhuma OS no período";
+  if (c === 0) return `nenhuma das ${t} OS tem custo lançado`;
+  if (c === t) return `todas as ${t} OS com custo lançado`;
+  return `calculado sobre ${c} de ${t} OS — as outras não têm custo lançado`;
+}
+
+/**
  * A divergência só significa alguma coisa quando os dois lados existem.
  * Comparar custo real ausente com previsto produz o previsto inteiro com
  * sinal trocado — um número grande que parece economia e é falta de dado.
