@@ -135,6 +135,37 @@ export function coberturaDoCusto(comCusto: number | null | undefined, total: num
 }
 
 /**
+ * Previsto × real, comparados sobre as MESMAS OS.
+ *
+ * O gráfico "Lucro · previsto vs real" do painel calculava o real como
+ * `receita − custo_real`. Mas `ordens_servico.custo_real` é NOT NULL DEFAULT 0
+ * e só é preenchido quando a OS fecha — em toda OS aberta ele vale zero. Em
+ * 11/09/2026 o mês de setembro saía com lucro real de R$ 121,15 (margem de
+ * 100%) contra previsto de R$ 60,57: o gráfico dizia que a gráfica lucrou o
+ * DOBRO do planejado, e diria isso para toda OS até ela ser fechada.
+ *
+ * E comparar o real de algumas OS com o previsto de todas é comparar coisas
+ * diferentes. Então os dois lados usam o mesmo conjunto: as OS com custo
+ * lançado. Mês sem nenhuma devolve null nos dois — o gráfico mostra o vazio em
+ * vez de uma barra inventada.
+ */
+export function lucroComparavel(
+  doMes: Array<{
+    custo_lancado?: boolean | null;
+    lucro_previsto?: number | string | null;
+    lucro_realizado?: number | string | null;
+  }>,
+): { previsto: number | null; real: number | null; osComparadas: number } {
+  const comCusto = doMes.filter((r) => r.custo_lancado === true);
+  if (comCusto.length === 0) return { previsto: null, real: null, osComparadas: 0 };
+  return {
+    previsto: somaDoQueExiste(comCusto.map((r) => r.lucro_previsto)),
+    real: somaDoQueExiste(comCusto.map((r) => r.lucro_realizado)),
+    osComparadas: comCusto.length,
+  };
+}
+
+/**
  * A divergência só significa alguma coisa quando os dois lados existem.
  * Comparar custo real ausente com previsto produz o previsto inteiro com
  * sinal trocado — um número grande que parece economia e é falta de dado.

@@ -3,6 +3,7 @@ import {
   coberturaDoCusto,
   dinheiro,
   divergencia,
+  lucroComparavel,
   mediaDoQueExiste,
   origemDoPrevisto,
   porcentagem,
@@ -173,5 +174,31 @@ describe("de quantas OS vem o número", () => {
   it("período vazio", () => {
     expect(coberturaDoCusto(0, 0)).toBe("nenhuma OS no período");
     expect(coberturaDoCusto(null, null)).toBe("nenhuma OS no período");
+  });
+});
+
+describe("previsto × real sobre as mesmas OS", () => {
+  it("o caso real de setembro: nenhuma OS com custo → o gráfico fica vazio", () => {
+    // O painel dizia lucro real R$ 121,15 contra previsto R$ 60,57 — o dobro
+    // do planejado — porque custo_real vale 0 em toda OS aberta.
+    const r = lucroComparavel([
+      { custo_lancado: false, lucro_previsto: "60.57", lucro_realizado: null },
+      { custo_lancado: false, lucro_previsto: "0", lucro_realizado: null },
+    ]);
+    expect(r).toEqual({ previsto: null, real: null, osComparadas: 0 });
+  });
+
+  it("compara só as OS com custo, dos dois lados", () => {
+    // Uma com custo (previsto 60, real 45) e uma sem. Somar o previsto das
+    // duas e o real de uma só inventaria uma queda de lucro que não houve.
+    const r = lucroComparavel([
+      { custo_lancado: true, lucro_previsto: 60, lucro_realizado: 45 },
+      { custo_lancado: false, lucro_previsto: 100, lucro_realizado: null },
+    ]);
+    expect(r).toEqual({ previsto: 60, real: 45, osComparadas: 1 });
+  });
+
+  it("mês sem OS nenhuma também fica vazio", () => {
+    expect(lucroComparavel([])).toEqual({ previsto: null, real: null, osComparadas: 0 });
   });
 });

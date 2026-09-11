@@ -25,7 +25,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
-import { coberturaDoCusto } from "@/domain/os/resultado";
+import { coberturaDoCusto, lucroComparavel } from "@/domain/os/resultado";
 import {
   AreaChart,
   Area,
@@ -159,11 +159,11 @@ function DashboardPage() {
     queryFn: async () => {
       // ordens_servico/itens_os têm SELECT revogado na base — ler pelas views;
       // colunas financeiras (valor_total/custo_real) só existem na view financeira.
-      const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs] =
+      const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs, resultados] =
         await Promise.all([
           fromFinancialView("ordens_servico", canSeeFinancials).select(
             canSeeFinancials
-              ? "status, valor_total, custo_previsto, custo_real, created_at"
+              ? "id, status, valor_total, custo_previsto, custo_real, created_at"
               : "status, created_at",
           ),
           supabase.from("vw_dashboard_custos_categoria").select("categoria, total"),
@@ -176,6 +176,13 @@ function DashboardPage() {
           fromFinancialView("itens_os", canSeeFinancials).select(
             canSeeFinancials ? "descricao, quantidade, valor_total" : "descricao, quantidade",
           ),
+          // Custo lançado por OS: é o que separa lucro real de lucro inventado.
+          // `custo_real` da OS não serve — vale 0 em toda OS aberta.
+          canSeeFinancials
+            ? (supabase as any)
+                .from("vw_resultado_os")
+                .select("os_id, custo_lancado, lucro_previsto, lucro_realizado")
+            : Promise.resolve({ data: [] }),
         ]);
       return {
         os: os.data ?? [],
@@ -186,6 +193,7 @@ function DashboardPage() {
         conversas: conversas.data ?? [],
         materiais: materiais.data ?? [],
         itensOs: itensOs.data ?? [],
+        resultados: (resultados.data ?? []) as any[],
       };
     },
   });
@@ -206,26 +214,30 @@ function DashboardPage() {
       rotulo: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
     };
   });
-  const faturamentoMensal = janelaMeses.map(({ ano, mesIndice, rotulo }) => {
-    const doMes = os.filter((o: any) => {
+  const osDoMes = (ano: number, mesIndice: number) =>
+    os.filter((o: any) => {
       const d = new Date(o.created_at);
       return d.getFullYear() === ano && d.getMonth() === mesIndice;
     });
-    const receita = doMes.reduce((s: number, o: any) => s + Number(o.valor_total ?? 0), 0);
-    return {
-      mes: rotulo,
-      faturamento: receita,
-      lucro: receita - doMes.reduce((s: number, o: any) => s + Number(o.custo_real ?? 0), 0),
-      // margem que a OS prometia no orçamento, para comparar com a realizada
-      lucroPrevisto:
-        receita - doMes.reduce((s: number, o: any) => s + Number(o.custo_previsto ?? 0), 0),
-    };
+  const faturamentoMensal = janelaMeses.map(({ ano, mesIndice, rotulo }) => ({
+    mes: rotulo,
+    faturamento: osDoMes(ano, mesIndice).reduce((s: number, o: any) => s + Number(o.valor_total ?? 0), 0),
+  }));
+  // Previsto × real sobre as MESMAS OS — as que têm custo lançado. O real
+  // antes era `receita − custo_real`, e custo_real vale 0 em toda OS aberta:
+  // setembro saía com lucro real de 100%, o dobro do previsto. Ver
+  // lucroComparavel em domain/os/resultado.
+  const resultadoPorOs = new Map(
+    (dashboardData?.resultados ?? []).map((r: any) => [r.os_id, r]),
+  );
+  const lucroPrevistoRealMensal = janelaMeses.slice(-6).map(({ ano, mesIndice, rotulo }) => {
+    const linhas = osDoMes(ano, mesIndice)
+      .map((o: any) => resultadoPorOs.get(o.id))
+      .filter(Boolean) as any[];
+    const { previsto, real, osComparadas } = lucroComparavel(linhas);
+    return { mes: rotulo, previsto, real, osComparadas };
   });
-  // Previsto usa custo_previsto e real usa custo_real; antes ambas as séries
-  // recebiam o mesmo valor e as linhas do gráfico coincidiam sempre.
-  const lucroPrevistoRealMensal = faturamentoMensal
-    .slice(-6)
-    .map((m) => ({ mes: m.mes, previsto: m.lucroPrevisto, real: m.lucro }));
+  const haComparacao = lucroPrevistoRealMensal.some((m) => m.osComparadas > 0);
   const osPorStatus = Object.entries(
     os.reduce(
       (acc: Record<string, number>, o: any) => ({ ...acc, [o.status]: (acc[o.status] ?? 0) + 1 }),
@@ -452,6 +464,15 @@ function DashboardPage() {
         </BexCard>
 
         <BexCard title="Lucro · previsto vs real">
+          {!haComparacao ? (
+            <div className="flex h-[280px] flex-col items-center justify-center gap-1 px-6 text-center text-sm text-muted-foreground">
+              <span className="font-medium text-foreground/80">Nenhuma OS com custo lançado nos últimos 6 meses</span>
+              <span className="text-xs">
+                O lucro real só existe depois que o custo é registrado — pela baixa de material ou
+                pelo apontamento de máquina. A comparação aparece quando a primeira OS tiver.
+              </span>
+            </div>
+          ) : (
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={lucroPrevistoRealMensal}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -463,6 +484,7 @@ function DashboardPage() {
               <Bar dataKey="real" fill={CMYK.lime} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </BexCard>
       </div>
 
