@@ -14,6 +14,9 @@ function download(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Baixa um PDF montado na hora, sem registrar no histórico — o do parceiro é dele. */
+export const baixarArquivo = download;
+
 function fmt(d?: string | null) {
   if (!d) return null;
   try {

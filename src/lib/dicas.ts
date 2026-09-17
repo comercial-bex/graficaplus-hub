@@ -15,6 +15,10 @@ export type DicasTela = {
 };
 
 export const dicas = {
+  "/parceiros": {
+    menu: "Rede de revendedores: níveis, metas, ofertas e quem está esfriando.",
+    tela: "Quem compra da gráfica para revender com a própria marca. Aqui você cadastra o parceiro, dá o acesso ao painel dele, define níveis de desconto, metas com prêmio e ofertas que aparecem para ele. Os orçamentos que o parceiro faz para os clientes dele são dele: a gráfica vê quanto ele trabalha (orçamentos, m², pedidos), nunca quem são os clientes.",
+  },
   "/contas-bancarias": {
     menu: "Saldo real das contas e importação do extrato do banco.",
     tela: "Cadastre as contas da gráfica e envie o extrato (OFX do banco ou planilha CSV). Cada lançamento novo entra no caixa e atualiza o saldo real; lançamentos já importados são ignorados, então pode reenviar o mesmo arquivo sem duplicar nada.",

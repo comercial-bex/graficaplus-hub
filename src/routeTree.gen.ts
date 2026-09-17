@@ -11,10 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ParceiroRouteImport } from './routes/parceiro'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ParceiroIndexRouteImport } from './routes/parceiro.index'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
+import { Route as ParceiroTabelaRouteImport } from './routes/parceiro.tabela'
+import { Route as ParceiroMarcaRouteImport } from './routes/parceiro.marca'
 import { Route as OrcamentoPublicoTokenRouteImport } from './routes/orcamento-publico.$token'
 import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
@@ -30,6 +34,7 @@ import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authenticated/planilha-custos'
 import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
+import { Route as AuthenticatedParceirosRouteImport } from './routes/_authenticated/parceiros'
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
@@ -65,9 +70,11 @@ import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
+import { Route as ParceiroOrcamentosIndexRouteImport } from './routes/parceiro.orcamentos.index'
 import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
 import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_authenticated/orcamentos.index'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
+import { Route as ParceiroOrcamentosIdRouteImport } from './routes/parceiro.orcamentos.$id'
 import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
 import { Route as AuthenticatedOsIdRouteImport } from './routes/_authenticated/os.$id'
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
@@ -84,6 +91,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ParceiroRoute = ParceiroRouteImport.update({
+  id: '/parceiro',
+  path: '/parceiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -98,10 +110,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ParceiroIndexRoute = ParceiroIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ParceiroRoute,
+} as any)
 const PublicoTokenRoute = PublicoTokenRouteImport.update({
   id: '/publico/$token',
   path: '/publico/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ParceiroTabelaRoute = ParceiroTabelaRouteImport.update({
+  id: '/tabela',
+  path: '/tabela',
+  getParentRoute: () => ParceiroRoute,
+} as any)
+const ParceiroMarcaRoute = ParceiroMarcaRouteImport.update({
+  id: '/marca',
+  path: '/marca',
+  getParentRoute: () => ParceiroRoute,
 } as any)
 const OrcamentoPublicoTokenRoute = OrcamentoPublicoTokenRouteImport.update({
   id: '/orcamento-publico/$token',
@@ -182,6 +209,11 @@ const AuthenticatedPlanilhaCustosRoute =
 const AuthenticatedPerdasRoute = AuthenticatedPerdasRouteImport.update({
   id: '/perdas',
   path: '/perdas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedParceirosRoute = AuthenticatedParceirosRouteImport.update({
+  id: '/parceiros',
+  path: '/parceiros',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOrcamento3dNovoRoute =
@@ -375,6 +407,11 @@ const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
   path: '/aprovacoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ParceiroOrcamentosIndexRoute = ParceiroOrcamentosIndexRouteImport.update({
+  id: '/orcamentos/',
+  path: '/orcamentos/',
+  getParentRoute: () => ParceiroRoute,
+} as any)
 const AuthenticatedOsIndexRoute = AuthenticatedOsIndexRouteImport.update({
   id: '/os/',
   path: '/os/',
@@ -392,6 +429,11 @@ const AuthenticatedClientesIndexRoute =
     path: '/clientes/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ParceiroOrcamentosIdRoute = ParceiroOrcamentosIdRouteImport.update({
+  id: '/orcamentos/$id',
+  path: '/orcamentos/$id',
+  getParentRoute: () => ParceiroRoute,
+} as any)
 const ApiWhatsappWebhookRoute = ApiWhatsappWebhookRouteImport.update({
   id: '/api/whatsapp/webhook',
   path: '/api/whatsapp/webhook',
@@ -423,6 +465,7 @@ const AuthenticatedClientesIdRoute = AuthenticatedClientesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/parceiro': typeof ParceiroRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
@@ -460,6 +503,7 @@ export interface FileRoutesByFullPath {
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
+  '/parceiros': typeof AuthenticatedParceirosRoute
   '/perdas': typeof AuthenticatedPerdasRoute
   '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -475,15 +519,20 @@ export interface FileRoutesByFullPath {
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/marca': typeof ParceiroMarcaRoute
+  '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
+  '/parceiro/': typeof ParceiroIndexRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
+  '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
   '/os/': typeof AuthenticatedOsIndexRoute
+  '/parceiro/orcamentos/': typeof ParceiroOrcamentosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -525,6 +574,7 @@ export interface FileRoutesByTo {
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
+  '/parceiros': typeof AuthenticatedParceirosRoute
   '/perdas': typeof AuthenticatedPerdasRoute
   '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -540,21 +590,27 @@ export interface FileRoutesByTo {
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/marca': typeof ParceiroMarcaRoute
+  '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
+  '/parceiro': typeof ParceiroIndexRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
+  '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/orcamentos': typeof AuthenticatedOrcamentosIndexRoute
   '/os': typeof AuthenticatedOsIndexRoute
+  '/parceiro/orcamentos': typeof ParceiroOrcamentosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/parceiro': typeof ParceiroRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
@@ -592,6 +648,7 @@ export interface FileRoutesById {
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
+  '/_authenticated/parceiros': typeof AuthenticatedParceirosRoute
   '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
   '/_authenticated/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -607,21 +664,27 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/marca': typeof ParceiroMarcaRoute
+  '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
+  '/parceiro/': typeof ParceiroIndexRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
+  '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
   '/_authenticated/os/': typeof AuthenticatedOsIndexRoute
+  '/parceiro/orcamentos/': typeof ParceiroOrcamentosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
+    | '/parceiro'
     | '/reset-password'
     | '/signup'
     | '/aprovacoes'
@@ -659,6 +722,7 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/ocorrencias'
     | '/orcamento-3d-novo'
+    | '/parceiros'
     | '/perdas'
     | '/planilha-custos'
     | '/portal-cliente'
@@ -674,15 +738,20 @@ export interface FileRouteTypes {
     | '/whatsapp-monitor'
     | '/aprovar/$token'
     | '/orcamento-publico/$token'
+    | '/parceiro/marca'
+    | '/parceiro/tabela'
     | '/publico/$token'
+    | '/parceiro/'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
     | '/api/whatsapp/webhook'
+    | '/parceiro/orcamentos/$id'
     | '/clientes/'
     | '/orcamentos/'
     | '/os/'
+    | '/parceiro/orcamentos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -724,6 +793,7 @@ export interface FileRouteTypes {
     | '/movimentacoes'
     | '/ocorrencias'
     | '/orcamento-3d-novo'
+    | '/parceiros'
     | '/perdas'
     | '/planilha-custos'
     | '/portal-cliente'
@@ -739,20 +809,26 @@ export interface FileRouteTypes {
     | '/whatsapp-monitor'
     | '/aprovar/$token'
     | '/orcamento-publico/$token'
+    | '/parceiro/marca'
+    | '/parceiro/tabela'
     | '/publico/$token'
+    | '/parceiro'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
     | '/api/whatsapp/webhook'
+    | '/parceiro/orcamentos/$id'
     | '/clientes'
     | '/orcamentos'
     | '/os'
+    | '/parceiro/orcamentos'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/parceiro'
     | '/reset-password'
     | '/signup'
     | '/_authenticated/aprovacoes'
@@ -790,6 +866,7 @@ export interface FileRouteTypes {
     | '/_authenticated/movimentacoes'
     | '/_authenticated/ocorrencias'
     | '/_authenticated/orcamento-3d-novo'
+    | '/_authenticated/parceiros'
     | '/_authenticated/perdas'
     | '/_authenticated/planilha-custos'
     | '/_authenticated/portal-cliente'
@@ -805,21 +882,27 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp-monitor'
     | '/aprovar/$token'
     | '/orcamento-publico/$token'
+    | '/parceiro/marca'
+    | '/parceiro/tabela'
     | '/publico/$token'
+    | '/parceiro/'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
     | '/api/whatsapp/webhook'
+    | '/parceiro/orcamentos/$id'
     | '/_authenticated/clientes/'
     | '/_authenticated/orcamentos/'
     | '/_authenticated/os/'
+    | '/parceiro/orcamentos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ParceiroRoute: typeof ParceiroRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   AprovarTokenRoute: typeof AprovarTokenRoute
@@ -844,6 +927,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/parceiro': {
+      id: '/parceiro'
+      path: '/parceiro'
+      fullPath: '/parceiro'
+      preLoaderRoute: typeof ParceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -865,12 +955,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/parceiro/': {
+      id: '/parceiro/'
+      path: '/'
+      fullPath: '/parceiro/'
+      preLoaderRoute: typeof ParceiroIndexRouteImport
+      parentRoute: typeof ParceiroRoute
+    }
     '/publico/$token': {
       id: '/publico/$token'
       path: '/publico/$token'
       fullPath: '/publico/$token'
       preLoaderRoute: typeof PublicoTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/parceiro/tabela': {
+      id: '/parceiro/tabela'
+      path: '/tabela'
+      fullPath: '/parceiro/tabela'
+      preLoaderRoute: typeof ParceiroTabelaRouteImport
+      parentRoute: typeof ParceiroRoute
+    }
+    '/parceiro/marca': {
+      id: '/parceiro/marca'
+      path: '/marca'
+      fullPath: '/parceiro/marca'
+      preLoaderRoute: typeof ParceiroMarcaRouteImport
+      parentRoute: typeof ParceiroRoute
     }
     '/orcamento-publico/$token': {
       id: '/orcamento-publico/$token'
@@ -975,6 +1086,13 @@ declare module '@tanstack/react-router' {
       path: '/perdas'
       fullPath: '/perdas'
       preLoaderRoute: typeof AuthenticatedPerdasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/parceiros': {
+      id: '/_authenticated/parceiros'
+      path: '/parceiros'
+      fullPath: '/parceiros'
+      preLoaderRoute: typeof AuthenticatedParceirosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/orcamento-3d-novo': {
@@ -1222,6 +1340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAprovacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/parceiro/orcamentos/': {
+      id: '/parceiro/orcamentos/'
+      path: '/orcamentos'
+      fullPath: '/parceiro/orcamentos/'
+      preLoaderRoute: typeof ParceiroOrcamentosIndexRouteImport
+      parentRoute: typeof ParceiroRoute
+    }
     '/_authenticated/os/': {
       id: '/_authenticated/os/'
       path: '/os'
@@ -1242,6 +1367,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/clientes/'
       preLoaderRoute: typeof AuthenticatedClientesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/parceiro/orcamentos/$id': {
+      id: '/parceiro/orcamentos/$id'
+      path: '/orcamentos/$id'
+      fullPath: '/parceiro/orcamentos/$id'
+      preLoaderRoute: typeof ParceiroOrcamentosIdRouteImport
+      parentRoute: typeof ParceiroRoute
     }
     '/api/whatsapp/webhook': {
       id: '/api/whatsapp/webhook'
@@ -1317,6 +1449,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
+  AuthenticatedParceirosRoute: typeof AuthenticatedParceirosRoute
   AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
   AuthenticatedPlanilhaCustosRoute: typeof AuthenticatedPlanilhaCustosRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
@@ -1376,6 +1509,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
+  AuthenticatedParceirosRoute: AuthenticatedParceirosRoute,
   AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
   AuthenticatedPlanilhaCustosRoute: AuthenticatedPlanilhaCustosRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
@@ -1401,10 +1535,31 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface ParceiroRouteChildren {
+  ParceiroMarcaRoute: typeof ParceiroMarcaRoute
+  ParceiroTabelaRoute: typeof ParceiroTabelaRoute
+  ParceiroIndexRoute: typeof ParceiroIndexRoute
+  ParceiroOrcamentosIdRoute: typeof ParceiroOrcamentosIdRoute
+  ParceiroOrcamentosIndexRoute: typeof ParceiroOrcamentosIndexRoute
+}
+
+const ParceiroRouteChildren: ParceiroRouteChildren = {
+  ParceiroMarcaRoute: ParceiroMarcaRoute,
+  ParceiroTabelaRoute: ParceiroTabelaRoute,
+  ParceiroIndexRoute: ParceiroIndexRoute,
+  ParceiroOrcamentosIdRoute: ParceiroOrcamentosIdRoute,
+  ParceiroOrcamentosIndexRoute: ParceiroOrcamentosIndexRoute,
+}
+
+const ParceiroRouteWithChildren = ParceiroRoute._addFileChildren(
+  ParceiroRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  ParceiroRoute: ParceiroRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   AprovarTokenRoute: AprovarTokenRoute,

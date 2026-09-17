@@ -41,6 +41,7 @@ import {
   type LucideIcon,
   FileCheck2,
   Ruler,
+  Handshake,
 } from "lucide-react";
 import {
   Sidebar,
@@ -77,6 +78,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Comercial",
     items: [
       { title: "Clientes", url: "/clientes", icon: Users },
+      { title: "Parceiros", url: "/parceiros", icon: Handshake },
       { title: "Leads", url: "/leads", icon: UserPlus },
       { title: "Funil", url: "/funil", icon: Workflow },
       { title: "Orçamentos", url: "/orcamentos", icon: FileText },

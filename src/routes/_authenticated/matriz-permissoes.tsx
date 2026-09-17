@@ -42,6 +42,7 @@ const ROLES: AppRole[] = [
   "estoque",
   "instalador",
   "cliente",
+  "parceiro",
 ];
 
 const moduloLabels: Record<string, string> = {
@@ -63,6 +64,8 @@ const moduloLabels: Record<string, string> = {
   permissoes: "Permissões",
   logs: "Logs",
   configuracoes: "Configurações",
+  parceiros: "Parceiros (gestão)",
+  parceiro: "Painel do parceiro",
 };
 
 function MatrizPermissoesPage() {

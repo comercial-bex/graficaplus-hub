@@ -13771,6 +13771,7 @@ export type Database = {
         | "estoque"
         | "instalador"
         | "cliente"
+        | "parceiro"
       automacao_acao: "whatsapp"
       automacao_execucao_status:
         | "pendente"
@@ -14052,6 +14053,7 @@ export const Constants = {
         "estoque",
         "instalador",
         "cliente",
+        "parceiro",
       ],
       automacao_acao: ["whatsapp"],
       automacao_execucao_status: [

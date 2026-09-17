@@ -88,6 +88,17 @@ export function formatarDocumento(valor: string, tipo?: TipoDocumento): string {
   return d;
 }
 
+/**
+ * Rótulo do documento do emissor: "CPF" com 11 dígitos, "CNPJ" nos demais.
+ *
+ * O cabeçalho do PDF escrevia "CNPJ" antes de qualquer número. Para a gráfica
+ * sempre foi CNPJ; o parceiro revendedor que emite orçamento com a marca dele
+ * pode ser pessoa física, e "CNPJ 123.456.789-01" no papel parece erro.
+ */
+export function rotuloDoDocumento(valor: string | null | undefined): "CPF" | "CNPJ" {
+  return tipoPorTamanho(valor ?? "") === "cpf" ? "CPF" : "CNPJ";
+}
+
 /** Quantidade de dígitos esperada, para máscara e para saber quando consultar. */
 export function tamanhoEsperado(tipo: TipoDocumento): number {
   return tipo === "cpf" ? 11 : 14;

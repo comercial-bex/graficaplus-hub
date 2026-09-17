@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { enderecoCompleto, type Empresa } from "./empresa";
+import { rotuloDoDocumento } from "@/domain/documentos";
 
 export type DocItem = {
   codigo?: string | number;
@@ -226,7 +227,11 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             )}
             {empresa.slogan && <Text style={s.slogan}>“{empresa.slogan}”</Text>}
             <Text style={s.empresaNome}>{empresa.razao_social ?? empresa.nome}</Text>
-            {empresa.cnpj && <Text style={s.empresaInfo}>CNPJ {empresa.cnpj}</Text>}
+            {empresa.cnpj && (
+              <Text style={s.empresaInfo}>
+                {rotuloDoDocumento(empresa.cnpj)} {empresa.cnpj}
+              </Text>
+            )}
             {empresa.inscricao_estadual && (
               <Text style={s.empresaInfo}>IE {empresa.inscricao_estadual}</Text>
             )}
