@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Wallet } from "lucide-react";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { brl } from "@/domain/parceiros/preco";
 import { ROTULO_DO_CREDITO, type PainelDoParceiro } from "@/domain/parceiros/painel";
 
@@ -11,7 +13,10 @@ export function CreditoCard({ painel }: { painel: PainelDoParceiro }) {
   return (
     <section className="flex flex-col rounded-2xl border border-border bg-card p-5 md:p-6">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Seu crédito</p>
+        <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Seu crédito
+          <DicaIcone texto={dicaCampo("/parceiro", "seu credito")} rotulo="Seu crédito" />
+        </p>
         <Wallet className="h-4 w-4 text-[color:var(--bex-cyan)]" />
       </div>
       <p className="mt-1 text-3xl font-bold tabular-nums">{brl(painel.saldo_credito)}</p>

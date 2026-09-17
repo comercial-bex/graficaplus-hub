@@ -18,6 +18,73 @@ export const dicas = {
   "/parceiros": {
     menu: "Rede de revendedores: níveis, metas, ofertas e quem está esfriando.",
     tela: "Quem compra da gráfica para revender com a própria marca. Aqui você cadastra o parceiro, dá o acesso ao painel dele, define níveis de desconto, metas com prêmio e ofertas que aparecem para ele. Os orçamentos que o parceiro faz para os clientes dele são dele: a gráfica vê quanto ele trabalha (orçamentos, m², pedidos), nunca quem são os clientes.",
+    campos: {
+      compras_30_dias:
+        "Quanto o parceiro comprou da gráfica nos últimos 30 dias (OS não canceladas do cliente dele). Só aparece para quem vê financeiro.",
+      orcamentos_30_dias:
+        "Quantos orçamentos ele fez no painel dele no último mês. Mostra se ele está trabalhando mesmo quando ainda não fechou pedido.",
+      m2_orcados_30_dias: "Metragem somada dos orçamentos dele no mês. É o tamanho do trabalho na mão dele.",
+      pedidos_30_dias: "Quantos orçamentos dele viraram pedido para a gráfica no mês.",
+      credito: "Saldo de cashback, prêmios de meta e ajustes. Ele abate isso no próximo pedido, como desconto.",
+      ultimo_acesso: "Última vez que ele abriu o painel. Quem nunca entrou normalmente não recebeu o acesso direito.",
+      nivel:
+        "Calculado sozinho pelo valor comprado nos últimos 90 dias. 'Garantido' quer dizer que a gestão fixou um nível mínimo para ele.",
+      compras_em_90_dias:
+        "Quanto o parceiro precisa comprar em 90 dias para entrar neste nível. Divida por 3 para pensar por mês.",
+      desconto_na_tabela:
+        "Quanto ele paga a menos que o preço de balcão. É o ganho dele ao revender pelo mesmo preço que a gráfica cobra.",
+      desconto_em_preco_por_faixa:
+        "Desconto extra nos produtos de campanha, que já têm preço por quantidade e não têm custo cadastrado — por isso é separado e menor.",
+      volta_em_credito: "Cashback: percentual do pedido que volta como crédito quando a OS é paga.",
+      beneficios: "Frases que o parceiro vê no painel dele. Prometa só o que a gráfica cumpre.",
+      o_que_conta: "A conta da meta: valor comprado, metragem comprada ou quantidade de pedidos no período.",
+      meta: "O número que ele precisa alcançar no período para ganhar o prêmio.",
+      premio:
+        "Crédito entra sozinho no saldo dele assim que bate. Produto e brinde ficam na aba Recompensas para a equipe entregar.",
+      para_quem: "Dá para restringir a meta ou a oferta a um nível para cima (ex.: só Ouro e Diamante).",
+      preco_da_oferta:
+        "Preço promocional por unidade de venda. Só vale enquanto for menor que o preço de parceiro dele, e só no prazo.",
+      abrir_como_aviso: "A oferta aparece sozinha quando o parceiro entra no painel, uma única vez.",
+      motivo: "O parceiro vê este texto no extrato dele. Escreva para ele entender sem precisar perguntar.",
+    },
+    acoes: {
+      novo_parceiro:
+        "Transforma um cliente já cadastrado em parceiro. É pelo cadastro de cliente que as compras dele contam para nível e meta.",
+      dar_acesso:
+        "Cria o login do painel (ou liga uma conta que ele já criou) e gera a mensagem pronta para mandar no WhatsApp.",
+      ajustar_credito: "Dá ou tira crédito manualmente. Sempre com motivo, porque o parceiro lê esse texto.",
+      entregar_recompensa: "Marca o prêmio de produto ou brinde como entregue. O parceiro vê isso no painel.",
+      simular: "Mostra, com os produtos reais da gráfica, quanto sobra de margem em cada desconto antes de salvar.",
+      extrato_do_contador:
+        "Fecha o mês do clube: quanto de crédito foi dado, quanto foi usado, quanto ficou em aberto e quais prêmios saíram.",
+    },
+  },
+  "/parceiro": {
+    menu: "Painel do parceiro revendedor.",
+    tela: "Seu painel: sua tabela de preços, seus orçamentos com a sua marca, seus pedidos e o seu crédito.",
+    campos: {
+      seu_nivel:
+        "Sobe sozinho pelo quanto você comprou nos últimos 90 dias. Quanto mais alto, menor o preço que você paga.",
+      desconto: "Quanto você paga a menos que o preço de balcão da gráfica.",
+      seu_credito:
+        "Dinheiro seu para abater no próximo pedido. Vem do cashback dos pedidos pagos, das metas batidas e de ajustes da gráfica.",
+      metas: "Todo parceiro que bate a meta ganha o prêmio. Não é sorteio: não depende de sorte nem de ser o primeiro.",
+      balcao: "O preço que a gráfica cobra do cliente final. Se você revender por ele, o seu ganho é o desconto do seu nível.",
+      peca_minima: "Peças menores que essa área são cobradas como se tivessem o tamanho mínimo — o corte e o setup existem do mesmo jeito.",
+      faixa: "Quanto maior a quantidade no mesmo pedido, menor o preço por unidade.",
+      item_livre: "Serviço seu (instalação, arte, deslocamento). Entra no PDF do seu cliente e não vira pedido na gráfica.",
+      seu_preco: "O preço que VOCÊ cobra do seu cliente. A gráfica não vê este valor.",
+      voce_paga: "O que a gráfica vai te cobrar por este item quando virar pedido.",
+      seu_ganho: "A diferença entre o que o seu cliente paga e o que você paga à gráfica.",
+      validade: "Quantos dias o preço vale para o seu cliente. Sai impresso no PDF.",
+      cobrar_por: "Unidade: por metro quadrado (usa largura × altura) ou por unidade.",
+    },
+    acoes: {
+      novo_orcamento: "Monta um orçamento com a sua marca para o seu cliente.",
+      baixar_pdf: "Gera o PDF com o seu logo e os seus dados. Nada da gráfica aparece nele.",
+      fazer_pedido: "Manda os itens de tabela para a gráfica produzir. Os preços são conferidos pela gráfica no envio.",
+      duplicar: "Cria uma cópia deste orçamento para repetir o trabalho sem digitar tudo de novo.",
+    },
   },
   "/contas-bancarias": {
     menu: "Saldo real das contas e importação do extrato do banco.",

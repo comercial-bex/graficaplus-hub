@@ -7,6 +7,8 @@ import { brl, unidadeLegivel, type ItemDoCatalogo } from "@/domain/parceiros/pre
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 
 export const Route = createFileRoute("/parceiro/tabela")({
   component: TabelaDoParceiro,
@@ -130,9 +132,14 @@ function Produto({ produto: p }: { produto: ItemDoCatalogo }) {
             </span>
           )}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="flex items-center gap-1 text-xs text-muted-foreground">
           {p.categoria || "Outros"}
-          {p.por_area && p.area_minima ? ` · peça mínima cobrada ${Number(p.area_minima).toLocaleString("pt-BR")} m²` : ""}
+          {p.por_area && p.area_minima ? (
+            <>
+              <span>· peça mínima cobrada {Number(p.area_minima).toLocaleString("pt-BR")} m²</span>
+              <DicaIcone texto={dicaCampo("/parceiro", "peca minima")} rotulo="Peça mínima" />
+            </>
+          ) : null}
         </p>
       </div>
 
@@ -141,9 +148,19 @@ function Produto({ produto: p }: { produto: ItemDoCatalogo }) {
           <table className="text-sm">
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                <th className="pr-4 text-left font-medium">A partir de</th>
+                <th className="pr-4 text-left font-medium">
+                  <span className="inline-flex items-center gap-1">
+                    A partir de
+                    <DicaIcone texto={dicaCampo("/parceiro", "faixa")} rotulo="Faixa de quantidade" />
+                  </span>
+                </th>
                 <th className="pr-4 text-right font-medium">Você paga</th>
-                <th className="text-right font-medium">Balcão</th>
+                <th className="text-right font-medium">
+                  <span className="inline-flex items-center gap-1">
+                    Balcão
+                    <DicaIcone texto={dicaCampo("/parceiro", "balcao")} rotulo="Preço de balcão" />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -166,8 +183,9 @@ function Produto({ produto: p }: { produto: ItemDoCatalogo }) {
             <span className="text-xs font-normal text-muted-foreground">/{un}</span>
           </span>
           {p.preco_referencia !== null && p.preco_parceiro !== null && p.preco_referencia > p.preco_parceiro && (
-            <span className="text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
               balcão <span className="line-through">{brl(p.preco_referencia)}</span>
+              <DicaIcone texto={dicaCampo("/parceiro", "balcao")} rotulo="Preço de balcão" />
             </span>
           )}
         </div>
