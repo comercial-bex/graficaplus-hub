@@ -183,6 +183,88 @@ export async function entregarConquista(conquistaId: string, observacao: string 
   if (error) throw error;
 }
 
+export type MovimentoDeCredito = {
+  data: string;
+  parceiro: string;
+  documento: string | null;
+  tipo: string;
+  valor: number;
+  descricao: string;
+  pedido_numero: number | null;
+  os_numero: number | null;
+};
+
+export type PremioEntregue = {
+  data: string;
+  parceiro: string;
+  documento: string | null;
+  campanha: string;
+  tipo: string;
+  premio: string;
+  observacao: string | null;
+};
+
+export type PedidoDoPeriodo = {
+  data: string;
+  numero: number;
+  parceiro: string;
+  documento: string | null;
+  valor_bruto: number;
+  desconto_credito: number;
+  valor_liquido: number;
+  status: string;
+  os_numero: number | null;
+};
+
+export type FechamentoDoClube = {
+  inicio: string;
+  fim: string;
+  saldo_anterior: number;
+  saldo_final: number;
+  por_tipo: { tipo: string; quantidade: number; valor: number }[];
+  movimentos: MovimentoDeCredito[];
+  /** compras dos parceiros no período — são vendas para revenda */
+  pedidos_do_periodo: PedidoDoPeriodo[];
+  premios_entregues: PremioEntregue[];
+};
+
+/** O mês do clube fechado, do jeito que o contador precisa ver. */
+export async function fechamentoDoClube(inicio: string, fim: string): Promise<FechamentoDoClube> {
+  const { data, error } = await (supabase.rpc as any)("parceiros_contador_periodo", {
+    p_inicio: inicio,
+    p_fim: fim,
+  });
+  if (error) throw error;
+  return data as FechamentoDoClube;
+}
+
+export type SimulacaoDeNivel = {
+  nivel: string;
+  ordem: number;
+  desconto_pct: number;
+  produtos_com_custo: number;
+  produtos_sem_custo: number;
+  travados_no_piso: number;
+  quais_travam: string | null;
+  ganho_medio_parceiro: number;
+  margem_media_bex: number;
+  menor_margem_bex: number;
+};
+
+/**
+ * O efeito de cada desconto nos produtos reais da gráfica. Aceita valores de
+ * rascunho para a tela responder antes de salvar.
+ */
+export async function simularNiveis(
+  descontos?: { nome: string; desconto_pct: number }[],
+): Promise<SimulacaoDeNivel[]> {
+  const { data, error } = await (supabase.rpc as any)("parceiro_simular_niveis", {
+    p_descontos: descontos ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as SimulacaoDeNivel[];
+}
+
 export type UsuarioEncontrado = { id: string; nome: string | null; email: string | null };
 
 /** Contas que não são da equipe — quem pode virar login de parceiro. */

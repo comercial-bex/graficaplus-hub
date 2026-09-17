@@ -18,6 +18,7 @@ import {
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -34,8 +35,10 @@ import { MetasTab } from "@/components/parceiros/metas-tab";
 import { OfertasTab } from "@/components/parceiros/ofertas-tab";
 import { NiveisTab } from "@/components/parceiros/niveis-tab";
 import { RecompensasTab } from "@/components/parceiros/recompensas-tab";
+import { ContadorTab } from "@/components/parceiros/contador-tab";
+import { ComoComecar } from "@/components/parceiros/como-comecar";
 import { useAuth } from "@/lib/auth-context";
-import { dicaTela } from "@/lib/dicas";
+import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { resumoDosParceiros, type ResumoDoParceiro } from "@/lib/parceiro-api";
@@ -111,9 +114,11 @@ function ParceirosPage() {
         ajuda={dicaTela("/parceiros")}
         actions={
           podeEditar ? (
-            <Button onClick={() => setNovo(true)}>
-              <Plus className="mr-1 h-4 w-4" /> Novo parceiro
-            </Button>
+            <Dica texto={dicaAcao("/parceiros", "novo parceiro")}>
+              <Button onClick={() => setNovo(true)}>
+                <Plus className="mr-1 h-4 w-4" /> Novo parceiro
+              </Button>
+            </Dica>
           ) : null
         }
       />
@@ -128,27 +133,44 @@ function ParceirosPage() {
             <TabsTrigger value="recompensas">
               Recompensas{aEntregar > 0 ? ` (${aEntregar})` : ""}
             </TabsTrigger>
+            {canSeeFinancials && <TabsTrigger value="contador">Contador</TabsTrigger>}
           </TabsList>
         </div>
 
         <TabsContent value="rede" className="space-y-6 pt-4">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard
-              label="Parceiros ativos"
-              value={ativos.length}
-              hint={semLogin > 0 ? `${semLogin} sem login` : undefined}
-              icon={Handshake}
-            />
-            <KpiCard
-              label="Compraram em 30 dias"
-              value={canSeeFinancials ? brl(compras30) : "—"}
-              hint={canSeeFinancials ? undefined : "visível para o financeiro"}
-              icon={ShoppingBag}
-              tone="magenta"
-            />
-            <KpiCard label="Esfriando ou parados" value={emRisco} icon={AlertTriangle} tone={emRisco > 0 ? "amber" : "muted"} />
-            <KpiCard label="Recompensas a entregar" value={aEntregar} icon={Trophy} tone={aEntregar > 0 ? "amber" : "muted"} />
+            <Dica texto="Parceiros com o painel liberado. Suspenso e encerrado ficam de fora." className="w-full">
+              <KpiCard
+                className="w-full"
+                label="Parceiros ativos"
+                value={ativos.length}
+                hint={semLogin > 0 ? `${semLogin} sem login` : undefined}
+                icon={Handshake}
+              />
+            </Dica>
+            <Dica texto={dicaCampo("/parceiros", "compras 30 dias")} className="w-full">
+              <KpiCard
+                className="w-full"
+                label="Compraram em 30 dias"
+                value={canSeeFinancials ? brl(compras30) : "—"}
+                hint={canSeeFinancials ? undefined : "visível para o financeiro"}
+                icon={ShoppingBag}
+                tone="magenta"
+              />
+            </Dica>
+            <Dica texto="Sem comprar há mais de 30 dias, ou cadastrados há tempo e sem nenhum pedido. É a fila de quem ligar primeiro." className="w-full">
+              <KpiCard className="w-full" label="Esfriando ou parados" value={emRisco} icon={AlertTriangle} tone={emRisco > 0 ? "amber" : "muted"} />
+            </Dica>
+            <Dica texto={dicaAcao("/parceiros", "entregar recompensa")} className="w-full">
+              <KpiCard className="w-full" label="Recompensas a entregar" value={aEntregar} icon={Trophy} tone={aEntregar > 0 ? "amber" : "muted"} />
+            </Dica>
           </div>
+
+          <ComoComecar
+            parceiros={parceiros.length}
+            comLogin={ativos.filter((p) => !!p.usuario_email).length}
+            podeEditar={podeEditar}
+          />
 
           {pedidosParaOs.length > 0 && (
             <section className="rounded-xl border border-[color:var(--bex-cyan)]/40 bg-[color:var(--bex-cyan)]/5 p-4">
@@ -281,6 +303,11 @@ function ParceirosPage() {
         <TabsContent value="recompensas" className="pt-4">
           <RecompensasTab podeEditar={podeEditar} />
         </TabsContent>
+        {canSeeFinancials && (
+          <TabsContent value="contador" className="pt-4">
+            <ContadorTab />
+          </TabsContent>
+        )}
       </Tabs>
 
       <NovoParceiroDialog
@@ -303,7 +330,10 @@ function ParceirosPage() {
 function Metrica({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <div className="min-w-0">
-      <dt className="truncate text-[11px] uppercase tracking-wider text-muted-foreground">{rotulo}</dt>
+      <dt className="flex items-center gap-1 truncate text-[11px] uppercase tracking-wider text-muted-foreground">
+        {rotulo}
+        <DicaIcone texto={dicaCampo("/parceiros", rotulo)} rotulo={rotulo} />
+      </dt>
       <dd className="truncate font-medium tabular-nums">{valor}</dd>
     </div>
   );

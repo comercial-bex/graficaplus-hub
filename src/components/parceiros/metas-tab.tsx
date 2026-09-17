@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
 import { formatarData } from "@/domain/os/prazo";
 import { quantidadeDaMetrica, textoDaRecompensa } from "@/domain/parceiros/painel";
@@ -265,7 +267,10 @@ export function MetasTab({ podeEditar }: { podeEditar: boolean }) {
 function Campo({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{rotulo}</Label>
+      <Label className="flex items-center gap-1 text-xs text-muted-foreground">
+        {rotulo}
+        <DicaIcone texto={dicaCampo("/parceiros", rotulo)} rotulo={rotulo} />
+      </Label>
       {children}
     </div>
   );

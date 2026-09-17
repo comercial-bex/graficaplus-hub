@@ -308,7 +308,9 @@ export function validadeDoOrcamento(criadoEm: string, validadeDias: number): Dat
 // ─── Crédito ────────────────────────────────────────────────────────────────
 
 export const ROTULO_DO_CREDITO: Record<TipoDeCredito, string> = {
-  cashback: "Cashback de pedido pago",
+  // "cashback" na LC 214/2025 é outra coisa (devolução a famílias): no extrato
+  // que vai ao contador, o nome é crédito.
+  cashback: "Crédito do pedido pago",
   recompensa: "Meta batida",
   uso: "Usado em pedido",
   estorno_uso: "Crédito devolvido",

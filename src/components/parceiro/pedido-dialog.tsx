@@ -86,7 +86,10 @@ export function PedidoDialog({
               <DialogDescription>
                 A gráfica recebeu {enviado.itens} {enviado.itens === 1 ? "item" : "itens"} no valor de{" "}
                 {brl(enviado.total)}
-                {enviado.credito_usado > 0 ? `, com ${brl(enviado.credito_usado)} de crédito para abater` : ""}.
+                {enviado.credito_usado > 0
+                  ? `, menos ${brl(enviado.credito_usado)} de crédito: ficam ${brl(Math.max(enviado.total - enviado.credito_usado, 0))} a pagar`
+                  : ""}
+                .
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2 rounded-xl border border-border bg-foreground/5 p-4 text-sm">
@@ -140,6 +143,16 @@ export function PedidoDialog({
               <dd className="text-right tabular-nums">{resumo.itensDaGrafica}</dd>
               <dt className="text-muted-foreground">Total estimado</dt>
               <dd className="text-right font-semibold tabular-nums">{brl(resumo.custo)}</dd>
+              {usarCredito && valorCredito > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Crédito usado</dt>
+                  <dd className="text-right tabular-nums">− {brl(Math.min(Number(valorCredito) || 0, maximo))}</dd>
+                  <dt className="font-medium">A pagar à gráfica</dt>
+                  <dd className="text-right font-semibold tabular-nums">
+                    {brl(Math.max(resumo.custo - Math.min(Number(valorCredito) || 0, maximo), 0))}
+                  </dd>
+                </>
+              )}
               {resumo.itensLivres > 0 && (
                 <>
                   <dt className="text-muted-foreground">Itens livres (só no seu PDF)</dt>
@@ -173,7 +186,7 @@ export function PedidoDialog({
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  O crédito é abatido no pagamento. Se o pedido for recusado, ele volta para o seu saldo.
+                  O crédito entra como desconto no próprio pedido. Se a gráfica recusar, ele volta para o seu saldo.
                 </p>
               </div>
             )}

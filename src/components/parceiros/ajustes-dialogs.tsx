@@ -19,6 +19,8 @@ import { mensagemErro } from "@/lib/erros";
 import { ajustarCredito, type ResumoDoParceiro } from "@/lib/parceiro-api";
 import { brl } from "@/domain/parceiros/preco";
 import { useEquipe, useNiveis } from "./dados";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 
 /** Crédito manual: bonificação combinada fora das metas, ou correção. Sempre com motivo. */
 export function CreditoDialog({
@@ -86,7 +88,10 @@ export function CreditoDialog({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="credito-motivo">Motivo (o parceiro vê)</Label>
+          <Label htmlFor="credito-motivo" className="flex items-center gap-1">
+            Motivo (o parceiro vê)
+            <DicaIcone texto={dicaCampo("/parceiros", "motivo")} rotulo="Motivo" />
+          </Label>
           <Input
             id="credito-motivo"
             value={motivo}

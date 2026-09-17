@@ -29,6 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { SeletorDeProduto } from "./seletor-de-produto";
 import { PedidoDialog } from "./pedido-dialog";
 import { mensagemErro } from "@/lib/erros";
@@ -481,7 +483,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
               <Campo rotulo="CPF ou CNPJ do cliente" id="cli-doc">
                 <Input id="cli-doc" inputMode="numeric" value={cab.cliente_documento} disabled={somenteLeitura} onChange={(e) => mudarCab({ cliente_documento: e.target.value })} />
               </Campo>
-              <Campo rotulo="Validade (dias)" id="orc-validade">
+              <Campo rotulo="Validade (dias)" id="orc-validade" ajuda={dicaCampo("/parceiro", "validade")}>
                 <Input
                   id="orc-validade"
                   type="number"
@@ -689,7 +691,7 @@ function ItemCard({
         </Campo>
 
         {!item.produto_id && (
-          <Campo rotulo="Cobrar por" id={`un-${item.id}`}>
+          <Campo rotulo="Cobrar por" id={`un-${item.id}`} ajuda={dicaCampo("/parceiro", "cobrar por")}>
             <Select value={porArea ? "m²" : "un"} disabled={somenteLeitura} onValueChange={(v) => onMudar({ unidade: v, ...(v === "un" ? { largura: null, altura: null } : {}) })}>
               <SelectTrigger id={`un-${item.id}`}>
                 <SelectValue />
@@ -775,7 +777,7 @@ function ItemCard({
             onChange={(e) => onMudar({ acabamento: e.target.value })}
           />
         </Campo>
-        <Campo rotulo={`Seu preço para o cliente (por ${un})`} id={`preco-${item.id}`} className="md:col-span-2">
+        <Campo rotulo={`Seu preço para o cliente (por ${un})`} id={`preco-${item.id}`} ajuda={dicaCampo("/parceiro", "seu preco")} className="md:col-span-2">
           <div className="flex flex-wrap items-center gap-2">
             <Input
               id={`preco-${item.id}`}
@@ -803,17 +805,26 @@ function ItemCard({
 
       <div className="ml-8 grid grid-cols-3 gap-2 rounded-xl bg-foreground/5 p-3 text-center text-xs">
         <div>
-          <p className="text-muted-foreground">Cliente paga</p>
+          <p className="flex items-center justify-center gap-1 text-muted-foreground">
+            Cliente paga
+            <DicaIcone texto={dicaCampo("/parceiro", "seu preco")} rotulo="Cliente paga" />
+          </p>
           <p className="mt-0.5 text-sm font-semibold tabular-nums">{brl(venda.total)}</p>
         </div>
         <div>
-          <p className="text-muted-foreground">Você paga</p>
+          <p className="flex items-center justify-center gap-1 text-muted-foreground">
+            Você paga
+            <DicaIcone texto={dicaCampo("/parceiro", "voce paga")} rotulo="Você paga" />
+          </p>
           <p className="mt-0.5 text-sm font-semibold tabular-nums">
             {custo.tipo === "ok" ? brl(custo.total) : custo.tipo === "livre" ? "—" : "?"}
           </p>
         </div>
         <div>
-          <p className="text-muted-foreground">Seu ganho</p>
+          <p className="flex items-center justify-center gap-1 text-muted-foreground">
+            Seu ganho
+            <DicaIcone texto={dicaCampo("/parceiro", "seu ganho")} rotulo="Seu ganho" />
+          </p>
           <p
             className={cn(
               "mt-0.5 text-sm font-semibold tabular-nums",
@@ -848,17 +859,21 @@ function Campo({
   rotulo,
   id,
   className,
+  ajuda,
   children,
 }: {
   rotulo: string;
   id: string;
   className?: string;
+  /** quando não vier, procura pelo próprio rótulo no dicionário de dicas */
+  ajuda?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className={cn("space-y-1.5", className)}>
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
+      <Label htmlFor={id} className="flex items-center gap-1 text-xs text-muted-foreground">
         {rotulo}
+        <DicaIcone texto={ajuda ?? dicaCampo("/parceiro", rotulo)} rotulo={rotulo} />
       </Label>
       {children}
     </div>

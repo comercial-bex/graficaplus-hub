@@ -19,6 +19,7 @@ import {
   urlDoLogo,
 } from "@/lib/parceiro-api";
 import { formatarDocumento, formatarTelefone, rotuloDoDocumento } from "@/domain/documentos";
+import { DicaIcone } from "@/components/bex/Dica";
 import type { MarcaDoParceiro } from "@/domain/parceiros/painel";
 import { CONDICOES_PADRAO, COR_PADRAO_DA_MARCA, propsDoOrcamentoDoParceiro } from "@/domain/parceiros/pdf";
 
@@ -293,6 +294,16 @@ function limpar(m: MarcaDoParceiro): MarcaDoParceiro {
   };
 }
 
+const AJUDA: Record<string, string> = {
+  "m-nome": "O nome que aparece no cabeçalho do orçamento do seu cliente. Deixe em branco para usar o nome do seu cadastro.",
+  "m-doc": "Sai impresso como CPF ou CNPJ conforme o número. Serve para o seu cliente saber de quem é o orçamento.",
+  "m-tel": "Telefone que o seu cliente vai usar para falar com VOCÊ.",
+  "m-email": "E-mail que sai no documento. Não é o e-mail de login.",
+  "m-uf": "Sigla do estado, duas letras.",
+  "m-cor": "Cor da faixa e dos títulos do PDF. Use a cor da sua marca.",
+  "m-rodape": "Texto que sai no fim do orçamento: prazo, forma de pagamento, condições. Se deixar vazio, entra um texto neutro.",
+};
+
 function Campo({
   id,
   rotulo,
@@ -306,8 +317,9 @@ function Campo({
 }) {
   return (
     <div className={className ? `space-y-1.5 ${className}` : "space-y-1.5"}>
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
+      <Label htmlFor={id} className="flex items-center gap-1 text-xs text-muted-foreground">
         {rotulo}
+        <DicaIcone texto={AJUDA[id]} rotulo={rotulo} />
       </Label>
       {children}
     </div>

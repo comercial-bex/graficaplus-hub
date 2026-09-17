@@ -8,6 +8,7 @@ import { CreditoCard } from "@/components/parceiro/credito-card";
 import { Metas } from "@/components/parceiro/metas";
 import { Pedidos } from "@/components/parceiro/pedidos";
 import { NovoOrcamento } from "@/components/parceiro/novo-orcamento";
+import { PrimeirosPassos } from "@/components/parceiro/primeiros-passos";
 
 export const Route = createFileRoute("/parceiro/")({
   component: InicioDoParceiro,
@@ -39,6 +40,8 @@ function InicioDoParceiro() {
           </p>
         </div>
       )}
+
+      <PrimeirosPassos painel={painel} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="md:col-span-2">

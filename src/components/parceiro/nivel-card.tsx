@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Check, ChevronDown, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { brl } from "@/domain/parceiros/preco";
 import { progressoDoNivel, type PainelDoParceiro } from "@/domain/parceiros/painel";
 
@@ -24,7 +26,10 @@ export function NivelCard({ painel }: { painel: PainelDoParceiro }) {
       />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Seu nível</p>
+          <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Seu nível
+            <DicaIcone texto={dicaCampo("/parceiro", "seu nivel")} rotulo="Seu nível" />
+          </p>
           <h2 className="mt-1 flex items-center gap-2 text-3xl font-bold tracking-tight" style={{ color: cor }}>
             <Crown className="h-6 w-6" />
             {nivel.nome ?? "—"}
@@ -34,7 +39,10 @@ export function NivelCard({ painel }: { painel: PainelDoParceiro }) {
           )}
         </div>
         <div className="text-right">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Desconto</p>
+          <p className="flex items-center justify-end gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+            Desconto
+            <DicaIcone texto={dicaCampo("/parceiro", "desconto")} rotulo="Desconto" />
+          </p>
           <p className="text-2xl font-bold tabular-nums">{fmtPct(nivel.desconto_pct)}</p>
           {Number(nivel.cashback_pct) > 0 && (
             <p className="text-xs text-muted-foreground">+ {fmtPct(nivel.cashback_pct)} de volta</p>
