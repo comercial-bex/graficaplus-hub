@@ -24,6 +24,7 @@ export const permissions = [
   "orcamentos.approve", "orcamentos.cancel", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update",
   "os.assign", "os.close", "os.create", "os.read", "os.status.advance", "os.status.override", "os.update",
   "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update",
+  "parceiro.painel", "parceiros.manage", "parceiros.read",
   "permissoes.manage",
   "portal.read",
   "producao.finish", "producao.pause", "producao.read", "producao.start",
@@ -58,14 +59,17 @@ const allPermissions = [...permissions];
  */
 export const rolePermissions = {
   admin: allPermissions,
-  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "maquinas.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance", "producao.read", "qualidade.manage", "qualidade.read", "resultado.read", "tarefas.assign", "tarefas.complete", "tarefas.create", "tarefas.read", "tarefas.reopen", "tarefas.update"],
+  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "maquinas.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance", "parceiros.manage", "parceiros.read", "producao.read", "qualidade.manage", "qualidade.read", "resultado.read", "tarefas.assign", "tarefas.complete", "tarefas.create", "tarefas.read", "tarefas.reopen", "tarefas.update"],
   financeiro: ["clientes.read", "compras.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read"],
-  vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "whatsapp.read", "whatsapp.reply"],
+  vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "parceiros.read", "whatsapp.read", "whatsapp.reply"],
   designer: ["arquivos.finalize", "arquivos.read", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.read", "os.read", "os.status.advance", "os.update", "tarefas.complete", "tarefas.read", "tarefas.update"],
   operador: ["agenda.operate", "agenda.read", "arquivos.read", "impressao3d.production.update", "impressao3d.read", "maquinas.read", "os.read", "os.status.advance", "os.update", "producao.finish", "producao.pause", "producao.read", "producao.start", "qualidade.manage", "qualidade.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
   estoque: ["compras.create", "compras.read", "compras.receive", "custos.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "os.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
   instalador: ["arquivos.read", "clientes.read", "entregas.manage", "entregas.read", "instalacoes.manage", "instalacoes.read", "os.read", "os.status.advance", "tarefas.complete", "tarefas.read", "tarefas.update"],
   cliente: ["portal.read"],
+  // O painel do parceiro fica FORA do layout da equipe (/parceiro). Esta chave não
+  // abre nenhuma rota de /_authenticated — o teste de papéis garante isso.
+  parceiro: ["parceiro.painel"],
 } satisfies Record<AppRole, readonly Permission[]>;
 
 export const permissionLabels = Object.fromEntries(
@@ -87,6 +91,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/respostas-rapidas", permissions: ["templates.manage"] },
   { path: "/automacoes", permissions: ["automacoes.read"] },
   { path: "/orcamentos", permissions: ["orcamentos.read", "orcamentos.create"] },
+  { path: "/parceiros", permissions: ["parceiros.read"] },
   { path: "/impressao-3d", permissions: ["impressao3d.read"] },
   { path: "/produtividade-3d", permissions: ["impressao3d.reports.read", "impressao3d.read"] },
   { path: "/breakdown-3d", permissions: ["impressao3d.cost.read", "impressao3d.reports.read"] },

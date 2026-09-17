@@ -15,6 +15,9 @@ const appRoles = [
   "estoque",
   "instalador",
   "cliente",
+  // Aceito para REMOVER o papel de um revendedor pela tela de usuários. Dar o papel
+  // é pela gestão de parceiros, que também liga a conta ao cadastro do parceiro.
+  "parceiro",
 ] as const;
 
 const roleSchema = z.enum(appRoles);

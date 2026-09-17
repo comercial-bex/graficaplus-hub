@@ -76,6 +76,26 @@ describe("papéis", () => {
     expect(alcanca).toEqual(["/portal-cliente"]);
   });
 
+  // O parceiro revendedor é de fora da gráfica. O painel dele mora em /parceiro,
+  // fora do layout da equipe; se uma permissão dele abrisse qualquer rota de
+  // /_authenticated, ele passaria a enxergar o sistema interno por dentro.
+  it("o papel parceiro não abre nenhuma tela da equipe", () => {
+    const doParceiro = rolePermissions.parceiro as readonly string[];
+    const alcanca = routePermissions
+      .filter(({ permissions: reqs }) => reqs.some((p) => doParceiro.includes(p)))
+      .map((r) => r.path);
+    expect(alcanca).toEqual([]);
+  });
+
+  it("gestão de parceiros abre para quem cuida da rede", () => {
+    const exigidas = getRoutePermissions("/parceiros") ?? [];
+    for (const papel of ["admin", "gestor", "vendedor"] as const) {
+      const doPapel = rolePermissions[papel] as readonly string[];
+      expect(exigidas.some((p) => doPapel.includes(p)), papel).toBe(true);
+    }
+    expect(exigidas.some((p) => (rolePermissions.operador as readonly string[]).includes(p))).toBe(false);
+  });
+
   it("cada papel operacional abre pelo menos a tela do próprio trabalho", () => {
     const esperado: Record<string, string> = {
       designer: "/arquivos",

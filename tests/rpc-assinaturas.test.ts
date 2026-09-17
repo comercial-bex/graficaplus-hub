@@ -62,6 +62,18 @@ const ASSINATURAS: Record<string, string[]> = {
   materiais_faltantes_os: ["p_os_id"],
   os_bloqueios_do_quadro: [],
   os_bloqueios_para: ["os_id", "novo_status"], // sem p_
+  // Migração 20260916120000 (clube de parceiros), conferidas no Postgres em 16/09/2026.
+  parceiro_ajustar_credito: ["p_parceiro_id", "p_valor", "p_descricao"],
+  parceiro_catalogo: [],
+  parceiro_conquistas_pendentes: [],
+  parceiro_criar: ["p_cliente_id", "p_responsavel_id", "p_nivel_fixo_id"],
+  parceiro_entregar_conquista: ["p_conquista_id", "p_observacao"],
+  parceiro_enviar_pedido: ["p_orcamento_id", "p_usar_credito"],
+  parceiro_marcar_oferta_vista: ["p_oferta_id"],
+  parceiro_painel: [],
+  parceiro_salvar_marca: ["p_dados"],
+  parceiro_vincular_usuario: ["p_parceiro_id", "p_usuario_id"],
+  parceiros_resumo: [],
   previsoes_desatualizadas: [],
   produtividade_3d: ["p_inicio", "p_fim"],
   quitar_parcelas_ate: ["p_compromisso_id", "p_ate"],

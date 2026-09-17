@@ -12,7 +12,9 @@ export type AppRole =
   | "operador"
   | "estoque"
   | "instalador"
-  | "cliente";
+  | "cliente"
+  // revendedor de fora da equipe: só enxerga o próprio painel em /parceiro
+  | "parceiro";
 
 type AuthContextValue = {
   user: User | null;

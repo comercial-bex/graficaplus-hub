@@ -16,9 +16,18 @@ function AuthenticatedLayout() {
   const requiredPermissions = getRoutePermissions(pathname);
   const canAccessRoute = requiredPermissions !== null && requiredPermissions.some(hasPermission);
 
+  // O parceiro revendedor não usa o sistema da equipe: o painel dele mora em
+  // /parceiro. Sem o desvio, o login o mandaria ao /dashboard e ele cairia no
+  // "Acesso restrito" — a primeira tela de um parceiro novo seria um erro.
+  const somenteParceiro = roles.length > 0 && roles.every((r) => r === "parceiro");
+
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
+
+  useEffect(() => {
+    if (!loading && user && somenteParceiro) navigate({ to: "/parceiro" });
+  }, [loading, user, somenteParceiro, navigate]);
 
   if (loading) {
     return (
@@ -27,7 +36,7 @@ function AuthenticatedLayout() {
       </div>
     );
   }
-  if (!user) return null;
+  if (!user || somenteParceiro) return null;
 
   // Quem acabou de se cadastrar entra sem papel nenhum. Sem este desvio, o guarda
   // deny-by-default responde "Acesso restrito" — conta criada com sucesso e uma

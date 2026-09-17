@@ -33,11 +33,20 @@ function clienteSemSessao() {
   });
 }
 
-export async function criarUsuarioComPapel(dados: {
+/**
+ * Cria só a conta, sem papel.
+ *
+ * Serve a quem recebe o papel por outro caminho: o parceiro revendedor ganha o
+ * papel `parceiro` dentro de `parceiro_vincular_usuario`, que antes confere que a
+ * conta não é da equipe. Gravar o papel por aqui exigiria admin (RLS de
+ * user_roles) e o gestor não conseguiria dar acesso ao parceiro que cadastrou.
+ */
+export async function criarContaSemPapel(dados: {
   nome: string;
   email: string;
   senha: string;
-  papel: AppRole;
+  /** texto do aviso quando o e-mail já tem conta — cada tela sabe o que fazer */
+  seJaExiste?: string;
 }): Promise<Resultado> {
   const email = dados.email.trim().toLowerCase();
 
@@ -51,12 +60,10 @@ export async function criarUsuarioComPapel(dados: {
   if (existente) {
     return {
       ok: false,
-      erro: "Já existe uma conta com este e-mail. Atribua o papel na lista abaixo.",
+      erro: dados.seJaExiste ?? "Já existe uma conta com este e-mail.",
     };
   }
 
-  let usuarioId: string;
-  let precisaConfirmarEmail: boolean;
   try {
     const auth = clienteSemSessao();
     const { data, error } = await auth.auth.signUp({
@@ -66,13 +73,28 @@ export async function criarUsuarioComPapel(dados: {
     });
     if (error) return { ok: false, erro: error.message };
     if (!data.user) return { ok: false, erro: "O cadastro não retornou usuário." };
-    usuarioId = data.user.id;
     // Sem sessão na resposta, o projeto exige confirmação por e-mail: a pessoa só
     // entra depois de clicar no link. Quem cadastrou precisa saber disso na hora.
-    precisaConfirmarEmail = data.session === null;
+    return { ok: true, usuarioId: data.user.id, precisaConfirmarEmail: data.session === null };
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : "Falha ao criar a conta." };
   }
+}
+
+export async function criarUsuarioComPapel(dados: {
+  nome: string;
+  email: string;
+  senha: string;
+  papel: AppRole;
+}): Promise<Resultado> {
+  const conta = await criarContaSemPapel({
+    nome: dados.nome,
+    email: dados.email,
+    senha: dados.senha,
+    seJaExiste: "Já existe uma conta com este e-mail. Atribua o papel na lista abaixo.",
+  });
+  if (!conta.ok) return conta;
+  const { usuarioId, precisaConfirmarEmail } = conta;
 
   // O papel é escrito pelo cliente autenticado (RLS de user_roles exige admin).
   // Sem papel a pessoa entra e não enxerga nada: o guarda de rota é deny-by-default.
