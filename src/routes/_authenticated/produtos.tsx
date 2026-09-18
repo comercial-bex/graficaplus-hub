@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -421,7 +421,11 @@ function ProdutosPage() {
                 <strong>{materiaisSemCusto.join(", ")}</strong>. Enquanto o custo do material não
                 for cadastrado, o custo desses produtos <strong>não é recalculado</strong> — vale o
                 valor digitado à mão, e a margem, o piso de preço e o preço do parceiro ficam
-                apoiados nele. Cadastre o custo em Estoque &rsaquo; Materiais.
+                apoiados nele.{" "}
+                <Link to="/materiais" className="underline underline-offset-2 hover:opacity-80">
+                  Cadastrar o custo em Materiais
+                </Link>
+                .
               </span>
             </div>
           )}
