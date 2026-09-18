@@ -179,6 +179,43 @@ function ProdutosPage() {
 
   const semReceita = produtos.filter((p) => p.ativo && !comReceita.has(p.id));
 
+  /**
+   * Quais produtos têm receita apontando para material SEM custo cadastrado.
+   *
+   * Aqui a receita existe — o que falta é o preço de compra do material. A soma
+   * da ficha trata material sem custo como zero, então o recálculo daria um
+   * custo menor que a verdade. O banco agora se recusa a gravar essa conta
+   * (`recalcular_custo_produto` volta sem mexer), e o custo digitado à mão fica
+   * de pé. Isso salva o número, mas deixa o produto num limbo silencioso: por
+   * isso o aviso aqui, nomeando o material que resolve.
+   *
+   * A função só devolve linhas para quem pode ver custo; para os demais volta
+   * vazia, e o aviso simplesmente não aparece.
+   */
+  const { data: custoIncompleto = [] } = useQuery({
+    queryKey: ["produtos-custo-incompleto"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("produtos_com_custo_incompleto");
+      if (error) throw error;
+      return (data ?? []) as {
+        produto_id: string;
+        produto: string;
+        materiais_sem_custo: string;
+      }[];
+    },
+  });
+
+  const faltaCusto = useMemo(
+    () => new Map(custoIncompleto.map((r) => [r.produto_id, r.materiais_sem_custo])),
+    [custoIncompleto],
+  );
+
+  /** Os materiais a cadastrar, sem repetir — é a lista de tarefas do aviso. */
+  const materiaisSemCusto = useMemo(
+    () => [...new Set(custoIncompleto.flatMap((r) => r.materiais_sem_custo.split(", ")))].sort(),
+    [custoIncompleto],
+  );
+
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return produtos.filter((p) => {
@@ -374,6 +411,20 @@ function ProdutosPage() {
               </span>
             </div>
           )}
+          {faltaCusto.size > 0 && (
+            <div className="mt-2 flex items-start gap-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2 text-xs text-[color:var(--bex-amber)] max-w-xl">
+              <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+              <span>
+                <strong>{faltaCusto.size}</strong>{" "}
+                {faltaCusto.size === 1 ? "produto tem receita" : "produtos têm receita"} apontando
+                para material sem custo de compra:{" "}
+                <strong>{materiaisSemCusto.join(", ")}</strong>. Enquanto o custo do material não
+                for cadastrado, o custo desses produtos <strong>não é recalculado</strong> — vale o
+                valor digitado à mão, e a margem, o piso de preço e o preço do parceiro ficam
+                apoiados nele. Cadastre o custo em Estoque &rsaquo; Materiais.
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
@@ -536,6 +587,15 @@ function ProdutosPage() {
                               title="Sem receita de material: a OS deste produto nasce sem previsão, sem baixa de estoque e sem custo real."
                             >
                               sem receita
+                            </Badge>
+                          )}
+                          {p.ativo && faltaCusto.has(p.id) && (
+                            <Badge
+                              variant="outline"
+                              className="h-4 border-[color:var(--bex-amber)]/50 text-[10px] text-[color:var(--bex-amber)]"
+                              title={`Material sem custo de compra na receita: ${faltaCusto.get(p.id)}. O custo deste produto não é recalculado enquanto isso — o valor ao lado é o digitado à mão, não a soma da ficha.`}
+                            >
+                              material sem custo
                             </Badge>
                           )}
                         </div>

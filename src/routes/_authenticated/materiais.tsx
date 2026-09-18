@@ -155,6 +155,38 @@ function MateriaisPage() {
     },
   });
 
+  /**
+   * Em quantos produtos cada material entra como receita.
+   *
+   * Material sem custo que ninguém usa em ficha é só um cadastro pela metade.
+   * Material sem custo que ESTÁ numa receita é outra coisa: o custo do produto
+   * inteiro depende dele, e a soma da ficha o trataria como zero. O banco se
+   * recusa a gravar essa conta (`recalcular_custo_produto` volta sem mexer),
+   * então o produto fica com o custo digitado à mão — congelado até alguém
+   * preencher o custo aqui. É essa diferença que o aviso abaixo mostra.
+   */
+  const { data: usoEmReceita = new Map<string, number>() } = useQuery({
+    queryKey: ["materiais-em-receita"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("produto_materiais").select("material_id");
+      if (error) throw error;
+      const mapa = new Map<string, number>();
+      for (const r of (data ?? []) as { material_id: string }[]) {
+        mapa.set(r.material_id, (mapa.get(r.material_id) ?? 0) + 1);
+      }
+      return mapa;
+    },
+  });
+
+  const semCustoEmReceita = useMemo(
+    () =>
+      materiais.filter(
+        (m) =>
+          Number(m.custo_medio ?? m.custo_unitario ?? 0) <= 0 && (usoEmReceita.get(m.id) ?? 0) > 0,
+      ),
+    [materiais, usoEmReceita],
+  );
+
   const resumoPorMaterial = useMemo(() => {
     const mapa = new Map<
       string,
@@ -348,6 +380,22 @@ function MateriaisPage() {
         )}
       </div>
 
+      {canSeeFinancials && semCustoEmReceita.length > 0 && (
+        <div className="mb-6 flex items-start gap-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2 text-xs text-[color:var(--bex-amber)]">
+          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+          <span>
+            <strong>{semCustoEmReceita.length}</strong>{" "}
+            {semCustoEmReceita.length === 1 ? "material está" : "materiais estão"} em receita de
+            produto sem custo de compra preenchido:{" "}
+            <strong>{semCustoEmReceita.map((m) => m.nome).join(", ")}</strong>. O custo dos produtos
+            que usam {semCustoEmReceita.length === 1 ? "esse material" : "esses materiais"} fica{" "}
+            <strong>congelado no valor digitado à mão</strong> — o sistema se recusa a recalcular
+            com material a zero, para não derrubar o preço e a margem. Preencha o custo unitário
+            (botão Entrada / saída ou edição do material) para a ficha voltar a mandar.
+          </span>
+        </div>
+      )}
+
       <DataPanel
         busca={busca}
         onBusca={setBusca}
@@ -397,7 +445,18 @@ function MateriaisPage() {
                     </TableCell>
                     {canSeeFinancials && (
                       <TableCell className="text-right font-mono">
-                        {custo ? brl(custo) : "—"}
+                        {custo ? (
+                          brl(custo)
+                        ) : (usoEmReceita.get(m.id) ?? 0) > 0 ? (
+                          <span
+                            className="cursor-help text-[color:var(--bex-amber)]"
+                            title={`Sem custo de compra, e este material está na receita de ${usoEmReceita.get(m.id)} produto(s). Enquanto ficar assim, o custo desses produtos não é recalculado — vale o valor digitado à mão.`}
+                          >
+                            sem custo
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                     )}
                     {canSeeFinancials && (

@@ -340,6 +340,13 @@ export function CalculadoraCusto({
   const semMaquina = maquinas.length === 0;
   const semMaoDeObra = funcoes.length === 0;
 
+  // Material sem custo de compra entra na conta como R$ 0,00 e some: a linha
+  // fica lá, com quantidade, sem somar nada. O aviso nomeia quem está assim —
+  // é o mesmo tratamento que a máquina sem custo/hora já recebia logo abaixo.
+  const linhasSemCusto = materiais
+    .filter((l) => num(l.quantidade) > 0 && num(l.custoUnitario) <= 0)
+    .map((l) => l.descricao || catalogoMateriais.find((m) => m.id === l.material_id)?.nome || "Material sem nome");
+
   // Carrega a ficha uma vez por abertura. Depois disso a lista é do usuário:
   // reaplicar a cada render apagaria o ajuste manual dele.
   useEffect(() => {
@@ -516,6 +523,14 @@ export function CalculadoraCusto({
                 <Plus className="h-3.5 w-3.5 mr-1" /> Material
               </Button>
             </div>
+            {linhasSemCusto.length > 0 && (
+              <Aviso>
+                {linhasSemCusto.join(", ")} {linhasSemCusto.length === 1 ? "está" : "estão"} sem
+                custo de compra: {linhasSemCusto.length === 1 ? "esse material entra" : "esses materiais entram"}{" "}
+                como R$ 0,00 e o custo do item sai menor do que é de verdade. Preencha o custo aqui
+                para este orçamento, ou cadastre em Materiais para valer sempre.
+              </Aviso>
+            )}
             {materiais.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {produtoId
@@ -533,7 +548,8 @@ export function CalculadoraCusto({
                       <SelectContent>
                         {catalogoMateriais.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
-                            {m.nome} · {brl(m.custo)}/{m.unidade ?? "un"}
+                            {m.nome}
+                            {m.custo > 0 ? ` · ${brl(m.custo)}/${m.unidade ?? "un"}` : " · sem custo"}
                           </SelectItem>
                         ))}
                       </SelectContent>
