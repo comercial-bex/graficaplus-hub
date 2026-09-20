@@ -20,6 +20,7 @@ import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
 import { Route as ParceiroTabelaRouteImport } from './routes/parceiro.tabela'
 import { Route as ParceiroMarcaRouteImport } from './routes/parceiro.marca'
 import { Route as OrcamentoPublicoTokenRouteImport } from './routes/orcamento-publico.$token'
+import { Route as ConviteCodigoRouteImport } from './routes/convite.$codigo'
 import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
@@ -133,6 +134,11 @@ const ParceiroMarcaRoute = ParceiroMarcaRouteImport.update({
 const OrcamentoPublicoTokenRoute = OrcamentoPublicoTokenRouteImport.update({
   id: '/orcamento-publico/$token',
   path: '/orcamento-publico/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConviteCodigoRoute = ConviteCodigoRouteImport.update({
+  id: '/convite/$codigo',
+  path: '/convite/$codigo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AprovarTokenRoute = AprovarTokenRouteImport.update({
@@ -518,6 +524,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
@@ -589,6 +596,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
@@ -663,6 +671,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
@@ -737,6 +746,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/convite/$codigo'
     | '/orcamento-publico/$token'
     | '/parceiro/marca'
     | '/parceiro/tabela'
@@ -808,6 +818,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/convite/$codigo'
     | '/orcamento-publico/$token'
     | '/parceiro/marca'
     | '/parceiro/tabela'
@@ -881,6 +892,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/convite/$codigo'
     | '/orcamento-publico/$token'
     | '/parceiro/marca'
     | '/parceiro/tabela'
@@ -906,6 +918,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   AprovarTokenRoute: typeof AprovarTokenRoute
+  ConviteCodigoRoute: typeof ConviteCodigoRoute
   OrcamentoPublicoTokenRoute: typeof OrcamentoPublicoTokenRoute
   PublicoTokenRoute: typeof PublicoTokenRoute
   ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
@@ -988,6 +1001,13 @@ declare module '@tanstack/react-router' {
       path: '/orcamento-publico/$token'
       fullPath: '/orcamento-publico/$token'
       preLoaderRoute: typeof OrcamentoPublicoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/convite/$codigo': {
+      id: '/convite/$codigo'
+      path: '/convite/$codigo'
+      fullPath: '/convite/$codigo'
+      preLoaderRoute: typeof ConviteCodigoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aprovar/$token': {
@@ -1563,6 +1583,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   AprovarTokenRoute: AprovarTokenRoute,
+  ConviteCodigoRoute: ConviteCodigoRoute,
   OrcamentoPublicoTokenRoute: OrcamentoPublicoTokenRoute,
   PublicoTokenRoute: PublicoTokenRoute,
   ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,
