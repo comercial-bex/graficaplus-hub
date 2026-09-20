@@ -9,6 +9,7 @@ import { Metas } from "@/components/parceiro/metas";
 import { Pedidos } from "@/components/parceiro/pedidos";
 import { NovoOrcamento } from "@/components/parceiro/novo-orcamento";
 import { PrimeirosPassos } from "@/components/parceiro/primeiros-passos";
+import { ConviteCard } from "@/components/parceiro/convite-card";
 
 export const Route = createFileRoute("/parceiro/")({
   component: InicioDoParceiro,
@@ -51,6 +52,8 @@ function InicioDoParceiro() {
       </div>
 
       <Ofertas painel={painel} />
+
+      <ConviteCard painel={painel} />
 
       <div className="grid grid-cols-3 gap-3">
         <Numero icone={FileText} rotulo="Orçamentos no mês" valor={painel.orcamentos.mes} para="/parceiro/orcamentos" />

@@ -16,6 +16,7 @@ import {
   UserX,
 } from "lucide-react";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { FilaDeAprovacao } from "@/components/parceiro/fila-de-aprovacao";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { Dica, DicaIcone } from "@/components/bex/Dica";
@@ -122,6 +123,10 @@ function ParceirosPage() {
           ) : null
         }
       />
+
+      {/* Quem chegou pelo link de convite e ainda não foi liberado. Fica antes
+          das abas porque é a única coisa aqui que trava alguém do lado de fora. */}
+      <FilaDeAprovacao podeAprovar={podeEditar} />
 
       <Tabs defaultValue="rede">
         <div className="overflow-x-auto">

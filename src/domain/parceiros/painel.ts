@@ -116,7 +116,18 @@ export type MarcaDoParceiro = {
 };
 
 export type PainelDoParceiro = {
-  parceiro: { id: string; nome: string; desde: string; tem_atendente: boolean };
+  parceiro: {
+    id: string;
+    nome: string;
+    desde: string;
+    tem_atendente: boolean;
+    /** Código do link que ele manda para outro revendedor. */
+    codigo_convite: string | null;
+    /** Quantos ele já trouxe. Sem nome e sem compra: isso é dado de terceiro. */
+    indicados: number;
+    indicados_ativos: number;
+    ganho_indicacao: number;
+  };
   contato: { atendente: string | null; grafica: string | null; telefones: string | null; email: string | null };
   marca: MarcaDoParceiro;
   nivel: NivelAtual;
