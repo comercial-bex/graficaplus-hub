@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { PendenciasDoMeuPapel } from "@/components/painel/PendenciasDoMeuPapel";
+import { PainelProducao } from "@/components/painel/PainelProducao";
 import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -101,10 +103,39 @@ function BexCard({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/**
+ * O painel muda conforme quem entra.
+ *
+ * Até 20/09/2026 era um só para os dez papéis, e o impressor abria o sistema
+ * num painel de faturamento e margem — telemetria da gráfica inteira, nada da
+ * rotina dele. O organograma real tem funções muito diferentes entre si:
+ * recepção, oficina, gerência, financeiro. Quem imprime precisa de fila com
+ * prazo; quem gerencia precisa de telemetria.
+ *
+ * Por enquanto só a produção tem painel próprio — é a rotina mais distante do
+ * painel atual. Atendimento, financeiro e cliente entram nos próximos passos;
+ * até lá seguem no painel completo, que agora abre com o bloco "O que falta de
+ * mim" filtrado pelo papel de cada um.
+ */
 function DashboardPage() {
-  const { canSeeFinancials } = useAuth();
+  const { canSeeFinancials, hasRole, hasAnyRole } = useAuth();
+
+  // Quem só imprime vai para a oficina. Acumular função é comum na gráfica, e
+  // gerente/admin continuam no painel completo mesmo sendo também operador.
+  if (hasRole("operador") && !hasAnyRole(["admin", "gestor", "financeiro"])) {
+    return <PainelProducao />;
+  }
+
+  return <PainelCompleto canSeeFinancials={canSeeFinancials} />;
+}
+
+function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
   const clientes = useCount("clientes");
   const orcamentos = useCount("orcamentos", (q) => q.in("status", ["rascunho", "enviado"]));
+  const maquinasAtivas = useCount("maquinas", (q) => q.eq("ativa", true));
+  const artesAguardando = useCount("ordens_servico", (q) =>
+    q.eq("status", "aguardando_aprovacao_arte"),
+  );
   const osAbertas = useCount("ordens_servico", (q) =>
     q.not("status", "in", "(concluido,faturado,cancelado)"),
   );
@@ -301,6 +332,10 @@ function DashboardPage() {
         }
       />
 
+      {/* O que o sistema espera de QUEM está logado. Cada papel vê só o que é
+          dele; o bloco some quando não há nada pendente. */}
+      <PendenciasDoMeuPapel />
+
       {Number(avisosParados.data ?? 0) > 0 && (
         <Link
           to="/avisos"
@@ -340,8 +375,23 @@ function DashboardPage() {
           />
         </div>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Máquinas em uso" value="3/5" icon={Factory} tone="cyan" hint="60% de ocupação" />
-          <KpiCard label="Artes p/ aprovação" value="3" icon={Palette} tone="magenta" />
+          {/* Estes dois vinham escritos no código ("3/5" e "3") desde sempre e
+              não mudavam com o banco. Número inventado em painel é pior que
+              número ausente: ninguém confere, e ele contamina a leitura do
+              resto da tela. Agora são contas reais. */}
+          <KpiCard
+            label="Máquinas cadastradas"
+            value={maquinasAtivas.data ?? "—"}
+            icon={Factory}
+            tone="cyan"
+            hint="ocupação exige apontamento de produção"
+          />
+          <KpiCard
+            label="Artes p/ aprovação"
+            value={artesAguardando.data ?? "—"}
+            icon={Palette}
+            tone={Number(artesAguardando.data ?? 0) > 0 ? "magenta" : "muted"}
+          />
           <KpiCard
             label="Estoque crítico"
             value={criticos}
