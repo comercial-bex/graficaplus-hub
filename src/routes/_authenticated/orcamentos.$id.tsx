@@ -384,9 +384,15 @@ function OrcamentoDetailPage() {
       produto_id: form.produto_id,
       arquivo_id: form.arquivo_id,
       origem_calculo: form.origem_calculo,
-      custo_previsto: form.custo_previsto,
+      // `custo_previsto` e `parametros` são NOT NULL com padrão no banco, e o
+      // formulário começa os dois em null (só o motor de custo os preenche).
+      // Mandar null EXPLÍCITO anula o padrão: o insert morria com
+      // "null value in column custo_previsto", que a tela traduzia como
+      // "Preencha todos os campos obrigatórios" — sem dizer qual campo, e sem
+      // nenhum campo vazio na tela. Resultado: item manual nunca era added.
+      custo_previsto: form.custo_previsto ?? 0,
       margem_prevista: form.margem_prevista,
-      parametros: form.parametros,
+      parametros: form.parametros ?? {},
     } as any).select("id").single();
     if (error) return toast.error(mensagemErro(error));
     // a arte enviada no formulário vira a capa do item; as demais são

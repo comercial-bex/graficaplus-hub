@@ -8,6 +8,30 @@
 
 const GENERICA = "Não foi possível concluir a operação. Tente novamente.";
 
+/**
+ * Nome de coluna do banco em palavras. `custo_previsto` → "custo previsto".
+ *
+ * Alguns campos não têm nome óbvio para quem está na tela, e para esses vale
+ * traduzir à mão; o resto cai na regra geral, que já é muito melhor do que
+ * esconder qual campo faltou.
+ */
+const NOME_DA_COLUNA: Record<string, string> = {
+  cliente_id: "o cliente",
+  produto_id: "o produto",
+  orcamento_id: "o orçamento",
+  os_id: "a ordem de serviço",
+  material_id: "o material",
+  responsavel_id: "o responsável",
+  custo_previsto: "o custo previsto do item",
+  valor_unitario: "o valor unitário",
+  quantidade: "a quantidade",
+  descricao: "a descrição",
+};
+
+function rotuloDeColuna(coluna: string): string {
+  return NOME_DA_COLUNA[coluna] ?? coluna.replace(/_id$/, "").replace(/_/g, " ");
+}
+
 type Regra = { teste: RegExp; texto: string | ((m: RegExpMatchArray) => string) };
 
 const REGRAS: Regra[] = [
@@ -38,8 +62,14 @@ const REGRAS: Regra[] = [
   { teste: /duplicate key value|unique constraint/i, texto: "Já existe um registro com esses dados." },
   { teste: /foreign key constraint/i,
     texto: "Este registro está vinculado a outros dados e não pode ser removido ou alterado." },
-  { teste: /null value in column "([^"]+)"|not-null constraint/i,
-    texto: "Preencha todos os campos obrigatórios." },
+  // O nome da coluna é a única informação útil aqui — e era justamente o que
+  // a mensagem antiga jogava fora. Em 21/09/2026 um item de orçamento não
+  // entrava e a tela dizia "preencha todos os campos obrigatórios" com todos
+  // os campos preenchidos: o null vinha de `custo_previsto`, que nem aparece
+  // no formulário. Sem o nome da coluna, o defeito fica invisível.
+  { teste: /null value in column "([^"]+)"/i,
+    texto: (m) => `Faltou preencher: ${rotuloDeColuna(m[1])}.` },
+  { teste: /not-null constraint/i, texto: "Preencha todos os campos obrigatórios." },
   { teste: /check constraint/i, texto: "Algum valor informado não é válido para este campo." },
   { teste: /invalid input syntax|invalid text representation/i,
     texto: "Formato de dado inválido em um dos campos." },
