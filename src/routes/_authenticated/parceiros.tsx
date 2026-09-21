@@ -35,6 +35,7 @@ import { CadastroDialog, CreditoDialog } from "@/components/parceiros/ajustes-di
 import { MetasTab } from "@/components/parceiros/metas-tab";
 import { OfertasTab } from "@/components/parceiros/ofertas-tab";
 import { NiveisTab } from "@/components/parceiros/niveis-tab";
+import { ProgramaTab } from "@/components/parceiros/programa-tab";
 import { RecompensasTab } from "@/components/parceiros/recompensas-tab";
 import { ContadorTab } from "@/components/parceiros/contador-tab";
 import { ComoComecar } from "@/components/parceiros/como-comecar";
@@ -135,6 +136,7 @@ function ParceirosPage() {
             <TabsTrigger value="metas">Metas</TabsTrigger>
             <TabsTrigger value="ofertas">Ofertas</TabsTrigger>
             <TabsTrigger value="niveis">Níveis</TabsTrigger>
+            <TabsTrigger value="programa">Indicação</TabsTrigger>
             <TabsTrigger value="recompensas">
               Recompensas{aEntregar > 0 ? ` (${aEntregar})` : ""}
             </TabsTrigger>
@@ -304,6 +306,9 @@ function ParceirosPage() {
         </TabsContent>
         <TabsContent value="niveis" className="pt-4">
           <NiveisTab podeEditar={podeEditar} />
+        </TabsContent>
+        <TabsContent value="programa">
+          <ProgramaTab podeEditar={podeEditar} />
         </TabsContent>
         <TabsContent value="recompensas" className="pt-4">
           <RecompensasTab podeEditar={podeEditar} />
