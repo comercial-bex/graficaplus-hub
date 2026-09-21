@@ -43,4 +43,27 @@ describe("mensagemErro", () => {
   it("usa mensagem padrão para erros desconhecidos em inglês", () => {
     expect(mensagemErro(new Error("something weird happened"), "Falhou aqui")).toBe("Falhou aqui");
   });
+  /**
+   * 21/09/2026: um item de orçamento não entrava e a tela dizia "Preencha
+   * todos os campos obrigatórios" com TODOS os campos da tela preenchidos.
+   * O null vinha de `custo_previsto`, que nem aparece no formulário — e a
+   * mensagem jogava fora justamente o nome da coluna, que era a única pista.
+   */
+  it("diz QUAL coluna veio nula, em vez de mandar preencher tudo", () => {
+    expect(
+      mensagemErro(
+        new Error('null value in column "custo_previsto" of relation "orcamento_itens" violates not-null constraint'),
+      ),
+    ).toBe("Faltou preencher: o custo previsto do item.");
+  });
+
+  it("traduz coluna desconhecida em palavras, sem underline", () => {
+    expect(mensagemErro(new Error('null value in column "prazo_interno" of relation "x"')))
+      .toBe("Faltou preencher: prazo interno.");
+  });
+
+  it("sem nome de coluna, cai na mensagem geral", () => {
+    expect(mensagemErro(new Error("violates not-null constraint")))
+      .toBe("Preencha todos os campos obrigatórios.");
+  });
 });
