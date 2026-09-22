@@ -103,7 +103,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   const canSeeFinancials = hasPermission("financeiro.read");
   const canSeePrices = canSeeFinancials || hasPermission("precos.read");
-  const nivelDeVisao: NivelDeVisao = canSeeFinancials ? "financeiro" : canSeePrices ? "comercial" : "operacional";
+  const nivelDeVisao: NivelDeVisao = canSeeFinancials
+    ? "financeiro"
+    : canSeePrices
+      ? "comercial"
+      : "operacional";
 
   const signOut = async () => {
     await supabase.auth.signOut();

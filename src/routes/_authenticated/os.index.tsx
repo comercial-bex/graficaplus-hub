@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +61,8 @@ const toneOS = (status: string): "cyan" | "magenta" | "amber" | "muted" => {
 
 function OSPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const abrirOS = (id: string) => navigate({ to: "/os/$id", params: { id } });
   // Tudo que esta tela mostra de dinheiro é preço de venda (valor_total):
   // gate por canSeePrices e leitura pela view do nível. Custo/margem não
   // aparecem aqui, então canSeeFinancials não é usado.
@@ -158,7 +160,8 @@ function OSPage() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
+              {/* Alvo de 44px no celular (equivale ao size="lg"); no desktop fica o padrão. */}
+              <Button className="h-11 px-6 md:h-9 md:px-4">
                 <Plus className="h-4 w-4 mr-2" /> Nova OS
               </Button>
             </DialogTrigger>
@@ -251,14 +254,18 @@ function OSPage() {
         }
       />
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      {/* 2 colunas já no celular: 4 cartões empilhados empurravam a lista para ~500px abaixo. */}
+      <div className="grid grid-cols-2 gap-3 md:gap-6 xl:grid-cols-4">
         <KpiCard label="OS em aberto" value={kpisOS.abertas} tone="cyan" />
         <KpiCard label="Em produção" value={kpisOS.producao} tone="magenta" />
         <KpiCard label="Entregues" value={kpisOS.entregues} tone="amber" />
+        {/* O valor em R$ (text-3xl) não cabe em meia coluna de 375px e o KpiCard
+            corta com overflow-hidden: este cartão ocupa a linha inteira no celular. */}
         <KpiCard
           label={canSeePrices ? "Valor em produção" : "Total de OS"}
           value={canSeePrices ? moeda(kpisOS.valorAberto) : os.length}
           tone="cyan"
+          className={canSeePrices ? "col-span-2 md:col-span-1" : undefined}
         />
       </div>
 
@@ -272,7 +279,45 @@ function OSPage() {
           </span>
         }
       >
-        <Table>
+        {/* Celular: cartões com o cartão inteiro clicável (alvo ≥ 56px). */}
+        <ul className="divide-y divide-border md:hidden">
+          {isLoading && (
+            <li className="p-4 text-center text-xs text-muted-foreground">Carregando...</li>
+          )}
+          {!isLoading && osFiltradas.length === 0 && (
+            <li className="p-4 text-center text-xs text-muted-foreground">Nenhuma OS</li>
+          )}
+          {osFiltradas.map((o: any) => (
+            <li key={o.id}>
+              <Link
+                to="/os/$id"
+                params={{ id: o.id }}
+                className="flex min-h-14 items-center gap-3 px-3 py-3 active:bg-foreground/5"
+              >
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="truncate text-sm font-bold text-foreground">
+                    <span className="mr-2 font-mono text-xs font-normal text-[color:var(--bex-cyan)]">
+                      #{o.numero}
+                    </span>
+                    {o.titulo}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{o.cliente_nome}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <StatusChip label={rotuloDe(o.status)} tone={toneOS(o.status)} />
+                    <span>Prazo {formatarData(o.prazo_entrega)}</span>
+                  </div>
+                </div>
+                {canSeePrices && (
+                  <span className="shrink-0 text-sm font-bold text-foreground">
+                    {moeda(Number(o.valor_total))}
+                  </span>
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <Table className="hidden md:table">
           <TableHeader>
             <TableRow>
               <TableHead>#</TableHead>
@@ -299,18 +344,22 @@ function OSPage() {
               </TableRow>
             )}
             {osFiltradas.map((o: any) => (
-              <TableRow key={o.id} className="cursor-pointer">
+              // A linha inteira abre a OS (a dica da tela promete isso); os Links
+              // ficam para teclado/leitor de tela e param a propagação para não
+              // navegar duas vezes.
+              <TableRow key={o.id} className="cursor-pointer" onClick={() => abrirOS(o.id)}>
                 <TableCell>
                   <Link
                     to="/os/$id"
                     params={{ id: o.id }}
+                    onClick={(e) => e.stopPropagation()}
                     className="font-mono text-xs text-[color:var(--bex-cyan)]"
                   >
                     #{o.numero}
                   </Link>
                 </TableCell>
                 <TableCell className="font-bold text-foreground">
-                  <Link to="/os/$id" params={{ id: o.id }}>
+                  <Link to="/os/$id" params={{ id: o.id }} onClick={(e) => e.stopPropagation()}>
                     {o.titulo}
                   </Link>
                 </TableCell>

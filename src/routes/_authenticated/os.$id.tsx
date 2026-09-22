@@ -27,7 +27,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt } from "lucide-react";
+import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -169,14 +175,16 @@ function OSDetailPage() {
         description={os.cliente_nome ? `Cliente: ${os.cliente_nome}` : undefined}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
+            {/* No celular o Voltar precisa de 44px de alvo; no desktop fica o ícone de 36px. */}
             <Link to="/os">
-              <Button variant="ghost" size="icon" title="Voltar">
+              <Button variant="ghost" size="icon" title="Voltar" className="h-11 w-11 md:h-9 md:w-9">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <StatusChip label={rotuloDe(os.status)} tone="cyan" />
+            {/* Status + trocar status ficam sempre visíveis: é a ação principal do detalhe. */}
             <Select value={os.status} onValueChange={updateStatus}>
-              <SelectTrigger className="w-56 h-9">
+              <SelectTrigger className="w-full sm:w-56 h-11 md:h-9 text-base md:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -189,28 +197,57 @@ function OSDetailPage() {
             </Select>
             {/* PDF Cliente é preço de venda: o vendedor precisa gerar. */}
             {canSeePrices && (
-              <Button variant="outline" onClick={() => setPreviewOpen("cliente")}>
+              <Button variant="outline" className="hidden md:inline-flex" onClick={() => setPreviewOpen("cliente")}>
                 <FileDown className="h-4 w-4 mr-1" /> PDF Cliente
               </Button>
             )}
-            <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
+            <Button variant="outline" className="hidden md:inline-flex" onClick={() => setPreviewOpen("producao")}>
               <FileDown className="h-4 w-4 mr-1" /> PDF Produção
             </Button>
             {/* Fatura só para quem vê valor: é o documento de cobrança. */}
             {canSeeFinancials && (
-              <Button variant="outline" disabled={gerandoFatura} onClick={gerarFatura}>
+              <Button variant="outline" className="hidden md:inline-flex" disabled={gerandoFatura} onClick={gerarFatura}>
                 <Receipt className="h-4 w-4 mr-1" />
                 {gerandoFatura ? "Gerando…" : "Fatura"}
               </Button>
             )}
             <Button
               variant="outline"
+              className="hidden md:inline-flex"
               disabled={os.estoque_baixado}
               onClick={() => setBaixaOpen(true)}
             >
               <PackageMinus className="h-4 w-4 mr-1" />
               {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
             </Button>
+            {/* Celular: os secundários vão para o menu "Mais", com os MESMOS gates dos botões acima. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="md:hidden h-11">
+                  <MoreHorizontal className="h-4 w-4 mr-1" /> Mais
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {canSeePrices && (
+                  <DropdownMenuItem className="py-3" onClick={() => setPreviewOpen("cliente")}>
+                    <FileDown className="h-4 w-4 mr-2" /> PDF Cliente
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem className="py-3" onClick={() => setPreviewOpen("producao")}>
+                  <FileDown className="h-4 w-4 mr-2" /> PDF Produção
+                </DropdownMenuItem>
+                {canSeeFinancials && (
+                  <DropdownMenuItem className="py-3" disabled={gerandoFatura} onClick={gerarFatura}>
+                    <Receipt className="h-4 w-4 mr-2" />
+                    {gerandoFatura ? "Gerando…" : "Fatura"}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem className="py-3" disabled={os.estoque_baixado} onClick={() => setBaixaOpen(true)}>
+                  <PackageMinus className="h-4 w-4 mr-2" />
+                  {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />

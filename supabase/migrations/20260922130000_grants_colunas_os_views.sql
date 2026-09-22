@@ -1,0 +1,34 @@
+-- As views ordens_servico_operacional e ordens_servico_financeiro estavam
+-- MORTAS para todo mundo — inclusive admin.
+--
+-- Como aconteceu: `ordens_servico` não dá SELECT de tabela ao papel
+-- authenticated, só de coluna (20260804180000_fase1_grants_colunas_views.sql),
+-- para o dinheiro ficar nos espelhos. A migração 20260909230000_view_os_com_maquina
+-- acrescentou maquina_id, produto_id, setor_atual, precisa_entrega e
+-- precisa_instalacao às duas views — e elas são security_invoker: o Postgres
+-- exige do leitor privilégio em TODA coluna que a definição da view cita, não
+-- só nas que ele pede. Sem o grant, qualquer `select` nas views devolvia
+-- "permission denied for table ordens_servico". O front faz `if (error) throw`
+-- e a React Query engole: lista de OS, Kanban, detalhe e painel do impressor
+-- ficavam vazios em silêncio.
+--
+-- Nenhuma das cinco é dinheiro. Só faltava o grant.
+--
+-- Auditoria que encontra esse padrão (rodar depois de qualquer migração que
+-- mexa em view security_invoker):
+--   SELECT v.relname, t.relname, a.attname
+--   FROM pg_class v JOIN pg_rewrite r ON r.ev_class = v.oid
+--   JOIN pg_depend d ON d.objid = r.oid AND d.classid = 'pg_rewrite'::regclass
+--        AND d.refclassid = 'pg_class'::regclass AND d.refobjsubid > 0
+--   JOIN pg_class t ON t.oid = d.refobjid AND t.relkind IN ('r','p')
+--   JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+--   WHERE v.relkind = 'v' AND v.relnamespace = 'public'::regnamespace
+--     AND 'security_invoker=true' = ANY (v.reloptions)
+--     AND NOT has_column_privilege('authenticated', t.oid, a.attnum, 'SELECT');
+--
+-- COMO DESFAZER: REVOKE SELECT (maquina_id, produto_id, setor_atual,
+-- precisa_entrega, precisa_instalacao) ON public.ordens_servico FROM authenticated;
+-- (mas aí as views voltam a morrer).
+
+GRANT SELECT (maquina_id, produto_id, setor_atual, precisa_entrega, precisa_instalacao)
+  ON public.ordens_servico TO authenticated;

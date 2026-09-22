@@ -25,7 +25,10 @@ export function StatusChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded border px-2 py-1 text-[9px] font-bold uppercase tracking-wide whitespace-nowrap",
+        // 11px no celular: o selo carrega o aviso mais importante do cartão
+        // ("3 dias de atraso") e 9px em caixa alta não se lê a um braço de
+        // distância na oficina. O desktop mantém a densidade de antes.
+        "inline-flex items-center rounded border px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide whitespace-nowrap md:py-1 md:text-[9px]",
         toneMap[tone] ?? toneMap.cyan,
         className,
       )}

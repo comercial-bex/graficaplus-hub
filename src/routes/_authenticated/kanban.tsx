@@ -20,14 +20,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { bloqueiosSemDinheiro } from "@/domain/os/bloqueio-sem-dinheiro";
 import {
   DndContext,
   DragOverlay,
   KeyboardCode,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDraggable,
@@ -41,8 +44,8 @@ import {
   proximaColuna,
   type ColunaAlvo,
 } from "@/domain/kanban/navegacao-teclado";
-import { useState, useMemo } from "react";
-import { Search, AlertTriangle, X, Pause } from "lucide-react";
+import { useState, useMemo, useRef, useCallback } from "react";
+import { Search, AlertTriangle, X, Pause, SlidersHorizontal } from "lucide-react";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -53,7 +56,7 @@ import { IconeDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { legendaDeMaquinas } from "@/domain/producao/identidade-da-maquina";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
-  head: () => ({ meta: [{ title: "Kanban — BEX PRINT OS" }] }),
+  head: () => ({ meta: [{ title: "Quadro de produção — BEX PRINT OS" }] }),
   component: KanbanPage,
 });
 
@@ -121,18 +124,55 @@ function KanbanPage() {
   // canSeePrices: vê preço de venda (vendedor, gestão, financeiro). O quadro só
   // mostra valor da OS e dos itens — preço, nunca custo nem margem — então a
   // leitura segue o nível de visão, não o flag de financeiro.
-  const { canSeePrices, nivelDeVisao } = useAuth();
+  const { canSeePrices, canSeeFinancials, nivelDeVisao } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
   const [fichaId, setFichaId] = useState<string | null>(null);
 
+  // Mouse e toque têm regras diferentes de propósito. No mouse, 5px de
+  // movimento levantam o cartão e clique parado nunca vira arrasto. No toque,
+  // o quadro rola na horizontal com o dedo em cima dos cartões: segurar 250 ms
+  // levanta o cartão; mover antes disso rola o quadro (a tolerância de 8px
+  // perdoa o tremor do dedo enquanto segura). Um PointerSensor único não
+  // distingue os dois e o arrasto no celular era loteria.
   // KeyboardSensor não é opcional: o dnd-kit anuncia ao leitor de tela "To pick
   // up a draggable item, press the space bar", e sem este sensor a instrução era
-  // falsa. A distância de 5px no PointerSensor é o que deixa o cartão ser
-  // clicável E arrastável: clique parado nunca vira arrasto.
+  // falsa.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: saltarEntreColunas, scrollBehavior: "smooth" }),
   );
+
+  // Refs das colunas para o chip de etapa (celular) rolar até a coluna.
+  const colunaRefs = useRef<Partial<Record<Etapa, HTMLDivElement | null>>>({});
+  const quadroRef = useRef<HTMLDivElement | null>(null);
+  // Qual coluna está na tela no celular — só para destacar o chip.
+  const [etapaVisivel, setEtapaVisivel] = useState<Etapa>(ETAPAS_QUADRO[0]);
+  const irParaColuna = useCallback((etapa: Etapa) => {
+    colunaRefs.current[etapa]?.scrollIntoView({
+      inline: "start",
+      block: "nearest",
+      behavior: "smooth",
+    });
+  }, []);
+  // Calcula a coluna mais próxima do início da rolagem. Só importa no celular
+  // (no desktop cabem as cinco); no grid o scrollLeft é 0 e o resultado é a 1ª.
+  const aoRolarQuadro = useCallback(() => {
+    const el = quadroRef.current;
+    if (!el) return;
+    let melhor: Etapa = ETAPAS_QUADRO[0];
+    let menor = Infinity;
+    for (const etapa of ETAPAS_QUADRO) {
+      const col = colunaRefs.current[etapa];
+      if (!col) continue;
+      const dist = Math.abs(col.offsetLeft - el.scrollLeft);
+      if (dist < menor) {
+        menor = dist;
+        melhor = etapa;
+      }
+    }
+    setEtapaVisivel((atual) => (atual === melhor ? atual : melhor));
+  }, []);
 
   const [search, setSearch] = useState("");
   const [fCliente, setFCliente] = useState("todos");
@@ -227,13 +267,15 @@ function KanbanPage() {
    * um impedimento por arrasto.
    */
   const { data: bloqueios = new Map<string, BloqueioOs[]>() } = useQuery({
-    queryKey: ["kanban-bloqueios"],
+    queryKey: ["kanban-bloqueios", canSeeFinancials, canSeePrices],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("os_bloqueios_do_quadro");
       if (error) throw error;
       const mapa = new Map<string, BloqueioOs[]>();
       for (const linha of (data ?? []) as { os_id: string; bloqueios: BloqueioOs[] }[]) {
-        mapa.set(linha.os_id, linha.bloqueios ?? []);
+        // Título de margem/desconto traz número: cortado aqui para quem não vê
+        // custo/preço, e vale para cartão, overlay e ficha de uma vez.
+        mapa.set(linha.os_id, bloqueiosSemDinheiro(linha.bloqueios, canSeeFinancials, canSeePrices));
       }
       return mapa;
     },
@@ -349,14 +391,64 @@ function KanbanPage() {
 
   const ativosFiltros =
     fCliente !== "todos" || fResp !== "todos" || fPrio !== "todos" || soAtrasadas || search;
+  // Quantos dos três Selects estão em uso: é o número do chip "N filtros" no
+  // celular, onde os Selects ficam escondidos atrás do botão.
+  const filtrosNoPopover = [fCliente, fResp, fPrio].filter((v) => v !== "todos").length;
+
+  // Os três Selects num lugar só: no desktop ficam na barra, no celular dentro
+  // do Popover "Filtros". `largura` muda só a classe do gatilho.
+  const selectsDeFiltro = (largura: { cliente: string; resp: string; prio: string }) => (
+    <>
+      <Select value={fCliente} onValueChange={setFCliente}>
+        <SelectTrigger className={`h-11 md:h-9 ${largura.cliente}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos os clientes</SelectItem>
+          {clientes.map((c: any) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.nome}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={fResp} onValueChange={setFResp}>
+        <SelectTrigger className={`h-11 md:h-9 ${largura.resp}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos responsáveis</SelectItem>
+          {usuarios.map((u: any) => (
+            <SelectItem key={u.id} value={u.id}>
+              {u.nome}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={fPrio} onValueChange={setFPrio}>
+        <SelectTrigger className={`h-11 md:h-9 ${largura.prio}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Prioridade</SelectItem>
+          {PRIORIDADES.map((p) => (
+            <SelectItem key={p.v} value={p.v}>
+              {p.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
+  );
 
   return (
     <div className="h-full space-y-4">
       <SectionHeader
         ajuda={dicaTela("/kanban")}
-        breadcrumb="Print OS · Operação · Kanban"
-        title="Kanban de Produção"
-        description="Uma coluna por etapa. Arraste para mudar de etapa; clique no cartão para ver a ficha e escolher o passo exato."
+        breadcrumb="Print OS · Operação · Quadro de produção"
+        // Um nome só: menu, manifest e painel já dizem "Quadro de produção".
+        title="Quadro de produção"
+        description="Kanban: uma coluna por etapa. Arraste para mudar de etapa; clique no cartão para ver a ficha e escolher o passo exato."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <StatusChip label={`${filtered.length}/${os.length} OS`} tone="cyan" />
@@ -365,66 +457,58 @@ function KanbanPage() {
         }
       />
 
+      {/* No celular a barra tinha 4–5 linhas antes do quadro: o quadro
+          começava abaixo da dobra. Agora: busca em linha cheia, e embaixo
+          "Filtros" (os três Selects num Popover) + "Atrasadas". No desktop
+          os Selects continuam na barra, como antes. */}
       <div className="rounded-xl border border-border bg-card/60 p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          {/* Sem flex-1 abaixo de sm: `flex: 1` zera a base e o campo encolhia
+              para ~80px dividindo a linha com os dois botões. Em linha cheia
+              ele ocupa os 375px sozinho; a partir de sm volta a crescer. */}
+          <div className="relative w-full sm:min-w-[220px] sm:flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar título, nº ou cliente..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 pl-9"
+              className="h-11 pl-9 md:h-9"
             />
           </div>
-          <Select value={fCliente} onValueChange={setFCliente}>
-            <SelectTrigger className="h-9 w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os clientes</SelectItem>
-              {clientes.map((c: any) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={fResp} onValueChange={setFResp}>
-            <SelectTrigger className="h-9 w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos responsáveis</SelectItem>
-              {usuarios.map((u: any) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={fPrio} onValueChange={setFPrio}>
-            <SelectTrigger className="h-9 w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Prioridade</SelectItem>
-              {PRIORIDADES.map((p) => (
-                <SelectItem key={p.v} value={p.v}>
-                  {p.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="hidden flex-wrap items-center gap-2 md:flex">
+            {selectsDeFiltro({
+              cliente: "w-full sm:w-[180px]",
+              resp: "w-full sm:w-[180px]",
+              prio: "w-full sm:w-[140px]",
+            })}
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={filtrosNoPopover > 0 ? "secondary" : "outline"}
+                size="sm"
+                className="h-11 flex-1 md:hidden"
+              >
+                <SlidersHorizontal className="mr-1 h-4 w-4" /> Filtros
+                {filtrosNoPopover > 0 && (
+                  <StatusChip label={`${filtrosNoPopover} filtro(s)`} tone="cyan" className="ml-1.5" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-2 p-3">
+              {selectsDeFiltro({ cliente: "w-full", resp: "w-full", prio: "w-full" })}
+            </PopoverContent>
+          </Popover>
           <Button
             variant={soAtrasadas ? "destructive" : "outline"}
             size="sm"
             onClick={() => setSoAtrasadas(!soAtrasadas)}
-            className="h-9"
+            className="h-11 flex-1 md:h-9 md:flex-none"
           >
             <AlertTriangle className="mr-1 h-4 w-4" /> Atrasadas
           </Button>
           {ativosFiltros && (
-            <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-9">
+            <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-11 md:h-9">
               <X className="mr-1 h-4 w-4" /> Limpar
             </Button>
           )}
@@ -436,7 +520,38 @@ function KanbanPage() {
             Kanban. A versão anterior tinha CINCO barras de rolagem, uma por
             faixa empilhada, e ainda exigia rolar na vertical para achar a
             etapa. */}
-        <div className="grid grid-cols-[repeat(5,minmax(220px,1fr))] gap-3 overflow-x-auto pb-2">
+        {/* Celular: chips de etapa com a contagem. Tocar rola até a coluna —
+            sem isso se via 1,5 coluna sem saber qual era. */}
+        <div className="flex gap-1.5 overflow-x-auto pb-2 md:hidden">
+          {ETAPAS_QUADRO.map((etapa) => {
+            const n = noQuadro.filter((o: any) => etapaDe(o.status) === etapa).length;
+            const ativa = etapa === etapaVisivel;
+            return (
+              <button
+                key={etapa}
+                type="button"
+                onClick={() => irParaColuna(etapa)}
+                aria-current={ativa ? "true" : undefined}
+                className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 font-mono text-xs uppercase tracking-wider transition-colors ${
+                  ativa
+                    ? "border-[color:var(--bex-cyan)]/50 bg-[color:var(--bex-cyan)]/15 text-foreground"
+                    : "border-border bg-card/60 text-muted-foreground"
+                }`}
+              >
+                {ROTULO_ETAPA[etapa]}
+                <span className="rounded bg-muted px-1 text-[11px] text-foreground/80">{n}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Celular: flex com snap, uma coluna por tela (85vw deixa a borda da
+            próxima aparecer, dica de que há mais). Desktop: o grid de 5. */}
+        <div
+          ref={quadroRef}
+          onScroll={aoRolarQuadro}
+          className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-[repeat(5,minmax(220px,1fr))] md:snap-none"
+        >
           {ETAPAS_QUADRO.map((etapa) => (
             <Coluna
               key={etapa}
@@ -445,6 +560,9 @@ function KanbanPage() {
               bloqueios={bloqueios}
               canSeePrices={canSeePrices}
               onAbrir={setFichaId}
+              containerRef={(el) => {
+                colunaRefs.current[etapa] = el;
+              }}
             />
           ))}
         </div>
@@ -503,12 +621,15 @@ function Coluna({
   bloqueios,
   canSeePrices,
   onAbrir,
+  containerRef,
 }: {
   etapa: Etapa;
   itens: any[];
   bloqueios: Map<string, BloqueioOs[]>;
   canSeePrices?: boolean;
   onAbrir: (id: string) => void;
+  /** Ref do container da coluna — o chip de etapa do celular rola até aqui. */
+  containerRef?: (el: HTMLDivElement | null) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: etapa });
 
@@ -522,24 +643,26 @@ function Coluna({
   const encalhe = itens.length > 0 ? paradaHa(maisAntiga) : null;
 
   return (
-    <div className="flex min-w-0 flex-col">
+    <div ref={containerRef} className="flex min-w-[85vw] snap-start flex-col md:min-w-0">
       <div className="mb-2 px-1">
         <div className="flex items-baseline justify-between gap-2">
-          <h3 className="truncate font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/80">
+          <h3 className="truncate font-mono text-xs uppercase tracking-[0.18em] text-foreground/80 md:text-[11px]">
             {ROTULO_ETAPA[etapa]}
           </h3>
-          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/80">
+          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-xs text-muted-foreground/80 md:text-[10px]">
             {itens.length.toString().padStart(2, "0")}
           </span>
         </div>
-        <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
+        {/* Descrição e legenda só no desktop: no celular custam altura na
+            primeira dobra e o chip de etapa já situa o impressor. */}
+        <p className="mt-0.5 hidden line-clamp-2 text-[10px] leading-snug text-muted-foreground md:block">
           {DESCRICAO_ETAPA[etapa]}
         </p>
         {/* A legenda mora aqui e só aqui: é na Produção que o ícone do cartão
             precisa ser lido, e uma legenda no topo do quadro estaria longe
             justamente de onde ela é usada. */}
         {etapa === "producao" && (
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <div className="mt-1 hidden flex-wrap items-center gap-x-2 gap-y-0.5 md:flex">
             {legendaDeMaquinas().map((m) => (
               <span
                 key={m.chave}
@@ -554,7 +677,7 @@ function Coluna({
           </div>
         )}
         {encalhe && encalhe !== "agora" && (
-          <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground/70 md:text-[10px]">
             mais antiga: {encalhe}
           </p>
         )}
@@ -577,7 +700,7 @@ function Coluna({
           />
         ))}
         {itens.length === 0 && (
-          <div className="py-6 text-center font-mono text-[11px] text-muted-foreground/60">
+          <div className="py-6 text-center font-mono text-xs text-muted-foreground/60 md:text-[11px]">
             — vazio —
           </div>
         )}
@@ -598,8 +721,16 @@ function CartaoArrastavel({
   onAbrir: () => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: os.id });
+  // touch-manipulation (touch-action: manipulation): sem isso o navegador
+  // decide que o toque é rolagem, dispara pointercancel e o arrasto cai. Rolar
+  // e dar zoom por pinça continuam permitidos; só o zoom por duplo toque sai.
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners} className={isDragging ? "opacity-30" : ""}>
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={`touch-manipulation ${isDragging ? "opacity-30" : ""}`}
+    >
       <CartaoOs
         os={os}
         bloqueios={bloqueios}

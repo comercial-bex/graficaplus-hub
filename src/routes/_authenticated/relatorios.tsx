@@ -107,7 +107,8 @@ type RetrabalhoRow = {
   setor: string;
   retrabalhos: number;
   ocorrencias: number;
-  custo_total: number;
+  // A RPC só manda custo_total a quem tem financeiro; para os demais a chave não vem.
+  custo_total?: number | null;
   ultima_ocorrencia: string | null;
 };
 type ProducaoMaquinaRow = {
@@ -296,10 +297,18 @@ function buildFinancialSections(data: ReportResponse): ExportSection[] {
   ];
 }
 
-function buildOperationalSections(data: ReportResponse): ExportSection[] {
+function buildOperationalSections(
+  data: ReportResponse,
+  canSeeFinancials: boolean,
+): ExportSection[] {
+  // Custo de retrabalho é dado financeiro: sem permissão, a chave não vai
+  // para o CSV/PDF (mesmo que o backend a tenha mandado).
+  const retrabalho = canSeeFinancials
+    ? data.operacional.retrabalhoPorSetor
+    : data.operacional.retrabalhoPorSetor.map(({ custo_total: _custo, ...row }) => row);
   return [
     { title: "OS atrasadas", rows: data.operacional.osAtrasadas },
-    { title: "Retrabalho por setor", rows: data.operacional.retrabalhoPorSetor },
+    { title: "Retrabalho por setor", rows: retrabalho },
     { title: "Produção por máquina", rows: data.operacional.producaoPorMaquina },
     { title: "Tempo médio por etapa", rows: data.operacional.tempoMedioPorEtapa },
     { title: "Conversas WhatsApp abertas", rows: data.whatsapp.conversasAbertas },
@@ -413,7 +422,7 @@ function RelatPage() {
 
   const periodo = { inicio, fim };
   const financialSections = data ? buildFinancialSections(data) : [];
-  const operationalSections = data ? buildOperationalSections(data) : [];
+  const operationalSections = data ? buildOperationalSections(data, canSeeFinancials) : [];
   const allSections = [...financialSections, ...operationalSections];
 
   return (
@@ -815,21 +824,23 @@ function RelatPage() {
                       <TableHead>Setor</TableHead>
                       <TableHead>Retrabalhos</TableHead>
                       <TableHead>Ocorrências</TableHead>
-                      <TableHead className="text-right">Custo</TableHead>
+                      {canSeeFinancials && <TableHead className="text-right">Custo</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data.operacional.retrabalhoPorSetor.length === 0 ? (
-                      <EmptyRow cols={4} />
+                      <EmptyRow cols={canSeeFinancials ? 4 : 3} />
                     ) : (
                       data.operacional.retrabalhoPorSetor.map((row) => (
                         <TableRow key={row.setor}>
                           <TableCell>{row.setor}</TableCell>
                           <TableCell>{row.retrabalhos}</TableCell>
                           <TableCell>{row.ocorrencias}</TableCell>
-                          <TableCell className="text-right">
-                            {formatMoney(row.custo_total)}
-                          </TableCell>
+                          {canSeeFinancials && (
+                            <TableCell className="text-right">
+                              {formatMoney(row.custo_total)}
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))
                     )}

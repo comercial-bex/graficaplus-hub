@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { InstalarApp } from "@/components/pwa/instalar-app";
 import {
   Outlet,
   Link,
@@ -40,12 +39,50 @@ function NotFoundComponent() {
   );
 }
 
+// Chunk com hash antigo: o PWA fica dias aberto com o HTML velho e, depois de um
+// deploy, a rota ainda não visitada pede um /assets/*.js que já não existe.
+const ERRO_CHUNK_ANTIGO = /dynamically imported module|Importing a module script failed|Failed to fetch dynamically imported/i;
+const CHAVE_RECARGA = "bexprint:recarregado_por_versao_nova";
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const versaoNova = ERRO_CHUNK_ANTIGO.test(error?.message ?? "");
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+  useEffect(() => {
+    if (!versaoNova) return;
+    // Recarrega UMA vez: se o erro voltar logo depois da recarga, não é versão
+    // nova — fica na tela com o botão em vez de entrar em loop. A marca expira em
+    // 1 min para o próximo deploy (dias depois, mesma sessão) recarregar de novo.
+    try {
+      const ultima = Number(sessionStorage.getItem(CHAVE_RECARGA) ?? 0);
+      if (Date.now() - ultima < 60_000) return;
+      sessionStorage.setItem(CHAVE_RECARGA, String(Date.now()));
+    } catch {
+      /* sem storage: recarrega mesmo assim (não há como guardar o loop) */
+    }
+    window.location.reload();
+  }, [versaoNova]);
+  if (versaoNova) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold">Saiu uma versão nova do sistema. Recarregando…</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Se a tela não voltar sozinha, toque abaixo.</p>
+          <div className="mt-6">
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            >
+              Recarregar agora
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -75,7 +112,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#0b0b0f" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      // Barra de status opaca: o conteúdo começa abaixo do relógio/bateria no iPhone instalado.
+      { name: "apple-mobile-web-app-status-bar-style", content: "black" },
       { name: "apple-mobile-web-app-title", content: "Bex Print" },
       { title: "BEX PRINT OS" },
       { name: "description", content: "ERP de Gráfica, Comunicação Visual e Produção" },
@@ -113,7 +151,6 @@ function RootShell({ children }: { children: ReactNode }) {
       <head><HeadContent /></head>
       <body>
         {children}
-        <InstalarApp />
         <Scripts />
       </body>
     </html>
@@ -135,6 +172,16 @@ function AuthInvalidator() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Vite avisa quando um chunk de hash antigo falha ao carregar (deploy novo com
+  // HTML velho na tela). Recarregar a página traz o HTML novo com os chunks certos.
+  useEffect(() => {
+    const aoFalharChunk = (e: Event) => {
+      e.preventDefault();
+      window.location.reload();
+    };
+    window.addEventListener("vite:preloadError", aoFalharChunk);
+    return () => window.removeEventListener("vite:preloadError", aoFalharChunk);
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       {/* provider único das dicas: cada tela só usa Tooltip, sem repetir o provider */}

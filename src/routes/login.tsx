@@ -1,10 +1,12 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BexLogo } from "@/components/bex/BexLogo";
 import { BexBackground } from "@/components/bex/BexBackground";
 import { NeonButton } from "@/components/bex/NeonButton";
+import { Input } from "@/components/ui/input";
 import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/login")({
@@ -18,6 +20,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -65,48 +68,74 @@ function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                Usuário
+              <label
+                htmlFor="login-email"
+                className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+              >
+                E-mail
               </label>
-              <input
+              {/* <Input> já é text-base md:text-sm: abaixo de 16px o iOS dá zoom ao focar */}
+              <Input
+                id="login-email"
                 type="email"
+                inputMode="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 placeholder="voce@bexprint.com.br"
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-[color:var(--bex-cyan)]/50 focus:ring-1 focus:ring-[color:var(--bex-cyan)]/30"
+                className="h-auto rounded-lg border-border bg-background px-4 py-3 shadow-none placeholder:text-muted-foreground/40 focus-visible:border-[color:var(--bex-cyan)]/50 focus-visible:ring-[color:var(--bex-cyan)]/30"
               />
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Senha
-                </label>
+              <label
+                htmlFor="login-senha"
+                className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+              >
+                Senha
+              </label>
+              <div className="relative">
+                <Input
+                  id="login-senha"
+                  type={mostrarSenha ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className="h-auto rounded-lg border-border bg-background px-4 py-3 pr-12 shadow-none placeholder:text-muted-foreground/40 focus-visible:border-[color:var(--bex-magenta)]/50 focus-visible:ring-[color:var(--bex-magenta)]/30"
+                />
+                {/* Olho: no balcão, com pressa, digitar senha às cegas erra */}
                 <button
                   type="button"
-                  onClick={handlePasswordReset}
-                  disabled={resetLoading}
-                  className="text-[11px] text-muted-foreground hover:text-[color:var(--bex-cyan)] transition-colors"
+                  onClick={() => setMostrarSenha((v) => !v)}
+                  aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                  aria-pressed={mostrarSenha}
+                  className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  {resetLoading ? "Enviando..." : "Recuperar acesso"}
+                  {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-[color:var(--bex-magenta)]/50 focus:ring-1 focus:ring-[color:var(--bex-magenta)]/30"
-              />
             </div>
 
-            <NeonButton type="submit" disabled={loading} className="w-full">
+            {/* py-3 no span interno: a borda CMYK fica no botão, o texto no span */}
+            <NeonButton
+              type="submit"
+              disabled={loading}
+              className="w-full [&>span:last-child]:py-3"
+            >
               {loading ? "AUTENTICANDO..." : "ENTRAR NO SISTEMA"}
             </NeonButton>
+
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              disabled={resetLoading}
+              className="block w-full py-2 text-center text-xs text-muted-foreground transition-colors hover:text-[color:var(--bex-cyan)] disabled:opacity-50"
+            >
+              {resetLoading ? "Enviando..." : "Recuperar acesso"}
+            </button>
           </form>
 
           <div className="mt-8 border-t border-border/50 pt-6 text-center">
@@ -122,8 +151,8 @@ function LoginPage() {
           </div>
         </div>
 
-        {/* Telemetria footer */}
-        <div className="mt-8 flex justify-center gap-6 font-mono text-[10px] text-muted-foreground/70">
+        {/* Telemetria footer: ruído no celular, só no desktop */}
+        <div className="mt-8 hidden justify-center gap-6 font-mono text-[10px] text-muted-foreground/70 md:flex">
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--bex-lime)]" />
             SERVER_ON
