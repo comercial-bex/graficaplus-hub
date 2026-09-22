@@ -27,6 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ComissaoCell } from "@/components/usuarios/comissao-cell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -324,6 +325,7 @@ function UsuariosPage() {
                   <TableHead>Usuário</TableHead>
                   <TableHead>Contato</TableHead>
                   <TableHead>Cargo</TableHead>
+                  <TableHead>Comissão</TableHead>
                   <TableHead>Perfis</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -332,21 +334,21 @@ function UsuariosPage() {
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                       Carregando usuários...
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && error && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-destructive">
+                    <TableCell colSpan={7} className="py-10 text-center text-destructive">
                       {error instanceof Error ? error.message : "Falha ao carregar usuários"}
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && !error && filtrados.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                       Nenhum usuário encontrado com esses filtros.
                     </TableCell>
                   </TableRow>
@@ -376,6 +378,7 @@ function UsuariosPage() {
                       <div className="text-xs text-muted-foreground">{u.telefone ?? "—"}</div>
                     </TableCell>
                     <TableCell className="text-sm">{u.cargo_pretendido ?? "—"}</TableCell>
+                    <TableCell><ComissaoCell usuarioId={u.id} /></TableCell>
                     <TableCell>
                       <div className="flex flex-wrap items-center gap-1">
                         {u.roles.length === 0 && (

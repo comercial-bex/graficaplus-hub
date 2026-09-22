@@ -105,6 +105,10 @@ export const dicas = {
   "/os": {
     menu: "Lista de todas as ordens de serviço, com etapa e prazo.",
     tela: "Todas as ordens de serviço da gráfica. Clique em uma linha para abrir o detalhe, apontar produção, baixar material e fechar o trabalho.",
+    campos: {
+      "quem trouxe a venda":
+        "A pessoa da equipe que trouxe este trabalho — qualquer papel, não só vendedor. Se ela tiver comissão configurada, ganha um % do bruto quando a OS for paga. Só gestão e atendimento podem mudar.",
+    },
     acoes: {
       nova: "Cria uma ordem de serviço do zero, sem passar por orçamento.",
     },
@@ -293,6 +297,10 @@ export const dicas = {
   "/financeiro": {
     menu: "Contas a receber, a pagar e pagamentos.",
     tela: "Controle do dinheiro: o que já entrou, o que está pendente e o que venceu. Confirmar um pagamento lança no caixa e só sai de lá por estorno.",
+    campos: {
+      "comissões":
+        "Geradas sozinhas quando a OS é paga, sobre o bruto da OS, com o % de quem trouxe a venda. Pague no fechamento e marque como paga; não gera lançamento em contas a pagar.",
+    },
     acoes: {
       registrar: "Lança um pagamento recebido e abate do saldo pendente.",
       estornar: "Desfaz um pagamento confirmado, deixando o registro do estorno.",
@@ -330,6 +338,8 @@ export const dicas = {
     menu: "Cadastro da equipe e níveis de acesso.",
     tela: "Pessoas com acesso ao sistema. O perfil define o que cada uma enxerga e pode fazer.",
     campos: {
+      "comissão":
+        "Percentual sobre o bruto da OS que a pessoa ganha quando traz uma venda. Cada 1 ponto aqui tira 1 ponto da margem daquela OS. Só admin e gestor alteram.",
       perfil:
         "Define o acesso: administrador vê tudo; vendedor vê comercial; operador vê produção.",
       email: "É o login da pessoa. A senha inicial é enviada para esse endereço.",
