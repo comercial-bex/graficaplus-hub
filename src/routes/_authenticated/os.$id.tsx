@@ -41,6 +41,7 @@ import { TarefasDaOS } from "@/components/os/tarefas-card";
 import { ApontamentoDaOS } from "@/components/os/apontamento-card";
 import { QualidadeDaOS } from "@/components/os/qualidade-card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { QuemTrouxeAVenda } from "@/components/os/quem-trouxe-a-venda";
 import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -208,6 +209,11 @@ function OSDetailPage() {
           </div>
         }
       />
+
+      {/* Quem ganha a comissão desta OS. Era herdado em silêncio do cliente; agora dá para ver e corrigir. */}
+      <div className="rounded-lg border border-border bg-card px-4 py-3">
+        <QuemTrouxeAVenda alvo="os" id={id} vendedorId={(os as any).vendedor_id ?? null} invalidar={[["os", id]]} compacto />
+      </div>
 
       {/* KPI row */}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">

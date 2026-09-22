@@ -10,6 +10,7 @@ import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { dicaTela } from "@/lib/dicas";
 import { PendenciasDoMeuPapel } from "./PendenciasDoMeuPapel";
+import { MinhasComissoes } from "./MinhasComissoes";
 import { cn } from "@/lib/utils";
 
 /**
@@ -187,6 +188,8 @@ export function PainelProducao() {
       />
 
       <PendenciasDoMeuPapel />
+
+      <MinhasComissoes />
 
       <div className="grid gap-3 md:grid-cols-3">
         <KpiCard

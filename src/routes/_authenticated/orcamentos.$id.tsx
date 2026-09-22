@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { QuemTrouxeAVenda } from "@/components/os/quem-trouxe-a-venda";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -553,6 +554,9 @@ function OrcamentoDetailPage() {
                   "Sem cliente vinculado"
                 )}
               </p>
+              <div className="mt-2">
+                <QuemTrouxeAVenda alvo="orcamento" id={id} vendedorId={(orc as any).vendedor_id ?? null} invalidar={[["orcamento", id]]} compacto />
+              </div>
             </div>
           </div>
 

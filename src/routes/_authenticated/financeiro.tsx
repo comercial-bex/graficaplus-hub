@@ -35,6 +35,7 @@ import {
 import { Plus, CheckCircle2 , Undo2} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
+import { ComissoesPanel } from "@/components/financeiro/comissoes-panel";
 import { Textarea } from "@/components/ui/textarea";
 import { mensagemErro } from "@/lib/erros";
 
@@ -368,6 +369,9 @@ function FinanceiroPage() {
           </Table>
         </CardContent>
       </Card>
+      {/* Comissões de quem trouxe cada venda — geradas quando a OS é paga. */}
+      <ComissoesPanel />
+
       <Dialog open={!!estorno} onOpenChange={(o) => !o && setEstorno(null)}>
         <DialogContent>
           <DialogHeader>

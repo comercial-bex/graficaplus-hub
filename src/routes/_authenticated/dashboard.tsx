@@ -23,6 +23,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { PendenciasDoMeuPapel } from "@/components/painel/PendenciasDoMeuPapel";
+import { MinhasComissoes } from "@/components/painel/MinhasComissoes";
 import { PainelProducao } from "@/components/painel/PainelProducao";
 import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -335,6 +336,8 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
       {/* O que o sistema espera de QUEM está logado. Cada papel vê só o que é
           dele; o bloco some quando não há nada pendente. */}
       <PendenciasDoMeuPapel />
+
+      <MinhasComissoes />
 
       {Number(avisosParados.data ?? 0) > 0 && (
         <Link
