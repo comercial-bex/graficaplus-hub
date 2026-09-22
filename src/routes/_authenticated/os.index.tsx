@@ -61,7 +61,10 @@ const toneOS = (status: string): "cyan" | "magenta" | "amber" | "muted" => {
 
 function OSPage() {
   const qc = useQueryClient();
-  const { canSeeFinancials } = useAuth();
+  // Tudo que esta tela mostra de dinheiro é preço de venda (valor_total):
+  // gate por canSeePrices e leitura pela view do nível. Custo/margem não
+  // aparecem aqui, então canSeeFinancials não é usado.
+  const { canSeePrices, nivelDeVisao } = useAuth();
   const [open, setOpen] = useState(false);
   const [buscaOS, setBuscaOS] = useState("");
   const [form, setForm] = useState({
@@ -74,9 +77,11 @@ function OSPage() {
   });
 
   const { data: os = [], isLoading } = useQuery({
-    queryKey: ["os-list", canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["os-list", nivelDeVisao],
     queryFn: async () => {
-      const { data, error } = await fromFinancialView("ordens_servico", canSeeFinancials)
+      // `*` devolve só o que a view do nível tem; nunca nomear coluna aqui
+      // (uma coluna que a view não tem derruba a consulta inteira em silêncio).
+      const { data, error } = await fromFinancialView("ordens_servico", nivelDeVisao)
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -125,7 +130,7 @@ function OSPage() {
         briefing: form.briefing || null,
         prazo_entrega: form.prazo_entrega || null,
         prioridade: parseInt(form.prioridade),
-        valor_total: canSeeFinancials ? parseFloat(form.valor_total || "0") : 0,
+        valor_total: canSeePrices ? parseFloat(form.valor_total || "0") : 0,
       })
       .select("id, numero")
       .single();
@@ -223,7 +228,7 @@ function OSPage() {
                     </Select>
                   </div>
                 </div>
-                {canSeeFinancials && (
+                {canSeePrices && (
                   <div className="space-y-2">
                     <Label>Valor total (R$)</Label>
                     <Input
@@ -251,8 +256,8 @@ function OSPage() {
         <KpiCard label="Em produção" value={kpisOS.producao} tone="magenta" />
         <KpiCard label="Entregues" value={kpisOS.entregues} tone="amber" />
         <KpiCard
-          label={canSeeFinancials ? "Valor em produção" : "Total de OS"}
-          value={canSeeFinancials ? moeda(kpisOS.valorAberto) : os.length}
+          label={canSeePrices ? "Valor em produção" : "Total de OS"}
+          value={canSeePrices ? moeda(kpisOS.valorAberto) : os.length}
           tone="cyan"
         />
       </div>
@@ -275,7 +280,7 @@ function OSPage() {
               <TableHead>Cliente</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Prazo</TableHead>
-              {canSeeFinancials && <TableHead>Valor</TableHead>}
+              {canSeePrices && <TableHead>Valor</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -317,7 +322,7 @@ function OSPage() {
                   <StatusChip label={rotuloDe(o.status)} tone={toneOS(o.status)} />
                 </TableCell>
                 <TableCell>{formatarData(o.prazo_entrega)}</TableCell>
-                {canSeeFinancials && (
+                {canSeePrices && (
                   <TableCell className="font-bold text-foreground">
                     {moeda(Number(o.valor_total))}
                   </TableCell>

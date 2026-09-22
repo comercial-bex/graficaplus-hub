@@ -68,7 +68,9 @@ const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curr
 function OrcamentosPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { canSeeFinancials } = useAuth();
+  // valor_total do orçamento é preço de venda: o vendedor precisa ver.
+  // Custo/margem não aparecem nesta tela, então canSeeFinancials não entra aqui.
+  const { canSeePrices, nivelDeVisao } = useAuth();
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
 
@@ -81,9 +83,10 @@ function OrcamentosPage() {
   });
 
   const { data: orcamentos = [], isLoading } = useQuery({
-    queryKey: ["orcamentos", canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["orcamentos", nivelDeVisao],
     queryFn: async () => {
-      const { data, error } = await fromFinancialView("orcamentos", canSeeFinancials)
+      // select("*") se adapta à view do nível: nunca pede coluna que ela não tem.
+      const { data, error } = await fromFinancialView("orcamentos", nivelDeVisao)
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -308,12 +311,12 @@ function OrcamentosPage() {
           label="Aguardando aprovação"
           value={kpis.enviados}
           tone="amber"
-          hint={canSeeFinancials ? `Total ${moeda(kpis.valorEnviados)}` : undefined}
+          hint={canSeePrices ? `Total ${moeda(kpis.valorEnviados)}` : undefined}
         />
         <KpiCard label="Convertidos em OS" value={kpis.convertidos} tone="magenta" />
         <KpiCard
-          label={canSeeFinancials ? "Valor total" : "Total de orçamentos"}
-          value={canSeeFinancials ? moeda(kpis.valorTotal) : orcamentos.length}
+          label={canSeePrices ? "Valor total" : "Total de orçamentos"}
+          value={canSeePrices ? moeda(kpis.valorTotal) : orcamentos.length}
           tone="cyan"
         />
       </div>
@@ -338,7 +341,7 @@ function OrcamentosPage() {
               <TableHead>Tipo</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Status</TableHead>
-              {canSeeFinancials && <TableHead>Valor</TableHead>}
+              {canSeePrices && <TableHead>Valor</TableHead>}
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -391,7 +394,7 @@ function OrcamentosPage() {
                       tone={statusTone[o.status] ?? "muted"}
                     />
                   </TableCell>
-                  {canSeeFinancials && (
+                  {canSeePrices && (
                     <TableCell className="font-bold text-foreground">
                       {moeda(Number(o.valor_total))}
                     </TableCell>

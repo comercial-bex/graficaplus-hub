@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { hasPermission as checkPermission, type Permission } from "@/lib/permissions";
+import type { NivelDeVisao } from "@/lib/supabase-financial-views";
 
 export type AppRole =
   | "admin"
@@ -25,6 +26,10 @@ type AuthContextValue = {
   hasAnyRole: (rs: AppRole[]) => boolean;
   hasPermission: (permission: Permission) => boolean;
   canSeeFinancials: boolean;
+  /** Vê preço de venda (vendedor, gestão, financeiro). Custo e margem seguem em canSeeFinancials. */
+  canSeePrices: boolean;
+  /** Qual view usar: operacional (sem dinheiro), comercial (preço), financeiro (tudo). */
+  nivelDeVisao: NivelDeVisao;
   signOut: () => Promise<void>;
   refreshRoles: () => Promise<void>;
 };
@@ -97,6 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return checkPermission(roles, permission);
   };
   const canSeeFinancials = hasPermission("financeiro.read");
+  const canSeePrices = canSeeFinancials || hasPermission("precos.read");
+  const nivelDeVisao: NivelDeVisao = canSeeFinancials ? "financeiro" : canSeePrices ? "comercial" : "operacional";
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -120,6 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         hasAnyRole,
         hasPermission,
         canSeeFinancials,
+        canSeePrices,
+        nivelDeVisao,
         signOut,
         refreshRoles,
       }}

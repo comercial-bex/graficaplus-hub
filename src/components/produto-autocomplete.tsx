@@ -28,14 +28,17 @@ export function ProdutoAutocomplete({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { canSeeFinancials } = useAuth();
+  // Preço de venda é do vendedor (canSeePrices); custo/margem seguem só no
+  // nível financeiro. A view escolhida pelo nível decide quais colunas vêm.
+  const { canSeePrices, nivelDeVisao } = useAuth();
   const { data: produtos = [] } = useQuery({
-    queryKey: ["produtos-catalog-picker", canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["produtos-catalog-picker", nivelDeVisao],
     queryFn: async () => {
       // produtos tem SELECT de tabela revogado: select("*") na base falhava com
-      // "permission denied" e o catálogo não abria. Preço e custo só existem na
-      // view financeira, sob can_see_financials.
-      const { data, error } = await fromFinancialView("produtos", canSeeFinancials)
+      // "permission denied" e o catálogo não abria. Sem lista de colunas, cada
+      // view devolve só o que tem: comercial traz preco_base/publico/sugerido
+      // (sem custo); operacional, nenhum valor; financeira, tudo.
+      const { data, error } = await fromFinancialView("produtos", nivelDeVisao)
         .select("*")
         .eq("ativo", true)
         .order("nome");
@@ -81,7 +84,7 @@ export function ProdutoAutocomplete({
                     </div>
                   </div>
                   <div className="text-right text-xs font-mono whitespace-nowrap">
-                    R$ {Number(p.preco_base ?? 0).toFixed(2)}
+                    {canSeePrices && <>R$ {Number(p.preco_base ?? 0).toFixed(2)}</>}
                     <div className="text-muted-foreground">/{p.unidade}</div>
                   </div>
                 </CommandItem>

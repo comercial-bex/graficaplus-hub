@@ -129,7 +129,9 @@ export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
 function OrcamentoDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
-  const { canSeeFinancials } = useAuth();
+  // canSeePrices/nivelDeVisao: preço de venda (vendedor vê). canSeeFinancials:
+  // custo e margem (só financeiro/gestão). Nunca misturar os dois gates.
+  const { canSeeFinancials, canSeePrices, nivelDeVisao } = useAuth();
   const [form, setForm] = useState({ ...itemVazio });
   const [calculadoraAberta, setCalculadoraAberta] = useState(false);
   // Exigência legal do produto (limite eleitoral, por exemplo). Sem gate de
@@ -142,9 +144,9 @@ function OrcamentoDetailPage() {
 
 
   const { data: orc, isLoading } = useQuery({
-    queryKey: ["orcamento", id, canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["orcamento", id, nivelDeVisao],
     queryFn: async () => {
-      const { data, error } = await fromFinancialView("orcamentos", canSeeFinancials)
+      const { data, error } = await fromFinancialView("orcamentos", nivelDeVisao)
         .select("*")
         .eq("id", id)
         .single();
@@ -154,10 +156,10 @@ function OrcamentoDetailPage() {
   });
 
   const { data: itens = [] } = useQuery({
-    queryKey: ["orc-itens", id, canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["orc-itens", id, nivelDeVisao],
     queryFn: async () =>
       (
-        await fromFinancialView("orcamento_itens", canSeeFinancials)
+        await fromFinancialView("orcamento_itens", nivelDeVisao)
           .select("*")
           .eq("orcamento_id", id)
           .order("ordem")
@@ -184,7 +186,7 @@ function OrcamentoDetailPage() {
   // sugerido conforme o vendedor mexe na quantidade.
   const { data: faixas = [] } = useQuery({
     queryKey: ["produto-faixas-preco", form.produto_id],
-    enabled: !!form.produto_id && canSeeFinancials,
+    enabled: !!form.produto_id && canSeePrices,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("produto_faixas_preco")
@@ -216,18 +218,22 @@ function OrcamentoDetailPage() {
 
 
   async function recalcular() {
-    if (!canSeeFinancials) return;
+    if (!canSeePrices) return;
     // Relê os itens do banco em vez de somar o estado da tela: recalcular é
     // chamado logo depois de inserir/remover, quando `itens` ainda é a lista
     // anterior. Somando o estado velho, o total do orçamento ficava zerado após
     // adicionar o primeiro item — e era esse zero que ia para o PDF e para a
     // conta a receber criada na conversão em OS.
-    const { data: atuais } = await fromFinancialView("orcamento_itens", true)
-      .select("valor_total, custo_unitario, quantidade")
+    //
+    // A lista de colunas depende do nível: `custo_unitario` só existe na view
+    // financeira. Pedir a coluna à view comercial faz o PostgREST devolver erro
+    // e `atuais` vem vazio — o total voltaria a zero em silêncio.
+    const { data: atuais } = await fromFinancialView("orcamento_itens", nivelDeVisao)
+      .select(canSeeFinancials ? "valor_total, custo_unitario, quantidade" : "valor_total, quantidade")
       .eq("orcamento_id", id);
     const lista = (atuais ?? []) as {
       valor_total: number | null;
-      custo_unitario: number | null;
+      custo_unitario?: number | null;
       quantidade: number | null;
     }[];
     const subtotal = lista.reduce((s, i) => s + Number(i.valor_total ?? 0), 0);
@@ -235,14 +241,12 @@ function OrcamentoDetailPage() {
       (s, i) => s + Number(i.custo_unitario ?? 0) * Number(i.quantidade ?? 0),
       0,
     );
-    await supabase
-      .from("orcamentos")
-      .update({
-        valor_subtotal: subtotal,
-        valor_total: subtotal,
-        custo_estimado: custo,
-      })
-      .eq("id", id);
+    // Quem só vê preço não enxerga custo nenhum: gravar custo_estimado aqui
+    // seria escrever 0 por cima do custo que o financeiro já calculou. O
+    // vendedor atualiza só os totais de venda; o custo fica como estava.
+    const totais: any = { valor_subtotal: subtotal, valor_total: subtotal };
+    if (canSeeFinancials) totais.custo_estimado = custo;
+    await supabase.from("orcamentos").update(totais).eq("id", id);
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }
 
@@ -378,8 +382,8 @@ function OrcamentoDetailPage() {
       largura: vendidoPorArea ? dimensoesForm.largura : null,
       altura: vendidoPorArea ? dimensoesForm.altura : null,
       acabamento: form.acabamento.trim() || null,
-      preco_m2: canSeeFinancials && precoM2Form > 0 ? precoM2Form : null,
-      valor_unitario: canSeeFinancials ? paraNumero(form.valor_unitario) : 0,
+      preco_m2: canSeePrices && precoM2Form > 0 ? precoM2Form : null,
+      valor_unitario: canSeePrices ? paraNumero(form.valor_unitario) : 0,
       custo_unitario: paraNumero(form.custo_unitario),
       ordem: itens.length,
       produto_id: form.produto_id,
@@ -429,8 +433,8 @@ function OrcamentoDetailPage() {
         largura: item.largura,
         altura: item.altura,
         acabamento: item.acabamento,
-        preco_m2: canSeeFinancials ? item.preco_m2 : null,
-        valor_unitario: canSeeFinancials ? item.valor_unitario : 0,
+        preco_m2: canSeePrices ? item.preco_m2 : null,
+        valor_unitario: canSeePrices ? item.valor_unitario : 0,
         custo_unitario: item.custo_unitario,
         ordem: itens.length,
         produto_id: item.produto_id,
@@ -690,7 +694,7 @@ function OrcamentoDetailPage() {
             )}
 
             {/* Preço por quantidade: mostra o degrau atingido e o próximo. */}
-            {canSeeFinancials && faixas.length > 0 && (
+            {canSeePrices && faixas.length > 0 && (
               <div className="flex items-center gap-3 flex-wrap text-xs">
                 {faixaAtual ? (
                   <>
@@ -842,7 +846,9 @@ function OrcamentoDetailPage() {
                   )}
                 </div>
               </div>
-              {canSeeFinancials && (
+              {/* Preço de venda: o vendedor digita. Custo fica no bloco seguinte,
+                  atrás de canSeeFinancials. */}
+              {canSeePrices && (
                 <>
                   <div className="col-span-2">
                     <Label htmlFor="item-preco-m2">Preço/m²</Label>
@@ -877,36 +883,38 @@ function OrcamentoDetailPage() {
                       onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
                     />
                   </div>
-                  <div className="col-span-2">
-                    <div className="flex items-center justify-between gap-1">
-                      <Label htmlFor="item-custo-un">Custo un.</Label>
-                      {/* Abre a calculadora: material, máquina e mão de obra viram
-                          custo com a conta à vista, em vez de número digitado. */}
-                      <button
-                        type="button"
-                        className="text-[11px] text-primary hover:underline"
-                        onClick={() => setCalculadoraAberta(true)}
-                      >
-                        calcular
-                      </button>
-                    </div>
-                    <Input
-                      id="item-custo-un"
-                      type="number"
-                      step="0.01"
-                      value={form.custo_unitario}
-                      onChange={(e) =>
-                        // Digitou à mão: o custo deixa de ser "calculado".
-                        setForm({ ...form, custo_unitario: e.target.value, origem_calculo: "manual" })
-                      }
-                    />
-                    {form.origem_calculo === "motor" && form.margem_prevista != null && (
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        calculado · margem {(form.margem_prevista * 100).toFixed(1)}%
-                      </p>
-                    )}
-                  </div>
                 </>
+              )}
+              {canSeeFinancials && (
+                <div className="col-span-2">
+                  <div className="flex items-center justify-between gap-1">
+                    <Label htmlFor="item-custo-un">Custo un.</Label>
+                    {/* Abre a calculadora: material, máquina e mão de obra viram
+                        custo com a conta à vista, em vez de número digitado. */}
+                    <button
+                      type="button"
+                      className="text-[11px] text-primary hover:underline"
+                      onClick={() => setCalculadoraAberta(true)}
+                    >
+                      calcular
+                    </button>
+                  </div>
+                  <Input
+                    id="item-custo-un"
+                    type="number"
+                    step="0.01"
+                    value={form.custo_unitario}
+                    onChange={(e) =>
+                      // Digitou à mão: o custo deixa de ser "calculado".
+                      setForm({ ...form, custo_unitario: e.target.value, origem_calculo: "manual" })
+                    }
+                  />
+                  {form.origem_calculo === "motor" && form.margem_prevista != null && (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      calculado · margem {(form.margem_prevista * 100).toFixed(1)}%
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -959,7 +967,7 @@ function OrcamentoDetailPage() {
                 <TableHead>Metragem</TableHead>
                 <TableHead>Acabamento</TableHead>
                 <TableHead>Layout</TableHead>
-                {canSeeFinancials && (
+                {canSeePrices && (
                   <>
                     <TableHead>Valor un.</TableHead>
                     <TableHead>Total</TableHead>
@@ -971,7 +979,7 @@ function OrcamentoDetailPage() {
             <TableBody>
               {itens.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canSeeFinancials ? 8 : 6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={canSeePrices ? 8 : 6} className="text-center text-muted-foreground">
                     Sem itens
                   </TableCell>
                 </TableRow>
@@ -1002,7 +1010,7 @@ function OrcamentoDetailPage() {
                       <span className="text-muted-foreground text-xs">sem arte</span>
                     )}
                   </TableCell>
-                  {canSeeFinancials && (
+                  {canSeePrices && (
                     <>
                       <TableCell>R$ {Number(i.valor_unitario).toFixed(2)}</TableCell>
                       <TableCell>R$ {Number(i.valor_total).toFixed(2)}</TableCell>
@@ -1047,12 +1055,15 @@ function OrcamentoDetailPage() {
               </div>
             )}
 
+            {/* Total é preço: o vendedor vê. Custo e margem seguem só para o financeiro. */}
+            {canSeePrices && (
+              <div>
+                <span className="text-muted-foreground">Total:</span>{" "}
+                <strong>R$ {Number(orc.valor_total).toFixed(2)}</strong>
+              </div>
+            )}
             {canSeeFinancials && (
               <>
-                <div>
-                  <span className="text-muted-foreground">Total:</span>{" "}
-                  <strong>R$ {Number(orc.valor_total).toFixed(2)}</strong>
-                </div>
                 <div>
                   <span className="text-muted-foreground">Custo:</span> R${" "}
                   {Number(orc.custo_estimado).toFixed(2)}

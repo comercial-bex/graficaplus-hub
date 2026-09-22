@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
 import { AcessoPortalCard } from "@/components/cliente/acesso-portal-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,7 +72,7 @@ export const Route = createFileRoute("/_authenticated/clientes/$id")({
 
 function ClienteDetailPage() {
   const { id } = Route.useParams();
-  const { canSeeFinancials, hasAnyRole } = useAuth();
+  const { canSeeFinancials, canSeePrices, nivelDeVisao, hasAnyRole } = useAuth();
   const canDelete = hasAnyRole(["admin", "gestor"]);
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -181,7 +181,12 @@ function ClienteDetailPage() {
         </div>
       </div>
 
-      <StatsCard clienteId={id} canSeeFinancials={canSeeFinancials} />
+      <StatsCard
+        clienteId={id}
+        canSeeFinancials={canSeeFinancials}
+        canSeePrices={canSeePrices}
+        nivelDeVisao={nivelDeVisao}
+      />
 
       <Tabs defaultValue="resumo">
         <TabsList>
@@ -199,10 +204,10 @@ function ClienteDetailPage() {
           <ContatosTab clienteId={id} />
         </TabsContent>
         <TabsContent value="os">
-          <OSTab clienteId={id} canSeeFinancials={canSeeFinancials} />
+          <OSTab clienteId={id} nivelDeVisao={nivelDeVisao} />
         </TabsContent>
         <TabsContent value="orcamentos">
-          <OrcamentosTab clienteId={id} canSeeFinancials={canSeeFinancials} />
+          <OrcamentosTab clienteId={id} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} />
         </TabsContent>
         <TabsContent value="portal">
           <AcessoPortalCard clienteId={id} />
@@ -220,20 +225,26 @@ function ClienteDetailPage() {
 function StatsCard({
   clienteId,
   canSeeFinancials,
+  canSeePrices,
+  nivelDeVisao,
 }: {
   clienteId: string;
   canSeeFinancials: boolean;
+  canSeePrices: boolean;
+  nivelDeVisao: NivelDeVisao;
 }) {
   const { data } = useQuery({
-    queryKey: ["cliente-stats", clienteId, canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["cliente-stats", clienteId, nivelDeVisao],
     queryFn: async () => {
       const [os, orc, pag] = await Promise.all([
-        fromFinancialView("ordens_servico", canSeeFinancials)
+        fromFinancialView("ordens_servico", nivelDeVisao)
           .select(
-            canSeeFinancials ? "id, valor_total, status, created_at" : "id, status, created_at",
+            // valor_total existe nas views comercial e financeiro; a operacional não tem
+            // nenhuma coluna de dinheiro — pedir uma que não existe derruba a consulta inteira.
+            canSeePrices ? "id, valor_total, status, created_at" : "id, status, created_at",
           )
           .eq("cliente_id", clienteId),
-        fromFinancialView("orcamentos", canSeeFinancials)
+        fromFinancialView("orcamentos", nivelDeVisao)
           .select("id, status")
           .eq("cliente_id", clienteId),
         supabase
@@ -250,8 +261,10 @@ function StatsCard({
             .reduce((s: number, p: any) => s + Number(p.valor || 0), 0)
         : 0;
       const totalOS = osData.length;
+      // Ticket médio é preço de venda (valor_total da OS): o vendedor vê.
+      // Faturamento vem de pagamentos (RLS financeiro.read): segue em canSeeFinancials.
       const ticket =
-        canSeeFinancials && totalOS > 0
+        canSeePrices && totalOS > 0
           ? osData.reduce((s: number, o: any) => s + Number(o.valor_total || 0), 0) / totalOS
           : 0;
       const ultimaOS = osData.sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0]
@@ -279,7 +292,7 @@ function StatsCard({
           value={`R$ ${data.faturamento.toFixed(2)}`}
         />
       )}
-      {canSeeFinancials && (
+      {canSeePrices && (
         <StatTile
           icon={<DollarSign className="h-4 w-4" />}
           label="Ticket médio"
@@ -293,7 +306,7 @@ function StatsCard({
           value={data.ultimaOS ? new Date(data.ultimaOS).toLocaleDateString("pt-BR") : "—"}
         />
       )}
-      {!canSeeFinancials && <StatTile icon={<Calendar className="h-4 w-4" />} label="" value="" />}
+      {!canSeePrices && <StatTile icon={<Calendar className="h-4 w-4" />} label="" value="" />}
     </div>
   );
 }
@@ -714,12 +727,13 @@ function ContatosTab({ clienteId }: { clienteId: string }) {
   );
 }
 
-function OSTab({ clienteId, canSeeFinancials }: { clienteId: string; canSeeFinancials: boolean }) {
+function OSTab({ clienteId, nivelDeVisao }: { clienteId: string; nivelDeVisao: NivelDeVisao }) {
   const { data = [] } = useQuery({
-    queryKey: ["os-cliente", clienteId, canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["os-cliente", clienteId, nivelDeVisao],
     queryFn: async () =>
       (
-        await fromFinancialView("ordens_servico", canSeeFinancials)
+        // select("*") é seguro em qualquer nível: só traz as colunas que a view tem.
+        await fromFinancialView("ordens_servico", nivelDeVisao)
           .select("*")
           .eq("cliente_id", clienteId)
           .order("created_at", { ascending: false })
@@ -768,16 +782,19 @@ function OSTab({ clienteId, canSeeFinancials }: { clienteId: string; canSeeFinan
 
 function OrcamentosTab({
   clienteId,
-  canSeeFinancials,
+  canSeePrices,
+  nivelDeVisao,
 }: {
   clienteId: string;
-  canSeeFinancials: boolean;
+  canSeePrices: boolean;
+  nivelDeVisao: NivelDeVisao;
 }) {
   const { data = [] } = useQuery({
-    queryKey: ["orc-cliente", clienteId, canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["orc-cliente", clienteId, nivelDeVisao],
     queryFn: async () =>
       (
-        await fromFinancialView("orcamentos", canSeeFinancials)
+        // select("*") é seguro em qualquer nível: só traz as colunas que a view tem.
+        await fromFinancialView("orcamentos", nivelDeVisao)
           .select("*")
           .eq("cliente_id", clienteId)
           .order("created_at", { ascending: false })
@@ -792,7 +809,7 @@ function OrcamentosTab({
               <TableHead>#</TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Status</TableHead>
-              {canSeeFinancials && <TableHead>Valor</TableHead>}
+              {canSeePrices && <TableHead>Valor</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -818,7 +835,7 @@ function OrcamentosTab({
                 <TableCell>
                   <Badge variant="outline">{o.status}</Badge>
                 </TableCell>
-                {canSeeFinancials && <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>}
+                {canSeePrices && <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>}
               </TableRow>
             ))}
           </TableBody>

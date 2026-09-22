@@ -131,7 +131,7 @@ const emptyForm: FormState = {
 
 function ProdutosPage() {
   const qc = useQueryClient();
-  const { canSeeFinancials, hasRole } = useAuth();
+  const { canSeeFinancials, canSeePrices, nivelDeVisao, hasRole } = useAuth();
   const isAdmin = hasRole("admin") || hasRole("gestor");
 
   const [busca, setBusca] = useState("");
@@ -146,12 +146,15 @@ function ProdutosPage() {
   const [importOpen, setImportOpen] = useState(false);
 
   const { data: produtos = [], isLoading } = useQuery({
-    queryKey: ["produtos", canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["produtos", nivelDeVisao],
     queryFn: async () => {
       // produtos tem SELECT de tabela revogado: select("*") na base falhava com
       // "permission denied" e a lista não carregava. Preço e custo saem da view
-      // financeira, sobre o espelho produto_precos.
-      const { data, error } = await fromFinancialView("produtos", canSeeFinancials)
+      // do nível de visão, sobre o espelho produto_precos: financeiro traz
+      // custo e preço, comercial só preço, operacional nenhum dos dois.
+      // select("*") de propósito — pedir coluna que a view não tem derruba a
+      // consulta inteira e a tela fica em branco.
+      const { data, error } = await fromFinancialView("produtos", nivelDeVisao)
         .select("*")
         .order("nome");
       if (error) throw error;
@@ -253,7 +256,10 @@ function ProdutosPage() {
         tipo: f.tipo,
         unidade: f.unidade,
         custo_medio: canSeeFinancials ? Number(f.custo_medio) || 0 : undefined,
-        preco_base: Number(f.preco_base) || 0,
+        // Preço de venda só vai no payload para quem o vê (canSeePrices): quem
+        // entra pela view operacional carrega "0" no form e gravaria R$ 0 por
+        // cima do preço real.
+        preco_base: canSeePrices ? Number(f.preco_base) || 0 : undefined,
         margem_minima: canSeeFinancials ? Number(f.margem_minima) || 0 : undefined,
         // vazio = sem mínimo; nunca grava 0, que o CHECK recusa e que
         // significaria coisa diferente de "não cobrar mínimo"
@@ -271,7 +277,7 @@ function ProdutosPage() {
         observacoes_internas: f.observacoes_internas.trim() || null,
         ativo: f.ativo,
       };
-      // Strip undefined so we don't overwrite custo/margem when vendedor edits
+      // Strip undefined so we don't overwrite preço/custo/margem when vendedor edits
       Object.keys(payload).forEach(
         (k) =>
           (payload as Record<string, unknown>)[k] === undefined &&
@@ -562,7 +568,9 @@ function ProdutosPage() {
                   {canSeeFinancials && (
                     <TableHead className="text-right">Custo</TableHead>
                   )}
-                  <TableHead className="text-right">Preço</TableHead>
+                  {canSeePrices && (
+                    <TableHead className="text-right">Preço</TableHead>
+                  )}
                   {canSeeFinancials && (
                     <TableHead className="text-right">Margem</TableHead>
                   )}
@@ -615,9 +623,11 @@ function ProdutosPage() {
                           {formatBRL(Number(p.custo_medio))}
                         </TableCell>
                       )}
-                      <TableCell className="text-right font-mono">
-                        {formatBRL(Number(p.preco_base))}
-                      </TableCell>
+                      {canSeePrices && (
+                        <TableCell className="text-right font-mono">
+                          {formatBRL(Number(p.preco_base))}
+                        </TableCell>
+                      )}
                       {canSeeFinancials && (
                         <TableCell className="text-right">
                           <MargemBadge status={status} margem={margem} />
@@ -677,15 +687,17 @@ function ProdutosPage() {
                   <Badge variant="outline" className="text-xs">
                     {categoriaLabel(p.categoria)}
                   </Badge>
-                  <div className="flex justify-between items-end pt-2 border-t">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Preço / {p.unidade}</div>
-                      <div className="font-mono font-semibold">
-                        {formatBRL(Number(p.preco_base))}
+                  {canSeePrices && (
+                    <div className="flex justify-between items-end pt-2 border-t">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Preço / {p.unidade}</div>
+                        <div className="font-mono font-semibold">
+                          {formatBRL(Number(p.preco_base))}
+                        </div>
                       </div>
+                      {canSeeFinancials && <MargemBadge status={status} margem={margem} />}
                     </div>
-                    {canSeeFinancials && <MargemBadge status={status} margem={margem} />}
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             );

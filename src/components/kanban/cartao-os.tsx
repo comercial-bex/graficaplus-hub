@@ -34,13 +34,14 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
 
 export function CartaoOs({
   os,
-  canSeeFinancials,
+  canSeePrices,
   bloqueios = [],
   dragging,
   onAbrir,
 }: {
   os: any;
-  canSeeFinancials?: boolean;
+  /** Vê preço de venda. O cartão só mostra o valor da OS — nunca custo nem margem. */
+  canSeePrices?: boolean;
   bloqueios?: BloqueioOs[];
   dragging?: boolean;
   onAbrir?: () => void;
@@ -163,7 +164,7 @@ export function CartaoOs({
               </span>
             )}
           </div>
-          {canSeeFinancials && Number(os.valor_total) > 0 && (
+          {canSeePrices && Number(os.valor_total) > 0 && (
             <span className="font-mono text-xs text-[color:var(--bex-lime)]">
               {brl(Number(os.valor_total))}
             </span>

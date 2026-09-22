@@ -118,7 +118,10 @@ const PRIORIDADES = [
 
 function KanbanPage() {
   const qc = useQueryClient();
-  const { canSeeFinancials } = useAuth();
+  // canSeePrices: vê preço de venda (vendedor, gestão, financeiro). O quadro só
+  // mostra valor da OS e dos itens — preço, nunca custo nem margem — então a
+  // leitura segue o nível de visão, não o flag de financeiro.
+  const { canSeePrices, nivelDeVisao } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
   const [fichaId, setFichaId] = useState<string | null>(null);
 
@@ -138,9 +141,9 @@ function KanbanPage() {
   const [soAtrasadas, setSoAtrasadas] = useState(false);
 
   const { data: os = [] } = useQuery({
-    queryKey: ["kanban-os", canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["kanban-os", nivelDeVisao],
     queryFn: async () => {
-      const { data, error } = await fromFinancialView("ordens_servico", canSeeFinancials)
+      const { data, error } = await fromFinancialView("ordens_servico", nivelDeVisao)
         .select("*")
         .not("status", "in", "(faturado,cancelado)")
         .order("ordem_kanban");
@@ -158,9 +161,17 @@ function KanbanPage() {
         supabase.from("os_tarefas").select("os_id, status, prazo").in("os_id", ids),
         // Os itens são o que a OS manda produzir. Faltavam no cartão, que
         // preferia anunciar "Produto não definido".
-        supabase
-          .from("itens_os")
-          .select("id, os_id, descricao, quantidade, unidade, largura, altura, area_total, acabamento, valor_total")
+        // Lidos pela view do nível, não pela tabela-base: a base tem o SELECT
+        // revogado nas colunas de dinheiro, e pedir valor_total nela derruba a
+        // consulta INTEIRA — o cartão ficava sem item, em silêncio. valor_total
+        // só existe nas views comercial e financeiro; a operacional não tem
+        // coluna de dinheiro nenhuma, então não se pede.
+        fromFinancialView("itens_os", nivelDeVisao)
+          .select(
+            canSeePrices
+              ? "id, os_id, descricao, quantidade, unidade, largura, altura, area_total, acabamento, valor_total"
+              : "id, os_id, descricao, quantidade, unidade, largura, altura, area_total, acabamento",
+          )
           .in("os_id", ids)
           .order("ordem"),
         // Cinco linhas: cabe inteira, e resolver por id no cliente é o único
@@ -432,7 +443,7 @@ function KanbanPage() {
               etapa={etapa}
               itens={noQuadro.filter((o: any) => etapaDe(o.status) === etapa)}
               bloqueios={bloqueios}
-              canSeeFinancials={canSeeFinancials}
+              canSeePrices={canSeePrices}
               onAbrir={setFichaId}
             />
           ))}
@@ -453,7 +464,7 @@ function KanbanPage() {
                   <CartaoArrastavel
                     os={o}
                     bloqueios={bloqueios.get(o.id) ?? []}
-                    canSeeFinancials={canSeeFinancials}
+                    canSeePrices={canSeePrices}
                     onAbrir={() => setFichaId(o.id)}
                   />
                 </div>
@@ -467,7 +478,7 @@ function KanbanPage() {
             <CartaoOs
               os={activeOs}
               bloqueios={bloqueios.get(activeOs.id) ?? []}
-              canSeeFinancials={canSeeFinancials}
+              canSeePrices={canSeePrices}
               dragging
             />
           )}
@@ -477,7 +488,7 @@ function KanbanPage() {
       <FichaDaOs
         os={fichaOs}
         bloqueios={fichaId ? (bloqueios.get(fichaId) ?? []) : []}
-        canSeeFinancials={canSeeFinancials}
+        canSeePrices={canSeePrices}
         aberto={fichaId !== null}
         onFechar={() => setFichaId(null)}
         onMudarStatus={(osId, novo) => mover(osId, novo)}
@@ -490,13 +501,13 @@ function Coluna({
   etapa,
   itens,
   bloqueios,
-  canSeeFinancials,
+  canSeePrices,
   onAbrir,
 }: {
   etapa: Etapa;
   itens: any[];
   bloqueios: Map<string, BloqueioOs[]>;
-  canSeeFinancials?: boolean;
+  canSeePrices?: boolean;
   onAbrir: (id: string) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: etapa });
@@ -561,7 +572,7 @@ function Coluna({
             key={o.id}
             os={o}
             bloqueios={bloqueios.get(o.id) ?? []}
-            canSeeFinancials={canSeeFinancials}
+            canSeePrices={canSeePrices}
             onAbrir={() => onAbrir(o.id)}
           />
         ))}
@@ -578,12 +589,12 @@ function Coluna({
 function CartaoArrastavel({
   os,
   bloqueios,
-  canSeeFinancials,
+  canSeePrices,
   onAbrir,
 }: {
   os: any;
   bloqueios: BloqueioOs[];
-  canSeeFinancials?: boolean;
+  canSeePrices?: boolean;
   onAbrir: () => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: os.id });
@@ -592,7 +603,7 @@ function CartaoArrastavel({
       <CartaoOs
         os={os}
         bloqueios={bloqueios}
-        canSeeFinancials={canSeeFinancials}
+        canSeePrices={canSeePrices}
         onAbrir={onAbrir}
       />
     </div>

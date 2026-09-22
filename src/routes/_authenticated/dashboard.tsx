@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/module-data";
-import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
 import {
   BellRing,
   Users,
@@ -119,7 +119,7 @@ function BexCard({ title, children }: { title: string; children: React.ReactNode
  * mim" filtrado pelo papel de cada um.
  */
 function DashboardPage() {
-  const { canSeeFinancials, hasRole, hasAnyRole } = useAuth();
+  const { canSeeFinancials, canSeePrices, nivelDeVisao, hasRole, hasAnyRole } = useAuth();
 
   // Quem só imprime vai para a oficina. Acumular função é comum na gráfica, e
   // gerente/admin continuam no painel completo mesmo sendo também operador.
@@ -127,10 +127,24 @@ function DashboardPage() {
     return <PainelProducao />;
   }
 
-  return <PainelCompleto canSeeFinancials={canSeeFinancials} />;
+  return (
+    <PainelCompleto
+      canSeeFinancials={canSeeFinancials}
+      canSeePrices={canSeePrices}
+      nivelDeVisao={nivelDeVisao}
+    />
+  );
 }
 
-function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
+function PainelCompleto({
+  canSeeFinancials,
+  canSeePrices,
+  nivelDeVisao,
+}: {
+  canSeeFinancials: boolean;
+  canSeePrices: boolean;
+  nivelDeVisao: NivelDeVisao;
+}) {
   const clientes = useCount("clientes");
   const orcamentos = useCount("orcamentos", (q) => q.in("status", ["rascunho", "enviado"]));
   const maquinasAtivas = useCount("maquinas", (q) => q.eq("ativa", true));
@@ -187,10 +201,14 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
 
 
   const { data: dashboardData } = useQuery({
-    queryKey: ["dashboard-operacional", canSeeFinancials ? "fin" : "op"],
+    // Três níveis (operacional/comercial/financeiro) — a chave precisa separar
+    // os três, senão o cache do vendedor serviria a lista sem preço.
+    queryKey: ["dashboard-operacional", nivelDeVisao],
     queryFn: async () => {
       // ordens_servico/itens_os têm SELECT revogado na base — ler pelas views;
-      // colunas financeiras (valor_total/custo_real) só existem na view financeira.
+      // custo (custo_previsto/custo_real) só existe na view financeira; preço
+      // (valor_total) existe na financeira e na comercial. Nunca pedir uma
+      // coluna que a view escolhida não tem: o PostgREST devolve a lista vazia.
       const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs, resultados] =
         await Promise.all([
           fromFinancialView("ordens_servico", canSeeFinancials).select(
@@ -205,8 +223,11 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
           // colunas reais: nome_contato / ultima_mensagem_at (aliases mantêm o shape usado abaixo)
           db.from("whatsapp_conversas").select("nome:nome_contato, ultima_mensagem, nao_lidas, ultima_interacao:ultima_mensagem_at"),
           supabase.from("materiais").select("id, nome, unidade, estoque"),
-          fromFinancialView("itens_os", canSeeFinancials).select(
-            canSeeFinancials ? "descricao, quantidade, valor_total" : "descricao, quantidade",
+          // valor_total do item é preço de venda (ordena "Produtos · mais
+          // vendidos"): o vendedor vê pela view comercial, que tem valor_total
+          // mas não custo_unitario. Operacional segue sem coluna de dinheiro.
+          fromFinancialView("itens_os", nivelDeVisao).select(
+            canSeePrices ? "descricao, quantidade, valor_total" : "descricao, quantidade",
           ),
           // Custo lançado por OS: é o que separa lucro real de lucro inventado.
           // `custo_real` da OS não serve — vale 0 em toda OS aberta.

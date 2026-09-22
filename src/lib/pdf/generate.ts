@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
 import { DocumentoPDF, type DocItem, type DocumentoPDFProps } from "./DocumentoPDF";
 import { carregarEmpresa } from "./empresa";
 
@@ -29,6 +29,24 @@ function fmt(d?: string | null) {
 export async function renderPDFBlob(props: DocumentoPDFProps): Promise<Blob> {
   const { pdf } = await import("@react-pdf/renderer");
   return await pdf(DocumentoPDF(props)).toBlob();
+}
+
+/**
+ * Qual view alimenta a via pedida.
+ *
+ * A via de produção nunca leva valor: view operacional, seja quem for. A via do
+ * cliente é preço de venda — o nível comercial já traz valor_unitario,
+ * valor_total e valor_subtotal e nunca custo nem margem, então é o que ela lê.
+ * Quem chama pode informar o próprio nível (useAuth().nivelDeVisao): o
+ * financeiro continua na view dele; qualquer outro cai no comercial, porque a
+ * via do cliente sem coluna de preço sairia R$ 0,00 — exatamente o defeito que
+ * o vendedor tinha até 22/09, quando `true` caía direto em "financeiro" e a
+ * view devolvia nada para ele. Quem não pode ver preço a view comercial barra
+ * no banco (can_see_prices) e o erro aparece, em vez de um PDF zerado.
+ */
+function nivelDaVia(mostrarValores: boolean, nivel?: NivelDeVisao): NivelDeVisao {
+  if (!mostrarValores) return "operacional";
+  return nivel === "financeiro" ? "financeiro" : "comercial";
 }
 
 /**
@@ -182,8 +200,12 @@ async function carregarCustosPlanilha(
 export async function carregarPropsOrcamento(
   orcamentoId: string,
   mostrarValores = true,
+  nivel?: NivelDeVisao,
 ): Promise<DocumentoPDFProps> {
-  const { data: orc, error } = await fromFinancialView("orcamentos", mostrarValores)
+  // Preço de venda: a via do cliente lê pelo nível (comercial basta); custo
+  // nunca entra aqui. `select("*")` só devolve as colunas que a view tem.
+  const visao = nivelDaVia(mostrarValores, nivel);
+  const { data: orc, error } = await fromFinancialView("orcamentos", visao)
     .select("*")
     .eq("id", orcamentoId)
     .single();
@@ -202,7 +224,7 @@ export async function carregarPropsOrcamento(
           .eq("id", (orc as any).vendedor_id)
           .single()
       : Promise.resolve({ data: null }),
-    fromFinancialView("orcamento_itens", mostrarValores)
+    fromFinancialView("orcamento_itens", visao)
       .select("*")
       .eq("orcamento_id", orcamentoId)
       .order("ordem"),
@@ -287,7 +309,8 @@ export async function carregarPropsOrcamento(
 export async function carregarPropsOrcamentoComCustos(
   orcamentoId: string,
 ): Promise<DocumentoPDFProps> {
-  const base = await carregarPropsOrcamento(orcamentoId, true);
+  // Via de custo é documento do financeiro: lê a view financeira, como sempre.
+  const base = await carregarPropsOrcamento(orcamentoId, true, "financeiro");
 
   const [{ data: config }, { data: maoDeObra = [] }, { data: orc }] = await Promise.all([
     (supabase as any).from("config_precificacao_3d").select("*").limit(1).maybeSingle(),
@@ -347,8 +370,11 @@ export async function carregarPropsOrcamentoComCustos(
 export async function carregarPropsOS(
   osId: string,
   mostrarValores = true,
+  nivel?: NivelDeVisao,
 ): Promise<DocumentoPDFProps> {
-  const { data: os, error } = await fromFinancialView("ordens_servico", mostrarValores)
+  // Mesma regra do orçamento: via do cliente lê pelo nível, sem custo.
+  const visao = nivelDaVia(mostrarValores, nivel);
+  const { data: os, error } = await fromFinancialView("ordens_servico", visao)
     .select("*")
     .eq("id", osId)
     .single();
@@ -367,7 +393,7 @@ export async function carregarPropsOS(
           .eq("id", (os as any).vendedor_id)
           .single()
       : Promise.resolve({ data: null }),
-    fromFinancialView("itens_os", mostrarValores).select("*").eq("os_id", osId).order("ordem"),
+    fromFinancialView("itens_os", visao).select("*").eq("os_id", osId).order("ordem"),
   ]);
 
   const [empresa, itensDoc, identificacaoLegal] = await Promise.all([
@@ -729,6 +755,8 @@ export async function gerarESalvarPDF(opts: {
   tipo: "orcamento" | "os" | "orcamento_3d" | "recibo_material" | "fatura";
   referencia_id: string;
   mostrarValores?: boolean;
+  /** Nível de quem pede (useAuth().nivelDeVisao); sem ele a via do cliente lê o comercial. */
+  nivelDeVisao?: NivelDeVisao;
 }) {
   // O recibo nunca mostra valores, independente de quem clicou.
   // Recibo de material nunca mostra valor; a fatura é o oposto — ela existe
@@ -736,14 +764,14 @@ export async function gerarESalvarPDF(opts: {
   const mostrar = opts.tipo === "recibo_material" ? false : (opts.mostrarValores ?? true);
   const props =
     opts.tipo === "orcamento"
-      ? await carregarPropsOrcamento(opts.referencia_id, mostrar)
+      ? await carregarPropsOrcamento(opts.referencia_id, mostrar, opts.nivelDeVisao)
       : opts.tipo === "orcamento_3d"
         ? await carregarPropsOrcamento3d(opts.referencia_id, mostrar)
         : opts.tipo === "recibo_material"
           ? await carregarPropsReciboMaterial(opts.referencia_id)
           : opts.tipo === "fatura"
             ? await carregarPropsFatura(opts.referencia_id)
-            : await carregarPropsOS(opts.referencia_id, mostrar);
+            : await carregarPropsOS(opts.referencia_id, mostrar, opts.nivelDeVisao);
   const blob = await renderPDFBlob(props);
   const { filename } = await salvarERegistrarPDF({
     blob,

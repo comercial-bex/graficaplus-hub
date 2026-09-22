@@ -62,7 +62,7 @@ type PedidoParaOs = {
 };
 
 function ParceirosPage() {
-  const { hasPermission, canSeeFinancials } = useAuth();
+  const { hasPermission, canSeeFinancials, canSeePrices, nivelDeVisao } = useAuth();
   const qc = useQueryClient();
   const podeEditar = hasPermission("parceiros.manage");
   const [novo, setNovo] = useState(false);
@@ -86,11 +86,13 @@ function ParceirosPage() {
   // Pedido de parceiro nasce como orçamento aprovado; alguém precisa gerar a OS.
   const clientes = parceiros.map((p) => p.cliente_id);
   const { data: pedidosParaOs = [] } = useQuery({
-    queryKey: ["parceiros-pedidos-sem-os", clientes, canSeeFinancials],
+    queryKey: ["parceiros-pedidos-sem-os", clientes, nivelDeVisao],
     enabled: clientes.length > 0 && hasPermission("orcamentos.read"),
     queryFn: async (): Promise<PedidoParaOs[]> => {
-      const { data, error: erro } = await fromFinancialView("orcamentos", canSeeFinancials)
-        .select(canSeeFinancials ? "id, numero, titulo, cliente_id, created_at, valor_total" : "id, numero, titulo, cliente_id, created_at")
+      // valor_total é preço de venda: existe nas views comercial e financeiro, não na operacional.
+      // Pedir a coluna a uma view que não a tem derruba a consulta inteira (PostgREST).
+      const { data, error: erro } = await fromFinancialView("orcamentos", nivelDeVisao)
+        .select(canSeePrices ? "id, numero, titulo, cliente_id, created_at, valor_total" : "id, numero, titulo, cliente_id, created_at")
         .in("cliente_id", clientes)
         .eq("status", "aprovado")
         .is("os_id", null)
