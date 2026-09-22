@@ -34,13 +34,17 @@ export function OrcamentoProdutoPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
-  const { canSeeFinancials } = useAuth();
+  // Preço de venda é do vendedor (canSeePrices); custo/margem seguem só no
+  // nível financeiro. A view escolhida pelo nível decide quais colunas vêm.
+  const { canSeePrices, nivelDeVisao } = useAuth();
 
   const { data: produtos = [] } = useQuery({
-    queryKey: ["produtos-catalog-picker", canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["produtos-catalog-picker", nivelDeVisao],
     enabled: open,
     queryFn: async () => {
-      const { data, error } = await fromFinancialView("produtos", canSeeFinancials)
+      // select("*"): sem lista de colunas, cada view devolve só o que tem —
+      // comercial traz preco_base/publico/sugerido; operacional, nenhum valor.
+      const { data, error } = await fromFinancialView("produtos", nivelDeVisao)
         .select("*")
         .eq("ativo", true)
         .order("nome");
@@ -120,7 +124,7 @@ export function OrcamentoProdutoPicker({
         </div>
       </div>
       <div className="text-right text-xs font-mono whitespace-nowrap">
-        R$ {Number(p.preco_base ?? 0).toFixed(2)}
+        {canSeePrices && <>R$ {Number(p.preco_base ?? 0).toFixed(2)}</>}
         <div className="text-muted-foreground">/{p.unidade}</div>
       </div>
     </CommandItem>

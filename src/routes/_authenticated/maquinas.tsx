@@ -136,7 +136,8 @@ function MaquinasPage() {
    */
   const { data: sugestoes = {} } = useQuery({
     queryKey: ["custo-hora-sugerido", maquinas.map((m) => m.id).join(",")],
-    enabled: maquinas.length > 0,
+    // A sugestão é custo puro: quem não vê financeiro nem consulta.
+    enabled: maquinas.length > 0 && canSeeFinancials,
     queryFn: async () => {
       const mapa: Record<string, any> = {};
       for (const m of maquinas) {
@@ -205,7 +206,9 @@ function MaquinasPage() {
         nome: form.nome,
         tipo: form.tipo || null,
         setor: form.setor || null,
-        custo_hora: Number(form.custo_hora) || 0,
+        // Quem não vê custo não manda a chave: senão sobrescreveria o
+        // custo/hora da máquina com 0 sem nunca ter visto o valor.
+        ...(canSeeFinancials ? { custo_hora: Number(form.custo_hora) || 0 } : {}),
         potencia_kw: Number(form.potencia_kw) || 0,
         setup_min: Number(form.setup_min) || 0,
         velocidade_m2_h: Number(form.velocidade_m2_h) || 0,
@@ -262,7 +265,8 @@ function MaquinasPage() {
       nome: m.nome,
       tipo: m.tipo ?? "",
       setor: m.setor ?? "",
-      custo_hora: String(m.custo_hora ?? 0),
+      // Sem permissão o campo nem aparece e o save não envia a chave.
+      custo_hora: canSeeFinancials ? String(m.custo_hora ?? 0) : "0",
       potencia_kw: String(m.potencia_kw ?? 0),
       setup_min: String(m.setup_min ?? 0),
       velocidade_m2_h: String(m.velocidade_m2_h ?? 0),
@@ -303,15 +307,18 @@ function MaquinasPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3 mb-6">
+      {/* Custo/hora médio é custo puro: some (não fica zerado) para quem só vê preço. */}
+      <div className={`grid gap-4 mb-6 ${canSeeFinancials ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <KpiCard label="Máquinas ativas" value={ativas.length} icon={Factory} tone="cyan" />
-        <KpiCard
-          label="Custo/hora médio"
-          value={brl(custoMedio)}
-          icon={Gauge}
-          tone="lime"
-          hint="Base para o bloco Processos do orçamento"
-        />
+        {canSeeFinancials && (
+          <KpiCard
+            label="Custo/hora médio"
+            value={brl(custoMedio)}
+            icon={Gauge}
+            tone="lime"
+            hint="Base para o bloco Processos do orçamento"
+          />
+        )}
         <KpiCard
           label="Sem custo definido"
           value={semCusto.length}
@@ -385,12 +392,14 @@ function MaquinasPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Custo/hora
+                  {canSeeFinancials && (
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Custo/hora
+                      </div>
+                      <div className="font-bold">{brl(Number(m.custo_hora ?? 0))}</div>
                     </div>
-                    <div className="font-bold">{brl(Number(m.custo_hora ?? 0))}</div>
-                  </div>
+                  )}
                   <div>
                     <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                       Potência
@@ -422,7 +431,7 @@ function MaquinasPage() {
                     Ninguém precifica banner por hora de máquina: precifica por
                     metro quadrado. Custo/hora sozinho engana — R$ 14,43 parece
                     caro até dividir pelos 14 m² que a máquina faz nessa hora. */}
-                {Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) > 0 && (
+                {canSeeFinancials && Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) > 0 && (
                   <div className="rounded-md border bg-muted/40 p-2 text-xs">
                     <div className="font-medium">
                       {brl(Number(m.custo_hora) / Number(m.velocidade_m2_h))} por m² de máquina
@@ -438,7 +447,7 @@ function MaquinasPage() {
                 {/* Sem velocidade, a hora é digitada à mão — e digitar "1 hora"
                     num banner de 2 m² cobra a hora inteira em vez do minuto que
                     a peça usou. É assim que o orçamento estoura. */}
-                {Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) <= 0 && (
+                {canSeeFinancials && Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) <= 0 && (
                   <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
                     <div className="font-medium text-amber-700 dark:text-amber-500">
                       Sem velocidade cadastrada
@@ -512,8 +521,9 @@ function MaquinasPage() {
                   </div>
                 )}
 
+                {/* A sugestão traz o valor em R$; sem financeiro fica só o aviso, sem número. */}
                 {Number(m.custo_hora ?? 0) <= 0 &&
-                  (sugestoes[m.id]?.custo_hora ? (
+                  (canSeeFinancials && sugestoes[m.id]?.custo_hora ? (
                     <div className="rounded-md border border-[color:var(--bex-magenta)]/40 bg-[color:var(--bex-magenta)]/5 p-2 text-xs space-y-2">
                       <div className="flex items-center gap-2 font-medium">
                         <Zap className="h-3.5 w-3.5" />
@@ -579,7 +589,8 @@ function MaquinasPage() {
             {field("modelo", "Modelo", "VC10060-LM")}
             {field("numero_serie", "Nº de série / neurônio", "FD2D54")}
             {field("largura_util_m", "Boca da máquina (m)", "1.80", "number")}
-            {field("custo_hora", "Custo/hora (R$)", "40", "number")}
+            {/* Custo puro: sem financeiro o campo não existe e o save não envia a chave. */}
+            {canSeeFinancials && field("custo_hora", "Custo/hora (R$)", "40", "number")}
             {field("potencia_kw", "Potência (kW)", "1.5", "number")}
             {field("setup_min", "Setup (min)", "15", "number")}
             {field("velocidade_m2_h", "Velocidade (m²/h)", "12", "number")}

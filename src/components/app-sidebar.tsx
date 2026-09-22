@@ -1,6 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
+  Home,
+  X,
+  Download,
   Users,
   Building2,
   FileText,
@@ -70,7 +74,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     label: "Operação",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Kanban Produção", url: "/kanban", icon: Kanban },
+      { title: "Quadro de produção", url: "/kanban", icon: Kanban },
       { title: "Ordens de Serviço", url: "/os", icon: ClipboardList },
     ],
   },
@@ -157,12 +161,53 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
   },
 ];
 
+// Atalhos fixos do celular: as três telas que a oficina e o balcão abrem o dia
+// inteiro. Passam pelo mesmo filtro de permissão dos itens do menu.
+const atalhosCelular: Item[] = [
+  { title: "Início", url: "/dashboard", icon: Home },
+  { title: "OS", url: "/os", icon: ClipboardList },
+  { title: "Quadro", url: "/kanban", icon: Kanban },
+];
+
+/** Verdadeiro quando o app já roda instalado (ícone na tela inicial). Só no cliente. */
+function estaInstalado(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    Boolean((navigator as unknown as { standalone?: boolean }).standalone)
+  );
+}
+
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, canSeeFinancials, hasRole, hasPermission, signOut } = useAuth();
   const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
+
+  // No celular o menu é um Sheet por cima da tela: sem fechar ao escolher,
+  // a navegação acontece atrás do painel e parece que o toque não funcionou.
+  const fecharNoCelular = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
+  // A permissão de cada item vem do mapa de rotas, não de um campo próprio:
+  // enquanto eram duas listas, o menu mostrava link que o guarda barrava
+  // (e escondia link que o guarda deixava passar). Item sem rota mapeada
+  // fica oculto porque o guarda é deny-by-default e ele abriria em erro.
+  const podeVer = (url: string) => {
+    const exigidas = getRoutePermissions(url);
+    return exigidas !== null && exigidas.some(hasPermission);
+  };
+
+  // Começa escondido para o SSR não decidir por um `window` que não existe;
+  // no cliente a gente confere e mostra o item se ainda não está instalado.
+  const [mostrarInstalar, setMostrarInstalar] = useState(false);
+  useEffect(() => {
+    setMostrarInstalar(!estaInstalado());
+  }, []);
+
+  const atalhosVisiveis = atalhosCelular.filter((a) => podeVer(a.url));
 
   return (
     <Sidebar collapsible="icon">
@@ -175,34 +220,53 @@ export function AppSidebar() {
             B
           </div>
           {!collapsed && (
-            <div className="leading-tight">
+            <div className="min-w-0 flex-1 leading-tight">
               <div className="text-lg font-bold tracking-tight text-white">
                 Bex <span className="text-[color:var(--bex-cyan)]">Print</span>
               </div>
-              <div className="text-[9px] uppercase tracking-[0.2em] text-sidebar-foreground/50">
-                Print OS · v4.2
-              </div>
             </div>
           )}
+          {/* O X do Sheet fica escondido pelo componente base; sem este botão a única
+              saída no celular é acertar a faixa estreita do overlay. */}
+          {isMobile && (
+            <button
+              type="button"
+              aria-label="Fechar menu"
+              onClick={() => setOpenMobile(false)}
+              className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
+
+        {atalhosVisiveis.length > 0 && (
+          <nav aria-label="Atalhos" className="flex gap-1.5 px-2 pb-2 md:hidden">
+            {atalhosVisiveis.map((atalho) => (
+              <Link
+                key={atalho.url}
+                to={atalho.url}
+                onClick={fecharNoCelular}
+                data-active={isActive(atalho.url)}
+                className="flex h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md border border-sidebar-border text-[11px] font-semibold text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:border-[color:var(--bex-cyan)] data-[active=true]:bg-[color:var(--bex-cyan)]/10 data-[active=true]:text-[color:var(--bex-cyan)]"
+              >
+                <atalho.icon className="h-5 w-5 shrink-0" />
+                <span className="truncate">{atalho.title}</span>
+              </Link>
+            ))}
+          </nav>
+        )}
       </SidebarHeader>
 
       <SidebarContent className="py-2">
         {groups.map((group) => {
           if (group.gate === "financial" && !canSeeFinancials) return null;
           if (group.gate === "admin" && !hasRole("admin")) return null;
-          // A permissão de cada item vem do mapa de rotas, não de um campo próprio:
-          // enquanto eram duas listas, o menu mostrava link que o guarda barrava
-          // (e escondia link que o guarda deixava passar). Item sem rota mapeada
-          // fica oculto porque o guarda é deny-by-default e ele abriria em erro.
-          const visibleItems = group.items.filter((item) => {
-            const exigidas = getRoutePermissions(item.url);
-            return exigidas !== null && exigidas.some(hasPermission);
-          });
+          const visibleItems = group.items.filter((item) => podeVer(item.url));
           if (visibleItems.length === 0) return null;
           return (
             <SidebarGroup key={group.label} className="mb-4">
-              <SidebarGroupLabel className="px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <SidebarGroupLabel className="px-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground md:text-[10px]">
                 {group.label}
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -213,10 +277,11 @@ export function AppSidebar() {
                         <SidebarMenuButton
                           asChild
                           isActive={isActive(item.url)}
+                          size={isMobile ? "lg" : "default"}
                           tooltip={collapsed ? item.title : undefined}
                           className="w-full rounded-md border-l-2 border-transparent text-sm font-medium data-[active=true]:border-l-[color:var(--bex-cyan)] data-[active=true]:bg-[color:var(--bex-cyan)]/5 data-[active=true]:text-[color:var(--bex-cyan)]"
                         >
-                          <Link to={item.url}>
+                          <Link to={item.url} onClick={fecharNoCelular}>
                             <item.icon />
                             <span>{item.title}</span>
                           </Link>
@@ -244,10 +309,26 @@ export function AppSidebar() {
               </div>
             </div>
           )}
+          {mostrarInstalar && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:h-8"
+              onClick={() => {
+                // Quem escuta é src/components/pwa/instalar-app.tsx; fecha o menu
+                // para o pedido de instalação não aparecer atrás do painel.
+                window.dispatchEvent(new CustomEvent("bexprint:instalar"));
+                fecharNoCelular();
+              }}
+            >
+              <Download className="h-4 w-4" />
+              {!collapsed && <span className="ml-2">Instalar no celular</span>}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="h-11 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:h-8"
             onClick={() => signOut()}
           >
             <LogOut className="h-4 w-4" />

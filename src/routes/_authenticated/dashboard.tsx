@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/module-data";
-import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
 import {
   BellRing,
   Users,
@@ -19,8 +19,11 @@ import {
   Package,
   MessageCircle,
   Palette,
+  SquareKanban,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { getRoutePermissions, type Permission } from "@/lib/permissions";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { PendenciasDoMeuPapel } from "@/components/painel/PendenciasDoMeuPapel";
 import { MinhasComissoes } from "@/components/painel/MinhasComissoes";
@@ -119,7 +122,8 @@ function BexCard({ title, children }: { title: string; children: React.ReactNode
  * mim" filtrado pelo papel de cada um.
  */
 function DashboardPage() {
-  const { canSeeFinancials, hasRole, hasAnyRole } = useAuth();
+  const { canSeeFinancials, canSeePrices, nivelDeVisao, hasRole, hasAnyRole, hasPermission } =
+    useAuth();
 
   // Quem só imprime vai para a oficina. Acumular função é comum na gráfica, e
   // gerente/admin continuam no painel completo mesmo sendo também operador.
@@ -127,10 +131,43 @@ function DashboardPage() {
     return <PainelProducao />;
   }
 
-  return <PainelCompleto canSeeFinancials={canSeeFinancials} />;
+  return (
+    <PainelCompleto
+      canSeeFinancials={canSeeFinancials}
+      canSeePrices={canSeePrices}
+      nivelDeVisao={nivelDeVisao}
+      hasPermission={hasPermission}
+    />
+  );
 }
 
-function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
+/**
+ * Atalhos de ação do celular: no balcão o painel abre e a pessoa precisa
+ * chegar em OS, orçamento ou quadro com um toque, não rolar oito KPIs. A
+ * mesma regra do guarda de rota (qualquer permissão da lista basta) decide
+ * quem vê cada tile — assim o atalho nunca leva a "Acesso restrito".
+ */
+const ATALHOS_CELULAR: { to: "/os" | "/orcamentos" | "/kanban" | "/whatsapp"; rotulo: string; icon: LucideIcon }[] = [
+  { to: "/os", rotulo: "Ordens de serviço", icon: ClipboardList },
+  { to: "/orcamentos", rotulo: "Orçamentos", icon: FileText },
+  { to: "/kanban", rotulo: "Quadro de produção", icon: SquareKanban },
+  { to: "/whatsapp", rotulo: "WhatsApp", icon: MessageCircle },
+];
+
+function PainelCompleto({
+  canSeeFinancials,
+  canSeePrices,
+  nivelDeVisao,
+  hasPermission,
+}: {
+  canSeeFinancials: boolean;
+  canSeePrices: boolean;
+  nivelDeVisao: NivelDeVisao;
+  hasPermission: (permission: Permission) => boolean;
+}) {
+  const atalhos = ATALHOS_CELULAR.filter((a) =>
+    (getRoutePermissions(a.to) ?? []).some(hasPermission),
+  );
   const clientes = useCount("clientes");
   const orcamentos = useCount("orcamentos", (q) => q.in("status", ["rascunho", "enviado"]));
   const maquinasAtivas = useCount("maquinas", (q) => q.eq("ativa", true));
@@ -165,12 +202,17 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
   });
 
   const { data: dashViews } = useQuery({
-    queryKey: ["vw-dashboards"],
+    queryKey: ["vw-dashboards", canSeeFinancials],
     queryFn: async () => {
       const client = supabase as any;
       const [comercial, financeiro, prazos, qualidade, impressao3d] = await Promise.all([
         client.from("vw_dashboard_comercial").select("*").maybeSingle(),
-        client.from("vw_dashboard_financeiro").select("*").maybeSingle(),
+        // Faturamento/lucro/custo da gráfica inteira: só quem vê financeiro.
+        // Sem permissão nem pede — número que a tela não mostra não precisa
+        // chegar ao navegador.
+        canSeeFinancials
+          ? client.from("vw_dashboard_financeiro").select("*").maybeSingle()
+          : Promise.resolve({ data: null }),
         client.from("vw_dashboard_prazos").select("*").maybeSingle(),
         client.from("vw_dashboard_qualidade").select("*"),
         client.from("vw_dashboard_impressao_3d").select("*").maybeSingle(),
@@ -187,26 +229,40 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
 
 
   const { data: dashboardData } = useQuery({
-    queryKey: ["dashboard-operacional", canSeeFinancials ? "fin" : "op"],
+    // Três níveis (operacional/comercial/financeiro) — a chave precisa separar
+    // os três, senão o cache do vendedor serviria a lista sem preço.
+    queryKey: ["dashboard-operacional", nivelDeVisao],
     queryFn: async () => {
       // ordens_servico/itens_os têm SELECT revogado na base — ler pelas views;
-      // colunas financeiras (valor_total/custo_real) só existem na view financeira.
+      // custo (custo_previsto/custo_real) só existe na view financeira; preço
+      // (valor_total) existe na financeira e na comercial. Nunca pedir uma
+      // coluna que a view escolhida não tem: o PostgREST derruba a consulta
+      // inteira em silêncio. Até 22/09 o vendedor caía na view operacional
+      // (boolean canSeeFinancials) e o faturamento dele saía R$ 0 em 12 meses.
+      const colunasOs =
+        nivelDeVisao === "financeiro"
+          ? "id, status, valor_total, custo_previsto, custo_real, created_at"
+          : nivelDeVisao === "comercial"
+            ? "id, status, valor_total, created_at"
+            : "id, status, created_at";
       const [os, custos, produtos, maquinas, ocorrencias, conversas, materiais, itensOs, resultados] =
         await Promise.all([
-          fromFinancialView("ordens_servico", canSeeFinancials).select(
-            canSeeFinancials
-              ? "id, status, valor_total, custo_previsto, custo_real, created_at"
-              : "status, created_at",
-          ),
-          supabase.from("vw_dashboard_custos_categoria").select("categoria, total"),
+          fromFinancialView("ordens_servico", nivelDeVisao).select(colunasOs),
+          // Custo por categoria é custo puro: só quem vê financeiro pede.
+          canSeeFinancials
+            ? supabase.from("vw_dashboard_custos_categoria").select("categoria, total")
+            : Promise.resolve({ data: [] as { categoria: string | null; total: number | null }[] }),
           supabase.from("produtos").select("nome"),
           supabase.from("maquinas").select("nome"),
           db.from("ocorrencias").select("setor, retrabalho"),
           // colunas reais: nome_contato / ultima_mensagem_at (aliases mantêm o shape usado abaixo)
           db.from("whatsapp_conversas").select("nome:nome_contato, ultima_mensagem, nao_lidas, ultima_interacao:ultima_mensagem_at"),
           supabase.from("materiais").select("id, nome, unidade, estoque"),
-          fromFinancialView("itens_os", canSeeFinancials).select(
-            canSeeFinancials ? "descricao, quantidade, valor_total" : "descricao, quantidade",
+          // valor_total do item é preço de venda (ordena "Produtos · mais
+          // vendidos"): o vendedor vê pela view comercial, que tem valor_total
+          // mas não custo_unitario. Operacional segue sem coluna de dinheiro.
+          fromFinancialView("itens_os", nivelDeVisao).select(
+            canSeePrices ? "descricao, quantidade, valor_total" : "descricao, quantidade",
           ),
           // Custo lançado por OS: é o que separa lucro real de lucro inventado.
           // `custo_real` da OS não serve — vale 0 em toda OS aberta.
@@ -299,7 +355,8 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
     }, {}),
   )
     .map(([produto, v]) => ({ produto, qtd: (v as any).qtd, valor: (v as any).valor }))
-    .sort((a, b) => b.valor - a.valor)
+    // Sem preço (operacional) o valor é sempre 0: ordena pela quantidade.
+    .sort((a, b) => (canSeePrices ? b.valor - a.valor : b.qtd - a.qtd))
     .slice(0, 8);
   const producaoPorMaquina = (dashboardData?.maquinas ?? [])
     .map((m: any) => ({ maquina: m.nome, horas: 0 }))
@@ -320,18 +377,31 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
 
   return (
     <div className="space-y-8">
+      {/* Sem chips "Live"/"v4.2" nem "telemetria": o balcão e a oficina não
+          leem isso, e o painel não é um monitor de servidor. */}
       <SectionHeader
         ajuda={dicaTela("/dashboard")}
-        breadcrumb="Print OS · Operação"
-        title="Dashboard"
-        description="Telemetria em tempo real da produção, comercial e financeiro."
-        actions={
-          <div className="flex items-center gap-2">
-            <StatusChip label="Live" tone="lime" />
-            <StatusChip label="v4.2" tone="cyan" />
-          </div>
-        }
+        breadcrumb="Início"
+        title="Painel"
+        description="O que está acontecendo hoje na produção e no comercial."
       />
+
+      {/* Celular: atalhos de ação antes de qualquer número. No desktop o menu
+          lateral já faz esse papel. */}
+      {atalhos.length > 0 && (
+        <nav aria-label="Atalhos" className="grid grid-cols-2 gap-3 md:hidden">
+          {atalhos.map((a) => (
+            <Link
+              key={a.to}
+              to={a.to}
+              className="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground active:bg-accent"
+            >
+              <a.icon className="h-5 w-5 shrink-0 text-[color:var(--bex-cyan)]" />
+              <span className="leading-tight">{a.rotulo}</span>
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {/* O que o sistema espera de QUEM está logado. Cada papel vê só o que é
           dele; o bloco some quando não há nada pendente. */}
@@ -365,7 +435,7 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
           <span>Operação</span>
           <span className="h-px flex-1 bg-border" />
         </div>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard label="Clientes ativos" value={clientes.data ?? "—"} icon={Users} tone="cyan" />
           <KpiCard label="Orçamentos abertos" value={orcamentos.data ?? "—"} icon={FileText} tone="cyan" />
           <KpiCard label="OS em andamento" value={osAbertas.data ?? "—"} icon={ClipboardList} tone="lime" />
@@ -377,7 +447,7 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
             hint={osAtrasadas.data ? "requer atenção imediata" : "no prazo"}
           />
         </div>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {/* Estes dois vinham escritos no código ("3/5" e "3") desde sempre e
               não mudavam com o banco. Número inventado em painel é pior que
               número ausente: ninguém confere, e ele contamina a leitura do
@@ -414,7 +484,7 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
             <span>Financeiro · views oficiais</span>
             <span className="h-px flex-1 bg-border" />
           </div>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <KpiCard
               label="Faturamento"
               value={dashViews?.financeiro?.faturamento != null ? `R$ ${Number(dashViews.financeiro.faturamento).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}
@@ -458,7 +528,7 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
           <span>Impressão 3D · Prazos · Qualidade</span>
           <span className="h-px flex-1 bg-border" />
         </div>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
             label="Jobs 3D"
             value={dashViews?.impressao3d?.jobs ?? 0}
@@ -496,8 +566,13 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
       </section>
 
 
-      {/* Charts row 1 */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* Charts row 1 — dinheiro. Faturamento é preço de venda (canSeePrices);
+          lucro é custo/margem (canSeeFinancials). Sem permissão o card some:
+          linha reta em R$ 0 é número inventado, não gráfico. */}
+      {canSeePrices && (
+      // Vendedor vê só o faturamento: sem o card de lucro a linha fecha em
+      // 1 coluna para o gráfico não ficar em meia largura ao lado de um vazio.
+      <div className={canSeeFinancials ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"}>
         <BexCard title="Faturamento · 12 meses">
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={faturamentoMensal}>
@@ -516,6 +591,7 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
           </ResponsiveContainer>
         </BexCard>
 
+        {canSeeFinancials && (
         <BexCard title="Lucro · previsto vs real">
           {!haComparacao ? (
             <div className="flex h-[280px] flex-col items-center justify-center gap-1 px-6 text-center text-sm text-muted-foreground">
@@ -539,10 +615,13 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
           </ResponsiveContainer>
           )}
         </BexCard>
+        )}
       </div>
+      )}
 
-      {/* Charts row 2 */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      {/* Charts row 2 — "Custo · categoria" só para quem vê financeiro; sem
+          ele a linha fecha em 2 colunas para não sobrar buraco. */}
+      <div className={canSeeFinancials ? "grid gap-4 lg:grid-cols-3" : "grid gap-4 lg:grid-cols-2"}>
         <BexCard title="OS por status">
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
@@ -565,6 +644,7 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
           </div>
         </BexCard>
 
+        {canSeeFinancials && (
         <BexCard title="Custo · categoria">
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
@@ -586,6 +666,7 @@ function PainelCompleto({ canSeeFinancials }: { canSeeFinancials: boolean }) {
             {custoPorCategoria.length === 0 && <StatusChip label="sem dados" tone="muted" />}
           </div>
         </BexCard>
+        )}
 
         <BexCard title="Tempo médio · etapa (h)">
           <ResponsiveContainer width="100%" height={280}>

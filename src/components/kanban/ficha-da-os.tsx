@@ -48,14 +48,15 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
 export function FichaDaOs({
   os,
   bloqueios = [],
-  canSeeFinancials,
+  canSeePrices,
   aberto,
   onFechar,
   onMudarStatus,
 }: {
   os: any | null;
   bloqueios?: BloqueioOs[];
-  canSeeFinancials?: boolean;
+  /** Vê preço de venda. A ficha só mostra valor — nunca custo nem margem. */
+  canSeePrices?: boolean;
   aberto: boolean;
   onFechar: () => void;
   onMudarStatus: (osId: string, novoStatus: string) => void;
@@ -87,7 +88,7 @@ export function FichaDaOs({
           <SheetTitle className="text-lg leading-tight">{os.titulo}</SheetTitle>
           <SheetDescription>
             {os.cliente_nome ?? "Sem cliente vinculado"}
-            {canSeeFinancials && Number(os.valor_total) > 0 && (
+            {canSeePrices && Number(os.valor_total) > 0 && (
               <span className="ml-2 font-mono text-[color:var(--bex-lime)]">
                 {brl(Number(os.valor_total))}
               </span>
@@ -227,7 +228,7 @@ export function FichaDaOs({
                       className="flex items-start justify-between gap-2 rounded border border-border/60 bg-muted/30 px-2.5 py-1.5 text-[11px]"
                     >
                       <span className="text-foreground/85">{descreverItem(item)}</span>
-                      {canSeeFinancials && Number(item.valor_total) > 0 && (
+                      {canSeePrices && Number(item.valor_total) > 0 && (
                         <span className="shrink-0 font-mono text-muted-foreground">
                           {brl(Number(item.valor_total))}
                         </span>

@@ -21,7 +21,9 @@ export function SectionHeader({
   return (
     <header
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border pb-4 mb-6",
+        // No celular as ações descem para baixo do título: lado a lado em 375px
+        // o botão "Nova OS" espremia o título em duas letras.
+        "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border pb-4 mb-6",
         className,
       )}
     >
@@ -39,7 +41,11 @@ export function SectionHeader({
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex flex-wrap items-center justify-start md:justify-end gap-2">
+          {actions}
+        </div>
+      )}
     </header>
   );
 }

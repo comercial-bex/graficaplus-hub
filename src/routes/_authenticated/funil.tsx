@@ -73,7 +73,9 @@ const noventa = new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10);
  * resposta, que é a pergunta que decide onde gastar em divulgação.
  */
 function FunilPage() {
-  const { canSeeFinancials } = useAuth();
+  // canSeePrices: valor orçado/fechado é preço de venda (o vendedor precisa ver).
+  // canSeeFinancials: saldo em conta e caixa continuam só para o financeiro.
+  const { canSeeFinancials, canSeePrices } = useAuth();
   const [inicio, setInicio] = useState(noventa);
   const [fim, setFim] = useState(hoje);
 
@@ -170,7 +172,7 @@ function FunilPage() {
             <Metrica
               rotulo="Falta fechar"
               valor={String(resumo.emAberto)}
-              nota={canSeeFinancials ? `${brl(resumo.valorEmAberto)} em jogo` : "ainda dá para trabalhar"}
+              nota={canSeePrices ? `${brl(resumo.valorEmAberto)} em jogo` : "ainda dá para trabalhar"}
             />
             <Metrica rotulo="Perdidos" valor={String(resumo.perdidos)} nota="sem retorno" />
           </div>
@@ -246,7 +248,7 @@ function FunilPage() {
                 <strong>{resumo.parados.length}</strong>{" "}
                 {resumo.parados.length === 1 ? "oportunidade parada" : "oportunidades paradas"} há
                 mais de 15 dias sem movimento
-                {canSeeFinancials && (
+                {canSeePrices && (
                   <>
                     , somando{" "}
                     {brl(
@@ -264,7 +266,7 @@ function FunilPage() {
         </>
       )}
 
-      {resumo.origens.length > 1 && canSeeFinancials && (
+      {resumo.origens.length > 1 && canSeePrices && (
         <Card className="mb-4">
           <CardContent className="p-0">
             <Table>

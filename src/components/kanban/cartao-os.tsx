@@ -23,7 +23,8 @@ import { identidadeDaMaquina, statusIndicaMaquina } from "@/domain/producao/iden
  * E ele ABRE. Antes o corpo inteiro era alça de arrasto e só o `#44` levava a
  * algum lugar — um alvo de dez pixels. Agora clicar em qualquer lugar abre a
  * ficha; o arrasto continua funcionando porque o sensor só ativa depois de 5px
- * de movimento, e clique parado nunca vira arrasto.
+ * de movimento (mouse) ou de 250 ms segurando (toque), e clique parado nunca
+ * vira arrasto.
  */
 
 export type BloqueioOs = { codigo: string; titulo: string; resolver: string };
@@ -34,13 +35,14 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
 
 export function CartaoOs({
   os,
-  canSeeFinancials,
+  canSeePrices,
   bloqueios = [],
   dragging,
   onAbrir,
 }: {
   os: any;
-  canSeeFinancials?: boolean;
+  /** Vê preço de venda. O cartão só mostra o valor da OS — nunca custo nem margem. */
+  canSeePrices?: boolean;
   bloqueios?: BloqueioOs[];
   dragging?: boolean;
   onAbrir?: () => void;
@@ -68,7 +70,9 @@ export function CartaoOs({
 
       <div className="space-y-2 pl-1.5">
         <div className="flex items-start justify-between gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          {/* text-xs no celular, 10px no desktop: o cartão é lido a um braço
+              de distância na oficina; abaixo de 12px não se lê. */}
+          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground md:text-[10px]">
             #{os.numero}
           </span>
           <div className="flex flex-wrap justify-end gap-1">
@@ -98,11 +102,11 @@ export function CartaoOs({
         {/* O que vai ser produzido — a linha que faltava. */}
         {producao && (
           <div className="rounded border border-border/60 bg-muted/40 px-2 py-1.5">
-            <div className="flex items-start gap-1.5 text-[11px] leading-snug text-foreground/85">
+            <div className="flex items-start gap-1.5 text-xs leading-snug text-foreground/85 md:text-[11px]">
               <Layers className="mt-px h-3 w-3 shrink-0 text-muted-foreground" />
               <span className="line-clamp-2">{producao.linha}</span>
             </div>
-            <div className="mt-0.5 flex gap-2 pl-[18px] font-mono text-[10px] text-muted-foreground">
+            <div className="mt-0.5 flex gap-2 pl-[18px] font-mono text-xs text-muted-foreground md:text-[10px]">
               {producao.extras > 0 && <span>+{producao.extras} item(ns)</span>}
               {areaEmTexto(producao.areaTotal) && <span>{areaEmTexto(producao.areaTotal)}</span>}
             </div>
@@ -112,7 +116,7 @@ export function CartaoOs({
         {/* O status exato dentro da etapa: a coluna diz o estágio, o cartão diz
             o passo. É o que substituiu vinte e cinco colunas. E o selo da
             máquina diz o caminho, sem custar coluna nenhuma. */}
-        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs md:text-[10px]">
           {/* Com o selo ao lado, "Laser / CNC · Laser CO2" é a mesma coisa dita
               duas vezes — e o selo é o mais específico. Já "Em produção ·
               Fiber" soma: estágio genérico mais a máquina. */}
@@ -132,7 +136,7 @@ export function CartaoOs({
         {/* O que impede de avançar — antes do arrasto, não depois do erro. */}
         {bloqueios.length > 0 && (
           <div
-            className="flex items-center gap-1.5 rounded border border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10 px-2 py-1 text-[10px] text-[color:var(--bex-amber)]"
+            className="flex items-center gap-1.5 rounded border border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10 px-2 py-1 text-xs text-[color:var(--bex-amber)] md:text-[10px]"
             // A lista inteira no title: a coluna é estreita, e cortar a frase
             // no meio é pior do que não caber. O detalhe com o "como resolver"
             // fica na ficha.
@@ -155,7 +159,7 @@ export function CartaoOs({
             ))}
             {responsaveis.length === 0 && (
               <span
-                className="flex items-center gap-1 text-[10px] text-muted-foreground"
+                className="flex items-center gap-1 text-xs text-muted-foreground md:text-[10px]"
                 title="Sem designer nem operador definido"
               >
                 <AlertTriangle className="h-3 w-3" />
@@ -163,7 +167,7 @@ export function CartaoOs({
               </span>
             )}
           </div>
-          {canSeeFinancials && Number(os.valor_total) > 0 && (
+          {canSeePrices && Number(os.valor_total) > 0 && (
             <span className="font-mono text-xs text-[color:var(--bex-lime)]">
               {brl(Number(os.valor_total))}
             </span>

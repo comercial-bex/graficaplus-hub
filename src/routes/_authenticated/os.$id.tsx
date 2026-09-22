@@ -3,7 +3,7 @@ import { STATUS, rotuloDe } from "@/domain/os/etapas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,7 +27,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt } from "lucide-react";
+import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -76,7 +82,9 @@ export const Route = createFileRoute("/_authenticated/os/$id")({
 function OSDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
-  const { canSeeFinancials, user } = useAuth();
+  // canSeePrices/nivelDeVisao: preço de venda (vendedor vê); canSeeFinancials:
+  // custo, margem, fatura e a aba Financeiro (só quem tem financeiro.read).
+  const { canSeeFinancials, canSeePrices, nivelDeVisao, user } = useAuth();
   const [previewOpen, setPreviewOpen] = useState<null | "cliente" | "producao">(null);
   const [gerandoFatura, setGerandoFatura] = useState(false);
 
@@ -94,9 +102,11 @@ function OSDetailPage() {
   const [baixaOpen, setBaixaOpen] = useState(false);
 
   const { data: os, isLoading } = useQuery({
-    queryKey: ["os", id, canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["os", id, nivelDeVisao],
     queryFn: async () => {
-      const { data, error } = await fromFinancialView("ordens_servico", canSeeFinancials)
+      // select("*"): a view do nível já traz só as colunas que o nível pode ver
+      // (comercial: valor_total sem custo/margem). Nunca pedir coluna nomeada aqui.
+      const { data, error } = await fromFinancialView("ordens_servico", nivelDeVisao)
         .select("*")
         .eq("id", id)
         .single();
@@ -165,14 +175,16 @@ function OSDetailPage() {
         description={os.cliente_nome ? `Cliente: ${os.cliente_nome}` : undefined}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
+            {/* No celular o Voltar precisa de 44px de alvo; no desktop fica o ícone de 36px. */}
             <Link to="/os">
-              <Button variant="ghost" size="icon" title="Voltar">
+              <Button variant="ghost" size="icon" title="Voltar" className="h-11 w-11 md:h-9 md:w-9">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <StatusChip label={rotuloDe(os.status)} tone="cyan" />
+            {/* Status + trocar status ficam sempre visíveis: é a ação principal do detalhe. */}
             <Select value={os.status} onValueChange={updateStatus}>
-              <SelectTrigger className="w-56 h-9">
+              <SelectTrigger className="w-full sm:w-56 h-11 md:h-9 text-base md:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -183,29 +195,59 @@ function OSDetailPage() {
                 ))}
               </SelectContent>
             </Select>
-            {canSeeFinancials && (
-              <Button variant="outline" onClick={() => setPreviewOpen("cliente")}>
+            {/* PDF Cliente é preço de venda: o vendedor precisa gerar. */}
+            {canSeePrices && (
+              <Button variant="outline" className="hidden md:inline-flex" onClick={() => setPreviewOpen("cliente")}>
                 <FileDown className="h-4 w-4 mr-1" /> PDF Cliente
               </Button>
             )}
-            <Button variant="outline" onClick={() => setPreviewOpen("producao")}>
+            <Button variant="outline" className="hidden md:inline-flex" onClick={() => setPreviewOpen("producao")}>
               <FileDown className="h-4 w-4 mr-1" /> PDF Produção
             </Button>
             {/* Fatura só para quem vê valor: é o documento de cobrança. */}
             {canSeeFinancials && (
-              <Button variant="outline" disabled={gerandoFatura} onClick={gerarFatura}>
+              <Button variant="outline" className="hidden md:inline-flex" disabled={gerandoFatura} onClick={gerarFatura}>
                 <Receipt className="h-4 w-4 mr-1" />
                 {gerandoFatura ? "Gerando…" : "Fatura"}
               </Button>
             )}
             <Button
               variant="outline"
+              className="hidden md:inline-flex"
               disabled={os.estoque_baixado}
               onClick={() => setBaixaOpen(true)}
             >
               <PackageMinus className="h-4 w-4 mr-1" />
               {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
             </Button>
+            {/* Celular: os secundários vão para o menu "Mais", com os MESMOS gates dos botões acima. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="md:hidden h-11">
+                  <MoreHorizontal className="h-4 w-4 mr-1" /> Mais
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {canSeePrices && (
+                  <DropdownMenuItem className="py-3" onClick={() => setPreviewOpen("cliente")}>
+                    <FileDown className="h-4 w-4 mr-2" /> PDF Cliente
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem className="py-3" onClick={() => setPreviewOpen("producao")}>
+                  <FileDown className="h-4 w-4 mr-2" /> PDF Produção
+                </DropdownMenuItem>
+                {canSeeFinancials && (
+                  <DropdownMenuItem className="py-3" disabled={gerandoFatura} onClick={gerarFatura}>
+                    <Receipt className="h-4 w-4 mr-2" />
+                    {gerandoFatura ? "Gerando…" : "Fatura"}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem className="py-3" disabled={os.estoque_baixado} onClick={() => setBaixaOpen(true)}>
+                  <PackageMinus className="h-4 w-4 mr-2" />
+                  {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
@@ -238,7 +280,7 @@ function OSDetailPage() {
           icon={FactoryIcon}
           tone="lime"
         />
-        {canSeeFinancials && (
+        {canSeePrices && (
           <KpiCard
             label="Valor total"
             value={`R$ ${Number(os.valor_total ?? 0).toFixed(2)}`}
@@ -259,7 +301,7 @@ function OSDetailPage() {
         </TabsList>
 
         <TabsContent value="resumo"><ResumoTab os={os} /></TabsContent>
-        <TabsContent value="itens"><ItensTab osId={id} canSeeFinancials={canSeeFinancials} /></TabsContent>
+        <TabsContent value="itens"><ItensTab osId={id} canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} /></TabsContent>
         <TabsContent value="arquivos"><ArquivosTab osId={id} userId={user?.id} /></TabsContent>
         <TabsContent value="tarefas"><TarefasTab osId={id} userId={user?.id} /></TabsContent>
         <TabsContent value="historico"><HistoricoTab osId={id} /></TabsContent>
@@ -330,7 +372,17 @@ function ResumoTab({ os }: { os: any }) {
   );
 }
 
-function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: boolean }) {
+function ItensTab({
+  osId,
+  canSeeFinancials,
+  canSeePrices,
+  nivelDeVisao,
+}: {
+  osId: string;
+  canSeeFinancials: boolean;
+  canSeePrices: boolean;
+  nivelDeVisao: NivelDeVisao;
+}) {
   const qc = useQueryClient();
   const [form, setForm] = useState({
     descricao: "",
@@ -341,9 +393,10 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
     produto_id: null as string | null,
   });
   const { data: itens = [] } = useQuery({
-    queryKey: ["itens-os", osId, canSeeFinancials ? "financeiro" : "operacional"],
+    queryKey: ["itens-os", osId, nivelDeVisao],
     queryFn: async () => {
-      const { data } = await fromFinancialView("itens_os", canSeeFinancials)
+      // select("*"): comercial devolve valor_unitario/valor_total sem custo_unitario.
+      const { data } = await fromFinancialView("itens_os", nivelDeVisao)
         .select("*")
         .eq("os_id", osId)
         .order("ordem");
@@ -353,7 +406,8 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
   async function add() {
     if (!form.descricao) return toast.error("Descrição obrigatória");
     const qtd = parseFloat(form.quantidade);
-    const vu = canSeeFinancials ? parseFloat(form.valor_unitario) : 0;
+    // Quem vê preço digita preço (vendedor inclusive); quem não vê grava 0.
+    const vu = canSeePrices ? parseFloat(form.valor_unitario) : 0;
     const { error } = await supabase.from("itens_os").insert({
       os_id: osId,
       descricao: form.descricao,
@@ -420,27 +474,28 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
               onChange={(e) => setForm({ ...form, unidade: e.target.value })}
             />
           </div>
+          {/* Valor un. é preço (vendedor vê); Custo un. é custo (só financeiro). */}
+          {canSeePrices && (
+            <div className="col-span-2">
+              <Label>Valor un.</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.valor_unitario}
+                onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
+              />
+            </div>
+          )}
           {canSeeFinancials && (
-            <>
-              <div className="col-span-2">
-                <Label>Valor un.</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={form.valor_unitario}
-                  onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Custo un.</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={form.custo_unitario}
-                  onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
-                />
-              </div>
-            </>
+            <div className="col-span-2">
+              <Label>Custo un.</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.custo_unitario}
+                onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
+              />
+            </div>
           )}
           <Button className="col-span-1" onClick={add}>
             <Plus className="h-4 w-4" />
@@ -451,7 +506,7 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
             <TableRow>
               <TableHead>Descrição</TableHead>
               <TableHead>Qtd</TableHead>
-              {canSeeFinancials && (
+              {canSeePrices && (
                 <>
                   <TableHead>Valor un.</TableHead>
                   <TableHead>Total</TableHead>
@@ -474,7 +529,7 @@ function ItensTab({ osId, canSeeFinancials }: { osId: string; canSeeFinancials: 
                 <TableCell>
                   {i.quantidade} {i.unidade}
                 </TableCell>
-                {canSeeFinancials && (
+                {canSeePrices && (
                   <>
                     <TableCell>R$ {Number(i.valor_unitario).toFixed(2)}</TableCell>
                     <TableCell>R$ {Number(i.valor_total).toFixed(2)}</TableCell>
