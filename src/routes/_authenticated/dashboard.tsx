@@ -28,6 +28,7 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { PendenciasDoMeuPapel } from "@/components/painel/PendenciasDoMeuPapel";
 import { MinhasComissoes } from "@/components/painel/MinhasComissoes";
 import { PainelProducao } from "@/components/painel/PainelProducao";
+import { MetaDoMes } from "@/components/painel/MetaDoMes";
 import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -402,6 +403,12 @@ function PainelCompleto({
           ))}
         </nav>
       )}
+
+      {/* Primeira coisa que quem responde pelo dinheiro tem de ver: falta
+          quanto para pagar as contas do mês. No desktop fica logo abaixo do
+          título; no celular os atalhos de ação continuam em cima, porque quem
+          abre o painel no balcão precisa do toque, não do número. */}
+      {canSeeFinancials && <MetaDoMes />}
 
       {/* O que o sistema espera de QUEM está logado. Cada papel vê só o que é
           dele; o bloco some quando não há nada pendente. */}

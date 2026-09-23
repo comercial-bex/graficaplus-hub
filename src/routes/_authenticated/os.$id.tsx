@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal, CalendarClock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,9 +84,68 @@ function OSDetailPage() {
   const qc = useQueryClient();
   // canSeePrices/nivelDeVisao: preço de venda (vendedor vê); canSeeFinancials:
   // custo, margem, fatura e a aba Financeiro (só quem tem financeiro.read).
-  const { canSeeFinancials, canSeePrices, nivelDeVisao, user } = useAuth();
+  const { canSeeFinancials, canSeePrices, nivelDeVisao, user, hasPermission } = useAuth();
   const [previewOpen, setPreviewOpen] = useState<null | "cliente" | "producao">(null);
   const [gerandoFatura, setGerandoFatura] = useState(false);
+  // Mesma regra da RPC agendar_os_na_maquina: kanban.move OU os.update.
+  // Quem não tem nem um nem outro não vê o botão — botão que só dá 42501 é
+  // botão morto.
+  const podeAgendar = hasPermission("kanban.move") || hasPermission("os.update");
+  const [agendando, setAgendando] = useState(false);
+  const [agendamento, setAgendamento] = useState<ResultadoAgendamento | null>(null);
+  // A RPC insere as reservas sem olhar o que já existe: clicar de novo agenda
+  // a MESMA peça uma segunda vez, em outro horário, e a máquina aparece com o
+  // dobro de horas ocupadas. Quem já tem reserva viva cancela na agenda antes.
+  const { data: reservasVivas } = useQuery({
+    queryKey: ["os-reservas-vivas", id],
+    enabled: podeAgendar,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("maquinas_agenda")
+        .select("id", { count: "exact", head: true })
+        .eq("os_id", id)
+        .in("status", ["agendado", "em_producao"]);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const jaAgendada = (reservasVivas ?? 0) > 0;
+
+  /**
+   * Cria as reservas de máquina a partir dos itens da OS.
+   *
+   * O retorno interessa mais que o sucesso: um item pulado por falta de máquina
+   * padrão ou de tempo de produção é um cadastro incompleto que a pessoa pode
+   * consertar agora. Por isso o resultado fica na tela, não só no toast — toast
+   * some em 4 segundos e leva o motivo junto.
+   */
+  async function agendarNaMaquina() {
+    setAgendando(true);
+    try {
+      const { data, error } = await (supabase.rpc as any)("agendar_os_na_maquina", { p_os_id: id });
+      if (error) throw error;
+      const r = (data ?? {}) as ResultadoAgendamento;
+      setAgendamento(r);
+      const criadas = Number(r.criadas ?? 0);
+      const puladas = Array.isArray(r.puladas) ? r.puladas : [];
+      if (criadas > 0) {
+        toast.success(criadas === 1 ? "1 reserva criada" : `${criadas} reservas criadas`);
+        qc.invalidateQueries({ queryKey: ["os", id] });
+        qc.invalidateQueries({ queryKey: ["maquinas-agenda"] });
+        qc.invalidateQueries({ queryKey: ["os-para-agenda"] });
+        qc.invalidateQueries({ queryKey: ["itens-os", id] });
+        qc.invalidateQueries({ queryKey: ["os-reservas-vivas", id] });
+      } else if (puladas.length === 0) {
+        toast.error("Esta OS não tem itens para agendar. Cadastre as peças na aba Itens.");
+      } else {
+        toast.warning("Nenhuma reserva criada. Veja o motivo de cada peça logo abaixo.");
+      }
+    } catch (e: unknown) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setAgendando(false);
+    }
+  }
 
   async function gerarFatura() {
     setGerandoFatura(true);
@@ -211,6 +270,20 @@ function OSDetailPage() {
                 {gerandoFatura ? "Gerando…" : "Fatura"}
               </Button>
             )}
+            {/* Agendar é ação de produção, não de dinheiro: gate por permissão de
+                mover produção, do mesmo jeito que a RPC faz no banco. */}
+            {podeAgendar && (
+              <Button
+                variant="outline"
+                className="hidden md:inline-flex"
+                disabled={agendando || jaAgendada}
+                title={jaAgendada ? "Esta OS já está na agenda. Cancele as reservas antes de agendar de novo." : undefined}
+                onClick={agendarNaMaquina}
+              >
+                <CalendarClock className="h-4 w-4 mr-1" />
+                {agendando ? "Agendando…" : jaAgendada ? "Já está na agenda" : "Agendar na máquina"}
+              </Button>
+            )}
             <Button
               variant="outline"
               className="hidden md:inline-flex"
@@ -242,6 +315,16 @@ function OSDetailPage() {
                     {gerandoFatura ? "Gerando…" : "Fatura"}
                   </DropdownMenuItem>
                 )}
+                {podeAgendar && (
+                  <DropdownMenuItem
+                    className="py-3"
+                    disabled={agendando || jaAgendada}
+                    onClick={agendarNaMaquina}
+                  >
+                    <CalendarClock className="h-4 w-4 mr-2" />
+                    {agendando ? "Agendando…" : jaAgendada ? "Já está na agenda" : "Agendar na máquina"}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem className="py-3" disabled={os.estoque_baixado} onClick={() => setBaixaOpen(true)}>
                   <PackageMinus className="h-4 w-4 mr-2" />
                   {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
@@ -251,6 +334,14 @@ function OSDetailPage() {
           </div>
         }
       />
+
+      {agendamento && (
+        <ResultadoDoAgendamento
+          resultado={agendamento}
+          podeAbrirProdutos={hasPermission("custos.read")}
+          aoFechar={() => setAgendamento(null)}
+        />
+      )}
 
       {/* Quem ganha a comissão desta OS. Era herdado em silêncio do cliente; agora dá para ver e corrigir. */}
       <div className="rounded-lg border border-border bg-card px-4 py-3">
@@ -341,6 +432,164 @@ function OSDetailPage() {
           qc.invalidateQueries({ queryKey: ["historico-estoque", id] });
         }}
       />
+    </div>
+  );
+}
+
+type ReservaCriada = { id: string; maquina: string | null; item: string; inicio: string; minutos: number };
+type ItemPulado = { item: string; motivo: string };
+type ResultadoAgendamento = {
+  os?: number | string;
+  criadas?: number;
+  reservas?: ReservaCriada[];
+  puladas?: ItemPulado[];
+};
+
+/**
+ * Cada motivo de pulo vira um caminho clicável — o motivo só serve se levar à
+ * tela onde ele se resolve. "Produto sem máquina padrão" e "sem tempo de
+ * produção" são cadastro de produto; "sem horário livre" é agenda cheia.
+ *
+ * `precisaCustosRead`: /produtos exige custos.read. O designer tem os.update
+ * (e portanto agenda), mas não abre /produtos — nesse caso mostramos o que
+ * falta sem oferecer um link que devolveria "sem acesso".
+ */
+function comoResolver(motivo: string): { texto: string; para: string; precisaCustosRead: boolean } | null {
+  if (/m[áa]quina padr[ãa]o/i.test(motivo))
+    return { texto: "Definir a máquina padrão do produto", para: "/produtos", precisaCustosRead: true };
+  if (/tempo de produ[çc][ãa]o/i.test(motivo))
+    return { texto: "Informar o tempo de produção do produto", para: "/produtos", precisaCustosRead: true };
+  if (/hor[áa]rio livre/i.test(motivo))
+    return { texto: "Ver a agenda das máquinas", para: "/maquinas-agenda", precisaCustosRead: false };
+  return null;
+}
+
+function quandoComeca(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * O que saiu do agendamento, na tela e não só no toast.
+ *
+ * O toast some em segundos e leva junto a única informação acionável: qual
+ * peça não entrou e por quê. Quem está no balcão precisa ler isso com calma e
+ * clicar para consertar o cadastro.
+ */
+function ResultadoDoAgendamento({
+  resultado,
+  podeAbrirProdutos,
+  aoFechar,
+}: {
+  resultado: ResultadoAgendamento;
+  podeAbrirProdutos: boolean;
+  aoFechar: () => void;
+}) {
+  const reservas = Array.isArray(resultado.reservas) ? resultado.reservas : [];
+  const puladas = Array.isArray(resultado.puladas) ? resultado.puladas : [];
+  const criadas = Number(resultado.criadas ?? 0);
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-4 py-3 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <CalendarClock className="h-4 w-4 text-[color:var(--bex-cyan)]" />
+          {criadas > 0
+            ? criadas === 1
+              ? "1 reserva criada na agenda das máquinas"
+              : `${criadas} reservas criadas na agenda das máquinas`
+            : "Nenhuma reserva foi criada"}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-11 md:h-8 shrink-0 text-xs"
+          onClick={aoFechar}
+        >
+          Fechar
+        </Button>
+      </div>
+
+      {reservas.length > 0 && (
+        <ul className="space-y-1 text-xs text-muted-foreground">
+          {reservas.map((r) => (
+            <li key={r.id}>
+              <span className="text-foreground">{r.item}</span> · {r.maquina ?? "máquina"} ·{" "}
+              {quandoComeca(r.inicio)} · {r.minutos} min
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Peça sem cadastro completo não entra na agenda em silêncio: aparece
+          aqui com o motivo e o caminho para resolver. */}
+      {puladas.length > 0 && (
+        <div className="space-y-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 p-3">
+          <div className="flex items-center gap-2 text-xs font-medium text-[color:var(--bex-amber)]">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            {puladas.length === 1
+              ? "1 peça ficou de fora da agenda"
+              : `${puladas.length} peças ficaram de fora da agenda`}
+          </div>
+          <ul className="space-y-2 text-xs">
+            {puladas.map((p, i) => {
+              const saida = comoResolver(p.motivo);
+              const podeIr = saida && (!saida.precisaCustosRead || podeAbrirProdutos);
+              return (
+                <li key={`${p.item}-${i}`} className="space-y-0.5">
+                  <div>
+                    <span className="font-medium">{p.item}</span>
+                    <span className="text-muted-foreground"> — {p.motivo}</span>
+                  </div>
+                  {podeIr && saida ? (
+                    <Link
+                      to={saida.para}
+                      className="inline-flex min-h-[44px] items-center text-[color:var(--bex-cyan)] underline underline-offset-2 md:min-h-0"
+                    >
+                      {saida.texto}
+                    </Link>
+                  ) : (
+                    saida && (
+                      <div className="text-muted-foreground">
+                        Peça ao gestor: {saida.texto.toLowerCase()}.
+                      </div>
+                    )
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {/* Agendamento parcial é beco sem saída se ninguém avisar: o botão
+              trava enquanto a OS tiver reserva viva (senão a peça já agendada
+              entraria duas vezes), então corrigir o cadastro não basta — tem
+              de cancelar o que entrou e agendar de novo. */}
+          {criadas > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Depois de corrigir o cadastro, cancele na{" "}
+              <Link
+                to="/maquinas-agenda"
+                className="text-[color:var(--bex-cyan)] underline underline-offset-2"
+              >
+                agenda das máquinas
+              </Link>{" "}
+              {criadas === 1 ? "a reserva" : `as ${criadas} reservas`} desta OS e agende de novo —
+              o botão só libera com a OS fora da agenda, para não reservar a mesma peça duas vezes.
+            </p>
+          )}
+        </div>
+      )}
+
+      {criadas === 0 && puladas.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          Esta OS não tem itens. Cadastre as peças na aba <strong>Itens</strong> e agende de novo.
+        </p>
+      )}
     </div>
   );
 }

@@ -66,4 +66,27 @@ describe("mensagemErro", () => {
     expect(mensagemErro(new Error("violates not-null constraint")))
       .toBe("Preencha todos os campos obrigatórios.");
   });
+
+  /**
+   * A trava `maquinas_agenda_sem_sobreposicao` impede duas reservas vivas da
+   * mesma máquina no mesmo horário. O Postgres devolve 23P01 e uma frase que
+   * só cita o nome do índice — quem está agendando precisa ler o que fazer.
+   */
+  const CONFLITO = "Esta máquina já tem reserva nesse horário. Escolha outro horário ou outra máquina.";
+
+  it("traduz conflito de agenda pelo código 23P01", () => {
+    expect(
+      mensagemErro({ code: "23P01", message: "conflicting key value violates exclusion constraint" }),
+    ).toBe(CONFLITO);
+  });
+
+  it("traduz conflito de agenda pelo nome da trava, sem código", () => {
+    expect(
+      mensagemErro(
+        new Error(
+          'conflicting key value violates exclusion constraint "maquinas_agenda_sem_sobreposicao"',
+        ),
+      ),
+    ).toBe(CONFLITO);
+  });
 });
