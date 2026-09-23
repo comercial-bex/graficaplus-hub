@@ -37,9 +37,11 @@ import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authe
 import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
 import { Route as AuthenticatedParceirosRouteImport } from './routes/_authenticated/parceiros'
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
+import { Route as AuthenticatedOndeParaRouteImport } from './routes/_authenticated/onde-para'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
 import { Route as AuthenticatedMetragemRouteImport } from './routes/_authenticated/metragem'
+import { Route as AuthenticatedMetaRouteImport } from './routes/_authenticated/meta'
 import { Route as AuthenticatedMatrizPermissoesRouteImport } from './routes/_authenticated/matriz-permissoes'
 import { Route as AuthenticatedMateriaisRouteImport } from './routes/_authenticated/materiais'
 import { Route as AuthenticatedMaquinasAgendaRouteImport } from './routes/_authenticated/maquinas-agenda'
@@ -60,12 +62,14 @@ import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustosProducaoRouteImport } from './routes/_authenticated/custos-producao'
 import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_authenticated/contas-bancarias'
+import { Route as AuthenticatedConflitosAgendaRouteImport } from './routes/_authenticated/conflitos-agenda'
 import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedCompromissosRouteImport } from './routes/_authenticated/compromissos'
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedCasosDeUsoRouteImport } from './routes/_authenticated/casos-de-uso'
+import { Route as AuthenticatedCapacidadeRouteImport } from './routes/_authenticated/capacidade'
 import { Route as AuthenticatedBreakdown3dRouteImport } from './routes/_authenticated/breakdown-3d'
 import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated/avisos'
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
@@ -228,6 +232,11 @@ const AuthenticatedOrcamento3dNovoRoute =
     path: '/orcamento-3d-novo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOndeParaRoute = AuthenticatedOndeParaRouteImport.update({
+  id: '/onde-para',
+  path: '/onde-para',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOcorrenciasRoute =
   AuthenticatedOcorrenciasRouteImport.update({
     id: '/ocorrencias',
@@ -243,6 +252,11 @@ const AuthenticatedMovimentacoesRoute =
 const AuthenticatedMetragemRoute = AuthenticatedMetragemRouteImport.update({
   id: '/metragem',
   path: '/metragem',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMetaRoute = AuthenticatedMetaRouteImport.update({
+  id: '/meta',
+  path: '/meta',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMatrizPermissoesRoute =
@@ -353,6 +367,12 @@ const AuthenticatedContasBancariasRoute =
     path: '/contas-bancarias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConflitosAgendaRoute =
+  AuthenticatedConflitosAgendaRouteImport.update({
+    id: '/conflitos-agenda',
+    path: '/conflitos-agenda',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesEmpresaRoute =
   AuthenticatedConfiguracoesEmpresaRouteImport.update({
     id: '/configuracoes-empresa',
@@ -385,6 +405,11 @@ const AuthenticatedComprasRoute = AuthenticatedComprasRouteImport.update({
 const AuthenticatedCasosDeUsoRoute = AuthenticatedCasosDeUsoRouteImport.update({
   id: '/casos-de-uso',
   path: '/casos-de-uso',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCapacidadeRoute = AuthenticatedCapacidadeRouteImport.update({
+  id: '/capacidade',
+  path: '/capacidade',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBreakdown3dRoute =
@@ -479,12 +504,14 @@ export interface FileRoutesByFullPath {
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
+  '/capacidade': typeof AuthenticatedCapacidadeRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
+  '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -505,9 +532,11 @@ export interface FileRoutesByFullPath {
   '/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/materiais': typeof AuthenticatedMateriaisRoute
   '/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
+  '/meta': typeof AuthenticatedMetaRoute
   '/metragem': typeof AuthenticatedMetragemRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/onde-para': typeof AuthenticatedOndeParaRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/parceiros': typeof AuthenticatedParceirosRoute
   '/perdas': typeof AuthenticatedPerdasRoute
@@ -551,12 +580,14 @@ export interface FileRoutesByTo {
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
+  '/capacidade': typeof AuthenticatedCapacidadeRoute
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
+  '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -577,9 +608,11 @@ export interface FileRoutesByTo {
   '/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/materiais': typeof AuthenticatedMateriaisRoute
   '/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
+  '/meta': typeof AuthenticatedMetaRoute
   '/metragem': typeof AuthenticatedMetragemRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/onde-para': typeof AuthenticatedOndeParaRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/parceiros': typeof AuthenticatedParceirosRoute
   '/perdas': typeof AuthenticatedPerdasRoute
@@ -626,12 +659,14 @@ export interface FileRoutesById {
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
   '/_authenticated/avisos': typeof AuthenticatedAvisosRoute
   '/_authenticated/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
+  '/_authenticated/capacidade': typeof AuthenticatedCapacidadeRoute
   '/_authenticated/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/_authenticated/compras': typeof AuthenticatedComprasRoute
   '/_authenticated/compromissos': typeof AuthenticatedCompromissosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
+  '/_authenticated/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/_authenticated/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/_authenticated/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -652,9 +687,11 @@ export interface FileRoutesById {
   '/_authenticated/maquinas-agenda': typeof AuthenticatedMaquinasAgendaRoute
   '/_authenticated/materiais': typeof AuthenticatedMateriaisRoute
   '/_authenticated/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
+  '/_authenticated/meta': typeof AuthenticatedMetaRoute
   '/_authenticated/metragem': typeof AuthenticatedMetragemRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/_authenticated/onde-para': typeof AuthenticatedOndeParaRoute
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/_authenticated/parceiros': typeof AuthenticatedParceirosRoute
   '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
@@ -701,12 +738,14 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/avisos'
     | '/breakdown-3d'
+    | '/capacidade'
     | '/casos-de-uso'
     | '/compras'
     | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-empresa'
+    | '/conflitos-agenda'
     | '/contas-bancarias'
     | '/custos-producao'
     | '/dashboard'
@@ -727,9 +766,11 @@ export interface FileRouteTypes {
     | '/maquinas-agenda'
     | '/materiais'
     | '/matriz-permissoes'
+    | '/meta'
     | '/metragem'
     | '/movimentacoes'
     | '/ocorrencias'
+    | '/onde-para'
     | '/orcamento-3d-novo'
     | '/parceiros'
     | '/perdas'
@@ -773,12 +814,14 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/avisos'
     | '/breakdown-3d'
+    | '/capacidade'
     | '/casos-de-uso'
     | '/compras'
     | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-empresa'
+    | '/conflitos-agenda'
     | '/contas-bancarias'
     | '/custos-producao'
     | '/dashboard'
@@ -799,9 +842,11 @@ export interface FileRouteTypes {
     | '/maquinas-agenda'
     | '/materiais'
     | '/matriz-permissoes'
+    | '/meta'
     | '/metragem'
     | '/movimentacoes'
     | '/ocorrencias'
+    | '/onde-para'
     | '/orcamento-3d-novo'
     | '/parceiros'
     | '/perdas'
@@ -847,12 +892,14 @@ export interface FileRouteTypes {
     | '/_authenticated/automacoes'
     | '/_authenticated/avisos'
     | '/_authenticated/breakdown-3d'
+    | '/_authenticated/capacidade'
     | '/_authenticated/casos-de-uso'
     | '/_authenticated/compras'
     | '/_authenticated/compromissos'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
     | '/_authenticated/configuracoes-empresa'
+    | '/_authenticated/conflitos-agenda'
     | '/_authenticated/contas-bancarias'
     | '/_authenticated/custos-producao'
     | '/_authenticated/dashboard'
@@ -873,9 +920,11 @@ export interface FileRouteTypes {
     | '/_authenticated/maquinas-agenda'
     | '/_authenticated/materiais'
     | '/_authenticated/matriz-permissoes'
+    | '/_authenticated/meta'
     | '/_authenticated/metragem'
     | '/_authenticated/movimentacoes'
     | '/_authenticated/ocorrencias'
+    | '/_authenticated/onde-para'
     | '/_authenticated/orcamento-3d-novo'
     | '/_authenticated/parceiros'
     | '/_authenticated/perdas'
@@ -1122,6 +1171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrcamento3dNovoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onde-para': {
+      id: '/_authenticated/onde-para'
+      path: '/onde-para'
+      fullPath: '/onde-para'
+      preLoaderRoute: typeof AuthenticatedOndeParaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ocorrencias': {
       id: '/_authenticated/ocorrencias'
       path: '/ocorrencias'
@@ -1141,6 +1197,13 @@ declare module '@tanstack/react-router' {
       path: '/metragem'
       fullPath: '/metragem'
       preLoaderRoute: typeof AuthenticatedMetragemRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/meta': {
+      id: '/_authenticated/meta'
+      path: '/meta'
+      fullPath: '/meta'
+      preLoaderRoute: typeof AuthenticatedMetaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/matriz-permissoes': {
@@ -1283,6 +1346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContasBancariasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/conflitos-agenda': {
+      id: '/_authenticated/conflitos-agenda'
+      path: '/conflitos-agenda'
+      fullPath: '/conflitos-agenda'
+      preLoaderRoute: typeof AuthenticatedConflitosAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes-empresa': {
       id: '/_authenticated/configuracoes-empresa'
       path: '/configuracoes-empresa'
@@ -1323,6 +1393,13 @@ declare module '@tanstack/react-router' {
       path: '/casos-de-uso'
       fullPath: '/casos-de-uso'
       preLoaderRoute: typeof AuthenticatedCasosDeUsoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/capacidade': {
+      id: '/_authenticated/capacidade'
+      path: '/capacidade'
+      fullPath: '/capacidade'
+      preLoaderRoute: typeof AuthenticatedCapacidadeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/breakdown-3d': {
@@ -1439,12 +1516,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
   AuthenticatedAvisosRoute: typeof AuthenticatedAvisosRoute
   AuthenticatedBreakdown3dRoute: typeof AuthenticatedBreakdown3dRoute
+  AuthenticatedCapacidadeRoute: typeof AuthenticatedCapacidadeRoute
   AuthenticatedCasosDeUsoRoute: typeof AuthenticatedCasosDeUsoRoute
   AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
   AuthenticatedCompromissosRoute: typeof AuthenticatedCompromissosRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
   AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
+  AuthenticatedConflitosAgendaRoute: typeof AuthenticatedConflitosAgendaRoute
   AuthenticatedContasBancariasRoute: typeof AuthenticatedContasBancariasRoute
   AuthenticatedCustosProducaoRoute: typeof AuthenticatedCustosProducaoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -1465,9 +1544,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMaquinasAgendaRoute: typeof AuthenticatedMaquinasAgendaRoute
   AuthenticatedMateriaisRoute: typeof AuthenticatedMateriaisRoute
   AuthenticatedMatrizPermissoesRoute: typeof AuthenticatedMatrizPermissoesRoute
+  AuthenticatedMetaRoute: typeof AuthenticatedMetaRoute
   AuthenticatedMetragemRoute: typeof AuthenticatedMetragemRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
+  AuthenticatedOndeParaRoute: typeof AuthenticatedOndeParaRoute
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
   AuthenticatedParceirosRoute: typeof AuthenticatedParceirosRoute
   AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
@@ -1498,6 +1579,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
   AuthenticatedAvisosRoute: AuthenticatedAvisosRoute,
   AuthenticatedBreakdown3dRoute: AuthenticatedBreakdown3dRoute,
+  AuthenticatedCapacidadeRoute: AuthenticatedCapacidadeRoute,
   AuthenticatedCasosDeUsoRoute: AuthenticatedCasosDeUsoRoute,
   AuthenticatedComprasRoute: AuthenticatedComprasRoute,
   AuthenticatedCompromissosRoute: AuthenticatedCompromissosRoute,
@@ -1505,6 +1587,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
   AuthenticatedConfiguracoesEmpresaRoute:
     AuthenticatedConfiguracoesEmpresaRoute,
+  AuthenticatedConflitosAgendaRoute: AuthenticatedConflitosAgendaRoute,
   AuthenticatedContasBancariasRoute: AuthenticatedContasBancariasRoute,
   AuthenticatedCustosProducaoRoute: AuthenticatedCustosProducaoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
@@ -1525,9 +1608,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMaquinasAgendaRoute: AuthenticatedMaquinasAgendaRoute,
   AuthenticatedMateriaisRoute: AuthenticatedMateriaisRoute,
   AuthenticatedMatrizPermissoesRoute: AuthenticatedMatrizPermissoesRoute,
+  AuthenticatedMetaRoute: AuthenticatedMetaRoute,
   AuthenticatedMetragemRoute: AuthenticatedMetragemRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
+  AuthenticatedOndeParaRoute: AuthenticatedOndeParaRoute,
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
   AuthenticatedParceirosRoute: AuthenticatedParceirosRoute,
   AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,

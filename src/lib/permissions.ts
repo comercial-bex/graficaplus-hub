@@ -112,6 +112,15 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/arquivos", permissions: ["arquivos.read", "arquivos.approve"] },
   { path: "/maquinas-agenda", permissions: ["agenda.read", "os.read"] },
   { path: "/maquinas", permissions: ["maquinas.read", "os.read"] },
+  // Capacidade lê `maquinas` (horas produtivas, custo/hora) e as reservas da OS.
+  // O custo por hora já vem nulo da RPC para quem não é financeiro, então a
+  // permissão de leitura de máquina basta para abrir a tela.
+  { path: "/capacidade", permissions: ["maquinas.read", "os.read"] },
+  // Onde o trabalho para é o histórico de status da OS: quem lê OS lê isso.
+  { path: "/onde-para", permissions: ["os.read"] },
+  // Conflitos de agenda lê `maquinas_agenda` e `maquinas` — as mesmas duas
+  // tabelas de /maquinas-agenda, por isso carrega agenda.read junto.
+  { path: "/conflitos-agenda", permissions: ["agenda.read", "maquinas.read", "os.read"] },
   { path: "/perdas", permissions: ["os.read"] },
   { path: "/planilha-custos", permissions: ["custos.read"] },
   { path: "/precificacao", permissions: ["custos.read"] },
@@ -125,6 +134,12 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/produtos", permissions: ["custos.read"] },
   { path: "/aprovacoes", permissions: ["orcamentos.read", "arquivos.approve"] },
   { path: "/metragem", permissions: ["orcamentos.read", "os.read"] },
+  // "/metragem" ANTES de "/meta": o casamento é exato ou por "/meta/", então
+  // hoje não há conflito — mas a ordem deixa a regra escrita caso o find()
+  // volte a ser um startsWith solto, como já foi.
+  // O vendedor entra com precos.read e vê só o ranking de produto; o bloco do
+  // ponto de equilíbrio se esconde sozinho sem canSeeFinancials.
+  { path: "/meta", permissions: ["precos.read", "financeiro.read"] },
   { path: "/ocorrencias", permissions: ["os.read"] },
   { path: "/relatorios", permissions: ["resultado.read"] },
   { path: "/portal-cliente", permissions: ["portal.read", "clientes.read"] },

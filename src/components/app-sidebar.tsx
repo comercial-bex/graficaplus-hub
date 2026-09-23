@@ -46,6 +46,10 @@ import {
   FileCheck2,
   Ruler,
   Handshake,
+  Activity,
+  Hourglass,
+  CalendarClock,
+  Target,
 } from "lucide-react";
 import {
   Sidebar,
@@ -88,6 +92,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Orçamentos", url: "/orcamentos", icon: FileText },
       { title: "Aprovações", url: "/aprovacoes", icon: FileCheck2 },
       { title: "Metragem por cliente", url: "/metragem", icon: Ruler },
+      { title: "Meta do mês", url: "/meta", icon: Target },
       { title: "Impressão 3D", url: "/impressao-3d", icon: Cuboid },
       { title: "Produtividade 3D", url: "/produtividade-3d", icon: Gauge },
       { title: "Custo por peça 3D", url: "/breakdown-3d", icon: Calculator },
@@ -109,6 +114,11 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Arquivos", url: "/arquivos", icon: FolderOpen },
       { title: "Máquinas", url: "/maquinas", icon: Factory },
       { title: "Agenda de máquinas", url: "/maquinas-agenda", icon: Calendar },
+      // As três leituras da agenda ficam logo abaixo dela: quanto cabe,
+      // onde emperra e o que já está errado no que foi reservado.
+      { title: "Capacidade da oficina", url: "/capacidade", icon: Activity },
+      { title: "Onde o trabalho para", url: "/onde-para", icon: Hourglass },
+      { title: "Conflitos de agenda", url: "/conflitos-agenda", icon: CalendarClock },
       { title: "Manutenção", url: "/manutencao", icon: Wrench },
       { title: "Entregas & Instalações", url: "/entregas", icon: Truck },
       { title: "Perdas & desperdício", url: "/perdas", icon: TrendingDown },

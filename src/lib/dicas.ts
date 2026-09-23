@@ -225,6 +225,54 @@ export const dicas = {
     menu: "Reserva de horários das máquinas.",
     tela: "Agenda dos equipamentos. Evita duas ordens disputando a mesma máquina no mesmo horário.",
   },
+  "/capacidade": {
+    menu: "Quanto de cada máquina já está vendido na semana, e quanto ainda cabe.",
+    tela: "Horas de cada máquina na janela escolhida: quantas existem, quantas já estão reservadas por OS e quanto sobra. Serve para responder o cliente no balcão — 'cabe para sexta?' — sem chutar. Máquina sem custo por hora ou sem velocidade cadastrada aparece na lista de pendências, porque sem esses dois números a conta da hora não fecha.",
+    campos: {
+      horas_disponiveis:
+        "Horas produtivas da máquina no mês, proporcionais aos dias úteis da janela. É o teto, não a promessa.",
+      horas_reservadas: "Soma das reservas vivas (agendadas e em produção) na janela. É trabalho já vendido.",
+      ocupacao: "Reservado dividido pelo disponível. Verde abaixo de 70%, âmbar de 70 a 95, vermelho acima.",
+      velocidade: "Quanto a máquina produz por hora (m²/h). Sem ela o sistema não sabe transformar peça em tempo.",
+      custo_hora: "Quanto custa manter a máquina ligada por uma hora. Só aparece para quem vê financeiro.",
+    },
+  },
+  "/onde-para": {
+    menu: "Em qual etapa as ordens de serviço estão emperrando agora.",
+    tela: "Cada OS aberta na etapa em que está e há quantos dias não sai dela. Mostra o gargalo do momento e quem precisa agir para destravar. Diferente do quadro de produção, que mostra onde o trabalho está: aqui o que importa é há quanto tempo ele está parado.",
+    campos: {
+      dias_parada: "Dias desde a última mudança de etapa desta OS. Conta do histórico, não da data de criação.",
+      mediana: "O tempo do caso do meio da etapa. Um trabalho muito antigo não empurra este número sozinho.",
+      gargalo: "A etapa com mais OS presas há mais de 7 dias. É por onde começar a destravar.",
+    },
+  },
+  "/conflitos-agenda": {
+    menu: "Reserva sobreposta, esquecida ou que não cabe no prazo prometido.",
+    tela: "O que ainda pode dar errado na agenda das máquinas. O banco já recusa duas reservas vivas no mesmo horário da mesma máquina; esta tela mostra o resto, que a trava não vê: reserva esquecida em 'agendado' com a hora já passada, produção estourando o tempo previsto, reserva digitada à mão sem OS e prazo prometido que não cabe na fila.",
+    campos: {
+      reserva_esquecida:
+        "Continua como 'agendado' com o horário já no passado. Ou a peça rodou e ninguém apontou, ou a máquina ficou parada.",
+      sem_os: "Reserva digitada à mão, sem ordem de serviço. Segura a máquina sem ninguém saber de qual trabalho é.",
+      prazo_que_nao_cabe: "A reserva termina depois da data prometida ao cliente. Ou antecipa a fila, ou avisa o cliente.",
+    },
+  },
+  "/meta": {
+    // O menu mostra este texto para quem tem preco.read OU financeiro.read — o
+    // vendedor entra só com preço e nunca vê o ponto de equilíbrio. Por isso a
+    // frase começa pelo que todo mundo vê e marca o resto como do financeiro:
+    // prometer no menu um número que a tela vai esconder é o mesmo defeito de
+    // mostrar zero por falta de permissão.
+    menu: "Qual peça paga melhor a hora de máquina — e, para quem vê financeiro, quanto falta para o mês empatar.",
+    tela: "O mês em dois números. Primeiro o ponto de equilíbrio: quanto a gráfica precisa faturar para pagar o custo fixo com a margem que pratica — o que já entrou, o que está na oficina e o que falta. Depois o ranking de produtos por quanto cada um rende por hora de máquina, que é o que diz onde vale empurrar a venda. Sem acesso ao financeiro, só o ranking aparece.",
+    campos: {
+      custo_fixo: "O que a gráfica gasta no mês mesmo sem produzir nada: aluguel, salários, energia de base.",
+      margem_de_contribuicao:
+        "O que sobra de cada real vendido depois de material, perda, falha, imposto e taxa de cartão. É com isso que se paga o custo fixo.",
+      meta_de_faturamento: "Custo fixo dividido pela margem de contribuição. Abaixo disso o mês fecha no prejuízo.",
+      em_producao: "Trabalho já na oficina que ainda não foi concluído. Não conta como realizado, mas está a caminho.",
+      margem_hora: "Quanto o produto deixa por hora de máquina ocupada. Preço alto com tempo longo pode render menos que peça rápida.",
+    },
+  },
   "/manutencao": {
     menu: "Manutenções preventivas e corretivas das máquinas.",
     tela: "Controle de manutenção: o que já foi feito, o que está previsto e quanto custou parar o equipamento.",

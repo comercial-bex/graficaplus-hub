@@ -9,6 +9,21 @@
 const GENERICA = "Não foi possível concluir a operação. Tente novamente.";
 
 /**
+ * Duas reservas vivas da mesma máquina no mesmo horário batem na trava
+ * `maquinas_agenda_sem_sobreposicao` e o Postgres devolve 23P01 com o texto
+ * "conflicting key value violates exclusion constraint" — que não diz nem qual
+ * máquina, nem o que fazer. É o único EXCLUDE do banco, então o código sozinho
+ * já identifica o caso.
+ */
+const CONFLITO_DE_AGENDA =
+  "Esta máquina já tem reserva nesse horário. Escolha outro horário ou outra máquina.";
+
+/** Erros que só se distinguem pelo código do Postgres, não pelo texto. */
+const POR_CODIGO: Record<string, string> = {
+  "23P01": CONFLITO_DE_AGENDA,
+};
+
+/**
  * Nome de coluna do banco em palavras. `custo_previsto` → "custo previsto".
  *
  * Alguns campos não têm nome óbvio para quem está na tela, e para esses vale
@@ -59,6 +74,7 @@ const REGRAS: Regra[] = [
   { teste: /unsupported provider/i, texto: "Este método de login não está habilitado." },
 
   // Banco de dados
+  { teste: /maquinas_agenda_sem_sobreposicao|exclusion constraint/i, texto: CONFLITO_DE_AGENDA },
   { teste: /duplicate key value|unique constraint/i, texto: "Já existe um registro com esses dados." },
   { teste: /foreign key constraint/i,
     texto: "Este registro está vinculado a outros dados e não pode ser removido ou alterado." },
@@ -92,6 +108,13 @@ const REGRAS: Regra[] = [
   { teste: /timeout|timed out|aborted/i, texto: "A operação demorou demais e foi cancelada. Tente novamente." },
 ];
 
+/** `code` do PostgrestError/PostgresError, quando o erro traz um. */
+function extrairCodigo(erro: unknown): string {
+  if (!erro || typeof erro !== "object") return "";
+  const c = (erro as Record<string, unknown>).code;
+  return typeof c === "string" ? c : "";
+}
+
 function extrairTexto(erro: unknown): string {
   if (!erro) return "";
   if (typeof erro === "string") return erro;
@@ -111,6 +134,14 @@ function extrairTexto(erro: unknown): string {
  * @param padrao mensagem exibida quando nenhum padrão conhecido é reconhecido
  */
 export function mensagemErro(erro: unknown, padrao: string = GENERICA): string {
+  // O código vem antes do texto: ele é mais confiável do que a frase em inglês,
+  // que muda de versão para versão do Postgres.
+  // A busca é por chave PRÓPRIA: indexar o objeto cru herda "constructor",
+  // "toString" e companhia do Object.prototype, e um erro cujo `code` fosse uma
+  // dessas palavras devolveria uma função no lugar da frase em português.
+  const codigo = extrairCodigo(erro);
+  if (Object.prototype.hasOwnProperty.call(POR_CODIGO, codigo)) return POR_CODIGO[codigo];
+
   const bruto = extrairTexto(erro);
   if (!bruto) return padrao;
 

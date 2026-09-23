@@ -108,6 +108,9 @@ export const casosDeUso: EtapaFluxo[] = [
       { label: "Kanban Produção", url: "/kanban" },
       { label: "Design & Arte", url: "/design" },
       { label: "Agenda de máquinas", url: "/maquinas-agenda" },
+      { label: "Capacidade da oficina", url: "/capacidade" },
+      { label: "Onde o trabalho para", url: "/onde-para" },
+      { label: "Conflitos de agenda", url: "/conflitos-agenda" },
       { label: "Produção 3D", url: "/producao-3d" },
       { label: "Movimentações", url: "/movimentacoes" },
     ],
@@ -115,6 +118,7 @@ export const casosDeUso: EtapaFluxo[] = [
       "os_tarefas",
       "apontamentos_producao",
       "maquinas_agenda",
+      "os_status_historico",
       "producao_3d_jobs",
       "producao_3d_apontamentos",
       "movimentacoes_estoque",
@@ -123,12 +127,15 @@ export const casosDeUso: EtapaFluxo[] = [
     validacoes: [
       "Baixa de estoque bloqueada se algum material ficar negativo",
       "Transição de status segue a máquina de estados; exceção exige os.status.override + motivo",
+      "Duas reservas vivas da mesma máquina em horário sobreposto são recusadas pelo banco (23P01); reserva encostada passa",
       "Arte precisa de aprovação registrada antes de liberar produção",
       "Checklist de qualidade obrigatório antes de 'pronto'",
     ],
     transferencias: [
       "RPC avancar_os_status / forcar_transicao_os → grava eventos_negocio e logs_auditoria",
       "RPC baixar_estoque_os → movimentacoes_estoque + custos reais da OS",
+      "RPC agendar_os_na_maquina → cria as reservas em maquinas_agenda a partir dos itens da OS",
+      "Gatilho de status → os_status_historico, de onde sai o tempo parado em cada etapa",
       "Automações → fila de WhatsApp para avisar o cliente a cada etapa",
     ],
     perfis: ["designer", "operador", "estoque", "gestor", "admin"],
@@ -189,6 +196,11 @@ export const mapaNodes: MapaNode[] = [
   { id: "maquinas", label: "Máquinas & Agenda", tipo: "modulo", camada: "producao", rota: "/maquinas-agenda" },
   { id: "producao3d", label: "Produção 3D", tipo: "modulo", camada: "producao", rota: "/producao-3d" },
   { id: "estoque", label: "Estoque & Materiais", tipo: "entidade", camada: "producao", rota: "/materiais" },
+  // As três leituras da agenda: quanto cabe, onde emperra e o que já está errado.
+  { id: "capacidade", label: "Capacidade da oficina", tipo: "modulo", camada: "producao", rota: "/capacidade" },
+  { id: "ondepara", label: "Onde o trabalho para", tipo: "modulo", camada: "producao", rota: "/onde-para" },
+  { id: "conflitos", label: "Conflitos de agenda", tipo: "modulo", camada: "producao", rota: "/conflitos-agenda" },
+  { id: "meta", label: "Meta do mês", tipo: "modulo", camada: "financeiro", rota: "/meta" },
   { id: "entregas", label: "Entregas", tipo: "modulo", camada: "posvenda", rota: "/entregas" },
   { id: "financeiro", label: "Financeiro", tipo: "modulo", camada: "financeiro", rota: "/financeiro" },
   { id: "resultado", label: "Resultado da OS", tipo: "entidade", camada: "financeiro", rota: "/relatorios" },
@@ -217,6 +229,16 @@ export const mapaEdges: MapaEdge[] = [
   { from: "financeiro", to: "resultado", label: "custos × receita" },
   { from: "resultado", to: "posvenda", label: "pesquisa NPS" },
   { from: "os", to: "portal", label: "documentos e acompanhamento" },
+  // A OS vira hora de máquina: os itens dela geram as reservas da agenda, e é
+  // dessas reservas que saem tanto a ocupação quanto os conflitos.
+  { from: "os", to: "capacidade", label: "agendar_os_na_maquina" },
+  { from: "capacidade", to: "maquinas", label: "horas produtivas e custo/hora" },
+  { from: "maquinas", to: "conflitos", label: "maquinas_agenda (sobreposição, prazo)" },
+  // Cada mudança de etapa grava em os_status_historico; é daí que sai o tempo parado.
+  { from: "kanban", to: "ondepara", label: "os_status_historico" },
+  { from: "ondepara", to: "os", label: "OS presa na etapa" },
+  { from: "financeiro", to: "meta", label: "ponto_de_equilibrio (custo fixo × margem)" },
+  { from: "produtos", to: "meta", label: "margem por hora de máquina" },
 ];
 
 export const perfisAtividades: { perfil: string; atividades: string[]; modulos: string[] }[] = [
@@ -227,18 +249,29 @@ export const perfisAtividades: { perfil: string; atividades: string[]; modulos: 
   },
   {
     perfil: "gestor",
-    atividades: ["Aprova orçamentos e descontos", "Distribui OS", "Acompanha margem"],
-    modulos: ["Comercial", "Produção", "Relatórios"],
+    atividades: [
+      "Aprova orçamentos e descontos",
+      "Distribui OS",
+      "Acompanha margem e a meta do mês",
+      "Destrava a etapa que está segurando a produção",
+    ],
+    modulos: ["Comercial", "Produção", "Meta do mês", "Onde o trabalho para", "Relatórios"],
   },
   {
     perfil: "financeiro",
-    atividades: ["Confirma e estorna pagamentos", "Fecha resultado da OS"],
-    modulos: ["Financeiro", "Relatórios"],
+    atividades: ["Confirma e estorna pagamentos", "Fecha resultado da OS", "Acompanha o ponto de equilíbrio"],
+    modulos: ["Financeiro", "Meta do mês", "Relatórios"],
   },
   {
     perfil: "vendedor",
-    atividades: ["Atende WhatsApp", "Cria leads, clientes e orçamentos"],
-    modulos: ["Atendimento", "Comercial"],
+    // O vendedor entra em /meta com precos.read: vê o ranking de margem por
+    // hora (onde vale empurrar a venda) e não vê o ponto de equilíbrio.
+    atividades: [
+      "Atende WhatsApp",
+      "Cria leads, clientes e orçamentos",
+      "Consulta qual peça rende mais por hora antes de oferecer",
+    ],
+    modulos: ["Atendimento", "Comercial", "Meta do mês"],
   },
   {
     perfil: "designer",
@@ -247,8 +280,8 @@ export const perfisAtividades: { perfil: string; atividades: string[]; modulos: 
   },
   {
     perfil: "operador",
-    atividades: ["Executa produção", "Registra apontamentos 2D e 3D"],
-    modulos: ["Kanban", "Produção 3D", "Máquinas"],
+    atividades: ["Executa produção", "Registra apontamentos 2D e 3D", "Confere o que ainda cabe na máquina"],
+    modulos: ["Kanban", "Produção 3D", "Máquinas", "Capacidade da oficina", "Conflitos de agenda"],
   },
   {
     perfil: "estoque",
