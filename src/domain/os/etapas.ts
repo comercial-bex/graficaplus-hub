@@ -273,3 +273,54 @@ export function osEstaAberta(status: string | null | undefined): boolean {
 export function osEstaEmProducao(status: string | null | undefined): boolean {
   return etapaDe(status) === "producao";
 }
+
+/* ------------------------------------------------------------------ *
+ * As travas de fechamento
+ * ------------------------------------------------------------------ */
+
+/**
+ * O que cada código de bloqueio de `fechar_os` quer dizer.
+ *
+ * A RPC devolve códigos — é o contrato, e mexer neles quebraria quem os lê.
+ * Traduzir é da tela. Este mapa existia SOLTO dentro de `os.$id.tsx`, e as
+ * outras duas portas para o mesmo fato (o Kanban e o painel de produção)
+ * mostravam o código cru numa mensagem de erro do Postgres. O impressor lia
+ * "custos_operacionais; pagamentos_pendentes" e não tinha o que fazer com isso.
+ */
+export const ROTULO_BLOQUEIO: Record<string, string> = {
+  tarefas_obrigatorias: "Tarefas obrigatórias pendentes",
+  qualidade_aprovada: "Qualidade não aprovada",
+  qualidade_reprovada_ou_retrabalho: "Qualidade reprovada ou em retrabalho",
+  materiais_baixados: "Materiais ainda não baixados",
+  ocorrencias_tratadas: "Ocorrências abertas",
+  logistica_concluida: "Entrega/instalação pendente",
+  custos_operacionais: "Sem custos operacionais registrados",
+  pagamentos_pendentes: "Pagamentos pendentes",
+  sem_responsavel: "Sem responsável definido",
+  sem_pagamento: "Nenhum pagamento registrado",
+  arte_nao_aprovada: "Arte ainda não aprovada",
+  sem_arquivo_final: "Sem arquivo final de produção",
+  material_insuficiente: "Material obrigatório em falta",
+  margem_baixa: "Margem abaixo do mínimo",
+  desconto_alto: "Desconto acima do limite",
+};
+
+export function rotuloBloqueio(codigo: string): string {
+  return ROTULO_BLOQUEIO[codigo] ?? codigo;
+}
+
+/**
+ * Traduz a mensagem que `avancar_os_status` levanta quando o fechamento é
+ * recusado: "A OS nao pode fechar ainda: custos_operacionais; pagamentos_pendentes."
+ * Devolve `null` quando a mensagem não é dessa forma, para quem chama cair no
+ * texto original em vez de inventar.
+ */
+export function traduzirBloqueios(mensagem: string): string | null {
+  const m = /n[aã]o pode fechar ainda:\s*(.+?)\.?$/i.exec(mensagem.trim());
+  if (!m) return null;
+  return m[1]
+    .split(";")
+    .map((c) => rotuloBloqueio(c.trim()))
+    .filter(Boolean)
+    .join(" · ");
+}

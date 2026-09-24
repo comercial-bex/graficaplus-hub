@@ -13,7 +13,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
 import { useAuth } from "@/lib/auth-context";
-import { etapaDe, rotuloDe, statusPadraoDaEtapa } from "@/domain/os/etapas";
+import { etapaDe, rotuloDe, statusPadraoDaEtapa, traduzirBloqueios } from "@/domain/os/etapas";
 import { semDinheiro } from "@/domain/os/bloqueio-sem-dinheiro";
 import type { BloqueioOs } from "@/components/kanban/cartao-os";
 import { PendenciasDoMeuPapel } from "./PendenciasDoMeuPapel";
@@ -166,6 +166,14 @@ function proximoPasso(os: OSDaFila): { rotulo: string; destino: string } | null 
       return { rotulo: "Mandar p/ acabamento", destino: statusPadraoDaEtapa("acabamento") };
     case "acabamento":
       return { rotulo: "Pronta", destino: statusPadraoDaEtapa("saida", os) };
+    // A saída não tinha passo nenhum: a OS chegava em "Pronta" e o painel
+    // parava ali. Para quem entrega, a baixa da entrega fecha a OS sozinha —
+    // mas a retirada no balcão, que é o caso mais comum da casa, não tinha
+    // botão em lugar nenhum: só mudando o status na tela de detalhe.
+    case "saida":
+      return os.status === "aguardando_retirada"
+        ? { rotulo: "Cliente retirou", destino: "concluido" }
+        : null;
     default:
       return null;
   }
@@ -326,10 +334,20 @@ export function PainelProducao() {
         novo_status: destino,
       });
       if (error) {
-        toast.error(mensagemErro(error));
+        // `avancar_os_status` para "concluido" passa por `fechar_os`, e o que
+        // volta são os códigos das travas. Mostrar "custos_operacionais;
+        // pagamentos_pendentes" para o impressor não é dizer nada.
+        const bruto = mensagemErro(error);
+        toast.error(traduzirBloqueios(bruto) ? "A OS ainda não pode fechar" : bruto, {
+          description: traduzirBloqueios(bruto) ?? undefined,
+        });
         return;
       }
-      toast.success(`OS #${os.numero ?? "—"} → ${rotuloDe(destino)}`);
+      toast.success(
+        destino === "concluido"
+          ? `OS #${os.numero ?? "—"} fechada — resultado gravado e pós-venda agendada`
+          : `OS #${os.numero ?? "—"} → ${rotuloDe(destino)}`,
+      );
     } catch (e) {
       toast.error(mensagemErro(e));
     } finally {

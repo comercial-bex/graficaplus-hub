@@ -7,12 +7,15 @@ import {
   fluxo,
   porEtapa,
   progressoDaEtapa,
+  ROTULO_BLOQUEIO,
   osEstaAberta,
   osEstaEmProducao,
   osEstaEncerrada,
   osFoiEntregue,
+  rotuloBloqueio,
   rotuloDe,
   setorDe,
+  traduzirBloqueios,
   statusInfo,
   statusPadraoDaEtapa,
 } from "../src/domain/os/etapas";
@@ -209,5 +212,51 @@ describe("encerrada, entregue, aberta", () => {
     expect(emProducao).toEqual(expect.arrayContaining(["producao", "em_producao"]));
     // ...e este NÃO, apesar de conter "producao" no nome.
     expect(osEstaEmProducao("aguardando_producao")).toBe(false);
+  });
+});
+
+describe("as travas de fechamento, em português", () => {
+  /**
+   * `avancar_os_status` para "concluido" passa por `fechar_os` e devolve os
+   * CÓDIGOS das travas. O mapa que traduz vivia solto dentro de `os.$id.tsx`,
+   * então as outras duas portas para o mesmo fato — o Kanban e o painel de
+   * produção — mostravam "custos_operacionais; pagamentos_pendentes" cru para
+   * quem está na oficina.
+   */
+  it("traduz a mensagem que o banco levanta", () => {
+    expect(traduzirBloqueios("A OS nao pode fechar ainda: custos_operacionais; pagamentos_pendentes."))
+      .toBe("Sem custos operacionais registrados · Pagamentos pendentes");
+  });
+
+  it("aceita com acento e sem ponto final", () => {
+    expect(traduzirBloqueios("A OS não pode fechar ainda: tarefas_obrigatorias"))
+      .toBe("Tarefas obrigatórias pendentes");
+  });
+
+  it("devolve null quando não é mensagem de trava, para não inventar texto", () => {
+    expect(traduzirBloqueios("permission denied for table ordens_servico")).toBeNull();
+    expect(traduzirBloqueios("")).toBeNull();
+  });
+
+  it("código desconhecido aparece cru, e não some", () => {
+    // Uma trava nova no banco tem de ficar VISÍVEL. Traduzir para vazio
+    // esconderia justamente o que o operador precisa resolver.
+    expect(rotuloBloqueio("trava_que_ainda_nao_existe")).toBe("trava_que_ainda_nao_existe");
+    expect(traduzirBloqueios("A OS nao pode fechar ainda: trava_nova; pagamentos_pendentes."))
+      .toBe("trava_nova · Pagamentos pendentes");
+  });
+
+  it("cobre os oito bloqueios de fechar_os e os seis de os_bloqueios_para", () => {
+    const DO_BANCO = [
+      // fechar_os
+      "tarefas_obrigatorias", "qualidade_aprovada", "qualidade_reprovada_ou_retrabalho",
+      "materiais_baixados", "ocorrencias_tratadas", "logistica_concluida",
+      "custos_operacionais", "pagamentos_pendentes",
+      // os_bloqueios_para
+      "sem_responsavel", "sem_pagamento", "arte_nao_aprovada", "sem_arquivo_final",
+      "material_insuficiente", "margem_baixa", "desconto_alto",
+    ];
+    const semRotulo = DO_BANCO.filter((c) => !ROTULO_BLOQUEIO[c]);
+    expect(semRotulo, `sem tradução: ${semRotulo.join(", ")}`).toEqual([]);
   });
 });

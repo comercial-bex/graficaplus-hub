@@ -23,7 +23,12 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { CalculadoraDeEncargos } from "@/components/custos/calculadora-de-encargos";
 import { ParametrosDaCasa } from "@/components/custos/parametros-da-casa";
-import { custoHoraComEncargos, quantoFalta } from "@/domain/financeiro/encargos";
+import {
+  custoHoraComEncargos,
+  parcelasDoRegime,
+  quantoFalta,
+  somarEncargos,
+} from "@/domain/financeiro/encargos";
 import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/custos-producao")({
@@ -115,6 +120,41 @@ function CustosProducaoPage() {
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
+  /**
+   * Aplicar o encargo do regime nas funções que estão em zero.
+   *
+   * A decisão da casa é UMA — qual é o regime tributário —, e o conserto exigia
+   * abrir cinco diálogos, um por função. Todo mundo continuou em zero, e a mão
+   * de obra de toda peça do sistema seguiu contada pela metade.
+   *
+   * Só toca em quem está zerado: quem já tem percentual preenchido foi decidido
+   * por alguém, e sobrescrever seria trocar uma decisão por um padrão.
+   */
+  const aplicarEncargos = useMutation({
+    mutationFn: async (regime: "simples" | "fora_do_simples") => {
+      const pct = somarEncargos(parcelasDoRegime(regime));
+      const alvos = funcoes.filter((f) => f.ativo && Number(f.encargos_pct ?? 0) <= 0);
+      if (alvos.length === 0) throw new Error("Nenhuma função está com encargo zerado.");
+      const { error } = await supabase
+        .from("custos_mao_de_obra")
+        .update({ encargos_pct: pct })
+        .in(
+          "id",
+          alvos.map((f) => f.id),
+        );
+      if (error) throw error;
+      return { quantas: alvos.length, pct };
+    },
+    onSuccess: ({ quantas, pct }) => {
+      toast.success(
+        `Encargo de ${(pct * 100).toFixed(1)}% aplicado em ${quantas} ${quantas === 1 ? "função" : "funções"}`,
+        { description: "O custo das peças foi recomposto: confira em Meta do mês." },
+      );
+      qc.invalidateQueries({ queryKey: ["custos-mao-de-obra"] });
+    },
+    onError: (e: Error) => toast.error(mensagemErro(e)),
+  });
+
   const ativos = funcoes.filter((f) => f.ativo);
   const custoTotalHora = ativos.reduce(
     (acc, f) => acc + custoHoraComEncargos(f.custo_hora, f.encargos_pct),
@@ -170,8 +210,39 @@ function CustosProducaoPage() {
             13º, férias e provisão de rescisão. Com os ~32% do Simples, o bloco de mão de
             obra de todo orçamento está{" "}
             <strong>{(quantoFalta(0.3219) * 100).toFixed(0)}% menor</strong> do que deveria —
-            e fora do Simples, {(quantoFalta(0.5999) * 100).toFixed(0)}%. Edite a função e
-            use <em>Calcular do salário</em>.
+            e fora do Simples, {(quantoFalta(0.5999) * 100).toFixed(0)}%.
+            {/* O conserto exigia abrir função por função, cinco diálogos, e
+                todo mundo continuou em zero. Quem decide é a casa, e a decisão
+                é UMA: qual é o regime. Daí para frente é aritmética. */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                Aplicar em {semEncargos.length === 1 ? "a função" : `todas as ${semEncargos.length}`}:
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9"
+                disabled={aplicarEncargos.isPending}
+                onClick={() => aplicarEncargos.mutate("simples")}
+              >
+                Simples Nacional ({(somarEncargos(parcelasDoRegime("simples")) * 100).toFixed(1)}%)
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9"
+                disabled={aplicarEncargos.isPending}
+                onClick={() => aplicarEncargos.mutate("fora_do_simples")}
+              >
+                Fora do Simples (
+                {(somarEncargos(parcelasDoRegime("fora_do_simples")) * 100).toFixed(1)}%)
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Muda só o percentual de encargo das funções que estão em zero; o custo/hora de
+              cada uma fica como está. Para ajustar uma função sozinha, edite-a e use{" "}
+              <em>Calcular do salário</em>.
+            </p>
           </div>
         </div>
       )}
