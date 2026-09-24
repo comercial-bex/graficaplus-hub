@@ -43,6 +43,11 @@ import { mensagemErro } from "@/lib/erros";
 import { rotuloDe } from "@/domain/os/etapas";
 import { formatarData } from "@/domain/os/prazo";
 
+import {
+  osEstaAberta,
+  osEstaEmProducao,
+  osFoiEntregue,
+} from "@/domain/os/etapas";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/os/")({
@@ -52,10 +57,14 @@ export const Route = createFileRoute("/_authenticated/os/")({
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+// As palavras vêm do enum `status_os`, via domínio. A versão anterior comparava
+// com "entregue", "concluida", "finalizada", "cancelada", "rascunho" e
+// "aguardando" — nenhuma delas existe no banco, então todo cartão saía ciano e
+// os KPIs de baixo contavam errado.
 const toneOS = (status: string): "cyan" | "magenta" | "amber" | "muted" => {
-  if (["entregue", "concluida", "finalizada"].includes(status)) return "amber";
-  if (["cancelada", "atrasada"].includes(status)) return "magenta";
-  if (status === "rascunho" || status === "aguardando") return "muted";
+  if (osFoiEntregue(status)) return "amber";
+  if (status === "cancelado") return "magenta";
+  if (status === "pausado") return "muted";
   return "cyan";
 };
 
@@ -76,6 +85,10 @@ function OSPage() {
     prazo_entrega: "",
     prioridade: "3",
     valor_total: "",
+    // Como a peça sai da gráfica. Sem esta resposta o gatilho que abre a
+    // entrega nunca dispara — a tabela de entregas estava com ZERO linhas
+    // desde sempre, não por falta de entrega, mas por falta da pergunta.
+    saida: "retirada" as "retirada" | "entrega" | "instalacao",
   });
 
   const { data: os = [], isLoading } = useQuery({
@@ -111,13 +124,14 @@ function OSPage() {
 
   const kpisOS = useMemo(() => {
     const lista = os as any[];
-    const finalizadas = ["entregue", "concluida", "finalizada", "cancelada"];
-    const abertas = lista.filter((o) => !finalizadas.includes(o.status));
+    const abertas = lista.filter((o) => osEstaAberta(o.status));
     return {
       abertas: abertas.length,
-      producao: lista.filter((o) => String(o.status).includes("producao")).length,
-      entregues: lista.filter((o) => ["entregue", "concluida", "finalizada"].includes(o.status))
-        .length,
+      // `includes("producao")` pegava aguardando_producao, producao e
+      // em_producao mas perdia as cinco máquinas — em_impressao, em_corte,
+      // em_laser_cnc, em_3d, em_uv —, que é onde a peça de fato está.
+      producao: lista.filter((o) => osEstaEmProducao(o.status)).length,
+      entregues: lista.filter((o) => osFoiEntregue(o.status)).length,
       valorAberto: abertas.reduce((a, o) => a + Number(o.valor_total ?? 0), 0),
     };
   }, [os]);
@@ -133,6 +147,8 @@ function OSPage() {
         prazo_entrega: form.prazo_entrega || null,
         prioridade: parseInt(form.prioridade),
         valor_total: canSeePrices ? parseFloat(form.valor_total || "0") : 0,
+        precisa_entrega: form.saida === "entrega",
+        precisa_instalacao: form.saida === "instalacao",
       })
       .select("id, numero")
       .single();
@@ -146,6 +162,7 @@ function OSPage() {
       prazo_entrega: "",
       prioridade: "3",
       valor_total: "",
+      saida: "retirada",
     });
     qc.invalidateQueries({ queryKey: ["os-list"] });
   }
@@ -230,6 +247,39 @@ function OSPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                {/* Uma pergunta, três destinos. Era caixinha de marcar, e
+                    caixinha desmarcada não distingue "não precisa" de "ninguém
+                    respondeu" — o mesmo zero disfarçado que deixou a agenda de
+                    entrega vazia. Rádio obriga a escolha e já começa no caso
+                    mais comum da casa, que é o cliente buscar no balcão. */}
+                <div className="space-y-2">
+                  <Label>Como a peça sai *</Label>
+                  <Select
+                    value={form.saida}
+                    onValueChange={(v: any) => setForm({ ...form, saida: v })}
+                  >
+                    <SelectTrigger className="h-11 md:h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="retirada">
+                        <span className="font-medium">O cliente retira no balcão</span>
+                      </SelectItem>
+                      <SelectItem value="entrega">
+                        <span className="font-medium">A gráfica entrega</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          abre a entrega na agenda quando a peça ficar pronta
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="instalacao">
+                        <span className="font-medium">A gráfica instala no local</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          abre a instalação na agenda quando a peça ficar pronta
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 {canSeePrices && (
                   <div className="space-y-2">

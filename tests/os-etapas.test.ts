@@ -7,6 +7,10 @@ import {
   fluxo,
   porEtapa,
   progressoDaEtapa,
+  osEstaAberta,
+  osEstaEmProducao,
+  osEstaEncerrada,
+  osFoiEntregue,
   rotuloDe,
   setorDe,
   statusInfo,
@@ -161,5 +165,49 @@ describe("rótulo e setor", () => {
     expect(rotuloDe("coisa_nova")).toBe("coisa_nova");
     expect(rotuloDe(null)).toBe("—");
     expect(setorDe("coisa_nova")).toBe("—");
+  });
+});
+
+describe("encerrada, entregue, aberta", () => {
+  /**
+   * `os.index.tsx` comparava com "entregue", "concluida", "finalizada" e
+   * "cancelada". As quatro estão fora do enum: o KPI "entregues" era zero
+   * permanente, "abertas" contava até OS cancelada e o valor em aberto somava
+   * o dinheiro dela. Estes testes existem para que uma palavra inventada
+   * volte a falhar aqui, e não em silêncio na tela do gestor.
+   */
+  it("nenhum predicado responde true para palavra fora do enum", () => {
+    for (const inventada of ["entregue", "concluida", "finalizada", "cancelada", "rascunho"]) {
+      expect(ENUM_STATUS_OS).not.toContain(inventada);
+      expect(osEstaEncerrada(inventada), `${inventada} não devia encerrar`).toBe(false);
+      expect(osFoiEntregue(inventada), `${inventada} não devia contar como entregue`).toBe(false);
+    }
+  });
+
+  it("encerrada é concluido, faturado ou cancelado — e só", () => {
+    const encerradas = ENUM_STATUS_OS.filter(osEstaEncerrada);
+    expect(encerradas.sort()).toEqual(["cancelado", "concluido", "faturado"]);
+  });
+
+  it("cancelada encerra, mas não é entrega", () => {
+    expect(osEstaEncerrada("cancelado")).toBe(true);
+    expect(osFoiEntregue("cancelado")).toBe(false);
+  });
+
+  it("aberta é o complemento exato de encerrada", () => {
+    for (const s of ENUM_STATUS_OS) expect(osEstaAberta(s)).toBe(!osEstaEncerrada(s));
+    // Status nulo é OS sem estado: aberta, porque nada afirma que acabou.
+    expect(osEstaAberta(null)).toBe(true);
+  });
+
+  it("em produção inclui as cinco máquinas, não só a palavra producao", () => {
+    const emProducao = ENUM_STATUS_OS.filter(osEstaEmProducao);
+    expect(emProducao).toEqual(
+      expect.arrayContaining(["em_impressao", "em_corte", "em_laser_cnc", "em_3d", "em_uv"]),
+    );
+    // O filtro antigo era String(status).includes("producao") e pegava isto:
+    expect(emProducao).toEqual(expect.arrayContaining(["producao", "em_producao"]));
+    // ...e este NÃO, apesar de conter "producao" no nome.
+    expect(osEstaEmProducao("aguardando_producao")).toBe(false);
   });
 });
