@@ -44,9 +44,11 @@ const CONHECIDOS: Record<string, string> = {
   //   faixa-de-preco → APAGADA: `domain/orcamentos/faixas.ts` dele faz o mesmo.
   //                    Só a exigência legal do produto era única, e virou
   //                    `restricao-do-produto.tsx`, já religada.
-  // Os dois abaixo são BLOCOS: ocupam área e mudariam o desenho da tela.
+  //   prazos-card   → RELIGADO em 24/09: os 9 orçamentos do sistema estavam
+  //                   com prazo vazio, e a OS herda o prazo do orçamento na
+  //                   conversão. O bloco ocupa área mesmo, e vale a área.
+  // O de baixo é BLOCO: ocupa área e mudaria o desenho da tela.
   "src/components/orcamento/aproveitamento-card.tsx": "tela de orçamento refeita não chama mais — aguarda decisão de religar",
-  "src/components/orcamento/prazos-card.tsx": "idem",
 
   // Mortos que já vinham de antes da fusão.
   "src/domain/clientes/normalizacao.ts": "morto antes da fusão; a normalização de telefone acontece no banco",

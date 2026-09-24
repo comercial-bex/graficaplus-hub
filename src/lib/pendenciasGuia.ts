@@ -196,12 +196,33 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Se já foi paga, registre o pagamento — senão ela fica contando como atraso para sempre.',
     ],
   },
+  // Reescrito em 24/09: a frase antiga dizia que não havia data de vencimento em
+  // contas a receber, e por isso mandava conferir uma a uma. Hoje cada parcela
+  // tem vencimento e a tela separa o que está atrasado — o passo velho fazia o
+  // financeiro trabalhar no escuro por um defeito que já foi consertado.
   receber_em_aberto: {
     acao: 'Abrir contas a receber',
     passos: [
-      'Abra Financeiro › Contas a Receber.',
-      'Confira uma a uma: hoje o sistema não guarda data de vencimento em contas a receber, então não há como saber quais estão atrasadas.',
-      'Registre o recebimento do que já entrou.',
+      'Abra Financeiro › Contas a receber.',
+      'Comece pelas parcelas marcadas como atrasadas — o cartão "Vencido" é o total delas.',
+      'Dê baixa no que já entrou e cobre o resto: conta em aberto sem cobrança vira prejuízo calado.',
+    ],
+  },
+  parcela_vencida_sem_baixa: {
+    acao: 'Abrir contas a receber',
+    passos: [
+      'Abra Financeiro › Contas a receber: o cartão "Vencido" é o que se cobra hoje.',
+      'Confira com o caixa quem já pagou e use "Dar baixa" na parcela, com o meio e a data reais do recebimento.',
+      'Quem não pagou, cobre pelo WhatsApp do cliente antes de o atraso crescer.',
+      'Não mexa no status da conta: ela vira parcial e depois recebida sozinha quando a última parcela cai.',
+    ],
+  },
+  comissoes_a_pagar: {
+    acao: 'Abrir financeiro',
+    passos: [
+      'Abra Financeiro e desça até o bloco de Comissões.',
+      'Confira quem trouxe cada venda e o valor: a comissão nasce sozinha quando a OS é paga, sobre o bruto dela.',
+      'Pague no fechamento e marque como paga — ela não gera lançamento em contas a pagar, então só sai da lista por aqui.',
     ],
   },
 };

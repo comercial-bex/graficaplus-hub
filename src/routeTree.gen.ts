@@ -75,6 +75,7 @@ import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
+import { Route as AuthenticatedAReceberRouteImport } from './routes/_authenticated/a-receber'
 import { Route as ParceiroOrcamentosIndexRouteImport } from './routes/parceiro.orcamentos.index'
 import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
 import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_authenticated/orcamentos.index'
@@ -438,6 +439,11 @@ const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
   path: '/aprovacoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAReceberRoute = AuthenticatedAReceberRouteImport.update({
+  id: '/a-receber',
+  path: '/a-receber',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ParceiroOrcamentosIndexRoute = ParceiroOrcamentosIndexRouteImport.update({
   id: '/orcamentos/',
   path: '/orcamentos/',
@@ -499,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/parceiro': typeof ParceiroRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/a-receber': typeof AuthenticatedAReceberRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
@@ -575,6 +582,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/a-receber': typeof AuthenticatedAReceberRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
@@ -654,6 +662,7 @@ export interface FileRoutesById {
   '/parceiro': typeof ParceiroRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/a-receber': typeof AuthenticatedAReceberRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
@@ -733,6 +742,7 @@ export interface FileRouteTypes {
     | '/parceiro'
     | '/reset-password'
     | '/signup'
+    | '/a-receber'
     | '/aprovacoes'
     | '/arquivos'
     | '/automacoes'
@@ -809,6 +819,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/a-receber'
     | '/aprovacoes'
     | '/arquivos'
     | '/automacoes'
@@ -887,6 +898,7 @@ export interface FileRouteTypes {
     | '/parceiro'
     | '/reset-password'
     | '/signup'
+    | '/_authenticated/a-receber'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/arquivos'
     | '/_authenticated/automacoes'
@@ -1437,6 +1449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAprovacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/a-receber': {
+      id: '/_authenticated/a-receber'
+      path: '/a-receber'
+      fullPath: '/a-receber'
+      preLoaderRoute: typeof AuthenticatedAReceberRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/parceiro/orcamentos/': {
       id: '/parceiro/orcamentos/'
       path: '/orcamentos'
@@ -1511,6 +1530,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAReceberRoute: typeof AuthenticatedAReceberRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedArquivosRoute: typeof AuthenticatedArquivosRoute
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
@@ -1574,6 +1594,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAReceberRoute: AuthenticatedAReceberRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedArquivosRoute: AuthenticatedArquivosRoute,
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
