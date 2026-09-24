@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { STATUS, rotuloDe } from "@/domain/os/etapas";
+import { STATUS, rotuloBloqueio, rotuloDe } from "@/domain/os/etapas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,19 +181,12 @@ function OSDetailPage() {
       if (error) return toast.error(mensagemErro(error));
       const res = data as any;
       if (res && res.fechada === false) {
+        // O mapa era uma cópia local, e as outras duas portas para o mesmo
+        // fato — o Kanban e o painel — mostravam o código cru. Agora é um só,
+        // em `domain/os/etapas`.
         const bloqueios: string[] = Array.isArray(res.bloqueios) ? res.bloqueios : [];
-        const labels: Record<string, string> = {
-          tarefas_obrigatorias: "Tarefas obrigatórias pendentes",
-          qualidade_aprovada: "Qualidade não aprovada",
-          qualidade_reprovada_ou_retrabalho: "Qualidade reprovada ou em retrabalho",
-          materiais_baixados: "Materiais ainda não baixados",
-          ocorrencias_tratadas: "Ocorrências abertas",
-          logistica_concluida: "Entrega/instalação pendente",
-          custos_operacionais: "Sem custos operacionais registrados",
-          pagamentos_pendentes: "Pagamentos pendentes",
-        };
         toast.error("Não é possível fechar a OS", {
-          description: bloqueios.map((b) => `• ${labels[b] ?? b}`).join("\n"),
+          description: bloqueios.map((b) => `• ${rotuloBloqueio(b)}`).join("\n"),
         });
         qc.invalidateQueries({ queryKey: ["resultado-os", id] });
         return;

@@ -5,6 +5,7 @@ import {
   ROTULO_ETAPA,
   etapaDe,
   statusPadraoDaEtapa,
+  traduzirBloqueios,
   type Etapa,
 } from "@/domain/os/etapas";
 import { atrasado, paradaHa } from "@/domain/os/prazo";
@@ -347,7 +348,13 @@ function KanbanPage() {
       novo_status: novoStatus,
     });
     if (error) {
-      toast.error(mensagemErro(error));
+      // Soltar o cartão em "Concluído" passa por `fechar_os`, e o que volta são
+      // os códigos das travas. Código cru não diz nada a quem está no quadro.
+      const bruto = mensagemErro(error);
+      const travas = traduzirBloqueios(bruto);
+      toast.error(travas ? "A OS ainda não pode fechar" : bruto, {
+        description: travas ?? undefined,
+      });
       qc.invalidateQueries({ queryKey: ["kanban-os"] });
       return;
     }
