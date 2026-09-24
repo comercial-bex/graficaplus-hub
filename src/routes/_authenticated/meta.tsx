@@ -85,14 +85,46 @@ type ProdutoMeta = {
   faixa: number | null;
   /** A RPC devolve nulo para quem não é do financeiro — a coluna simplesmente some. */
   custo_medio: number | null;
+  /**
+   * Custo CHEIO da peça: material + hora de máquina + mão de obra + rateio.
+   * É por ele que o ranking ordena. `custo_medio` ficou como estava (só
+   * material) porque o ponto de equilíbrio usa aquele, e são contas diferentes:
+   * a margem de contribuição quer o custo VARIÁVEL, o ranking quer o custo real
+   * da peça. Ambos do financeiro apenas.
+   */
+  custo_cheio: number | null;
+  custo_material: number | null;
+  custo_maquina: number | null;
+  custo_mao_obra: number | null;
+  custo_indireto: number | null;
   margem_pct: number | null;
   vendido_no_mes: number;
   sem_tempo: boolean;
   sem_custo: boolean;
   tem_maquina: boolean;
+  /**
+   * A composição ainda tem buraco — falta ficha de material, hora de máquina,
+   * mão de obra ou rateio. Sai para TODO MUNDO: é aviso de que a margem ao lado
+   * é otimista, e não revela valor nenhum.
+   */
+  custo_parcial: boolean;
+  sem_ficha_de_material: boolean;
+  sem_hora_de_maquina: boolean;
+  sem_mao_de_obra: boolean;
+  sem_rateio: boolean;
 };
 
-type MetaProduto = { mes: string; ver_custo: boolean; produtos: ProdutoMeta[] };
+type MetaProduto = {
+  mes: string;
+  ver_custo: boolean;
+  /**
+   * Quantas funções ativas estão com encargo em 0%. É da casa, não do produto:
+   * enquanto for maior que zero, a fatia "mão de obra" de TODA peça acima está
+   * menor do que sai do bolso. Zero para quem não vê custo.
+   */
+  funcoes_sem_encargo: number;
+  produtos: ProdutoMeta[];
+};
 
 const pct = (n: number) => `${n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 
@@ -436,6 +468,71 @@ function BlocoEquilibrio({
  * Bloco 2 — Onde a hora rende mais (preço de venda)
  * ------------------------------------------------------------------ */
 
+/**
+ * De que é feito o custo da peça.
+ *
+ * Existe porque o ranking mudou de base e o número mudou junto: a Fachada
+ * aparecia com 98% de margem e é 61%, o Banner com 86,8% e é 46,6%. Quem olha
+ * precisa ver POR QUE mudou, senão a tela vira um número novo sem explicação e
+ * ninguém confia nela. As quatro fatias são material, hora de máquina, mão de
+ * obra e rateio — na ordem em que o dinheiro sai.
+ *
+ * Fatia em zero não é "de graça": é cadastro faltando, e aparece nomeada em vez
+ * de sumir da barra.
+ */
+function ComposicaoDoCusto({ produto, verCusto }: { produto: ProdutoMeta; verCusto: boolean }) {
+  // Sem financeiro a RPC não manda as parcelas, e o buraco já foi avisado pelo
+  // chip "custo incompleto" ali em cima — montar barra vazia só polui.
+  if (!verCusto) return null;
+
+  const total = Number(produto.custo_cheio ?? 0);
+  if (total <= 0) return null;
+
+  const fatias = [
+    { rotulo: "material", valor: Number(produto.custo_material ?? 0), cor: "bg-sky-500" },
+    { rotulo: "máquina", valor: Number(produto.custo_maquina ?? 0), cor: "bg-violet-500" },
+    { rotulo: "mão de obra", valor: Number(produto.custo_mao_obra ?? 0), cor: "bg-orange-500" },
+    { rotulo: "rateio", valor: Number(produto.custo_indireto ?? 0), cor: "bg-slate-400" },
+  ];
+
+  const faltando = [
+    produto.sem_ficha_de_material ? "ficha de material" : null,
+    produto.sem_hora_de_maquina ? "custo/hora da máquina" : null,
+    produto.sem_mao_de_obra ? "mão de obra" : null,
+    produto.sem_rateio ? "rateio administrativo" : null,
+  ].filter(Boolean) as string[];
+
+  return (
+    <div className="mt-2 rounded-lg border border-dashed border-border/70 bg-muted/20 p-2.5">
+      <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
+        {fatias.map((f) => (
+          <div
+            key={f.rotulo}
+            className={f.cor}
+            style={{ width: `${(f.valor / total) * 100}%` }}
+            aria-hidden
+          />
+        ))}
+      </div>
+      <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+        {fatias.map((f) => (
+          <div key={f.rotulo} className="flex items-center gap-1.5">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${f.cor}`} aria-hidden />
+            <dt className="text-muted-foreground">{f.rotulo}</dt>
+            <dd className="font-mono font-medium">{brl(f.valor)}</dd>
+          </div>
+        ))}
+      </dl>
+      {faltando.length > 0 && (
+        <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-500">
+          Falta {faltando.join(", ")} — o custo acima está{" "}
+          <strong>menor do que o real</strong> e a margem, maior.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function BlocoPorProduto({
   dados,
   carregando,
@@ -484,7 +581,41 @@ function BlocoPorProduto({
           {!verCusto &&
             " O valor em reais por hora é do financeiro; aqui aparece só a ordem, que é o que decide onde empurrar a venda."}
         </p>
+        <p className="mt-2 max-w-3xl text-xs text-muted-foreground">
+          O custo de cada peça agora é o <strong>cheio</strong>: material, hora de máquina, mão de
+          obra e rateio administrativo. Antes era só o material, e por isso a peça que ocupa a
+          máquina o dia inteiro aparecia no topo.
+        </p>
       </div>
+
+      {/* Um encargo zerado não engana um produto: engana todos de uma vez. O
+          aviso fica acima do ranking porque muda a leitura da lista inteira. */}
+      {verCusto && Number(dados.funcoes_sem_encargo ?? 0) > 0 && (
+        <Card className="mb-4 border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex flex-wrap items-start gap-3 p-4 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">
+                {dados.funcoes_sem_encargo === 1
+                  ? "Uma função está com encargos em 0%."
+                  : `${dados.funcoes_sem_encargo} funções estão com encargos em 0%.`}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                FGTS, 13º, férias e provisão de rescisão saem do caixa e não estão em nenhuma das
+                margens abaixo. Com ~70% de encargo ignorado, a fatia de mão de obra de cada peça
+                está cerca de <strong>41% menor</strong> do que o que a gráfica paga.
+              </p>
+              <Link
+                to="/custos-producao"
+                className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium underline underline-offset-2 md:min-h-0"
+              >
+                Preencher os encargos das funções
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {ranking.length === 0 ? (
         <Card>
@@ -545,9 +676,11 @@ function BlocoPorProduto({
                             : null,
                           `preço ${brl(Number(p.preco_base))}`,
                           // Custo e margem % são do financeiro: a RPC manda nulo,
-                          // e aqui o pedaço nem é montado.
-                          verCusto && p.custo_medio != null
-                            ? `custo ${brl(Number(p.custo_medio))}`
+                          // e aqui o pedaço nem é montado. O número é o custo
+                          // CHEIO — material, máquina, gente e rateio —, não o
+                          // custo do material que aparecia aqui antes.
+                          verCusto && p.custo_cheio != null
+                            ? `custo ${brl(Number(p.custo_cheio))}`
                             : null,
                           verCusto && p.margem_pct != null
                             ? `margem ${pct(Number(p.margem_pct))}`
@@ -584,7 +717,13 @@ function BlocoPorProduto({
                     {/* "Vendido no mês" só aparece quando vendeu: coluna de zeros
                         não informa nada e ainda dá ar de relatório vazio. */}
                     {vendido > 0 && <StatusChip label={`vendeu ${brl(vendido)}`} tone="cyan" />}
+                    {/* O aviso de custo incompleto vale para quem não vê custo
+                        também: sem ele, a ordem do ranking parece medida quando
+                        ainda é estimativa. */}
+                    {p.custo_parcial && <StatusChip label="custo incompleto" tone="amber" />}
                   </div>
+
+                  <ComposicaoDoCusto produto={p} verCusto={verCusto} />
                 </li>
               );
             })}
