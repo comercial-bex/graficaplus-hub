@@ -243,6 +243,24 @@ function MateriaisPage() {
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
+  /**
+   * Entrada e saída de material.
+   *
+   * A versão anterior fazia tudo à mão no navegador: inseria a movimentação,
+   * calculava o custo médio ponderado em JavaScript e gravava
+   * `estoque = estoque ± qtd` direto na tabela. Três problemas, todos calados:
+   *
+   *  1. `materiais.estoque` é a SOMA DOS LOTES — `recalcular_estoque_material`
+   *     refaz essa conta a cada mexida em lote. O número gravado aqui era
+   *     apagado na entrada seguinte, e com ele a movimentação sumia do saldo;
+   *  2. ler, somar e gravar sem trava é perder lançamento: duas pessoas
+   *     registrando ao mesmo tempo e uma sobrescreve a outra;
+   *  3. a entrada não criava lote, então não havia de onde a saída tirar, nem
+   *     custo por data de compra.
+   *
+   * Agora são duas RPC que fazem lote, movimentação e custo num lugar só. O
+   * banco passou a recusar escrita direta no saldo (`aa_estoque_tem_um_dono`).
+   */
   const lancarMov = useMutation({
     mutationFn: async () => {
       const material = materiais.find((m) => m.id === mov.material_id);
@@ -250,53 +268,32 @@ function MateriaisPage() {
       const qtd = Number(mov.quantidade) || 0;
       if (qtd <= 0) throw new Error("Informe uma quantidade maior que zero.");
 
-      const estoqueAtual = Number(material.estoque ?? 0);
-      if (mov.tipo === "saida" && qtd > estoqueAtual)
-        throw new Error(
-          `Estoque insuficiente: há ${num(estoqueAtual)} ${material.unidade} de ${material.nome}.`,
-        );
+      if (mov.tipo === "entrada") {
+        const custo = mov.custo_unitario ? Number(mov.custo_unitario) : null;
+        const { error } = await (supabase as any).rpc("registrar_entrada_material", {
+          p_material_id: material.id,
+          p_quantidade: qtd,
+          // Sem custo informado, o da última compra: entrada a custo zero
+          // derrubaria o custo médio e, com ele, a margem de toda peça que usa
+          // este material.
+          p_custo_unitario: custo ?? Number(material.custo_medio ?? material.custo_unitario ?? 0),
+          p_fornecedor: material.fornecedor ?? null,
+          p_nota: null,
+          p_validade: null,
+          p_localizacao: material.localizacao ?? null,
+          p_observacao: mov.observacao || mov.motivo || null,
+        });
+        if (error) throw error;
+        return;
+      }
 
-      const custoInformado = mov.custo_unitario ? Number(mov.custo_unitario) : null;
-      const custoAtual = Number(material.custo_medio ?? material.custo_unitario ?? 0);
-      const custoUsado = custoInformado ?? custoAtual;
-
-      const { data: auth } = await supabase.auth.getUser();
-      const { error } = await supabase.from("movimentacoes_estoque").insert({
-        material_id: material.id,
-        tipo: mov.tipo,
-        quantidade: qtd,
-        unidade: material.unidade,
-        custo_unitario_snapshot: custoUsado,
-        origem: mov.tipo === "entrada" ? "compra" : "manual",
-        motivo: mov.motivo || null,
-        observacao: mov.observacao || null,
-        usuario_id: auth.user?.id ?? null,
+      const { error } = await (supabase as any).rpc("registrar_saida_material", {
+        p_material_id: material.id,
+        p_quantidade: qtd,
+        p_motivo: mov.motivo || "saída manual",
+        p_observacao: mov.observacao || null,
       });
       if (error) throw error;
-
-      // custo médio ponderado nas entradas
-      let novoCustoMedio = custoAtual;
-      if (mov.tipo === "entrada" && custoInformado != null) {
-        const total = estoqueAtual + qtd;
-        novoCustoMedio =
-          total > 0 ? (estoqueAtual * custoAtual + qtd * custoInformado) / total : custoInformado;
-      }
-
-      const patch: {
-        estoque: number;
-        updated_at: string;
-        custo_medio?: number;
-        custo_unitario?: number;
-      } = {
-        estoque: mov.tipo === "entrada" ? estoqueAtual + qtd : estoqueAtual - qtd,
-        updated_at: new Date().toISOString(),
-      };
-      if (canSeeFinancials && mov.tipo === "entrada" && custoInformado != null) {
-        patch.custo_medio = Math.round(novoCustoMedio * 10000) / 10000;
-        patch.custo_unitario = custoInformado;
-      }
-      const { error: e2 } = await supabase.from("materiais").update(patch).eq("id", material.id);
-      if (e2) throw e2;
     },
     onSuccess: () => {
       toast.success("Movimentação registrada");
