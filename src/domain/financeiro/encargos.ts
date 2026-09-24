@@ -95,6 +95,27 @@ export function custoDaHora(entrada: {
 }
 
 /**
+ * Custo cheio de uma hora de trabalho, a partir do que está em
+ * `custos_mao_de_obra`.
+ *
+ * Existe porque a mesma coluna era lida de duas maneiras. `encargos_pct` guarda
+ * FRAÇÃO (0,8 = 80%) — é o que a tela grava, com o rótulo "Encargos (0,8 =
+ * 80%)", e o que a calculadora acima devolve. Mas a folha de custos do PDF
+ * dividia por 100, que é a leitura de `config_precificacao_3d.mo_encargos_pct`,
+ * esse sim em pontos percentuais. Enquanto todas as funções estiveram em 0% os
+ * dois davam o mesmo número e o erro não tinha como aparecer; no dia em que
+ * alguém gravasse 0,8 o PDF mostraria R$ 40,32/h no lugar de R$ 72,00/h.
+ *
+ * Duas telas lendo a mesma coluna com réguas diferentes é o defeito; uma função
+ * só é o conserto.
+ */
+export function custoHoraComEncargos(custoHora: unknown, encargosPct: unknown): number {
+  const base = num(custoHora);
+  if (base <= 0) return 0;
+  return r2(base * (1 + Math.max(0, num(encargosPct))));
+}
+
+/**
  * Quanto um orçamento subestima quando os encargos estão zerados.
  *
  * Devolve a fração que FALTA sobre o custo lançado — com 70% de encargo

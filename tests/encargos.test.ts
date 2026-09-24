@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PARCELAS,
   custoDaHora,
+  custoHoraComEncargos,
   parcelasDoRegime,
   quantoFalta,
   somarEncargos,
@@ -82,5 +83,40 @@ describe("o tamanho do buraco", () => {
 
   it("sem encargo nenhum, não falta nada", () => {
     expect(quantoFalta(0)).toBe(0);
+  });
+});
+
+describe("a unidade de encargos_pct", () => {
+  /**
+   * A coluna `custos_mao_de_obra.encargos_pct` guarda FRAÇÃO. A folha de custos
+   * do PDF lia como pontos percentuais e dividia por 100 — a régua de
+   * `config_precificacao_3d.mo_encargos_pct`, que é outra coluna. Com todo
+   * mundo em 0% os dois davam 40 e o erro ficou invisível; estes testes fixam
+   * a régua para que ele não volte quando alguém preencher.
+   */
+  it("0,8 é 80%: a hora de R$ 40 custa R$ 72", () => {
+    expect(custoHoraComEncargos(40, 0.8)).toBe(72);
+  });
+
+  it("lido como pontos percentuais daria R$ 40,32 — é o defeito que existia", () => {
+    expect(custoHoraComEncargos(40, 0.8)).not.toBeCloseTo(40.32, 2);
+  });
+
+  it("encargo zerado devolve o salário-hora cru, sem inventar", () => {
+    expect(custoHoraComEncargos(40, 0)).toBe(40);
+  });
+
+  it("encargo negativo não vira desconto", () => {
+    expect(custoHoraComEncargos(40, -0.5)).toBe(40);
+  });
+
+  it("sem custo/hora não há hora para cobrar", () => {
+    expect(custoHoraComEncargos(0, 0.8)).toBe(0);
+    expect(custoHoraComEncargos(null, 0.8)).toBe(0);
+  });
+
+  it("casa com a soma das parcelas do Simples", () => {
+    // 8 + 8,33 + 11,11 + 1,55 + 3,2 = 32,19% -> R$ 52,88
+    expect(custoHoraComEncargos(40, somarEncargos(parcelasDoRegime("simples")))).toBe(52.88);
   });
 });

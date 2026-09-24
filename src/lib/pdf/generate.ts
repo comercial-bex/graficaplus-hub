@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
+import { custoHoraComEncargos } from "@/domain/financeiro/encargos";
 import { DocumentoPDF, type DocItem, type DocumentoPDFProps } from "./DocumentoPDF";
 import { carregarEmpresa } from "./empresa";
 
@@ -335,8 +336,15 @@ export async function carregarPropsOrcamentoComCustos(
     }
   }
   for (const m of (maoDeObra ?? []) as any[]) {
-    const cheia = num(m.custo_hora) * (1 + num(m.encargos_pct) / 100);
-    tarifas.push({ rotulo: m.funcao, valor: `${brl(cheia)}/h` });
+    // Aqui estava `* (1 + encargos_pct / 100)`, a régua de
+    // `config_precificacao_3d.mo_encargos_pct` — que está em pontos
+    // percentuais — aplicada a uma coluna que guarda fração. Com 0,8 gravado o
+    // PDF mostraria R$ 40,32/h no lugar de R$ 72,00/h, 44% a menos na folha que
+    // o financeiro usa para conferir. A conta agora vem do domínio, um lugar só.
+    tarifas.push({
+      rotulo: m.funcao,
+      valor: `${brl(custoHoraComEncargos(m.custo_hora, m.encargos_pct))}/h`,
+    });
   }
 
   // Custo realizado só existe depois que virou OS e produziu.

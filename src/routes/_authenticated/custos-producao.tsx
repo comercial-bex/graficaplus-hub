@@ -23,7 +23,7 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { CalculadoraDeEncargos } from "@/components/custos/calculadora-de-encargos";
 import { ParametrosDaCasa } from "@/components/custos/parametros-da-casa";
-import { quantoFalta } from "@/domain/financeiro/encargos";
+import { custoHoraComEncargos, quantoFalta } from "@/domain/financeiro/encargos";
 import { mensagemErro } from "@/lib/erros";
 
 export const Route = createFileRoute("/_authenticated/custos-producao")({
@@ -117,7 +117,7 @@ function CustosProducaoPage() {
 
   const ativos = funcoes.filter((f) => f.ativo);
   const custoTotalHora = ativos.reduce(
-    (acc, f) => acc + Number(f.custo_hora) * (1 + Number(f.encargos_pct)),
+    (acc, f) => acc + custoHoraComEncargos(f.custo_hora, f.encargos_pct),
     0,
   );
   const medio = ativos.length > 0 ? custoTotalHora / ativos.length : 0;
@@ -188,7 +188,7 @@ function CustosProducaoPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {funcoes.map((f) => {
-            const total = Number(f.custo_hora) * (1 + Number(f.encargos_pct));
+            const total = custoHoraComEncargos(f.custo_hora, f.encargos_pct);
             return (
               <Card key={f.id}>
                 <CardContent className="p-5 space-y-3">
