@@ -125,6 +125,12 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/planilha-custos", permissions: ["custos.read"] },
   { path: "/precificacao", permissions: ["custos.read"] },
   { path: "/custos-producao", permissions: ["custos.read"] },
+  // Contas a receber chama `contas_a_receber()`, que exige can_see_financials —
+  // e no front canSeeFinancials É hasPermission("financeiro.read"). Pedir a
+  // mesma permissão aqui faz o guarda e a RPC concordarem: quem entra, carrega.
+  // Dar baixa pede `pagamentos.confirm`, que é do financeiro e do admin; o
+  // gestor entra, acompanha a cobrança e não vê o botão de baixa.
+  { path: "/a-receber", permissions: ["financeiro.read"] },
   { path: "/contas-bancarias", permissions: ["financeiro.read"] },
   { path: "/fluxo-caixa", permissions: ["financeiro.read"] },
   { path: "/compromissos", permissions: ["financeiro.read"] },

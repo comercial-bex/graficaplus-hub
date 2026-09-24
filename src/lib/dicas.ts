@@ -359,6 +359,30 @@ export const dicas = {
       estornar: "Desfaz um pagamento confirmado, deixando o registro do estorno.",
     },
   },
+  "/a-receber": {
+    menu: "Quanto cada cliente ainda deve e o que já venceu.",
+    tela: "O que a gráfica já entregou e ainda não recebeu, cliente por cliente e parcela por parcela. A conta nasce sozinha quando o orçamento vira ordem de serviço, com as parcelas da condição de pagamento combinada. Ao confirmar o recebimento de uma parcela, o próprio banco move a conta para parcial ou recebida — esse status não é digitado por ninguém.",
+    campos: {
+      a_receber: "Soma do que ainda falta entrar nas contas em aberto. Não conta o que já foi recebido.",
+      vencido:
+        "A parte do 'a receber' cuja data de vencimento já passou. É o número que vira cobrança hoje.",
+      // A soma é do valor COMBINADO das parcelas já baixadas, não do que o
+      // extrato mostra: a baixa fecha a parcela inteira mesmo se o valor
+      // digitado for menor. Dizer "quanto entrou" seria mentir sobre dinheiro.
+      recebido:
+        "Soma das parcelas já baixadas, pelo valor combinado delas. Somado ao 'a receber', dá o valor total vendido — confira sempre contra o extrato do caixa.",
+      vencimento:
+        "Data combinada de cada parcela. Vem da condição de pagamento do orçamento no momento da conversão em OS.",
+      parcela:
+        "Cada pedaço do pagamento combinado. A conta só fica recebida quando a última parcela cai.",
+    },
+    acoes: {
+      dar_baixa:
+        "Registra o recebimento de uma parcela: lança o pagamento, marca a parcela como paga e fecha a conta quando for a última. Só financeiro e administrador. Atenção: a baixa quita a parcela INTEIRA, mesmo que você digite um valor menor — se o cliente pagou só uma parte, não dê baixa, porque o resto sai da cobrança e ninguém mais vê.",
+      todas:
+        "Mostra também as contas já quitadas, para conferir histórico. O padrão é listar só o que está em aberto.",
+    },
+  },
   "/fluxo-caixa": {
     menu: "Saldo das contas e movimento de caixa.",
     tela: "Caixa e contas bancárias. Mostra o saldo real das contas e o previsto com base no que ainda vai entrar e sair.",

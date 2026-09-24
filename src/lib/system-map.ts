@@ -148,6 +148,7 @@ export const casosDeUso: EtapaFluxo[] = [
       "Expedição, instalação, quitação financeira, fechamento da OS com resultado e pesquisa de NPS.",
     rotas: [
       { label: "Entregas & Instalações", url: "/entregas" },
+      { label: "Contas a receber", url: "/a-receber" },
       { label: "Pós-venda / NPS", url: "/pos-venda" },
       { label: "Portal do cliente", url: "/portal-cliente" },
       { label: "Relatórios", url: "/relatorios" },
@@ -203,6 +204,9 @@ export const mapaNodes: MapaNode[] = [
   { id: "meta", label: "Meta do mês", tipo: "modulo", camada: "financeiro", rota: "/meta" },
   { id: "entregas", label: "Entregas", tipo: "modulo", camada: "posvenda", rota: "/entregas" },
   { id: "financeiro", label: "Financeiro", tipo: "modulo", camada: "financeiro", rota: "/financeiro" },
+  // A cobrança em si: a conta nasce na conversão do orçamento em OS e só fecha
+  // quando a última parcela cai.
+  { id: "areceber", label: "Contas a receber", tipo: "modulo", camada: "financeiro", rota: "/a-receber" },
   { id: "resultado", label: "Resultado da OS", tipo: "entidade", camada: "financeiro", rota: "/relatorios" },
   { id: "posvenda", label: "Pós-venda / NPS", tipo: "modulo", camada: "posvenda", rota: "/pos-venda" },
   { id: "portal", label: "Portal do cliente", tipo: "integracao", camada: "posvenda", rota: "/portal-cliente" },
@@ -237,6 +241,11 @@ export const mapaEdges: MapaEdge[] = [
   // Cada mudança de etapa grava em os_status_historico; é daí que sai o tempo parado.
   { from: "kanban", to: "ondepara", label: "os_status_historico" },
   { from: "ondepara", to: "os", label: "OS presa na etapa" },
+  // A conta a receber não é criada no financeiro: ela nasce da OS, com as
+  // parcelas da condição de pagamento. O financeiro é quem dá a baixa, e o
+  // gatilho tg_conta_receber_segue_parcelas fecha a conta sozinho.
+  { from: "os", to: "areceber", label: "contas_receber + parcelas_receber na conversão" },
+  { from: "financeiro", to: "areceber", label: "confirmar_pagamento (baixa da parcela)" },
   { from: "financeiro", to: "meta", label: "ponto_de_equilibrio (custo fixo × margem)" },
   { from: "produtos", to: "meta", label: "margem por hora de máquina" },
 ];
@@ -259,8 +268,13 @@ export const perfisAtividades: { perfil: string; atividades: string[]; modulos: 
   },
   {
     perfil: "financeiro",
-    atividades: ["Confirma e estorna pagamentos", "Fecha resultado da OS", "Acompanha o ponto de equilíbrio"],
-    modulos: ["Financeiro", "Meta do mês", "Relatórios"],
+    atividades: [
+      "Cobra o que venceu e dá baixa nas parcelas recebidas",
+      "Confirma e estorna pagamentos",
+      "Fecha resultado da OS",
+      "Acompanha o ponto de equilíbrio",
+    ],
+    modulos: ["Financeiro", "Contas a receber", "Meta do mês", "Relatórios"],
   },
   {
     perfil: "vendedor",

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
+import { mensagemErro } from "@/lib/erros";
 
 type Orcamento = {
   id: string;
@@ -14,7 +15,7 @@ type Orcamento = {
   prazo: string | null;
   data_entrega_prometida: string | null;
   validade_dias: number | null;
-  created_at: string;
+  created_at: string | null;
   status: string;
 };
 
@@ -62,17 +63,23 @@ export function PrazosCard({
       // Escrita barrada por RLS devolve 0 linhas e nenhum erro.
       if (!data || data.length === 0) throw new Error("Seu perfil não pode alterar este orçamento.");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orcamento", orcamento.id] }),
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => {
+      // Salvar no onBlur sem aviso nenhum deixa a dúvida de se gravou.
+      toast.success("Prazo salvo");
+      qc.invalidateQueries({ queryKey: ["orcamento", orcamento.id] });
+    },
+    onError: (e: unknown) => toast.error(mensagemErro(e)),
   });
 
   const diasPrazo = diasAte(orcamento.prazo);
   const diasEntrega = diasAte(orcamento.data_entrega_prometida);
 
   // A validade corre a partir do envio; sem envio, a partir da criação.
-  const baseValidade = orcamento.created_at.slice(0, 10);
+  // Sem data base não dá para contar: `new Date("T12:00:00")` é inválido e
+  // `toISOString()` sobre data inválida derruba a tela inteira.
+  const baseValidade = (orcamento.created_at ?? "").slice(0, 10);
   const venceEm =
-    orcamento.validade_dias != null
+    orcamento.validade_dias != null && baseValidade
       ? new Date(new Date(`${baseValidade}T12:00:00`).getTime() + orcamento.validade_dias * 86400000)
           .toISOString()
           .slice(0, 10)
@@ -158,16 +165,29 @@ export function PrazosCard({
             disabled={!podeEditar}
             defaultValue={orcamento.validade_dias ?? ""}
             onBlur={(e) => {
-              const novo = e.target.value === "" ? null : Number(e.target.value);
+              // `validade_dias` é NOT NULL no banco (padrão 7). Apagar o campo
+              // mandava null e voltava "Faltou preencher: validade dias" — e o
+              // rodapé ainda prometia um "sem validade" que não existe.
+              if (e.target.value === "") {
+                e.target.value = String(orcamento.validade_dias ?? 7);
+                return toast.error("A validade em dias é obrigatória.");
+              }
+              const novo = Number(e.target.value);
               if (novo !== orcamento.validade_dias) salvar.mutate({ validade_dias: novo });
             }}
           />
           <p className="mt-1 text-xs text-muted-foreground">
             {venceEm
               ? `vence em ${new Date(`${venceEm}T12:00:00`).toLocaleDateString("pt-BR")}`
-              : "sem validade — o preço não expira"}
+              : "quantos dias o preço vale a partir da criação"}
           </p>
         </div>
+      </CardContent>
+      <CardContent className="pt-0">
+        <p className="text-xs text-muted-foreground">
+          O <strong>prazo final</strong> é o que a OS herda como data de entrega na conversão. Sem
+          ele a OS nasce sem data, e o quadro de produção não tem por onde priorizar.
+        </p>
       </CardContent>
       {orcamento.data_inicio && orcamento.prazo && orcamento.prazo < orcamento.data_inicio && (
         <CardContent className="pt-0">

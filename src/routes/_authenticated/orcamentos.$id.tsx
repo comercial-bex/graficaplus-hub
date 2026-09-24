@@ -37,6 +37,8 @@ import {
   Loader2,
   Copy,
   TrendingDown,
+  CreditCard,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -44,6 +46,7 @@ import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { OrcamentoProdutoPicker } from "@/components/orcamento-produto-picker";
 import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
+import { PrazosCard } from "@/components/orcamento/prazos-card";
 import {
   RestricaoDoProduto,
   useRestricaoProduto,
@@ -131,7 +134,11 @@ function OrcamentoDetailPage() {
   const qc = useQueryClient();
   // canSeePrices/nivelDeVisao: preço de venda (vendedor vê). canSeeFinancials:
   // custo e margem (só financeiro/gestão). Nunca misturar os dois gates.
-  const { canSeeFinancials, canSeePrices, nivelDeVisao } = useAuth();
+  const { canSeeFinancials, canSeePrices, nivelDeVisao, hasPermission } = useAuth();
+  // Converter em OS é `orcamentos.convert` (só admin e gestor). Editar o
+  // orçamento é `orcamentos.update` (o vendedor também tem).
+  const podeConverter = hasPermission("orcamentos.convert");
+  const podeEditar = hasPermission("orcamentos.update");
   const [form, setForm] = useState({ ...itemVazio });
   const [calculadoraAberta, setCalculadoraAberta] = useState(false);
   // Exigência legal do produto (limite eleitoral, por exemplo). Sem gate de
@@ -152,6 +159,36 @@ function OrcamentoDetailPage() {
         .single();
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Prazos e condição de pagamento NÃO existem nas views orcamentos_* — pedir
+  // essas colunas lá derrubaria a consulta inteira (armadilha nº 1). Não são
+  // dinheiro, então vêm da tabela base com as colunas listadas na mão, sem
+  // `select("*")` para não trazer custo junto por acidente.
+  // A chave começa com ["orcamento", id] de propósito: é o prefixo que o
+  // PrazosCard invalida depois de gravar.
+  const { data: acordo } = useQuery({
+    queryKey: ["orcamento", id, "acordo"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orcamentos")
+        .select(
+          "id, status, created_at, data_inicio, prazo, data_entrega_prometida, validade_dias, condicao_pagamento",
+        )
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        id: string;
+        status: string;
+        created_at: string | null;
+        data_inicio: string | null;
+        prazo: string | null;
+        data_entrega_prometida: string | null;
+        validade_dias: number | null;
+        condicao_pagamento: Record<string, unknown> | null;
+      } | null;
     },
   });
 
@@ -506,8 +543,19 @@ function OrcamentoDetailPage() {
     const update: any = { status: novoStatus };
     if (novoStatus === "enviado") update.enviado_em = new Date().toISOString();
     if (novoStatus === "aprovado") update.aprovado_em = new Date().toISOString();
-    const { error } = await supabase.from("orcamentos").update(update).eq("id", id);
+    const { data, error } = await supabase
+      .from("orcamentos")
+      .update(update)
+      .eq("id", id)
+      .select("id");
     if (error) return toast.error(mensagemErro(error));
+    // Escrita barrada pela RLS devolve 0 linhas e NENHUM erro. Sem esta
+    // conferência a tela dizia "Status atualizado" sem ter gravado nada — é o
+    // que acontece com o perfil financeiro, que lê o orçamento e não pode
+    // alterá-lo (a policy de update exige `orcamentos.create`).
+    if (!data || data.length === 0) {
+      return toast.error("Seu perfil não pode alterar o status deste orçamento.");
+    }
     toast.success("Status atualizado");
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }
@@ -564,10 +612,44 @@ function OrcamentoDetailPage() {
             </div>
           </div>
 
+          {/* Converter exige `orcamentos.convert`, que só admin e gestor têm.
+              O botão aparecia para todo mundo e estourava erro de permissão no
+              clique — inclusive para o vendedor, que é quem mais abre esta
+              tela. Sem a permissão, no lugar do botão fica a explicação de
+              quem converte e por onde essa pessoa é avisada. */}
           {orc.status !== "convertido" && !orc.os_id && (
-            <Button onClick={converterEmOS} className="shrink-0">
-              Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
+            podeConverter ? (
+              <Button onClick={converterEmOS} className="shrink-0 h-11 md:h-10">
+                Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <div className="shrink-0 max-w-xs rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                <p className="flex items-center gap-1.5 font-medium text-foreground">
+                  <Lock className="h-3.5 w-3.5" /> Converter em OS é do gerente ou do admin
+                </p>
+                <p className="mt-1">
+                  {orc.status === "aprovado" ? (
+                    <>
+                      Este orçamento já está aprovado, então já aparece na lista de pendências
+                      deles no{" "}
+                      <Link to="/dashboard" className="underline underline-offset-2">
+                        painel
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Marque o status como <strong>aprovado</strong> assim que o cliente fechar: é
+                      isso que coloca o orçamento na lista de pendências deles no{" "}
+                      <Link to="/dashboard" className="underline underline-offset-2">
+                        painel
+                      </Link>
+                      .
+                    </>
+                  )}
+                </p>
+              </div>
+            )
           )}
         </div>
 
@@ -606,6 +688,27 @@ function OrcamentoDetailPage() {
         </div>
       </header>
 
+      {/* Prazo e condição de pagamento são o que a OS e a conta a receber
+          herdam na conversão. Ficam antes dos itens porque é o combinado com o
+          cliente — e é o que hoje sai vazio em todo orçamento. */}
+      {acordo && (
+        <PrazosCard
+          orcamento={acordo}
+          podeEditar={podeEditar && orc.status !== "convertido"}
+        />
+      )}
+
+      {/* Parcelamento é divisão de preço: quem não vê preço não vê este bloco
+          (mostraria "1× de R$ 0,00", que é mentira, não informação). */}
+      {acordo && canSeePrices && (
+        <CondicaoDePagamento
+          key={acordo.id}
+          orcamentoId={id}
+          total={Number(orc.valor_total ?? 0)}
+          condicao={acordo.condicao_pagamento}
+          podeEditar={podeEditar && orc.status !== "convertido"}
+        />
+      )}
 
       <Card>
         <CardContent className="p-4 space-y-4">
@@ -1099,5 +1202,207 @@ function OrcamentoDetailPage() {
         mostrarValores={false}
       />
     </div>
+  );
+}
+
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Data ISO (aaaa-mm-dd) em dd/mm/aaaa. Meio-dia para o fuso não comer um dia. */
+const emBR = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR");
+
+/**
+ * Soma dias a uma data ISO. Monta a volta com as partes locais em vez de
+ * `toISOString()`: converter para UTC é o que faz a data voltar um dia.
+ */
+function somarDias(iso: string, dias: number) {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + dias);
+  const dois = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+}
+
+/**
+ * Como o cliente vai pagar: em quantas vezes, de quanto em quanto tempo e a
+ * partir de quando.
+ *
+ * `orcamentos.condicao_pagamento` é jsonb e, até 24/09/2026, era só LIDO — pelo
+ * PDF e pela conversão em OS. Nenhuma tela escrevia nele, então os 9 orçamentos
+ * do sistema estavam com `{"parcelas": 1}` e toda conta a receber nascia com
+ * UMA parcela vencendo no dia da conversão. A cobrança já saía atrasada.
+ *
+ * As três chaves são exatamente as que `converter_orcamento_em_os` lê:
+ * `parcelas`, `intervalo_dias` (padrão 30) e `primeiro_vencimento` (padrão
+ * CURRENT_DATE). A prévia abaixo repete a mesma conta da função — inclusive a
+ * sobra na última parcela — para a pessoa conferir ANTES de converter, que é
+ * quando ainda dá para corrigir.
+ */
+function CondicaoDePagamento({
+  orcamentoId,
+  total,
+  condicao,
+  podeEditar,
+}: {
+  orcamentoId: string;
+  total: number;
+  condicao: Record<string, unknown> | null;
+  podeEditar: boolean;
+}) {
+  const qc = useQueryClient();
+  const atual = condicao ?? {};
+  const [parcelas, setParcelas] = useState(String(Number(atual.parcelas ?? 1) || 1));
+  const [intervalo, setIntervalo] = useState(String(Number(atual.intervalo_dias ?? 30) || 30));
+  const [primeiro, setPrimeiro] = useState(
+    typeof atual.primeiro_vencimento === "string" ? atual.primeiro_vencimento : "",
+  );
+  const [salvando, setSalvando] = useState(false);
+
+  // Mesmos limites da função de conversão: parcelas >= 1, intervalo >= 0.
+  const nParcelas = Math.max(1, Math.round(Number(parcelas) || 1));
+  const nIntervalo = Math.max(0, Math.round(Number(intervalo) || 0));
+
+  async function salvar() {
+    if (!podeEditar) return;
+    const novo = {
+      // Preserva o que já estava gravado (`forma`, por exemplo, que o PDF usa).
+      ...atual,
+      parcelas: nParcelas,
+      intervalo_dias: nIntervalo,
+      primeiro_vencimento: primeiro || null,
+    };
+    // Nada mudou: não grava nem avisa.
+    if (
+      Number(atual.parcelas ?? 1) === nParcelas &&
+      Number(atual.intervalo_dias ?? 30) === nIntervalo &&
+      (atual.primeiro_vencimento ?? null) === (primeiro || null)
+    ) {
+      return;
+    }
+    setSalvando(true);
+    try {
+      const { data, error } = await supabase
+        .from("orcamentos")
+        .update({ condicao_pagamento: novo } as never)
+        .eq("id", orcamentoId)
+        .select("id");
+      if (error) throw error;
+      // Escrita barrada pela RLS devolve 0 linhas e nenhum erro.
+      if (!data || data.length === 0) {
+        throw new Error("Seu perfil não pode alterar este orçamento.");
+      }
+      toast.success("Condição de pagamento salva");
+      await qc.invalidateQueries({ queryKey: ["orcamento", orcamentoId] });
+    } catch (e: unknown) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  // Mesma conta da conversão: todas iguais, e a última leva a sobra dos
+  // centavos para o somatório bater com o total do orçamento.
+  const valorParcela = Math.round((total / nParcelas) * 100) / 100;
+  const valorUltima = Math.round((total - valorParcela * (nParcelas - 1)) * 100) / 100;
+  const sobra = nParcelas > 1 && Math.abs(valorUltima - valorParcela) >= 0.005;
+  const ultimoVenc = primeiro ? somarDias(primeiro, nIntervalo * (nParcelas - 1)) : null;
+
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4 text-[color:var(--bex-cyan)]" />
+          <h2 className="text-sm font-medium">Condição de pagamento</h2>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <Label htmlFor="cond-parcelas" className="text-xs">
+              Parcelas
+            </Label>
+            <Input
+              id="cond-parcelas"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              disabled={!podeEditar || salvando}
+              value={parcelas}
+              onChange={(e) => setParcelas(e.target.value)}
+              onBlur={salvar}
+            />
+          </div>
+          <div>
+            <Label htmlFor="cond-intervalo" className="text-xs">
+              Intervalo (dias)
+            </Label>
+            <Input
+              id="cond-intervalo"
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              disabled={!podeEditar || salvando}
+              value={intervalo}
+              onChange={(e) => setIntervalo(e.target.value)}
+              onBlur={salvar}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">30 = uma vez por mês</p>
+          </div>
+          <div>
+            <Label htmlFor="cond-primeiro" className="text-xs">
+              1º vencimento
+            </Label>
+            <Input
+              id="cond-primeiro"
+              type="date"
+              disabled={!podeEditar || salvando}
+              value={primeiro}
+              onChange={(e) => setPrimeiro(e.target.value)}
+              onBlur={salvar}
+            />
+          </div>
+        </div>
+
+        {/* A conferência antes da conversão: é aqui que se vê o parcelamento
+            errado, enquanto ainda dá para arrumar sem mexer no financeiro. */}
+        <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+          {total <= 0 ? (
+            <span className="text-muted-foreground">
+              O orçamento ainda está zerado — adicione itens abaixo para ver o valor de cada
+              parcela.
+            </span>
+          ) : (
+            <span>
+              Vai virar{" "}
+              <strong>
+                {nParcelas}× de {brl(valorParcela)}
+              </strong>
+              {sobra && <> (a última de {brl(valorUltima)})</>}
+              {primeiro ? (
+                <>
+                  , a primeira em {emBR(primeiro)}
+                  {nParcelas > 1 && ultimoVenc && (
+                    <>
+                      {" "}
+                      e a última em {emBR(ultimoVenc)}, a cada {nIntervalo} dia(s)
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  , a primeira <strong>no dia em que o orçamento virar OS</strong>
+                  {nParcelas > 1 && <> e as seguintes a cada {nIntervalo} dia(s)</>}
+                </>
+              )}
+              .
+            </span>
+          )}
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          É isto que a conversão em OS usa para criar as parcelas do a receber. Sem preencher,
+          sai uma parcela só, vencendo no mesmo dia — e a cobrança já nasce atrasada.
+        </p>
+      </CardContent>
+    </Card>
   );
 }

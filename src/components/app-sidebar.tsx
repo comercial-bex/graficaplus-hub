@@ -50,6 +50,7 @@ import {
   Hourglass,
   CalendarClock,
   Target,
+  ReceiptText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -141,6 +142,9 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     gate: "financial",
     items: [
       { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+      // Logo abaixo do Financeiro: é a leitura de cobrança que a gráfica abre
+      // todo dia — quem deve, quanto venceu e onde se dá baixa.
+      { title: "Contas a receber", url: "/a-receber", icon: ReceiptText },
       { title: "Fluxo de caixa", url: "/fluxo-caixa", icon: Wallet },
       { title: "Contas bancárias", url: "/contas-bancarias", icon: Landmark },
       { title: "Compromissos", url: "/compromissos", icon: Repeat },
