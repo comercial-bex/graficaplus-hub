@@ -767,7 +767,7 @@ function ItensTab({
           <TableBody>
             {itens.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Sem itens
                 </TableCell>
               </TableRow>
@@ -890,32 +890,47 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
     toast.success("Arquivo marcado como inativo");
   }
 
-  async function registrarAprovacao() {
+  /**
+   * Registrar o que o cliente respondeu — pelo telefone, pelo WhatsApp ou no
+   * balcão.
+   *
+   * A versão anterior fazia um INSERT direto em `aprovacoes` com
+   * `aprovado: true` fixo, e parava aí. Três consequências:
+   *
+   *  1. não havia como registrar "o cliente pediu ajuste": só existia o sim;
+   *  2. a OS continuava em "aguardando aprovação de arte", porque nada mexia
+   *     no status — ao contrário do link, que move;
+   *  3. e o inverso também: quando o cliente aprovava PELO LINK, a gravação ia
+   *     para `arquivo_aprovacoes`, mas `os_bloqueios_para` só lia `aprovacoes`.
+   *     A OS ia para "arte aprovada" e a produção seguia barrada com "Arte
+   *     ainda não aprovada" até alguém registrar a MESMA aprovação de novo,
+   *     aqui, na mão.
+   *
+   * Agora é uma RPC só, que escreve nas duas tabelas, muda o status do arquivo
+   * e avança a OS — o mesmo que o link faz.
+   */
+  async function registrarAprovacao(decisao: "aprovado" | "ajuste") {
     if (!aprovar) return;
-    const { error } = await supabase.from("aprovacoes").insert({
-      tipo: "arte",
-      os_id: osId,
-      arquivo_id: aprovar.id,
-      aprovado: true,
-      canal: aprovacao.canal as any,
-      usuario_id: userId,
-      cliente_contato_id: aprovacao.cliente_contato_id === "sem-contato" ? null : aprovacao.cliente_contato_id,
-      observacao: aprovacao.observacao || null,
+    const { error } = await (supabase as any).rpc("registrar_aprovacao_interna", {
+      p_os_id: osId,
+      p_arquivo_id: aprovar.id,
+      p_decisao: decisao,
+      p_canal: aprovacao.canal,
+      p_cliente_contato_id:
+        aprovacao.cliente_contato_id === "sem-contato" ? null : aprovacao.cliente_contato_id,
+      p_observacao: aprovacao.observacao || null,
     });
     if (error) return toast.error(mensagemErro(error));
-
-    await supabase.from("logs_auditoria").insert({
-      entidade: "arquivos",
-      entidade_id: aprovar.id,
-      acao: "aprovacao_arte",
-      detalhes: { os_id: osId, canal: aprovacao.canal, cliente_contato_id: aprovacao.cliente_contato_id },
-      usuario_id: userId,
-    });
 
     setAprovar(null);
     setAprovacao({ canal: "sistema", cliente_contato_id: "sem-contato", observacao: "" });
     qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
-    toast.success("Aprovação de arte registrada");
+    qc.invalidateQueries({ queryKey: ["os", osId] });
+    toast.success(
+      decisao === "aprovado"
+        ? "Arte aprovada. A OS avançou e a produção está liberada."
+        : "Ajuste registrado. A arte voltou para o design.",
+    );
   }
 
   async function download(caminho: string) {
@@ -969,6 +984,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
               <TableHead>Nome</TableHead>
               <TableHead>Versão</TableHead>
               <TableHead>Tamanho</TableHead>
+              <TableHead>Aprovação</TableHead>
               <TableHead>Final</TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -976,7 +992,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
           <TableBody>
             {arquivos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Sem arquivos
                 </TableCell>
               </TableRow>
@@ -986,13 +1002,37 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
                 <TableCell className="font-medium">{a.nome}</TableCell>
                 <TableCell>v{a.versao}</TableCell>
                 <TableCell>{((a.tamanho_bytes ?? 0) / 1024).toFixed(1)} KB</TableCell>
+                <TableCell>
+                  {a.status === "aprovado" ? (
+                    <Badge variant="outline">Aprovada</Badge>
+                  ) : a.status === "rejeitado" ? (
+                    <Badge variant="destructive">Ajuste pedido</Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell>{a.final_producao && <Badge>Final</Badge>}</TableCell>
                 <TableCell className="text-right space-x-1">
                   <Button size="sm" variant="ghost" onClick={() => download(a.caminho)}>
                     Baixar
                   </Button>
+                  {/* O diálogo de aprovação existia inteiro e NINGUÉM abria: não
+                      havia uma única chamada de setAprovar com um arquivo. Sem
+                      esta porta, a única aprovação possível era a do link, e a
+                      produção ficava barrada quando o cliente aceitava por
+                      telefone. */}
+                  {a.tipo === "arte" && a.status !== "aprovado" && (
+                    <Button size="sm" variant="outline" onClick={() => setAprovar(a)}>
+                      Registrar resposta
+                    </Button>
+                  )}
                   {!a.final_producao && (
-                    <Button size="sm" variant="ghost" onClick={() => marcarFinal(a.id)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Marcar como arquivo final de produção"
+                      onClick={() => marcarFinal(a.id)}
+                    >
                       <CheckCircle2 className="h-4 w-4" />
                     </Button>
                   )}
@@ -1005,7 +1045,9 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
 
       <Dialog open={!!aprovar} onOpenChange={(open) => !open && setAprovar(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Registrar aprovação de arte</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>O que o cliente respondeu?</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">Arquivo: <strong>{aprovar?.nome}</strong> v{aprovar?.versao}</div>
             <div className="space-y-2">
@@ -1025,9 +1067,29 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Observação</Label><Textarea value={aprovacao.observacao} onChange={(e) => setAprovacao({ ...aprovacao, observacao: e.target.value })} /></div>
+            <div className="space-y-2">
+              <Label>Observação</Label>
+              <Textarea
+                value={aprovacao.observacao}
+                onChange={(e) => setAprovacao({ ...aprovacao, observacao: e.target.value })}
+                placeholder="Para um ajuste, diga o que mudar — sem isso o designer não sabe o que corrigir."
+              />
+            </div>
           </div>
-          <DialogFooter><Button onClick={registrarAprovacao}>Registrar aprovação</Button></DialogFooter>
+          {/* Dois botões, porque são dois fatos diferentes. Um botão só com
+              "aprovado" fixo obrigava a mentir quando o cliente pedia ajuste. */}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              className="h-11 md:h-10"
+              onClick={() => registrarAprovacao("ajuste")}
+            >
+              Pediu ajuste
+            </Button>
+            <Button className="h-11 md:h-10" onClick={() => registrarAprovacao("aprovado")}>
+              Aprovou
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>
