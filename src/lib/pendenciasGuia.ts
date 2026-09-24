@@ -74,6 +74,24 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Se o cliente desistiu, marque como rejeitado — orçamento parado polui a fila de todo mundo.',
     ],
   },
+  orcamento_aprovado_sem_os: {
+    acao: 'Abrir orçamentos',
+    passos: [
+      'Abra Comercial › Orçamentos e filtre por "aprovado".',
+      'Abra o orçamento e use "Converter em OS".',
+      'A OS já nasce com o material previsto, o estoque reservado, a conta a receber e a máquina agendada — por isso converter é o passo que solta tudo.',
+      'Se o cliente desistiu depois de aprovar, marque como rejeitado em vez de deixar parado.',
+    ],
+  },
+  os_pronta_sem_entrega_agendada: {
+    acao: 'Abrir entregas',
+    passos: [
+      'Abra Produção › Entregas & Instalações.',
+      'A entrega costuma nascer sozinha quando a peça fica pronta; se não apareceu, use "Agendar".',
+      'Confira o endereço e escolha quem vai levar.',
+      'Ao voltar, registre a conclusão com foto ou assinatura — é o que fecha o serviço para o cliente.',
+    ],
+  },
   arte_aguardando_cliente: {
     acao: 'Ver ordens de serviço',
     passos: [
