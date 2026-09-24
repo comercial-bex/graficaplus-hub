@@ -232,3 +232,44 @@ export function progressoDaEtapa(status: string | null | undefined): number | nu
   const i = ordem.indexOf(info.etapa);
   return i < 0 ? null : (i + 1) / ordem.length;
 }
+
+/* ------------------------------------------------------------------ *
+ * Encerrada, entregue, aberta
+ * ------------------------------------------------------------------ */
+
+/**
+ * Os três predicados que a lista de OS usava com palavras inventadas.
+ *
+ * `os.index.tsx` filtrava por `["entregue", "concluida", "finalizada",
+ * "cancelada"]` e nenhuma das quatro existe no enum `status_os` — o banco
+ * escreve `concluido`, `faturado` e `cancelado`. Efeito: o KPI "entregues"
+ * mostrava ZERO sempre, "abertas" contava toda OS já feita, inclusive as
+ * canceladas, e "valor em aberto" somava o dinheiro delas. Três números na
+ * tela do gestor, os três errados, e nenhum erro em lugar nenhum.
+ *
+ * O mesmo vale para as cores: `toneOS` pintava de âmbar quem estivesse
+ * "entregue" e de magenta quem estivesse "cancelada" — logo, todo cartão
+ * saía ciano.
+ *
+ * Ficam aqui, ao lado da lista que bate com o enum, e não soltas na tela.
+ */
+
+/** Não anda mais: concluída, faturada ou cancelada. */
+export function osEstaEncerrada(status: string | null | undefined): boolean {
+  return status === "concluido" || status === "faturado" || status === "cancelado";
+}
+
+/** Chegou ao cliente e o trabalho foi aceito. Cancelada NÃO conta. */
+export function osFoiEntregue(status: string | null | undefined): boolean {
+  return status === "concluido" || status === "faturado";
+}
+
+/** Ainda consome hora de máquina, de gente, ou espera alguma coisa. */
+export function osEstaAberta(status: string | null | undefined): boolean {
+  return !osEstaEncerrada(status);
+}
+
+/** Está numa das cinco máquinas, ou na fila genérica de produção. */
+export function osEstaEmProducao(status: string | null | undefined): boolean {
+  return etapaDe(status) === "producao";
+}

@@ -28,6 +28,14 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
+import {
+  EXPLICACAO_ENTREGA,
+  ROTULO_ENTREGA,
+  STATUS_ENTREGA,
+  entregaEstaEncerrada,
+  rotuloEntrega,
+  type StatusEntrega,
+} from "@/domain/os/entrega";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/entregas")({
@@ -41,11 +49,14 @@ const TIPOS = [
   { valor: "retirada", rotulo: "Retirada pelo cliente" },
 ];
 
-const STATUS: Record<string, { rotulo: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  agendada: { rotulo: "Agendada", variant: "secondary" },
-  em_rota: { rotulo: "Em rota", variant: "default" },
-  concluido: { rotulo: "Concluída", variant: "outline" },
-  cancelada: { rotulo: "Cancelada", variant: "destructive" },
+// O rótulo e a lista vêm do domínio: a tela gravava "concluido" e `fechar_os`
+// procurava "concluida", e a OS ficava presa em "em entrega" para sempre.
+const VARIANTE: Record<StatusEntrega, "default" | "secondary" | "outline" | "destructive"> = {
+  agendada: "secondary",
+  em_rota: "default",
+  concluida: "outline",
+  cancelada: "destructive",
+  nao_necessaria: "secondary",
 };
 
 // datetime-local quer 'YYYY-MM-DDTHH:mm' na hora LOCAL. toISOString() devolve
@@ -286,7 +297,7 @@ function EntregasPage() {
                 </TableHeader>
                 <TableBody>
                   {entregas.map((e: any) => {
-                    const fechada = ["concluido", "cancelada"].includes(e.status);
+                    const fechada = entregaEstaEncerrada(e.status);
                     return (
                       <TableRow key={e.id}>
                         <TableCell className="font-medium">
@@ -315,8 +326,8 @@ function EntregasPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={STATUS[e.status]?.variant ?? "secondary"}>
-                            {STATUS[e.status]?.rotulo ?? e.status}
+                          <Badge variant={VARIANTE[e.status as StatusEntrega] ?? "secondary"}>
+                            {rotuloEntrega(e.status)}
                           </Badge>
                         </TableCell>
                         {podeGerenciar && (
@@ -330,7 +341,7 @@ function EntregasPage() {
                                   update.mutate({
                                     id: e.id,
                                     changes:
-                                      v === "concluido"
+                                      v === "concluida"
                                         ? { status: v, data_realizada: new Date().toISOString() }
                                         : { status: v },
                                   })
@@ -340,9 +351,12 @@ function EntregasPage() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {Object.entries(STATUS).map(([valor, s]) => (
+                                  {STATUS_ENTREGA.map((valor) => (
                                     <SelectItem key={valor} value={valor}>
-                                      {s.rotulo}
+                                      <span className="font-medium">{ROTULO_ENTREGA[valor]}</span>
+                                      <span className="ml-2 text-xs text-muted-foreground">
+                                        {EXPLICACAO_ENTREGA[valor]}
+                                      </span>
                                     </SelectItem>
                                   ))}
                                 </SelectContent>

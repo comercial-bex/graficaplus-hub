@@ -92,6 +92,15 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Ao voltar, registre a conclusão com foto ou assinatura — é o que fecha o serviço para o cliente.',
     ],
   },
+  entrega_feita_os_aberta: {
+    acao: 'Ver ordens de serviço',
+    passos: [
+      'A entrega já foi dada como concluída — o cliente recebeu.',
+      'Abra a OS: ela tenta fechar sozinha quando a última entrega é baixada, e só não fechou porque alguma trava continua de pé.',
+      'As travas são sempre estas: tarefa obrigatória em aberto, qualidade não aprovada, material sem baixa, custo operacional não lançado, ocorrência sem tratamento ou pagamento pendente.',
+      'Enquanto a OS não fechar, o serviço não entra no faturado do mês nem aparece como concluído para o cliente.',
+    ],
+  },
   arte_aguardando_cliente: {
     acao: 'Ver ordens de serviço',
     passos: [
