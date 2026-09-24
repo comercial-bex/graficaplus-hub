@@ -22,6 +22,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { CalculadoraDeEncargos } from "@/components/custos/calculadora-de-encargos";
+import { ParametrosDaCasa } from "@/components/custos/parametros-da-casa";
 import { quantoFalta } from "@/domain/financeiro/encargos";
 import { mensagemErro } from "@/lib/erros";
 
@@ -313,6 +314,7 @@ function CustosProducaoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ParametrosDaCasa />
     </div>
   );
 }

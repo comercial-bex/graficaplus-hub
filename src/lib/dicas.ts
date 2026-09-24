@@ -331,8 +331,13 @@ export const dicas = {
     },
   },
   "/custos-producao": {
-    menu: "Valor da hora de cada função da equipe.",
-    tela: "Custo de mão de obra por função. É o valor por hora que entra no custo dos trabalhos e dos orçamentos.",
+    menu: "Valor da hora da equipe e os parâmetros que formam o preço.",
+    tela: "Custo de mão de obra por função, e os parâmetros da casa: markup, imposto, taxa de cartão, perda de refile e falha de produção. Quatro deles entram direto na conta da Meta do mês — mudar aqui muda quanto a gráfica precisa faturar para empatar.",
+    campos: {
+      encargos: "FGTS, 13º, férias e provisão de rescisão sobre o salário-hora. Encargo em 0% faz o bloco de mão de obra sair menor do que o que sai do bolso.",
+      parametros_da_casa:
+        "Os dez números que formam preço e medem resultado. Só o administrador altera; a equipe vê, porque entender de onde sai o preço ajuda a explicar o orçamento ao cliente.",
+    },
   },
   "/movimentacoes": {
     menu: "Entradas e saídas de material do estoque.",
