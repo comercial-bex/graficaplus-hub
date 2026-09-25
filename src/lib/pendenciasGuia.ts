@@ -92,6 +92,14 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Ao voltar, registre a conclusão com foto ou assinatura — é o que fecha o serviço para o cliente.',
     ],
   },
+  os_sem_item: {
+    acao: 'Ver ordens de serviço',
+    passos: [
+      'A OS foi aberta e ninguém disse o que produzir.',
+      'Abra a OS e acrescente os itens — sem item ela não tem valor, não prevê material, não gera conta a receber e não fecha.',
+      'Se foi engano, cancele em vez de deixar parada: assim ela para de contar como trabalho aberto no painel.',
+    ],
+  },
   os_sem_material_reservado: {
     acao: 'Ver materiais',
     passos: [
