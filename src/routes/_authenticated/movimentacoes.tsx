@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
+import { FolhaDeContagem } from "@/components/estoque/folha-de-contagem";
 
 export const Route = createFileRoute("/_authenticated/movimentacoes")({
   head: () => ({ meta: [{ title: "Movimentações de estoque — BEX PRINT OS" }] }),
@@ -223,9 +224,13 @@ function MovimentacoesPage() {
         description="Toda entrada, baixa e ajuste de material, com origem e responsável"
         actions={
           <div className="flex items-center gap-2">
+            {/* A folha vem primeiro: contar a oficina inteira é o caso comum,
+                e o ajuste de um material só é a exceção. Era o contrário, e
+                14 dos 18 materiais nunca receberam carga nenhuma. */}
+            {podeInventariar && <FolhaDeContagem materiais={materiais} />}
             {podeInventariar && (
               <Button variant="outline" onClick={() => setInventarioAberto(true)}>
-                <ClipboardCheck className="h-4 w-4 mr-1" /> Inventário
+                <ClipboardCheck className="h-4 w-4 mr-1" /> Ajustar um
               </Button>
             )}
             {podeDarEntrada && (
