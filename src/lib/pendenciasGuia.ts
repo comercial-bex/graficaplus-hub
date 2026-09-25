@@ -92,6 +92,15 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Ao voltar, registre a conclusão com foto ou assinatura — é o que fecha o serviço para o cliente.',
     ],
   },
+  os_sem_material_reservado: {
+    acao: 'Ver materiais',
+    passos: [
+      'A peça já foi prometida ao cliente e o material não está na prateleira.',
+      'Abra a OS: o card de materiais previstos mostra o que falta, com quantidade e unidade.',
+      'Dê entrada no estoque em Catálogo & Estoque › Materiais, ou avise o cliente do novo prazo.',
+      'Enquanto faltar, a OS não consegue dar baixa de material nem fechar — e a trava não diz o motivo em lugar nenhum além daqui.',
+    ],
+  },
   entrega_feita_os_aberta: {
     acao: 'Ver ordens de serviço',
     passos: [
