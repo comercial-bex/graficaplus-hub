@@ -82,6 +82,7 @@ import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
 import { Route as ParceiroOrcamentosIdRouteImport } from './routes/parceiro.orcamentos.$id'
 import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
+import { Route as ApiWhatsappEnviarRouteImport } from './routes/api.whatsapp.enviar'
 import { Route as AuthenticatedOsIdRouteImport } from './routes/_authenticated/os.$id'
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
 import { Route as AuthenticatedOrcamento3dIdRouteImport } from './routes/_authenticated/orcamento-3d.$id'
@@ -476,6 +477,11 @@ const ApiWhatsappWebhookRoute = ApiWhatsappWebhookRouteImport.update({
   path: '/api/whatsapp/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWhatsappEnviarRoute = ApiWhatsappEnviarRouteImport.update({
+  id: '/api/whatsapp/enviar',
+  path: '/api/whatsapp/enviar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedOsIdRoute = AuthenticatedOsIdRouteImport.update({
   id: '/os/$id',
   path: '/os/$id',
@@ -570,6 +576,7 @@ export interface FileRoutesByFullPath {
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
@@ -647,6 +654,7 @@ export interface FileRoutesByTo {
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
@@ -727,6 +735,7 @@ export interface FileRoutesById {
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
@@ -807,6 +816,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
     | '/clientes/'
@@ -884,6 +894,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
     | '/clientes'
@@ -963,6 +974,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
+    | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
     | '/_authenticated/clientes/'
@@ -982,6 +994,7 @@ export interface RootRouteChildren {
   ConviteCodigoRoute: typeof ConviteCodigoRoute
   OrcamentoPublicoTokenRoute: typeof OrcamentoPublicoTokenRoute
   PublicoTokenRoute: typeof PublicoTokenRoute
+  ApiWhatsappEnviarRoute: typeof ApiWhatsappEnviarRoute
   ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
 }
 
@@ -1498,6 +1511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWhatsappWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/whatsapp/enviar': {
+      id: '/api/whatsapp/enviar'
+      path: '/api/whatsapp/enviar'
+      fullPath: '/api/whatsapp/enviar'
+      preLoaderRoute: typeof ApiWhatsappEnviarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/os/$id': {
       id: '/_authenticated/os/$id'
       path: '/os/$id'
@@ -1692,6 +1712,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConviteCodigoRoute: ConviteCodigoRoute,
   OrcamentoPublicoTokenRoute: OrcamentoPublicoTokenRoute,
   PublicoTokenRoute: PublicoTokenRoute,
+  ApiWhatsappEnviarRoute: ApiWhatsappEnviarRoute,
   ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
