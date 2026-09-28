@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
+import { lerRespostaZapi, telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 
 export type ResultadoVerificacao = {
   inicio: string;
@@ -87,8 +87,12 @@ export const verificarConexaoZapi = createServerFn({ method: "POST" })
             message: `Teste de conexão do BEX PRINT OS — ${new Date().toLocaleString("pt-BR", { timeZone: "America/Belem" })}`,
           }),
         });
-        if (resp.ok) r.testeEnviado = true;
-        else r.erroTeste = `O Z-API recusou o envio (${resp.status}): ${(await resp.text()).slice(0, 200)}`;
+        // `resp.ok` não basta: o Z-API devolve 200 com o erro no corpo, e um
+        // teste que se declara enviado sem messageId mente justo para quem
+        // está tentando descobrir por que a mensagem não chega.
+        const lido = lerRespostaZapi(resp.status, await resp.json().catch(() => null));
+        if (lido.ok) r.testeEnviado = true;
+        else r.erroTeste = `O Z-API recusou o envio: ${lido.erro}`;
       } catch (e) {
         r.erroTeste = `Falha ao enviar o teste: ${e instanceof Error ? e.message : String(e)}`;
       }
