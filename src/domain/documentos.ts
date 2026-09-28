@@ -144,3 +144,27 @@ export function chaveWhatsApp(valor: string | null | undefined): string | null {
   }
   return d;
 }
+
+/**
+ * O telefone recebe WhatsApp?
+ *
+ * Espelha `public.telefone_recebe_whatsapp` no banco — as duas precisam
+ * concordar, senão a tela deixa salvar e o banco recusa, ou pior: a tela
+ * recusa o que o banco aceitaria.
+ *
+ * Estar preenchido não basta. `chaveWhatsApp` aceita calado dois casos que não
+ * recebem mensagem nenhuma:
+ *
+ *   "96 3222-1234"                  -> 9632221234              (fixo)
+ *   "96 99131-8834 / 96 98140-8722" -> 9699131883496981408722  (dois colados)
+ *
+ * O segundo é o pior: 22 dígitos gravados como se fossem um telefone. Quem
+ * digita os dois números do cliente na mesma caixa não vê nada de errado, e a
+ * mensagem simplesmente nunca chega.
+ *
+ * Celular brasileiro: DDD (2 dígitos, 11 a 99) + 9 + 8 dígitos.
+ */
+export function recebeWhatsApp(valor: string | null | undefined): boolean {
+  const chave = chaveWhatsApp(valor);
+  return !!chave && /^[1-9][1-9]9[0-9]{8}$/.test(chave);
+}
