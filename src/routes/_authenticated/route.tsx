@@ -1,3 +1,4 @@
+import { AlertaWhatsapp } from "@/components/whatsapp/alerta-whatsapp";
 import {
   createFileRoute,
   Link,
@@ -139,7 +140,10 @@ function AuthenticatedLayout() {
           {/* Celular: margem menor e sem o fundo de pontos (contraste em tela barata ao sol) */}
           <main className="flex-1 p-4 md:p-6 overflow-auto md:bex-grid">
             {canAccessRoute ? (
-              <Outlet />
+              <>
+                <AlertaWhatsapp />
+                <Outlet />
+              </>
             ) : (
               <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center gap-3 text-center">
                 <h1 className="text-2xl font-semibold tracking-tight">Acesso restrito</h1>
