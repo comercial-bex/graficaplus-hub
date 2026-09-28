@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   lerRespostaZapi,
+  montarBotoes,
   montarEnvio,
+  renderizarTemplate,
   telefoneParaZapi,
   valeTentarDeNovo,
 } from "../src/domain/whatsapp/zapi-envio";
@@ -96,5 +98,80 @@ describe("vale tentar de novo?", () => {
     expect(valeTentarDeNovo("fetch failed")).toBe(true);
     expect(valeTentarDeNovo("HTTP 429")).toBe(true);
     expect(valeTentarDeNovo("HTTP 500")).toBe(true);
+  });
+});
+
+describe("renderizar o modelo da mensagem", () => {
+  /**
+   * Os seis modelos existem desde agosto, bem escritos. O que nunca existiu
+   * foi quem trocasse `{{cliente}}` pelo nome e mandasse.
+   */
+  const PRODUCAO =
+    "Boa notícia, {{cliente}}: o pedido {{os_numero}} ({{os_titulo}}) entrou em produção. Previsão de entrega: {{prazo}}.";
+
+  it("troca todas as chaves", () => {
+    expect(
+      renderizarTemplate(PRODUCAO, {
+        cliente: "Max Lima",
+        os_numero: 44,
+        os_titulo: "Banner 2×1",
+        prazo: "30/09",
+      }),
+    ).toBe("Boa notícia, Max Lima: o pedido 44 (Banner 2×1) entrou em produção. Previsão de entrega: 30/09.");
+  });
+
+  it("variável ausente não vira {{prazo}} cru no WhatsApp do cliente", () => {
+    const r = renderizarTemplate(PRODUCAO, { cliente: "Max", os_numero: 44, os_titulo: "Banner" });
+    expect(r).not.toContain("{{");
+    expect(r).toBe("Boa notícia, Max: o pedido 44 (Banner) entrou em produção. Previsão de entrega.");
+  });
+
+  it("título vazio não deixa parênteses sozinhos", () => {
+    const r = renderizarTemplate(PRODUCAO, { cliente: "Max", os_numero: 44, prazo: "30/09" });
+    expect(r).not.toContain("()");
+    expect(r).toContain("o pedido 44 entrou em produção");
+  });
+
+  it("sem variável nenhuma ainda produz frase legível", () => {
+    const r = renderizarTemplate(PRODUCAO, null);
+    expect(r).not.toContain("{{");
+    expect(r.length).toBeGreaterThan(10);
+  });
+});
+
+describe("botões de resposta", () => {
+  it("monta o send-button-list", () => {
+    const r = montarBotoes(
+      {
+        para: "96981216527",
+        texto: "A arte do pedido 44 está pronta.",
+        botoes: [
+          { id: "aprovar", rotulo: "Aprovar" },
+          { id: "ajuste", rotulo: "Pedir ajuste" },
+        ],
+      },
+      CRED,
+    ) as any;
+    expect(r.url).toContain("/send-button-list");
+    expect(r.corpo.buttonList.buttons).toHaveLength(2);
+    expect(r.corpo.phone).toBe("5596981216527");
+  });
+
+  it("corta no terceiro botão — mais que isso o Z-API recusa a chamada inteira", () => {
+    const r = montarBotoes(
+      {
+        para: "96981216527",
+        texto: "oi",
+        botoes: [1, 2, 3, 4, 5].map((n) => ({ id: `b${n}`, rotulo: `Botão ${n}` })),
+      },
+      CRED,
+    ) as any;
+    expect(r.corpo.buttonList.buttons).toHaveLength(3);
+  });
+
+  it("recusa sem botão e com destino ruim", () => {
+    expect(montarBotoes({ para: "96981216527", texto: "oi", botoes: [] }, CRED)).toHaveProperty("erro");
+    expect(montarBotoes({ para: "96 3222-1234", texto: "oi", botoes: [{ id: "a", rotulo: "A" }] }, CRED))
+      .toHaveProperty("erro");
   });
 });

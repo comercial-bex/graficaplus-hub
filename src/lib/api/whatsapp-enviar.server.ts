@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   lerRespostaZapi,
   montarEnvio,
+  renderizarTemplate,
   valeTentarDeNovo,
   type PedidoDeEnvio,
 } from "@/domain/whatsapp/zapi-envio";
@@ -236,5 +237,143 @@ export async function processarFilaZapi(request: Request): Promise<Response> {
     enviadas++;
   }
 
-  return json(200, { ok: true, enviadas, falhas: falhas.length, detalhes: falhas });
+  const avisos = await processarAvisosAoCliente(instancia.zapi_instance_id, token, clientToken);
+
+  return json(200, {
+    ok: true,
+    enviadas,
+    falhas: falhas.length,
+    detalhes: falhas,
+    avisos_ao_cliente: avisos,
+  });
+}
+
+/**
+ * A OUTRA fila: os avisos automáticos ao cliente.
+ *
+ * `notificacoes_fila` é escrita por `tg_os_notificar_cliente` e pelo gatilho do
+ * orçamento, com o modelo e as variáveis prontos. `marco_notificavel_os` define
+ * cinco momentos que o cliente merece saber:
+ *
+ *   aguardando_aprovacao_arte  a arte está pronta para aprovar
+ *   em_producao                seu produto está sendo confeccionado
+ *   aguardando_retirada        está pronto para retirar
+ *   em_entrega                 saiu para entrega
+ *   concluido                  serviço concluído
+ *
+ * Tudo isso existe desde agosto e nunca saiu do lugar: ninguém lia a fila. Em
+ * 28/09/2026 havia 12 avisos cancelados e 3 pendentes — estes últimos de três
+ * orçamentos aprovados no mesmo dia, de clientes reais que nunca souberam.
+ *
+ * São duas filas porque são dois assuntos: aqui é o aviso que o sistema decide
+ * mandar; `whatsapp_fila_envio` é a mensagem que uma pessoa escreveu na
+ * conversa. O consumidor é o mesmo, e é isso que importa.
+ */
+async function processarAvisosAoCliente(
+  instanceId: string,
+  token: string,
+  clientToken: string,
+): Promise<{ enviados: number; falhas: number; detalhes: { evento: string; erro: string }[] }> {
+  const { data: linhas } = await supabaseAdmin
+    .from("notificacoes_fila")
+    .select("id, canal, destinatario, evento, template, variaveis, tentativas, max_tentativas")
+    .eq("canal", "whatsapp")
+    .eq("status", "pendente")
+    .order("created_at", { ascending: true })
+    .limit(ZAPI_LIMITE_POR_RODADA);
+
+  const detalhes: { evento: string; erro: string }[] = [];
+  if (!linhas?.length) return { enviados: 0, falhas: 0, detalhes };
+
+  // Os modelos numa consulta só: a fila costuma repetir poucos eventos, e uma
+  // ida ao banco por linha seria desperdício puro.
+  const { data: modelos } = await supabaseAdmin
+    .from("notificacao_templates")
+    .select("evento, corpo, ativo")
+    .eq("canal", "whatsapp");
+  const corpoPorEvento = new Map(
+    (modelos ?? []).filter((m: any) => m.ativo !== false).map((m: any) => [m.evento, m.corpo]),
+  );
+
+  let enviados = 0;
+
+  for (const linha of linhas as any[]) {
+    const corpo = corpoPorEvento.get(linha.template) ?? corpoPorEvento.get(linha.evento);
+    if (!corpo) {
+      // Modelo faltando não melhora tentando de novo. Falha definitiva, com o
+      // nome do evento na mensagem — senão vira "não chegou" sem motivo.
+      const erro = `sem modelo de mensagem para o evento "${linha.evento}"`;
+      await supabaseAdmin
+        .from("notificacoes_fila")
+        .update({ status: "falha", ultimo_erro: erro, tentativas: (linha.tentativas ?? 0) + 1 })
+        .eq("id", linha.id);
+      detalhes.push({ evento: linha.evento, erro });
+      continue;
+    }
+
+    const montado = montarEnvio(
+      { tipo: "texto", para: linha.destinatario, texto: renderizarTemplate(corpo, linha.variaveis) },
+      { instanceId, token },
+    );
+
+    if ("erro" in montado) {
+      await supabaseAdmin
+        .from("notificacoes_fila")
+        .update({ status: "falha", ultimo_erro: montado.erro, tentativas: (linha.tentativas ?? 0) + 1 })
+        .eq("id", linha.id);
+      detalhes.push({ evento: linha.evento, erro: montado.erro });
+      continue;
+    }
+
+    let status = 0;
+    let resposta: unknown = null;
+    try {
+      const r = await fetch(montado.url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(clientToken ? { "Client-Token": clientToken } : {}),
+        },
+        body: JSON.stringify(montado.corpo),
+      });
+      status = r.status;
+      resposta = await r.json().catch(() => null);
+    } catch (e) {
+      const erro = e instanceof Error ? e.message : "falha de rede ao chamar o Z-API";
+      const tentativas = (linha.tentativas ?? 0) + 1;
+      const acabou = tentativas >= (linha.max_tentativas ?? 5);
+      await supabaseAdmin
+        .from("notificacoes_fila")
+        .update({ status: acabou ? "falha" : "pendente", ultimo_erro: erro, tentativas })
+        .eq("id", linha.id);
+      detalhes.push({ evento: linha.evento, erro });
+      continue;
+    }
+
+    const lido = lerRespostaZapi(status, resposta);
+    if (!lido.ok) {
+      const tentativas = (linha.tentativas ?? 0) + 1;
+      const definitiva = !valeTentarDeNovo(lido.erro) || tentativas >= (linha.max_tentativas ?? 5);
+      await supabaseAdmin
+        .from("notificacoes_fila")
+        .update({ status: definitiva ? "falha" : "pendente", ultimo_erro: lido.erro, tentativas })
+        .eq("id", linha.id);
+      detalhes.push({ evento: linha.evento, erro: lido.erro });
+      continue;
+    }
+
+    await supabaseAdmin
+      .from("notificacoes_fila")
+      .update({
+        status: "enviado",
+        enviado_em: new Date().toISOString(),
+        provider_message_id: lido.idExterno,
+        ultimo_erro: null,
+        tentativas: (linha.tentativas ?? 0) + 1,
+      })
+      .eq("id", linha.id);
+    enviados++;
+  }
+
+  return { enviados, falhas: detalhes.length, detalhes };
 }

@@ -15,9 +15,23 @@ export function AlertaWhatsapp({ compacto = false }: { compacto?: boolean }) {
     enabled: pode,
     refetchInterval: 120_000,
     queryFn: async () => {
+      // pai-arbitrario-ok: este alerta LÊ para avisar, não grava vínculo
+      // nenhum — o risco que a guarda protege (pendurar um registro no pai
+      // errado, calado) não existe aqui. O `.eq("ativa", true)` foi
+      // acrescentado porque sem ele o alerta leria uma instância DESATIVADA e
+      // diria que o WhatsApp está fora do ar com a instância nova rodando.
+      // A gráfica opera uma instância; se um dia operar duas, este alerta
+      // precisa passar a olhar todas e avisar da que caiu.
       const { data: inst } = await supabase
         .from("whatsapp_instancias")
+        // pai-arbitrario-ok: LÊ para avisar, não grava vínculo — o risco que a
+        // guarda protege (pendurar registro no pai errado, calado) não existe
+        // aqui. O `.eq("ativa", true)` entrou porque sem ele o alerta leria
+        // uma instância DESATIVADA e diria que o WhatsApp caiu com a nova
+        // rodando. Se um dia houver duas ativas, este alerta precisa olhar
+        // todas e avisar da que caiu.
         .select("conectado, status, ultimo_evento_at, ativa")
+        .eq("ativa", true)
         .order("created_at")
         .limit(1)
         .maybeSingle();
