@@ -39,7 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Upload, Search } from "lucide-react";
 import { toast } from "sonner";
 import { CampoDocumento } from "@/components/campo-documento";
-import { formatarCEP, formatarTelefone } from "@/domain/documentos";
+import { formatarCEP, formatarTelefone, recebeWhatsApp } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { mensagemErro } from "@/lib/erros";
 
@@ -182,6 +182,19 @@ function ClientesPage() {
 
   async function handleCreate() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório");
+    // O WhatsApp é por onde sai o orçamento em PDF e o acompanhamento da OS.
+    // Cliente sem ele fica sem canal nenhum — e o banco recusa desde 28/09.
+    if (!form.telefone.trim()) {
+      return toast.error("Informe o WhatsApp do cliente", {
+        description: "É por ele que sai o orçamento em PDF e o acompanhamento da OS.",
+      });
+    }
+    if (!recebeWhatsApp(form.telefone)) {
+      return toast.error("Esse número não recebe WhatsApp", {
+        description:
+          "Precisa ser um celular com DDD e o 9 na frente. Telefone fixo não recebe; se o cliente tem dois números, guarde um aqui e o outro em Contatos.",
+      });
+    }
     const payload: any = { ...form };
     if (!payload.vendedor_id) delete payload.vendedor_id;
     const { error } = await supabase.from("clientes").insert(payload);
@@ -320,12 +333,20 @@ function ClientesPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Telefone</Label>
+                    <Label>WhatsApp *</Label>
                     <Input
                       maxLength={20}
+                      inputMode="tel"
+                      placeholder="(96) 99999-9999"
                       value={form.telefone}
                       onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                      aria-invalid={!!form.telefone.trim() && !recebeWhatsApp(form.telefone)}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      {form.telefone.trim() && !recebeWhatsApp(form.telefone)
+                        ? "Celular com DDD e o 9 na frente. Fixo não recebe."
+                        : "Por aqui sai o orçamento em PDF e o acompanhamento da OS."}
+                    </p>
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label>E-mail</Label>
