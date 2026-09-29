@@ -31,19 +31,35 @@ export function situacaoDaConexao(instancia: InstanciaResumo | null): Situacao {
   if (instancia.ativa === false) {
     return { rotulo: "Desativada", tom: "muted", proximoPasso: null };
   }
+  // Desconectada vem ANTES de "aguardando o primeiro evento". Na ordem antiga,
+  // uma instância recém-cadastrada e nunca pareada caía em "aguardando" e o
+  // cartão mandava conferir a URL do webhook — enquanto o passo real, o único
+  // que destrava tudo, é escanear o QR Code. Foi assim em 28/09/2026: a
+  // instância BEX PRINTS entrou desconectada, sem evento, e a tela escondia o
+  // motivo.
+  if (instancia.conectado === false || instancia.status === "desconectada") {
+    // Nunca recebeu evento E está desconectada: o celular nunca foi pareado.
+    // "Leia o QR de novo" seria a frase de quem caiu — aqui é a primeira vez.
+    if (!instancia.ultimo_evento_at) {
+      return {
+        rotulo: "Falta escanear o QR Code",
+        tom: "magenta",
+        proximoPasso:
+          "O celular da gráfica ainda não foi pareado. No painel do Z-API, abra a instância e escaneie o QR Code com o WhatsApp do celular da empresa; depois clique em Verificar aqui.",
+      };
+    }
+    return {
+      rotulo: "Desconectada",
+      tom: "magenta",
+      proximoPasso: "O celular saiu do WhatsApp Web do Z-API. Leia o QR Code de novo no painel deles.",
+    };
+  }
   if (!instancia.ultimo_evento_at) {
     return {
       rotulo: "Aguardando o primeiro evento",
       tom: "amber",
       proximoPasso:
         "O Z-API ainda não chamou este endereço. Confira se a URL foi colada nos webhooks e mande uma mensagem de teste para o número da empresa.",
-    };
-  }
-  if (instancia.conectado === false || instancia.status === "desconectada") {
-    return {
-      rotulo: "Desconectada",
-      tom: "magenta",
-      proximoPasso: "O celular saiu do WhatsApp Web do Z-API. Leia o QR Code de novo no painel deles.",
     };
   }
   return { rotulo: "Recebendo", tom: "lime", proximoPasso: null };

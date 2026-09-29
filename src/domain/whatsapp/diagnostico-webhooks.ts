@@ -107,11 +107,25 @@ export function alertasDaConexao(
   if (!instancia || instancia.ativa === false) return [];
   const alertas: Alerta[] = [];
   if (instancia.conectado === false || instancia.status === "desconectada") {
-    alertas.push({
-      nivel: "critico",
-      titulo: "WhatsApp desconectado",
-      detalhe: "O celular saiu do Z-API. Nenhuma mensagem entra ou sai até ler o QR Code de novo no painel deles.",
-    });
+    // Dois casos com a mesma cara no banco e remédios de frase diferente.
+    // Instância que nunca recebeu evento nunca foi pareada: o lembrete é
+    // "falta escanear", e ele fica no topo de toda tela, para administrador e
+    // gestor, até alguém fazer — é o passo que destrava recepção, resposta e
+    // os avisos automáticos aos clientes, que hoje esperam na fila.
+    alertas.push(
+      instancia.ultimo_evento_at
+        ? {
+            nivel: "critico",
+            titulo: "WhatsApp desconectado",
+            detalhe: "O celular saiu do Z-API. Nenhuma mensagem entra ou sai até ler o QR Code de novo no painel deles.",
+          }
+        : {
+            nivel: "critico",
+            titulo: "Falta escanear o QR Code do WhatsApp",
+            detalhe:
+              "A instância está cadastrada, mas o celular da gráfica ainda não foi pareado no Z-API. Enquanto isso nenhuma mensagem entra ou sai — nem os avisos automáticos aos clientes. Escaneie o QR Code no painel do Z-API com o WhatsApp da empresa e clique em Verificar no Monitor.",
+          },
+    );
   }
   if (instancia.ultimo_evento_at) {
     const horas = (agora.getTime() - new Date(instancia.ultimo_evento_at).getTime()) / 36e5;

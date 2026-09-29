@@ -7,8 +7,15 @@ import { alertasDaConexao } from "@/domain/whatsapp/diagnostico-webhooks";
 
 /** Faixa de alerta no topo do sistema quando o WhatsApp cai ou fica mudo. */
 export function AlertaWhatsapp({ compacto = false }: { compacto?: boolean }) {
-  const { hasPermission } = useAuth();
-  const pode = hasPermission("whatsapp.manage") || hasPermission("whatsapp.read");
+  const { hasPermission, hasRole } = useAuth();
+  // Quem ABRE o Monitor: a mesma régua da rota em src/lib/permissions.ts.
+  const abreMonitor = hasPermission("whatsapp.manage") || hasPermission("whatsapp.read");
+  // Quem VÊ o aviso: além de quem opera o WhatsApp, administrador e gestor.
+  // Antes só quem tinha permissão de WhatsApp via a faixa — admin e vendedor —,
+  // e o gestor, que é quem cobra o atendimento, não sabia que o WhatsApp
+  // estava fora do ar. A leitura de `whatsapp_instancias` já era liberada a
+  // toda a equipe (policy `is_staff`); o portão estava só aqui na tela.
+  const pode = abreMonitor || hasRole("admin") || hasRole("gestor");
 
   const { data: alertas = [] } = useQuery({
     queryKey: ["whatsapp-alertas"],
@@ -65,7 +72,10 @@ export function AlertaWhatsapp({ compacto = false }: { compacto?: boolean }) {
             <span className="font-semibold text-foreground">{a.titulo}.</span>{" "}
             <span className="text-muted-foreground">{a.detalhe}</span>
           </div>
-          {!compacto && (
+          {/* O gestor vê o aviso mas não abre o Monitor (a rota exige
+              whatsapp.read/manage). Link para uma tela que responde "sem
+              acesso" é beco sem saída — então só aparece para quem entra. */}
+          {!compacto && abreMonitor && (
             <Link to="/whatsapp-monitor" className="shrink-0 text-xs font-medium text-primary underline">
               Abrir Monitor
             </Link>
