@@ -24,7 +24,7 @@ import { DiagnosticoWebhooks } from "@/components/whatsapp/diagnostico-webhooks"
 export const Route = createFileRoute("/_authenticated/whatsapp-monitor")({
   head: () => ({ meta: [{ title: "Monitor WhatsApp — BEX PRINT OS" }] }),
   component: WhatsappMonitorPage,
-  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {(error as Error).message}</div>,
 });
 
 function toneForStatus(s: string): "cyan" | "magenta" | "lime" | "muted" {
