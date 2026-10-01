@@ -66,7 +66,7 @@ import {
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
   component: OSDetailPage,
-  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {(error as Error).message}</div>,
   notFoundComponent: () => <div className="p-6">OS não encontrada</div>,
 });
 

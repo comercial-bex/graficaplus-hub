@@ -18,7 +18,7 @@ import { mensagemErro } from "@/lib/erros";
 export const Route = createFileRoute("/_authenticated/pos-venda")({
   head: () => ({ meta: [{ title: "Pós-venda / NPS — BEX PRINT OS" }] }),
   component: PosVendaPage,
-  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {(error as Error).message}</div>,
 });
 
 function PosVendaPage() {

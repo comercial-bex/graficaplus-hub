@@ -30,7 +30,7 @@ import { formatarData } from "@/domain/os/prazo";
 export const Route = createFileRoute("/_authenticated/portal-cliente")({
   head: () => ({ meta: [{ title: "Portal do Cliente — BEX PRINT OS" }] }),
   component: PortalClientePage,
-  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {(error as Error).message}</div>,
   notFoundComponent: () => <div className="p-6">Portal não encontrado</div>,
 });
 

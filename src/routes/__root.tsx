@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -44,10 +45,10 @@ function NotFoundComponent() {
 const ERRO_CHUNK_ANTIGO = /dynamically imported module|Importing a module script failed|Failed to fetch dynamically imported/i;
 const CHAVE_RECARGA = "bexprint:recarregado_por_versao_nova";
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
-  const versaoNova = ERRO_CHUNK_ANTIGO.test(error?.message ?? "");
+  const versaoNova = ERRO_CHUNK_ANTIGO.test((error as Error)?.message ?? "");
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);

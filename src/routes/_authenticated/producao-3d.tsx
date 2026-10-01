@@ -35,7 +35,7 @@ import { mensagemErro } from "@/lib/erros";
 export const Route = createFileRoute("/_authenticated/producao-3d")({
   head: () => ({ meta: [{ title: "Produção 3D — BEX PRINT OS" }] }),
   component: Producao3DPage,
-  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {(error as Error).message}</div>,
 });
 
 const STATUS_JOB = [
