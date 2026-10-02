@@ -238,7 +238,15 @@ export function ofertasParaAvisar(ofertas: Oferta[]): Oferta[] {
 
 /** "Lona 440g por R$ 55,00/m² até 30/09" */
 export function resumoDaOferta(o: Oferta): string {
-  const ate = new Date(o.fim).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  // O dia é o de Macapá, não o do aparelho nem o do servidor. Sem o fuso, a
+  // oferta que acaba às 23:59 de 30/09 aparecia "até 01/10" quando a página é
+  // montada no servidor (UTC) — e era isso que deixava o CI vermelho desde
+  // 17/09: o teste rodava em UTC e a tela mentia o último dia da promoção.
+  const ate = new Date(o.fim).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Belem",
+  });
   if (o.produto_nome && o.preco_oferta) {
     const un = o.produto_unidade && /^m(2|²)$/i.test(o.produto_unidade.trim()) ? "m²" : (o.produto_unidade ?? "un");
     return `${o.produto_nome} por ${brl(n(o.preco_oferta))}/${un} até ${ate}`;
