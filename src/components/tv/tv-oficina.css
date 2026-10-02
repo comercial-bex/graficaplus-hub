@@ -1,0 +1,249 @@
+/*
+  A TV da Oficina — a pele da parede, portada da maquete aprovada
+  (scratchpad tv/maquete/tv-grafica.html, revisão 2.1) e medida nela.
+
+  Tudo vive dentro de `.tvo`, num PALCO FIXO de 1920×1080 que a tela escala
+  inteiro para a janela do aparelho (Smart TV que informa 1280×720 vê a mesma
+  tela, menor). Por isso toda medida aqui é em px e nenhuma é relativa.
+
+  Piso de letra: 24 px no palco. Nada abaixo disso — é o que se lê a 4 m numa
+  TV de 55" (9,2 minutos de arco; o limite de quem enxerga bem é 5).
+  tests/tv-tela-fonte.test.ts lê este arquivo e reprova font-size menor.
+*/
+
+.tvo {
+  /* superfícies e marca: tokens do Bex Print (src/styles.css) — a "pele" é decisão do dono (desenho-v2, decisão i) */
+  --fundo: #050506;
+  --bloco: #12131a;
+  --bloco-fundo: #0b0c11;
+  --borda: #23252f;
+  --borda-forte: #343746;
+  --claro: #e2e8f0;
+  --apoio: #8b94a7;
+  --bex-cyan: #00d3f2;
+  --bex-magenta: #ff2d9b;
+  --bex-amber: #f5d90a;
+  --cmyk: linear-gradient(135deg, #00d3f2 0%, #ff2d9b 55%, #f5d90a 100%);
+  /* cores de alerta: as mesmas da TV2 da agência (KPICards.tsx) */
+  --vermelho: #ef4444;
+  --vermelho-texto: #fca5a5;
+  --neon: #bcf125;
+  --azul: #3b82f6;
+  --azul-texto: #60a5fa;
+  --amarelo: #fde047;
+  --amarelo-borda: rgba(234, 179, 8, 0.6);
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--fundo);
+  color: #fff;
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  /* a tela de parede não tem mouse: nada de cursor, seleção ou toque */
+  user-select: none;
+  cursor: default;
+}
+.tvo * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+/* palco fixo de 1920x1080, escalado INTEIRO para a janela do aparelho */
+.tvo-palco {
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  background: var(--fundo);
+}
+.tvo svg.ic {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+  display: inline-block;
+}
+.tvo .cx { text-transform: uppercase; }
+.tvo .corta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tvo .fixo { white-space: nowrap; }
+.tvo [hidden] { display: none !important; }
+
+/* aba do modo de exemplo: 26 px, no vão acima dos chips, entre o título e o relógio */
+.tvo .etiqueta { position: absolute; left: 560px; right: 290px; top: 0; display: flex; justify-content: center; z-index: 5; pointer-events: none; }
+.tvo .etiqueta span { height: 30px; padding: 0 16px; display: flex; align-items: center; border-radius: 0 0 10px 10px; font-size: 26px; font-weight: 800; letter-spacing: 0.03em; white-space: nowrap; background: var(--bex-amber); color: #050506; }
+
+/* ===== página: a mesma coluna flex da TV2 ===== */
+.tvo .tela { display: flex; flex-direction: column; gap: 12px; height: 1080px; padding: 16px; overflow: hidden; }
+/* dado PARADO ou sem conexão: tudo o que afirma alguma coisa esmaece (inclusive chips de contagem e a faixa de baixo), sem cair abaixo de 3:1 */
+.tvo .tela.velho .esmaece { opacity: 0.72; filter: saturate(0.45); }
+/* dado que não é mais "vivo" (atrasado, parado, sem conexão, retrato): nada pulsa e nenhuma lista troca de página */
+.tvo .tela.quieto .pulsa { animation: none; }
+
+/* ===== 1. cabeçalho ===== */
+.tvo .cab { flex: none; display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 12px; position: relative; }
+.tvo .cab::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--cmyk); opacity: 0.75; }
+.tvo .cab .esq { display: flex; align-items: center; gap: 16px; }
+.tvo .cab .marca { font-size: 28px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: #fff; }
+.tvo .cab .marca i { font-style: normal; background: var(--cmyk); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tvo .cab .marca span { letter-spacing: -0.02em; margin-left: 7px; }
+.tvo .cab .div { width: 2px; height: 44px; background: var(--borda-forte); }
+.tvo .cab .sobre { font-size: 24px; font-weight: 700; color: var(--apoio); letter-spacing: 0.06em; line-height: 28px; }
+.tvo .cab .sobre.exemplo { color: var(--bex-amber); }
+.tvo .cab .titulo { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; margin-top: 1px; }
+.tvo .cab .dir { display: flex; align-items: flex-end; gap: 14px; }
+.tvo .chip { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--borda-forte); font-size: 24px; font-weight: 800; letter-spacing: 0.04em; }
+.tvo .chip.neon { color: var(--neon); border-color: rgba(188, 241, 37, 0.45); background: rgba(188, 241, 37, 0.08); }
+.tvo .chip.branco { color: #fff; }
+.tvo .chip.cinza { color: var(--apoio); }
+.tvo .chip.amarelo { color: var(--amarelo); border-color: var(--amarelo-borda); background: rgba(234, 179, 8, 0.12); }
+.tvo .chip.vermelho { color: var(--vermelho-texto); border-color: rgba(239, 68, 68, 0.6); background: rgba(239, 68, 68, 0.18); }
+.tvo .selo { display: flex; align-items: center; gap: 8px; height: 44px; font-size: 24px; font-weight: 800; letter-spacing: 0.06em; color: var(--apoio); }
+.tvo .selo.vivo svg { color: var(--neon); }
+.tvo .relogio { font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -0.01em; }
+
+/* ===== faixa condicional (uma por vez) ===== */
+.tvo .faixa { flex: none; height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 20px; border-radius: 12px; font-size: 26px; font-weight: 700; }
+.tvo .faixa.cinza { background: #1a1c25; border: 1px dashed #6b7384; color: var(--claro); }
+.tvo .faixa.vermelha { background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.6); color: #fff; }
+.tvo .faixa.ambar { background: rgba(234, 179, 8, 0.14); border: 1px solid var(--amarelo-borda); color: var(--amarelo); }
+
+/* ===== 2. faixa de cartões: 3 grandes + 4 minis 2x2 NA MESMA linha ===== */
+.tvo .kpis { flex: none; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.tvo .grandes { grid-column: span 8; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.tvo .minis { grid-column: span 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, 100px); gap: 12px; }
+.tvo .grande { border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; overflow: hidden; min-width: 0; border: 2px solid transparent; }
+.tvo .grande .rot { display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 800; letter-spacing: 0.08em; line-height: 32px; }
+.tvo .grande .num { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; font-size: 150px; font-weight: 800; line-height: 0.8; letter-spacing: -0.05em; }
+.tvo .grande .sub { font-size: 24px; font-weight: 700; line-height: 28px; text-align: center; letter-spacing: 0.02em; min-height: 28px; }
+.tvo .grande.verm { background: var(--vermelho); box-shadow: 0 0 28px rgba(239, 68, 68, 0.22); }
+.tvo .grande.neon { background: var(--neon); color: #000; box-shadow: 0 0 28px rgba(188, 241, 37, 0.15); }
+.tvo .grande.azul { background: var(--azul); box-shadow: 0 0 28px rgba(59, 130, 246, 0.22); }
+/* zero NÃO grita: os três cartões ficam escuros, só com o contorno na cor */
+.tvo .grande.zero, .tvo .grande.vago { background: var(--bloco); box-shadow: none; color: #fff; }
+.tvo .grande.zero .num, .tvo .grande.vago .num { color: var(--apoio); }
+.tvo .grande.zero .sub { color: var(--claro); }
+.tvo .grande.verm.zero { border-color: rgba(239, 68, 68, 0.55); } .tvo .grande.verm.zero .rot { color: var(--vermelho-texto); }
+.tvo .grande.neon.zero { border-color: rgba(188, 241, 37, 0.5); } .tvo .grande.neon.zero .rot { color: var(--neon); }
+.tvo .grande.azul.zero { border-color: rgba(59, 130, 246, 0.65); } .tvo .grande.azul.zero .rot { color: var(--azul-texto); }
+.tvo .grande.vago { border: 2px dashed #6b7384; } .tvo .grande.vago .rot { color: var(--apoio); }
+.tvo .pulsa { animation: tvo-pulso 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes tvo-pulso { 50% { opacity: 0.5; } }
+.tvo .mini { border-radius: 12px; padding: 10px 14px; background: var(--bloco); border: 1px solid var(--borda); display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+.tvo .mini.alerta { border-color: rgba(239, 68, 68, 0.55); }
+.tvo .mini.vago { border: 1px dashed #6b7384; }
+.tvo .mini .l1 { display: flex; align-items: center; gap: 10px; height: 48px; }
+.tvo .mini .n { font-size: 48px; font-weight: 800; line-height: 48px; flex: none; }
+/* à direita do número: primeiro as fichas de prazo, depois o texto de apoio. O que não couber quebra para uma 2ª linha que fica escondida */
+.tvo .mini .d { flex: 1; min-width: 0; height: 40px; display: flex; flex-wrap: wrap; justify-content: flex-end; align-content: flex-start; column-gap: 8px; overflow: hidden; }
+.tvo .mini .d > * { height: 40px; display: flex; align-items: center; flex: none; }
+.tvo .mini .s { font-size: 24px; font-weight: 700; color: var(--apoio); }
+.tvo .mini .s.os { color: var(--vermelho-texto); font-weight: 800; }
+.tvo .mini .r { font-size: 24px; font-weight: 800; line-height: 28px; color: var(--claro); letter-spacing: 0.04em; }
+.tvo .mini.alerta .n { color: var(--vermelho-texto); }
+/* ficha de prazo: mesma cor e mesmo ícone do cartão grande a que pertence */
+.tvo .pc i { display: flex; align-items: center; gap: 4px; height: 34px; padding: 0 8px; border-radius: 8px; font-style: normal; font-size: 24px; font-weight: 800; line-height: 1; }
+.tvo .pc.atr i { background: var(--vermelho); color: #fff; } .tvo .pc.hoje i { background: var(--neon); color: #000; } .tvo .pc.amanha i { background: var(--azul); color: #fff; }
+.tvo .pc b { font-weight: 800; }
+
+/* ===== 3. corpo: 5 colunas de máquina; ficam com toda a altura que sobra ===== */
+.tvo .maquinas { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.tvo .maq { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-radius: 16px; background: var(--bloco); border: 1px solid var(--borda); overflow: hidden; position: relative; }
+.tvo .maq .filete { position: absolute; inset: 0 0 auto 0; height: 4px; }
+.tvo .maq .topo { flex: none; padding: 10px 16px 8px; border-bottom: 1px solid var(--borda); }
+.tvo .maq .nomel { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tvo .maq .nome { display: flex; align-items: center; gap: 10px; font-size: 30px; font-weight: 800; letter-spacing: 0.06em; line-height: 36px; min-width: 0; }
+.tvo .maq .fila { display: flex; align-items: center; gap: 6px; font-size: 24px; font-weight: 800; color: var(--apoio); line-height: 28px; }
+.tvo .maq .barra { height: 6px; border-radius: 999px; background: var(--fundo); margin-top: 6px; overflow: hidden; }
+.tvo .maq .barra i { display: block; height: 100%; border-radius: 999px; }
+.tvo .maq .estado { flex: none; padding: 6px 16px 0; }
+.tvo .maq .palavra { font-size: 42px; font-weight: 800; line-height: 46px; letter-spacing: -0.01em; }
+.tvo .maq .desde { font-size: 28px; font-weight: 600; line-height: 32px; color: var(--claro); }
+/* "agora": altura fixa (2 + 60 + 64 + 30 + 6 + 1 de borda) para a fila começar na mesma linha nas 5 colunas */
+.tvo .maq .agora { flex: none; height: 163px; padding: 2px 16px 6px; border-bottom: 1px solid var(--borda); overflow: hidden; }
+.tvo .maq .osl { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; height: 60px; overflow: hidden; }
+.tvo .maq .os { font-size: 60px; font-weight: 800; line-height: 60px; letter-spacing: -0.02em; }
+.tvo .maq .os.atr { color: var(--vermelho-texto); }
+.tvo .maq .parte { font-size: 28px; font-weight: 800; line-height: 60px; color: var(--apoio); }
+.tvo .maq .prod { font-size: 28px; font-weight: 600; line-height: 32px; height: 64px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* linha de baixo do "agora": o PRAZO à direita (sempre aparece) e a nota à esquerda (some se não couber) */
+.tvo .maq .prev { display: flex; flex-direction: row-reverse; flex-wrap: wrap; column-gap: 10px; height: 30px; overflow: hidden; font-size: 26px; font-weight: 700; line-height: 30px; color: var(--apoio); }
+.tvo .maq .prev .nota { margin-right: auto; }
+.tvo .maq .prev .nota.estourou { color: var(--vermelho-texto); }
+.tvo .maq .prev .t { font-size: 26px; line-height: 30px; }
+.tvo .maq .nota1 { font-size: 28px; font-weight: 600; line-height: 34px; color: var(--apoio); }
+.tvo .maq .dica { font-size: 26px; font-weight: 600; line-height: 32px; color: var(--apoio); }
+.tvo .maq .dica b { color: var(--claro); font-weight: 800; }
+.tvo .maq .lista { flex: 1; min-height: 0; padding: 6px 16px 4px; overflow: hidden; display: flex; flex-direction: column; }
+.tvo .maq .rotlista { flex: none; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; height: 28px; font-size: 24px; font-weight: 800; line-height: 28px; color: var(--apoio); }
+.tvo .maq .rotlista .tit { letter-spacing: 0.14em; }
+.tvo .maq .rotlista .inf { font-weight: 700; }
+.tvo .maq .rotlista .inf.ambar { color: var(--amarelo); }
+.tvo .maq .janela { flex: 1; min-height: 0; overflow: hidden; }
+/* um trabalho = 2 linhas (57 px): em cima nº + PRAZO; embaixo o nome do produto com a largura toda.
+   Nome que não cabe embaixo sobe as primeiras palavras para a linha de cima (partir-nome.ts). */
+.tvo .maq .item { height: 57px; padding-top: 1px; border-top: 1px solid var(--borda); }
+.tvo .maq .item .l1 { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; height: 28px; clip-path: inset(-2px 0 -7px 0); }
+.tvo .maq .item .n { font-size: 28px; font-weight: 800; line-height: 28px; flex: none; }
+.tvo .maq .item .pt { font-size: 24px; font-weight: 700; line-height: 28px; color: var(--apoio); flex: none; margin-left: -2px; }
+.tvo .maq .item .ca { font-size: 24px; font-weight: 500; line-height: 28px; color: var(--claro); flex: none; white-space: nowrap; }
+.tvo .maq .item .h { font-size: 24px; font-weight: 800; line-height: 28px; color: var(--amarelo); flex: none; margin-left: auto; }
+.tvo .maq .item .p { font-size: 24px; font-weight: 500; line-height: 27px; height: 27px; color: var(--claro); }
+.tvo .maq .item.atr .n { color: var(--vermelho-texto); }
+.tvo .maq .item.prov .n, .tvo .maq .item.prov .p, .tvo .maq .item.prov .ca, .tvo .maq .item.pausa .n, .tvo .maq .item.pausa .p, .tvo .maq .item.pausa .ca { color: var(--apoio); }
+/* etiqueta de PRAZO: um significado só, nas cores dos três cartões grandes */
+.tvo .t { display: inline-flex; align-items: center; gap: 3px; font-size: 24px; font-weight: 800; line-height: 28px; flex: none; white-space: nowrap; }
+.tvo .t.atr { color: var(--vermelho-texto); } .tvo .t.hoje { color: var(--neon); } .tvo .t.amanha { color: var(--azul-texto); }
+.tvo .maq .pontos { position: absolute; left: 0; right: 0; bottom: 3px; display: flex; justify-content: center; gap: 6px; }
+.tvo .maq .pontos i { width: 6px; height: 6px; border-radius: 50%; background: var(--borda-forte); } .tvo .maq .pontos i.a { background: var(--claro); }
+/* cor do ESTADO: é dela a borda e a palavra; a cor de identidade da máquina fica só no ícone e no filete */
+.tvo .e-rodando { border-color: rgba(188, 241, 37, 0.6); } .tvo .e-rodando .palavra { color: var(--neon); } .tvo .e-rodando .barra i { background: var(--neon); }
+.tvo .e-livre { border-color: var(--borda-forte); } .tvo .e-livre .palavra { color: #fff; }
+.tvo .e-sem_registro, .tvo .maq.vaga { border-style: dashed; border-color: #6b7384; } .tvo .e-sem_registro .palavra, .tvo .maq.vaga .palavra { color: var(--apoio); }
+.tvo .e-pelo_status { border-color: rgba(59, 130, 246, 0.6); } .tvo .e-pelo_status .palavra { color: var(--azul-texto); }
+.tvo .e-reservada, .tvo .e-nao_fechou { border-color: var(--amarelo-borda); } .tvo .e-reservada .palavra, .tvo .e-nao_fechou .palavra { color: var(--amarelo); }
+.tvo .e-bloqueada { border-color: rgba(226, 232, 240, 0.5); } .tvo .e-bloqueada .palavra { color: var(--claro); }
+.tvo .estourou .barra i { background: var(--vermelho) !important; }
+
+/* ===== 4. letreiro de saídas + canto de eventos NA MESMA faixa ===== */
+.tvo .rodape { flex: none; height: 84px; display: flex; align-items: stretch; border-radius: 16px; border: 1px solid var(--borda); background: var(--bloco); overflow: hidden; }
+.tvo .rodape .etq { flex: none; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: var(--neon); color: #050506; font-size: 24px; font-weight: 800; letter-spacing: 0.08em; line-height: 28px; }
+.tvo .trilho { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0 14px; overflow: hidden; }
+.tvo .rodape .vazio { font-size: 26px; font-weight: 600; color: var(--apoio); }
+.tvo .saida { flex: none; display: flex; align-items: stretch; height: 64px; border-radius: 10px; border: 1px solid var(--borda-forte); background: var(--bloco-fundo); overflow: hidden; }
+.tvo .saida .tarja { width: 5px; }
+.tvo .saida .cx2 { display: flex; flex-direction: column; justify-content: center; padding: 0 14px; }
+.tvo .saida .q { font-size: 24px; font-weight: 800; line-height: 26px; letter-spacing: 0.04em; color: var(--claro); }
+.tvo .saida .q.hoje { color: var(--neon); } .tvo .saida .q.amanha { color: var(--azul-texto); }
+.tvo .saida .oq { font-size: 26px; font-weight: 800; line-height: 30px; }
+.tvo .trilho .pag { margin-left: auto; flex: none; font-size: 24px; font-weight: 800; color: var(--apoio); }
+.tvo .canto { flex: none; width: 500px; border-left: 1px solid var(--borda); padding: 6px 16px; display: flex; flex-direction: column; justify-content: center; background: var(--bloco-fundo); }
+.tvo .canto .c1 { font-size: 24px; font-weight: 800; letter-spacing: 0.06em; color: var(--apoio); line-height: 30px; display: flex; align-items: center; gap: 8px; }
+.tvo .canto .c2 { font-size: 28px; font-weight: 700; line-height: 34px; }
+
+/* ===== 5. pareamento: a TV sem crachá, em letra de parede ===== */
+.tvo .pareamento { display: flex; flex-direction: column; height: 1080px; padding: 16px; gap: 12px; }
+.tvo .pareamento .miolo { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 560px; gap: 48px; align-items: center; padding: 0 56px; }
+.tvo .pareamento .passo { font-size: 28px; font-weight: 700; color: var(--apoio); letter-spacing: 0.06em; line-height: 36px; }
+.tvo .pareamento .chamada { font-size: 48px; font-weight: 800; line-height: 56px; letter-spacing: -0.01em; margin-top: 8px; }
+.tvo .pareamento .codigo { font-size: 200px; font-weight: 800; line-height: 1; letter-spacing: 0.04em; margin: 28px 0 20px; font-variant-numeric: tabular-nums; }
+.tvo .pareamento .codigo.vago { color: var(--apoio); }
+.tvo .pareamento .instrucao { font-size: 34px; font-weight: 600; line-height: 44px; color: var(--claro); max-width: 1100px; }
+.tvo .pareamento .instrucao b { font-weight: 800; color: #fff; }
+.tvo .pareamento .ou { font-size: 26px; font-weight: 600; line-height: 34px; color: var(--apoio); margin-top: 12px; }
+.tvo .pareamento .contagem { display: flex; align-items: center; gap: 12px; margin-top: 28px; font-size: 28px; font-weight: 700; color: var(--apoio); }
+.tvo .pareamento .contagem b { color: #fff; font-weight: 800; font-size: 32px; }
+.tvo .pareamento .qr { width: 560px; height: 560px; border-radius: 24px; background: #fff; padding: 28px; display: flex; align-items: center; justify-content: center; }
+.tvo .pareamento .qr svg { width: 100%; height: 100%; display: block; }
+.tvo .pareamento .qr.vago { background: var(--bloco); border: 2px dashed #6b7384; color: var(--apoio); font-size: 28px; font-weight: 700; text-align: center; padding: 48px; line-height: 38px; }
+.tvo .pareamento .aviso { flex: none; min-height: 64px; display: flex; align-items: center; gap: 14px; padding: 0 24px; border-radius: 14px; font-size: 28px; font-weight: 700; line-height: 34px; }
+.tvo .pareamento .aviso.vermelha { background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.6); color: #fff; }
+.tvo .pareamento .aviso.ambar { background: rgba(234, 179, 8, 0.14); border: 1px solid var(--amarelo-borda); color: var(--amarelo); }
+.tvo .pareamento .aviso.cinza { background: #1a1c25; border: 1px dashed #6b7384; color: var(--claro); }
+.tvo .pareamento .rodape-par { flex: none; display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 600; color: var(--apoio); padding: 0 8px; }

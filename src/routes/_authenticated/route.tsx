@@ -7,9 +7,10 @@ import {
   useRouter,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { destinoParaLevarAoLogin } from "@/domain/acesso/destino-apos-login";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { InstalarApp } from "@/components/pwa/instalar-app";
@@ -48,6 +49,8 @@ function AuthenticatedLayout() {
   const navigate = useNavigate();
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const href = useRouterState({ select: (s) => s.location.href });
+  const jaEsteveLogado = useRef(false);
   const noInicio = pathname === "/dashboard" || pathname === "/dashboard/";
   const requiredPermissions = getRoutePermissions(pathname);
   const canAccessRoute = requiredPermissions !== null && requiredPermissions.some(hasPermission);
@@ -58,8 +61,19 @@ function AuthenticatedLayout() {
   const somenteParceiro = roles.length > 0 && roles.every((r) => r === "parceiro");
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
-  }, [loading, user, navigate]);
+    if (loading) return;
+    if (user) {
+      jaEsteveLogado.current = true;
+      return;
+    }
+    // Quem CHEGOU por um link sem estar logado leva o destino até o login, que
+    // devolve a pessoa para cá depois da senha — o QR da TV da Oficina, lido
+    // pela câmera do celular, abre o navegador sem sessão e perdia o código.
+    // Quem SAIU não leva nada: o próximo a entrar neste aparelho cairia na
+    // tela do anterior.
+    const destino = jaEsteveLogado.current ? null : destinoParaLevarAoLogin(href);
+    navigate({ to: "/login", search: destino ? { destino } : {} });
+  }, [loading, user, navigate, href]);
 
   useEffect(() => {
     if (!loading && user && somenteParceiro) navigate({ to: "/parceiro" });

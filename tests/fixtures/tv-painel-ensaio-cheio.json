@@ -1,0 +1,524 @@
+{
+ "_sobre": [
+  "Exemplo CHEIO devolvido por public.tv_painel_maquinas() num ensaio com rollback (DO ... RAISE EXCEPTION) em 2026-10-02 00:09 UTC (21:09 em Macapa), DEPOIS da correcao de 01/10 (md5 do corpo c143e9605dec27509f902b85439cbc97). Nada disto ficou no banco. Uma execucao so, inteira.",
+  "Dados de teste: 19 OS (#9501 a #9531) mais as 2 reais (#44 e #49). 'R$ 150,00 Zuleica Plantada' foi plantado em titulo, briefing e observacoes da OS, descricao do item, titulo/observacoes da reserva, observacoes do apontamento, endereco/observacoes da entrega e observacao do job 3D: nenhum valor de texto do retorno casou com R$, com numero,centavos nem com o nome; nenhuma chave proibida (o ensaio levanta erro se qualquer um falhar).",
+  "O que o exemplo mostra, por coluna: IMPRESSAO rodando a #9521 (reserva ligada ao apontamento: produto do catalogo e 90 min previstos) com fila de 5 — reserva vencida de 29/09 (#9503, que esta NA MAQUINA do Recorte ao mesmo tempo: regras 3/4 corrigidas), reservas de sexta e sabado, a #9504 pelo status (maquina_id velho no Recorte NAO vale: status em_impressao ganha) e a pausada #9527; a_caminho 1 (a #9505 em design tem 3 reservas e conta UMA vez). RECORTE nao_fechou (apontamento de 11 h), com a #9503 na fila por maquina_id. LASER CO2 reservada (#9523 na fila da oficina, janela cobrindo agora), com a #9508 (em_laser_cnc + maquina_id CO2) na fila. FIBER pelo_status (#9510 em_producao com maquina_id, e a reserva dela na Impressao continua na fila de la); a reserva orfa (os_id nulo, origem 'os') cobrindo agora no Fiber NAO virou bloqueada. 3D bloqueada por bloqueio manual (origem 'manual'), com a #9512 na fila; ultimo_job_3d_local de ontem.",
+  "Blocos: #9501 (retrabalho que JA teve entrega concluida) esta na parede, no acabamento, atrasada 3 dias — antes sumia. #9506 (aguardando_retirada com retirada concluida) saiu da parede; #9507 (balcao, prazo hoje) esta na saida e no letreiro. #9509 (em_laser_cnc com maquina_id da Impressao, que contradiz o status) e SEM MAQUINA, laser_sem_maquina. cartoes.*.itens so numeram oficina e acabamento: atrasadas.total 6 com 4 itens (a #49 em entrada_arte e a #9531 na saida ficam so na contagem); prazo_hoje.total 4 com 2 itens.",
+  "Letreiro: retirada de hoje (sem hora), entrega em rota hoje com janela (hora), instalacao de amanha (sem hora, so data_agendada), reserva de amanha na Impressao. Eventos: 9 de hoje (os 'hist' nasceram do INSERT das OS de teste, no mesmo segundo; o desempate e por id).",
+  "Chaves novas desde o retorno anterior: registro.ultimo_registro_local; maquinas[].livre_por (null fora do estado livre; neste exemplo nenhuma coluna esta livre — ver o contrato); agora.fora_da_oficina; consistencia.avisos (vazio aqui: nenhum apontamento aberto de OS fora da oficina)."
+ ],
+ "painel": {
+  "versao": 2,
+  "gerado_em": "2026-10-02T00:09:30.172397+00:00",
+  "hoje_local": "2026-10-01",
+  "fuso": "America/Belem",
+  "intervalo_s": 60,
+  "dentro_do_expediente": false,
+  "registro": {
+   "jobs_3d_hoje": 0,
+   "apontamentos_hoje": 2,
+   "ultimo_job_3d_local": "30/09 20:09",
+   "apontamentos_abertos": 2,
+   "ultimo_registro_local": "20:19",
+   "ultimo_apontamento_local": "20:19",
+   "sem_apontamento_em_7_dias": false
+  },
+  "rodando": {
+   "de": 5,
+   "total": 1
+  },
+  "cartoes": {
+   "atrasadas": {
+    "fora": 4,
+    "itens": [
+     {
+      "bloco": "oficina",
+      "pausada": false,
+      "os_numero": 9509,
+      "dias_atraso": 4
+     },
+     {
+      "bloco": "acabamento",
+      "pausada": false,
+      "os_numero": 9501,
+      "dias_atraso": 3
+     },
+     {
+      "bloco": "acabamento",
+      "pausada": false,
+      "os_numero": 9502,
+      "dias_atraso": 2
+     },
+     {
+      "bloco": "oficina",
+      "pausada": false,
+      "os_numero": 9508,
+      "dias_atraso": 1
+     }
+    ],
+    "total": 6,
+    "nas_maquinas": 2
+   },
+   "prazo_hoje": {
+    "itens": [
+     {
+      "bloco": "oficina",
+      "pausada": false,
+      "os_numero": 9512
+     },
+     {
+      "bloco": "oficina",
+      "pausada": false,
+      "os_numero": 9521
+     }
+    ],
+    "total": 4,
+    "ja_prontas": 2
+   },
+   "prazo_amanha": {
+    "itens": [
+     {
+      "bloco": "oficina",
+      "pausada": false,
+      "os_numero": 9504
+     }
+    ],
+    "total": 1,
+    "ja_prontas": 0
+   },
+   "abertas_sem_prazo": 8
+  },
+  "blocos": {
+   "saida": {
+    "total": 3,
+    "entrega": 1,
+    "atrasadas": 1,
+    "no_balcao": 1,
+    "instalacao": 1
+   },
+   "oficina": {
+    "total": 11,
+    "nas_colunas": 10
+   },
+   "acabamento": {
+    "total": 2,
+    "atrasadas": 2,
+    "retrabalho": 1
+   },
+   "sem_maquina": {
+    "itens": [
+     {
+      "motivo": "laser_sem_maquina",
+      "pausada": false,
+      "os_numero": 9509,
+      "dias_atraso": 4
+     }
+    ],
+    "total": 1,
+    "atrasadas": 1
+   },
+   "entrada_arte": {
+    "total": 3,
+    "atrasadas": 1,
+    "com_cliente": 0
+   },
+   "abertas_na_parede": 19
+  },
+  "maquinas": [
+   {
+    "id": "b77ec8f1-f336-4433-9b49-03c34db4183e",
+    "fila": {
+     "itens": [
+      {
+       "item": "sem_item",
+       "prazo": null,
+       "origem": "reserva",
+       "pausada": false,
+       "produto": null,
+       "os_numero": 9503,
+       "dias_atraso": null,
+       "itens_na_os": 0,
+       "reserva_local": "29/09",
+       "reserva_vencida": true
+      },
+      {
+       "item": "sem_item",
+       "prazo": null,
+       "origem": "reserva",
+       "pausada": false,
+       "produto": null,
+       "os_numero": 9510,
+       "dias_atraso": null,
+       "itens_na_os": 0,
+       "reserva_local": "sex",
+       "reserva_vencida": false
+      },
+      {
+       "item": "sem_item",
+       "prazo": null,
+       "origem": "reserva",
+       "pausada": false,
+       "produto": null,
+       "os_numero": 9511,
+       "dias_atraso": null,
+       "itens_na_os": 0,
+       "reserva_local": "sáb",
+       "reserva_vencida": false
+      },
+      {
+       "item": "sem_item",
+       "prazo": "amanha",
+       "origem": "status",
+       "pausada": false,
+       "produto": null,
+       "os_numero": 9504,
+       "dias_atraso": null,
+       "itens_na_os": 0,
+       "reserva_local": null,
+       "reserva_vencida": false
+      },
+      {
+       "item": "sem_item",
+       "prazo": null,
+       "origem": "maquina_id",
+       "pausada": true,
+       "produto": null,
+       "os_numero": 9527,
+       "dias_atraso": null,
+       "itens_na_os": 0,
+       "reserva_local": null,
+       "reserva_vencida": false
+      }
+     ],
+     "total": 5
+    },
+    "tipo": "plotter_impressao",
+    "agora": {
+     "item": "produto",
+     "origem": "apontamento",
+     "pausada": false,
+     "produto": "Acabamento de lona (bainha + ilhós)",
+     "os_numero": 9521,
+     "dias_atraso": null,
+     "itens_na_os": 1,
+     "fora_da_oficina": false,
+     "minutos_previstos": 90
+    },
+    "ordem": 1,
+    "estado": "rodando",
+    "janela": null,
+    "desde_em": "2026-10-01T23:19:30.172397+00:00",
+    "a_caminho": 1,
+    "livre_por": null,
+    "desde_local": "20:19",
+    "reservas_vencidas": {
+     "total": 1,
+     "mais_antiga_local": "29/09"
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": "20:19",
+    "ultimo_apontamento_os_numero": 9521
+   },
+   {
+    "id": "e2c92d0d-3b74-4240-8633-5428ff00dfc3",
+    "fila": {
+     "itens": [
+      {
+       "item": "sem_item",
+       "prazo": null,
+       "origem": "maquina_id",
+       "pausada": false,
+       "produto": null,
+       "os_numero": 9503,
+       "dias_atraso": null,
+       "itens_na_os": 0,
+       "reserva_local": null,
+       "reserva_vencida": false
+      }
+     ],
+     "total": 1
+    },
+    "tipo": "plotter_recorte",
+    "agora": {
+     "item": "sem_item",
+     "origem": "apontamento",
+     "pausada": false,
+     "produto": null,
+     "os_numero": 9522,
+     "dias_atraso": null,
+     "itens_na_os": 0,
+     "fora_da_oficina": false,
+     "minutos_previstos": null
+    },
+    "ordem": 2,
+    "estado": "nao_fechou",
+    "janela": null,
+    "desde_em": "2026-10-01T13:09:30.172397+00:00",
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": "10:09",
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": "10:09",
+    "ultimo_apontamento_os_numero": 9522
+   },
+   {
+    "id": "da13a08f-3f53-4974-9d41-cccad44a9ab5",
+    "fila": {
+     "itens": [
+      {
+       "item": "sem_item",
+       "prazo": null,
+       "origem": "maquina_id",
+       "pausada": false,
+       "produto": null,
+       "os_numero": 9508,
+       "dias_atraso": 1,
+       "itens_na_os": 0,
+       "reserva_local": null,
+       "reserva_vencida": false
+      }
+     ],
+     "total": 1
+    },
+    "tipo": "laser_co2",
+    "agora": {
+     "item": "sem_item",
+     "origem": "reserva",
+     "pausada": false,
+     "produto": null,
+     "os_numero": 9523,
+     "dias_atraso": null,
+     "itens_na_os": 0,
+     "fora_da_oficina": false,
+     "minutos_previstos": 60
+    },
+    "ordem": 3,
+    "estado": "reservada",
+    "janela": {
+     "fim_local": "21:59",
+     "inicio_local": "20:59"
+    },
+    "desde_em": "2026-10-01T23:59:30.172397+00:00",
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": "20:59",
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": null,
+    "ultimo_apontamento_os_numero": null
+   },
+   {
+    "id": "c67b9750-b7a9-43c7-84c1-2953ed15ecde",
+    "fila": {
+     "itens": [],
+     "total": 0
+    },
+    "tipo": "laser_fiber",
+    "agora": {
+     "item": "sem_item",
+     "origem": "maquina_id",
+     "pausada": false,
+     "produto": null,
+     "os_numero": 9510,
+     "dias_atraso": null,
+     "itens_na_os": 0,
+     "fora_da_oficina": false,
+     "minutos_previstos": null
+    },
+    "ordem": 4,
+    "estado": "pelo_status",
+    "janela": null,
+    "desde_em": "2026-10-02T00:09:30.172397+00:00",
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": "21:09",
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": null,
+    "ultimo_apontamento_os_numero": null
+   },
+   {
+    "id": "39807c59-d6da-42f4-9072-9540978cd3d4",
+    "fila": {
+     "itens": [
+      {
+       "item": "sem_item",
+       "prazo": "hoje",
+       "origem": "maquina_id",
+       "pausada": false,
+       "produto": null,
+       "os_numero": 9512,
+       "dias_atraso": null,
+       "itens_na_os": 0,
+       "reserva_local": null,
+       "reserva_vencida": false
+      }
+     ],
+     "total": 1
+    },
+    "tipo": "impressora_3d",
+    "agora": null,
+    "ordem": 5,
+    "estado": "bloqueada",
+    "janela": {
+     "fim_local": "22:09",
+     "inicio_local": "20:09"
+    },
+    "desde_em": "2026-10-01T23:09:30.172397+00:00",
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": "20:09",
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": "30/09 20:09",
+    "ultimo_apontamento_local": null,
+    "ultimo_apontamento_os_numero": null
+   }
+  ],
+  "saidas": {
+   "itens": [
+    {
+     "tipo": "retirada",
+     "quando": "hoje",
+     "os_numero": 9507,
+     "hora_local": null,
+     "maquina_id": null
+    },
+    {
+     "tipo": "entrega",
+     "quando": "hoje",
+     "os_numero": 9530,
+     "hora_local": "22:09",
+     "maquina_id": null
+    },
+    {
+     "tipo": "instalacao",
+     "quando": "amanha",
+     "os_numero": 9531,
+     "hora_local": null,
+     "maquina_id": null
+    },
+    {
+     "tipo": "reserva",
+     "quando": "amanha",
+     "os_numero": 9510,
+     "hora_local": "17:09",
+     "maquina_id": "b77ec8f1-f336-4433-9b49-03c34db4183e"
+    }
+   ],
+   "total": 4
+  },
+  "eventos": {
+   "ultimo": {
+    "id": "hist:2765897d-989b-4598-b68a-f293adacd6e8",
+    "tipo": "os_ficou_pronta",
+    "dia_local": "01/10",
+    "os_numero": 9507,
+    "hora_local": "21:09",
+    "maquina_id": null,
+    "ocorrido_em": "2026-10-02T00:09:30.172397+00:00"
+   },
+   "itens_de_hoje": [
+    {
+     "id": "hist:2765897d-989b-4598-b68a-f293adacd6e8",
+     "tipo": "os_ficou_pronta",
+     "dia_local": "01/10",
+     "os_numero": 9507,
+     "hora_local": "21:09",
+     "maquina_id": null,
+     "ocorrido_em": "2026-10-02T00:09:30.172397+00:00"
+    },
+    {
+     "id": "hist:2cbfd636-de50-46fa-b3eb-592105b7c32f",
+     "tipo": "os_entrou_na_fila",
+     "dia_local": "01/10",
+     "os_numero": 9523,
+     "hora_local": "21:09",
+     "maquina_id": null,
+     "ocorrido_em": "2026-10-02T00:09:30.172397+00:00"
+    },
+    {
+     "id": "hist:323f3419-f8c7-48a4-95da-1cff6d12e551",
+     "tipo": "os_foi_para_acabamento",
+     "dia_local": "01/10",
+     "os_numero": 9502,
+     "hora_local": "21:09",
+     "maquina_id": null,
+     "ocorrido_em": "2026-10-02T00:09:30.172397+00:00"
+    },
+    {
+     "id": "hist:7e031c52-a92c-4c0b-ba9c-a5584f008250",
+     "tipo": "os_entrou_na_fila",
+     "dia_local": "01/10",
+     "os_numero": 9511,
+     "hora_local": "21:09",
+     "maquina_id": null,
+     "ocorrido_em": "2026-10-02T00:09:30.172397+00:00"
+    },
+    {
+     "id": "hist:90340c6e-56b2-417b-834a-50fefec6753c",
+     "tipo": "os_ficou_pronta",
+     "dia_local": "01/10",
+     "os_numero": 9530,
+     "hora_local": "21:09",
+     "maquina_id": null,
+     "ocorrido_em": "2026-10-02T00:09:30.172397+00:00"
+    },
+    {
+     "id": "hist:c1490ec2-95e2-45a7-baae-c09dd84cd71a",
+     "tipo": "os_entrou_na_fila",
+     "dia_local": "01/10",
+     "os_numero": 9512,
+     "hora_local": "21:09",
+     "maquina_id": null,
+     "ocorrido_em": "2026-10-02T00:09:30.172397+00:00"
+    },
+    {
+     "id": "hist:e946d1b1-21a4-4a8f-935d-e496da120017",
+     "tipo": "os_ficou_pronta",
+     "dia_local": "01/10",
+     "os_numero": 9506,
+     "hora_local": "21:09",
+     "maquina_id": null,
+     "ocorrido_em": "2026-10-02T00:09:30.172397+00:00"
+    },
+    {
+     "id": "apt-ini:6c31790d-f23f-491c-a578-794ba28198aa",
+     "tipo": "apontamento_iniciado",
+     "dia_local": "01/10",
+     "os_numero": 9521,
+     "hora_local": "20:19",
+     "maquina_id": "b77ec8f1-f336-4433-9b49-03c34db4183e",
+     "ocorrido_em": "2026-10-01T23:19:30.172397+00:00"
+    },
+    {
+     "id": "apt-ini:4c5ff3ea-e8fc-4669-afcd-1f7267d3a01a",
+     "tipo": "apontamento_iniciado",
+     "dia_local": "01/10",
+     "os_numero": 9522,
+     "hora_local": "10:09",
+     "maquina_id": "e2c92d0d-3b74-4240-8633-5428ff00dfc3",
+     "ocorrido_em": "2026-10-01T13:09:30.172397+00:00"
+    }
+   ],
+   "total_de_hoje": 9
+  },
+  "consistencia": {
+   "ok": true,
+   "avisos": [],
+   "falhas": []
+  }
+ }
+}

@@ -1,0 +1,203 @@
+{
+ "_sobre": "Retorno REAL de public.tv_painel_maquinas() em 02/10/2026 14:31 de Macapá, lido como service_role num ensaio que terminou em RAISE EXCEPTION (nada gravado). É o dia 1 de verdade: 2 OS abertas em entrada, 0 apontamentos na história — as 5 máquinas em sem_registro.",
+ "painel": {
+  "fuso": "America/Belem",
+  "blocos": {
+   "saida": {
+    "total": 0,
+    "entrega": 0,
+    "atrasadas": 0,
+    "no_balcao": 0,
+    "instalacao": 0
+   },
+   "oficina": {
+    "total": 0,
+    "nas_colunas": 0
+   },
+   "acabamento": {
+    "total": 0,
+    "atrasadas": 0,
+    "retrabalho": 0
+   },
+   "sem_maquina": {
+    "itens": [],
+    "total": 0,
+    "atrasadas": 0
+   },
+   "entrada_arte": {
+    "total": 2,
+    "atrasadas": 1,
+    "com_cliente": 0
+   },
+   "abertas_na_parede": 2
+  },
+  "saidas": {
+   "itens": [],
+   "total": 0
+  },
+  "versao": 2,
+  "cartoes": {
+   "atrasadas": {
+    "fora": 1,
+    "itens": [],
+    "total": 1,
+    "nas_maquinas": 0
+   },
+   "prazo_hoje": {
+    "itens": [],
+    "total": 0,
+    "ja_prontas": 0
+   },
+   "prazo_amanha": {
+    "itens": [],
+    "total": 0,
+    "ja_prontas": 0
+   },
+   "abertas_sem_prazo": 1
+  },
+  "eventos": {
+   "ultimo": null,
+   "itens_de_hoje": [],
+   "total_de_hoje": 0
+  },
+  "rodando": {
+   "de": 5,
+   "total": 0
+  },
+  "maquinas": [
+   {
+    "id": "b77ec8f1-f336-4433-9b49-03c34db4183e",
+    "fila": {
+     "itens": [],
+     "total": 0
+    },
+    "tipo": "plotter_impressao",
+    "agora": null,
+    "ordem": 1,
+    "estado": "sem_registro",
+    "janela": null,
+    "desde_em": null,
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": null,
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": null,
+    "ultimo_apontamento_os_numero": null
+   },
+   {
+    "id": "e2c92d0d-3b74-4240-8633-5428ff00dfc3",
+    "fila": {
+     "itens": [],
+     "total": 0
+    },
+    "tipo": "plotter_recorte",
+    "agora": null,
+    "ordem": 2,
+    "estado": "sem_registro",
+    "janela": null,
+    "desde_em": null,
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": null,
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": null,
+    "ultimo_apontamento_os_numero": null
+   },
+   {
+    "id": "da13a08f-3f53-4974-9d41-cccad44a9ab5",
+    "fila": {
+     "itens": [],
+     "total": 0
+    },
+    "tipo": "laser_co2",
+    "agora": null,
+    "ordem": 3,
+    "estado": "sem_registro",
+    "janela": null,
+    "desde_em": null,
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": null,
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": null,
+    "ultimo_apontamento_os_numero": null
+   },
+   {
+    "id": "c67b9750-b7a9-43c7-84c1-2953ed15ecde",
+    "fila": {
+     "itens": [],
+     "total": 0
+    },
+    "tipo": "laser_fiber",
+    "agora": null,
+    "ordem": 4,
+    "estado": "sem_registro",
+    "janela": null,
+    "desde_em": null,
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": null,
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": null,
+    "ultimo_apontamento_os_numero": null
+   },
+   {
+    "id": "39807c59-d6da-42f4-9072-9540978cd3d4",
+    "fila": {
+     "itens": [],
+     "total": 0
+    },
+    "tipo": "impressora_3d",
+    "agora": null,
+    "ordem": 5,
+    "estado": "sem_registro",
+    "janela": null,
+    "desde_em": null,
+    "a_caminho": 0,
+    "livre_por": null,
+    "desde_local": null,
+    "reservas_vencidas": {
+     "total": 0,
+     "mais_antiga_local": null
+    },
+    "ultimo_job_3d_local": null,
+    "ultimo_apontamento_local": null,
+    "ultimo_apontamento_os_numero": null
+   }
+  ],
+  "registro": {
+   "jobs_3d_hoje": 0,
+   "apontamentos_hoje": 0,
+   "ultimo_job_3d_local": null,
+   "apontamentos_abertos": 0,
+   "ultimo_registro_local": null,
+   "ultimo_apontamento_local": null,
+   "sem_apontamento_em_7_dias": true
+  },
+  "gerado_em": "2026-10-02T17:31:12.094718+00:00",
+  "hoje_local": "2026-10-02",
+  "intervalo_s": 60,
+  "consistencia": {
+   "ok": true,
+   "avisos": [],
+   "falhas": []
+  },
+  "dentro_do_expediente": true
+ }
+}

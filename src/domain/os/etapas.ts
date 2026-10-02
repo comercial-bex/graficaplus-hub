@@ -303,6 +303,9 @@ export const ROTULO_BLOQUEIO: Record<string, string> = {
   material_insuficiente: "Material obrigatório em falta",
   margem_baixa: "Margem abaixo do mínimo",
   desconto_alto: "Desconto acima do limite",
+  // `fechar_os` recusa enquanto alguma máquina ainda conta tempo para a OS —
+  // fechar com o apontamento aberto congelaria o custo pela metade.
+  apontamento_aberto: "Máquina ainda rodando esta OS",
 };
 
 export function rotuloBloqueio(codigo: string): string {

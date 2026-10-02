@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,14 +8,24 @@ import { BexBackground } from "@/components/bex/BexBackground";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { Input } from "@/components/ui/input";
 import { mensagemErro } from "@/lib/erros";
+import { destinoInterno } from "@/domain/acesso/destino-apos-login";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Login — BEX PRINT OS" }] }),
+  // `destino` é a tela que a pessoa tentou abrir sem estar logada (o QR da TV,
+  // um link de aviso). Só caminho deste site passa; a chave vai sempre, mesmo
+  // vazia, porque o roteador junta o valor cru da URL com o validado.
+  validateSearch: (busca: Record<string, unknown>): { destino?: string } => ({
+    destino: destinoInterno(busca.destino) ?? undefined,
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const router = useRouter();
+  // Conferido de novo na hora de usar: é para cá que a senha certa leva.
+  const destino = destinoInterno(Route.useSearch().destino);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,7 +39,11 @@ function LoginPage() {
     setLoading(false);
     if (error) return toast.error(mensagemErro(error));
     toast.success("Bem-vindo!");
-    navigate({ to: "/dashboard" });
+    // Quem chegou por um link volta para ele; sem isso o código da TV lido pelo
+    // QR se perdia no Início. `history.push` porque o destino já é um endereço
+    // pronto, com a busca dentro.
+    if (destino) router.history.push(destino);
+    else navigate({ to: "/dashboard" });
   }
 
   async function handlePasswordReset() {

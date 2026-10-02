@@ -101,6 +101,32 @@ const ASSINATURAS: Record<string, string[]> = {
     "p_texto", "p_legenda", "p_media_url", "p_nome_contato", "p_payload", "p_momento",
   ],
   whatsapp_registrar_status: ["p_instancia_id", "p_ids", "p_status", "p_momento"],
+  // Migração 20261001110000 ("Começar" acende a máquina), conferidas no Postgres
+  // em 01/10/2026. As quatro com prefixo p_ — ao contrário de `avancar_os_status`,
+  // que elas chamam por dentro.
+  comecar_na_maquina: ["p_os_id", "p_maquina_id"],
+  mandar_para_acabamento: ["p_os_id", "p_quantidade"],
+  maquinas_para_comecar: ["p_os_id"],
+  terminar_na_maquina: ["p_os_id", "p_quantidade"],
+  // Migração 20261001150000: fecha UMA máquina da OS. Função nova, e não um
+  // terceiro parâmetro na de cima — a sobrecarga deixaria a chamada ambígua.
+  terminar_so_esta_maquina: ["p_os_id", "p_maquina_id", "p_quantidade"],
+  // Migração 20261001110000 (seção 11): a retirada no balcão, para a equipe —
+  // `avancar_os_status(os,'concluido')` exigia os.close e o operador não
+  // conseguia registrar que o cliente levou a peça.
+  cliente_retirou: ["p_os_id"],
+  // Migração 20261001130000 (TV da Oficina: pareamento e painel), conferidas
+  // no Postgres em 02/10/2026. As de dentro do servidor são chamadas pelo
+  // supabaseAdmin em src/lib/api/tv-*.server.ts; as outras, pela tela /telas.
+  tv_aprovar_pareamento: ["p_codigo", "p_nome"],
+  tv_conferir_dispositivo: ["p_token_hash"],
+  tv_criar_pareamento: ["p_codigo", "p_retirada_hash"],
+  tv_criar_pareamento_da_origem: ["p_codigo", "p_retirada_hash", "p_origem_hash"],
+  tv_limpar_pedidos: [],
+  tv_listar_dispositivos: [],
+  tv_painel_maquinas: [],
+  tv_retirar_pareamento: ["p_pareamento_id", "p_retirada_hash", "p_token_hash"],
+  tv_revogar_dispositivo: ["p_id"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */
@@ -214,6 +240,32 @@ describe("toda chamada de RPC usa os nomes de parâmetro que a função tem", ()
       .map(([nome]) => nome)
       .sort();
     expect(semPrefixo).toEqual(["avancar_os_status", "fechar_os", "os_bloqueios_para"]);
+  });
+
+  it("o painel do impressor chama as funções de máquina — e não só o status", () => {
+    // Era o defeito: "Começar" chamava só `avancar_os_status`, nenhum
+    // apontamento abria e a TV da Oficina não tinha o que acender. Se alguém
+    // tirar estas chamadas do painel, a parede volta a nascer SEM REGISTRO.
+    const doPainel = chamadas
+      .filter((c) => c.arquivo.includes("src/components/painel/"))
+      .map((c) => c.rpc);
+    for (const rpc of [
+      "maquinas_para_comecar",
+      "comecar_na_maquina",
+      "mandar_para_acabamento",
+      "terminar_so_esta_maquina",
+      // Sem ela o botão "Cliente retirou" volta para `avancar_os_status`, que
+      // o operador não pode chamar para 'concluido'.
+      "cliente_retirou",
+    ]) {
+      expect(doPainel, `o painel deixou de chamar ${rpc}`).toContain(rpc);
+    }
+    // A ficha da OS abria apontamento sem mudar o status. Sem etapa escolhida,
+    // ela entra pela mesma porta do painel.
+    const daFicha = chamadas
+      .filter((c) => c.arquivo.endsWith("src/components/os/apontamento-card.tsx"))
+      .map((c) => c.rpc);
+    expect(daFicha, "a ficha deixou de chamar comecar_na_maquina").toContain("comecar_na_maquina");
   });
 
   it("a tela da OS e o Kanban chamam avancar_os_status do mesmo jeito", () => {
