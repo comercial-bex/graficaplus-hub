@@ -11770,6 +11770,140 @@ export type Database = {
           },
         ]
       }
+      tv_dispositivos: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          id: string
+          nome: string
+          revogado_em: string | null
+          revogado_por: string | null
+          token_hash: string
+          ultimo_acesso_em: string | null
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          nome: string
+          revogado_em?: string | null
+          revogado_por?: string | null
+          token_hash: string
+          ultimo_acesso_em?: string | null
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          nome?: string
+          revogado_em?: string | null
+          revogado_por?: string | null
+          token_hash?: string
+          ultimo_acesso_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_dispositivos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tv_dispositivos_revogado_por_fkey"
+            columns: ["revogado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_pareamento_tentativas: {
+        Row: {
+          criado_em: string
+          id: number
+          usuario_id: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: never
+          usuario_id: string
+        }
+        Update: {
+          criado_em?: string
+          id?: never
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_pareamento_tentativas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_pareamentos: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          codigo: string
+          consumido_em: string | null
+          criado_em: string
+          dispositivo_id: string | null
+          expira_em: string
+          id: string
+          nome: string | null
+          origem_hash: string | null
+          retirada_hash: string
+          tentativas: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          codigo: string
+          consumido_em?: string | null
+          criado_em?: string
+          dispositivo_id?: string | null
+          expira_em?: string
+          id?: string
+          nome?: string | null
+          origem_hash?: string | null
+          retirada_hash: string
+          tentativas?: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          codigo?: string
+          consumido_em?: string | null
+          criado_em?: string
+          dispositivo_id?: string | null
+          expira_em?: string
+          id?: string
+          nome?: string | null
+          origem_hash?: string | null
+          retirada_hash?: string
+          tentativas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_pareamentos_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tv_pareamentos_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "tv_dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -15942,6 +16076,10 @@ export type Database = {
         Args: { p_area_cobrada: number; p_quantidade: number }
         Returns: number
       }
+      bloco_da_tv: {
+        Args: { p_status: Database["public"]["Enums"]["status_os"] }
+        Returns: string
+      }
       breakdown_3d: {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: {
@@ -15990,6 +16128,11 @@ export type Database = {
       }
       capacidade_das_pessoas: {
         Args: { p_fim?: string; p_inicio?: string }
+        Returns: Json
+      }
+      cliente_retirou: { Args: { p_os_id: string }; Returns: Json }
+      comecar_na_maquina: {
+        Args: { p_maquina_id: string; p_os_id: string }
         Returns: Json
       }
       comissoes_pagar: { Args: { p_ids: string[] }; Returns: Json }
@@ -16188,6 +16331,19 @@ export type Database = {
         Args: { p_motivo: string; p_pagamento_id: string }
         Returns: Json
       }
+      etapa_da_os: {
+        Args: { p_status: Database["public"]["Enums"]["status_os"] }
+        Returns: string
+      }
+      fechar_apontamento_interno: {
+        Args: {
+          p_apontamento_id: string
+          p_observacoes: string
+          p_quantidade: number
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
       fechar_os: { Args: { os_id: string }; Returns: Json }
       finalizar_apontamento: {
         Args: {
@@ -16255,6 +16411,7 @@ export type Database = {
         Returns: boolean
       }
       hash_token_aprovacao: { Args: { p_token: string }; Returns: string }
+      hoje_local: { Args: never; Returns: string }
       identificacao_legal_os: { Args: { p_os_id: string }; Returns: string }
       importar_extrato: {
         Args: { p_conta_id: string; p_linhas: Json }
@@ -16285,6 +16442,16 @@ export type Database = {
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       logo_do_cliente: { Args: { _cliente_id: string }; Returns: string }
+      mandar_para_acabamento: {
+        Args: { p_os_id: string; p_quantidade?: number }
+        Returns: Json
+      }
+      maquina_do_status: {
+        Args: { p_status: Database["public"]["Enums"]["status_os"] }
+        Returns: string
+      }
+      maquina_padrao_da_os: { Args: { p_os_id: string }; Returns: string }
+      maquinas_para_comecar: { Args: { p_os_id: string }; Returns: Json }
       marcar_lead_perdido: {
         Args: { p_lead_id: string; p_motivo: string }
         Returns: Json
@@ -16335,6 +16502,11 @@ export type Database = {
         Args: { p_os_id: string; p_usuario_id: string }
         Returns: Json
       }
+      os_esta_encerrada: {
+        Args: { p_status: Database["public"]["Enums"]["status_os"] }
+        Returns: boolean
+      }
+      os_saiu_fisicamente: { Args: { p_os_id: string }; Returns: boolean }
       parceiro_ajustar_credito: {
         Args: { p_descricao: string; p_parceiro_id: string; p_valor: number }
         Returns: undefined
@@ -16796,6 +16968,10 @@ export type Database = {
         Returns: undefined
       }
       situacao_qualidade_os: { Args: { p_os_id: string }; Returns: Json }
+      status_da_maquina: {
+        Args: { p_tipo: string }
+        Returns: Database["public"]["Enums"]["status_os"]
+      }
       status_os_exige_validacoes_producao: {
         Args: { _status: Database["public"]["Enums"]["status_os"] }
         Returns: boolean
@@ -16816,6 +16992,57 @@ export type Database = {
         Args: { p_telefone: string }
         Returns: boolean
       }
+      terminar_na_maquina: {
+        Args: { p_os_id: string; p_quantidade?: number }
+        Returns: Json
+      }
+      terminar_so_esta_maquina: {
+        Args: { p_maquina_id: string; p_os_id: string; p_quantidade?: number }
+        Returns: Json
+      }
+      teto_do_apontamento: {
+        Args: { p_iniciado_em: string; p_tipo: string }
+        Returns: string
+      }
+      tipos_de_maquina: {
+        Args: never
+        Returns: {
+          etapa_padrao: string
+          ordem: number
+          status_producao: Database["public"]["Enums"]["status_os"]
+          tipo: string
+        }[]
+      }
+      tv_aprovar_pareamento: {
+        Args: { p_codigo: string; p_nome: string }
+        Returns: Json
+      }
+      tv_conferir_dispositivo: { Args: { p_token_hash: string }; Returns: Json }
+      tv_criar_pareamento: {
+        Args: { p_codigo: string; p_retirada_hash: string }
+        Returns: Json
+      }
+      tv_criar_pareamento_da_origem: {
+        Args: {
+          p_codigo: string
+          p_origem_hash: string
+          p_retirada_hash: string
+        }
+        Returns: Json
+      }
+      tv_hora_local: { Args: { p_quando: string }; Returns: string }
+      tv_limpar_pedidos: { Args: never; Returns: Json }
+      tv_listar_dispositivos: { Args: never; Returns: Json }
+      tv_painel_maquinas: { Args: never; Returns: Json }
+      tv_retirar_pareamento: {
+        Args: {
+          p_pareamento_id: string
+          p_retirada_hash: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      tv_revogar_dispositivo: { Args: { p_id: string }; Returns: Json }
       upsert_filamento_3d: {
         Args: {
           p_cor?: string
