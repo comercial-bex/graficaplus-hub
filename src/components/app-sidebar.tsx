@@ -51,6 +51,7 @@ import {
   CalendarClock,
   Target,
   ReceiptText,
+  Tv,
 } from "lucide-react";
 import {
   Sidebar,
@@ -120,6 +121,9 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Capacidade da oficina", url: "/capacidade", icon: Activity },
       { title: "Onde o trabalho para", url: "/onde-para", icon: Hourglass },
       { title: "Conflitos de agenda", url: "/conflitos-agenda", icon: CalendarClock },
+      // Fica em Produção, não em Administração: aquele grupo só aparece para
+      // admin, e quem aprova a TV da parede é admin OU gestor.
+      { title: "TVs da oficina", url: "/telas", icon: Tv },
       { title: "Manutenção", url: "/manutencao", icon: Wrench },
       { title: "Entregas & Instalações", url: "/entregas", icon: Truck },
       { title: "Perdas & desperdício", url: "/perdas", icon: TrendingDown },

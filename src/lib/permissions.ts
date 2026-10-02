@@ -121,6 +121,12 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   // Conflitos de agenda lê `maquinas_agenda` e `maquinas` — as mesmas duas
   // tabelas de /maquinas-agenda, por isso carrega agenda.read junto.
   { path: "/conflitos-agenda", permissions: ["agenda.read", "maquinas.read", "os.read"] },
+  // TVs de parede: aprovar o pareamento, ver o último acesso e revogar. As
+  // funções `tv_*` exigem o PAPEL admin ou gestor (has_role), não uma
+  // permissão — e na matriz `logs.read` é exatamente desses dois. Se alguém
+  // der `logs.read` a outro papel, a tela abre e diz que só admin ou gestor
+  // aprova TV: o banco recusaria de qualquer jeito.
+  { path: "/telas", permissions: ["logs.read"] },
   { path: "/perdas", permissions: ["os.read"] },
   { path: "/planilha-custos", permissions: ["custos.read"] },
   { path: "/precificacao", permissions: ["custos.read"] },
