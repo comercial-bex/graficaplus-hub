@@ -1,34 +1,51 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
-import { Badge } from "@/components/ui/badge";
-
-import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { MeusDadosCard } from "@/components/configuracoes/meus-dados-card";
+import { SenhaCard } from "@/components/configuracoes/senha-card";
+import { EmpresaSecao } from "@/components/configuracoes/empresa-secao";
+
 export const Route = createFileRoute("/_authenticated/configuracoes")({
-  component: () => {
-    const { user, roles } = useAuth();
-    return (
-      <div className="space-y-6 max-w-2xl">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-            <DicaIcone texto={dicaTela("/configuracoes")} rotulo="Configurações" lado="bottom" className="h-5 w-5" />
-          </div>
-          <p className="text-muted-foreground">Seu perfil e preferências</p>
-        </div>
-        <Card>
-          <CardHeader><CardTitle>Perfil</CardTitle></CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div><span className="text-muted-foreground">E-mail:</span> {user?.email}</div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Perfis:</span>
-              {roles.length === 0 ? <span>Sem papel atribuído</span> :
-                roles.map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  },
+  head: () => ({ meta: [{ title: "Meu perfil — BEX PRINT OS" }] }),
+  component: ConfiguracoesPage,
 });
+
+/**
+ * /configuracoes — "Meu perfil", de qualquer pessoa logada.
+ *
+ * Era uma tela de 34 linhas que prometia "seu perfil e preferências", mostrava
+ * só e-mail e papéis, sem ação nenhuma — e exigia configuracoes.manage, então
+ * só o admin via o próprio perfil. Agora cada um troca o nome, o telefone, a
+ * foto e a senha. A parte da empresa continua só de quem tem
+ * configuracoes.manage.
+ *
+ * PREFERÊNCIAS: não há seção, de propósito. Em 02/10/2026 o sistema não lia
+ * nenhuma preferência por pessoa — nenhuma tabela ou coluna no banco, e no
+ * navegador só a dispensa do convite de instalar (que o menu já reabre) e o
+ * último preset do orçamento 3D (que a própria tela grava). Botão de
+ * preferência que nada lê seria o mesmo "finge que fez" que esta tela tinha.
+ */
+function ConfiguracoesPage() {
+  const { hasPermission } = useAuth();
+  const administraEmpresa = hasPermission("configuracoes.manage");
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <SectionHeader
+        ajuda={dicaTela("/configuracoes")}
+        breadcrumb="Conta"
+        title="Meu perfil"
+        description={
+          administraEmpresa
+            ? "Seu nome, telefone, foto e senha — e, mais abaixo, os dados da empresa e os parâmetros da casa."
+            : "Seu nome, telefone, foto e senha."
+        }
+        className="mb-0"
+      />
+      <MeusDadosCard />
+      <SenhaCard />
+      {administraEmpresa && <EmpresaSecao />}
+    </div>
+  );
+}

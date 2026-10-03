@@ -60,7 +60,7 @@ const allPermissions = [...permissions];
  */
 export const rolePermissions = {
   admin: allPermissions,
-  gestor: ["arquivos.approve", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "estoque.cost.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "maquinas.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "os.status.advance", "parceiros.manage", "parceiros.read", "producao.read", "qualidade.manage", "qualidade.read", "resultado.read", "tarefas.assign", "tarefas.complete", "tarefas.create", "tarefas.read", "tarefas.reopen", "tarefas.update", "precos.read"],
+  gestor: ["arquivos.approve", "arquivos.finalize", "arquivos.read", "arquivos.register_approval", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "entregas.manage", "entregas.read", "estoque.cost.read", "estoque.exit", "estoque.read", "financeiro.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "maquinas.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.assign", "os.close", "os.create", "os.read", "os.status.advance", "os.update", "parceiros.manage", "parceiros.read", "precos.read", "producao.read", "qualidade.manage", "qualidade.read", "resultado.read", "tarefas.assign", "tarefas.complete", "tarefas.create", "tarefas.read", "tarefas.reopen", "tarefas.update", "whatsapp.assign", "whatsapp.read", "whatsapp.reply", "whatsapp.transfer"],
   financeiro: ["clientes.read", "compras.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read", "precos.read"],
   vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "parceiros.read", "whatsapp.read", "whatsapp.reply", "precos.read"],
   designer: ["arquivos.finalize", "arquivos.read", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.read", "os.read", "os.status.advance", "os.update", "tarefas.complete", "tarefas.read", "tarefas.update"],
@@ -89,7 +89,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/leads", permissions: ["leads.read"] },
   { path: "/whatsapp-monitor", permissions: ["whatsapp.read", "whatsapp.manage"] },
   { path: "/whatsapp", permissions: ["whatsapp.read"] },
-  { path: "/respostas-rapidas", permissions: ["templates.manage"] },
+  { path: "/respostas-rapidas", permissions: ["templates.manage", "whatsapp.read", "whatsapp.manage"] },
   { path: "/automacoes", permissions: ["automacoes.read"] },
   { path: "/orcamentos", permissions: ["orcamentos.read", "orcamentos.create"] },
   { path: "/parceiros", permissions: ["parceiros.read"] },
@@ -129,7 +129,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/telas", permissions: ["logs.read"] },
   { path: "/perdas", permissions: ["os.read"] },
   { path: "/planilha-custos", permissions: ["custos.read"] },
-  { path: "/precificacao", permissions: ["custos.read"] },
+  { path: "/precificacao", permissions: ["financeiro.read"] },
   { path: "/custos-producao", permissions: ["custos.read"] },
   // Contas a receber chama `contas_a_receber()`, que exige can_see_financials —
   // e no front canSeeFinancials É hasPermission("financeiro.read"). Pedir a
@@ -165,7 +165,9 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   // prefixo, então "/configuracoes-empresa" precisa ser avaliado antes de
   // "/configuracoes" para não depender do detalhe da barra no startsWith.
   { path: "/configuracoes-empresa", permissions: ["configuracoes.manage"] },
-  { path: "/configuracoes", permissions: ["configuracoes.manage"] },
+  // Lista vazia = qualquer conta com papel: é o "Meu perfil" de cada um. A
+  // seção da empresa, dentro da tela, continua pedindo configuracoes.manage.
+  { path: "/configuracoes", permissions: [] },
 ];
 
 export function hasPermission(roles: AppRole[], permission: Permission) {

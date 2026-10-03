@@ -1186,9 +1186,10 @@ function ProdutoFormDialog({
 
         <DialogFooter className="gap-2">
           <Button variant="outline" asChild>
-            <a href="/precificacao">
+            {/* O simulador abre já com este produto (ficha, máquina e tempo). */}
+            <a href={form.id ? `/precificacao?produto=${form.id}` : "/precificacao"}>
               <Calculator className="h-4 w-4 mr-2" />
-              Abrir calculadora
+              Simular preço
             </a>
           </Button>
           <Button onClick={onSubmit} disabled={!form.nome || saving}>

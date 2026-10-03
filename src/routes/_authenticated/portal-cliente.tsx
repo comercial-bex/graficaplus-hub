@@ -1,164 +1,136 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import {
+  AlertTriangle,
+  ClipboardList,
+  DollarSign,
+  Hourglass,
+  Loader2,
+  PackageCheck,
+  Truck,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SectionHeader } from "@/components/bex/SectionHeader";
-import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
+import { ArteParaAprovarCartao } from "@/components/portal/arte-para-aprovar";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { ClipboardList, FileText, DollarSign, Truck, Download, Upload, MessageSquare } from "lucide-react";
+  ContatoDaEmpresa,
+  EnvioDeArquivo,
+  MensagemParaEquipe,
+  OQueVoceMandou,
+  OrcamentosParaResponder,
+  type Recibo,
+} from "@/components/portal/envio-do-cliente";
+import { type ObterUrl } from "@/components/portal/abrir-arquivo";
+import { ListaDePedidos } from "@/components/portal/pedidos-do-cliente";
+import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
-import { formatarData } from "@/domain/os/prazo";
+import { bucketDoEnvio, caminhoDoEnvio, type TipoDeEnvio } from "@/domain/portal/envio-de-arquivo";
+import {
+  formatarReal,
+  resumoDoPortal,
+  type PainelDaConta,
+} from "@/domain/portal/painel-do-cliente";
 
-
+/**
+ * Portal do cliente LOGADO (papel cliente, vinculado na ficha do cliente).
+ *
+ * O QUE ESTAVA ERRADO
+ *   - A lista de OS lia `ordens_servico_financeiro`, que só devolve linha para
+ *     quem tem financeiro.read: a conta de cliente (só portal.read) via sempre
+ *     "Nenhuma OS registrada", com OS abertas no nome dele.
+ *   - O "Resumo do fechamento" mostrava a RECEITA LÍQUIDA da OS — número interno
+ *     de resultado — ao cliente.
+ *   - O envio de arquivo estava desligado ("Upload direto virá em breve").
+ *
+ * AGORA
+ *   Tudo vem de `portal_meu_painel`, que só enxerga os clientes vinculados à
+ *   conta em `portal_cliente_acessos` e devolve lista fechada: número, título,
+ *   situação, prazo e o VALOR DO PEDIDO (o preço do que ele comprou). Custo,
+ *   margem e resultado não existem na resposta. O arquivo sobe para a pasta do
+ *   cliente no bucket arquivos-clientes (a policy de storage.objects confere a
+ *   pasta) e `portal_registrar_envio` grava a linha em `arquivos`, que aparece
+ *   para a equipe na ficha da OS, aba Arquivos.
+ */
 export const Route = createFileRoute("/_authenticated/portal-cliente")({
   head: () => ({ meta: [{ title: "Portal do Cliente — BEX PRINT OS" }] }),
   component: PortalClientePage,
-  errorComponent: ({ error }) => <div className="p-6 text-destructive">Erro: {(error as Error).message}</div>,
+  errorComponent: ({ error }) => (
+    <div className="p-6 text-destructive">Erro: {(error as Error).message}</div>
+  ),
   notFoundComponent: () => <div className="p-6">Portal não encontrado</div>,
 });
 
 function PortalClientePage() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const qc = useQueryClient();
-  const [osSelecionada, setOsSelecionada] = useState<string | null>(null);
-  const [solicitacaoTipo, setSolicitacaoTipo] = useState("duvida");
-  const [solicitacaoMsg, setSolicitacaoMsg] = useState("");
+  // A rota também abre para a equipe (clientes.read). Quem não tem
+  // portal.read é da equipe: vê a explicação, não um portal vazio.
+  const ehCliente = hasPermission("portal.read");
+  const [escolhido, setEscolhido] = useState<string | null>(null);
 
-  const { data: acessos = [], isLoading } = useQuery({
-
-    queryKey: ["portal-acessos", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("portal_cliente_acessos")
-        .select("cliente_id, ativo, clientes(nome, logo_url)")
-        .eq("usuario_id", user!.id)
-        .eq("ativo", true);
-      return data ?? [];
+  const painel = useQuery({
+    queryKey: ["portal-meu-painel", user?.id, escolhido],
+    enabled: !!user?.id && ehCliente,
+    queryFn: async (): Promise<PainelDaConta> => {
+      const { data, error } = await (supabase.rpc as any)("portal_meu_painel", {
+        p_cliente_id: escolhido,
+      });
+      if (error) throw error;
+      return data as PainelDaConta;
     },
   });
 
-  const clienteIds = acessos.map((a: any) => a.cliente_id);
-  const clienteNome = acessos[0]?.clientes?.nome as string | undefined;
+  const recarregar = () => qc.invalidateQueries({ queryKey: ["portal-meu-painel"] });
 
-  const { data: ordens = [] } = useQuery({
-    queryKey: ["portal-os", clienteIds],
-    enabled: clienteIds.length > 0,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("ordens_servico_financeiro")
-        .select("id, numero, titulo, status, prazo_entrega, valor_total, created_at")
-        .in("cliente_id", clienteIds)
-        .order("created_at", { ascending: false });
-      return data ?? [];
-    },
-  });
+  if (!ehCliente) return <VistaDaEquipe />;
 
-  const { data: documentos = [] } = useQuery({
-    queryKey: ["portal-documentos", osSelecionada],
-    enabled: !!osSelecionada,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("documentos_gerados")
-        .select("*")
-        .eq("tipo", "os")
-        .eq("referencia_id", osSelecionada)
-        .eq("variante", "cliente")
-        .order("created_at", { ascending: false });
-      return data ?? [];
-    },
-  });
-
-  const { data: solicitacoes = [] } = useQuery({
-    queryKey: ["portal-solicitacoes", clienteIds, osSelecionada],
-    enabled: clienteIds.length > 0,
-    queryFn: async () => {
-      let q = (supabase as any)
-        .from("portal_cliente_solicitacoes")
-        .select("*")
-        .in("cliente_id", clienteIds)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (osSelecionada) q = q.eq("os_id", osSelecionada);
-      const { data } = await q;
-      return data ?? [];
-    },
-  });
-
-  const { data: snapshot } = useQuery({
-    queryKey: ["portal-snapshot", osSelecionada],
-    enabled: !!osSelecionada,
-    queryFn: async () =>
-      (
-        await (supabase as any)
-          .from("os_resultado_snapshots")
-          .select("*")
-          .eq("os_id", osSelecionada)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      ).data,
-  });
-
-  async function baixarDocumento(d: any) {
-    // Signed URL from the documentos-pdf bucket (private)
-    const { data, error } = await (supabase as any).storage
-      .from("documentos-pdf")
-      .createSignedUrl(d.caminho, 60);
-    if (error || !data?.signedUrl) {
-      return toast.error("Não foi possível gerar link de download");
-    }
-    window.open(data.signedUrl, "_blank");
-  }
-
-  async function enviarSolicitacao() {
-    if (!clienteIds[0] || !solicitacaoMsg.trim()) {
-      return toast.error("Descreva sua solicitação");
-    }
-    const { error } = await (supabase as any).from("portal_cliente_solicitacoes").insert({
-      cliente_id: clienteIds[0],
-      os_id: osSelecionada,
-      tipo: solicitacaoTipo,
-      mensagem: solicitacaoMsg,
-      status: "aberta",
-    });
-    if (error) return toast.error(mensagemErro(error));
-    toast.success("Solicitação enviada à equipe BEX");
-    setSolicitacaoMsg("");
-    qc.invalidateQueries({ queryKey: ["portal-solicitacoes"] });
-  }
-
-
-  if (isLoading) {
-    return <div className="p-6 text-muted-foreground">Carregando portal...</div>;
-  }
-
-  if (acessos.length === 0) {
+  if (painel.isPending) {
     return (
-      <div className="space-y-6">
-        <SectionHeader
-        ajuda={dicaTela("/portal-cliente")}
-          breadcrumb="Área do Cliente"
-          title="Portal do Cliente"
-          description="Acompanhe suas OS, pagamentos e documentos"
-        />
+      <Moldura>
+        <div className="flex items-center gap-2 py-12 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando o seu acompanhamento…
+        </div>
+      </Moldura>
+    );
+  }
+
+  if (painel.isError) {
+    return (
+      <Moldura>
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Não foi possível carregar o portal</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>{mensagemErro(painel.error)}</p>
+            <p>Isto é uma falha de consulta, não uma lista vazia.</p>
+            <Button variant="outline" size="sm" onClick={() => void painel.refetch()}>
+              Tentar de novo
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </Moldura>
+    );
+  }
+
+  const p = painel.data;
+  if (p.situacao !== "aberto") {
+    return (
+      <Moldura>
         <Card>
           <CardContent className="py-16 text-center space-y-3">
             <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground" />
@@ -166,277 +138,269 @@ function PortalClientePage() {
               Sua conta ainda não foi liberada para acompanhar um cliente.
             </p>
             <p className="text-sm text-muted-foreground">
-              Fale com a equipe BEX PRINT e informe este e-mail — a liberação é feita no
-              cadastro do cliente, na aba Portal, e vale na hora.
+              Fale com a equipe BEX PRINT e informe este e-mail — a liberação é feita no cadastro do
+              cliente, na aba Portal, e vale na hora.
             </p>
-            {user?.email && (
-              <p className="text-sm font-medium">{user.email}</p>
-            )}
+            {user?.email && <p className="text-sm font-medium">{user.email}</p>}
           </CardContent>
         </Card>
-      </div>
+      </Moldura>
     );
   }
 
-  const totais = {
-    total: ordens.length,
-    emAndamento: ordens.filter(
-      (o: any) => !["concluido", "faturado", "cancelado"].includes(o.status),
-    ).length,
-    concluidas: ordens.filter((o: any) => o.status === "concluido" || o.status === "faturado")
-      .length,
-    valorTotal: ordens.reduce((s: number, o: any) => s + Number(o.valor_total ?? 0), 0),
+  const clienteId = p.cliente.id;
+  const resumo = resumoDoPortal(p);
+  const artes = p.ordens.flatMap((o) =>
+    o.artes_para_aprovar.map((a) => ({ arte: a, osNumero: o.numero, osTitulo: o.titulo })),
+  );
+
+  /**
+   * O banco diz se o arquivo é de um pedido deste cliente e devolve o caminho;
+   * a URL assinada sai do Storage, que confere de novo pela policy.
+   */
+  const obterUrl: ObterUrl = async (alvo) => {
+    const { data, error } = await (supabase.rpc as any)("portal_meu_objeto", {
+      p_tipo: alvo.tipo,
+      p_id: alvo.id,
+    });
+    if (error) throw error;
+    const objeto = data as { bucket: string; caminho: string; nome: string };
+    const { data: assinada, error: erroDaUrl } = await supabase.storage
+      .from(objeto.bucket)
+      .createSignedUrl(
+        objeto.caminho,
+        600,
+        alvo.para === "baixar" ? { download: objeto.nome } : undefined,
+      );
+    if (erroDaUrl || !assinada?.signedUrl) {
+      throw erroDaUrl ?? new Error("Não foi possível gerar o link do arquivo.");
+    }
+    return assinada.signedUrl;
   };
 
-  return (
-    <div className="space-y-6">
-      <SectionHeader
-        breadcrumb={`Portal · ${clienteNome ?? "Cliente"}`}
-        title="Seu acompanhamento BEX PRINT"
-        description="OS em produção, entregas e documentos disponíveis para download"
-        actions={<StatusChip label="Acesso ativo" tone="lime" />}
-      />
+  async function enviarArquivo(dados: {
+    tipo: TipoDeEnvio;
+    osId: string | null;
+    arquivo: File;
+    mensagem: string;
+  }): Promise<Recibo> {
+    const caminho = caminhoDoEnvio({ clienteId, osId: dados.osId, nome: dados.arquivo.name });
+    const { error: erroDoEnvio } = await supabase.storage
+      .from(bucketDoEnvio(dados.tipo))
+      .upload(caminho, dados.arquivo, {
+        upsert: false,
+        contentType: dados.arquivo.type || undefined,
+      });
+    if (erroDoEnvio) throw erroDoEnvio;
 
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Total de OS" value={totais.total} icon={ClipboardList} tone="cyan" />
-        <KpiCard label="Em andamento" value={totais.emAndamento} icon={Truck} tone="lime" />
-        <KpiCard label="Concluídas" value={totais.concluidas} icon={FileText} tone="cyan" />
+    // Sem esta gravação o arquivo ficaria no Storage sem a equipe saber: é ela
+    // que põe a linha na OS e abre a solicitação.
+    const { data, error } = await (supabase.rpc as any)("portal_registrar_envio", {
+      p_cliente_id: clienteId,
+      p_os_id: dados.osId,
+      p_tipo: dados.tipo,
+      p_caminho: caminho,
+      p_nome: dados.arquivo.name,
+      p_mensagem: dados.mensagem.trim() || null,
+    });
+    if (error) throw error;
+    await recarregar();
+    return { protocolo: String(data?.protocolo ?? ""), os_numero: data?.os_numero ?? null };
+  }
+
+  return (
+    <Moldura
+      nome={p.cliente.nome}
+      acoes={
+        p.clientes.length > 1 ? (
+          <Select value={clienteId} onValueChange={setEscolhido}>
+            <SelectTrigger className="h-10 w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {p.clientes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <StatusChip label="Acesso ativo" tone="lime" />
+        )
+      }
+    >
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="Em andamento" value={resumo.emAndamento} icon={Truck} tone="cyan" />
         <KpiCard
-          label="Valor contratado"
-          value={`R$ ${totais.valorTotal.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
+          label="Esperando você"
+          value={resumo.esperandoVoce}
+          icon={Hourglass}
+          tone={resumo.esperandoVoce > 0 ? "amber" : "muted"}
+        />
+        <KpiCard label="Entregues" value={resumo.entregues} icon={PackageCheck} tone="lime" />
+        {/* Preço dos pedidos em andamento: é o que o cliente comprou. */}
+        <KpiCard
+          label="Valor em andamento"
+          value={formatarReal(resumo.valorEmAndamento)}
           icon={DollarSign}
-          tone="lime"
+          tone="cyan"
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Suas ordens de serviço</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {ordens.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhuma OS registrada.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nº</TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Prazo</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ordens.map((o: any) => (
-                  <TableRow
-                    key={o.id}
-                    className={osSelecionada === o.id ? "bg-muted/50" : ""}
-                  >
-                    <TableCell className="font-mono text-xs">#{o.numero}</TableCell>
-                    <TableCell>{o.titulo}</TableCell>
-                    <TableCell>
-                      <StatusChip
-                        label={String(o.status).replace(/_/g, " ")}
-                        tone={
-                          o.status === "concluido" || o.status === "faturado"
-                            ? "lime"
-                            : o.status === "cancelado"
-                              ? "magenta"
-                              : "cyan"
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {/* Aqui o erro de fuso era o mais caro: mostrava ao
-                          CLIENTE uma data de entrega um dia antes da combinada.
-                          Ver domain/os/prazo. */}
-                      {formatarData(o.prazo_entrega)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      R$ {Number(o.valor_total ?? 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant={osSelecionada === o.id ? "default" : "outline"}
-                        onClick={() =>
-                          setOsSelecionada(osSelecionada === o.id ? null : o.id)
-                        }
-                      >
-                        {osSelecionada === o.id ? "Fechar" : "Detalhes"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {osSelecionada && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Documentos disponíveis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {documentos.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  Nenhum documento gerado ainda.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {documentos.map((d: any) => (
-                    <div
-                      key={d.id}
-                      className="flex items-center justify-between rounded border p-3 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium flex items-center gap-2">
-                          <FileText className="h-3 w-3" />
-                          {d.tipo === "os" ? "OS" : "Orçamento"}
-                          {d.numero ? ` #${d.numero}` : ""}
-                        </div>
-                        <div className="text-xs text-muted-foreground font-mono truncate">
-                          {new Date(d.created_at).toLocaleString("pt-BR")} ·{" "}
-                          {d.tamanho_bytes
-                            ? `${(Number(d.tamanho_bytes) / 1024).toFixed(0)} KB`
-                            : ""}
-                        </div>
-                      </div>
-                      <Button size="sm" variant="outline" onClick={() => baixarDocumento(d)}>
-                        <Download className="h-3 w-3 mr-1" />
-                        Baixar
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Resumo do fechamento</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {snapshot ? (
-                <div className="space-y-3">
-                  <div className="text-xs text-muted-foreground font-mono">
-                    Snapshot: {new Date(snapshot.created_at).toLocaleString("pt-BR")}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="rounded border p-3">
-                      <div className="text-muted-foreground text-xs">Receita líquida</div>
-                      <div className="font-semibold">
-                        R$ {Number(snapshot.resultado_json?.receita_liquida ?? 0).toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="rounded border p-3">
-                      <div className="text-muted-foreground text-xs">Status entrega</div>
-                      <div className="font-semibold">
-                        {snapshot.resultado_json?.atraso ? "Com atraso" : "No prazo"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  O resumo aparecerá aqui após o fechamento da OS.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {(artes.length > 0 || p.orcamentos.length > 0) && (
+        <Secao titulo="Esperando você" descricao="Arte para aprovar e orçamento para responder.">
+          <div className="space-y-3">
+            {artes.map(({ arte, osNumero, osTitulo }) => (
+              <ArteParaAprovarCartao
+                key={arte.arquivo_id}
+                arte={arte}
+                osNumero={osNumero}
+                osTitulo={osTitulo}
+                obterUrl={obterUrl}
+                onDecidir={async (decisao, comentario) => {
+                  const { error } = await (supabase.rpc as any)("portal_decidir_arte", {
+                    p_arquivo_id: arte.arquivo_id,
+                    p_decisao: decisao,
+                    p_comentario: comentario.trim() || null,
+                  });
+                  if (error) throw error;
+                  await recarregar();
+                }}
+              />
+            ))}
+            <OrcamentosParaResponder orcamentos={p.orcamentos} />
+          </div>
+        </Secao>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" /> Enviar solicitação / dúvida
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-3 md:grid-cols-[220px_1fr]">
-            <div>
-              <Label>Tipo</Label>
-              <select
-                className="w-full border rounded h-9 px-2 bg-background text-sm"
-                value={solicitacaoTipo}
-                onChange={(e) => setSolicitacaoTipo(e.target.value)}
-              >
-                <option value="duvida">Dúvida</option>
-                <option value="alteracao">Solicitar alteração</option>
-                <option value="arquivo">Enviar arquivo/arte</option>
-                <option value="pagamento">Pagamento</option>
-                <option value="entrega">Entrega</option>
-              </select>
-            </div>
-            <div>
-              <Label>Mensagem</Label>
-              <Textarea
-                value={solicitacaoMsg}
-                onChange={(e) => setSolicitacaoMsg(e.target.value)}
-                rows={2}
-                placeholder={
-                  osSelecionada
-                    ? "Sua mensagem sobre a OS selecionada..."
-                    : "Descreva sua solicitação..."
-                }
-              />
-            </div>
-          </div>
-          {solicitacaoTipo === "arquivo" && (
-            <div className="rounded border-2 border-dashed p-4 text-center space-y-2">
-              <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">
-                Para enviar arquivos, descreva na mensagem. Nossa equipe entrará em contato
-                pelo WhatsApp/e-mail com um link seguro de upload.
-              </p>
-              <Input type="file" disabled title="Upload direto virá em breve" />
-            </div>
-          )}
-          <div className="flex justify-end">
-            <Button onClick={enviarSolicitacao}>Enviar solicitação</Button>
-          </div>
+      <Secao
+        titulo="Suas ordens de serviço"
+        descricao="Situação, previsão de entrega, valor e arquivos de cada pedido."
+      >
+        <ListaDePedidos ordens={p.ordens} obterUrl={obterUrl} />
+      </Secao>
 
-          {solicitacoes.length > 0 && (
-            <div className="border-t pt-3 space-y-2">
-              <div className="text-xs font-mono uppercase text-muted-foreground">
-                Histórico de solicitações
-              </div>
-              {solicitacoes.map((s: any) => (
-                <div key={s.id} className="rounded border p-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase text-muted-foreground">
-                      {s.tipo} ·{" "}
-                      {new Date(s.created_at).toLocaleDateString("pt-BR")}
-                    </span>
-                    <StatusChip
-                      label={s.status}
-                      tone={
-                        s.status === "resolvida"
-                          ? "lime"
-                          : s.status === "cancelada"
-                            ? "magenta"
-                            : "cyan"
-                      }
-                    />
-                  </div>
-                  <div className="mt-1">{s.mensagem}</div>
-                </div>
-              ))}
-            </div>
-          )}
+      <Secao
+        titulo="Enviar arquivo ou comprovante"
+        descricao="O arquivo entra no pedido e a equipe vê na ficha da OS; o comprovante vai para o financeiro conferir."
+      >
+        <EnvioDeArquivo key={clienteId} ordens={p.ordens} onEnviar={enviarArquivo} />
+      </Secao>
+
+      <Secao titulo="Falar com a equipe">
+        <div className="space-y-4">
+          <MensagemParaEquipe
+            key={clienteId}
+            ordens={p.ordens}
+            onEnviar={async (dados) => {
+              const { data, error } = await (supabase.rpc as any)("portal_enviar_mensagem", {
+                p_cliente_id: clienteId,
+                p_os_id: dados.osId,
+                p_tipo: dados.tipo,
+                p_mensagem: dados.mensagem.trim(),
+              });
+              if (error) throw error;
+              await recarregar();
+              return {
+                protocolo: String(data?.protocolo ?? ""),
+                os_numero: data?.os_numero ?? null,
+              };
+            }}
+          />
+          <ContatoDaEmpresa empresa={p.empresa} />
+        </div>
+      </Secao>
+
+      <Secao titulo="O que você já mandou">
+        <OQueVoceMandou solicitacoes={p.solicitacoes} comprovantes={p.comprovantes} />
+      </Secao>
+    </Moldura>
+  );
+}
+
+function Moldura({
+  nome,
+  acoes,
+  children,
+}: {
+  nome?: string;
+  acoes?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        ajuda={dicaTela("/portal-cliente")}
+        breadcrumb={nome ? `Portal · ${nome}` : "Área do Cliente"}
+        title="Seu acompanhamento BEX PRINT"
+        description="Pedidos em produção, arte para aprovar, arquivos e documentos"
+        actions={acoes}
+      />
+      {children}
+    </div>
+  );
+}
+
+function Secao({
+  titulo,
+  descricao,
+  children,
+}: {
+  titulo: string;
+  descricao?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{titulo}</CardTitle>
+        {descricao && <CardDescription>{descricao}</CardDescription>}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+/**
+ * A rota abre para quem tem clientes.read, mas o portal é do CLIENTE. Para a
+ * equipe, uma explicação de como dar acesso — e não um "sua conta não foi
+ * liberada", que lia como defeito.
+ */
+function VistaDaEquipe() {
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        ajuda={dicaTela("/portal-cliente")}
+        breadcrumb="Área do Cliente"
+        title="Portal do Cliente"
+        description="Esta é a tela que o cliente vê quando entra com o login dele"
+      />
+      <Card>
+        <CardContent className="space-y-3 py-8 text-sm">
+          <p>
+            O cliente acompanha aqui os pedidos dele: situação, previsão de entrega, valor do
+            pedido, arte para aprovar, arquivos e documentos, e manda arquivo, comprovante e
+            mensagem.
+          </p>
+          <p className="text-muted-foreground">
+            Dois jeitos de dar acesso, os dois na ficha do cliente, aba <strong>Portal</strong>:
+          </p>
+          <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>
+              <strong>Gerar link</strong> — o cliente abre no celular, sem login. É o caminho mais
+              simples para quem pede pelo WhatsApp.
+            </li>
+            <li>
+              <strong>Liberar uma conta</strong> — para quem criou login no sistema; ele entra e cai
+              nesta tela.
+            </li>
+          </ul>
+          <Button asChild variant="outline">
+            <Link to="/clientes">Abrir Clientes</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>
   );
 }
-

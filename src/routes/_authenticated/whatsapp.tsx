@@ -1,327 +1,207 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Activity, ListChecks, Loader2, MessageCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Bot,
-  GitBranch,
-  Search,
-  Send,
-  Paperclip,
-  FileText,
-  ClipboardList,
-  User,
-  Tag,
-} from "lucide-react";
-import { DicaIcone } from "@/components/bex/Dica";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { StatusChip } from "@/components/bex/StatusChip";
+import { useAuth } from "@/lib/auth-context";
+import { getRoutePermissions } from "@/lib/permissions";
 import { dicaTela } from "@/lib/dicas";
-import { detectsHumanHandoff, getWhatsAppBotTransition, whatsappBotFlow } from "@/lib/whatsapp-bot";
+import { cn } from "@/lib/utils";
+import { situacaoDaConexao } from "@/domain/whatsapp/situacao-conexao";
+import {
+  contarPorAba,
+  filtrarConversas,
+  instanciaPrincipal,
+  vazioDaCaixa,
+  type Aba,
+} from "@/domain/whatsapp/caixa-de-entrada";
+import {
+  LIMITE_CONVERSAS,
+  useConversas,
+  useInstancias,
+} from "@/components/whatsapp/usar-caixa-de-entrada";
+import { ListaDeConversas } from "@/components/whatsapp/lista-de-conversas";
+import { ConversaAberta } from "@/components/whatsapp/conversa-aberta";
+import { PainelDaConversa } from "@/components/whatsapp/painel-da-conversa";
+import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — BEX PRINT OS" }] }),
-  component: WhatsAppPage,
+  component: CaixaDeEntradaPage,
 });
 
-const mensagensMock = [
-  { id: 1, dir: "in", txt: "Bom dia, gostaria de um orçamento de banner.", hora: "10:12" },
-  { id: 2, dir: "out", txt: "Bom dia! Claro, qual a medida e quantidade?", hora: "10:15" },
-  { id: 3, dir: "in", txt: "2m x 1m, 5 unidades, com ilhós.", hora: "10:17" },
-  {
-    id: 4,
-    dir: "out",
-    txt: "Perfeito. Posso preparar o orçamento agora. Tem prazo desejado?",
-    hora: "10:18",
-  },
-  { id: 5, dir: "in", txt: "Para sexta-feira se possível.", hora: "10:20" },
-];
+/**
+ * Caixa de entrada do WhatsApp.
+ *
+ * Até 02/10/2026 esta rota era uma demonstração: conversas e mensagens fixas
+ * no código, sem nenhuma leitura do banco, e sete botões sem ação — enquanto
+ * estava no menu como se fosse o atendimento de verdade. Agora ela lê as
+ * tabelas que o webhook do Z-API escreve (`whatsapp_conversas` e
+ * `whatsapp_mensagens`, por `whatsapp_registrar_mensagem`), responde pela fila
+ * que já existia (`whatsapp_responder` + POST /api/whatsapp/enviar) e grava no
+ * banco tudo o que a tela antiga só fingia: concluir, etiquetar, ligar ao
+ * cliente, abrir orçamento e OS.
+ *
+ * O simulador do "Bot WhatsApp" saiu: nenhum robô responde mensagem neste
+ * sistema (o webhook não chama `whatsapp-bot.ts`), e mostrar "Estados
+ * configurados" fazia parecer que havia um no ar.
+ */
+function CaixaDeEntradaPage() {
+  const { hasPermission } = useAuth();
+  const temPermissaoDeResponder = hasPermission("whatsapp.reply");
+  // A mesma régua do menu: link só para quem a rota deixa entrar.
+  const abre = (rota: string) => (getRoutePermissions(rota) ?? []).some(hasPermission);
 
-type ConversaWhatsapp = {
-  id: string;
-  nome: string;
-  numero: string;
-  ultima: string;
-  hora: string;
-  naoLidas: number;
-  etiqueta: string;
-};
+  const instancias = useInstancias();
+  const conversas = useConversas(true);
+  const [busca, setBusca] = useState("");
+  const [aba, setAba] = useState<Aba>("abertas");
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
 
-const conversasWhatsappSeed: ConversaWhatsapp[] = [
-  {
-    id: "c1",
-    nome: "Marcos Silva",
-    numero: "+55 11 98765-4321",
-    ultima: "Tudo certo, pode produzir!",
-    hora: "14:32",
-    naoLidas: 0,
-    etiqueta: "Produção",
-  },
-  {
-    id: "c2",
-    nome: "Padaria Aurora",
-    numero: "+55 11 91234-5678",
-    ultima: "Vocês fazem fachada em ACM?",
-    hora: "14:18",
-    naoLidas: 3,
-    etiqueta: "Orçamento",
-  },
-  {
-    id: "c3",
-    nome: "Studio Vita",
-    numero: "+55 11 99887-6655",
-    ultima: "Comprovante anexo",
-    hora: "13:45",
-    naoLidas: 1,
-    etiqueta: "Pagamento",
-  },
-  {
-    id: "c4",
-    nome: "Cliente novo",
-    numero: "+55 11 98123-4567",
-    ultima: "Bom dia, gostaria de um orçamento",
-    hora: "12:10",
-    naoLidas: 2,
-    etiqueta: "Lead",
-  },
-  {
-    id: "c5",
-    nome: "Auto Posto BR",
-    numero: "+55 11 97654-3210",
-    ultima: "Quando posso retirar?",
-    hora: "11:02",
-    naoLidas: 0,
-    etiqueta: "Pronto",
-  },
-];
-
-function WhatsAppPage() {
-  const [search, setSearch] = useState("");
-  const [conversasWhatsapp, setConversasWhatsapp] = useState(conversasWhatsappSeed);
-  const [selectedId, setSelectedId] = useState(conversasWhatsappSeed[0].id);
-  const [botPreview, setBotPreview] = useState("Preciso falar com alguém sobre meu pagamento");
-  const conversas = useMemo(
-    () =>
-      conversasWhatsapp.filter((conversa) =>
-        `${conversa.nome} ${conversa.numero} ${conversa.ultima} ${conversa.etiqueta}`
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-      ),
-    [conversasWhatsapp, search],
-  );
-  const selected = conversasWhatsapp.find((conversa) => conversa.id === selectedId) ?? conversasWhatsapp[0];
-  const botTransition = getWhatsAppBotTransition(botPreview);
-  const updateConversation = (id: string, changes: Partial<ConversaWhatsapp>) => {
-    setConversasWhatsapp((current) => current.map((conversa) => (conversa.id === id ? { ...conversa, ...changes } : conversa)));
-  };
+  const listaInstancias = instancias.data ?? [];
+  const principal = instanciaPrincipal(listaInstancias);
+  const situacao = situacaoDaConexao(principal);
+  const lista = conversas.data ?? [];
+  const filtradas = filtrarConversas(lista, { busca, aba });
+  const selecionada = lista.find((c) => c.id === selecionadaId) ?? null;
+  // A resposta sai pela instância DA CONVERSA, não pela do topo da tela.
+  const instanciaDaConversa = selecionada
+    ? (listaInstancias.find((i) => i.id === selecionada.instancia_id) ?? null)
+    : null;
 
   return (
-    <div className="h-[calc(100vh-8rem)] grid grid-cols-12 gap-4">
-      <Card className="col-span-3 flex flex-col overflow-hidden">
-        <div className="p-3 border-b space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold tracking-tight">Conversas</span>
-            <DicaIcone texto={dicaTela("/whatsapp")} rotulo="WhatsApp" lado="bottom" />
-          </div>
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-8"
-              placeholder="Buscar conversa..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
+    <div className="space-y-4">
+      <SectionHeader
+        ajuda={dicaTela("/whatsapp")}
+        breadcrumb="Atendimento · Caixa de entrada"
+        title="WhatsApp"
+        description="As conversas que chegam no número da empresa. Responda, ligue ao cliente e transforme o pedido em orçamento."
+        className="mb-2"
+        actions={
+          <>
+            {!instancias.isPending && !instancias.isError && (
+              <StatusChip label={situacao.rotulo} tone={situacao.tom} />
+            )}
+            {abre("/respostas-rapidas") && (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/respostas-rapidas">
+                  <ListChecks className="mr-1 h-4 w-4" /> Respostas rápidas
+                </Link>
+              </Button>
+            )}
+            {abre("/whatsapp-monitor") && (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/whatsapp-monitor">
+                  <Activity className="mr-1 h-4 w-4" /> Monitor
+                </Link>
+              </Button>
+            )}
+          </>
+        }
+      />
 
-        <div className="flex-1 overflow-auto">
-          {conversas.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setSelectedId(c.id)}
-              className={`w-full text-left p-3 border-b hover:bg-muted/50 transition-colors ${selected.id === c.id ? "bg-muted" : ""}`}
-            >
-              <div className="flex items-start gap-3">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback>{c.nome[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium text-sm truncate">{c.nome}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {c.hora}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {c.ultima || "Sem mensagens"}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-[10px] py-0">
-                      {c.etiqueta}
-                    </Badge>
-                    {c.naoLidas > 0 && (
-                      <Badge className="text-[10px] py-0 bg-emerald-600 hover:bg-emerald-600">
-                        {c.naoLidas}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </Card>
-      <Card className="col-span-6 flex flex-col overflow-hidden">
-        <div className="p-3 border-b flex items-center gap-3">
-          <Avatar>
-            <AvatarFallback>{selected.nome[0]}</AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="font-medium">{selected.nome}</div>
-            <div className="text-xs text-muted-foreground">{selected.numero}</div>
-          </div>
-        </div>
-        <div className="flex-1 overflow-auto p-4 space-y-3 bg-muted/20">
-          {mensagensMock.map((m) => (
-            <div key={m.id} className={`flex ${m.dir === "out" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[70%] rounded-lg p-2.5 text-sm ${
-                  m.dir === "out" ? "bg-emerald-600 text-white" : "bg-card border"
-                }`}
-              >
-                <div>{m.txt}</div>
-                <div
-                  className={`text-[10px] mt-1 ${m.dir === "out" ? "text-emerald-50" : "text-muted-foreground"}`}
-                >
-                  {m.hora}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="p-3 border-t flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          <Input placeholder="Digite uma mensagem..." className="flex-1" />
-          <Button size="icon" className="bg-emerald-600 hover:bg-emerald-700">
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </Card>
-      <Card className="col-span-3 flex flex-col overflow-auto">
-        <div className="p-4 border-b">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Cliente</div>
-          <div className="flex items-center gap-2 font-medium">
-            <User className="h-4 w-4" /> {selected.nome}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">{selected.numero}</div>
-        </div>
-        <div className="p-4 border-b space-y-2">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-            Ações rápidas
-          </div>
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <FileText className="h-4 w-4 mr-2" /> Criar orçamento
-          </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <ClipboardList className="h-4 w-4 mr-2" /> Criar OS
-          </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <Tag className="h-4 w-4 mr-2" /> Etiquetar
-          </Button>
-        </div>
-        <div className="p-4 space-y-3 border-b">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Histórico</div>
-          <div className="text-sm space-y-2">
-            <div className="flex justify-between">
-              <span>OS-1042</span>
-              <Badge variant="outline">Em produção</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span>OS-1031</span>
-              <Badge variant="outline">Concluído</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span>Orç #245</span>
-              <Badge variant="outline">Enviado</Badge>
-            </div>
-          </div>
-        </div>
+      {instancias.isError && (
+        <FalhaDeConsulta
+          titulo="Não foi possível conferir a conexão do WhatsApp"
+          erro={instancias.error}
+          onTentarDeNovo={() => void instancias.refetch()}
+        />
+      )}
 
-        <div className="p-4 space-y-3 border-b">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-            <Bot className="h-4 w-4" /> Bot WhatsApp
-          </div>
-          <Input
-            value={botPreview}
-            onChange={(e) => setBotPreview(e.target.value)}
-            placeholder="Teste uma mensagem do cliente"
+      {conversas.isError ? (
+        <FalhaDeConsulta
+          titulo="Não foi possível carregar as conversas"
+          erro={conversas.error}
+          onTentarDeNovo={() => void conversas.refetch()}
+        />
+      ) : conversas.isPending || instancias.isPending ? (
+        <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando as conversas…
+        </div>
+      ) : lista.length === 0 ? (
+        <CaixaVazia
+          titulo={instancias.isError ? "Nenhuma conversa ainda" : vazioDaCaixa(principal).titulo}
+          detalhe={
+            instancias.isError
+              ? "A conexão do WhatsApp não pôde ser conferida agora — veja o erro acima."
+              : vazioDaCaixa(principal).detalhe
+          }
+          abreMonitor={abre("/whatsapp-monitor")}
+        />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-12 xl:h-[calc(100vh-13rem)]">
+          <ListaDeConversas
+            className={cn(
+              "h-[70vh] lg:col-span-4 xl:col-span-3 xl:h-auto xl:min-h-0",
+              selecionada && "hidden lg:flex",
+            )}
+            conversas={filtradas}
+            totalCarregado={lista.length}
+            limiteAtingido={lista.length >= LIMITE_CONVERSAS}
+            contagem={contarPorAba(lista)}
+            selecionadaId={selecionadaId}
+            onSelecionar={setSelecionadaId}
+            busca={busca}
+            onBusca={setBusca}
+            aba={aba}
+            onAba={setAba}
           />
-          <div className="rounded-lg border p-3 text-sm space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-medium capitalize">
-                Estado: {botTransition.state.replace(/_/g, " ")}
-              </span>
-              {botTransition.humanHandoff && (
-                <Badge className="bg-amber-600 hover:bg-amber-600">Transferir</Badge>
-              )}
-            </div>
-            <p className="text-muted-foreground">{botTransition.reply}</p>
-            <div className="flex flex-wrap gap-1">
-              {botTransition.quickReplies.map((reply) => (
-                <Badge key={reply} variant="outline" className="text-[10px]">
-                  {reply}
-                </Badge>
-              ))}
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Detecção humana:{" "}
-            {detectsHumanHandoff(botPreview)
-              ? "atendente/humano/suporte/pessoa/falar com alguém encontrado"
-              : "nenhum gatilho humano"}
-          </div>
+          {selecionada ? (
+            <>
+              <ConversaAberta
+                key={selecionada.id}
+                className="h-[75vh] lg:col-span-8 xl:col-span-6 xl:h-auto xl:min-h-0"
+                conversa={selecionada}
+                instancia={instanciaDaConversa}
+                conexaoComFalha={instancias.isError}
+                temPermissaoDeResponder={temPermissaoDeResponder}
+                onVoltar={() => setSelecionadaId(null)}
+              />
+              <PainelDaConversa
+                className="lg:col-span-12 xl:col-span-3 xl:h-auto xl:min-h-0"
+                conversa={selecionada}
+              />
+            </>
+          ) : (
+            <Card className="hidden items-center justify-center p-8 text-sm text-muted-foreground lg:col-span-8 lg:flex xl:col-span-9">
+              Escolha uma conversa à esquerda.
+            </Card>
+          )}
         </div>
-
-        <div className="p-4 space-y-3">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-            <GitBranch className="h-4 w-4" /> Estados configurados
-          </div>
-          <div className="space-y-2">
-            {whatsappBotFlow.map((step) => (
-              <div key={step.state} className="rounded-lg border p-2 text-xs">
-                <div className="font-medium">{step.label}</div>
-                <div className="text-muted-foreground">Gatilhos: {step.trigger}</div>
-                <div className="text-muted-foreground">Ação: {step.next}</div>
-              </div>
-            ))}
-          </div>
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <FileText className="h-4 w-4 mr-2" /> Criar orçamento
-          </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <ClipboardList className="h-4 w-4 mr-2" /> Criar OS
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => updateConversation(selected.id, { etiqueta: "Atendimento" })}
-          >
-            <Tag className="h-4 w-4 mr-2" /> Editar etiqueta
-          </Button>
-          <Button
-            size="sm"
-            className="w-full"
-            onClick={() => updateConversation(selected.id, { naoLidas: 0 })}
-          >
-            Concluir atendimento
-          </Button>
-        </div>
-      </Card>
+      )}
     </div>
+  );
+}
+
+/**
+ * Caixa vazia que diz o motivo: QR Code não escaneado, conexão caída ou só
+ * "ninguém escreveu ainda" — três situações que a tela antiga não separava.
+ */
+function CaixaVazia({
+  titulo,
+  detalhe,
+  abreMonitor,
+}: {
+  titulo: string;
+  detalhe: string;
+  abreMonitor: boolean;
+}) {
+  return (
+    <Card className="mx-auto max-w-2xl space-y-3 p-8 text-center">
+      <MessageCircle className="mx-auto h-8 w-8 text-muted-foreground" />
+      <h2 className="text-lg font-semibold">{titulo}</h2>
+      {detalhe && <p className="text-sm text-muted-foreground">{detalhe}</p>}
+      {abreMonitor ? (
+        <Button asChild variant="outline">
+          <Link to="/whatsapp-monitor">Abrir o Monitor do WhatsApp</Link>
+        </Button>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Quem administra o WhatsApp resolve isso no Monitor do WhatsApp.
+        </p>
+      )}
+    </Card>
   );
 }

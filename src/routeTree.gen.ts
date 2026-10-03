@@ -85,6 +85,11 @@ import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
 import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
 import { Route as AuthenticatedOsIdRouteImport } from './routes/_authenticated/os.$id'
+import { Route as ApiPortalArquivoRouteImport } from './routes/api.portal.arquivo'
+import { Route as ApiPortalArteRouteImport } from './routes/api.portal.arte'
+import { Route as ApiPortalEnvioRouteImport } from './routes/api.portal.envio'
+import { Route as ApiPortalMensagemRouteImport } from './routes/api.portal.mensagem'
+import { Route as ApiPortalPainelRouteImport } from './routes/api.portal.painel'
 import { Route as ApiTvPainelRouteImport } from './routes/api.tv.painel'
 import { Route as ApiTvParearRouteImport } from './routes/api.tv.parear'
 import { Route as ApiWhatsappEnviarRouteImport } from './routes/api.whatsapp.enviar'
@@ -498,6 +503,31 @@ const AuthenticatedOsIdRoute = AuthenticatedOsIdRouteImport.update({
   path: '/os/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPortalArquivoRoute = ApiPortalArquivoRouteImport.update({
+  id: '/api/portal/arquivo',
+  path: '/api/portal/arquivo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPortalArteRoute = ApiPortalArteRouteImport.update({
+  id: '/api/portal/arte',
+  path: '/api/portal/arte',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPortalEnvioRoute = ApiPortalEnvioRouteImport.update({
+  id: '/api/portal/envio',
+  path: '/api/portal/envio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPortalMensagemRoute = ApiPortalMensagemRouteImport.update({
+  id: '/api/portal/mensagem',
+  path: '/api/portal/mensagem',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPortalPainelRoute = ApiPortalPainelRouteImport.update({
+  id: '/api/portal/painel',
+  path: '/api/portal/painel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTvPainelRoute = ApiTvPainelRouteImport.update({
   id: '/api/tv/painel',
   path: '/api/tv/painel',
@@ -602,6 +632,11 @@ export interface FileRoutesByFullPath {
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/portal/arquivo': typeof ApiPortalArquivoRoute
+  '/api/portal/arte': typeof ApiPortalArteRoute
+  '/api/portal/envio': typeof ApiPortalEnvioRoute
+  '/api/portal/mensagem': typeof ApiPortalMensagemRoute
+  '/api/portal/painel': typeof ApiPortalPainelRoute
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
@@ -684,6 +719,11 @@ export interface FileRoutesByTo {
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/portal/arquivo': typeof ApiPortalArquivoRoute
+  '/api/portal/arte': typeof ApiPortalArteRoute
+  '/api/portal/envio': typeof ApiPortalEnvioRoute
+  '/api/portal/mensagem': typeof ApiPortalMensagemRoute
+  '/api/portal/painel': typeof ApiPortalPainelRoute
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
@@ -769,6 +809,11 @@ export interface FileRoutesById {
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/portal/arquivo': typeof ApiPortalArquivoRoute
+  '/api/portal/arte': typeof ApiPortalArteRoute
+  '/api/portal/envio': typeof ApiPortalEnvioRoute
+  '/api/portal/mensagem': typeof ApiPortalMensagemRoute
+  '/api/portal/painel': typeof ApiPortalPainelRoute
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
@@ -854,6 +899,11 @@ export interface FileRouteTypes {
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/api/portal/arquivo'
+    | '/api/portal/arte'
+    | '/api/portal/envio'
+    | '/api/portal/mensagem'
+    | '/api/portal/painel'
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/whatsapp/enviar'
@@ -936,6 +986,11 @@ export interface FileRouteTypes {
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/api/portal/arquivo'
+    | '/api/portal/arte'
+    | '/api/portal/envio'
+    | '/api/portal/mensagem'
+    | '/api/portal/painel'
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/whatsapp/enviar'
@@ -1020,6 +1075,11 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
+    | '/api/portal/arquivo'
+    | '/api/portal/arte'
+    | '/api/portal/envio'
+    | '/api/portal/mensagem'
+    | '/api/portal/painel'
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/whatsapp/enviar'
@@ -1043,6 +1103,11 @@ export interface RootRouteChildren {
   OrcamentoPublicoTokenRoute: typeof OrcamentoPublicoTokenRoute
   PublicoTokenRoute: typeof PublicoTokenRoute
   TvMaquinasRoute: typeof TvMaquinasRoute
+  ApiPortalArquivoRoute: typeof ApiPortalArquivoRoute
+  ApiPortalArteRoute: typeof ApiPortalArteRoute
+  ApiPortalEnvioRoute: typeof ApiPortalEnvioRoute
+  ApiPortalMensagemRoute: typeof ApiPortalMensagemRoute
+  ApiPortalPainelRoute: typeof ApiPortalPainelRoute
   ApiTvPainelRoute: typeof ApiTvPainelRoute
   ApiTvParearRoute: typeof ApiTvParearRoute
   ApiWhatsappEnviarRoute: typeof ApiWhatsappEnviarRoute
@@ -1583,6 +1648,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/portal/arquivo': {
+      id: '/api/portal/arquivo'
+      path: '/api/portal/arquivo'
+      fullPath: '/api/portal/arquivo'
+      preLoaderRoute: typeof ApiPortalArquivoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/portal/arte': {
+      id: '/api/portal/arte'
+      path: '/api/portal/arte'
+      fullPath: '/api/portal/arte'
+      preLoaderRoute: typeof ApiPortalArteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/portal/envio': {
+      id: '/api/portal/envio'
+      path: '/api/portal/envio'
+      fullPath: '/api/portal/envio'
+      preLoaderRoute: typeof ApiPortalEnvioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/portal/mensagem': {
+      id: '/api/portal/mensagem'
+      path: '/api/portal/mensagem'
+      fullPath: '/api/portal/mensagem'
+      preLoaderRoute: typeof ApiPortalMensagemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/portal/painel': {
+      id: '/api/portal/painel'
+      path: '/api/portal/painel'
+      fullPath: '/api/portal/painel'
+      preLoaderRoute: typeof ApiPortalPainelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tv/painel': {
       id: '/api/tv/painel'
       path: '/api/tv/painel'
@@ -1794,6 +1894,11 @@ const rootRouteChildren: RootRouteChildren = {
   OrcamentoPublicoTokenRoute: OrcamentoPublicoTokenRoute,
   PublicoTokenRoute: PublicoTokenRoute,
   TvMaquinasRoute: TvMaquinasRoute,
+  ApiPortalArquivoRoute: ApiPortalArquivoRoute,
+  ApiPortalArteRoute: ApiPortalArteRoute,
+  ApiPortalEnvioRoute: ApiPortalEnvioRoute,
+  ApiPortalMensagemRoute: ApiPortalMensagemRoute,
+  ApiPortalPainelRoute: ApiPortalPainelRoute,
   ApiTvPainelRoute: ApiTvPainelRoute,
   ApiTvParearRoute: ApiTvParearRoute,
   ApiWhatsappEnviarRoute: ApiWhatsappEnviarRoute,

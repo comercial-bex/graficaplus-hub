@@ -47,8 +47,8 @@ const CONHECIDOS: Record<string, string> = {
   //   prazos-card   → RELIGADO em 24/09: os 9 orçamentos do sistema estavam
   //                   com prazo vazio, e a OS herda o prazo do orçamento na
   //                   conversão. O bloco ocupa área mesmo, e vale a área.
-  // O de baixo é BLOCO: ocupa área e mudaria o desenho da tela.
-  "src/components/orcamento/aproveitamento-card.tsx": "tela de orçamento refeita não chama mais — aguarda decisão de religar",
+  //   aproveitamento-card → RELIGADO em 02/10, abaixo da restrição do produto,
+  //                   onde nasceu. Só ocupa área quando o produto sai de bobina.
 
   // Mortos que já vinham de antes da fusão.
   "src/domain/clientes/normalizacao.ts": "morto antes da fusão; a normalização de telefone acontece no banco",
