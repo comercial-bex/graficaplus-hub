@@ -141,6 +141,12 @@ function Impressao3DPage() {
             <Button asChild size="sm">
               <Link to="/orcamento-3d-novo">Novo orçamento</Link>
             </Button>
+            {/* A fila de impressão 3D (jobs e apontamentos) não tinha porta de
+                entrada: só o Mapa do sistema, que só admin vê. Quem abre esta
+                tela tem impressao3d.read, e é com ela que /producao-3d abre. */}
+            <Button asChild variant="outline" size="sm">
+              <Link to="/producao-3d">Produção 3D</Link>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/filamentos-3d">Filamentos</Link>
             </Button>

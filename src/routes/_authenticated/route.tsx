@@ -14,6 +14,7 @@ import { destinoParaLevarAoLogin } from "@/domain/acesso/destino-apos-login";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { InstalarApp } from "@/components/pwa/instalar-app";
+import { DespachanteDeAvisos } from "@/components/whatsapp/despachante-de-avisos";
 import { getRoutePermissions, permissionLabels } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -36,6 +37,9 @@ const NOMES_DE_TELA: Record<string, string> = {
   relatorios: "Relatórios",
   maquinas: "Máquinas",
   whatsapp: "WhatsApp",
+  configuracoes: "Meu perfil",
+  precificacao: "Simulador de preço",
+  telas: "TVs da oficina",
 };
 
 function nomeDaTela(pathname: string) {
@@ -53,12 +57,19 @@ function AuthenticatedLayout() {
   const jaEsteveLogado = useRef(false);
   const noInicio = pathname === "/dashboard" || pathname === "/dashboard/";
   const requiredPermissions = getRoutePermissions(pathname);
-  const canAccessRoute = requiredPermissions !== null && requiredPermissions.some(hasPermission);
+  // Lista vazia no mapa = qualquer conta com papel (o "Meu perfil" de cada um).
+  // Rota fora do mapa continua barrada: o guarda é deny-by-default.
+  const canAccessRoute =
+    requiredPermissions !== null &&
+    (requiredPermissions.length === 0 || requiredPermissions.some(hasPermission));
 
   // O parceiro revendedor não usa o sistema da equipe: o painel dele mora em
   // /parceiro. Sem o desvio, o login o mandaria ao /dashboard e ele cairia no
   // "Acesso restrito" — a primeira tela de um parceiro novo seria um erro.
   const somenteParceiro = roles.length > 0 && roles.every((r) => r === "parceiro");
+  // O cliente com login entra pelo portal dele: no Início da equipe ele só
+  // veria "Acesso restrito".
+  const somenteCliente = roles.length > 0 && roles.every((r) => r === "cliente");
 
   useEffect(() => {
     if (loading) return;
@@ -78,6 +89,10 @@ function AuthenticatedLayout() {
   useEffect(() => {
     if (!loading && user && somenteParceiro) navigate({ to: "/parceiro" });
   }, [loading, user, somenteParceiro, navigate]);
+
+  useEffect(() => {
+    if (!loading && user && somenteCliente && noInicio) navigate({ to: "/portal-cliente" });
+  }, [loading, user, somenteCliente, noInicio, navigate]);
 
   if (loading) {
     return (
@@ -186,6 +201,10 @@ function AuthenticatedLayout() {
       </div>
       {/* Só no layout autenticado: rotas públicas do cliente ficam sem faixa e sem SW */}
       <InstalarApp />
+      {/* Os avisos ao cliente saem sozinhos, na hora (decisão do dono, 02/10/2026):
+          enquanto alguém com whatsapp.reply está com o sistema aberto, a fila é
+          esvaziada a cada 2 minutos. Fora do condicional de acesso de propósito. */}
+      <DespachanteDeAvisos />
     </SidebarProvider>
   );
 }

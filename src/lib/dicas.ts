@@ -190,7 +190,7 @@ export const dicas = {
   },
   "/whatsapp": {
     menu: "Conversas com clientes pelo WhatsApp.",
-    tela: "Central de atendimento. Responda o cliente, envie arquivos e ligue a conversa a um orçamento ou ordem de serviço.",
+    tela: "Caixa de entrada do WhatsApp da empresa. Responda o cliente (com respostas rápidas), ligue a conversa ao cliente e abra o orçamento já com o pedido.",
   },
   "/whatsapp-monitor": {
     menu: "Acompanhamento das mensagens ligadas a cada trabalho.",
@@ -306,13 +306,8 @@ export const dicas = {
     },
   },
   "/precificacao": {
-    menu: "Planilha de custos e tarifas da gráfica.",
-    tela: "Tarifas que o sistema usa em todos os cálculos: energia, hora de mão de obra, encargos, markup, perda e impostos. Alterar aqui muda os próximos orçamentos, não os antigos.",
-    campos: {
-      valor: "Valor atual da tarifa. Toda alteração fica registrada no histórico com data e autor.",
-      markup: "Multiplicador aplicado sobre o custo para chegar ao preço de venda.",
-      perda: "Percentual de material perdido que já entra no preço, para não sair no prejuízo.",
-    },
+    menu: "Simule custo, preço e margem de uma peça real com os números da casa.",
+    tela: "Parte dos parâmetros da casa e de um produto ou material real (ficha, máquina e tempo) e mostra custo, preço sugerido pelo markup e margem, comparando com o preço de tabela. Mudar um número aqui não grava nada; só o administrador grava um parâmetro na casa, e fica no histórico.",
   },
   "/aprovacoes": {
     menu: "O que o cliente aprovou, o que pediu ajuste e o que já foi entregue.",
@@ -400,8 +395,8 @@ export const dicas = {
     tela: "Relatórios do período: vendas, produção, margem e desperdício. Use os filtros de data para comparar meses.",
   },
   "/portal-cliente": {
-    menu: "O que o cliente vê e envia pelo link externo.",
-    tela: "Acessos que o cliente recebe por link: aprovar arte, acompanhar o trabalho e enviar arquivos, sem entrar no sistema.",
+    menu: "O que o cliente vê quando entra com o login dele.",
+    tela: "Os pedidos do cliente: situação, previsão, valor do pedido, arte para aprovar, arquivos e documentos; ele manda arquivo, comprovante e mensagem por aqui. Para o cliente sem login, gere o link na ficha do cliente, aba Portal.",
   },
   "/pos-venda": {
     menu: "Pesquisa de satisfação e retorno do cliente.",
@@ -447,8 +442,12 @@ export const dicas = {
     tela: "Nome, CNPJ, endereço, telefones e logotipo que aparecem no orçamento e na ordem de serviço impressos.",
   },
   "/configuracoes": {
-    menu: "Preferências gerais do sistema.",
-    tela: "Ajustes gerais de funcionamento do sistema e das integrações.",
+    menu: "Seu nome, telefone, foto e senha.",
+    tela: "Seu cadastro: o nome que sai no orçamento enviado ao cliente, o telefone, a foto do Quadro de produção e a troca de senha. Quem administra vê também os dados da empresa e os parâmetros da casa.",
+  },
+  "/compras": {
+    menu: "Pedidos ao fornecedor, com vários materiais, e o recebimento no estoque.",
+    tela: "O material que falta vira pedido, com quantos materiais precisar, e o pedido recebido entra no estoque com lote e custo médio. O rascunho do 'Comprar o que falta' da OS é revisado e registrado aqui. Cancelar pede um motivo.",
   },
 } satisfies Record<string, DicasTela>;
 

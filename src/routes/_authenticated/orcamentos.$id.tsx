@@ -51,6 +51,10 @@ import {
   RestricaoDoProduto,
   useRestricaoProduto,
 } from "@/components/orcamento/restricao-do-produto";
+import {
+  AproveitamentoDeBobina,
+  useContextoDeBobina,
+} from "@/components/orcamento/aproveitamento-card";
 import { OrcamentoMaterialCheck } from "@/components/orcamento-material-check";
 import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
@@ -144,6 +148,9 @@ function OrcamentoDetailPage() {
   // Exigência legal do produto (limite eleitoral, por exemplo). Sem gate de
   // financeiro: é informação de venda e de produção, não de dinheiro.
   const { data: restricao } = useRestricaoProduto(form.produto_id);
+  // Bobina e boca da máquina do produto: quantas peças saem e quanto material
+  // vai embora. Produção, não dinheiro — o cartão não tem valor nenhum.
+  const bobina = useContextoDeBobina(form.produto_id);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewProducaoOpen, setPreviewProducaoOpen] = useState(false);
   const [gerandoLink, setGerandoLink] = useState(false);
@@ -839,6 +846,19 @@ function OrcamentoDetailPage() {
 
             {/* Conferência de material e estoque, só aviso. */}
             {form.produto_id && <RestricaoDoProduto restricao={restricao} />}
+
+            {/* Religado em 02/10/2026 no lugar onde nasceu (logo abaixo da
+                restrição do produto), depois de ficar órfão na fusão de 08/09.
+                Some sozinho para produto que não sai de bobina. */}
+            {form.produto_id && (
+              <AproveitamentoDeBobina
+                contexto={bobina.data}
+                erro={bobina.error}
+                largura={dimensoesForm.largura || restricao?.largura || 0}
+                altura={dimensoesForm.altura || restricao?.altura || 0}
+                quantidade={paraNumero(form.quantidade)}
+              />
+            )}
 
             <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
 

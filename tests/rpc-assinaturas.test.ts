@@ -127,6 +127,39 @@ const ASSINATURAS: Record<string, string[]> = {
   tv_painel_maquinas: [],
   tv_retirar_pareamento: ["p_pareamento_id", "p_retirada_hash", "p_token_hash"],
   tv_revogar_dispositivo: ["p_id"],
+  // Páginas que faltavam (02/10/2026), conferidas no Postgres no mesmo dia.
+  // Arte: comentário que grava, e a aprovação interna que a tela agora usa.
+  comentar_arte: ["p_arquivo_id", "p_comentario"],
+  registrar_aprovacao_interna: [
+    "p_os_id", "p_arquivo_id", "p_decisao", "p_canal", "p_cliente_contato_id", "p_observacao",
+  ],
+  // WhatsApp: a caixa de entrada real.
+  whatsapp_responder: ["p_conversa_id", "p_texto"],
+  whatsapp_vincular_cliente: ["p_conversa_id", "p_cliente_id"],
+  // Compras com vários itens.
+  cancelar_pedido_compra: ["p_pedido_id", "p_motivo"],
+  receber_pedido_compra: ["p_pedido_id", "p_itens", "p_nota"],
+  salvar_pedido_compra: [
+    "p_pedido_id", "p_fornecedor", "p_itens", "p_previsao_entrega", "p_observacoes", "p_enviar",
+  ],
+  // Portal do cliente (logado e por link).
+  portal_conferir_comprovante: ["p_id", "p_situacao", "p_nota"],
+  portal_decidir_arte: ["p_arquivo_id", "p_decisao", "p_comentario"],
+  portal_enviar_mensagem: ["p_cliente_id", "p_os_id", "p_tipo", "p_mensagem"],
+  portal_gerar_link: ["p_cliente_id", "p_dias"],
+  portal_link_abrir: ["p_token_hash"],
+  portal_link_abrir_envio: ["p_token_hash", "p_os_id", "p_tipo"],
+  portal_link_decidir_arte: ["p_token_hash", "p_arquivo_id", "p_decisao", "p_comentario"],
+  portal_link_enviar_mensagem: ["p_token_hash", "p_os_id", "p_tipo", "p_mensagem"],
+  portal_link_objeto: ["p_token_hash", "p_tipo", "p_id"],
+  portal_link_registrar_envio: [
+    "p_token_hash", "p_os_id", "p_tipo", "p_caminho", "p_nome", "p_mensagem",
+  ],
+  portal_links_do_cliente: ["p_cliente_id"],
+  portal_meu_objeto: ["p_tipo", "p_id"],
+  portal_meu_painel: ["p_cliente_id"],
+  portal_registrar_envio: ["p_cliente_id", "p_os_id", "p_tipo", "p_caminho", "p_nome", "p_mensagem"],
+  portal_revogar_link: ["p_link_id"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */

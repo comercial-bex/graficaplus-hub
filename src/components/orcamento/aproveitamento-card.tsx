@@ -2,12 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Ruler } from "lucide-react";
+import { mensagemErro } from "@/lib/erros";
 import {
   planejarBobina,
   type ResultadoBobina,
 } from "@/domain/producao/aproveitamento-bobina";
 
 type Contexto = {
+  /**
+   * O produto tem material principal ligado. Sem ele o produto não sai de
+   * bobina (serviço, hora, chapa, folha) e o cartão não se aplica — em vez de
+   * pedir "cadastre a largura da bobina" para uma instalação por hora.
+   */
+  temMaterial: boolean;
   larguraBobina: number | null;
   comprimentoBobina: number | null;
   nomeBobina: string | null;
@@ -36,13 +43,17 @@ export function useContextoDeBobina(produtoId: string | null) {
     queryFn: async (): Promise<Contexto | null> => {
       // Views operacionais: o acesso a produtos/materiais é por coluna, e as
       // colunas de largura só existem na view depois do grant correspondente.
-      const { data: produto } = await (supabase as any)
+      //
+      // Erro de consulta é lançado, não engolido: antes um select que caísse
+      // virava `null` e o cartão sumia como se o produto não tivesse bobina.
+      const { data: produto, error: erroProduto } = await (supabase as any)
         .from("produtos_operacional")
         .select(
-          "espacamento_pecas_m, maquina_padrao_id, materiais_operacional:material_principal_id(nome, largura_bobina_m, comprimento_bobina_m)",
+          "espacamento_pecas_m, maquina_padrao_id, material_principal_id, materiais_operacional:material_principal_id(nome, largura_bobina_m, comprimento_bobina_m)",
         )
         .eq("id", produtoId)
         .maybeSingle();
+      if (erroProduto) throw erroProduto;
       if (!produto) return null;
 
       // A máquina é a DO PRODUTO, não a mais larga da casa.
@@ -59,11 +70,12 @@ export function useContextoDeBobina(produtoId: string | null) {
         | undefined;
 
       if (produto.maquina_padrao_id) {
-        const { data } = await (supabase as any)
+        const { data, error } = await (supabase as any)
           .from("maquinas")
           .select("nome, largura_util_m, margem_lateral_m, avanco_m")
           .eq("id", produto.maquina_padrao_id)
           .maybeSingle();
+        if (error) throw error;
         maquina = data ?? undefined;
       }
 
@@ -71,7 +83,7 @@ export function useContextoDeBobina(produtoId: string | null) {
       // card avisa que é, para ninguém confundir com a máquina de verdade.
       let maquinaInferida = false;
       if (!maquina?.largura_util_m) {
-        const { data: candidatas } = await (supabase as any)
+        const { data: candidatas, error: erroCandidatas } = await (supabase as any)
           .from("maquinas")
           // pai-arbitrario-ok: fallback deliberado quando o produto não tem
           // máquina padrão. Não grava vínculo nenhum — só estima a boca para o
@@ -81,6 +93,7 @@ export function useContextoDeBobina(produtoId: string | null) {
           .not("largura_util_m", "is", null)
           .order("largura_util_m", { ascending: false })
           .limit(1);
+        if (erroCandidatas) throw erroCandidatas;
         if (candidatas?.[0]) {
           maquina = candidatas[0];
           maquinaInferida = true;
@@ -89,6 +102,7 @@ export function useContextoDeBobina(produtoId: string | null) {
       const bobina = produto.materiais_operacional;
 
       return {
+        temMaterial: !!produto.material_principal_id,
         larguraBobina: bobina?.largura_bobina_m != null ? Number(bobina.largura_bobina_m) : null,
         comprimentoBobina:
           bobina?.comprimento_bobina_m != null ? Number(bobina.comprimento_bobina_m) : null,
@@ -116,16 +130,31 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
  */
 export function AproveitamentoDeBobina({
   contexto,
+  erro,
   largura,
   altura,
   quantidade,
 }: {
   contexto: Contexto | null | undefined;
+  /** A consulta do contexto caiu: diz o motivo em vez de sumir calado. */
+  erro?: unknown;
   largura: number;
   altura: number;
   quantidade: number;
 }) {
+  if (erro) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Não deu para calcular o aproveitamento de bobina: {mensagemErro(erro)}
+      </p>
+    );
+  }
   if (!contexto || largura <= 0 || altura <= 0 || quantidade <= 0) return null;
+  // Produto sem material principal não sai de bobina: nada a calcular, e
+  // nada a pedir. Em 02/10/2026 eram 22 dos 31 produtos ativos (serviço,
+  // hora, km, folha, chapa — e também lonas e vinis por m² que ainda não
+  // ligaram o material; para esses quem resolve é o cadastro do produto).
+  if (!contexto.temMaterial) return null;
 
   if (contexto.larguraBobina == null || contexto.larguraUtilMaquina == null) {
     return (

@@ -1,277 +1,255 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
-
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
-type SupabaseError = { message: string };
-type QueryResult<T> = { data: T | null; error: SupabaseError | null };
-type SupabaseQuery<T> = PromiseLike<QueryResult<T>> & {
-  order: (column: string, options?: { ascending?: boolean }) => SupabaseQuery<T>;
-  limit: (count: number) => SupabaseQuery<T>;
-};
-type CountResult = { count: number | null; error: SupabaseError | null };
-type SupabaseCountQuery = PromiseLike<CountResult> & {
-  eq: (column: string, value: string | boolean | number) => SupabaseCountQuery;
-  lte: (column: string, value: string) => SupabaseCountQuery;
-};
-type SupabaseUpdate = {
-  eq: (
-    column: string,
-    value: string | boolean | number,
-  ) => PromiseLike<{ error: SupabaseError | null }>;
-};
-type UntypedSupabase = {
-  from: (table: string) => {
-    select: {
-      <T>(columns?: string): SupabaseQuery<T>;
-      (columns: string, options: { count: "exact"; head: true }): SupabaseCountQuery;
-    };
-    update: (values: Record<string, unknown>) => SupabaseUpdate;
-  };
-};
-
-const automationsDb = supabase as unknown as UntypedSupabase;
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
-}
+import { useAuth } from "@/lib/auth-context";
+import { mensagemErro } from "@/lib/erros";
+import { formatDateTime } from "@/lib/module-data";
+import { AutomacaoDialog } from "@/components/automacoes/automacao-dialog";
+import { ModelosProntos } from "@/components/automacoes/modelos-prontos";
+import { ExecucoesRecentes } from "@/components/automacoes/execucoes-recentes";
+import { SaudeDoEnvio, useSaudeDoEnvio } from "@/components/automacoes/saude-do-envio";
+import {
+  FORM_VAZIO,
+  lerAutomacao,
+  resumoDaAutomacao,
+  type FormAutomacao,
+  type LinhaAutomacao,
+} from "@/domain/automacoes/formulario";
 
 export const Route = createFileRoute("/_authenticated/automacoes")({
   head: () => ({ meta: [{ title: "Automações — BEX PRINT OS" }] }),
   component: AutoPage,
 });
 
-const gatilhoLabels: Record<string, string> = {
-  status_os_alterado: "Mudança de status da OS",
-  pagamento_atrasado: "Pagamento atrasado",
-  estoque_minimo: "Estoque mínimo",
-  margem_abaixo_minimo: "Margem abaixo do mínimo",
-  os_atrasada: "OS atrasada",
-  os_concluida: "Conclusão da OS",
-};
+type Automacao = LinhaAutomacao & { ultima_execucao: string | null; created_at: string };
 
-type Automacao = {
-  id: string;
-  nome: string;
-  gatilho: string;
-  condicao: Record<string, unknown>;
-  acao: string;
-  payload: Record<string, unknown>;
-  ativo: boolean;
-  delay_segundos: number;
-  cooldown_segundos: number;
-};
-
-type Execucao = {
-  id: string;
-  gatilho: string;
-  status: string;
-  entidade: string;
-  erro: string | null;
-  processado_em: string | null;
-  created_at: string;
-  automacoes?: { nome: string } | null;
-};
-
+/**
+ * Automações de WhatsApp: criar, editar, ligar e desligar — e ver o que saiu.
+ *
+ * Antes a tela só tinha o interruptor de automações que existissem, e havia 0:
+ * a tela nunca tinha conteúdo. Pior, o motor estava morto (comparação text =
+ * enum engolida por um EXCEPTION mudo): mesmo com automação cadastrada, nada
+ * entrava na fila. A migração 20261002103002 conserta o motor; esta tela só
+ * oferece o que ele executa (domain/automacoes/catalogo.ts) e diz, no alto, o
+ * que ainda impede a mensagem de sair.
+ */
 function AutoPage() {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  // A policy RESTRICTIVE de escrita pede automacoes.manage: o botão segue a
+  // mesma régua do banco.
+  const podeGerenciar = hasPermission("automacoes.manage");
+  const saude = useSaudeDoEnvio();
+  const [editor, setEditor] = useState<{ inicial: FormAutomacao; id: string | null } | null>(null);
 
-  const { data: automacoes = [], isLoading } = useQuery({
+  const lista = useQuery({
     queryKey: ["automacoes"],
     queryFn: async () => {
-      const { data, error } = await automationsDb
+      const { data, error } = await (supabase as any)
         .from("automacoes")
-        .select("*")
-        .order("gatilho")
-        .order("created_at");
+        .select(
+          "id, nome, descricao, gatilho, condicao, acao, payload, ativo, cooldown_segundos, delay_segundos, ultima_execucao, created_at",
+        )
+        .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as Automacao[];
+      return (data ?? []) as Automacao[];
     },
   });
 
-  const { data: execucoes = [] } = useQuery({
-    queryKey: ["automacao_execucoes"],
-    queryFn: async () => {
-      const { data, error } = await automationsDb
-        .from("automacao_execucoes")
-        .select("id,gatilho,status,entidade,erro,processado_em,created_at,automacoes(nome)")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      return data as Execucao[];
-    },
-  });
-
-  // A fila só anda se a edge function process-automations estiver publicada e
-  // sendo chamada. Enquanto não estiver, marcar uma automação como "Ativa" não
-  // dispara nada e a tela não dava nenhum sinal disso. Execução pendente com
-  // horário já vencido há mais de 15 min significa que ninguém está consumindo.
-  const { data: filaParada = 0 } = useQuery({
-    queryKey: ["automacao_fila_parada"],
-    queryFn: async () => {
-      const limite = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      const { count, error } = await automationsDb
-        .from("automacao_execucoes")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pendente")
-        .lte("scheduled_at", limite);
-      if (error) throw error;
-      return count ?? 0;
-    },
-    refetchInterval: 60_000,
-  });
-
-  const toggle = useMutation({
+  const alternar = useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await automationsDb.from("automacoes").update({ ativo }).eq("id", id);
+      const { data, error } = await (supabase as any)
+        .from("automacoes")
+        .update({ ativo })
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      // RLS que barra UPDATE devolve 0 linhas, sem erro.
+      if (!data || data.length === 0) {
+        throw new Error(
+          "Nada foi alterado: seu perfil não tem permissão para ligar ou desligar automações (automacoes.manage).",
+        );
+      }
+      return ativo;
     },
-    onSuccess: () => {
+    onSuccess: (ativo) => {
       qc.invalidateQueries({ queryKey: ["automacoes"] });
-      toast.success("Automação atualizada");
+      qc.invalidateQueries({ queryKey: ["automacao_execucoes"] });
+      qc.invalidateQueries({ queryKey: ["automacoes-saude"] });
+      if (!ativo) {
+        toast.success("Desligada. O que ela tinha na fila foi cancelado.");
+      } else if (!saude.funciona) {
+        toast.warning(
+          "Ligada, mas nada sai enquanto o WhatsApp ou o processador da fila não estiverem funcionando. As mensagens ficam na fila.",
+        );
+      } else {
+        toast.success("Ligada.");
+      }
     },
-    onError: (e: unknown) => toast.error(errorMessage(e)),
+    onError: (e: unknown) => toast.error(mensagemErro(e)),
   });
+
+  // Nasce ligada só quando a mensagem já consegue sair. Ligada com o WhatsApp
+  // desconectado, ela enfileira em silêncio — e quando o WhatsApp voltar sai
+  // tudo de uma vez, inclusive aviso de coisa que já se resolveu.
+  function abrirNova(form: FormAutomacao) {
+    setEditor({ inicial: { ...form, ativo: saude.funciona }, id: null });
+  }
+
+  const automacoes = lista.data ?? [];
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Automações de WhatsApp</h1>
-          <DicaIcone texto={dicaTela("/automacoes")} rotulo="Automações de WhatsApp" lado="bottom" className="h-5 w-5" />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Automações de WhatsApp</h1>
+            <DicaIcone
+              texto={dicaTela("/automacoes")}
+              rotulo="Automações de WhatsApp"
+              lado="bottom"
+              className="h-5 w-5"
+            />
+          </div>
+          <p className="text-muted-foreground">
+            Regras que mandam uma mensagem sozinhas quando algo acontece no sistema
+          </p>
         </div>
-        <p className="text-muted-foreground">
-          Regras reais processadas por fila e disparadas via Z-API
-        </p>
+        {podeGerenciar && (
+          <Button onClick={() => abrirNova(FORM_VAZIO)}>
+            <Plus className="h-4 w-4 mr-1" /> Nova automação
+          </Button>
+        )}
       </div>
 
-      {filaParada > 0 && (
-        <div
-          role="alert"
-          className="flex items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4"
-        >
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
-          <div className="space-y-1 text-sm">
-            <p className="font-medium">
-              Fila parada: {filaParada} {filaParada === 1 ? "execução vencida" : "execuções vencidas"}
-            </p>
-            <p className="text-muted-foreground">
-              Nenhuma delas foi processada. Automações marcadas como “Ativa” não estão disparando —
-              publique a função <code>process-automations</code> e configure os segredos da Z-API.
-            </p>
-          </div>
-        </div>
-      )}
+      <SaudeDoEnvio saude={saude} />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Gatilhos configurados</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">
+            Automações{lista.data ? ` (${automacoes.length})` : ""}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {isLoading ? (
-            <div className="text-sm text-muted-foreground">Carregando automações...</div>
+          {!podeGerenciar && (
+            <p className="text-xs text-muted-foreground">
+              Você vê as automações, mas criar, editar, ligar e desligar pede a permissão
+              automacoes.manage.
+            </p>
+          )}
+          {lista.isError ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Não foi possível carregar as automações</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <p>{mensagemErro(lista.error)}</p>
+                <p>Isto é uma falha de consulta, não uma lista vazia.</p>
+                <Button variant="outline" size="sm" onClick={() => void lista.refetch()}>
+                  Tentar de novo
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : lista.isPending ? (
+            <p className="text-sm text-muted-foreground">Carregando automações…</p>
           ) : automacoes.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhuma automação cadastrada</div>
+            <p className="text-sm text-muted-foreground">
+              Nenhuma automação ainda.
+              {podeGerenciar &&
+                " Comece por um dos modelos prontos abaixo ou crie a sua em “Nova automação”."}
+            </p>
           ) : (
-            automacoes.map((a) => (
-              <div key={a.id} className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <Badge variant="outline">{gatilhoLabels[a.gatilho] ?? a.gatilho}</Badge>
-                    <Badge variant="secondary">{a.acao}</Badge>
-                    {a.delay_segundos > 0 && (
-                      <Badge variant="outline">Delay {a.delay_segundos}s</Badge>
+            automacoes.map((a) => {
+              const r = resumoDaAutomacao(a);
+              const mensagem = typeof a.payload?.mensagem === "string" ? a.payload.mensagem : "";
+              return (
+                <div
+                  key={a.id}
+                  className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-start sm:justify-between"
+                >
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{a.nome}</p>
+                      {a.ativo ? (
+                        <Badge className="bg-emerald-600 hover:bg-emerald-600">Ligada</Badge>
+                      ) : (
+                        <Badge variant="outline">Desligada</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Quando: </span>
+                      {r.quando}
+                      {r.condicao ? ` — ${r.condicao}` : ""}
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Para: </span>
+                      {r.destino} · {r.intervalo}
+                      {r.espera ? ` · ${r.espera}` : ""}
+                    </p>
+                    {mensagem && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">“{mensagem}”</p>
                     )}
-                    {a.ativo && (
-                      <Badge className="bg-emerald-600 hover:bg-emerald-600">Ativa</Badge>
+                    <p className="text-xs text-muted-foreground">
+                      {a.ultima_execucao
+                        ? `Último envio: ${formatDateTime(a.ultima_execucao)}`
+                        : "Ainda não enviou nenhuma mensagem"}
+                    </p>
+                    {r.problema && (
+                      <p className="flex items-start gap-1 text-xs text-destructive">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />{" "}
+                        {r.problema}
+                      </p>
                     )}
                   </div>
-                  <p className="text-sm font-medium">{a.nome}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {String(a.payload?.mensagem ?? "Sem mensagem configurada")}
-                  </p>
+                  {podeGerenciar && (
+                    <div className="flex items-center gap-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditor({ inicial: lerAutomacao(a), id: a.id })}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                      <Switch
+                        checked={a.ativo}
+                        disabled={alternar.isPending}
+                        aria-label={a.ativo ? `Desligar ${a.nome}` : `Ligar ${a.nome}`}
+                        onCheckedChange={(ativo) => alternar.mutate({ id: a.id, ativo })}
+                      />
+                    </div>
+                  )}
                 </div>
-                <Switch
-                  checked={a.ativo}
-                  onCheckedChange={(ativo) => toggle.mutate({ id: a.id, ativo })}
-                />
-              </div>
-            ))
+              );
+            })
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Últimas execuções</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Automação</TableHead>
-                <TableHead>Gatilho</TableHead>
-                <TableHead>Entidade</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Erro</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {execucoes.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(e.processado_em ?? e.created_at).toLocaleString("pt-BR")}
-                  </TableCell>
-                  <TableCell>{e.automacoes?.nome ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{gatilhoLabels[e.gatilho] ?? e.gatilho}</Badge>
-                  </TableCell>
-                  <TableCell>{e.entidade}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        e.status === "sucesso"
-                          ? "default"
-                          : e.status === "erro"
-                            ? "destructive"
-                            : "secondary"
-                      }
-                    >
-                      {e.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                    {e.erro ?? "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {execucoes.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    Nenhuma execução registrada
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {podeGerenciar && <ModelosProntos onUsar={abrirNova} />}
+
+      <ExecucoesRecentes />
+
+      {podeGerenciar && (
+        <AutomacaoDialog
+          aberto={editor !== null}
+          onAbertoChange={(aberto) => {
+            if (!aberto) setEditor(null);
+          }}
+          inicial={editor?.inicial ?? FORM_VAZIO}
+          automacaoId={editor?.id ?? null}
+          envioFunciona={saude.funciona}
+        />
+      )}
     </div>
   );
 }

@@ -12,7 +12,6 @@ import {
   Kanban,
   FolderOpen,
   DollarSign,
-  Settings,
   Shield,
   Printer,
   LogOut,
@@ -52,6 +51,8 @@ import {
   Target,
   ReceiptText,
   Tv,
+  SlidersHorizontal,
+  UserRound,
 } from "lucide-react";
 import {
   Sidebar,
@@ -105,6 +106,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
     items: [
       { title: "Avisos ao cliente", url: "/avisos", icon: BellRing },
       { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
+      { title: "Monitor do WhatsApp", url: "/whatsapp-monitor", icon: Activity },
       { title: "Respostas rápidas", url: "/respostas-rapidas", icon: ListChecks },
       { title: "Automações", url: "/automacoes", icon: Bot },
     ],
@@ -115,6 +117,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Design & Arte", url: "/design", icon: Palette },
       { title: "Arquivos", url: "/arquivos", icon: FolderOpen },
       { title: "Máquinas", url: "/maquinas", icon: Factory },
+      { title: "Produção 3D", url: "/producao-3d", icon: Printer },
       { title: "Agenda de máquinas", url: "/maquinas-agenda", icon: Calendar },
       // As três leituras da agenda ficam logo abaixo dela: quanto cabe,
       // onde emperra e o que já está errado no que foi reservado.
@@ -137,6 +140,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Materiais", url: "/materiais", icon: Boxes },
       { title: "Compras", url: "/compras", icon: ShoppingCart },
       { title: "Planilha de custos", url: "/planilha-custos", icon: Calculator },
+      { title: "Simulador de preço", url: "/precificacao", icon: SlidersHorizontal },
       { title: "Custos de mão de obra", url: "/custos-producao", icon: Users },
       { title: "Movimentações", url: "/movimentacoes", icon: History },
     ],
@@ -174,8 +178,13 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Mapa do sistema", url: "/mapa-sistema", icon: Network },
       { title: "Logs & Auditoria", url: "/logs", icon: History },
       { title: "Dados da empresa", url: "/configuracoes-empresa", icon: Building2 },
-      { title: "Configurações", url: "/configuracoes", icon: Settings },
     ],
+  },
+  {
+    // Fora da Administração: é o perfil de cada um (nome, telefone, foto,
+    // senha). Antes só o admin chegava à própria tela de perfil.
+    label: "Conta",
+    items: [{ title: "Meu perfil", url: "/configuracoes", icon: UserRound }],
   },
 ];
 
@@ -215,7 +224,8 @@ export function AppSidebar() {
   // fica oculto porque o guarda é deny-by-default e ele abriria em erro.
   const podeVer = (url: string) => {
     const exigidas = getRoutePermissions(url);
-    return exigidas !== null && exigidas.some(hasPermission);
+    // Lista vazia = qualquer conta com papel (mesma regra do guarda das telas).
+    return exigidas !== null && (exigidas.length === 0 || exigidas.some(hasPermission));
   };
 
   // Começa escondido para o SSR não decidir por um `window` que não existe;
