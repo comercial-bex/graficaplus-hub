@@ -1,11 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -14,7 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { currency, db, formatDate } from "@/lib/module-data";
+import { AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { currency, formatDate } from "@/lib/module-data";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 
@@ -32,47 +35,94 @@ const statusVar: Record<string, "default" | "secondary" | "outline" | "destructi
   cancelada: "destructive",
 };
 
+/**
+ * Colunas que a tela lê de `manutencoes`.
+ *
+ * Esta tela foi escrita para uma tabela que não existe mais: ordenava por
+ * `data_prevista` e gravava `maquina_nome`, colunas que o banco não tem
+ * (42703), e não mandava `maquina_id` nem `titulo`, que são obrigatórios. A
+ * lista nunca carregou e o "Criar" nunca gravou — a tabela tinha 0 linhas.
+ * Agora usa o cliente tipado, e o insert com coluna que não existe em
+ * `types.ts` não compila. O texto do select e o order o TypeScript não
+ * confere: quem confere é tests/manutencao-colunas-reais.test.ts.
+ */
+const COLUNAS_DA_LISTA =
+  "id, maquina_id, tipo, titulo, status, data_programada, data_conclusao, custo_previsto, maquinas(nome)";
+
+/**
+ * A data escolhida no calendário, como instante.
+ *
+ * `data_programada` é timestamptz. Gravar "2026-10-10" puro vira meia-noite
+ * em UTC, que em Belém é 21h do dia 9 — a tela mostraria um dia antes. Meio-dia
+ * local não escorrega de dia em fuso nenhum do Brasil.
+ */
+function dataComoInstante(dia: string): string | null {
+  return dia ? new Date(`${dia}T12:00:00`).toISOString() : null;
+}
+
 function ManutPage() {
   const qc = useQueryClient();
-  const [maquinaNome, setMaquinaNome] = useState("");
-  const [tipo, setTipo] = useState("");
-  const [dataPrevista, setDataPrevista] = useState("");
+  const [maquinaId, setMaquinaId] = useState("");
+  const [tipo, setTipo] = useState("preventiva");
+  const [titulo, setTitulo] = useState("");
+  const [dataProgramada, setDataProgramada] = useState("");
 
-  const { data: manutencoes = [] } = useQuery({
-    queryKey: ["manutencoes"],
+  const maquinas = useQuery({
+    queryKey: ["manutencao-maquinas"],
     queryFn: async () => {
-      const { data, error } = await db
-        .from("manutencoes")
-        .select("*")
-        .order("data_prevista", { ascending: true });
+      const { data, error } = await supabase
+        .from("maquinas")
+        .select("id, nome, ativa")
+        .order("nome");
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 
+  const lista = useQuery({
+    queryKey: ["manutencoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("manutencoes")
+        .select(COLUNAS_DA_LISTA)
+        .order("data_programada", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const manutencoes = lista.data ?? [];
+
   const create = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("manutencoes").insert({
-        maquina_nome: maquinaNome,
+      const { error } = await supabase.from("manutencoes").insert({
+        maquina_id: maquinaId,
         tipo,
-        data_prevista: dataPrevista || null,
+        titulo: titulo.trim(),
+        data_programada: dataComoInstante(dataProgramada),
         status: "agendada",
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Manutenção criada");
-      setMaquinaNome("");
-      setTipo("");
-      setDataPrevista("");
+      setMaquinaId("");
+      setTipo("preventiva");
+      setTitulo("");
+      setDataProgramada("");
       qc.invalidateQueries({ queryKey: ["manutencoes"] });
     },
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const update = useMutation({
-    mutationFn: async ({ id, changes }: { id: string; changes: Record<string, unknown> }) => {
-      const { error } = await db.from("manutencoes").update(changes).eq("id", id);
+    mutationFn: async ({
+      id,
+      changes,
+    }: {
+      id: string;
+      changes: { status: string; data_inicio?: string; data_conclusao?: string };
+    }) => {
+      const { error } = await supabase.from("manutencoes").update(changes).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["manutencoes"] }),
@@ -92,21 +142,53 @@ function ManutPage() {
         <CardHeader>
           <CardTitle>Nova manutenção</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-2 md:grid-cols-[1fr_1fr_180px_auto]">
-          <Input
-            placeholder="Máquina"
-            value={maquinaNome}
-            onChange={(e) => setMaquinaNome(e.target.value)}
-          />
-          <Input placeholder="Tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} />
-          <Input
-            type="date"
-            value={dataPrevista}
-            onChange={(e) => setDataPrevista(e.target.value)}
-          />
-          <Button onClick={() => create.mutate()} disabled={!maquinaNome || !tipo}>
-            Criar
-          </Button>
+        <CardContent className="space-y-2">
+          <div className="grid gap-2 md:grid-cols-[1fr_160px_1fr_180px_auto]">
+            <Select value={maquinaId} onValueChange={setMaquinaId} disabled={maquinas.isError}>
+              <SelectTrigger aria-label="Máquina">
+                <SelectValue placeholder={maquinas.isPending ? "Carregando máquinas..." : "Máquina"} />
+              </SelectTrigger>
+              <SelectContent>
+                {(maquinas.data ?? []).map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.nome}
+                    {m.ativa === false ? " (inativa)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={tipo} onValueChange={setTipo}>
+              <SelectTrigger aria-label="Tipo">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="preventiva">Preventiva</SelectItem>
+                <SelectItem value="corretiva">Corretiva</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="O que fazer (ex.: troca do bico)"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+            />
+            <Input
+              type="date"
+              aria-label="Data programada"
+              value={dataProgramada}
+              onChange={(e) => setDataProgramada(e.target.value)}
+            />
+            <Button
+              onClick={() => create.mutate()}
+              disabled={!maquinaId || !titulo.trim() || create.isPending}
+            >
+              Criar
+            </Button>
+          </div>
+          {maquinas.isError && (
+            <p role="alert" className="text-sm text-destructive">
+              Não foi possível carregar as máquinas: {mensagemErro(maquinas.error)}
+            </p>
+          )}
         </CardContent>
       </Card>
       <Card>
@@ -114,56 +196,92 @@ function ManutPage() {
           <CardTitle>Próximas manutenções</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Máquina</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Data prevista</TableHead>
-                <TableHead>Custo estimado</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {manutencoes.map((m: any) => (
-                <TableRow key={m.id}>
-                  <TableCell className="font-medium">{m.maquina_nome || "—"}</TableCell>
-                  <TableCell>{m.tipo}</TableCell>
-                  <TableCell>{formatDate(m.data_prevista)}</TableCell>
-                  <TableCell>{currency(m.custo)}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVar[m.status] ?? "outline"}>{m.status}</Badge>
-                  </TableCell>
-                  <TableCell className="space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        update.mutate({ id: m.id, changes: { status: "em_andamento" } })
-                      }
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        update.mutate({
-                          id: m.id,
-                          changes: {
-                            status: "concluida",
-                            data_conclusao: new Date().toISOString().slice(0, 10),
-                          },
-                        })
-                      }
-                    >
-                      Concluir
-                    </Button>
-                  </TableCell>
+          {lista.isError ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Não foi possível carregar as manutenções</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <p>{mensagemErro(lista.error)}</p>
+                <p>Isto é uma falha de consulta, não uma lista vazia.</p>
+                <Button variant="outline" size="sm" disabled={lista.isFetching} onClick={() => void lista.refetch()}>
+                  {lista.isFetching ? "Tentando..." : "Tentar de novo"}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : lista.isPending ? (
+            <p className="text-sm text-muted-foreground">Carregando manutenções...</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Máquina</TableHead>
+                  <TableHead>O que fazer</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Data programada</TableHead>
+                  <TableHead>Custo previsto</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {manutencoes.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      Nenhuma manutenção registrada
+                    </TableCell>
+                  </TableRow>
+                )}
+                {manutencoes.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium">{m.maquinas?.nome ?? "—"}</TableCell>
+                    <TableCell>{m.titulo}</TableCell>
+                    <TableCell className="capitalize">{m.tipo}</TableCell>
+                    <TableCell>{formatDate(m.data_programada)}</TableCell>
+                    {/* custo_previsto nasce 0 (default) e o formulário não pede
+                        custo: zero aqui é "ninguém informou", não "de graça". */}
+                    <TableCell>{Number(m.custo_previsto) > 0 ? currency(m.custo_previsto) : "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVar[m.status] ?? "outline"}>{m.status.replace(/_/g, " ")}</Badge>
+                    </TableCell>
+                    <TableCell className="space-x-2">
+                      {m.status === "agendada" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={update.isPending}
+                          onClick={() =>
+                            update.mutate({
+                              id: m.id,
+                              changes: { status: "em_andamento", data_inicio: new Date().toISOString() },
+                            })
+                          }
+                        >
+                          Iniciar
+                        </Button>
+                      )}
+                      {m.status !== "concluida" && m.status !== "cancelada" && (
+                        <Button
+                          size="sm"
+                          disabled={update.isPending}
+                          onClick={() =>
+                            update.mutate({
+                              id: m.id,
+                              // Instante completo: a data sozinha ("aaaa-mm-dd"
+                              // de toISOString) é o dia em UTC e, gravada num
+                              // timestamptz, voltava como o dia anterior.
+                              changes: { status: "concluida", data_conclusao: new Date().toISOString() },
+                            })
+                          }
+                        >
+                          Concluir
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
