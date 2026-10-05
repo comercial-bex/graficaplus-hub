@@ -392,6 +392,48 @@ export type Database = {
           },
         ]
       }
+      arquivo_comentarios: {
+        Row: {
+          arquivo_id: string
+          autor_id: string | null
+          autor_nome: string | null
+          comentario: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          arquivo_id: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          comentario: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          arquivo_id?: string
+          autor_id?: string | null
+          autor_nome?: string | null
+          comentario?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arquivo_comentarios_arquivo_id_fkey"
+            columns: ["arquivo_id"]
+            isOneToOne: false
+            referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arquivo_comentarios_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       arquivo_tokens_externos: {
         Row: {
           arquivo_id: string | null
@@ -1110,6 +1152,120 @@ export type Database = {
             columns: ["pagamento_id"]
             isOneToOne: false
             referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalogo_link_itens: {
+        Row: {
+          item_id: string
+          link_id: string
+          ordem: number
+        }
+        Insert: {
+          item_id: string
+          link_id: string
+          ordem?: number
+        }
+        Update: {
+          item_id?: string
+          link_id?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_link_itens_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_link_itens_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalogo_links: {
+        Row: {
+          acessos: number
+          catalogo_id: string
+          cliente_id: string | null
+          criado_em: string
+          criado_por: string | null
+          expira_em: string
+          id: string
+          revogado_em: string | null
+          revogado_por: string | null
+          titulo: string
+          token_hash: string
+          ultimo_acesso_em: string | null
+        }
+        Insert: {
+          acessos?: number
+          catalogo_id: string
+          cliente_id?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          expira_em: string
+          id?: string
+          revogado_em?: string | null
+          revogado_por?: string | null
+          titulo: string
+          token_hash: string
+          ultimo_acesso_em?: string | null
+        }
+        Update: {
+          acessos?: number
+          catalogo_id?: string
+          cliente_id?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          expira_em?: string
+          id?: string
+          revogado_em?: string | null
+          revogado_por?: string | null
+          titulo?: string
+          token_hash?: string
+          ultimo_acesso_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_links_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_catalogos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_links_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_links_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_metragem_cliente"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "catalogo_links_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_links_revogado_por_fkey"
+            columns: ["revogado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -3205,6 +3361,615 @@ export type Database = {
           {
             foreignKeyName: "eventos_negocio_usuario_id_fkey"
             columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedor_catalogos: {
+        Row: {
+          arquivo_fotos: string | null
+          arquivo_origem: string | null
+          ativo: boolean
+          created_at: string
+          criado_por: string | null
+          edicao: string | null
+          fornecedor_id: string
+          id: string
+          importado_em: string | null
+          sincronizado_em: string | null
+          titulo: string
+          updated_at: string
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          arquivo_fotos?: string | null
+          arquivo_origem?: string | null
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          edicao?: string | null
+          fornecedor_id: string
+          id?: string
+          importado_em?: string | null
+          sincronizado_em?: string | null
+          titulo: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          arquivo_fotos?: string | null
+          arquivo_origem?: string | null
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string | null
+          edicao?: string | null
+          fornecedor_id?: string
+          id?: string
+          importado_em?: string | null
+          sincronizado_em?: string | null
+          titulo?: string
+          updated_at?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_catalogos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_catalogos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedor_fotos: {
+        Row: {
+          altura: number | null
+          bytes: number | null
+          caminho: string
+          catalogo_id: string
+          codigo_fornecedor: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          largura: number | null
+          legenda: string | null
+          origem: string
+          pagina: number | null
+        }
+        Insert: {
+          altura?: number | null
+          bytes?: number | null
+          caminho: string
+          catalogo_id: string
+          codigo_fornecedor?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          largura?: number | null
+          legenda?: string | null
+          origem?: string
+          pagina?: number | null
+        }
+        Update: {
+          altura?: number | null
+          bytes?: number | null
+          caminho?: string
+          catalogo_id?: string
+          codigo_fornecedor?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          largura?: number | null
+          legenda?: string | null
+          origem?: string
+          pagina?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_fotos_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_catalogos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_fotos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedor_importacoes: {
+        Row: {
+          arquivo: string | null
+          catalogo_id: string
+          desceram: number
+          edicao: string | null
+          feito_em: string
+          feito_por: string | null
+          id: string
+          iguais: number
+          notas: Json
+          novos: number
+          outras_mudancas: number
+          sairam: number
+          subiram: number
+          tipo: string
+          voltaram: number
+        }
+        Insert: {
+          arquivo?: string | null
+          catalogo_id: string
+          desceram?: number
+          edicao?: string | null
+          feito_em?: string
+          feito_por?: string | null
+          id?: string
+          iguais?: number
+          notas?: Json
+          novos?: number
+          outras_mudancas?: number
+          sairam?: number
+          subiram?: number
+          tipo: string
+          voltaram?: number
+        }
+        Update: {
+          arquivo?: string | null
+          catalogo_id?: string
+          desceram?: number
+          edicao?: string | null
+          feito_em?: string
+          feito_por?: string | null
+          id?: string
+          iguais?: number
+          notas?: Json
+          novos?: number
+          outras_mudancas?: number
+          sairam?: number
+          subiram?: number
+          tipo?: string
+          voltaram?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_importacoes_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_catalogos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_importacoes_feito_por_fkey"
+            columns: ["feito_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedor_item_custos: {
+        Row: {
+          adicional_por_cor: number | null
+          atualizado_em: string
+          custo: number
+          edicao: string | null
+          item_id: string
+          modalidade: string
+        }
+        Insert: {
+          adicional_por_cor?: number | null
+          atualizado_em?: string
+          custo: number
+          edicao?: string | null
+          item_id: string
+          modalidade: string
+        }
+        Update: {
+          adicional_por_cor?: number | null
+          atualizado_em?: string
+          custo?: number
+          edicao?: string | null
+          item_id?: string
+          modalidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_item_custos_modalidade_fk"
+            columns: ["item_id", "modalidade"]
+            isOneToOne: true
+            referencedRelation: "fornecedor_item_modalidades"
+            referencedColumns: ["item_id", "modalidade"]
+          },
+        ]
+      }
+      fornecedor_item_custos_historico: {
+        Row: {
+          alterado_em: string
+          alterado_por: string | null
+          custo_anterior: number | null
+          custo_novo: number | null
+          edicao: string | null
+          id: number
+          importacao_id: string | null
+          item_id: string
+          modalidade: string
+        }
+        Insert: {
+          alterado_em?: string
+          alterado_por?: string | null
+          custo_anterior?: number | null
+          custo_novo?: number | null
+          edicao?: string | null
+          id?: never
+          importacao_id?: string | null
+          item_id: string
+          modalidade: string
+        }
+        Update: {
+          alterado_em?: string
+          alterado_por?: string | null
+          custo_anterior?: number | null
+          custo_novo?: number | null
+          edicao?: string | null
+          id?: never
+          importacao_id?: string | null
+          item_id?: string
+          modalidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_item_custos_historico_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_item_custos_historico_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_item_custos_historico_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedor_item_modalidades: {
+        Row: {
+          faixa: string | null
+          faixa_max: number | null
+          item_id: string
+          modalidade: string
+          multiplo: number | null
+          posicao: number
+          quantidade_minima: number | null
+          rotulo_inferido: boolean
+        }
+        Insert: {
+          faixa?: string | null
+          faixa_max?: number | null
+          item_id: string
+          modalidade: string
+          multiplo?: number | null
+          posicao?: number
+          quantidade_minima?: number | null
+          rotulo_inferido?: boolean
+        }
+        Update: {
+          faixa?: string | null
+          faixa_max?: number | null
+          item_id?: string
+          modalidade?: string
+          multiplo?: number | null
+          posicao?: number
+          quantidade_minima?: number | null
+          rotulo_inferido?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_item_modalidades_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedor_itens: {
+        Row: {
+          catalogo_id: string
+          codigo_bex: string
+          codigo_fornecedor: string
+          created_at: string
+          descricao: string
+          dimensoes: string | null
+          duvida: string | null
+          e_embalagem: boolean
+          em_duvida: boolean
+          embalagem: string | null
+          especificacao: string | null
+          fora_desde: string | null
+          foto_conferir: boolean
+          foto_id: string | null
+          id: string
+          linha: number | null
+          multiplo: number | null
+          nome: string
+          observacao: string | null
+          ordem: number
+          pagina: number | null
+          quantidade_minima: number | null
+          quantidade_minima_gravada: number | null
+          secao_id: string | null
+          situacao: string
+          tem_foto: boolean | null
+          unidade_preco: string
+          updated_at: string
+        }
+        Insert: {
+          catalogo_id: string
+          codigo_bex?: string
+          codigo_fornecedor: string
+          created_at?: string
+          descricao: string
+          dimensoes?: string | null
+          duvida?: string | null
+          e_embalagem?: boolean
+          em_duvida?: boolean
+          embalagem?: string | null
+          especificacao?: string | null
+          fora_desde?: string | null
+          foto_conferir?: boolean
+          foto_id?: string | null
+          id?: string
+          linha?: number | null
+          multiplo?: number | null
+          nome: string
+          observacao?: string | null
+          ordem?: number
+          pagina?: number | null
+          quantidade_minima?: number | null
+          quantidade_minima_gravada?: number | null
+          secao_id?: string | null
+          situacao?: string
+          tem_foto?: boolean | null
+          unidade_preco?: string
+          updated_at?: string
+        }
+        Update: {
+          catalogo_id?: string
+          codigo_bex?: string
+          codigo_fornecedor?: string
+          created_at?: string
+          descricao?: string
+          dimensoes?: string | null
+          duvida?: string | null
+          e_embalagem?: boolean
+          em_duvida?: boolean
+          embalagem?: string | null
+          especificacao?: string | null
+          fora_desde?: string | null
+          foto_conferir?: boolean
+          foto_id?: string | null
+          id?: string
+          linha?: number | null
+          multiplo?: number | null
+          nome?: string
+          observacao?: string | null
+          ordem?: number
+          pagina?: number | null
+          quantidade_minima?: number | null
+          quantidade_minima_gravada?: number | null
+          secao_id?: string | null
+          situacao?: string
+          tem_foto?: boolean | null
+          unidade_preco?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_itens_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_catalogos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_itens_foto_fk"
+            columns: ["foto_id", "catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_fotos"
+            referencedColumns: ["id", "catalogo_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_itens_secao_fk"
+            columns: ["secao_id", "catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_secoes"
+            referencedColumns: ["id", "catalogo_id"]
+          },
+        ]
+      }
+      fornecedor_regras_venda: {
+        Row: {
+          arredondamento: number | null
+          atualizado_em: string
+          atualizado_por: string | null
+          catalogo_id: string
+          frete_por_peca: number | null
+          id: string
+          item_id: string | null
+          margem_pct: number | null
+          precos_fixos: Json | null
+          secao_id: string | null
+        }
+        Insert: {
+          arredondamento?: number | null
+          atualizado_em?: string
+          atualizado_por?: string | null
+          catalogo_id: string
+          frete_por_peca?: number | null
+          id?: string
+          item_id?: string | null
+          margem_pct?: number | null
+          precos_fixos?: Json | null
+          secao_id?: string | null
+        }
+        Update: {
+          arredondamento?: number | null
+          atualizado_em?: string
+          atualizado_por?: string | null
+          catalogo_id?: string
+          frete_por_peca?: number | null
+          id?: string
+          item_id?: string | null
+          margem_pct?: number | null
+          precos_fixos?: Json | null
+          secao_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_regras_item_fk"
+            columns: ["item_id", "catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_itens"
+            referencedColumns: ["id", "catalogo_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_regras_secao_fk"
+            columns: ["secao_id", "catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_secoes"
+            referencedColumns: ["id", "catalogo_id"]
+          },
+          {
+            foreignKeyName: "fornecedor_regras_venda_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fornecedor_regras_venda_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_catalogos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedor_secoes: {
+        Row: {
+          catalogo_id: string
+          created_at: string
+          especificacao: string | null
+          id: string
+          ordem: number
+          pagina_final: number | null
+          pagina_inicial: number | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          catalogo_id: string
+          created_at?: string
+          especificacao?: string | null
+          id?: string
+          ordem: number
+          pagina_final?: number | null
+          pagina_inicial?: number | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          catalogo_id?: string
+          created_at?: string
+          especificacao?: string | null
+          id?: string
+          ordem?: number
+          pagina_final?: number | null
+          pagina_inicial?: number | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedor_secoes_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_catalogos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedores: {
+        Row: {
+          ativo: boolean
+          cnpj: string | null
+          created_at: string
+          criado_por: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          razao_social: string | null
+          site: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj?: string | null
+          created_at?: string
+          criado_por?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          razao_social?: string | null
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string | null
+          created_at?: string
+          criado_por?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          razao_social?: string | null
+          site?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_criado_por_fkey"
+            columns: ["criado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
@@ -9597,6 +10362,71 @@ export type Database = {
           },
         ]
       }
+      portal_cliente_links: {
+        Row: {
+          cliente_id: string
+          criado_em: string
+          criado_por: string | null
+          expira_em: string
+          id: string
+          revogado_em: string | null
+          revogado_por: string | null
+          token_hash: string
+          ultimo_acesso_em: string | null
+        }
+        Insert: {
+          cliente_id: string
+          criado_em?: string
+          criado_por?: string | null
+          expira_em: string
+          id?: string
+          revogado_em?: string | null
+          revogado_por?: string | null
+          token_hash: string
+          ultimo_acesso_em?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          criado_em?: string
+          criado_por?: string | null
+          expira_em?: string
+          id?: string
+          revogado_em?: string | null
+          revogado_por?: string | null
+          token_hash?: string
+          ultimo_acesso_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_cliente_links_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_cliente_links_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_metragem_cliente"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "portal_cliente_links_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_cliente_links_revogado_por_fkey"
+            columns: ["revogado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portal_cliente_solicitacoes: {
         Row: {
           cliente_id: string
@@ -9740,6 +10570,172 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_resultado_os"
             referencedColumns: ["os_id"]
+          },
+        ]
+      }
+      portal_comprovantes: {
+        Row: {
+          caminho: string
+          cliente_id: string
+          conferido_em: string | null
+          conferido_por: string | null
+          created_at: string
+          enviado_por: string | null
+          id: string
+          link_id: string | null
+          mime_type: string | null
+          nome: string
+          nota_da_conferencia: string | null
+          observacao: string | null
+          origem: string
+          os_id: string | null
+          situacao: string
+          solicitacao_id: string | null
+          tamanho_bytes: number | null
+        }
+        Insert: {
+          caminho: string
+          cliente_id: string
+          conferido_em?: string | null
+          conferido_por?: string | null
+          created_at?: string
+          enviado_por?: string | null
+          id?: string
+          link_id?: string | null
+          mime_type?: string | null
+          nome: string
+          nota_da_conferencia?: string | null
+          observacao?: string | null
+          origem: string
+          os_id?: string | null
+          situacao?: string
+          solicitacao_id?: string | null
+          tamanho_bytes?: number | null
+        }
+        Update: {
+          caminho?: string
+          cliente_id?: string
+          conferido_em?: string | null
+          conferido_por?: string | null
+          created_at?: string
+          enviado_por?: string | null
+          id?: string
+          link_id?: string | null
+          mime_type?: string | null
+          nome?: string
+          nota_da_conferencia?: string | null
+          observacao?: string | null
+          origem?: string
+          os_id?: string | null
+          situacao?: string
+          solicitacao_id?: string | null
+          tamanho_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_comprovantes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_metragem_cliente"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_conferido_por_fkey"
+            columns: ["conferido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "portal_cliente_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_previsto_realizado"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "portal_comprovantes_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "portal_cliente_solicitacoes"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11774,6 +12770,7 @@ export type Database = {
         Row: {
           criado_em: string
           criado_por: string | null
+          entrada: string
           id: string
           nome: string
           revogado_em: string | null
@@ -11784,6 +12781,7 @@ export type Database = {
         Insert: {
           criado_em?: string
           criado_por?: string | null
+          entrada?: string
           id?: string
           nome: string
           revogado_em?: string | null
@@ -11794,6 +12792,7 @@ export type Database = {
         Update: {
           criado_em?: string
           criado_por?: string | null
+          entrada?: string
           id?: string
           nome?: string
           revogado_em?: string | null
@@ -11903,6 +12902,56 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tv_pin: {
+        Row: {
+          definido_em: string | null
+          definido_por: string | null
+          digitos: number | null
+          id: boolean
+          pin_hash: string | null
+        }
+        Insert: {
+          definido_em?: string | null
+          definido_por?: string | null
+          digitos?: number | null
+          id?: boolean
+          pin_hash?: string | null
+        }
+        Update: {
+          definido_em?: string | null
+          definido_por?: string | null
+          digitos?: number | null
+          id?: boolean
+          pin_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_pin_definido_por_fkey"
+            columns: ["definido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tv_pin_tentativas: {
+        Row: {
+          criado_em: string
+          id: number
+          origem_hash: string | null
+        }
+        Insert: {
+          criado_em?: string
+          id?: never
+          origem_hash?: string | null
+        }
+        Update: {
+          criado_em?: string
+          id?: never
+          origem_hash?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -12708,6 +13757,24 @@ export type Database = {
           payload?: Json
           processado_em?: string | null
           provedor?: string
+        }
+        Relationships: []
+      }
+      zz_carga_catalogo: {
+        Row: {
+          chave: string
+          criado_em: string
+          texto: string
+        }
+        Insert: {
+          chave: string
+          criado_em?: string
+          texto: string
+        }
+        Update: {
+          chave?: string
+          criado_em?: string
+          texto?: string
         }
         Relationships: []
       }
@@ -16122,6 +17189,10 @@ export type Database = {
         Returns: Json
       }
       cancelar_avisos_orfaos: { Args: never; Returns: Json }
+      cancelar_pedido_compra: {
+        Args: { p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
       capacidade_das_maquinas: {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: Json
@@ -16130,9 +17201,63 @@ export type Database = {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: Json
       }
+      catalogo_adicionar_ao_orcamento: {
+        Args: {
+          p_cliente_id?: string
+          p_item_id: string
+          p_modalidade: string
+          p_orcamento_id?: string
+          p_quantidade: number
+          p_titulo?: string
+        }
+        Returns: Json
+      }
+      catalogo_apontar_foto: {
+        Args: { p_foto_id: string; p_item_id: string }
+        Returns: Json
+      }
+      catalogo_gerar_link: {
+        Args: {
+          p_catalogo_id: string
+          p_cliente_id?: string
+          p_dias?: number
+          p_itens: string[]
+          p_titulo: string
+        }
+        Returns: Json
+      }
+      catalogo_importar: {
+        Args: { p_catalogo_id: string; p_plano: Json }
+        Returns: Json
+      }
+      catalogo_link_abrir: { Args: { p_token_hash: string }; Returns: Json }
+      catalogo_links: { Args: { p_catalogo_id: string }; Returns: Json }
+      catalogo_precos: { Args: { p_catalogo_id: string }; Returns: Json }
+      catalogo_previa_regras: {
+        Args: { p_catalogo_id: string; p_regras: Json }
+        Returns: Json
+      }
+      catalogo_registrar_fotos: {
+        Args: { p_catalogo_id: string; p_fotos: Json; p_substituir?: boolean }
+        Returns: Json
+      }
+      catalogo_resolver_duvida: {
+        Args: { p_item_id: string; p_nota: string; p_unidade_preco: string }
+        Returns: Json
+      }
+      catalogo_resumo: { Args: never; Returns: Json }
+      catalogo_revogar_link: { Args: { p_link_id: string }; Returns: Json }
+      catalogo_salvar_regras: {
+        Args: { p_catalogo_id: string; p_regras: Json }
+        Returns: Json
+      }
       cliente_retirou: { Args: { p_os_id: string }; Returns: Json }
       comecar_na_maquina: {
         Args: { p_maquina_id: string; p_os_id: string }
+        Returns: Json
+      }
+      comentar_arte: {
+        Args: { p_arquivo_id: string; p_comentario: string }
         Returns: Json
       }
       comissoes_pagar: { Args: { p_ids: string[] }; Returns: Json }
@@ -16283,6 +17408,16 @@ export type Database = {
           titulo: string
         }[]
       }
+      decidir_arte_por_token: {
+        Args: {
+          p_canal: string
+          p_comentario: string
+          p_decisao: string
+          p_token_id: string
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
       delete_filamento_3d: {
         Args: { p_material_id: string }
         Returns: undefined
@@ -16357,6 +17492,61 @@ export type Database = {
       forcar_transicao_os: {
         Args: { p_motivo: string; p_novo_status: string; p_os_id: string }
         Returns: Json
+      }
+      fornecedor_codigo_normalizado: {
+        Args: { p_codigo: string }
+        Returns: string
+      }
+      fornecedor_fator_unidade: { Args: { p_unidade: string }; Returns: number }
+      fornecedor_ler_numero: {
+        Args: {
+          p_campo: string
+          p_maximo: number
+          p_minimo: number
+          p_valor: Json
+        }
+        Returns: number
+      }
+      fornecedor_normalizar_regras: {
+        Args: { p_catalogo_id: string; p_regras: Json }
+        Returns: Json
+      }
+      fornecedor_preco_venda: {
+        Args: {
+          p_arredondamento: number
+          p_custo: number
+          p_fator: number
+          p_frete_por_peca: number
+          p_margem_pct: number
+          p_preco_fixo: number
+        }
+        Returns: number
+      }
+      fornecedor_precos_interno: {
+        Args: { p_catalogo_id: string; p_regras?: Json }
+        Returns: {
+          adicional_por_cor: number
+          arredondamento: number
+          custo: number
+          frete_por_peca: number
+          item_id: string
+          margem_pct: number
+          modalidade: string
+          motivo: string
+          posicao: number
+          preco_fixo: number
+          preco_venda: number
+          regra: string
+        }[]
+      }
+      fornecedor_rotulo_modalidade: {
+        Args: { p_modalidade: string }
+        Returns: string
+      }
+      fornecedor_sem_valores: { Args: { p_texto: string }; Returns: string }
+      fornecedor_texto_para_cliente: {
+        Args: { p_codigo: string; p_fornecedor: string; p_texto: string }
+        Returns: string
       }
       funil_comercial: {
         Args: { p_fim?: string; p_inicio?: string }
@@ -16687,6 +17877,154 @@ export type Database = {
         }[]
       }
       ponto_de_equilibrio: { Args: { p_mes?: string }; Returns: Json }
+      portal_arquivo_visivel: {
+        Args: { p_arquivo_id: string; p_cliente_id: string }
+        Returns: boolean
+      }
+      portal_cliente_da_conta: {
+        Args: { p_cliente_id: string }
+        Returns: boolean
+      }
+      portal_conferir_comprovante: {
+        Args: { p_id: string; p_nota?: string; p_situacao: string }
+        Returns: Json
+      }
+      portal_decidir_arte: {
+        Args: { p_arquivo_id: string; p_comentario: string; p_decisao: string }
+        Returns: Json
+      }
+      portal_decidir_arte_do_cliente: {
+        Args: {
+          p_arquivo_id: string
+          p_canal: string
+          p_cliente_id: string
+          p_comentario: string
+          p_decisao: string
+          p_link_id: string
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
+      portal_documento_visivel: {
+        Args: { p_cliente_id: string; p_documento_id: string }
+        Returns: boolean
+      }
+      portal_enviar_mensagem: {
+        Args: {
+          p_cliente_id: string
+          p_mensagem: string
+          p_os_id: string
+          p_tipo: string
+        }
+        Returns: Json
+      }
+      portal_gerar_link: {
+        Args: { p_cliente_id: string; p_dias?: number }
+        Returns: Json
+      }
+      portal_gravar_envio: {
+        Args: {
+          p_caminho: string
+          p_cliente_id: string
+          p_link_id: string
+          p_mensagem: string
+          p_nome: string
+          p_origem: string
+          p_os_id: string
+          p_tipo: string
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
+      portal_gravar_mensagem: {
+        Args: {
+          p_cliente_id: string
+          p_link_id: string
+          p_mensagem: string
+          p_origem: string
+          p_os_id: string
+          p_tipo: string
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
+      portal_link_abrir: { Args: { p_token_hash: string }; Returns: Json }
+      portal_link_abrir_envio: {
+        Args: { p_os_id: string; p_tipo: string; p_token_hash: string }
+        Returns: Json
+      }
+      portal_link_decidir_arte: {
+        Args: {
+          p_arquivo_id: string
+          p_comentario: string
+          p_decisao: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      portal_link_enviar_mensagem: {
+        Args: {
+          p_mensagem: string
+          p_os_id: string
+          p_tipo: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      portal_link_objeto: {
+        Args: { p_id: string; p_tipo: string; p_token_hash: string }
+        Returns: Json
+      }
+      portal_link_registrar_envio: {
+        Args: {
+          p_caminho: string
+          p_mensagem: string
+          p_nome: string
+          p_os_id: string
+          p_tipo: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      portal_links_do_cliente: { Args: { p_cliente_id: string }; Returns: Json }
+      portal_meu_objeto: {
+        Args: { p_id: string; p_tipo: string }
+        Returns: Json
+      }
+      portal_meu_painel: { Args: { p_cliente_id?: string }; Returns: Json }
+      portal_objeto_do_cliente: {
+        Args: { p_cliente_id: string; p_id: string; p_tipo: string }
+        Returns: Json
+      }
+      portal_painel_do_cliente: {
+        Args: { p_cliente_id: string }
+        Returns: Json
+      }
+      portal_pode_enviar_objeto: {
+        Args: { p_bucket: string; p_nome: string }
+        Returns: boolean
+      }
+      portal_pode_ler_objeto: {
+        Args: { p_bucket: string; p_nome: string }
+        Returns: boolean
+      }
+      portal_registrar_envio: {
+        Args: {
+          p_caminho: string
+          p_cliente_id: string
+          p_mensagem: string
+          p_nome: string
+          p_os_id: string
+          p_tipo: string
+        }
+        Returns: Json
+      }
+      portal_revogar_link: { Args: { p_link_id: string }; Returns: Json }
+      portal_situacao_do_link: { Args: { p_token_hash: string }; Returns: Json }
+      portal_validar_envio: {
+        Args: { p_cliente_id: string; p_os_id: string; p_tipo: string }
+        Returns: number
+      }
       preco_da_faixa: {
         Args: { p_produto_id: string; p_quantidade: number }
         Returns: {
@@ -16794,6 +18132,10 @@ export type Database = {
           p_nota?: string
           p_quantidade: number
         }
+        Returns: Json
+      }
+      receber_pedido_compra: {
+        Args: { p_itens: Json; p_nota?: string; p_pedido_id: string }
         Returns: Json
       }
       registrar_aprovacao_interna: {
@@ -16963,6 +18305,17 @@ export type Database = {
         }
         Returns: string
       }
+      salvar_pedido_compra: {
+        Args: {
+          p_enviar?: boolean
+          p_fornecedor: string
+          p_itens: Json
+          p_observacoes?: string
+          p_pedido_id: string
+          p_previsao_entrega?: string
+        }
+        Returns: Json
+      }
       sincronizar_precificacao_do_produto: {
         Args: { p_produto_id: string }
         Returns: undefined
@@ -17030,6 +18383,12 @@ export type Database = {
         }
         Returns: Json
       }
+      tv_definir_pin: { Args: { p_pin: string }; Returns: Json }
+      tv_entrar_com_pin: {
+        Args: { p_origem_hash: string; p_pin: string; p_token_hash: string }
+        Returns: Json
+      }
+      tv_estado_do_pin: { Args: never; Returns: Json }
       tv_hora_local: { Args: { p_quando: string }; Returns: string }
       tv_limpar_pedidos: { Args: never; Returns: Json }
       tv_listar_dispositivos: { Args: never; Returns: Json }
@@ -17118,6 +18477,18 @@ export type Database = {
           p_status: Database["public"]["Enums"]["whatsapp_mensagem_status"]
         }
         Returns: Json
+      }
+      whatsapp_responder: {
+        Args: { p_conversa_id: string; p_texto: string }
+        Returns: Json
+      }
+      whatsapp_vincular_cliente: {
+        Args: { p_cliente_id: string; p_conversa_id: string }
+        Returns: Json
+      }
+      zz_carga_aplicar: {
+        Args: { p_chave: string; p_md5: string; p_tipo: string }
+        Returns: string
       }
     }
     Enums: {
