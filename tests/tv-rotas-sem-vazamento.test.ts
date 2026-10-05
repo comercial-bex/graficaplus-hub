@@ -26,6 +26,8 @@ const RAIZ = resolve(__dirname, "..");
 const DIR_ROTAS = join(RAIZ, "src/routes");
 const DIR_API = join(RAIZ, "src/lib/api");
 const MIGRACAO = join(RAIZ, "supabase/migrations/20261001130000_tv_dispositivos_e_pareamento.sql");
+const MIGRACAO_PIN = join(RAIZ, "supabase/migrations/20261005213700_tv_entrar_com_pin.sql");
+const MIGRACOES = [MIGRACAO, MIGRACAO_PIN];
 const TELA_LOGADA = join(RAIZ, "src/routes/_authenticated/telas.tsx");
 
 /** Tira comentários de linha e de bloco, respeitando o que está entre aspas. */
@@ -110,10 +112,10 @@ function chamadasDeConsole(codigo: string): string[] {
 }
 
 describe("o extrator enxerga o que precisa", () => {
-  it("acha as duas rotas e os arquivos de servidor — não pode passar por não achar nada", () => {
-    expect(rotas.map((a) => a.nome)).toEqual(["api.tv.painel.ts", "api.tv.parear.ts"]);
+  it("acha as três rotas e os arquivos de servidor — não pode passar por não achar nada", () => {
+    expect(rotas.map((a) => a.nome)).toEqual(["api.tv.painel.ts", "api.tv.parear.ts", "api.tv.pin.ts"]);
     expect(servidores.map((a) => a.nome)).toEqual(
-      expect.arrayContaining(["tv-painel.server.ts", "tv-parear.server.ts"]),
+      expect.arrayContaining(["tv-painel.server.ts", "tv-parear.server.ts", "tv-pin.server.ts"]),
     );
   });
 
@@ -136,6 +138,7 @@ describe("o extrator enxerga o que precisa", () => {
     expect(tokenNoConsole('console.log("token", token)')).toBe(true);
     expect(tokenNoConsole("console.error(`falhou ${hashDoToken}`)")).toBe(true);
     expect(tokenNoConsole('console.error("[tv] token recusado", error.code)')).toBe(false);
+    expect(tokenNoConsole("console.log(pin)")).toBe(true);
   });
 });
 
@@ -150,7 +153,7 @@ function tokenNoConsole(codigo: string): boolean {
   return chamadasDeConsole(codigo).some((args) => {
     // Em template literal, o que está dentro de ${} é valor: preserva.
     const interpolado = [...args.matchAll(/\$\{([^}]*)\}/g)].map((m) => m[1]).join(" ");
-    return /token|retirada|segredo|hash|secret/i.test(`${semTextos(args)} ${interpolado}`);
+    return /token|retirada|segredo|hash|secret|\bpin\b/i.test(`${semTextos(args)} ${interpolado}`);
   });
 }
 
@@ -263,20 +266,34 @@ describe("rotas da TV: o token não vaza", () => {
     // é uma variável que saiu de hashDoSegredo.
     const parear = servidores.find((a) => a.nome === "tv-parear.server.ts")!.codigo;
     const painel = servidores.find((a) => a.nome === "tv-painel.server.ts")!.codigo;
-    const params = [...`${parear}\n${painel}`.matchAll(/\b(p_\w+)\s*:\s*([\w.]+)/g)].map((m) => [
-      m[1],
-      m[2],
-    ]);
+    const pin = servidores.find((a) => a.nome === "tv-pin.server.ts")!.codigo;
+    const comum = servidores.find((a) => a.nome === "tv-comum.server.ts")!.codigo;
+    const params = [...`${parear}\n${painel}\n${pin}`.matchAll(/\b(p_\w+)\s*:\s*([\w.]+)/g)].map(
+      (m) => [m[1], m[2]],
+    );
     const credenciais = params.filter(([p]) => p.endsWith("_hash"));
-    expect(credenciais.length).toBeGreaterThanOrEqual(4);
+    expect(credenciais.length).toBeGreaterThanOrEqual(6);
     for (const [param, valor] of credenciais) expect(valor, param).toMatch(/^hashD[ao]/);
     expect(params.filter(([, v]) => /^(token|retirada)$/.test(v))).toEqual([]);
     expect(parear).toMatch(/hashDaRetirada = await hashDoSegredo\(retirada\)/);
     expect(parear).toMatch(/hashDoToken = await hashDoSegredo\(token\)/);
     expect(painel).toMatch(/hashDoToken = await hashDoSegredo\(token\)/);
-    // O endereço de quem pede também só vai como hash.
-    expect(parear).toMatch(/return hashDoSegredo\(`bexprint-tv-origem:\$\{limpo\}`\)/);
+    expect(pin).toMatch(/hashDoToken = await hashDoSegredo\(token\)/);
+    // O endereço de quem pede também só vai como hash — uma função só, para as duas portas.
+    expect(comum).toMatch(/return hashDoSegredo\(`bexprint-tv-origem:\$\{limpo\}`\)/);
     expect(parear).toMatch(/p_origem_hash: hashDaOrigem\b/);
+    expect(pin).toMatch(/p_origem_hash: hashDaOrigem\b/);
+    // O PIN é a única credencial que vai como veio: quem confere contra o
+    // bcrypt é o banco. E só para a função que confere.
+    expect(params.filter(([p]) => p === "p_pin")).toEqual([["p_pin", "pin"]]);
+  });
+
+  it("a entrada por PIN nunca devolve o token: quem tem o crachá é a TV, desde antes", () => {
+    const pin = servidores.find((a) => a.nome === "tv-pin.server.ts")!.codigo;
+    const respostas = [...pin.matchAll(/respostaTv\(\s*\d+\s*,\s*\{([^}]*)\}/g)].map((m) => m[1]);
+    expect(respostas.length).toBeGreaterThanOrEqual(6);
+    expect(respostas.filter((r) => /\btoken\b/.test(r) && !/token_/.test(r))).toEqual([]);
+    expect(respostas.filter((r) => /\bpin\b\s*[,:}]|\bpin\s*$/.test(r))).toEqual([]);
   });
 
   it("o token é derivado do segredo de retirada, não sorteado", () => {
@@ -313,15 +330,17 @@ describe("rotas da TV: o token não vaza", () => {
 });
 
 describe("o contrato com as funções tv_* do banco", () => {
-  /** Assinaturas lidas da migração, que é o retrato do banco vivo. */
-  function assinaturas(): Record<string, string[]> {
-    const sql = readFileSync(MIGRACAO, "utf8");
+  /** Assinaturas lidas das migrações, que são o retrato do banco vivo (a mais nova vence). */
+  function assinaturas(arquivos: string[] = MIGRACOES): Record<string, string[]> {
     const mapa: Record<string, string[]> = {};
-    for (const m of sql.matchAll(/CREATE OR REPLACE FUNCTION public\.(tv_[a-z_]+)\(([^)]*)\)/g)) {
-      mapa[m[1]] = m[2]
-        .split(",")
-        .map((p) => p.trim().split(/\s+/)[0])
-        .filter(Boolean);
+    for (const arquivo of arquivos) {
+      const sql = readFileSync(arquivo, "utf8");
+      for (const m of sql.matchAll(/CREATE OR REPLACE FUNCTION public\.(tv_[a-z_]+)\(([^)]*)\)/g)) {
+        mapa[m[1]] = m[2]
+          .split(",")
+          .map((p) => p.trim().split(/\s+/)[0])
+          .filter(Boolean);
+      }
     }
     return mapa;
   }
@@ -337,9 +356,19 @@ describe("o contrato com as funções tv_* do banco", () => {
     }));
   }
 
-  it("a migração declara as oito funções", () => {
+  it("a migração do PIN declara as suas quatro funções", () => {
+    expect(existsSync(MIGRACAO_PIN)).toBe(true);
+    expect(Object.keys(assinaturas([MIGRACAO_PIN])).sort()).toEqual([
+      "tv_definir_pin",
+      "tv_entrar_com_pin",
+      "tv_estado_do_pin",
+      "tv_listar_dispositivos",
+    ]);
+  });
+
+  it("a migração do pareamento declara as oito funções", () => {
     expect(existsSync(MIGRACAO)).toBe(true);
-    expect(Object.keys(assinaturas()).sort()).toEqual([
+    expect(Object.keys(assinaturas([MIGRACAO])).sort()).toEqual([
       "tv_aprovar_pareamento",
       "tv_conferir_dispositivo",
       "tv_criar_pareamento",
@@ -394,29 +423,47 @@ describe("o contrato com as funções tv_* do banco", () => {
     expect(painel[0].params).toEqual([]);
   });
 
-  it("as três tabelas nascem com RLS e sem nenhuma policy", () => {
-    const sql = readFileSync(MIGRACAO, "utf8");
-    for (const tabela of ["tv_dispositivos", "tv_pareamentos", "tv_pareamento_tentativas"]) {
-      expect(sql).toContain(`ALTER TABLE public.${tabela} ENABLE ROW LEVEL SECURITY;`);
-      expect(sql).toContain(
-        `REVOKE ALL ON TABLE public.${tabela} FROM PUBLIC, anon, authenticated;`,
-      );
+  it("as tabelas da TV nascem com RLS e sem nenhuma policy", () => {
+    const tabelas: [string, string[]][] = [
+      [MIGRACAO, ["tv_dispositivos", "tv_pareamentos", "tv_pareamento_tentativas"]],
+      [MIGRACAO_PIN, ["tv_pin", "tv_pin_tentativas"]],
+    ];
+    for (const [arquivo, nomes] of tabelas) {
+      const sql = readFileSync(arquivo, "utf8");
+      for (const tabela of nomes) {
+        expect(sql).toContain(`ALTER TABLE public.${tabela} ENABLE ROW LEVEL SECURITY;`);
+        expect(sql).toContain(
+          `REVOKE ALL ON TABLE public.${tabela} FROM PUBLIC, anon, authenticated;`,
+        );
+      }
+      expect(/CREATE POLICY/i.test(semComentariosSql(sql)), arquivo).toBe(false);
     }
-    expect(/CREATE POLICY/i.test(semComentariosSql(sql))).toBe(false);
   });
 
   it("nenhuma função da TV fica aberta ao anônimo", () => {
-    const sql = semComentariosSql(readFileSync(MIGRACAO, "utf8"));
-    const funcoes = [...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.(tv_[a-z_]+)\(/g)].map(
-      (m) => m[1],
-    );
-    for (const f of funcoes) {
-      expect(
-        new RegExp(`REVOKE ALL ON FUNCTION public\\.${f}\\([^)]*\\) FROM PUBLIC, anon`).test(sql),
-        f,
-      ).toBe(true);
+    for (const arquivo of MIGRACOES) {
+      const sql = semComentariosSql(readFileSync(arquivo, "utf8"));
+      const funcoes = [...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.(tv_[a-z_]+)\(/g)].map(
+        (m) => m[1],
+      );
+      expect(funcoes.length, arquivo).toBeGreaterThan(0);
+      for (const f of funcoes) {
+        expect(
+          new RegExp(`REVOKE ALL ON FUNCTION public\\.${f}\\([^)]*\\) FROM PUBLIC, anon`).test(sql),
+          f,
+        ).toBe(true);
+      }
+      expect(/GRANT[^;]*\bTO\b[^;]*\b(anon|PUBLIC)\b/i.test(sql), arquivo).toBe(false);
     }
-    expect(/GRANT[^;]*\bTO\b[^;]*\b(anon|PUBLIC)\b/i.test(sql)).toBe(false);
+  });
+
+  it("o PIN só existe no banco como bcrypt, e nenhum PIN mora no repositório", () => {
+    const sql = readFileSync(MIGRACAO_PIN, "utf8");
+    expect(sql).toMatch(/extensions\.crypt\(v_pin, extensions\.gen_salt\('bf', 8\)\)/);
+    expect(sql).toMatch(/CONSTRAINT tv_pin_hash_bcrypt CHECK/);
+    // A migração cria a linha DESLIGADA: o PIN inicial foi gravado no banco vivo.
+    expect(semComentariosSql(sql)).not.toMatch(/crypt\('\d{4,8}'/);
+    expect(semComentariosSql(sql)).toMatch(/INSERT INTO public\.tv_pin \(id\) VALUES \(true\);/);
   });
 });
 

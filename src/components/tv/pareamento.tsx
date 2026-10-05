@@ -52,9 +52,12 @@ type Validade = { s: number; marcadaEmMs: number };
 export function Pareamento({
   motivo,
   aoParear,
+  aoUsarPin,
 }: {
   motivo: MotivoDoPareamento;
   aoParear: (token: string) => void;
+  /** Só vem quando a entrada por PIN está ligada: volta para o teclado. */
+  aoUsarPin?: () => void;
 }) {
   const [pedido, setPedido] = useState<PedidoDePareamento | null>(null);
   const [validade, setValidade] = useState<Validade | null>(null);
@@ -301,6 +304,11 @@ export function Pareamento({
               <span>o código venceu — trocando por outro…</span>
             )}
           </div>
+          {aoUsarPin ? (
+            <button type="button" className="trocar" onClick={aoUsarPin}>
+              Tem o PIN? Entrar com o PIN da TV
+            </button>
+          ) : null}
         </div>
         {url ? (
           <div className="qr">

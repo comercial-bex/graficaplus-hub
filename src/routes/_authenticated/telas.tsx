@@ -2,7 +2,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldAlert, Tv } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  KeyRound,
+  Loader2,
+  RefreshCw,
+  ShieldAlert,
+  Tv,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -50,9 +58,17 @@ import {
   type ListaDeTvs,
   type RespostaDaAprovacao,
 } from "@/domain/tv/pareamento";
+import {
+  PIN_MAXIMO,
+  mensagemDoDefinirPin,
+  pinBemFormado,
+  pinObvio,
+  type RespostaDoDefinirPin,
+} from "@/domain/tv/pin";
 
 /**
- * /telas — as TVs de parede: aprovar, dar nome, ver se estão no ar, revogar.
+ * /telas — as TVs de parede: o PIN, aprovar, dar nome, ver se estão no ar,
+ * revogar.
  *
  * A TV da Oficina não tem login. Ela mostra um código (e um QR que traz esse
  * código até aqui, em `?codigo=`), e quem aprova é uma pessoa logada como
@@ -67,6 +83,13 @@ import {
  *     dois. O crachá vai direto do servidor para a TV, uma vez.
  *   - Não finge lista vazia. Se a consulta cai, aparece o erro e o botão de
  *     tentar de novo — "nenhuma TV pareada" só é dito quando o banco disse.
+ *
+ * O PIN DA TV
+ *   Com o PIN ligado, a TV mostra um teclado e quem digita o PIN certo libera
+ *   o painel naquela tela, sem celular. O PIN fica no banco como hash: esta
+ *   tela nunca o mostra, só troca ou desliga (`tv_definir_pin`). Trocar ou
+ *   desligar desconecta as TVs que entraram pelo PIN — se o PIN vazou, é isso
+ *   que corta quem entrou com ele. As aprovadas por código não mudam.
  *
  * LIBERAR A FILA
  *   Pedir código é público (a TV não tem login), e há dois tetos de pedidos
@@ -123,6 +146,9 @@ function TelasPage() {
   const [nome, setNome] = useState("");
   const [recusa, setRecusa] = useState<string | null>(null);
   const [aRevogar, setARevogar] = useState<DispositivoDeTv | null>(null);
+  const [novoPin, setNovoPin] = useState("");
+  const [erroDoPin, setErroDoPin] = useState<string | null>(null);
+  const [confirmarPin, setConfirmarPin] = useState<"salvar" | "desligar" | null>(null);
 
   // Quem já está com a tela aberta e lê o QR de outra TV chega aqui sem
   // remontar o componente: o código novo da URL tem de substituir o do campo.
@@ -201,6 +227,32 @@ function TelasPage() {
     },
   });
 
+  const definirPin = useMutation({
+    mutationFn: async (pin: string): Promise<RespostaDoDefinirPin> => {
+      const { data, error } = await (supabase.rpc as any)("tv_definir_pin", { p_pin: pin });
+      if (error) throw error;
+      if (!data || typeof data.ok !== "boolean") {
+        throw new Error("O banco respondeu sem dizer se o PIN foi salvo.");
+      }
+      return data as RespostaDoDefinirPin;
+    },
+    onSuccess: (resposta) => {
+      setConfirmarPin(null);
+      if (!resposta.ok) {
+        setErroDoPin("O PIN tem de ter de 4 a 8 números, sem letras nem espaços.");
+        return;
+      }
+      setErroDoPin(null);
+      setNovoPin("");
+      toast.success(mensagemDoDefinirPin(resposta));
+      void qc.invalidateQueries({ queryKey: CHAVE_DA_LISTA });
+    },
+    onError: (e: unknown) => {
+      setConfirmarPin(null);
+      setErroDoPin(mensagemErro(e));
+    },
+  });
+
   const liberarFila = useMutation({
     mutationFn: async (): Promise<number> => {
       const { data, error } = await (supabase.rpc as any)("tv_limpar_pedidos");
@@ -244,16 +296,136 @@ function TelasPage() {
   const revogadas = tvs.filter((tv) => tv.revogado_em);
   const aguardando = lista.data?.aprovados_aguardando ?? [];
   const pendentes = lista.data?.pareamentos_pendentes ?? 0;
+  const pin = lista.data?.pin ?? null;
+  const errosDePin = lista.data?.pin_erros_15min ?? 0;
+  const tvsPeloPin = ativas.filter((tv) => tv.entrada === "pin").length;
+  const pinPronto = pinBemFormado(novoPin);
+
+  // Trocar ou desligar com TV conectada pelo PIN pede confirmação: elas caem.
+  const pedirParaSalvarPin = () => {
+    if (!pinPronto || definirPin.isPending) return;
+    if (pin?.ligado && tvsPeloPin > 0) setConfirmarPin("salvar");
+    else definirPin.mutate(novoPin);
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">TVs da oficina</h1>
         <p className="text-muted-foreground">
-          As telas de parede que mostram as máquinas. Aqui você aprova uma TV nova, vê se ela está
-          no ar e corta o acesso de uma que saiu da oficina.
+          As telas de parede que mostram as máquinas. Aqui você define o PIN da TV, aprova uma TV
+          nova pelo código, vê se ela está no ar e corta o acesso de uma que saiu da oficina.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4" />
+            PIN da TV
+          </CardTitle>
+          <CardDescription>
+            Na TV, quem digita o PIN certo libera o painel das máquinas naquela tela, sem precisar
+            de celular. O PIN fica guardado cifrado: nem aqui dá para lê-lo de volta, só trocar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {lista.isError ? null : lista.isPending ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Conferindo o PIN…
+            </div>
+          ) : pin?.ligado ? (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Badge>Ligado · {pin.digitos} números</Badge>
+              <span className="text-muted-foreground">
+                definido em {dataHora(pin.definido_em)}
+                {pin.definido_por ? ` por ${pin.definido_por}` : ""}
+                {tvsPeloPin > 0
+                  ? ` · ${tvsPeloPin === 1 ? "1 TV entrou" : `${tvsPeloPin} TVs entraram`} por ele`
+                  : ""}
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Badge variant="outline">Desligado</Badge>
+              <span className="text-muted-foreground">
+                A TV só entra pelo código aprovado aqui embaixo.
+              </span>
+            </div>
+          )}
+
+          {errosDePin >= 3 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{errosDePin} PINs errados nos últimos 15 minutos</AlertTitle>
+              <AlertDescription>
+                Depois de 5 erros a TV espera 15 minutos para aceitar de novo. Se não foi alguém da
+                oficina errando, troque o PIN — quem estiver chutando perde o que já tentou.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <form
+            className="grid gap-4 md:grid-cols-[240px_auto_auto] md:items-end"
+            onSubmit={(e) => {
+              e.preventDefault();
+              pedirParaSalvarPin();
+            }}
+          >
+            <div className="space-y-1.5">
+              <Label htmlFor="tv-pin">{pin?.ligado ? "PIN novo" : "Ligar com o PIN"}</Label>
+              <Input
+                id="tv-pin"
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                value={novoPin}
+                onChange={(e) => {
+                  setNovoPin(e.target.value.replace(/\D/g, "").slice(0, PIN_MAXIMO));
+                  setErroDoPin(null);
+                }}
+                placeholder="4 a 8 números"
+                maxLength={PIN_MAXIMO}
+                className="h-12 font-mono text-xl tracking-[0.3em]"
+              />
+            </div>
+            <Button type="submit" className="h-12" disabled={!pinPronto || definirPin.isPending}>
+              {definirPin.isPending && confirmarPin !== "desligar" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {pin?.ligado ? "Trocar o PIN" : "Ligar o PIN"}
+            </Button>
+            {pin?.ligado ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12"
+                disabled={definirPin.isPending}
+                onClick={() => setConfirmarPin("desligar")}
+              >
+                Desligar o PIN
+              </Button>
+            ) : null}
+          </form>
+          {novoPin && !pinPronto && (
+            <p className="text-sm text-muted-foreground">O PIN tem de 4 a 8 números.</p>
+          )}
+          {pinPronto && pinObvio(novoPin) && (
+            <p className="text-sm text-amber-600">
+              Sequências e números repetidos, como 1234 ou 0000, são os primeiros que alguém tenta.
+              A trava de 5 erros segura quem chuta às cegas; um PIN que só a oficina conhece protege
+              mais.
+            </p>
+          )}
+          {erroDoPin && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>O PIN não foi salvo</AlertTitle>
+              <AlertDescription>{erroDoPin}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -427,8 +599,8 @@ function TelasPage() {
             </div>
           ) : ativas.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
-              Nenhuma TV com acesso. Abra o endereço da TV da Oficina no aparelho da parede e aprove
-              aqui o código que ele mostrar.
+              Nenhuma TV com acesso. Abra o endereço da TV da Oficina (/tv2) no aparelho da parede e
+              digite o PIN nele — ou aprove aqui o código que ele mostrar.
             </p>
           ) : (
             <TabelaDeTvs tvs={ativas} agora={agora} onRevogar={setARevogar} />
@@ -451,14 +623,49 @@ function TelasPage() {
         </Card>
       )}
 
+      <AlertDialog
+        open={confirmarPin !== null}
+        onOpenChange={(aberto) => !aberto && !definirPin.isPending && setConfirmarPin(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmarPin === "desligar" ? "Desligar a entrada por PIN?" : "Trocar o PIN da TV?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {tvsPeloPin === 1
+                ? "A TV que entrou pelo PIN atual é desconectada"
+                : `As ${tvsPeloPin} TVs que entraram pelo PIN atual são desconectadas`}
+              {confirmarPin === "desligar"
+                ? " e passam a pedir o código de pareamento."
+                : " e pedem o PIN novo — digite-o nelas depois de salvar."}{" "}
+              As TVs aprovadas por código continuam como estão.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={definirPin.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={definirPin.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                definirPin.mutate(confirmarPin === "desligar" ? "" : novoPin);
+              }}
+            >
+              {definirPin.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {confirmarPin === "desligar" ? "Desligar" : "Trocar o PIN"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={aRevogar !== null} onOpenChange={(aberto) => !aberto && setARevogar(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Revogar {aRevogar?.nome}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Na próxima leitura (até um minuto) esta TV perde o painel e volta a mostrar um código
-              de pareamento. As outras TVs não são afetadas. Não dá para desfazer: para voltar, é só
-              aprovar o código novo.
+              Na próxima leitura (até um minuto) esta TV perde o painel e volta para a tela de
+              entrada (o teclado do PIN, ou o código de pareamento). As outras TVs não são afetadas.
+              Não dá para desfazer: para voltar, ela entra de novo pelo PIN ou pelo código.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -507,7 +714,7 @@ function TabelaDeTvs({
             <TableHead>TV</TableHead>
             <TableHead>Situação</TableHead>
             <TableHead>Último acesso</TableHead>
-            <TableHead>Aprovada em</TableHead>
+            <TableHead>Entrou em</TableHead>
             {onRevogar ? (
               <TableHead className="text-right">Ação</TableHead>
             ) : (
@@ -520,7 +727,14 @@ function TabelaDeTvs({
             const situacao = situacaoDaTv(tv, agora);
             return (
               <TableRow key={tv.id}>
-                <TableCell className="font-medium">{tv.nome}</TableCell>
+                <TableCell className="font-medium">
+                  {tv.nome}
+                  {tv.entrada === "pin" ? (
+                    <Badge variant="outline" className="ml-2 font-normal">
+                      pelo PIN
+                    </Badge>
+                  ) : null}
+                </TableCell>
                 <TableCell>
                   <Badge
                     variant={
