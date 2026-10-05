@@ -116,7 +116,7 @@ async function montarItens(
     const tipo =
       (i.tipo_produto as string) ||
       (snap?.tipo as string) ||
-      (snap?.categoria ? String(snap.categoria).replace(/_/g, " ") : null) ??
+      (snap?.categoria ? String(snap.categoria).replace(/_/g, " ") : null) ||
       (i.unidade ? String(i.unidade).toUpperCase() : null);
     return {
       descricao: String(i.descricao ?? ""),
