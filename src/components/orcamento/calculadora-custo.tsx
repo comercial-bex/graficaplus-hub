@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { mensagemErro } from "@/lib/erros";
 import {
   Dialog,
   DialogContent,
@@ -121,14 +123,22 @@ export function CalculadoraCusto({
   const [taxasVenda, setTaxasVenda] = useState("0");
   const [outrosCustos, setOutrosCustos] = useState("0");
 
-  const { data: catalogoMateriais = [] } = useQuery({
+  // Lê a lista FINANCEIRA dos materiais. A tabela crua só libera as colunas sem
+  // custo (grant por coluna): pedir custo_medio/custo_unitario nela derruba a
+  // consulta inteira com "permission denied" — até para o admin. Como o erro
+  // era jogado fora, a lista vinha vazia: não dava para escolher acrílico nem
+  // lona no orçamento, e a ficha técnica do produto nunca carregava (ela espera
+  // esta lista). Medido em 05/10/2026: tabela crua = erro para admin, gestor e
+  // financeiro; materiais_financeiro = 18 materiais para os três. A calculadora
+  // só abre para quem vê custo, que é quem a view financeira deixa ler.
+  const materiaisQuery = useQuery({
     queryKey: ["calc-materiais"],
     enabled: open,
     queryFn: async (): Promise<Material[]> => {
-      const { data } = await supabase
-        .from("materiais")
+      const { data, error } = await fromFinancialView("materiais", true)
         .select("id, nome, unidade, custo_medio, custo_unitario")
         .order("nome");
+      if (error) throw error;
       return (data ?? []).map((m: any) => ({
         id: m.id,
         nome: m.nome,
@@ -137,19 +147,22 @@ export function CalculadoraCusto({
       }));
     },
   });
+  const catalogoMateriais = materiaisQuery.data ?? [];
 
-  const { data: maquinas = [] } = useQuery({
+  const maquinasQuery = useQuery({
     queryKey: ["calc-maquinas"],
     enabled: open,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("maquinas")
         .select("id, nome, custo_hora, potencia_kw, setup_min, velocidade_m2_h, base_cobranca, velocidade_mm_s, tempo_minimo_min")
         .eq("ativa", true)
         .order("nome");
+      if (error) throw error;
       return data ?? [];
     },
   });
+  const maquinas = maquinasQuery.data ?? [];
 
   /**
    * Velocidades por material e espessura das máquinas em uso.
@@ -158,17 +171,19 @@ export function CalculadoraCusto({
    * 10 mm — por isso é tabela, e por isso é carregada por máquina.
    */
   const idsMaquinas = processos.map((l) => l.maquina_id).filter(Boolean).join(",");
-  const { data: velocidades = [] } = useQuery({
+  const velocidadesQuery = useQuery({
     queryKey: ["calc-velocidades", idsMaquinas],
     enabled: open && idsMaquinas.length > 0,
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("maquinas_velocidades")
         .select("maquina_id, operacao, material, espessura_mm, velocidade_mm_s, vetado, motivo")
         .in("maquina_id", idsMaquinas.split(","));
+      if (error) throw error;
       return (data ?? []) as { maquina_id: string; operacao: string; material: string; espessura_mm: number; velocidade_mm_s: number; vetado: boolean; motivo: string | null }[];
     },
   });
+  const velocidades = velocidadesQuery.data ?? [];
 
   /**
    * Modos de qualidade da impressora.
@@ -177,18 +192,20 @@ export function CalculadoraCusto({
    * sempre pelo modo de produção subestima em 2× o trabalho caprichado — e o
    * caprichado é justamente o que o cliente paga mais caro.
    */
-  const { data: modos = [] } = useQuery({
+  const modosQuery = useQuery({
     queryKey: ["calc-modos", idsMaquinas],
     enabled: open && idsMaquinas.length > 0,
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("maquinas_modos_impressao")
         .select("id, maquina_id, nome, velocidade_m2_h, passadas, padrao, ordem")
         .in("maquina_id", idsMaquinas.split(","))
         .order("ordem");
+      if (error) throw error;
       return (data ?? []) as { id: string; maquina_id: string; nome: string; velocidade_m2_h: number; passadas: number | null; padrao: boolean; ordem: number }[];
     },
   });
+  const modos = modosQuery.data ?? [];
 
   const modosDe = (maquinaId: string | null) => modos.filter((m) => m.maquina_id === maquinaId);
 
@@ -299,18 +316,20 @@ export function CalculadoraCusto({
     );
   }
 
-  const { data: funcoes = [] } = useQuery({
+  const funcoesQuery = useQuery({
     queryKey: ["calc-mao-de-obra"],
     enabled: open,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("custos_mao_de_obra" as any)
         .select("id, funcao, custo_hora, encargos_pct")
         .eq("ativo", true)
         .order("funcao");
+      if (error) throw error;
       return (data ?? []) as any[];
     },
   });
+  const funcoes = funcoesQuery.data ?? [];
 
   // A decapagem segue o recorte: cada linha de máquina cobrada por metro linear
   // tem a sua linha de mão de obra, que nasce, recalcula e some junto com ela.
@@ -324,17 +343,35 @@ export function CalculadoraCusto({
   // Ficha técnica do produto: é o que evita a vendedora ter que lembrar de cor,
   // gramatura e consumo. A quantidade da ficha é POR UNIDADE DE VENDA — para
   // produto vendido em m², a base multiplicadora é a metragem, não a peça.
-  const { data: ficha = [] } = useQuery({
+  const fichaQuery = useQuery({
     queryKey: ["calc-ficha", produtoId],
     enabled: open && !!produtoId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("produto_materiais" as any)
         .select("material_id, quantidade_por_unidade")
         .eq("produto_id", produtoId);
+      if (error) throw error;
       return (data ?? []) as any[];
     },
   });
+  const ficha = fichaQuery.data ?? [];
+
+  // O que não carregou, dito na tela. Antes cada consulta jogava o erro fora e
+  // a calculadora mostrava lista vazia — "não tem material" quando a verdade
+  // era "a consulta caiu".
+  const falhasDeCarga = (
+    [
+      ["os materiais", materiaisQuery],
+      ["as máquinas", maquinasQuery],
+      ["as velocidades das máquinas", velocidadesQuery],
+      ["os modos de impressão", modosQuery],
+      ["a mão de obra", funcoesQuery],
+      ["a ficha técnica do produto", fichaQuery],
+    ] as const
+  )
+    .filter(([, q]) => q.isError)
+    .map(([oQue, q]) => `${oQue} (${mensagemErro(q.error)})`);
 
   const semCustoHora = maquinas.length > 0 && maquinas.every((m: any) => !Number(m.custo_hora));
   const semMaquina = maquinas.length === 0;
@@ -508,6 +545,13 @@ export function CalculadoraCusto({
         </DialogHeader>
 
         <div className="space-y-5">
+          {falhasDeCarga.length > 0 && (
+            <Aviso>
+              Não deu para carregar {falhasDeCarga.join("; ")}. O que depende disso aparece
+              vazio — não é falta de cadastro. Feche e abra a calculadora para tentar de novo.
+            </Aviso>
+          )}
+
           {/* ------------------------------- MATERIAIS ------------------------------ */}
           <section className="space-y-2">
             <div className="flex items-center justify-between">
