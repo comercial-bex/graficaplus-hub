@@ -506,11 +506,19 @@ function MateriaisPage() {
             </div>
             <div className="space-y-2">
               <Label>Unidade</Label>
-              <Input
+              <Select
                 value={form.unidade}
-                onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-                placeholder="m², un, kg"
-              />
+                onValueChange={(v) => setForm({ ...form, unidade: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha a unidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="m²">m² (metro quadrado)</SelectItem>
+                  <SelectItem value="un">un (unidade)</SelectItem>
+                  <SelectItem value="kg">kg (quilo)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Estoque inicial</Label>
