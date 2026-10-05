@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ParceiroRouteImport } from './routes/parceiro'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as Tv2RouteImport } from './routes/tv2'
 import { Route as AuthenticatedAReceberRouteImport } from './routes/_authenticated/a-receber'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
@@ -77,6 +78,7 @@ import { Route as ParceiroIndexRouteImport } from './routes/parceiro.index'
 import { Route as ParceiroMarcaRouteImport } from './routes/parceiro.marca'
 import { Route as ParceiroTabelaRouteImport } from './routes/parceiro.tabela'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
+import { Route as TvIndexRouteImport } from './routes/tv.index'
 import { Route as TvMaquinasRouteImport } from './routes/tv.maquinas'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes.$id'
@@ -124,6 +126,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Tv2Route = Tv2RouteImport.update({
+  id: '/tv2',
+  path: '/tv2',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAReceberRoute = AuthenticatedAReceberRouteImport.update({
@@ -459,6 +466,11 @@ const PublicoTokenRoute = PublicoTokenRouteImport.update({
   path: '/publico/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TvIndexRoute = TvIndexRouteImport.update({
+  id: '/tv/',
+  path: '/tv/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TvMaquinasRoute = TvMaquinasRouteImport.update({
   id: '/tv/maquinas',
   path: '/tv/maquinas',
@@ -565,6 +577,7 @@ export interface FileRoutesByFullPath {
   '/parceiro': typeof ParceiroRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
@@ -628,6 +641,7 @@ export interface FileRoutesByFullPath {
   '/publico/$token': typeof PublicoTokenRoute
   '/tv/maquinas': typeof TvMaquinasRoute
   '/parceiro/': typeof ParceiroIndexRoute
+  '/tv/': typeof TvIndexRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -652,6 +666,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
@@ -715,6 +730,7 @@ export interface FileRoutesByTo {
   '/publico/$token': typeof PublicoTokenRoute
   '/tv/maquinas': typeof TvMaquinasRoute
   '/parceiro': typeof ParceiroIndexRoute
+  '/tv': typeof TvIndexRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -742,6 +758,7 @@ export interface FileRoutesById {
   '/parceiro': typeof ParceiroRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/tv2': typeof Tv2Route
   '/_authenticated/a-receber': typeof AuthenticatedAReceberRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
@@ -805,6 +822,7 @@ export interface FileRoutesById {
   '/publico/$token': typeof PublicoTokenRoute
   '/tv/maquinas': typeof TvMaquinasRoute
   '/parceiro/': typeof ParceiroIndexRoute
+  '/tv/': typeof TvIndexRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
@@ -832,6 +850,7 @@ export interface FileRouteTypes {
     | '/parceiro'
     | '/reset-password'
     | '/signup'
+    | '/tv2'
     | '/a-receber'
     | '/aprovacoes'
     | '/arquivos'
@@ -895,6 +914,7 @@ export interface FileRouteTypes {
     | '/publico/$token'
     | '/tv/maquinas'
     | '/parceiro/'
+    | '/tv/'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
@@ -919,6 +939,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/tv2'
     | '/a-receber'
     | '/aprovacoes'
     | '/arquivos'
@@ -982,6 +1003,7 @@ export interface FileRouteTypes {
     | '/publico/$token'
     | '/tv/maquinas'
     | '/parceiro'
+    | '/tv'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
@@ -1008,6 +1030,7 @@ export interface FileRouteTypes {
     | '/parceiro'
     | '/reset-password'
     | '/signup'
+    | '/tv2'
     | '/_authenticated/a-receber'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/arquivos'
@@ -1071,6 +1094,7 @@ export interface FileRouteTypes {
     | '/publico/$token'
     | '/tv/maquinas'
     | '/parceiro/'
+    | '/tv/'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
@@ -1098,11 +1122,13 @@ export interface RootRouteChildren {
   ParceiroRoute: typeof ParceiroRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  Tv2Route: typeof Tv2Route
   AprovarTokenRoute: typeof AprovarTokenRoute
   ConviteCodigoRoute: typeof ConviteCodigoRoute
   OrcamentoPublicoTokenRoute: typeof OrcamentoPublicoTokenRoute
   PublicoTokenRoute: typeof PublicoTokenRoute
   TvMaquinasRoute: typeof TvMaquinasRoute
+  TvIndexRoute: typeof TvIndexRoute
   ApiPortalArquivoRoute: typeof ApiPortalArquivoRoute
   ApiPortalArteRoute: typeof ApiPortalArteRoute
   ApiPortalEnvioRoute: typeof ApiPortalEnvioRoute
@@ -1156,6 +1182,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tv2': {
+      id: '/tv2'
+      path: '/tv2'
+      fullPath: '/tv2'
+      preLoaderRoute: typeof Tv2RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/a-receber': {
@@ -1592,6 +1625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tv/': {
+      id: '/tv/'
+      path: '/tv'
+      fullPath: '/tv/'
+      preLoaderRoute: typeof TvIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tv/maquinas': {
       id: '/tv/maquinas'
       path: '/tv/maquinas'
@@ -1889,11 +1929,13 @@ const rootRouteChildren: RootRouteChildren = {
   ParceiroRoute: ParceiroRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  Tv2Route: Tv2Route,
   AprovarTokenRoute: AprovarTokenRoute,
   ConviteCodigoRoute: ConviteCodigoRoute,
   OrcamentoPublicoTokenRoute: OrcamentoPublicoTokenRoute,
   PublicoTokenRoute: PublicoTokenRoute,
   TvMaquinasRoute: TvMaquinasRoute,
+  TvIndexRoute: TvIndexRoute,
   ApiPortalArquivoRoute: ApiPortalArquivoRoute,
   ApiPortalArteRoute: ApiPortalArteRoute,
   ApiPortalEnvioRoute: ApiPortalEnvioRoute,
