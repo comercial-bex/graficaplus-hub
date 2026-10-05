@@ -93,6 +93,7 @@ const itemVazio = {
   produto_id: null as string | null,
   arquivo_id: null as string | null,
   arquivo_nome: null as string | null,
+  arquivos_extras: [] as { id: string; nome: string }[],
   area_minima: null as number | null,
   margem_minima: null as number | null,
   tempo_producao_min: null as number | null,
@@ -396,12 +397,13 @@ function OrcamentoDetailPage() {
         .single();
       if (erroRegistro) throw erroRegistro;
 
-      setForm((atual) => ({
-        ...atual,
-        arquivo_id: (registro as any).id,
-        arquivo_nome: (registro as any).nome,
-      }));
-      toast.success("Layout anexado ao item");
+      const novo = { id: (registro as any).id as string, nome: (registro as any).nome as string };
+      setForm((atual) =>
+        atual.arquivo_id
+          ? { ...atual, arquivos_extras: [...atual.arquivos_extras, novo] }
+          : { ...atual, arquivo_id: novo.id, arquivo_nome: novo.nome },
+      );
+      toast.success(`Layout "${novo.nome}" anexado`);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar o layout");
     } finally {
@@ -447,12 +449,16 @@ function OrcamentoDetailPage() {
     // a arte enviada no formulário vira a capa do item; as demais são
     // anexadas depois pelo botão de artes na linha
     if (form.arquivo_id && (novoItem as any)?.id) {
-      await (supabase as any).from("orcamento_item_arquivos").insert({
-        item_id: (novoItem as any).id,
-        arquivo_id: form.arquivo_id,
-        capa: true,
-        ordem: 0,
-      });
+      const itemId = (novoItem as any).id;
+      await (supabase as any).from("orcamento_item_arquivos").insert([
+        { item_id: itemId, arquivo_id: form.arquivo_id, capa: true, ordem: 0 },
+        ...form.arquivos_extras.map((a, n) => ({
+          item_id: itemId,
+          arquivo_id: a.id,
+          capa: false,
+          ordem: n + 1,
+        })),
+      ]);
     }
     setForm({ ...itemVazio });
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
@@ -1043,18 +1049,24 @@ function OrcamentoDetailPage() {
 
             <div className="flex items-end justify-between gap-3 flex-wrap">
               <div className="space-y-1">
-                <Label htmlFor="item-layout">Layout (arte a ser impressa)</Label>
-                <div className="flex items-center gap-2">
+                <Label htmlFor="item-layout">Layouts (artes a imprimir)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Pode enviar vários. A primeira é a capa e vai para o PDF.
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
                   <Input
                     id="item-layout"
                     type="file"
+                    multiple
                     accept="image/*,application/pdf"
                     className="max-w-xs"
                     disabled={enviandoLayout}
                     onChange={(e) => {
-                      const arquivo = e.target.files?.[0];
-                      if (arquivo) void enviarLayout(arquivo);
+                      const arquivos = Array.from(e.target.files ?? []);
                       e.target.value = "";
+                      void (async () => {
+                        for (const a of arquivos) await enviarLayout(a);
+                      })();
                     }}
                   />
                   {enviandoLayout && (
@@ -1062,19 +1074,43 @@ function OrcamentoDetailPage() {
                   )}
                   {form.arquivo_nome && (
                     <Badge variant="secondary" className="gap-1">
-                      {form.arquivo_nome}
+                      Capa: {form.arquivo_nome}
                       <button
                         type="button"
                         aria-label="Remover layout do item"
-                        onClick={() =>
-                          setForm({ ...form, arquivo_id: null, arquivo_nome: null })
-                        }
+                        onClick={() => {
+                          const [prox, ...resto] = form.arquivos_extras;
+                          setForm({
+                            ...form,
+                            arquivo_id: prox?.id ?? null,
+                            arquivo_nome: prox?.nome ?? null,
+                            arquivos_extras: resto,
+                          });
+                        }}
                         className="ml-1"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </Badge>
                   )}
+                  {form.arquivos_extras.map((a) => (
+                    <Badge key={a.id} variant="outline" className="gap-1">
+                      {a.nome}
+                      <button
+                        type="button"
+                        aria-label={`Remover ${a.nome}`}
+                        onClick={() =>
+                          setForm({
+                            ...form,
+                            arquivos_extras: form.arquivos_extras.filter((x) => x.id !== a.id),
+                          })
+                        }
+                        className="ml-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
                 </div>
               </div>
               <Button onClick={addItem}>
