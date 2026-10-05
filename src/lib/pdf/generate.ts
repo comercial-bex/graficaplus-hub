@@ -112,8 +112,14 @@ async function montarItens(
     const artes = (artesPorItem.get(i.id as string) ?? [])
       .map((id) => urlPorArquivo.get(id))
       .filter((url): url is string => !!url);
+    const snap = (i.produto_snapshot ?? null) as Record<string, unknown> | null;
+    const tipo =
+      (snap?.tipo as string) ??
+      (snap?.categoria ? String(snap.categoria).replace(/_/g, " ") : null) ??
+      (i.unidade ? String(i.unidade).toUpperCase() : null);
     return {
       descricao: String(i.descricao ?? ""),
+      tipo_produto: tipo,
       unidade: (i.unidade as string) ?? undefined,
       quantidade: Number(i.quantidade ?? 0),
       largura: i.largura != null ? Number(i.largura) : null,
@@ -250,6 +256,7 @@ export async function carregarPropsOrcamento(
     data_solicitacao: fmt(orc.created_at),
     data_validade: validade,
     data_entrega: fmt((orc as any).data_entrega_prometida ?? (orc as any).prazo),
+    data_expedicao: fmt((orc as any).prazo ?? (orc as any).data_entrega_prometida),
     vendedor: (vendedor as any)?.nome ?? null,
     status: orc.status,
     empresa,
