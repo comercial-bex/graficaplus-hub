@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { KpiCard } from "@/components/bex/KpiCard";
 import {
@@ -127,6 +128,14 @@ const vazio = {
  */
 function CompromissosPage() {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  // As mesmas chaves que o banco cobra (migração 20261005100000), não o papel:
+  // cadastrar o contrato e lançar o cronograma pedem pagamentos.create; dar
+  // baixa e quitar as vencidas pedem pagamentos.confirm; anexar comprovante a
+  // uma parcela paga é corrigir o lançamento (pagamentos.update ou confirm).
+  const podeLancar = hasPermission("pagamentos.create");
+  const podeDarBaixa = hasPermission("pagamentos.confirm");
+  const podeAnexar = hasPermission("pagamentos.update") || podeDarBaixa;
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState(vazio);
   const [detalhe, setDetalhe] = useState<string | null>(null);
@@ -396,11 +405,17 @@ function CompromissosPage() {
         title="Compromissos e despesas fixas"
         description="Quem emite o boleto é a financeira. Aqui a casa espelha o cronograma, guarda o comprovante de cada parcela e acompanha o saldo devedor até quitar."
         actions={
-          <Button onClick={() => setAberto(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Novo compromisso
-          </Button>
+          podeLancar && (
+            <Button onClick={() => setAberto(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Novo compromisso
+            </Button>
+          )
         }
       />
+
+      {!podeLancar && !podeDarBaixa && (
+        <p className="text-sm text-muted-foreground">Lançar e dar baixa é com o financeiro.</p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Sai por mês" value={brl(mensal)} icon={Repeat} />
@@ -671,10 +686,12 @@ function CompromissosPage() {
                     {/* "Lançar cronograma" e não "gerar parcelas": quem gera
                         boleto é a financeira. Aqui só se espelha o que o portal
                         do fornecedor mostra, para ter onde guardar a prova. */}
-                    <Button size="sm" variant="outline" disabled={gerar.isPending} onClick={() => gerar.mutate(c.id)}>
-                      <Repeat className="h-3.5 w-3.5 mr-1" />
-                      {c.parcelas_geradas === 0 ? "Lançar cronograma" : "Realinhar cronograma"}
-                    </Button>
+                    {podeLancar && (
+                      <Button size="sm" variant="outline" disabled={gerar.isPending} onClick={() => gerar.mutate(c.id)}>
+                        <Repeat className="h-3.5 w-3.5 mr-1" />
+                        {c.parcelas_geradas === 0 ? "Lançar cronograma" : "Realinhar cronograma"}
+                      </Button>
+                    )}
                     {c.portal_url && (
                       <Button size="sm" variant="ghost" asChild>
                         <a href={c.portal_url} target="_blank" rel="noopener noreferrer">
@@ -685,7 +702,7 @@ function CompromissosPage() {
                     {/* Quitar em lote em cima de data presumida marcaria como
                         pagas parcelas cujo vencimento talvez nem exista. Confira
                         o cronograma no portal primeiro. */}
-                    {c.parcelas_atrasadas > 0 && c.cronograma_confirmado && (
+                    {podeDarBaixa && c.parcelas_atrasadas > 0 && c.cronograma_confirmado && (
                       <Button size="sm" variant="outline" disabled={quitar.isPending} onClick={() => quitar.mutate(c.id)}>
                         <CheckCheck className="h-3.5 w-3.5 mr-1" /> Quitar vencidas
                       </Button>
@@ -741,22 +758,26 @@ function CompromissosPage() {
                                   ) : p.status === "paga" ? (
                                     // Paga e sem prova: o estado que o painel
                                     // esconde, porque some do saldo e do atraso.
-                                    <label className="inline-flex items-center gap-1 text-xs text-amber-600 cursor-pointer">
-                                      <Paperclip className="h-3.5 w-3.5" />
-                                      anexar
-                                      <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*,application/pdf"
-                                        disabled={anexar.isPending}
-                                        onChange={(e) => {
-                                          const f = e.target.files?.[0];
-                                          if (f) anexar.mutate({ id: p.id, arquivo: f });
-                                          e.target.value = "";
-                                        }}
-                                      />
-                                    </label>
-                                  ) : (
+                                    podeAnexar ? (
+                                      <label className="inline-flex items-center gap-1 text-xs text-amber-600 cursor-pointer">
+                                        <Paperclip className="h-3.5 w-3.5" />
+                                        anexar
+                                        <input
+                                          type="file"
+                                          className="hidden"
+                                          accept="image/*,application/pdf"
+                                          disabled={anexar.isPending}
+                                          onChange={(e) => {
+                                            const f = e.target.files?.[0];
+                                            if (f) anexar.mutate({ id: p.id, arquivo: f });
+                                            e.target.value = "";
+                                          }}
+                                        />
+                                      </label>
+                                    ) : (
+                                      <span className="text-xs text-amber-600">sem comprovante</span>
+                                    )
+                                  ) : podeDarBaixa ? (
                                     <Button
                                       size="sm"
                                       variant="ghost"
@@ -769,6 +790,8 @@ function CompromissosPage() {
                                     >
                                       <CheckCheck className="h-3.5 w-3.5 mr-1" /> dar baixa
                                     </Button>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
                                   )}
                                 </TableCell>
                               </TableRow>

@@ -46,6 +46,7 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
 import { chaveLinha, lerExtrato, type LinhaExtrato } from "@/lib/extrato";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/contas-bancarias")({
   head: () => ({
@@ -121,6 +122,14 @@ type Transacao = {
 
 function ContasBancariasPage() {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  // As mesmas chaves que o banco cobra: cadastrar conta pede pagamentos.create
+  // ou pagamentos.update; importar o extrato lança no caixa e concilia, e a
+  // função importar_extrato exige pagamentos.confirm. Quem só vê o financeiro
+  // enxerga saldo e extrato, sem os botões.
+  const podeCadastrarConta =
+    hasPermission("pagamentos.create") || hasPermission("pagamentos.update");
+  const podeImportar = hasPermission("pagamentos.confirm");
   const [contaOpen, setContaOpen] = useState(false);
   const [form, setForm] = useState<ContaForm>(contaVazia);
   const [selecionada, setSelecionada] = useState<string | null>(null);
@@ -265,18 +274,28 @@ function ContasBancariasPage() {
         title="Contas bancárias"
         description="Saldo real de cada conta. Importe o extrato do banco (OFX ou CSV) e cada lançamento novo entra no caixa automaticamente — os repetidos são ignorados."
         actions={
-          <>
-            <Button variant="outline" onClick={() => setContaOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova conta
-            </Button>
-            <NeonButton onClick={() => setImportOpen(true)} disabled={!contaAtiva}>
-              <Upload className="h-4 w-4" />
-              Importar extrato
-            </NeonButton>
-          </>
+          (podeCadastrarConta || podeImportar) && (
+            <>
+              {podeCadastrarConta && (
+                <Button variant="outline" onClick={() => setContaOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova conta
+                </Button>
+              )}
+              {podeImportar && (
+                <NeonButton onClick={() => setImportOpen(true)} disabled={!contaAtiva}>
+                  <Upload className="h-4 w-4" />
+                  Importar extrato
+                </NeonButton>
+              )}
+            </>
+          )
         }
       />
+
+      {!podeCadastrarConta && !podeImportar && (
+        <p className="mb-4 text-sm text-muted-foreground">Lançar e dar baixa é com o financeiro.</p>
+      )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard

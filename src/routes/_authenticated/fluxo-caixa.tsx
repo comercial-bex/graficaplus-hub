@@ -45,6 +45,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { mensagemErro } from "@/lib/erros";
+import { useAuth } from "@/lib/auth-context";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
@@ -124,6 +125,13 @@ const emptyMov: MovForm = {
 
 function FluxoCaixaPage() {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  // Ver o caixa não é lançar nele. Conta a pagar e movimento pedem
+  // pagamentos.create; "Pagar" dá baixa (pagamentos.confirm) E lança a saída no
+  // caixa (pagamentos.create) — as mesmas chaves que o banco cobra desde a
+  // migração 20261005100000. Quem só vê enxerga tudo, sem os botões.
+  const podeLancar = hasPermission("pagamentos.create");
+  const podeDarBaixa = podeLancar && hasPermission("pagamentos.confirm");
   const [contaOpen, setContaOpen] = useState(false);
   const [movOpen, setMovOpen] = useState(false);
   const [conta, setConta] = useState<ContaForm>(emptyConta);
@@ -191,11 +199,17 @@ function FluxoCaixaPage() {
 
   const pagar = useMutation({
     mutationFn: async (c: { id: string; valor: number; descricao: string; categoria: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("contas_pagar")
         .update({ status: "paga", data_pagamento: hoje() })
-        .eq("id", c.id);
+        .eq("id", c.id)
+        .select("id");
       if (error) throw error;
+      // A regra do banco barra a baixa devolvendo 0 linhas e nenhum erro. Sem
+      // esta conferência a saída iria para o caixa com a conta ainda em aberto.
+      if (!data || data.length === 0) {
+        throw new Error("A conta não foi marcada como paga: dar baixa é com o financeiro.");
+      }
       const { error: e2 } = await supabase.from("caixa_movimentos").insert({
         tipo: "saida",
         origem: "conta_pagar",
@@ -326,18 +340,25 @@ function FluxoCaixaPage() {
         title="Fluxo de caixa"
         description="Entradas dos recebimentos, saídas das contas a pagar e lançamentos manuais — previsto e realizado."
         actions={
-          <>
-            <Button variant="outline" onClick={() => setMovOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Movimento
-            </Button>
-            <NeonButton onClick={() => setContaOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Conta a pagar
-            </NeonButton>
-          </>
+          podeLancar && (
+            <>
+              <Button variant="outline" onClick={() => setMovOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Movimento
+              </Button>
+              <NeonButton onClick={() => setContaOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Conta a pagar
+              </NeonButton>
+            </>
+          )
         }
       />
+
+      {/* Sem pagamentos.create não há baixa aqui: "Pagar" também lança no caixa. */}
+      {!podeLancar && (
+        <p className="mb-4 text-sm text-muted-foreground">Lançar e dar baixa é com o financeiro.</p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <KpiCard
@@ -468,7 +489,7 @@ function FluxoCaixaPage() {
                             }
                           />
                           <span className="font-bold tabular-nums">{brl(Number(c.valor))}</span>
-                          {c.status !== "paga" && (
+                          {c.status !== "paga" && podeDarBaixa && (
                             <Button
                               size="sm"
                               variant="outline"

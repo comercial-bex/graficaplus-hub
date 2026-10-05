@@ -56,6 +56,11 @@ const statusVariant: Record<string, any> = {
 function FinanceiroPage() {
   const qc = useQueryClient();
   const { hasPermission } = useAuth();
+  // As mesmas chaves que o banco cobra: registrar pede pagamentos.create,
+  // marcar pago pede pagamentos.confirm, estornar pede pagamentos.reverse. Ver
+  // o financeiro (financeiro.read) não basta para nenhum dos três.
+  const podeLancar = hasPermission("pagamentos.create");
+  const podeDarBaixa = hasPermission("pagamentos.confirm");
   const podeEstornar = hasPermission("pagamentos.reverse");
   const [estorno, setEstorno] = useState<any | null>(null);
   const [motivoEstorno, setMotivoEstorno] = useState("");
@@ -173,13 +178,19 @@ function FinanceiroPage() {
             <DicaIcone texto={dicaTela("/financeiro")} rotulo="Financeiro" lado="bottom" className="h-5 w-5" />
           </div>
           <p className="text-muted-foreground">Pagamentos e recebimentos</p>
+          {!podeLancar && !podeDarBaixa && (
+            <p className="text-sm text-muted-foreground">Lançar e dar baixa é com o financeiro.</p>
+          )}
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
-            </Button>
-          </DialogTrigger>
+          {/* Sem o gatilho o diálogo nunca abre: quem não lança não vê o botão. */}
+          {podeLancar && (
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Registrar pagamento
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Novo pagamento</DialogTitle>
@@ -342,9 +353,11 @@ function FinanceiroPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       {p.status !== "pago" ? (
-                        <Button size="sm" variant="outline" onClick={() => marcarPago(p)}>
-                          <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar pago
-                        </Button>
+                        podeDarBaixa && (
+                          <Button size="sm" variant="outline" onClick={() => marcarPago(p)}>
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar pago
+                          </Button>
+                        )
                       ) : p.pagamento_estornado_id ? (
                         <span className="text-xs text-muted-foreground">estorno</span>
                       ) : (

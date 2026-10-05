@@ -1196,6 +1196,12 @@ function HistoricoTab({ osId }: { osId: string }) {
 
 function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os: any }) {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  // A aba abre para quem vê o financeiro; lançar pagamento pede
+  // pagamentos.create e marcar pago pede pagamentos.confirm — as mesmas chaves
+  // que o banco cobra. Ver não é lançar.
+  const podeLancar = hasPermission("pagamentos.create");
+  const podeDarBaixa = hasPermission("pagamentos.confirm");
   const [pag, setPag] = useState({ valor: "", data_vencimento: "", forma_pagamento: "" });
   const [custo, setCusto] = useState({ descricao: "", valor: "", categoria: "" });
 
@@ -1334,28 +1340,34 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
         <Card>
           <CardHeader><CardTitle className="text-base">Pagamentos — Recebido R$ {totalRecebido.toFixed(2)}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-          <div className="grid grid-cols-4 gap-2">
-            <Input
-              placeholder="Valor"
-              type="number"
-              step="0.01"
-              value={pag.valor}
-              onChange={(e) => setPag({ ...pag, valor: e.target.value })}
-            />
-            <Input
-              type="date"
-              value={pag.data_vencimento}
-              onChange={(e) => setPag({ ...pag, data_vencimento: e.target.value })}
-            />
-            <Input
-              placeholder="Forma"
-              value={pag.forma_pagamento}
-              onChange={(e) => setPag({ ...pag, forma_pagamento: e.target.value })}
-            />
-            <Button onClick={addPag}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          {podeLancar ? (
+            <div className="grid grid-cols-4 gap-2">
+              <Input
+                placeholder="Valor"
+                type="number"
+                step="0.01"
+                value={pag.valor}
+                onChange={(e) => setPag({ ...pag, valor: e.target.value })}
+              />
+              <Input
+                type="date"
+                value={pag.data_vencimento}
+                onChange={(e) => setPag({ ...pag, data_vencimento: e.target.value })}
+              />
+              <Input
+                placeholder="Forma"
+                value={pag.forma_pagamento}
+                onChange={(e) => setPag({ ...pag, forma_pagamento: e.target.value })}
+              />
+              <Button onClick={addPag}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            !podeDarBaixa && (
+              <p className="text-sm text-muted-foreground">Lançar e dar baixa é com o financeiro.</p>
+            )
+          )}
           <div className="space-y-1">
             {pagamentos.map((p: any) => (
               <div
@@ -1368,7 +1380,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={p.status === "pago" ? "default" : "outline"}>{p.status}</Badge>
-                  {p.status !== "pago" && (
+                  {p.status !== "pago" && podeDarBaixa && (
                     <Button size="sm" variant="ghost" onClick={() => marcarPago(p.id)}>
                       Marcar pago
                     </Button>
