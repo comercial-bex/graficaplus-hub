@@ -429,7 +429,7 @@ function OrcamentoDetailPage() {
       largura: vendidoPorArea ? dimensoesForm.largura : null,
       altura: vendidoPorArea ? dimensoesForm.altura : null,
       acabamento: form.acabamento.trim() || null,
-      ...(form.tipo_produto.trim() ? { produto_snapshot: { tipo: form.tipo_produto.trim() } } : {}),
+      tipo_produto: form.tipo_produto.trim() || null,
       preco_m2: canSeePrices && precoM2Form > 0 ? precoM2Form : null,
       valor_unitario: canSeePrices ? paraNumero(form.valor_unitario) : 0,
       custo_unitario: paraNumero(form.custo_unitario),
