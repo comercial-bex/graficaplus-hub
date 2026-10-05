@@ -6855,6 +6855,7 @@ export type Database = {
           produto_id: string | null
           produto_snapshot: Json
           quantidade: number
+          tipo_produto: string | null
           unidade: string
           valor_total: number
           valor_unitario: number
@@ -6883,6 +6884,7 @@ export type Database = {
           produto_id?: string | null
           produto_snapshot?: Json
           quantidade?: number
+          tipo_produto?: string | null
           unidade?: string
           valor_total?: number
           valor_unitario?: number
@@ -6911,6 +6913,7 @@ export type Database = {
           produto_id?: string | null
           produto_snapshot?: Json
           quantidade?: number
+          tipo_produto?: string | null
           unidade?: string
           valor_total?: number
           valor_unitario?: number
