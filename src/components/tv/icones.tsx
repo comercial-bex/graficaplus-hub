@@ -1,12 +1,16 @@
 import {
   BellRing,
   CalendarClock,
+  Check,
   CircleAlert,
   Clock,
   Crosshair,
   Cuboid,
+  Delete,
   Factory,
+  KeyRound,
   Layers,
+  Lock,
   Printer,
   Scissors,
   Sun,
@@ -40,6 +44,10 @@ const ICONES: Record<string, LucideIcon> = {
   Truck,
   CircleAlert,
   BellRing,
+  KeyRound,
+  Delete,
+  Check,
+  Lock,
 };
 
 export type NomeDeIcone = keyof typeof ICONES;

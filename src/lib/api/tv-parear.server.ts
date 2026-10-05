@@ -2,7 +2,12 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { gerarSegredo, hashDoSegredo } from "@/domain/whatsapp/segredo-webhook";
 import { gerarCodigo, idBemFormado, segredoBemFormado } from "@/domain/tv/pareamento";
-import { bancoIndisponivel, lerDoBanco, respostaTv } from "@/lib/api/tv-comum.server";
+import {
+  bancoIndisponivel,
+  hashDaOrigemDe,
+  lerDoBanco,
+  respostaTv,
+} from "@/lib/api/tv-comum.server";
 
 /**
  * POST /api/tv/parear — a TV pede o crachá e, depois de aprovada, o retira.
@@ -71,28 +76,6 @@ export async function processarPareamento(request: Request): Promise<Response> {
   if (pedido.acao === "novo") return novoPareamento(await hashDaOrigemDe(request));
   if (pedido.acao === "retirar") return retirarPareamento(pedido.pareamento_id, pedido.retirada);
   return respostaTv(400, { erro: "acao_desconhecida" });
-}
-
-/**
- * De onde veio o pedido, para o freio de enchente contar POR ORIGEM. A rota é
- * pública: sem isto, uma pessoa só, pedindo 20 códigos a cada 10 minutos,
- * impedia qualquer TV de conseguir o dela.
- *
- * `cf-connecting-ip` vem primeiro porque é a borda que escreve, não quem
- * chama; `x-forwarded-for` quem chama consegue inventar. Sem nenhum dos três
- * a origem fica desconhecida e vale só o teto geral da fila — pior do que
- * contar errado seria pôr todas as TVs no mesmo balde.
- *
- * Vai ao banco só o SHA-256, e ele é apagado quando o pedido é consumido.
- */
-async function hashDaOrigemDe(request: Request): Promise<string | null> {
-  const endereco =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-real-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0];
-  const limpo = endereco?.trim().toLowerCase();
-  if (!limpo || limpo.length > 64) return null;
-  return hashDoSegredo(`bexprint-tv-origem:${limpo}`);
 }
 
 async function novoPareamento(hashDaOrigem: string | null): Promise<Response> {

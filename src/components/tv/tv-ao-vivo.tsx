@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Palco } from "./palco";
 import { Pareamento, type MotivoDoPareamento } from "./pareamento";
+import { EntradaPorPin } from "./entrada-por-pin";
 import { SemDado } from "./sem-dado";
 import { TelaDaOficina, type FaixaDaBusca } from "./tela-da-oficina";
 import { useFontesProntas, useMedidor } from "./medidas";
@@ -9,6 +10,12 @@ import { apagarToken, lerToken } from "./cracha";
 import { usePainel } from "./usar-painel";
 import { dataDoCabecalho, horaMinuto } from "@/domain/tv/frescor";
 import { montarTela } from "@/domain/tv/tela";
+import {
+  PIN_MINIMO,
+  ROTA_DO_PIN,
+  interpretarEstadoDoPin,
+  type EstadoDoPin,
+} from "@/domain/tv/pin";
 
 /**
  * A TV de verdade: com crachá, busca o painel; sem crachá, pareia.
@@ -29,16 +36,14 @@ export function TvAoVivo() {
   if (token === undefined) return null;
   if (token === null) {
     return (
-      <Palco>
-        <Pareamento
-          motivo={motivo}
-          aoParear={(novo) => {
-            setMotivo(null);
-            setGeracao((g) => g + 1);
-            setToken(novo);
-          }}
-        />
-      </Palco>
+      <SemCracha
+        motivo={motivo}
+        aoEntrar={(novo) => {
+          setMotivo(null);
+          setGeracao((g) => g + 1);
+          setToken(novo);
+        }}
+      />
     );
   }
   return (
@@ -53,6 +58,97 @@ export function TvAoVivo() {
         setToken(null);
       }}
     />
+  );
+}
+
+type ModoDeEntrada =
+  | { tipo: "perguntando" }
+  | { tipo: "pin"; digitos: number; aviso: { classe: "vermelha"; texto: string } | null }
+  | { tipo: "codigo"; pinLigado: boolean };
+
+/**
+ * A TV sem crachá: pergunta ao servidor se a entrada por PIN está ligada.
+ * Ligada, mostra o teclado; desligada, o pareamento por código (o QR que um
+ * admin ou gestor aprova no celular). Do teclado dá para ir ao código, e do
+ * código voltar ao teclado.
+ *
+ * Servidor fora na hora de perguntar: mostra o teclado de 4 casas com o aviso.
+ * Quem decide de verdade é o POST — se o PIN estiver desligado, a resposta
+ * leva a TV para o código.
+ */
+function SemCracha({
+  motivo,
+  aoEntrar,
+}: {
+  motivo: MotivoDoPareamento;
+  aoEntrar: (token: string) => void;
+}) {
+  const [modo, setModo] = useState<ModoDeEntrada>({ tipo: "perguntando" });
+  const perguntando = modo.tipo === "perguntando";
+
+  // Pergunta ao montar e de novo quem volta do código para o PIN.
+  useEffect(() => {
+    if (!perguntando) return;
+    let vivo = true;
+    const controle = new AbortController();
+    const limite = window.setTimeout(() => controle.abort(), 15_000);
+    void (async () => {
+      let estado: EstadoDoPin | null = null;
+      try {
+        const resposta = await fetch(ROTA_DO_PIN, {
+          headers: { accept: "application/json" },
+          cache: "no-store",
+          credentials: "omit",
+          signal: controle.signal,
+        });
+        if (resposta.ok) estado = interpretarEstadoDoPin(await resposta.json());
+      } catch {
+        estado = null;
+      } finally {
+        window.clearTimeout(limite);
+      }
+      if (!vivo) return;
+      if (estado && !estado.ligado) setModo({ tipo: "codigo", pinLigado: false });
+      else if (estado?.digitos) setModo({ tipo: "pin", digitos: estado.digitos, aviso: null });
+      else {
+        setModo({
+          tipo: "pin",
+          digitos: PIN_MINIMO,
+          aviso: {
+            classe: "vermelha",
+            texto: "SERVIDOR SEM RESPOSTA — confira a internet da TV. Pode digitar o PIN assim mesmo.",
+          },
+        });
+      }
+    })();
+    return () => {
+      vivo = false;
+      controle.abort();
+    };
+  }, [perguntando]);
+
+  if (modo.tipo === "perguntando") return null;
+  if (modo.tipo === "pin") {
+    return (
+      <Palco>
+        <EntradaPorPin
+          digitos={modo.digitos}
+          motivo={motivo}
+          avisoInicial={modo.aviso}
+          aoEntrar={aoEntrar}
+          aoUsarCodigo={() => setModo({ tipo: "codigo", pinLigado: true })}
+        />
+      </Palco>
+    );
+  }
+  return (
+    <Palco>
+      <Pareamento
+        motivo={motivo}
+        aoParear={aoEntrar}
+        aoUsarPin={modo.pinLigado ? () => setModo({ tipo: "perguntando" }) : undefined}
+      />
+    </Palco>
   );
 }
 

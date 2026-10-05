@@ -9,8 +9,10 @@ import { modoDeExemplo, type ModoDeExemplo } from "@/domain/tv/exemplo";
 /**
  * /tv/maquinas — a TV da Oficina: UMA tela de parede, sem rolagem, com as
  * cinco máquinas lado a lado. Página PÚBLICA, sem login e sem o layout da
- * equipe (menu, faixa de alerta): a TV não tem teclado, e quem a autoriza é
- * um admin de pé na frente dela, pelo código que ela mostra (pareamento).
+ * equipe (menu, faixa de alerta): a TV não tem login. Ela entra digitando o
+ * PIN da TV no teclado da própria tela (decisão do dono, 05/10/2026) ou pelo
+ * código que mostra, aprovado por admin ou gestor (pareamento). Nos dois
+ * casos ganha um crachá revogável em /telas.
  *
  * Fica fora de `_authenticated` de propósito. O que protege a parede não é
  * esta rota: é a rota de servidor `/api/tv/painel`, que só responde ao crachá

@@ -94,6 +94,7 @@ import { Route as ApiPortalMensagemRouteImport } from './routes/api.portal.mensa
 import { Route as ApiPortalPainelRouteImport } from './routes/api.portal.painel'
 import { Route as ApiTvPainelRouteImport } from './routes/api.tv.painel'
 import { Route as ApiTvParearRouteImport } from './routes/api.tv.parear'
+import { Route as ApiTvPinRouteImport } from './routes/api.tv.pin'
 import { Route as ApiWhatsappEnviarRouteImport } from './routes/api.whatsapp.enviar'
 import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
 import { Route as ParceiroOrcamentosIndexRouteImport } from './routes/parceiro.orcamentos.index'
@@ -550,6 +551,11 @@ const ApiTvParearRoute = ApiTvParearRouteImport.update({
   path: '/api/tv/parear',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTvPinRoute = ApiTvPinRouteImport.update({
+  id: '/api/tv/pin',
+  path: '/api/tv/pin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWhatsappEnviarRoute = ApiWhatsappEnviarRouteImport.update({
   id: '/api/whatsapp/enviar',
   path: '/api/whatsapp/enviar',
@@ -653,6 +659,7 @@ export interface FileRoutesByFullPath {
   '/api/portal/painel': typeof ApiPortalPainelRoute
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
+  '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
@@ -742,6 +749,7 @@ export interface FileRoutesByTo {
   '/api/portal/painel': typeof ApiPortalPainelRoute
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
+  '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
@@ -834,6 +842,7 @@ export interface FileRoutesById {
   '/api/portal/painel': typeof ApiPortalPainelRoute
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
+  '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
@@ -926,6 +935,7 @@ export interface FileRouteTypes {
     | '/api/portal/painel'
     | '/api/tv/painel'
     | '/api/tv/parear'
+    | '/api/tv/pin'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
@@ -1015,6 +1025,7 @@ export interface FileRouteTypes {
     | '/api/portal/painel'
     | '/api/tv/painel'
     | '/api/tv/parear'
+    | '/api/tv/pin'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
@@ -1106,6 +1117,7 @@ export interface FileRouteTypes {
     | '/api/portal/painel'
     | '/api/tv/painel'
     | '/api/tv/parear'
+    | '/api/tv/pin'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
@@ -1136,6 +1148,7 @@ export interface RootRouteChildren {
   ApiPortalPainelRoute: typeof ApiPortalPainelRoute
   ApiTvPainelRoute: typeof ApiTvPainelRoute
   ApiTvParearRoute: typeof ApiTvParearRoute
+  ApiTvPinRoute: typeof ApiTvPinRoute
   ApiWhatsappEnviarRoute: typeof ApiWhatsappEnviarRoute
   ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
 }
@@ -1737,6 +1750,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTvParearRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tv/pin': {
+      id: '/api/tv/pin'
+      path: '/api/tv/pin'
+      fullPath: '/api/tv/pin'
+      preLoaderRoute: typeof ApiTvPinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/whatsapp/enviar': {
       id: '/api/whatsapp/enviar'
       path: '/api/whatsapp/enviar'
@@ -1943,6 +1963,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPortalPainelRoute: ApiPortalPainelRoute,
   ApiTvPainelRoute: ApiTvPainelRoute,
   ApiTvParearRoute: ApiTvParearRoute,
+  ApiTvPinRoute: ApiTvPinRoute,
   ApiWhatsappEnviarRoute: ApiWhatsappEnviarRoute,
   ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,
 }

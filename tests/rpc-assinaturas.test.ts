@@ -127,6 +127,11 @@ const ASSINATURAS: Record<string, string[]> = {
   tv_painel_maquinas: [],
   tv_retirar_pareamento: ["p_pareamento_id", "p_retirada_hash", "p_token_hash"],
   tv_revogar_dispositivo: ["p_id"],
+  // Migração 20261005213700 (entrar com PIN), conferidas no Postgres em
+  // 05/10/2026: o PIN se define em /telas; as outras duas, só o servidor.
+  tv_definir_pin: ["p_pin"],
+  tv_entrar_com_pin: ["p_pin", "p_token_hash", "p_origem_hash"],
+  tv_estado_do_pin: [],
   // Páginas que faltavam (02/10/2026), conferidas no Postgres no mesmo dia.
   // Arte: comentário que grava, e a aprovação interna que a tela agora usa.
   comentar_arte: ["p_arquivo_id", "p_comentario"],

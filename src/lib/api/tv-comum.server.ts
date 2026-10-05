@@ -1,5 +1,8 @@
+import { hashDoSegredo } from "@/domain/whatsapp/segredo-webhook";
+
 /**
- * O que as duas rotas da TV (`/api/tv/parear` e `/api/tv/painel`) têm em comum.
+ * O que as rotas da TV (`/api/tv/parear`, `/api/tv/pin` e `/api/tv/painel`)
+ * têm em comum.
  *
  * DUAS REGRAS QUE VALEM PARA TUDO AQUI
  *
@@ -35,6 +38,29 @@ export function respostaTv(
 
 export function bancoIndisponivel(): Response {
   return respostaTv(503, { erro: "banco_indisponivel" });
+}
+
+/**
+ * De onde veio o pedido, para os freios contarem POR ORIGEM. As rotas são
+ * públicas: sem isto, uma pessoa só, pedindo 20 códigos a cada 10 minutos,
+ * impedia qualquer TV de conseguir o dela — e chutando PIN de vários
+ * aparelhos, gastava as tentativas de todo mundo.
+ *
+ * `cf-connecting-ip` vem primeiro porque é a borda que escreve, não quem
+ * chama; `x-forwarded-for` quem chama consegue inventar. Sem nenhum dos três
+ * a origem fica desconhecida e vale só o teto geral — pior do que contar
+ * errado seria pôr todas as TVs no mesmo balde.
+ *
+ * Vai ao banco só o SHA-256 do endereço.
+ */
+export async function hashDaOrigemDe(request: Request): Promise<string | null> {
+  const endereco =
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0];
+  const limpo = endereco?.trim().toLowerCase();
+  if (!limpo || limpo.length > 64) return null;
+  return hashDoSegredo(`bexprint-tv-origem:${limpo}`);
 }
 
 export type ResultadoDoBanco = { ok: true; valor: Corpo } | { ok: false };

@@ -19,6 +19,7 @@ import {
   segredoBemFormado,
   type PedidoDePareamento,
 } from "@/domain/tv/pareamento";
+import { CHAVE_DO_TOKEN_PENDENTE } from "@/domain/tv/pin";
 
 const UM_ANO_S = 365 * 24 * 60 * 60;
 /** O caminho da rota pública da TV: o cookie só viaja para cá. */
@@ -115,4 +116,18 @@ export function interpretarPedidoGuardado(texto: string | null): PedidoDePareame
 
 export function gravarPedido(pedido: PedidoDePareamento | null): void {
   gravarStorage(CHAVE_DO_PAREAMENTO, pedido ? JSON.stringify(pedido) : null);
+}
+
+/**
+ * O crachá que a TV sorteou para entrar pelo PIN, guardado ANTES de ir ao
+ * servidor: se a resposta "liberado" se perder, a próxima tentativa leva o
+ * mesmo crachá e o servidor reconhece a mesma TV, em vez de criar outra.
+ */
+export function lerTokenPendente(): string | null {
+  const guardado = lerStorage(CHAVE_DO_TOKEN_PENDENTE);
+  return segredoBemFormado(guardado) ? guardado : null;
+}
+
+export function gravarTokenPendente(token: string | null): void {
+  gravarStorage(CHAVE_DO_TOKEN_PENDENTE, token);
 }

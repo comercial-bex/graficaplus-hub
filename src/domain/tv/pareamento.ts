@@ -272,11 +272,21 @@ export function mensagemDaRecusa(resposta: Extract<RespostaDaAprovacao, { ok: fa
 export type DispositivoDeTv = {
   id: string;
   nome: string;
+  /** Como ganhou o crachá: código aprovado aqui, ou o PIN digitado na própria TV. */
+  entrada?: "codigo" | "pin";
   criado_em: string;
   criado_por: string | null;
   ultimo_acesso_em: string | null;
   revogado_em: string | null;
   revogado_por: string | null;
+};
+
+/** O PIN da TV como /telas o vê: se está ligado e quantos números tem — nunca o PIN. */
+export type PinDaTv = {
+  ligado: boolean;
+  digitos: number | null;
+  definido_em: string | null;
+  definido_por: string | null;
 };
 
 export type ListaDeTvs = {
@@ -285,6 +295,9 @@ export type ListaDeTvs = {
   pareamentos_pendentes: number;
   aprovados_aguardando: { nome: string; aprovado_em: string; expira_em: string }[];
   dispositivos: DispositivoDeTv[];
+  pin?: PinDaTv | null;
+  /** PINs errados digitados em alguma TV nos últimos 15 minutos. */
+  pin_erros_15min?: number;
 };
 
 /**
