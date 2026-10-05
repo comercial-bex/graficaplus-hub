@@ -15,8 +15,10 @@ export type DocItem = {
   /** m², já calculada no banco (coluna gerada) */
   area_total?: number | null;
   acabamento?: string | null;
-  /** URL assinada da arte a imprimir; alimenta o bloco LAYOUT */
+  tipo_produto?: string | null;
+  /** URL assinada da arte a imprimir (capa); alimenta o bloco LAYOUT */
   layout_url?: string | null;
+  layouts_extras?: string[];
 };
 
 export type DocumentoPDFProps = {
@@ -25,6 +27,7 @@ export type DocumentoPDFProps = {
   data_solicitacao?: string | null;
   data_validade?: string | null;
   data_entrega?: string | null;
+  data_expedicao?: string | null;
   vendedor?: string | null;
   status?: string | null;
   empresa: Empresa;
@@ -132,18 +135,25 @@ const criarEstilos = (C: string) =>
     td: { fontSize: 9 },
     metragem: { fontSize: 7, color: "#666", marginTop: 1 },
 
-    cCode: { width: "6%" },
-    cDesc: { width: "38%", paddingRight: 6 },
-    cAcab: { width: "12%", fontSize: 8 },
-    cUn: { width: "7%", textAlign: "center" },
-    cQtd: { width: "9%", textAlign: "right" },
-    cArea: { width: "10%", textAlign: "right" },
-    cVu: { width: "9%", textAlign: "right" },
-    cVt: { width: "9%", textAlign: "right" },
+    cCode: { width: "4%" },
+    cDesc: { width: "34%", paddingRight: 6 },
+    cTipo: { width: "11%", fontSize: 8 },
+    cAcab: { width: "11%", fontSize: 8 },
+    cQtd: { width: "16%", textAlign: "center", alignItems: "center" },
+    cVu: { width: "12%", textAlign: "right" },
+    cVt: { width: "12%", textAlign: "right" },
+
+    datasRow: { flexDirection: "row", justifyContent: "space-between", fontSize: 9, marginBottom: 4 },
+    clienteGrid: { flexDirection: "row", flexWrap: "wrap", borderWidth: 0.5, borderColor: "#ccc", borderRadius: 3, paddingVertical: 4, paddingHorizontal: 6 },
+    clienteCel: { width: "50%", fontSize: 8.5, paddingVertical: 1.5 },
+    respLabel: { fontFamily: "Helvetica-Bold", color: "#333" },
+    respRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, fontSize: 9 },
+    resumoItens: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, paddingHorizontal: 4, borderTopWidth: 1, borderTopColor: C, fontSize: 9 },
 
     layoutRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
-    layoutCard: { width: 118, borderWidth: 0.5, borderColor: "#ddd", borderRadius: 3, padding: 4 },
-    layoutImg: { width: "100%", height: 74, objectFit: "contain" },
+    layoutCard: { width: 168, borderWidth: 0.5, borderColor: "#ddd", borderRadius: 3, padding: 4 },
+    layoutImg: { width: "100%", height: 110, objectFit: "contain" },
+    layoutBadge: { fontSize: 9, fontFamily: "Helvetica-Bold", color: C, marginBottom: 2 },
     layoutNum: { fontSize: 7, color: "#666", marginTop: 2, textAlign: "center" },
 
     infoGrid: { flexDirection: "row", gap: 8, marginTop: 10 },
@@ -244,84 +254,76 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             <Text style={s.docTitle}>
               {titulo.toUpperCase()} Nº {p.numero}
             </Text>
-
-            <View style={s.metaRow}>
-              <Text style={s.metaLabel}>Emissão</Text>
-              <Text style={s.metaValue}>{p.data_solicitacao ?? "—"}</Text>
-            </View>
             {isOrc && (
               <View style={s.metaRow}>
                 <Text style={s.metaLabel}>Validade</Text>
                 <Text style={s.metaValue}>{p.data_validade ?? "—"}</Text>
               </View>
             )}
-            {(p.data_entrega || p.tipo === "os") && (
+            {!isOrc && (
               <View style={s.metaRow}>
-                <Text style={s.metaLabel}>Entrega</Text>
-                <Text style={s.metaValue}>{p.data_entrega ?? "—"}</Text>
+                <Text style={s.metaLabel}>Responsável</Text>
+                <Text style={s.metaValue}>{p.vendedor ?? "—"}</Text>
               </View>
             )}
-            <View style={s.metaRow}>
-              <Text style={s.metaLabel}>Responsável</Text>
-              <Text style={s.metaValue}>{p.vendedor ?? "—"}</Text>
-            </View>
             {p.status && (
               <View style={s.metaRow}>
                 <Text style={s.metaLabel}>Status</Text>
                 <Text style={s.metaValue}>{p.status}</Text>
               </View>
             )}
-
-            <View style={s.clienteBox}>
-              <Text style={s.clienteLabel}>DADOS DO CLIENTE</Text>
-              <Text style={s.clienteNome}>{p.cliente.razao_social ?? p.cliente.nome}</Text>
-              {p.cliente.nome_fantasia && (
-                <Text style={s.empresaInfo}>Nome fantasia: {p.cliente.nome_fantasia}</Text>
-              )}
-              {p.cliente.documento && (
-                <Text style={s.empresaInfo}>CNPJ/CPF: {p.cliente.documento}</Text>
-              )}
-              {p.cliente.inscricao_estadual && (
-                <Text style={s.empresaInfo}>IE: {p.cliente.inscricao_estadual}</Text>
-              )}
-              {(p.cliente.endereco || p.cliente.bairro) && (
-                <Text style={s.empresaInfo}>
-                  {[p.cliente.endereco, p.cliente.bairro].filter(Boolean).join(" — ")}
-                </Text>
-              )}
-              {(p.cliente.cidade || p.cliente.estado || p.cliente.cep) && (
-                <Text style={s.empresaInfo}>
-                  {[
-                    [p.cliente.cidade, p.cliente.estado].filter(Boolean).join("-"),
-                    p.cliente.cep,
-                  ]
-                    .filter(Boolean)
-                    .join(" / ")}
-                </Text>
-              )}
-              {(p.cliente.telefone || p.cliente.celular) && (
-                <Text style={s.empresaInfo}>
-                  {[p.cliente.telefone, p.cliente.celular].filter(Boolean).join("  |  ")}
-                </Text>
-              )}
-              {p.cliente.email && <Text style={s.empresaInfo}>{p.cliente.email}</Text>}
-              {p.cliente.contato && (
-                <Text style={s.empresaInfo}>Contato: {p.cliente.contato}</Text>
-              )}
-            </View>
           </View>
+        </View>
+
+        <View style={s.datasRow}>
+          <Text>
+            <Text style={s.respLabel}>Data de Emissão: </Text>
+            {p.data_solicitacao ?? "—"}
+          </Text>
+          {(p.data_entrega || p.tipo === "os" || isOrc) && (
+            <Text>
+              <Text style={s.respLabel}>Data de Entrega: </Text>
+              {p.data_entrega ?? "—"}
+            </Text>
+          )}
+        </View>
+
+        <View style={s.clienteGrid} wrap={false}>
+          {(
+            [
+              ["Razão Social", p.cliente.razao_social ?? p.cliente.nome],
+              ["Nome Fantasia", p.cliente.nome_fantasia],
+              [
+                p.cliente.documento ? rotuloDoDocumento(p.cliente.documento).replace(/:$/, "") : "CNPJ",
+                p.cliente.documento,
+              ],
+              ["Inscrição Estadual", p.cliente.inscricao_estadual],
+              ["End", p.cliente.endereco],
+              ["Bairro", p.cliente.bairro],
+              ["CEP", p.cliente.cep],
+              ["Cidade", [p.cliente.cidade, p.cliente.estado].filter(Boolean).join(" - ")],
+              ["Telefone", p.cliente.telefone],
+              ["Celular", p.cliente.celular],
+              ["E-mail", p.cliente.email],
+              ["Contato", p.cliente.contato],
+            ] as [string, string | null | undefined][]
+          ).map(([rotulo, valor]) => (
+            <Text style={s.clienteCel} key={rotulo}>
+              <Text style={s.respLabel}>{rotulo}: </Text>
+              {valor || ""}
+            </Text>
+          ))}
         </View>
 
         <Text style={s.sectionTitle}>PRODUTOS / SERVIÇOS</Text>
         <View style={s.thead}>
-          <Text style={[s.th, s.cCode]}>Cód.</Text>
-          <Text style={[s.th, s.cDesc]}>Descrição</Text>
+          <Text style={[s.th, s.cCode]}>#</Text>
+          <Text style={[s.th, s.cDesc]}>Dados Produtos/Serviços</Text>
+          <Text style={[s.th, s.cTipo]}>Tipo Produto</Text>
           <Text style={[s.th, s.cAcab]}>Acabamento</Text>
-          <Text style={[s.th, s.cUn]}>Un.</Text>
-          <Text style={[s.th, s.cQtd]}>Qtd</Text>
-          {temArea && <Text style={[s.th, s.cArea]}>Área</Text>}
-          {mostrar && <Text style={[s.th, s.cVu]}>Vlr.Unit.</Text>}
-          {mostrar && <Text style={[s.th, s.cVt]}>Vlr.Total</Text>}
+          <Text style={[s.th, s.cQtd]}>Qtd.</Text>
+          {mostrar && <Text style={[s.th, s.cVu]}>Valor</Text>}
+          {mostrar && <Text style={[s.th, s.cVt]}>Valor Total</Text>}
         </View>
 
         {p.itens.length === 0 && (
@@ -333,53 +335,58 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           const dimensionado = Number(i.largura ?? 0) > 0 && Number(i.altura ?? 0) > 0;
           return (
             <View style={idx % 2 === 1 ? [s.tr, s.trAlt] : s.tr} key={idx} wrap={false}>
-              <Text style={[s.td, s.cCode, { color: "#888" }]}>
-                {i.codigo ?? String(idx + 1).padStart(3, "0")}
+              <Text style={[s.td, s.cCode, { color: C, fontFamily: "Helvetica-Bold" }]}>
+                {idx + 1}
               </Text>
               <View style={s.cDesc}>
-                <Text style={s.td}>{i.descricao}</Text>
+                <Text style={s.td}>
+                  {i.descricao}
+                  {i.unidade ? ` - ${i.unidade.toUpperCase()}` : ""}
+                </Text>
                 {dimensionado && (
                   <Text style={s.metragem}>
-                    {metros(Number(i.largura))} × {metros(Number(i.altura))} ={" "}
+                    {metros(Number(i.largura))} x {metros(Number(i.altura))} - área:{" "}
                     {m2(Number(i.area_total ?? 0))}
                   </Text>
                 )}
               </View>
+              <Text style={[s.td, s.cTipo]}>{i.tipo_produto ?? "—"}</Text>
               <Text style={[s.td, s.cAcab]}>{i.acabamento ?? "—"}</Text>
-              <Text style={[s.td, s.cUn]}>{i.unidade ?? "un"}</Text>
-              <Text style={[s.td, s.cQtd]}>
-                {Number(i.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </Text>
-              {temArea && (
-                <Text style={[s.td, s.cArea]}>
-                  {dimensionado ? m2(Number(i.area_total ?? 0)) : "—"}
+              <View style={s.cQtd}>
+                <Text style={[s.td, { fontFamily: "Helvetica-Bold" }]}>
+                  {Number(i.quantidade).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
                 </Text>
-              )}
+                {dimensionado && (
+                  <>
+                    <Text style={s.metragem}>Metragem:</Text>
+                    <Text style={s.metragem}>
+                      {metros(Number(i.largura))} x {metros(Number(i.altura))}
+                    </Text>
+                    <Text style={s.metragem}>= {m2(Number(i.area_total ?? 0))}</Text>
+                  </>
+                )}
+              </View>
               {mostrar && <Text style={[s.td, s.cVu]}>{money(Number(i.valor_unitario))}</Text>}
               {mostrar && <Text style={[s.td, s.cVt]}>{money(Number(i.valor_total))}</Text>}
             </View>
           );
         })}
 
-        <View style={[s.tr, { borderBottomWidth: 0, paddingTop: 6 }]}>
-          <Text style={[s.td, s.cCode]} />
-          <Text style={[s.td, s.cDesc, { color: "#666" }]}>
-            {temArea ? "Itens totais / soma de área" : "Itens totais"}
-          </Text>
-          <Text style={[s.td, s.cAcab]} />
-          <Text style={[s.td, s.cUn]} />
-          <Text style={[s.td, s.cQtd, { color: C, fontFamily: "Helvetica-Bold" }]}>
-            {totalQtd.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </Text>
-          {temArea && (
-            <Text style={[s.td, s.cArea, { color: C, fontFamily: "Helvetica-Bold" }]}>
-              {m2(Number(p.soma_area))}
+        <View style={s.resumoItens} wrap={false}>
+          {mostrar && (
+            <Text>
+              <Text style={s.respLabel}>Total Produtos </Text>
+              {money(Number(p.subtotal ?? p.total))}
             </Text>
           )}
-          {mostrar && <Text style={[s.td, s.cVu]} />}
-          {mostrar && (
-            <Text style={[s.td, s.cVt, { color: C, fontFamily: "Helvetica-Bold" }]}>
-              {money(p.total)}
+          <Text>
+            <Text style={s.respLabel}>Itens: </Text>
+            {totalQtd.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
+          </Text>
+          {temArea && (
+            <Text>
+              <Text style={s.respLabel}>Soma área total: </Text>
+              {m2(Number(p.soma_area))}
             </Text>
           )}
         </View>
@@ -390,10 +397,12 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             <View style={s.layoutRow}>
               {layouts.map((l) => (
                 <View style={s.layoutCard} key={l.numero} wrap={false}>
+                  <Text style={s.layoutBadge}>{l.numero}</Text>
                   <Image style={s.layoutImg} src={l.item.layout_url as string} />
-                  <Text style={s.layoutNum}>
-                    {String(l.numero).padStart(3, "0")} — {l.item.descricao}
-                  </Text>
+                  <Text style={s.layoutNum}>{l.item.descricao}</Text>
+                  {(l.item.layouts_extras?.length ?? 0) > 0 && (
+                    <Text style={s.layoutNum}>+{l.item.layouts_extras!.length} arte(s)</Text>
+                  )}
                 </View>
               ))}
             </View>
@@ -505,6 +514,24 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
 2 — Favor conferir os dados cadastrais para emissão de documento fiscal.`}
               </Text>
             )}
+          </View>
+        )}
+
+        {isOrc && (
+          <View style={s.respRow} wrap={false}>
+            <View style={{ flex: 1 }}>
+              <Text>
+                <Text style={s.respLabel}>Responsável: </Text>
+                {p.vendedor ?? "—"}
+              </Text>
+              {p.data_validade && (
+                <Text style={{ marginTop: 3 }}>Esse orçamento é válido até {p.data_validade}.</Text>
+              )}
+            </View>
+            <Text>
+              <Text style={s.respLabel}>Data de expedição prevista: </Text>
+              {p.data_expedicao ?? p.data_entrega ?? "—"}
+            </Text>
           </View>
         )}
 
