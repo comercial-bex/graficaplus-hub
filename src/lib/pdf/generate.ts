@@ -114,8 +114,9 @@ async function montarItens(
       .filter((url): url is string => !!url);
     const snap = (i.produto_snapshot ?? null) as Record<string, unknown> | null;
     const tipo =
-      (snap?.tipo as string) ??
-      (snap?.categoria ? String(snap.categoria).replace(/_/g, " ") : null) ??
+      (i.tipo_produto as string) ||
+      (snap?.tipo as string) ||
+      (snap?.categoria ? String(snap.categoria).replace(/_/g, " ") : null) ||
       (i.unidade ? String(i.unidade).toUpperCase() : null);
     return {
       descricao: String(i.descricao ?? ""),
@@ -243,9 +244,21 @@ export async function carregarPropsOrcamento(
       ).toLocaleDateString("pt-BR")
     : null;
 
+  // Tipo de produto fica fora das views financeiras; lê direto (coluna liberada).
+  const { data: tipos } = await (supabase as any)
+    .from("orcamento_itens")
+    .select("id, tipo_produto")
+    .eq("orcamento_id", orcamentoId);
+  const tipoPorId = new Map<string, string | null>(
+    ((tipos ?? []) as { id: string; tipo_produto: string | null }[]).map((t) => [t.id, t.tipo_produto]),
+  );
+  const linhasItens = ((itens ?? []) as Record<string, unknown>[]).map((i) => ({
+    ...i,
+    tipo_produto: tipoPorId.get(i.id as string) ?? null,
+  }));
   const [empresa, itensDoc] = await Promise.all([
     carregarEmpresa(),
-    montarItens((itens ?? []) as Record<string, unknown>[], mostrarValores),
+    montarItens(linhasItens, mostrarValores),
   ]);
   const total = mostrarValores ? Number((orc as any).valor_total ?? 0) : 0;
   const c = (cliente ?? {}) as any;
