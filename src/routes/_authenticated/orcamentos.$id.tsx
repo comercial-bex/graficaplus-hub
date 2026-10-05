@@ -94,6 +94,7 @@ const itemVazio = {
   arquivo_id: null as string | null,
   arquivo_nome: null as string | null,
   arquivos_extras: [] as { id: string; nome: string }[],
+  tipo_produto: "",
   area_minima: null as number | null,
   margem_minima: null as number | null,
   tempo_producao_min: null as number | null,
@@ -428,6 +429,7 @@ function OrcamentoDetailPage() {
       largura: vendidoPorArea ? dimensoesForm.largura : null,
       altura: vendidoPorArea ? dimensoesForm.altura : null,
       acabamento: form.acabamento.trim() || null,
+      ...(form.tipo_produto.trim() ? { produto_snapshot: { tipo: form.tipo_produto.trim() } } : {}),
       preco_m2: canSeePrices && precoM2Form > 0 ? precoM2Form : null,
       valor_unitario: canSeePrices ? paraNumero(form.valor_unitario) : 0,
       custo_unitario: paraNumero(form.custo_unitario),
@@ -594,7 +596,7 @@ function OrcamentoDetailPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4 border-b border-border pb-5 mb-2">
+      <header className="sticky top-0 z-20 -mx-2 px-2 pt-2 space-y-3 border-b border-border pb-4 mb-2 bg-background/95 backdrop-blur">
         {/* Linha 1 — identificação */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-start gap-3 min-w-0">
@@ -699,6 +701,22 @@ function OrcamentoDetailPage() {
             <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
           </Button></Dica>
         </div>
+        {(() => {
+          const lista = itens as any[];
+          const falta: string[] = [];
+          if (!orc.cliente_nome && !(orc as any).contato_nome) falta.push("cliente ou contato");
+          if (acordo && !acordo.data_entrega_prometida && !acordo.prazo) falta.push("data de entrega");
+          if (acordo && canSeePrices && !acordo.condicao_pagamento) falta.push("condição de pagamento");
+          if (lista.length === 0) falta.push("itens");
+          const semArte = lista.filter((i) => !i.arquivo_id).length;
+          if (semArte > 0) falta.push(`layout em ${semArte} item(ns)`);
+          if (falta.length === 0) return null;
+          return (
+            <p className="pl-12 text-xs text-amber-500">
+              Antes de enviar ao cliente, falta: {falta.join(", ")}.
+            </p>
+          );
+        })()}
       </header>
 
       {/* Prazo e condição de pagamento são o que a OS e a conta a receber
@@ -782,6 +800,16 @@ function OrcamentoDetailPage() {
                   onChange={(e) => setForm({ ...form, acabamento: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="max-w-xs">
+              <Label htmlFor="item-tipo">Tipo de produto (sai no PDF)</Label>
+              <Input
+                id="item-tipo"
+                placeholder="Adesivo, lona, placa…"
+                value={form.tipo_produto}
+                onChange={(e) => setForm({ ...form, tipo_produto: e.target.value })}
+              />
             </div>
 
             {/* Tamanhos que a gráfica vende sempre iguais: um clique evita
