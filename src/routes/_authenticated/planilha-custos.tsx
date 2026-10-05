@@ -56,6 +56,10 @@ function PlanilhaPage() {
   const qc = useQueryClient();
   const { hasPermission, canSeeFinancials } = useAuth();
   const podeEditar = hasPermission("custos.update") || hasPermission("estoque.adjust");
+  // Mão de obra é a tabela de custos, não o estoque: o banco pede custos.update
+  // (migração 20261005100000). Quem ajusta estoque continua mudando o custo do
+  // material aqui, mas não o custo/hora das pessoas.
+  const podeEditarMaoDeObra = hasPermission("custos.update");
   const [importando, setImportando] = useState(false);
   const arquivoMaterial = useRef<HTMLInputElement>(null);
   const arquivoMaoObra = useRef<HTMLInputElement>(null);
@@ -434,7 +438,7 @@ function PlanilhaPage() {
                 <Button size="sm" variant="outline" onClick={exportarMaoObra}>
                   <Download className="mr-1 h-4 w-4" /> Exportar CSV
                 </Button>
-                {podeEditar && (
+                {podeEditarMaoDeObra && (
                   <>
                     <input
                       ref={arquivoMaoObra}
@@ -472,7 +476,7 @@ function PlanilhaPage() {
                       <TableCell className="font-medium">{m.funcao}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{m.setor || "—"}</TableCell>
                       <TableCell className="text-right">
-                        {podeEditar ? (
+                        {podeEditarMaoDeObra ? (
                           <Input type="number" step="0.01" min="0"
                                  defaultValue={Number(m.custo_hora ?? 0)}
                                  className="ml-auto h-8 w-28 text-right font-mono"
@@ -487,7 +491,7 @@ function PlanilhaPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {podeEditar ? (
+                        {podeEditarMaoDeObra ? (
                           <Input type="number" step="0.01" min="0"
                                  defaultValue={Number(m.encargos_pct ?? 0)}
                                  className="ml-auto h-8 w-24 text-right font-mono"
@@ -513,6 +517,11 @@ function PlanilhaPage() {
           <p className="mt-2 text-xs text-muted-foreground">
             “Hora cheia” é o custo com encargos — é ele que entra no orçamento, não o salário/hora.
           </p>
+          {!podeEditarMaoDeObra && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Mudar o custo da mão de obra pede a permissão de alterar custos.
+            </p>
+          )}
         </TabsContent>
 
         <TabsContent value="tarifas" className="mt-4">

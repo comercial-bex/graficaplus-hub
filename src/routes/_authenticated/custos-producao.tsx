@@ -30,6 +30,7 @@ import {
   somarEncargos,
 } from "@/domain/financeiro/encargos";
 import { mensagemErro } from "@/lib/erros";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/custos-producao")({
   head: () => ({
@@ -75,6 +76,11 @@ const emptyForm: Form = {
 
 function CustosProducaoPage() {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  // Mudar o custo/hora é mudar a tabela de custos: o banco pede custos.update
+  // desde a migração 20261005100000 (antes bastava ver o financeiro). Quem só
+  // lê custo enxerga as funções, sem os botões.
+  const podeMudarCusto = hasPermission("custos.update");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(emptyForm);
 
@@ -101,11 +107,17 @@ function CustosProducaoPage() {
         observacoes: form.observacoes || null,
       };
       if (form.id) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("custos_mao_de_obra")
           .update(payload)
-          .eq("id", form.id);
+          .eq("id", form.id)
+          .select("id");
         if (error) throw error;
+        // RLS barra a escrita devolvendo 0 linhas e nenhum erro: sem esta
+        // conferência a tela diria "Função salva" sem ter salvado nada.
+        if (!data || data.length === 0) {
+          throw new Error("Seu perfil não pode alterar custo de mão de obra.");
+        }
       } else {
         const { error } = await supabase.from("custos_mao_de_obra").insert(payload);
         if (error) throw error;
@@ -135,15 +147,19 @@ function CustosProducaoPage() {
       const pct = somarEncargos(parcelasDoRegime(regime));
       const alvos = funcoes.filter((f) => f.ativo && Number(f.encargos_pct ?? 0) <= 0);
       if (alvos.length === 0) throw new Error("Nenhuma função está com encargo zerado.");
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("custos_mao_de_obra")
         .update({ encargos_pct: pct })
         .in(
           "id",
           alvos.map((f) => f.id),
-        );
+        )
+        .select("id");
       if (error) throw error;
-      return { quantas: alvos.length, pct };
+      if (!data || data.length === 0) {
+        throw new Error("Seu perfil não pode alterar custo de mão de obra.");
+      }
+      return { quantas: data.length, pct };
     },
     onSuccess: ({ quantas, pct }) => {
       toast.success(
@@ -171,17 +187,25 @@ function CustosProducaoPage() {
         title="Custos de mão de obra"
         description="Custo/hora com encargos de cada função. É o terceiro bloco do detalhamento de cálculo, junto com Materiais e Processos."
         actions={
-          <NeonButton
-            onClick={() => {
-              setForm(emptyForm);
-              setOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Nova função
-          </NeonButton>
+          podeMudarCusto && (
+            <NeonButton
+              onClick={() => {
+                setForm(emptyForm);
+                setOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Nova função
+            </NeonButton>
+          )
         }
       />
+
+      {!podeMudarCusto && (
+        <p className="mb-4 text-sm text-muted-foreground">
+          Mudar o custo da mão de obra pede a permissão de alterar custos.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
         <KpiCard label="Funções ativas" value={ativos.length} icon={Users} tone="cyan" />
@@ -214,35 +238,41 @@ function CustosProducaoPage() {
             {/* O conserto exigia abrir função por função, cinco diálogos, e
                 todo mundo continuou em zero. Quem decide é a casa, e a decisão
                 é UMA: qual é o regime. Daí para frente é aritmética. */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                Aplicar em {semEncargos.length === 1 ? "a função" : `todas as ${semEncargos.length}`}:
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-9"
-                disabled={aplicarEncargos.isPending}
-                onClick={() => aplicarEncargos.mutate("simples")}
-              >
-                Simples Nacional ({(somarEncargos(parcelasDoRegime("simples")) * 100).toFixed(1)}%)
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-9"
-                disabled={aplicarEncargos.isPending}
-                onClick={() => aplicarEncargos.mutate("fora_do_simples")}
-              >
-                Fora do Simples (
-                {(somarEncargos(parcelasDoRegime("fora_do_simples")) * 100).toFixed(1)}%)
-              </Button>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Muda só o percentual de encargo das funções que estão em zero; o custo/hora de
-              cada uma fica como está. Para ajustar uma função sozinha, edite-a e use{" "}
-              <em>Calcular do salário</em>.
-            </p>
+            {/* Quem não muda custo vê o aviso, que é verdade para todos, mas não
+                a promessa de "aplicar" um conserto que o banco recusaria. */}
+            {podeMudarCusto && (
+              <>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    Aplicar em {semEncargos.length === 1 ? "a função" : `todas as ${semEncargos.length}`}:
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9"
+                    disabled={aplicarEncargos.isPending}
+                    onClick={() => aplicarEncargos.mutate("simples")}
+                  >
+                    Simples Nacional ({(somarEncargos(parcelasDoRegime("simples")) * 100).toFixed(1)}%)
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9"
+                    disabled={aplicarEncargos.isPending}
+                    onClick={() => aplicarEncargos.mutate("fora_do_simples")}
+                  >
+                    Fora do Simples (
+                    {(somarEncargos(parcelasDoRegime("fora_do_simples")) * 100).toFixed(1)}%)
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Muda só o percentual de encargo das funções que estão em zero; o custo/hora de
+                  cada uma fica como está. Para ajustar uma função sozinha, edite-a e use{" "}
+                  <em>Calcular do salário</em>.
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -290,26 +320,28 @@ function CustosProducaoPage() {
                       <div className="font-bold text-[color:var(--bex-lime)]">{brl(total)}</div>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => {
-                      setForm({
-                        id: f.id,
-                        funcao: f.funcao,
-                        setor: f.setor ?? "",
-                        custo_hora: String(f.custo_hora),
-                        encargos_pct: String(f.encargos_pct),
-                        ativo: f.ativo,
-                        observacoes: f.observacoes ?? "",
-                      });
-                      setOpen(true);
-                    }}
-                  >
-                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                    Editar
-                  </Button>
+                  {podeMudarCusto && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setForm({
+                          id: f.id,
+                          funcao: f.funcao,
+                          setor: f.setor ?? "",
+                          custo_hora: String(f.custo_hora),
+                          encargos_pct: String(f.encargos_pct),
+                          ativo: f.ativo,
+                          observacoes: f.observacoes ?? "",
+                        });
+                        setOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                      Editar
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
