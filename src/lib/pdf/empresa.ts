@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { mensagemErro } from "@/lib/erros";
+import { urlDaLogoFundoClaro } from "@/lib/marca";
 
 /**
  * Dados do emissor que aparecem no cabeçalho de Orçamentos e OS.
@@ -23,7 +24,11 @@ export type Empresa = {
   telefones?: string | null;
   email?: string | null;
   site?: string | null;
-  /** URL assinada do logo; `renderPDFBlob` a converte em PNG/JPEG antes de desenhar. */
+  /**
+   * URL da logo; `renderPDFBlob` a converte em PNG/JPEG antes de desenhar. Nos
+   * documentos da Bex Print é sempre a logo oficial para fundo branco
+   * (`src/lib/marca.ts`); no do parceiro, a dele.
+   */
   logo_url?: string | null;
   /** Cor da marca: no documento monocromático, só a caixa que substitui o logo a usa. */
   cor: string;
@@ -31,13 +36,16 @@ export type Empresa = {
 };
 
 /** Usado só se a configuração ainda não foi preenchida. */
-const PADRAO: Empresa = {
+const PADRAO: Omit<Empresa, "logo_url"> = {
   nome: "BEX PRINT OS",
   cor: "#7B2E8B",
 };
 
+// Sem `logo_path`: o documento da Bex Print usa a logo oficial para fundo
+// branco, que mora em /public. A cadastrada em Configurações fica no bucket
+// privado, e vendedor e financeiro não a leem — o PDF deles saía sem logo.
 const COLUNAS =
-  "nome, razao_social, cnpj, inscricao_estadual, slogan, endereco, bairro, cidade, estado, cep, telefones, email, site, logo_path, cor_primaria, condicoes_gerais";
+  "nome, razao_social, cnpj, inscricao_estadual, slogan, endereco, bairro, cidade, estado, cep, telefones, email, site, cor_primaria, condicoes_gerais";
 
 export async function carregarEmpresa(): Promise<Empresa> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- select com a lista em constante
@@ -50,17 +58,10 @@ export async function carregarEmpresa(): Promise<Empresa> {
   // Consulta que falhou não é "empresa sem cadastro": cair no cabeçalho padrão
   // mandaria o documento sem CNPJ e sem endereço sem ninguém saber por quê.
   if (error) throw new Error(`Não foi possível ler os dados da empresa: ${mensagemErro(error)}`);
-  if (!data) return PADRAO;
-
-  let logo_url: string | null = null;
-  if (data.logo_path) {
-    // Bucket privado: a URL assinada só precisa durar até o PDF ser montado.
-    // Logo que não assina não derruba o documento — cai na caixa com o nome.
-    const { data: assinada } = await supabase.storage
-      .from("arquivos-clientes")
-      .createSignedUrl(data.logo_path, 600);
-    logo_url = assinada?.signedUrl ?? null;
-  }
+  // Decisão do dono (06/10/2026): todo PDF da Bex Print tem fundo branco e
+  // leva a logo oficial para fundo branco — para qualquer pessoa que gere.
+  const logo_url = urlDaLogoFundoClaro();
+  if (!data) return { ...PADRAO, logo_url };
 
   return {
     nome: data.nome ?? PADRAO.nome,

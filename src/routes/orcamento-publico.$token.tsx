@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { mensagemErro } from "@/lib/erros";
+import { LOGO_FUNDO_CLARO } from "@/lib/marca";
 import {
   obterOrcamentoPublico,
   responderOrcamentoPublico,
@@ -95,8 +96,17 @@ function OrcamentoPublicoPage() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl p-4 md:p-8 space-y-6">
         <header className="space-y-1">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            {o.empresa.nome}
+          {/* A logo oficial é a de fundo branco (letras pretas): vai numa placa
+              branca de propósito — o celular do cliente pode estar no tema
+              escuro, e nele as letras sumiriam. */}
+          <div className="mb-3 inline-flex rounded-lg bg-white px-3 py-2 ring-1 ring-black/5">
+            <img
+              src={LOGO_FUNDO_CLARO}
+              alt={o.empresa.nome || "Bex Print"}
+              width={1165}
+              height={533}
+              className="h-9 w-auto md:h-11"
+            />
           </div>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight">
             Orçamento nº {o.numero}
