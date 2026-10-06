@@ -250,6 +250,9 @@
 
 /* ===== 6. entrada por PIN: o teclado na própria TV, lido e apertado de longe ===== */
 .tvo .pin .miolo { grid-template-columns: 1fr 660px; }
+/* PIN desligado em /telas: só o aviso, sem teclado — uma coluna. */
+.tvo .pin.desligada .miolo { grid-template-columns: 1fr; }
+.tvo .pin.desligada .instrucao { margin-top: 28px; }
 .tvo .pin .casas { display: flex; gap: 24px; margin: 40px 0 32px; }
 .tvo .pin .casa { width: 132px; height: 168px; border-radius: 20px; border: 3px solid var(--borda-forte); background: var(--bloco); display: flex; align-items: center; justify-content: center; font-size: 120px; font-weight: 800; line-height: 1; color: #fff; }
 .tvo .pin .casa.cheia { border-color: var(--bex-cyan); }
@@ -257,6 +260,5 @@
 .tvo .pin .teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .tvo .pin .tecla { height: 150px; border-radius: 22px; border: 2px solid var(--borda-forte); background: var(--bloco); color: #fff; font-family: inherit; font-size: 76px; font-weight: 800; line-height: 1; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; }
 .tvo .pin .tecla.acao { font-size: 32px; color: var(--claro); flex-direction: column; gap: 6px; }
-.tvo .pin .tecla:focus, .tvo .pareamento .trocar:focus { outline: 6px solid var(--bex-cyan); outline-offset: 4px; }
+.tvo .pin .tecla:focus { outline: 6px solid var(--bex-cyan); outline-offset: 4px; }
 .tvo .pin .tecla:disabled { color: var(--apoio); border-style: dashed; cursor: default; }
-.tvo .pareamento .trocar { margin-top: 36px; font-family: inherit; font-size: 28px; font-weight: 700; line-height: 34px; color: var(--apoio); background: none; border: 2px dashed #6b7384; border-radius: 14px; padding: 14px 22px; cursor: pointer; }

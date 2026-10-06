@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Palco } from "./palco";
-import { Pareamento, type MotivoDoPareamento } from "./pareamento";
-import { EntradaPorPin } from "./entrada-por-pin";
+import { EntradaDesligada, EntradaPorPin, type MotivoDaEntrada } from "./entrada-por-pin";
 import { SemDado } from "./sem-dado";
 import { TelaDaOficina, type FaixaDaBusca } from "./tela-da-oficina";
 import { useFontesProntas, useMedidor } from "./medidas";
@@ -18,7 +17,7 @@ import {
 } from "@/domain/tv/pin";
 
 /**
- * A TV de verdade: com crachá, busca o painel; sem crachá, pareia.
+ * A TV de verdade: com crachá, busca o painel; sem crachá, pede o PIN.
  *
  * O crachá só é lido depois de montar (localStorage e cookie não existem no
  * servidor). Enquanto não se sabe se há crachá, a tela fica preta — um
@@ -27,7 +26,7 @@ import {
 export function TvAoVivo() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const [geracao, setGeracao] = useState(0);
-  const [motivo, setMotivo] = useState<MotivoDoPareamento>(null);
+  const [motivo, setMotivo] = useState<MotivoDaEntrada>(null);
 
   useEffect(() => {
     setToken(lerToken());
@@ -52,7 +51,7 @@ export function TvAoVivo() {
       geracao={geracao}
       aoRecusar={(porque) => {
         // 401: o crachá não vale mais. Apaga dos dois lugares e volta ao
-        // pareamento dizendo o motivo — nunca fica tentando com crachá morto.
+        // PIN dizendo o motivo — nunca fica tentando com crachá morto.
         apagarToken();
         setMotivo(porque);
         setToken(null);
@@ -64,51 +63,57 @@ export function TvAoVivo() {
 type ModoDeEntrada =
   | { tipo: "perguntando" }
   | { tipo: "pin"; digitos: number; aviso: { classe: "vermelha"; texto: string } | null }
-  | { tipo: "codigo"; pinLigado: boolean };
+  | { tipo: "desligada" };
+
+/** Com o PIN desligado, de quanto em quanto tempo a TV pergunta de novo. */
+const CONFERIR_PIN_DESLIGADO_S = 30;
+
+/** GET /api/tv/pin: ligado e quantos números. Falha de rede ou resposta torta = null ("não sei"). */
+async function perguntarEstadoDoPin(signal: AbortSignal): Promise<EstadoDoPin | null> {
+  try {
+    const resposta = await fetch(ROTA_DO_PIN, {
+      headers: { accept: "application/json" },
+      cache: "no-store",
+      credentials: "omit",
+      signal,
+    });
+    return resposta.ok ? interpretarEstadoDoPin(await resposta.json()) : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
- * A TV sem crachá: pergunta ao servidor se a entrada por PIN está ligada.
- * Ligada, mostra o teclado; desligada, o pareamento por código (o QR que um
- * admin ou gestor aprova no celular). Do teclado dá para ir ao código, e do
- * código voltar ao teclado.
+ * A TV sem crachá. O PIN é a ÚNICA entrada desde 06/10/2026 (decisão do dono,
+ * "só PIN mesmo" — o pareamento por código saiu). Pergunta ao servidor se o
+ * PIN está ligado e quantos números ele tem: ligado, o teclado; desligado, o
+ * aviso de entrada desligada, que pergunta de novo a cada 30 s em silêncio e
+ * troca para o teclado sozinho quando alguém ligar o PIN em /telas.
  *
  * Servidor fora na hora de perguntar: mostra o teclado de 4 casas com o aviso.
  * Quem decide de verdade é o POST — se o PIN estiver desligado, a resposta
- * leva a TV para o código.
+ * leva a TV para o aviso.
  */
 function SemCracha({
   motivo,
   aoEntrar,
 }: {
-  motivo: MotivoDoPareamento;
+  motivo: MotivoDaEntrada;
   aoEntrar: (token: string) => void;
 }) {
   const [modo, setModo] = useState<ModoDeEntrada>({ tipo: "perguntando" });
-  const perguntando = modo.tipo === "perguntando";
+  const tipo = modo.tipo;
 
-  // Pergunta ao montar e de novo quem volta do código para o PIN.
+  // Pergunta ao montar.
   useEffect(() => {
-    if (!perguntando) return;
+    if (tipo !== "perguntando") return;
     let vivo = true;
     const controle = new AbortController();
     const limite = window.setTimeout(() => controle.abort(), 15_000);
-    void (async () => {
-      let estado: EstadoDoPin | null = null;
-      try {
-        const resposta = await fetch(ROTA_DO_PIN, {
-          headers: { accept: "application/json" },
-          cache: "no-store",
-          credentials: "omit",
-          signal: controle.signal,
-        });
-        if (resposta.ok) estado = interpretarEstadoDoPin(await resposta.json());
-      } catch {
-        estado = null;
-      } finally {
-        window.clearTimeout(limite);
-      }
+    void perguntarEstadoDoPin(controle.signal).then((estado) => {
+      window.clearTimeout(limite);
       if (!vivo) return;
-      if (estado && !estado.ligado) setModo({ tipo: "codigo", pinLigado: false });
+      if (estado && !estado.ligado) setModo({ tipo: "desligada" });
       else if (estado?.digitos) setModo({ tipo: "pin", digitos: estado.digitos, aviso: null });
       else {
         setModo({
@@ -120,33 +125,55 @@ function SemCracha({
           },
         });
       }
-    })();
+    });
     return () => {
       vivo = false;
+      window.clearTimeout(limite);
       controle.abort();
     };
-  }, [perguntando]);
+  }, [tipo]);
+
+  // Desligada: pergunta de novo de tempos em tempos, sem apagar a tela entre
+  // uma pergunta e outra. Só sai daqui quando o servidor disser "ligado".
+  useEffect(() => {
+    if (tipo !== "desligada") return;
+    let vivo = true;
+    let controle: AbortController | null = null;
+    const id = window.setInterval(() => {
+      controle?.abort();
+      const atual = new AbortController();
+      controle = atual;
+      const limite = window.setTimeout(() => atual.abort(), 15_000);
+      void perguntarEstadoDoPin(atual.signal).then((estado) => {
+        window.clearTimeout(limite);
+        if (vivo && estado?.ligado && estado.digitos) {
+          setModo({ tipo: "pin", digitos: estado.digitos, aviso: null });
+        }
+      });
+    }, CONFERIR_PIN_DESLIGADO_S * 1000);
+    return () => {
+      vivo = false;
+      window.clearInterval(id);
+      controle?.abort();
+    };
+  }, [tipo]);
 
   if (modo.tipo === "perguntando") return null;
-  if (modo.tipo === "pin") {
+  if (modo.tipo === "desligada") {
     return (
       <Palco>
-        <EntradaPorPin
-          digitos={modo.digitos}
-          motivo={motivo}
-          avisoInicial={modo.aviso}
-          aoEntrar={aoEntrar}
-          aoUsarCodigo={() => setModo({ tipo: "codigo", pinLigado: true })}
-        />
+        <EntradaDesligada motivo={motivo} conferirACadaS={CONFERIR_PIN_DESLIGADO_S} />
       </Palco>
     );
   }
   return (
     <Palco>
-      <Pareamento
+      <EntradaPorPin
+        digitos={modo.digitos}
         motivo={motivo}
-        aoParear={aoEntrar}
-        aoUsarPin={modo.pinLigado ? () => setModo({ tipo: "perguntando" }) : undefined}
+        avisoInicial={modo.aviso}
+        aoEntrar={aoEntrar}
+        aoPinDesligado={() => setModo({ tipo: "desligada" })}
       />
     </Palco>
   );
@@ -159,7 +186,7 @@ function PainelAoVivo({
 }: {
   token: string;
   geracao: number;
-  aoRecusar: (m: Exclude<MotivoDoPareamento, null>) => void;
+  aoRecusar: (m: Exclude<MotivoDaEntrada, null>) => void;
 }) {
   const estado = usePainel(token, geracao);
   const [ligouEmMs] = useState(() => Date.now());

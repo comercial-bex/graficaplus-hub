@@ -1,7 +1,7 @@
 import { hashDoSegredo } from "@/domain/whatsapp/segredo-webhook";
 
 /**
- * O que as rotas da TV (`/api/tv/parear`, `/api/tv/pin` e `/api/tv/painel`)
+ * O que as rotas da TV (`/api/tv/pin`, `/api/tv/painel` e a encerrada `/api/tv/parear`)
  * têm em comum.
  *
  * DUAS REGRAS QUE VALEM PARA TUDO AQUI
@@ -41,10 +41,22 @@ export function bancoIndisponivel(): Response {
 }
 
 /**
+ * `/api/tv/parear` depois de 06/10/2026: a TV entra só pelo PIN (decisão do
+ * dono, "só PIN mesmo"). A rota continua existindo para a TV que ainda estiver
+ * com o pareamento antigo aberto receber um "não" claro — 410, sem ir ao banco —
+ * em vez de cair na página de "não encontrado". Recarregada, ela pede o PIN.
+ */
+export function pareamentoEncerrado(): Response {
+  return respostaTv(410, {
+    erro: "so_pin",
+    mensagem: "A TV da oficina entra só pelo PIN. Recarregue a página da TV.",
+  });
+}
+
+/**
  * De onde veio o pedido, para os freios contarem POR ORIGEM. As rotas são
- * públicas: sem isto, uma pessoa só, pedindo 20 códigos a cada 10 minutos,
- * impedia qualquer TV de conseguir o dela — e chutando PIN de vários
- * aparelhos, gastava as tentativas de todo mundo.
+ * públicas: sem isto, uma pessoa só, chutando PIN de vários aparelhos, gastava
+ * as tentativas de todo mundo e travava a entrada de todas as TVs.
  *
  * `cf-connecting-ip` vem primeiro porque é a borda que escreve, não quem
  * chama; `x-forwarded-for` quem chama consegue inventar. Sem nenhum dos três
