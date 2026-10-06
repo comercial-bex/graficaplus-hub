@@ -1,0 +1,601 @@
+{
+  "_fonte": "Cenário B da proposta do menu por áreas, aprovada pelo dono (05/10/2026): a árvore nova + as 3 portas apertadas (metragem, pós-venda, avisos) + as 2 páginas técnicas só para o admin. Calculado pelo script da proposta (arvore-nova.mjs) com a matriz perfil_permissoes de 05/10 — a mesma que rolePermissions guarda como reserva.",
+  "Harison (admin)": {
+    "areas": [
+      "Vendas",
+      "Produção",
+      "Financeiro",
+      "Administração"
+    ],
+    "rotina": [
+      "Vendas",
+      "Produção",
+      "Financeiro",
+      "Administração"
+    ],
+    "itens": 36,
+    "abas": 19,
+    "linhas": 5,
+    "atalhos": [
+      "Início",
+      "Orçamentos",
+      "Quadro de produção",
+      "Contas a receber"
+    ],
+    "arvore": [
+      {
+        "area": "Vendas",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Atendimento",
+            "itens": [
+              "WhatsApp (+3 abas)",
+              "Avisos ao cliente"
+            ]
+          },
+          {
+            "sub": "Orçamentos",
+            "itens": [
+              "Orçamentos",
+              "Aprovações do cliente"
+            ]
+          },
+          {
+            "sub": "Clientes",
+            "itens": [
+              "Clientes",
+              "Funil de vendas (+1 aba)",
+              "Parceiros revendedores",
+              "Pós-venda"
+            ]
+          },
+          {
+            "sub": "Números de venda",
+            "itens": [
+              "Meta do mês",
+              "Metragem por cliente"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Produção",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Fila da oficina",
+            "itens": [
+              "Quadro de produção",
+              "Ordens de serviço",
+              "Trabalho parado"
+            ]
+          },
+          {
+            "sub": "Máquinas",
+            "itens": [
+              "Agenda das máquinas (+2 abas)",
+              "Máquinas e manutenção (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Arte",
+            "itens": [
+              "Artes para produzir (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Entrega e qualidade",
+            "itens": [
+              "Entregas e instalações",
+              "Perdas e ocorrências (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Material e compras",
+            "itens": [
+              "Materiais e estoque (+1 aba)",
+              "Compras"
+            ]
+          },
+          {
+            "sub": "Impressão 3D",
+            "itens": [
+              "Impressão 3D (+6 abas)"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Financeiro",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Receber",
+            "itens": [
+              "Contas a receber",
+              "Pagamentos e comissões"
+            ]
+          },
+          {
+            "sub": "Pagar e caixa",
+            "itens": [
+              "Caixa e contas a pagar",
+              "Contas bancárias e extrato",
+              "Despesas fixas e contratos"
+            ]
+          },
+          {
+            "sub": "Preço e custo",
+            "itens": [
+              "Produtos e serviços",
+              "Planilha de custos (+1 aba)",
+              "Simulador de preço"
+            ]
+          },
+          {
+            "sub": "Resultado",
+            "itens": [
+              "Relatórios"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Administração",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "(sem subgrupo)",
+            "itens": [
+              "Equipe e acessos (+1 aba)",
+              "Dados da empresa",
+              "TVs da oficina",
+              "Histórico de alterações",
+              "Como o sistema funciona (+1 aba)"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Yvens (gestor)": {
+    "areas": [
+      "Vendas",
+      "Produção",
+      "Financeiro",
+      "Administração"
+    ],
+    "rotina": [
+      "Vendas",
+      "Produção"
+    ],
+    "itens": 33,
+    "abas": 13,
+    "linhas": 34,
+    "atalhos": [
+      "Início",
+      "Orçamentos",
+      "Quadro de produção",
+      "WhatsApp"
+    ],
+    "arvore": [
+      {
+        "area": "Vendas",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Atendimento",
+            "itens": [
+              "WhatsApp (+2 abas)",
+              "Avisos ao cliente"
+            ]
+          },
+          {
+            "sub": "Orçamentos",
+            "itens": [
+              "Orçamentos",
+              "Aprovações do cliente"
+            ]
+          },
+          {
+            "sub": "Clientes",
+            "itens": [
+              "Clientes",
+              "Funil de vendas (+1 aba)",
+              "Parceiros revendedores",
+              "Pós-venda"
+            ]
+          },
+          {
+            "sub": "Números de venda",
+            "itens": [
+              "Meta do mês",
+              "Metragem por cliente"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Produção",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Fila da oficina",
+            "itens": [
+              "Quadro de produção",
+              "Ordens de serviço",
+              "Trabalho parado"
+            ]
+          },
+          {
+            "sub": "Máquinas",
+            "itens": [
+              "Agenda das máquinas (+2 abas)",
+              "Máquinas e manutenção (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Arte",
+            "itens": [
+              "Artes para produzir (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Entrega e qualidade",
+            "itens": [
+              "Entregas e instalações",
+              "Perdas e ocorrências (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Material e compras",
+            "itens": [
+              "Materiais e estoque (+1 aba)",
+              "Compras"
+            ]
+          },
+          {
+            "sub": "Impressão 3D",
+            "itens": [
+              "Impressão 3D (+3 abas)"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Financeiro",
+        "rotina": false,
+        "subs": [
+          {
+            "sub": "Receber",
+            "itens": [
+              "Contas a receber",
+              "Pagamentos e comissões"
+            ]
+          },
+          {
+            "sub": "Pagar e caixa",
+            "itens": [
+              "Caixa e contas a pagar",
+              "Contas bancárias e extrato",
+              "Despesas fixas e contratos"
+            ]
+          },
+          {
+            "sub": "Preço e custo",
+            "itens": [
+              "Produtos e serviços",
+              "Planilha de custos (+1 aba)",
+              "Simulador de preço"
+            ]
+          },
+          {
+            "sub": "Resultado",
+            "itens": [
+              "Relatórios"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Administração",
+        "rotina": false,
+        "subs": [
+          {
+            "sub": "(sem subgrupo)",
+            "itens": [
+              "TVs da oficina",
+              "Histórico de alterações"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Cibele (financeiro)": {
+    "areas": [
+      "Vendas",
+      "Produção",
+      "Financeiro"
+    ],
+    "rotina": [
+      "Financeiro"
+    ],
+    "itens": 26,
+    "abas": 8,
+    "linhas": 16,
+    "atalhos": [
+      "Início",
+      "Contas a receber",
+      "Caixa e contas a pagar",
+      "Relatórios"
+    ],
+    "arvore": [
+      {
+        "area": "Vendas",
+        "rotina": false,
+        "subs": [
+          {
+            "sub": "Atendimento",
+            "itens": [
+              "Avisos ao cliente"
+            ]
+          },
+          {
+            "sub": "Orçamentos",
+            "itens": [
+              "Orçamentos",
+              "Aprovações do cliente"
+            ]
+          },
+          {
+            "sub": "Clientes",
+            "itens": [
+              "Clientes",
+              "Pós-venda"
+            ]
+          },
+          {
+            "sub": "Números de venda",
+            "itens": [
+              "Meta do mês",
+              "Metragem por cliente"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Produção",
+        "rotina": false,
+        "subs": [
+          {
+            "sub": "Fila da oficina",
+            "itens": [
+              "Ordens de serviço",
+              "Trabalho parado"
+            ]
+          },
+          {
+            "sub": "Máquinas",
+            "itens": [
+              "Agenda das máquinas (+2 abas)",
+              "Máquinas e manutenção (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Entrega e qualidade",
+            "itens": [
+              "Entregas e instalações",
+              "Perdas e ocorrências (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Material e compras",
+            "itens": [
+              "Materiais e estoque",
+              "Compras"
+            ]
+          },
+          {
+            "sub": "Impressão 3D",
+            "itens": [
+              "Impressão 3D (+3 abas)"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Financeiro",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Receber",
+            "itens": [
+              "Contas a receber",
+              "Pagamentos e comissões"
+            ]
+          },
+          {
+            "sub": "Pagar e caixa",
+            "itens": [
+              "Caixa e contas a pagar",
+              "Contas bancárias e extrato",
+              "Despesas fixas e contratos"
+            ]
+          },
+          {
+            "sub": "Preço e custo",
+            "itens": [
+              "Produtos e serviços",
+              "Planilha de custos (+1 aba)",
+              "Simulador de preço"
+            ]
+          },
+          {
+            "sub": "Resultado",
+            "itens": [
+              "Relatórios"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Leonardo (vendedor+operador)": {
+    "areas": [
+      "Vendas",
+      "Produção"
+    ],
+    "rotina": [
+      "Vendas",
+      "Produção"
+    ],
+    "itens": 20,
+    "abas": 10,
+    "linhas": 29,
+    "atalhos": [
+      "Início",
+      "Orçamentos",
+      "Quadro de produção",
+      "WhatsApp"
+    ],
+    "arvore": [
+      {
+        "area": "Vendas",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Atendimento",
+            "itens": [
+              "WhatsApp (+2 abas)",
+              "Avisos ao cliente"
+            ]
+          },
+          {
+            "sub": "Orçamentos",
+            "itens": [
+              "Orçamentos",
+              "Aprovações do cliente"
+            ]
+          },
+          {
+            "sub": "Clientes",
+            "itens": [
+              "Clientes",
+              "Funil de vendas (+1 aba)",
+              "Parceiros revendedores",
+              "Pós-venda"
+            ]
+          },
+          {
+            "sub": "Números de venda",
+            "itens": [
+              "Meta do mês",
+              "Metragem por cliente"
+            ]
+          }
+        ]
+      },
+      {
+        "area": "Produção",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Fila da oficina",
+            "itens": [
+              "Quadro de produção",
+              "Ordens de serviço",
+              "Trabalho parado"
+            ]
+          },
+          {
+            "sub": "Máquinas",
+            "itens": [
+              "Agenda das máquinas (+2 abas)",
+              "Máquinas e manutenção (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Arte",
+            "itens": [
+              "Artes para produzir (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Entrega e qualidade",
+            "itens": [
+              "Entregas e instalações",
+              "Perdas e ocorrências (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Impressão 3D",
+            "itens": [
+              "Impressão 3D (+2 abas)"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Sergio (operador)": {
+    "areas": [
+      "Produção"
+    ],
+    "rotina": [
+      "Produção"
+    ],
+    "itens": 10,
+    "abas": 7,
+    "linhas": 14,
+    "atalhos": [
+      "Início",
+      "Quadro de produção",
+      "Ordens de serviço",
+      "Agenda das máquinas"
+    ],
+    "arvore": [
+      {
+        "area": "Produção",
+        "rotina": true,
+        "subs": [
+          {
+            "sub": "Fila da oficina",
+            "itens": [
+              "Quadro de produção",
+              "Ordens de serviço",
+              "Trabalho parado"
+            ]
+          },
+          {
+            "sub": "Máquinas",
+            "itens": [
+              "Agenda das máquinas (+2 abas)",
+              "Máquinas e manutenção (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Arte",
+            "itens": [
+              "Artes para produzir (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Entrega e qualidade",
+            "itens": [
+              "Entregas e instalações",
+              "Perdas e ocorrências (+1 aba)"
+            ]
+          },
+          {
+            "sub": "Impressão 3D",
+            "itens": [
+              "Impressão 3D (+2 abas)"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

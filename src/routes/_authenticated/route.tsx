@@ -7,7 +7,7 @@ import {
   useRouter,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { destinoParaLevarAoLogin } from "@/domain/acesso/destino-apos-login";
@@ -16,39 +16,17 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { InstalarApp } from "@/components/pwa/instalar-app";
 import { ThemeToggle } from "@/components/bex/ThemeToggle";
 import { DespachanteDeAvisos } from "@/components/whatsapp/despachante-de-avisos";
+import { AbasDaTela } from "@/components/menu/abas-da-tela";
+import { LARGURA_DO_MENU, LARGURA_DO_TRILHO } from "@/components/menu/menu-lateral";
 import { getRoutePermissions, permissionLabels } from "@/lib/permissions";
+// Nome da tela pela árvore do menu — no celular o cabeçalho é a única
+// referência de "onde estou", já que o menu fica recolhido. Antes vinha do
+// pedaço da URL, e o celular mostrava "Breakdown-3d" e "A-receber".
+import { nomeDaTela } from "@/lib/menu";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
 });
-
-// Nome da tela pelo 1º segmento da URL — no celular o cabeçalho é a única
-// referência de "onde estou", já que o menu fica recolhido.
-const NOMES_DE_TELA: Record<string, string> = {
-  dashboard: "Início",
-  os: "Ordens de serviço",
-  kanban: "Quadro de produção",
-  orcamentos: "Orçamentos",
-  catalogos: "Catálogos",
-  clientes: "Clientes",
-  produtos: "Produtos",
-  materiais: "Materiais",
-  financeiro: "Financeiro",
-  parceiros: "Parceiros",
-  usuarios: "Usuários",
-  relatorios: "Relatórios",
-  maquinas: "Máquinas",
-  whatsapp: "WhatsApp",
-  configuracoes: "Meu perfil",
-  precificacao: "Simulador de preço",
-  telas: "TVs da oficina",
-};
-
-function nomeDaTela(pathname: string) {
-  const segmento = pathname.split("/").filter(Boolean)[0] ?? "";
-  if (!segmento) return "Início";
-  return NOMES_DE_TELA[segmento] ?? segmento.charAt(0).toUpperCase() + segmento.slice(1);
-}
 
 function AuthenticatedLayout() {
   const { user, loading, hasPermission, roles, signOut } = useAuth();
@@ -134,7 +112,13 @@ function AuthenticatedLayout() {
   }
 
   return (
-    <SidebarProvider>
+    // Trilho de módulos (4rem) + painel: aberto, o menu tem 20,5rem; recolhido,
+    // sobra o trilho. Os valores moram em menu-lateral.tsx, ao lado do desenho.
+    <SidebarProvider
+      style={
+        { "--sidebar-width": LARGURA_DO_MENU, "--sidebar-width-icon": LARGURA_DO_TRILHO } as CSSProperties
+      }
+    >
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
@@ -177,6 +161,9 @@ function AuthenticatedLayout() {
             {canAccessRoute ? (
               <>
                 <AlertaWhatsapp />
+                {/* As telas que moram atrás da mesma entrada do menu (o hub):
+                    uma barra só, aqui, em vez de cada tela desenhar a sua. */}
+                <AbasDaTela />
                 <Outlet />
               </>
             ) : (

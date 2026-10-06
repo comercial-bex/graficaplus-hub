@@ -150,12 +150,17 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/contas-bancarias", permissions: ["financeiro.read"] },
   { path: "/fluxo-caixa", permissions: ["financeiro.read"] },
   { path: "/compromissos", permissions: ["financeiro.read"] },
-  { path: "/avisos", permissions: ["os.read", "orcamentos.read"] },
+  // Avisos ao cliente é fila de quem fala com o cliente: quem lê orçamento ou
+  // responde no WhatsApp. Abria com os.read e chegava ao operador, que não
+  // avisa ninguém — decisão do dono em 06/10/2026, com o menu por áreas.
+  { path: "/avisos", permissions: ["orcamentos.read", "whatsapp.reply"] },
   { path: "/manutencao", permissions: ["manutencao.read", "os.read"] },
   { path: "/design", permissions: ["arquivos.read", "arquivos.approve"] },
   { path: "/produtos", permissions: ["custos.read"] },
   { path: "/aprovacoes", permissions: ["orcamentos.read", "arquivos.approve"] },
-  { path: "/metragem", permissions: ["orcamentos.read", "os.read"] },
+  // Metragem por cliente é número de venda (Vendas › Números de venda): pede
+  // leitura de orçamento. Com os.read ela chegava ao operador (06/10/2026).
+  { path: "/metragem", permissions: ["orcamentos.read"] },
   // "/metragem" ANTES de "/meta": o casamento é exato ou por "/meta/", então
   // hoje não há conflito — mas a ordem deixa a regra escrita caso o find()
   // volte a ser um startsWith solto, como já foi.
@@ -165,12 +170,20 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/ocorrencias", permissions: ["os.read"] },
   { path: "/relatorios", permissions: ["resultado.read"] },
   { path: "/portal-cliente", permissions: ["portal.read", "clientes.read"] },
-  { path: "/pos-venda", permissions: ["os.read", "orcamentos.read"] },
+  // Pós-venda é do relacionamento com o cliente (Vendas › Clientes), não da
+  // oficina: sem os.read na lista, o operador deixa de ver (06/10/2026).
+  { path: "/pos-venda", permissions: ["orcamentos.read"] },
   { path: "/logs", permissions: ["logs.read"] },
   { path: "/usuarios", permissions: ["usuarios.read"] },
   { path: "/matriz-permissoes", permissions: ["usuarios.read"] },
-  { path: "/casos-de-uso", permissions: ["os.read"] },
-  { path: "/mapa-sistema", permissions: ["os.read"] },
+  // Casos de uso e Mapa do sistema são documentação técnica: só o admin
+  // (decisão do dono, 06/10/2026). A porta é usuarios.manage — administrar a
+  // equipe —, que no banco e aqui só o admin tem. configuracoes.manage era a
+  // escolha original e deixou de servir: em 06/10 o gestor a recebeu pela
+  // Matriz de permissões, junto com outras 25. usuarios.read também não: é a
+  // chave que se daria a alguém só para ver a lista da equipe.
+  { path: "/casos-de-uso", permissions: ["usuarios.manage"] },
+  { path: "/mapa-sistema", permissions: ["usuarios.manage"] },
   // Mais específico antes do genérico: getRoutePermissions usa find() e casa por
   // prefixo, então "/configuracoes-empresa" precisa ser avaliado antes de
   // "/configuracoes" para não depender do detalhe da barra no startsWith.

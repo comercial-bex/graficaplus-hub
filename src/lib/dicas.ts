@@ -551,6 +551,37 @@ export function dicaTela(rota: string): string | undefined {
 }
 
 /**
+ * Dica de uma entrada do menu que junta várias telas (o "hub" do WhatsApp, da
+ * Impressão 3D…): a frase da tela para onde o clique leva e, depois, as outras
+ * telas que moram atrás da mesma entrada — sem isso, quem procurava "Leads"
+ * não teria como saber que ele mora dentro de Funil de vendas.
+ */
+export function dicaDoItemDoMenu(rota: string, outrasTelas: readonly string[] = []): string | undefined {
+  const base = dicaMenu(rota);
+  if (outrasTelas.length === 0) return base;
+  const lista =
+    outrasTelas.length === 1
+      ? outrasTelas[0]
+      : `${outrasTelas.slice(0, -1).join(", ")} e ${outrasTelas[outrasTelas.length - 1]}`;
+  return [base, `Aqui também: ${lista}.`].filter(Boolean).join(" ");
+}
+
+/** Textos do próprio menu lateral: a busca e as contagens ao lado dos itens. */
+export const dicasDoMenu = {
+  busca:
+    "Procure qualquer tela que você abre pelo nome — o nome antigo do menu também vale. Atalho: Ctrl+K (⌘K no Mac).",
+  contagemFalhou: "Não deu para contar agora. A contagem tenta de novo sozinha em alguns minutos.",
+  /** Completa a frase "N …" ao lado do item. */
+  contagens: {
+    avisosPendentes: "avisos ao cliente esperando envio (sem contar os órfãos)",
+    pediuAjuste: "orçamentos em que o cliente pediu ajuste",
+    parcelasVencidas: "parcelas vencidas e ainda não recebidas",
+    osAtrasadas: "ordens de serviço atrasadas",
+    artesAguardando: "artes aguardando aprovação",
+  },
+} as const;
+
+/**
  * Normaliza o rótulo para casar com a chave da dica.
  *
  * As telas passam o texto do rótulo como está na interface ("Custo unitário

@@ -15,6 +15,7 @@ import {
   rotulosDoPapel,
   type PapelResolvedor,
 } from "../src/lib/pendenciasGuia";
+import { AREAS } from "../src/lib/menu";
 
 describe("rotulosDoPapel", () => {
   it("o impressor vê a fila da oficina", () => {
@@ -87,5 +88,28 @@ describe("nenhuma pendência fica sem quem a veja", () => {
       expect(guia.passos.length, `${chave} sem passos`).toBeGreaterThanOrEqual(2);
       expect(guia.passos.length, `${chave} com passos demais`).toBeLessThanOrEqual(4);
     }
+  });
+});
+
+describe("o caminho do guia é o do menu de verdade", () => {
+  // O guia diz "Abra Área › Item" com as palavras do menu. Quando o menu virou
+  // áreas (06/10/2026), "Comercial › Orçamentos", "Cadastros › Produtos" e
+  // "Estoque › Materiais" passaram a mandar a pessoa procurar um grupo que não
+  // existe mais — e três deles já não existiam nem no menu antigo.
+  it("todo 'Área › Item' do guia é uma área do menu seguida de um item dela", () => {
+    const areas = new Map(
+      AREAS.map((a) => [a.label, a.subgrupos.flatMap((s) => s.itens.map((i) => i.title))] as const),
+    );
+    const errados: string[] = [];
+    for (const [chave, guia] of Object.entries(GUIA_PENDENCIAS)) {
+      for (const passo of guia.passos) {
+        for (const m of passo.matchAll(/(\S+) › /g)) {
+          const itens = areas.get(m[1]);
+          const resto = passo.slice((m.index ?? 0) + m[0].length);
+          if (!itens || !itens.some((t) => resto.startsWith(t))) errados.push(`${chave}: ${passo}`);
+        }
+      }
+    }
+    expect(errados).toEqual([]);
   });
 });

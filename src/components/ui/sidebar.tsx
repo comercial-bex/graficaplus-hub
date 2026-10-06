@@ -156,6 +156,8 @@ const Sidebar = React.forwardRef<
     side?: "left" | "right";
     variant?: "sidebar" | "floating" | "inset";
     collapsible?: "offcanvas" | "icon" | "none";
+    /** Largura do painel no celular (padrão 18rem). O menu por módulos pede mais: trilho + painel. */
+    larguraNoCelular?: string;
   }
 >(
   (
@@ -163,6 +165,7 @@ const Sidebar = React.forwardRef<
       side = "left",
       variant = "sidebar",
       collapsible = "offcanvas",
+      larguraNoCelular = SIDEBAR_WIDTH_MOBILE,
       className,
       children,
       ...props
@@ -195,7 +198,7 @@ const Sidebar = React.forwardRef<
             className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+                "--sidebar-width": larguraNoCelular,
               } as React.CSSProperties
             }
             side={side}

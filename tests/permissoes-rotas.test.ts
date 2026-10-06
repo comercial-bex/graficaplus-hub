@@ -7,6 +7,7 @@ import {
   rolePermissions,
   routePermissions,
 } from "../src/lib/permissions";
+import { urlsDaArvore } from "../src/lib/menu";
 
 const RAIZ = path.resolve(__dirname, "..");
 
@@ -22,9 +23,13 @@ function rotasEmDisco() {
   return [...new Set(nomes)];
 }
 
+// Desde 06/10/2026 o menu é a árvore por áreas de src/lib/menu.ts (itens e
+// abas). Lia-se o app-sidebar.tsx por expressão regular; depois da troca, a
+// leitura antiga devolveria lista vazia e o teste passaria sem olhar nada.
 function urlsDoMenu() {
-  const src = fs.readFileSync(path.join(RAIZ, "src/components/app-sidebar.tsx"), "utf8");
-  return [...src.matchAll(/url:\s*"([^"]+)"/g)].map((m) => m[1]);
+  const urls = urlsDaArvore();
+  expect(urls.length).toBeGreaterThan(50);
+  return urls;
 }
 
 describe("mapa de rotas", () => {

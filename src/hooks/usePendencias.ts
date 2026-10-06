@@ -30,10 +30,18 @@ export interface Pendencia {
   link: string;
 }
 
-export function usePendencias() {
+/**
+ * `enabled` e `refetchInterval` existem para o menu lateral: ele lê daqui a
+ * contagem de parcelas vencidas, na mesma chave do painel — uma chamada só
+ * serve aos dois, e a baixa em Contas a receber (que invalida esta chave)
+ * atualiza o número do menu na hora.
+ */
+export function usePendencias(opcoes: { enabled?: boolean; refetchInterval?: number } = {}) {
   return useQuery({
     queryKey: ["pendencias-do-sistema"],
     staleTime: 2 * 60 * 1000,
+    enabled: opcoes.enabled ?? true,
+    refetchInterval: opcoes.refetchInterval,
     queryFn: async (): Promise<Pendencia[]> => {
       // `as any` no nome da RPC: o types.ts é gerado pelo Lovable e ainda não
       // conhece funções aplicadas por migração. Mesmo escape do resto do projeto.
