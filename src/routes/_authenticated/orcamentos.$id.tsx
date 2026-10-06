@@ -2,14 +2,24 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { QuemTrouxeAVenda } from "@/components/os/quem-trouxe-a-venda";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -26,19 +36,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertTriangle,
+  ArrowDown,
   ArrowLeft,
-  Plus,
-  Trash2,
   ArrowRight,
-  FileDown,
-  Printer,
-  Link as LinkIcon,
-  MessageCircle,
-  Loader2,
+  ArrowUp,
   Copy,
-  TrendingDown,
-  CreditCard,
+  FileDown,
+  Link as LinkIcon,
+  Loader2,
   Lock,
+  MessageCircle,
+  Pencil,
+  Plus,
+  Printer,
+  Save,
+  Trash2,
+  TrendingDown,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -46,7 +61,6 @@ import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { OrcamentoProdutoPicker } from "@/components/orcamento-produto-picker";
 import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
-import { PrazosCard } from "@/components/orcamento/prazos-card";
 import {
   RestricaoDoProduto,
   useRestricaoProduto,
@@ -56,7 +70,23 @@ import {
   useContextoDeBobina,
 } from "@/components/orcamento/aproveitamento-card";
 import { OrcamentoMaterialCheck } from "@/components/orcamento-material-check";
-import { OrcamentoItemArtes } from "@/components/orcamento-item-artes";
+import {
+  DialogoDeLayouts,
+  LayoutsDoItem,
+  LayoutsDoRascunho,
+  MiniaturaDoItem,
+  reordenar,
+  useCapasDosItens,
+  vincularLayouts,
+  type LayoutRascunho,
+} from "@/components/orcamento/layouts-do-item";
+import {
+  COLUNAS_DO_ACORDO,
+  EntregaEPrazos,
+  Observacoes,
+  Pagamento,
+  type AcordoDoOrcamento,
+} from "@/components/orcamento/acordo-do-orcamento";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
@@ -65,10 +95,10 @@ import {
   areaUnitaria,
   descreverMetragem,
   ehUnidadeDeArea,
+  precoM2Implicito,
   somaAreaTotal,
   temDimensoes,
   valorUnitarioComMinimo,
-
 } from "@/domain/orcamentos/area";
 import {
   descreverFaixa,
@@ -76,10 +106,13 @@ import {
   proximaFaixa,
   type FaixaPreco,
 } from "@/domain/orcamentos/faixas";
+import { brl, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
 import { mensagemErro } from "@/lib/erros";
+import { cn } from "@/lib/utils";
 
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaAcao, dicaTela } from "@/lib/dicas";
+
 const itemVazio = {
   descricao: "",
   quantidade: "1",
@@ -87,14 +120,12 @@ const itemVazio = {
   largura: "",
   altura: "",
   acabamento: "",
+  tipo_produto: "",
+  especificacao: "",
   preco_m2: "",
   valor_unitario: "0",
   custo_unitario: "0",
   produto_id: null as string | null,
-  arquivo_id: null as string | null,
-  arquivo_nome: null as string | null,
-  arquivos_extras: [] as { id: string; nome: string }[],
-  tipo_produto: "",
   area_minima: null as number | null,
   margem_minima: null as number | null,
   tempo_producao_min: null as number | null,
@@ -105,7 +136,6 @@ const itemVazio = {
   margem_prevista: null as number | null,
   parametros: null as Record<string, unknown> | null,
 };
-
 
 const paraNumero = (texto: string) => {
   const n = Number(String(texto).replace(",", "."));
@@ -130,6 +160,23 @@ const statusTone: Record<string, "cyan" | "magenta" | "lime" | "amber" | "muted"
   convertido: "lime",
 };
 
+/** O status como se fala na gráfica (o valor gravado continua o do enum). */
+const ROTULO_DO_STATUS: Record<string, string> = {
+  rascunho: "Rascunho",
+  enviado: "Enviado ao cliente",
+  aprovado: "Aprovado",
+  rejeitado: "Recusado",
+  expirado: "Expirado",
+  convertido: "Virou OS",
+};
+
+/** Onde cada pendência se resolve: o aviso do topo leva até o campo. */
+const ONDE_RESOLVER: Record<string, string> = {
+  "data de entrega": "acordo-entrega",
+  "condição de pagamento": "acordo-pagamento",
+  itens: "itens-do-orcamento",
+};
+
 export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
   head: () => ({ meta: [{ title: "Orçamento — BEX PRINT OS" }] }),
   component: OrcamentoDetailPage,
@@ -145,7 +192,19 @@ function OrcamentoDetailPage() {
   // orçamento é `orcamentos.update` (o vendedor também tem).
   const podeConverter = hasPermission("orcamentos.convert");
   const podeEditar = hasPermission("orcamentos.update");
+  // Mandar ao cliente (link e WhatsApp) é `orcamentos.send`: o banco recusa a
+  // geração do link para quem não tem (`orcamento_link_publico`), então o
+  // botão nem aparece — antes ele estourava "Orçamento não encontrado".
+  const podeMandar = hasPermission("orcamentos.send");
   const [form, setForm] = useState({ ...itemVazio });
+  // Artes do item ainda não gravado: já estão no Storage, esperando o item.
+  const [layoutsRascunho, setLayoutsRascunho] = useState<LayoutRascunho[]>([]);
+  // Item em edição: o mesmo formulário, preenchido, com "Salvar alterações".
+  const [editando, setEditando] = useState<{ id: string; numero: number } | null>(null);
+  const [salvandoItem, setSalvandoItem] = useState(false);
+  const [aRemover, setARemover] = useState<{ id: string; descricao: string; numero: number } | null>(null);
+  const [artesDe, setArtesDe] = useState<{ id: string; descricao: string; numero: number } | null>(null);
+  const formulario = useRef<HTMLDivElement>(null);
   const [calculadoraAberta, setCalculadoraAberta] = useState(false);
   // Exigência legal do produto (limite eleitoral, por exemplo). Sem gate de
   // financeiro: é informação de venda e de produção, não de dinheiro.
@@ -156,8 +215,6 @@ function OrcamentoDetailPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewProducaoOpen, setPreviewProducaoOpen] = useState(false);
   const [gerandoLink, setGerandoLink] = useState(false);
-  const [enviandoLayout, setEnviandoLayout] = useState(false);
-
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id, nivelDeVisao],
@@ -171,46 +228,41 @@ function OrcamentoDetailPage() {
     },
   });
 
-  // Prazos e condição de pagamento NÃO existem nas views orcamentos_* — pedir
-  // essas colunas lá derrubaria a consulta inteira (armadilha nº 1). Não são
-  // dinheiro, então vêm da tabela base com as colunas listadas na mão, sem
-  // `select("*")` para não trazer custo junto por acidente.
-  // A chave começa com ["orcamento", id] de propósito: é o prefixo que o
-  // PrazosCard invalida depois de gravar.
-  const { data: acordo } = useQuery({
+  // Prazos, entrega, condição de pagamento e observações NÃO existem nas views
+  // orcamentos_* — pedir essas colunas lá derrubaria a consulta inteira. Não
+  // são dinheiro, então vêm da tabela base com as colunas listadas na mão, sem
+  // `select("*")` para não trazer custo junto por acidente. A chave começa com
+  // ["orcamento", id]: é o prefixo que o quadro lateral invalida ao gravar.
+  const acordo = useQuery({
     queryKey: ["orcamento", id, "acordo"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("orcamentos")
-        .select(
-          "id, status, created_at, data_inicio, prazo, data_entrega_prometida, validade_dias, condicao_pagamento",
-        )
+        .select(COLUNAS_DO_ACORDO)
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return data as {
-        id: string;
-        status: string;
-        created_at: string | null;
-        data_inicio: string | null;
-        prazo: string | null;
-        data_entrega_prometida: string | null;
-        validade_dias: number | null;
-        condicao_pagamento: Record<string, unknown> | null;
-      } | null;
+      return data as AcordoDoOrcamento | null;
     },
   });
 
-  const { data: itens = [] } = useQuery({
+  // Falha na lista não pode virar "Sem itens": o vendedor adicionaria de novo.
+  const consultaItens = useQuery({
     queryKey: ["orc-itens", id, nivelDeVisao],
-    queryFn: async () =>
-      (
-        await fromFinancialView("orcamento_itens", nivelDeVisao)
-          .select("*")
-          .eq("orcamento_id", id)
-          .order("ordem")
-      ).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await fromFinancialView("orcamento_itens", nivelDeVisao)
+        .select("*")
+        .eq("orcamento_id", id)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
   });
+  const itens = consultaItens.data ?? [];
+  const capas = useCapasDosItens(
+    id,
+    itens.map((i) => i.id as string),
+  );
 
   // Tamanhos do produto escolhido no catálogo. Só busca quando há produto: item
   // digitado à mão não tem preset para oferecer.
@@ -256,12 +308,11 @@ function OrcamentoDetailPage() {
   // Tamanho marcado como padrão entra sozinho: é a medida que a gráfica mais
   // vende daquele produto, e medida redigitada é onde nasce erro de produção.
   useEffect(() => {
-    if (!form.produto_id || form.largura || form.altura) return;
+    if (!form.produto_id || form.largura || form.altura || editando) return;
     const padrao = tamanhos.find((t) => t.padrao);
     if (padrao) aplicarTamanho(padrao);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tamanhos, form.produto_id]);
-
 
   async function recalcular() {
     if (!canSeePrices) return;
@@ -274,9 +325,13 @@ function OrcamentoDetailPage() {
     // A lista de colunas depende do nível: `custo_unitario` só existe na view
     // financeira. Pedir a coluna à view comercial faz o PostgREST devolver erro
     // e `atuais` vem vazio — o total voltaria a zero em silêncio.
-    const { data: atuais } = await fromFinancialView("orcamento_itens", nivelDeVisao)
+    const { data: atuais, error } = await fromFinancialView("orcamento_itens", nivelDeVisao)
       .select(canSeeFinancials ? "valor_total, custo_unitario, quantidade" : "valor_total, quantidade")
       .eq("orcamento_id", id);
+    if (error) {
+      toast.error(mensagemErro(error, "Não foi possível recalcular o total"));
+      return;
+    }
     const lista = (atuais ?? []) as {
       valor_total: number | null;
       custo_unitario?: number | null;
@@ -292,8 +347,9 @@ function OrcamentoDetailPage() {
     // vendedor atualiza só os totais de venda; o custo fica como estava.
     const totais: any = { valor_subtotal: subtotal, valor_total: subtotal };
     if (canSeeFinancials) totais.custo_estimado = custo;
-    await supabase.from("orcamentos").update(totais).eq("id", id);
-    qc.invalidateQueries({ queryKey: ["orcamento", id] });
+    const { error: erroTotais } = await supabase.from("orcamentos").update(totais).eq("id", id);
+    if (erroTotais) toast.error(mensagemErro(erroTotais, "Não foi possível gravar o total"));
+    await qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }
 
   // Dimensões do item em edição, para mostrar a área antes de gravar.
@@ -373,141 +429,202 @@ function OrcamentoDetailPage() {
     }));
   }
 
-
-  async function enviarLayout(arquivo: File) {
-    setEnviandoLayout(true);
-    try {
-      const extensao = arquivo.name.split(".").pop() ?? "bin";
-      const caminho = `orcamento/${id}/${Date.now()}.${extensao}`;
-      const { error: erroUpload } = await supabase.storage
-        .from("arquivos-clientes")
-        .upload(caminho, arquivo, { contentType: arquivo.type });
-      if (erroUpload) throw erroUpload;
-
-      const { data: registro, error: erroRegistro } = await supabase
-        .from("arquivos")
-        .insert({
-          nome: arquivo.name,
-          caminho,
-          // tipo 'arte' é o que a produção procura como layout a imprimir
-          tipo: "arte",
-          cliente_id: (orc as any)?.cliente_id ?? null,
-          tamanho_bytes: arquivo.size,
-        } as any)
-        .select("id, nome")
-        .single();
-      if (erroRegistro) throw erroRegistro;
-
-      const novo = { id: (registro as any).id as string, nome: (registro as any).nome as string };
-      setForm((atual) =>
-        atual.arquivo_id
-          ? { ...atual, arquivos_extras: [...atual.arquivos_extras, novo] }
-          : { ...atual, arquivo_id: novo.id, arquivo_nome: novo.nome },
-      );
-      toast.success(`Layout "${novo.nome}" anexado`);
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Falha ao enviar o layout");
-    } finally {
-      setEnviandoLayout(false);
-    }
+  function limparFormulario() {
+    for (const l of layoutsRascunho) if (l.previa) URL.revokeObjectURL(l.previa);
+    setForm({ ...itemVazio });
+    setLayoutsRascunho([]);
+    setEditando(null);
   }
 
-  async function addItem() {
-    if (!form.descricao) return toast.error("Descrição obrigatória");
+  /**
+   * Carrega um item gravado no formulário para corrigir. Antes só dava para
+   * apagar e digitar de novo — e perder as artes junto.
+   *
+   * O preço/m² não é legível (fica fora das views), então volta como o preço
+   * por m² EMBUTIDO no valor unitário: mexer na medida continua escalando o
+   * preço como antes.
+   */
+  function editarItem(i: any, numero: number) {
+    const dims = { largura: Number(i.largura ?? 0), altura: Number(i.altura ?? 0), quantidade: Number(i.quantidade ?? 1) };
+    const porArea = temDimensoes(dims) && ehUnidadeDeArea(i.unidade);
+    const precoM2 = porArea ? precoM2Implicito(dims, Number(i.valor_unitario ?? 0)) : null;
+    for (const l of layoutsRascunho) if (l.previa) URL.revokeObjectURL(l.previa);
+    setLayoutsRascunho([]);
+    setForm({
+      ...itemVazio,
+      descricao: String(i.descricao ?? ""),
+      quantidade: String(i.quantidade ?? 1),
+      unidade: String(i.unidade ?? "un"),
+      largura: i.largura != null ? String(i.largura) : "",
+      altura: i.altura != null ? String(i.altura) : "",
+      acabamento: String(i.acabamento ?? ""),
+      tipo_produto: String(i.tipo_produto ?? ""),
+      especificacao: String(i.especificacao ?? ""),
+      preco_m2: precoM2 && precoM2 > 0 ? String(precoM2) : "",
+      valor_unitario: String(i.valor_unitario ?? 0),
+      custo_unitario: String(i.custo_unitario ?? 0),
+      produto_id: (i.produto_id as string | null) ?? null,
+      area_minima: i.area_minima != null ? Number(i.area_minima) : null,
+    });
+    setEditando({ id: i.id as string, numero });
+    formulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function salvarItem() {
+    if (!form.descricao.trim()) return toast.error("Escreva a descrição do item.");
     if (vendidoPorArea && areaUnitaria(dimensoesForm) <= 0) {
-      return toast.error("Largura e altura devem ser maiores que zero");
+      return toast.error("Largura e altura devem ser maiores que zero.");
     }
     const qtd = paraNumero(form.quantidade) || 1;
     // valor_total e (quando há preço/m²) valor_unitario são derivados pelo
-    // trigger tg_orcamento_itens_precificar — não são enviados daqui para não
-    // haver dois lugares calculando o mesmo número.
-    const { data: novoItem, error } = await supabase.from("orcamento_itens").insert({
-      orcamento_id: id,
-      descricao: form.descricao,
+    // trigger tg_orcamento_itens_precificar, no INSERT e no UPDATE.
+    const campos: Record<string, unknown> = {
+      descricao: form.descricao.trim(),
       quantidade: qtd,
       unidade: form.unidade,
       largura: vendidoPorArea ? dimensoesForm.largura : null,
       altura: vendidoPorArea ? dimensoesForm.altura : null,
       acabamento: form.acabamento.trim() || null,
       tipo_produto: form.tipo_produto.trim() || null,
-      preco_m2: canSeePrices && precoM2Form > 0 ? precoM2Form : null,
-      valor_unitario: canSeePrices ? paraNumero(form.valor_unitario) : 0,
-      custo_unitario: paraNumero(form.custo_unitario),
-      ordem: itens.length,
+      especificacao: form.especificacao.trim() || null,
       produto_id: form.produto_id,
-      arquivo_id: form.arquivo_id,
       origem_calculo: form.origem_calculo,
-      // `custo_previsto` e `parametros` são NOT NULL com padrão no banco, e o
-      // formulário começa os dois em null (só o motor de custo os preenche).
-      // Mandar null EXPLÍCITO anula o padrão: o insert morria com
-      // "null value in column custo_previsto", que a tela traduzia como
-      // "Preencha todos os campos obrigatórios" — sem dizer qual campo, e sem
-      // nenhum campo vazio na tela. Resultado: item manual nunca era added.
-      custo_previsto: form.custo_previsto ?? 0,
-      margem_prevista: form.margem_prevista,
-      parametros: form.parametros ?? {},
-    } as any).select("id").single();
-    if (error) return toast.error(mensagemErro(error));
-    // a arte enviada no formulário vira a capa do item; as demais são
-    // anexadas depois pelo botão de artes na linha
-    if (form.arquivo_id && (novoItem as any)?.id) {
-      const itemId = (novoItem as any).id;
-      await (supabase as any).from("orcamento_item_arquivos").insert([
-        { item_id: itemId, arquivo_id: form.arquivo_id, capa: true, ordem: 0 },
-        ...form.arquivos_extras.map((a, n) => ({
-          item_id: itemId,
-          arquivo_id: a.id,
-          capa: false,
-          ordem: n + 1,
-        })),
-      ]);
+    };
+    if (canSeePrices) {
+      campos.preco_m2 = precoM2Form > 0 ? precoM2Form : null;
+      campos.valor_unitario = valorUnitarioEfetivo;
     }
-    setForm({ ...itemVazio });
+
+    setSalvandoItem(true);
+    try {
+      if (editando) {
+        // Na edição, custo só vai quando quem edita enxerga custo: o vendedor
+        // gravaria 0 por cima do custo que o financeiro calculou.
+        if (canSeeFinancials) {
+          campos.custo_unitario = custoUnitarioForm;
+          campos.custo_previsto = form.custo_previsto ?? 0;
+          campos.margem_prevista = form.margem_prevista;
+          campos.parametros = form.parametros ?? {};
+        }
+        const { data, error } = await (supabase as any)
+          .from("orcamento_itens")
+          .update(campos)
+          .eq("id", editando.id)
+          .select("id");
+        if (error) throw error;
+        if (!data || data.length === 0) throw new Error("Seu perfil não pode alterar este item.");
+        toast.success(`Item ${editando.numero} atualizado`);
+      } else {
+        const { data: novo, error } = await (supabase as any)
+          .from("orcamento_itens")
+          .insert({
+            ...campos,
+            orcamento_id: id,
+            ordem: itens.length,
+            valor_unitario: canSeePrices ? valorUnitarioEfetivo : 0,
+            custo_unitario: custoUnitarioForm,
+            arquivo_id: layoutsRascunho[0]?.arquivo_id ?? null,
+            // `custo_previsto` e `parametros` são NOT NULL com padrão no banco,
+            // e o formulário começa os dois em null (só o motor de custo os
+            // preenche). Mandar null EXPLÍCITO anula o padrão e o insert morre.
+            custo_previsto: form.custo_previsto ?? 0,
+            margem_prevista: form.margem_prevista,
+            parametros: form.parametros ?? {},
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        try {
+          await vincularLayouts((novo as { id: string }).id, layoutsRascunho);
+        } catch (e) {
+          toast.error(mensagemErro(e, "O item entrou, mas as artes não foram ligadas a ele. Anexe de novo pela linha do item."));
+        }
+        toast.success("Item adicionado");
+      }
+      limparFormulario();
+      await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+      await qc.invalidateQueries({ queryKey: ["orc-capas", id] });
+      await recalcular();
+    } catch (e) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setSalvandoItem(false);
+    }
+  }
+
+  async function removerItem(itemId: string) {
+    const { data, error } = await supabase.from("orcamento_itens").delete().eq("id", itemId).select("id");
+    if (error) return toast.error(mensagemErro(error));
+    if (!data || data.length === 0) return toast.error("Seu perfil não pode tirar itens deste orçamento.");
+    toast.success("Item tirado do orçamento");
+    if (editando?.id === itemId) limparFormulario();
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
     await recalcular();
   }
 
-  async function removeItem(itemId: string) {
-    await supabase.from("orcamento_itens").delete().eq("id", itemId);
-    await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
-    await recalcular();
+  /** Muda a posição do item: é a numeração do PDF e da OS. */
+  async function moverItem(indice: number, passo: -1 | 1) {
+    const nova = reordenar(itens, indice, indice + passo);
+    if (nova === itens) return;
+    try {
+      for (const [ordem, item] of nova.entries()) {
+        if (Number(item.ordem) === ordem) continue;
+        const { error } = await supabase
+          .from("orcamento_itens")
+          .update({ ordem } as never)
+          .eq("id", item.id);
+        if (error) throw error;
+      }
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível mudar a ordem"));
+    } finally {
+      await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+    }
   }
 
-  /** Copia o item para a lista: mesma arte e mesmo preço, medida ajustável. */
+  /** Copia o item: mesma descrição, preço e TODAS as artes, medida ajustável. */
   async function duplicarItem(item: any) {
+    const copia: Record<string, unknown> = {
+      orcamento_id: id,
+      descricao: item.descricao,
+      quantidade: item.quantidade,
+      unidade: item.unidade,
+      largura: item.largura,
+      altura: item.altura,
+      acabamento: item.acabamento,
+      tipo_produto: item.tipo_produto ?? null,
+      especificacao: item.especificacao ?? null,
+      valor_unitario: canSeePrices ? item.valor_unitario : 0,
+      ordem: itens.length,
+      produto_id: item.produto_id,
+      arquivo_id: item.arquivo_id,
+    };
+    // custo só existe na view financeira; sem ele, o banco usa o padrão
+    if (item.custo_unitario != null) copia.custo_unitario = item.custo_unitario;
     const { data: novo, error } = await (supabase as any)
       .from("orcamento_itens")
-      .insert({
-        orcamento_id: id,
-        descricao: item.descricao,
-        quantidade: item.quantidade,
-        unidade: item.unidade,
-        largura: item.largura,
-        altura: item.altura,
-        acabamento: item.acabamento,
-        preco_m2: canSeePrices ? item.preco_m2 : null,
-        valor_unitario: canSeePrices ? item.valor_unitario : 0,
-        custo_unitario: item.custo_unitario,
-        ordem: itens.length,
-        produto_id: item.produto_id,
-        arquivo_id: item.arquivo_id,
-      })
+      .insert(copia)
       .select("id")
       .single();
     if (error) return toast.error(mensagemErro(error));
-    if (item.arquivo_id && novo?.id) {
-      await (supabase as any).from("orcamento_item_arquivos").insert({
-        item_id: novo.id,
-        arquivo_id: item.arquivo_id,
-        capa: true,
-        ordem: 0,
-      });
+    const { data: vinculos, error: erroVinculos } = await (supabase as any)
+      .from("orcamento_item_arquivos")
+      .select("arquivo_id, capa, ordem")
+      .eq("item_id", item.id)
+      .order("capa", { ascending: false })
+      .order("ordem");
+    if (!erroVinculos && vinculos?.length) {
+      try {
+        await vincularLayouts(novo.id, vinculos as { arquivo_id: string }[]);
+      } catch (e) {
+        toast.error(mensagemErro(e, "O item foi copiado sem as artes"));
+      }
     }
     toast.success("Item duplicado");
     await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+    await qc.invalidateQueries({ queryKey: ["orc-capas", id] });
     await recalcular();
   }
-
 
   /** Link de aprovação do cliente: mesma URL sempre, gerada uma única vez. */
   async function obterLinkCliente() {
@@ -529,6 +646,10 @@ function OrcamentoDetailPage() {
   }
 
   async function enviarWhatsApp() {
+    // A janela abre NO CLIQUE: aberta depois de um await, o Safari trata como
+    // pop-up e bloqueia sem avisar. Depois o endereço é trocado pelo do WhatsApp.
+    const janela = window.open("", "_blank");
+    if (janela) janela.opener = null;
     setGerandoLink(true);
     try {
       const url = await obterLinkCliente();
@@ -540,19 +661,16 @@ function OrcamentoDetailPage() {
       ).replace(/\D/g, "");
       const destino = telefone ? (telefone.length > 11 ? telefone : `55${telefone}`) : "";
       const texto = `Olá! Segue o orçamento nº ${(orc as any).numero} — ${(orc as any).titulo}.\nVocê pode conferir e aprovar por aqui: ${url}`;
-      window.open(
-        `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`,
-        "_blank",
-        "noopener",
-      );
+      const endereco = `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`;
+      if (janela) janela.location.href = endereco;
+      else window.location.href = endereco;
     } catch (e) {
+      janela?.close();
       toast.error(mensagemErro(e, "Não foi possível abrir o WhatsApp"));
     } finally {
       setGerandoLink(false);
     }
   }
-
-
 
   async function setStatus(novoStatus: string) {
     const update: any = { status: novoStatus };
@@ -593,6 +711,18 @@ function OrcamentoDetailPage() {
     canSeeFinancials && Number(orc.valor_total) > 0
       ? ((Number(orc.valor_total) - Number(orc.custo_estimado)) / Number(orc.valor_total)) * 100
       : null;
+  const fechado = orc.status === "convertido" || !!orc.os_id;
+  const podeMexer = podeEditar && !fechado;
+  const dadosDoAcordo = acordo.data ?? null;
+  const pendencias = pendenciasParaEnviar({
+    temClienteOuContato: !!(orc.cliente_nome || (orc as any).contato_nome),
+    dataEntrega: dadosDoAcordo ? (dadosDoAcordo.data_entrega_prometida ?? dadosDoAcordo.prazo) : "?",
+    verPreco: canSeePrices,
+    temCondicao: dadosDoAcordo ? !!dadosDoAcordo.condicao_pagamento : true,
+    itens: itens as { arquivo_id: string | null }[],
+  });
+  const semArte = (itens as any[]).filter((i) => !i.arquivo_id).length;
+  const somaArea = somaAreaTotal(itens);
 
   return (
     <div className="space-y-6">
@@ -608,7 +738,7 @@ function OrcamentoDetailPage() {
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
                 <span>Orçamento #{orc.numero}</span>
-                <StatusChip label={orc.status} tone={statusTone[orc.status] ?? "muted"} />
+                <StatusChip label={ROTULO_DO_STATUS[orc.status] ?? orc.status} tone={statusTone[orc.status] ?? "muted"} />
               </div>
               <div className="mt-1 flex items-center gap-2 min-w-0">
                 <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{orc.titulo}</h1>
@@ -628,11 +758,9 @@ function OrcamentoDetailPage() {
           </div>
 
           {/* Converter exige `orcamentos.convert`, que só admin e gestor têm.
-              O botão aparecia para todo mundo e estourava erro de permissão no
-              clique — inclusive para o vendedor, que é quem mais abre esta
-              tela. Sem a permissão, no lugar do botão fica a explicação de
-              quem converte e por onde essa pessoa é avisada. */}
-          {orc.status !== "convertido" && !orc.os_id && (
+              Sem a permissão, no lugar do botão fica a explicação de quem
+              converte e por onde essa pessoa é avisada. */}
+          {!fechado && (
             podeConverter ? (
               <Button onClick={converterEmOS} className="shrink-0 h-11 md:h-10">
                 Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
@@ -669,607 +797,768 @@ function OrcamentoDetailPage() {
         </div>
 
         {/* Linha 2 — ações secundárias */}
-        <div className="flex items-center gap-2 flex-wrap pl-12">
-          <Select value={orc.status} onValueChange={setStatus}>
-            <SelectTrigger className="w-40 h-9">
+        <div className="flex items-center gap-2 flex-wrap md:pl-12">
+          <Select value={orc.status} onValueChange={setStatus} disabled={fechado}>
+            <SelectTrigger className="w-48 h-9" aria-label="Status do orçamento">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {["rascunho", "enviado", "aprovado", "rejeitado", "expirado"].map((s) => (
                 <SelectItem key={s} value={s}>
-                  {s}
+                  {ROTULO_DO_STATUS[s]}
                 </SelectItem>
               ))}
+              {orc.status === "convertido" && (
+                <SelectItem value="convertido" disabled>
+                  {ROTULO_DO_STATUS.convertido}
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
-          <div className="h-6 w-px bg-border mx-1" />
+          <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
           <Dica texto={dicaAcao("/orcamentos", "pdf")}><Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
             <FileDown className="h-4 w-4 mr-1" /> PDF
           </Button></Dica>
           <Dica texto={dicaAcao("/orcamentos", "producao")}><Button variant="outline" size="sm" onClick={() => setPreviewProducaoOpen(true)}>
             <Printer className="h-4 w-4 mr-1" /> Via de produção
           </Button></Dica>
-          <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" size="sm" onClick={copiarLinkCliente} disabled={gerandoLink}>
-            {gerandoLink ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <LinkIcon className="h-4 w-4 mr-1" />
-            )}
-            Link do cliente
-          </Button></Dica>
-          <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
-            <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
-          </Button></Dica>
-        </div>
-        {(() => {
-          const lista = itens as any[];
-          const falta: string[] = [];
-          if (!orc.cliente_nome && !(orc as any).contato_nome) falta.push("cliente ou contato");
-          if (acordo && !acordo.data_entrega_prometida && !acordo.prazo) falta.push("data de entrega");
-          if (acordo && canSeePrices && !acordo.condicao_pagamento) falta.push("condição de pagamento");
-          if (lista.length === 0) falta.push("itens");
-          const semArte = lista.filter((i) => !i.arquivo_id).length;
-          if (semArte > 0) falta.push(`layout em ${semArte} item(ns)`);
-          if (falta.length === 0) return null;
-          return (
-            <p className="pl-12 text-xs text-amber-500">
-              Antes de enviar ao cliente, falta: {falta.join(", ")}.
-            </p>
-          );
-        })()}
-      </header>
-
-      {/* Prazo e condição de pagamento são o que a OS e a conta a receber
-          herdam na conversão. Ficam antes dos itens porque é o combinado com o
-          cliente — e é o que hoje sai vazio em todo orçamento. */}
-      {acordo && (
-        <PrazosCard
-          orcamento={acordo}
-          podeEditar={podeEditar && orc.status !== "convertido"}
-        />
-      )}
-
-      {/* Parcelamento é divisão de preço: quem não vê preço não vê este bloco
-          (mostraria "1× de R$ 0,00", que é mentira, não informação). */}
-      {acordo && canSeePrices && (
-        <CondicaoDePagamento
-          key={acordo.id}
-          orcamentoId={id}
-          total={Number(orc.valor_total ?? 0)}
-          condicao={acordo.condicao_pagamento}
-          podeEditar={podeEditar && orc.status !== "convertido"}
-        />
-      )}
-
-      <Card>
-        <CardContent className="p-4 space-y-4">
-          {/* Escolher do catálogo é o caminho principal: traz medida, preço,
-              custo e material certos. Digitar à mão continua liberado. */}
-          <div className="space-y-1">
-            <OrcamentoProdutoPicker
-              clienteId={(orc as any)?.cliente_id ?? null}
-              produtosNoOrcamento={[
-                ...new Set(
-                  (itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[],
-                ),
-              ]}
-              onSelect={aplicarProduto}
-            />
-            <p className="text-xs text-muted-foreground">
-              Escolha um produto do catálogo ou preencha os campos abaixo para um item fora
-              do padrão.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-6">
-                <Label htmlFor="item-descricao">Descrição</Label>
-                <Input
-                  id="item-descricao"
-                  autoFocus={itens.length === 0}
-                  value={form.descricao}
-                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label htmlFor="item-qtd">Qtd</Label>
-                <Input
-                  id="item-qtd"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.quantidade}
-                  onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label htmlFor="item-unidade">Un</Label>
-                <Input
-                  id="item-unidade"
-                  value={form.unidade}
-                  onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label htmlFor="item-acabamento">Acabamento</Label>
-                <Input
-                  id="item-acabamento"
-                  placeholder="Refile, ilhós…"
-                  value={form.acabamento}
-                  onChange={(e) => setForm({ ...form, acabamento: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="max-w-xs">
-              <Label htmlFor="item-tipo">Tipo de produto (sai no PDF)</Label>
-              <Input
-                id="item-tipo"
-                placeholder="Adesivo, lona, placa…"
-                value={form.tipo_produto}
-                onChange={(e) => setForm({ ...form, tipo_produto: e.target.value })}
-              />
-            </div>
-
-            {/* Tamanhos que a gráfica vende sempre iguais: um clique evita
-                redigitar medida — e medida redigitada é onde entra erro. */}
-            {tamanhos.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">Tamanhos comuns:</span>
-                {tamanhos.map((t) => {
-                  const ativo =
-                    paraNumero(form.largura) === Number(t.largura) &&
-                    paraNumero(form.altura) === Number(t.altura);
-                  return (
-                    <Button
-                      key={t.id}
-                      type="button"
-                      size="sm"
-                      variant={ativo ? "default" : "outline"}
-                      className="h-7 text-xs font-normal"
-                      onClick={() => aplicarTamanho(t)}
-                    >
-                      {t.nome}
-                    </Button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Preço por quantidade: mostra o degrau atingido e o próximo. */}
-            {canSeePrices && faixas.length > 0 && (
-              <div className="flex items-center gap-3 flex-wrap text-xs">
-                {faixaAtual ? (
-                  <>
-                    <span className="text-muted-foreground">
-                      Faixa aplicada: <strong className="text-foreground">{descreverFaixa(faixaAtual, form.unidade)}</strong>
-                    </span>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs font-normal"
-                      onClick={() => aplicarFaixa(faixaAtual)}
-                    >
-                      Usar este preço
-                    </Button>
-                  </>
+          {podeMandar && (
+            <>
+              <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" size="sm" onClick={copiarLinkCliente} disabled={gerandoLink}>
+                {gerandoLink ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                 ) : (
-                  <span className="text-muted-foreground">
-                    Quantidade abaixo da primeira faixa de preço.
-                  </span>
+                  <LinkIcon className="h-4 w-4 mr-1" />
                 )}
-                {faixaSeguinte && (
-                  <span className="text-accent">
-                    {descreverFaixa(faixaSeguinte, form.unidade)} — vale sugerir ao cliente.
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Área mínima faturada: o vendedor precisa saber por que a conta
-                deu mais que a área da peça. */}
-            {minimoAplicado && (
-              <p className="text-xs text-amber-500">
-                Área mínima do produto aplicada: serão cobrados{" "}
-                {areaFaturada.toFixed(3).replace(".", ",")}m² em vez de{" "}
-                {areaTotal(dimensoesForm).toFixed(3).replace(".", ",")}m².
-              </p>
-            )}
-
-            {/* Conferência de material e estoque, só aviso. */}
-            {form.produto_id && <RestricaoDoProduto restricao={restricao} />}
-
-            {/* Religado em 02/10/2026 no lugar onde nasceu (logo abaixo da
-                restrição do produto), depois de ficar órfão na fusão de 08/09.
-                Some sozinho para produto que não sai de bobina. */}
-            {form.produto_id && (
-              <AproveitamentoDeBobina
-                contexto={bobina.data}
-                erro={bobina.error}
-                largura={dimensoesForm.largura || restricao?.largura || 0}
-                altura={dimensoesForm.altura || restricao?.altura || 0}
-                quantidade={paraNumero(form.quantidade)}
-              />
-            )}
-
-            <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
-
-            {/* A calculadora é diálogo: não ocupa espaço na tela até ser aberta,
-                e por isso volta sem mexer no desenho de uma etapa só. */}
-            {canSeeFinancials && (
-              <CalculadoraCusto
-                open={calculadoraAberta}
-                onOpenChange={setCalculadoraAberta}
-                produtoId={form.produto_id}
-                quantidade={paraNumero(form.quantidade) || 1}
-                // A ficha técnica dá consumo por unidade de venda: em produto
-                // medido em m², a base é a metragem cobrada, não o nº de peças.
-                baseConsumo={baseConsumo}
-                unidadeBase={vendidoPorArea ? "m²" : form.unidade || "un"}
-                onAplicar={({ resultado, parametros }) => {
-                  const qtd = paraNumero(form.quantidade) || 1;
-                  setForm((atual) => ({
-                    ...atual,
-                    custo_unitario: (resultado.custoTotal / qtd).toFixed(2),
-                    custo_previsto: resultado.custoTotal,
-                    margem_prevista: resultado.margemPct,
-                    parametros: parametros as unknown as Record<string, unknown>,
-                    origem_calculo: "motor",
-                    // Só sugere preço em campo ainda no zero: sobrescrever preço
-                    // já negociado com o cliente é pior que não sugerir nada.
-                    valor_unitario:
-                      paraNumero(atual.valor_unitario) > 0
-                        ? atual.valor_unitario
-                        : resultado.precoUnitario.toFixed(2),
-                  }));
-                  toast.success(
-                    `Custo calculado: ${resultado.custoTotal.toFixed(2)} · margem ${(resultado.margemPct * 100).toFixed(1)}%`,
-                  );
-                }}
-              />
-            )}
-
-            {/* Margem do item comparada à mínima do produto. */}
-            {canSeeFinancials && margemItem !== null && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">Margem do item:</span>
-                <strong
-                  className={
-                    margemAbaixoDoMinimo
-                      ? "text-destructive"
-                      : margemMinimaItem !== null && margemItem < margemMinimaItem + 5
-                        ? "text-amber-500"
-                        : "text-accent"
-                  }
-                >
-                  {margemItem.toFixed(1)}%
-                </strong>
-                {margemMinimaItem !== null && (
-                  <span className="text-muted-foreground">
-                    (mínima do produto: {margemMinimaItem.toFixed(1)}%)
-                  </span>
-                )}
-                {margemAbaixoDoMinimo && (
-                  <span className="flex items-center gap-1 text-destructive">
-                    <TrendingDown className="h-3 w-3" /> abaixo do mínimo
-                  </span>
-                )}
-                {form.tempo_producao_min && (
-                  <span className="text-muted-foreground">
-                    · produção estimada: {Math.round((form.tempo_producao_min * quantidadeForm) / 60 * 10) / 10}h
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Medidas em metros: preencher as duas liga a venda por m². */}
-            <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-2">
-                <Label htmlFor="item-largura">Largura (m)</Label>
-                <Input
-                  id="item-largura"
-                  type="number"
-                  min="0"
-                  step="0.001"
-                  placeholder="3,000"
-                  value={form.largura}
-                  onChange={(e) => setForm({ ...form, largura: e.target.value })}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label htmlFor="item-altura">Altura (m)</Label>
-                <Input
-                  id="item-altura"
-                  type="number"
-                  min="0"
-                  step="0.001"
-                  placeholder="2,450"
-                  value={form.altura}
-                  onChange={(e) => setForm({ ...form, altura: e.target.value })}
-                />
-              </div>
-              <div className="col-span-3">
-                <Label>Área</Label>
-                <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm">
-                  {vendidoPorArea ? (
-                    <span>
-                      {areaUnitaria(dimensoesForm).toFixed(3).replace(".", ",")}m² ·{" "}
-                      <strong>{areaTotal(dimensoesForm).toFixed(3).replace(".", ",")}m²</strong> total
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">informe as medidas</span>
-                  )}
-                </div>
-              </div>
-              {/* Preço de venda: o vendedor digita. Custo fica no bloco seguinte,
-                  atrás de canSeeFinancials. */}
-              {canSeePrices && (
-                <>
-                  <div className="col-span-2">
-                    <Label htmlFor="item-preco-m2">Preço/m²</Label>
-                    <Input
-                      id="item-preco-m2"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      disabled={!vendidoPorArea}
-                      value={form.preco_m2}
-                      onChange={(e) => setForm({ ...form, preco_m2: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label htmlFor="item-valor-un">Valor un.</Label>
-                    <Input
-                      id="item-valor-un"
-                      type="number"
-                      step="0.01"
-                      readOnly={valorUnitarioDerivado !== null}
-                      title={
-                        valorUnitarioDerivado !== null
-                          ? "Calculado a partir da área e do preço/m²"
-                          : undefined
-                      }
-                      className={valorUnitarioDerivado !== null ? "bg-muted/40" : undefined}
-                      value={
-                        valorUnitarioDerivado !== null
-                          ? valorUnitarioDerivado.toFixed(2)
-                          : form.valor_unitario
-                      }
-                      onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
-                    />
-                  </div>
-                </>
-              )}
-              {canSeeFinancials && (
-                <div className="col-span-2">
-                  <div className="flex items-center justify-between gap-1">
-                    <Label htmlFor="item-custo-un">Custo un.</Label>
-                    {/* Abre a calculadora: material, máquina e mão de obra viram
-                        custo com a conta à vista, em vez de número digitado. */}
+                Link do cliente
+              </Button></Dica>
+              <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
+                <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+              </Button></Dica>
+            </>
+          )}
+        </div>
+        {!fechado && pendencias.length > 0 && (
+          <p className="md:pl-12 text-xs text-amber-500">
+            Antes de enviar ao cliente, falta:{" "}
+            {pendencias.map((p, n) => {
+              const alvo = ONDE_RESOLVER[p] ?? (p.startsWith("layout") ? "itens-do-orcamento" : null);
+              return (
+                <span key={p}>
+                  {n > 0 && ", "}
+                  {alvo ? (
                     <button
                       type="button"
-                      className="text-[11px] text-primary hover:underline"
-                      onClick={() => setCalculadoraAberta(true)}
+                      className="underline underline-offset-2 hover:text-amber-400"
+                      onClick={() => document.getElementById(alvo)?.scrollIntoView({ behavior: "smooth", block: "start" })}
                     >
-                      calcular
+                      {p}
                     </button>
+                  ) : (
+                    p
+                  )}
+                </span>
+              );
+            })}
+            .
+          </p>
+        )}
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-6">
+          <Card id="itens-do-orcamento" className="scroll-mt-48">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium">
+                <span>{editando ? `Editando o item ${editando.numero}` : "Itens do orçamento"}</span>
+                {editando && (
+                  <Button variant="ghost" size="sm" onClick={limparFormulario}>
+                    <X className="mr-1 h-4 w-4" /> Cancelar edição
+                  </Button>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {podeMexer ? (
+                <div ref={formulario} className="scroll-mt-48 space-y-4 rounded-lg border border-dashed p-3 sm:p-4">
+                  {/* Escolher do catálogo é o caminho principal: traz medida, preço,
+                      custo e material certos. Digitar à mão continua liberado. */}
+                  {!editando && (
+                    <div className="space-y-1">
+                      <OrcamentoProdutoPicker
+                        clienteId={(orc as any)?.cliente_id ?? null}
+                        produtosNoOrcamento={[
+                          ...new Set(
+                            (itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[],
+                          ),
+                        ]}
+                        onSelect={aplicarProduto}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Escolha um produto do catálogo ou preencha à mão um item fora do padrão.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-12 md:col-span-6">
+                      <Label htmlFor="item-descricao">Descrição</Label>
+                      <Input
+                        id="item-descricao"
+                        autoFocus={itens.length === 0 && !editando}
+                        placeholder="Ex.: Adesivo vinil fosco"
+                        value={form.descricao}
+                        onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-6 md:col-span-3">
+                      <Label htmlFor="item-tipo">Tipo de produto</Label>
+                      <Input
+                        id="item-tipo"
+                        placeholder="Adesivo, lona, placa…"
+                        value={form.tipo_produto}
+                        onChange={(e) => setForm({ ...form, tipo_produto: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-6 md:col-span-3">
+                      <Label htmlFor="item-acabamento">Acabamento</Label>
+                      <Input
+                        id="item-acabamento"
+                        placeholder="Refile, ilhós…"
+                        value={form.acabamento}
+                        onChange={(e) => setForm({ ...form, acabamento: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-12">
+                      <Label htmlFor="item-especificacao">
+                        Especificações para a produção <span className="text-muted-foreground">(opcional — sai no PDF embaixo da descrição)</span>
+                      </Label>
+                      <Textarea
+                        id="item-especificacao"
+                        rows={2}
+                        placeholder="Material, cores, frente e verso, ilhós a cada 50 cm, bastão em cima…"
+                        value={form.especificacao}
+                        onChange={(e) => setForm({ ...form, especificacao: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <Input
-                    id="item-custo-un"
-                    type="number"
-                    step="0.01"
-                    value={form.custo_unitario}
-                    onChange={(e) =>
-                      // Digitou à mão: o custo deixa de ser "calculado".
-                      setForm({ ...form, custo_unitario: e.target.value, origem_calculo: "manual" })
-                    }
-                  />
-                  {form.origem_calculo === "motor" && form.margem_prevista != null && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      calculado · margem {(form.margem_prevista * 100).toFixed(1)}%
+
+                  {/* Medidas em metros: preencher as duas liga a venda por m². */}
+                  <div className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-4 md:col-span-2">
+                      <Label htmlFor="item-qtd">Qtd</Label>
+                      <Input
+                        id="item-qtd"
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="decimal"
+                        value={form.quantidade}
+                        onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-4 md:col-span-2">
+                      <Label htmlFor="item-unidade">Unidade</Label>
+                      <Input
+                        id="item-unidade"
+                        value={form.unidade}
+                        onChange={(e) => setForm({ ...form, unidade: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-4 md:col-span-2">
+                      <Label htmlFor="item-largura">Largura (m)</Label>
+                      <Input
+                        id="item-largura"
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        inputMode="decimal"
+                        value={form.largura}
+                        onChange={(e) => setForm({ ...form, largura: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-4 md:col-span-2">
+                      <Label htmlFor="item-altura">Altura (m)</Label>
+                      <Input
+                        id="item-altura"
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        inputMode="decimal"
+                        value={form.altura}
+                        onChange={(e) => setForm({ ...form, altura: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-8 md:col-span-4">
+                      <Label>Área</Label>
+                      <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm">
+                        {vendidoPorArea ? (
+                          <span>
+                            {m2(areaUnitaria(dimensoesForm))} cada ·{" "}
+                            <strong>{m2(areaTotal(dimensoesForm))}</strong> no total
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">sem medida: vende por unidade</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tamanhos que a gráfica vende sempre iguais: um clique evita
+                      redigitar medida — e medida redigitada é onde entra erro. */}
+                  {tamanhos.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-muted-foreground">Tamanhos comuns:</span>
+                      {tamanhos.map((t) => {
+                        const ativo =
+                          paraNumero(form.largura) === Number(t.largura) &&
+                          paraNumero(form.altura) === Number(t.altura);
+                        return (
+                          <Button
+                            key={t.id}
+                            type="button"
+                            size="sm"
+                            variant={ativo ? "default" : "outline"}
+                            className="h-7 text-xs font-normal"
+                            onClick={() => aplicarTamanho(t)}
+                          >
+                            {t.nome}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Área mínima faturada: o vendedor precisa saber por que a conta
+                      deu mais que a área da peça. */}
+                  {minimoAplicado && (
+                    <p className="text-xs text-amber-500">
+                      Área mínima do produto aplicada: serão cobrados {m2(areaFaturada)} em vez de{" "}
+                      {m2(areaTotal(dimensoesForm))}.
                     </p>
                   )}
-                </div>
-              )}
-            </div>
 
-            <div className="flex items-end justify-between gap-3 flex-wrap">
-              <div className="space-y-1">
-                <Label htmlFor="item-layout">Layouts (artes a imprimir)</Label>
-                <p className="text-xs text-muted-foreground">
-                  Pode enviar vários. A primeira é a capa e vai para o PDF.
-                </p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Input
-                    id="item-layout"
-                    type="file"
-                    multiple
-                    accept="image/*,application/pdf"
-                    className="max-w-xs"
-                    disabled={enviandoLayout}
-                    onChange={(e) => {
-                      const arquivos = Array.from(e.target.files ?? []);
-                      e.target.value = "";
-                      void (async () => {
-                        for (const a of arquivos) await enviarLayout(a);
-                      })();
-                    }}
-                  />
-                  {enviandoLayout && (
-                    <span className="text-sm text-muted-foreground">enviando…</span>
-                  )}
-                  {form.arquivo_nome && (
-                    <Badge variant="secondary" className="gap-1">
-                      Capa: {form.arquivo_nome}
-                      <button
-                        type="button"
-                        aria-label="Remover layout do item"
-                        onClick={() => {
-                          const [prox, ...resto] = form.arquivos_extras;
-                          setForm({
-                            ...form,
-                            arquivo_id: prox?.id ?? null,
-                            arquivo_nome: prox?.nome ?? null,
-                            arquivos_extras: resto,
-                          });
-                        }}
-                        className="ml-1"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {form.arquivos_extras.map((a) => (
-                    <Badge key={a.id} variant="outline" className="gap-1">
-                      {a.nome}
-                      <button
-                        type="button"
-                        aria-label={`Remover ${a.nome}`}
-                        onClick={() =>
-                          setForm({
-                            ...form,
-                            arquivos_extras: form.arquivos_extras.filter((x) => x.id !== a.id),
-                          })
-                        }
-                        className="ml-1"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <Button onClick={addItem}>
-                <Plus className="h-4 w-4 mr-1" /> Adicionar item
-              </Button>
-            </div>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Qtd</TableHead>
-                <TableHead>Metragem</TableHead>
-                <TableHead>Acabamento</TableHead>
-                <TableHead>Layout</TableHead>
-                {canSeePrices && (
-                  <>
-                    <TableHead>Valor un.</TableHead>
-                    <TableHead>Total</TableHead>
-                  </>
-                )}
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {itens.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={canSeePrices ? 8 : 6} className="text-center text-muted-foreground">
-                    Sem itens
-                  </TableCell>
-                </TableRow>
-              )}
-              {itens.map((i: any) => (
-                <TableRow key={i.id}>
-                  <TableCell>{i.descricao}</TableCell>
-                  <TableCell>
-                    {i.quantidade} {i.unidade}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {descreverMetragem(i) ?? <span className="text-muted-foreground">—</span>}
-                    {/* Mínimo aplicado precisa aparecer: o vendedor tem de saber
-                        por que a conta deu mais que a área da peça. */}
-                    {Number(i.area_cobrada ?? 0) > Number(i.area_total ?? 0) && (
-                      <span className="block text-amber-600">
-                        cobrado {Number(i.area_cobrada).toFixed(3).replace(".", ",")}m² (mínimo)
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {i.acabamento || <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                  <TableCell>
-                    {i.arquivo_id ? (
-                      <Badge variant="secondary">anexado</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">sem arte</span>
-                    )}
-                  </TableCell>
-                  {canSeePrices && (
-                    <>
-                      <TableCell>R$ {Number(i.valor_unitario).toFixed(2)}</TableCell>
-                      <TableCell>R$ {Number(i.valor_total).toFixed(2)}</TableCell>
-                    </>
-                  )}
-                  <TableCell className="whitespace-nowrap">
-                    <OrcamentoItemArtes
-                      itemId={i.id}
-                      orcamentoId={id}
-                      clienteId={(orc as any)?.cliente_id ?? null}
+                  {/* Conferência de material e estoque, só aviso. */}
+                  {form.produto_id && <RestricaoDoProduto restricao={restricao} />}
+
+                  {/* Some sozinho para produto que não sai de bobina. */}
+                  {form.produto_id && (
+                    <AproveitamentoDeBobina
+                      contexto={bobina.data}
+                      erro={bobina.error}
+                      largura={dimensoesForm.largura || restricao?.largura || 0}
+                      altura={dimensoesForm.altura || restricao?.altura || 0}
+                      quantidade={paraNumero(form.quantidade)}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Duplicar item"
-                      onClick={() => duplicarItem(i)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => removeItem(i.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="flex justify-end gap-6 text-sm pt-3 border-t">
-            <div>
-              <span className="text-muted-foreground">Itens:</span>{" "}
-              <strong>{itens.length}</strong>
-            </div>
-            {(itens as any[]).some((i) => !i.arquivo_id) && (
-              <div className="text-amber-500">
-                {(itens as any[]).filter((i) => !i.arquivo_id).length} sem arte anexada
-              </div>
-            )}
-            {somaAreaTotal(itens) > 0 && (
-              <div>
-                <span className="text-muted-foreground">Soma área:</span>{" "}
-                <strong>{somaAreaTotal(itens).toFixed(3).replace(".", ",")}m²</strong>
-              </div>
-            )}
+                  )}
 
-            {/* Total é preço: o vendedor vê. Custo e margem seguem só para o financeiro. */}
-            {canSeePrices && (
-              <div>
-                <span className="text-muted-foreground">Total:</span>{" "}
-                <strong>R$ {Number(orc.valor_total).toFixed(2)}</strong>
-              </div>
-            )}
-            {canSeeFinancials && (
-              <>
-                <div>
-                  <span className="text-muted-foreground">Custo:</span> R${" "}
-                  {Number(orc.custo_estimado).toFixed(2)}
+                  <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
+
+                  {/* Preço de venda: o vendedor digita. Custo fica atrás de canSeeFinancials. */}
+                  {(canSeePrices || canSeeFinancials) && (
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      {canSeePrices && (
+                        <>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label htmlFor="item-preco-m2">Preço/m²</Label>
+                            <Input
+                              id="item-preco-m2"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              disabled={!vendidoPorArea}
+                              title={vendidoPorArea ? undefined : "Informe largura e altura para vender por m²"}
+                              value={form.preco_m2}
+                              onChange={(e) => setForm({ ...form, preco_m2: e.target.value })}
+                            />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label htmlFor="item-valor-un">Valor un.</Label>
+                            <Input
+                              id="item-valor-un"
+                              type="number"
+                              step="0.01"
+                              inputMode="decimal"
+                              readOnly={valorUnitarioDerivado !== null}
+                              title={
+                                valorUnitarioDerivado !== null
+                                  ? "Calculado a partir da área e do preço/m²"
+                                  : undefined
+                              }
+                              className={valorUnitarioDerivado !== null ? "bg-muted/40" : undefined}
+                              value={
+                                valorUnitarioDerivado !== null
+                                  ? valorUnitarioDerivado.toFixed(2)
+                                  : form.valor_unitario
+                              }
+                              onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
+                            />
+                          </div>
+                        </>
+                      )}
+                      {canSeeFinancials && (
+                        <div className="col-span-6 md:col-span-3">
+                          <div className="flex items-center justify-between gap-1">
+                            <Label htmlFor="item-custo-un">Custo un.</Label>
+                            {/* Material, máquina e mão de obra viram custo com a conta à vista. */}
+                            <button
+                              type="button"
+                              className="text-[11px] text-primary hover:underline"
+                              onClick={() => setCalculadoraAberta(true)}
+                            >
+                              calcular
+                            </button>
+                          </div>
+                          <Input
+                            id="item-custo-un"
+                            type="number"
+                            step="0.01"
+                            inputMode="decimal"
+                            value={form.custo_unitario}
+                            onChange={(e) =>
+                              // Digitou à mão: o custo deixa de ser "calculado".
+                              setForm({ ...form, custo_unitario: e.target.value, origem_calculo: "manual" })
+                            }
+                          />
+                        </div>
+                      )}
+                      {canSeePrices && (
+                        <div className="col-span-6 md:col-span-3">
+                          <Label>Total do item</Label>
+                          <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm font-medium tabular-nums">
+                            {brl(valorUnitarioEfetivo * quantidadeForm)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Preço por quantidade: mostra o degrau atingido e o próximo. */}
+                  {canSeePrices && faixas.length > 0 && (
+                    <div className="flex items-center gap-3 flex-wrap text-xs">
+                      {faixaAtual ? (
+                        <>
+                          <span className="text-muted-foreground">
+                            Faixa aplicada: <strong className="text-foreground">{descreverFaixa(faixaAtual, form.unidade)}</strong>
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs font-normal"
+                            onClick={() => aplicarFaixa(faixaAtual)}
+                          >
+                            Usar este preço
+                          </Button>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Quantidade abaixo da primeira faixa de preço.
+                        </span>
+                      )}
+                      {faixaSeguinte && (
+                        <span className="text-accent">
+                          {descreverFaixa(faixaSeguinte, form.unidade)} — vale sugerir ao cliente.
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Margem do item comparada à mínima do produto. */}
+                  {canSeeFinancials && margemItem !== null && (
+                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                      <span className="text-muted-foreground">Margem do item:</span>
+                      <strong
+                        className={
+                          margemAbaixoDoMinimo
+                            ? "text-destructive"
+                            : margemMinimaItem !== null && margemItem < margemMinimaItem + 5
+                              ? "text-amber-500"
+                              : "text-accent"
+                        }
+                      >
+                        {margemItem.toFixed(1)}%
+                      </strong>
+                      {margemMinimaItem !== null && (
+                        <span className="text-muted-foreground">
+                          (mínima do produto: {margemMinimaItem.toFixed(1)}%)
+                        </span>
+                      )}
+                      {margemAbaixoDoMinimo && (
+                        <span className="flex items-center gap-1 text-destructive">
+                          <TrendingDown className="h-3 w-3" /> abaixo do mínimo
+                        </span>
+                      )}
+                      {form.origem_calculo === "motor" && form.margem_prevista != null && (
+                        <span className="text-muted-foreground">· custo calculado</span>
+                      )}
+                      {form.tempo_producao_min && (
+                        <span className="text-muted-foreground">
+                          · produção estimada: {Math.round((form.tempo_producao_min * quantidadeForm) / 60 * 10) / 10}h
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* A calculadora é diálogo: não ocupa espaço até ser aberta. */}
+                  {canSeeFinancials && (
+                    <CalculadoraCusto
+                      open={calculadoraAberta}
+                      onOpenChange={setCalculadoraAberta}
+                      produtoId={form.produto_id}
+                      quantidade={paraNumero(form.quantidade) || 1}
+                      // A ficha técnica dá consumo por unidade de venda: em produto
+                      // medido em m², a base é a metragem cobrada, não o nº de peças.
+                      baseConsumo={baseConsumo}
+                      unidadeBase={vendidoPorArea ? "m²" : form.unidade || "un"}
+                      onAplicar={({ resultado, parametros }) => {
+                        const qtd = paraNumero(form.quantidade) || 1;
+                        setForm((atual) => ({
+                          ...atual,
+                          custo_unitario: (resultado.custoTotal / qtd).toFixed(2),
+                          custo_previsto: resultado.custoTotal,
+                          margem_prevista: resultado.margemPct,
+                          parametros: parametros as unknown as Record<string, unknown>,
+                          origem_calculo: "motor",
+                          // Só sugere preço em campo ainda no zero: sobrescrever preço
+                          // já negociado com o cliente é pior que não sugerir nada.
+                          valor_unitario:
+                            paraNumero(atual.valor_unitario) > 0
+                              ? atual.valor_unitario
+                              : resultado.precoUnitario.toFixed(2),
+                        }));
+                        toast.success(
+                          `Custo calculado: ${brl(resultado.custoTotal)} · margem ${(resultado.margemPct * 100).toFixed(1)}%`,
+                        );
+                      }}
+                    />
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Layouts (artes a imprimir)</Label>
+                    {editando ? (
+                      <LayoutsDoItem
+                        itemId={editando.id}
+                        orcamentoId={id}
+                        clienteId={(orc as any)?.cliente_id ?? null}
+                        podeEditar={podeMexer}
+                      />
+                    ) : (
+                      <LayoutsDoRascunho
+                        orcamentoId={id}
+                        clienteId={(orc as any)?.cliente_id ?? null}
+                        layouts={layoutsRascunho}
+                        setLayouts={setLayoutsRascunho}
+                        desabilitado={salvandoItem}
+                      />
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      A primeira arte é a capa: sai no bloco LAYOUT do PDF com o número do item. As
+                      outras vão juntas para a produção.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {editando && (
+                      <Button variant="outline" onClick={limparFormulario} disabled={salvandoItem}>
+                        Cancelar
+                      </Button>
+                    )}
+                    <Button onClick={() => void salvarItem()} disabled={salvandoItem}>
+                      {salvandoItem ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : editando ? (
+                        <Save className="h-4 w-4 mr-1" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-1" />
+                      )}
+                      {editando ? "Salvar alterações" : "Adicionar item"}
+                    </Button>
+                  </div>
                 </div>
-                {margem !== null && (
-                  <div>
-                    <span className="text-muted-foreground">Margem:</span>{" "}
-                    <strong className={margem < 20 ? "text-destructive" : "text-accent"}>
-                      {margem.toFixed(1)}%
-                    </strong>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {fechado
+                    ? "Este orçamento já virou OS: os itens ficam como foram vendidos."
+                    : "Seu perfil vê o orçamento, mas não altera os itens."}
+                </p>
+              )}
+
+              {consultaItens.isError ? (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div className="space-y-2">
+                    <p>Não foi possível carregar os itens: {mensagemErro(consultaItens.error)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Isto é falha de consulta, não orçamento vazio — não adicione os itens de novo.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => void consultaItens.refetch()}>
+                      Tentar de novo
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-10">#</TableHead>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Qtd</TableHead>
+                        <TableHead>Metragem</TableHead>
+                        <TableHead>Acabamento</TableHead>
+                        <TableHead>Layout</TableHead>
+                        {canSeePrices && (
+                          <>
+                            <TableHead className="text-right">Valor un.</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                          </>
+                        )}
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {consultaItens.isPending && (
+                        <TableRow>
+                          <TableCell colSpan={canSeePrices ? 9 : 7} className="text-center text-muted-foreground">
+                            <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Carregando os itens…
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {!consultaItens.isPending && itens.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={canSeePrices ? 9 : 7} className="text-center text-muted-foreground">
+                            Nenhum item ainda — busque um produto do catálogo acima para começar.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {itens.map((i: any, indice: number) => {
+                        const numero = indice + 1;
+                        const emEdicao = editando?.id === i.id;
+                        return (
+                          <TableRow key={i.id} className={cn(emEdicao && "bg-primary/5")}>
+                            <TableCell>
+                              <span className="grid h-6 w-6 place-items-center rounded-full border text-xs font-medium">
+                                {numero}
+                              </span>
+                            </TableCell>
+                            <TableCell className="min-w-[180px]">
+                              <p className="font-medium">{i.descricao}</p>
+                              {i.tipo_produto && (
+                                <p className="text-xs text-muted-foreground">{i.tipo_produto}</p>
+                              )}
+                              {i.especificacao && (
+                                <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground">
+                                  {i.especificacao}
+                                </p>
+                              )}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {Number(i.quantidade).toLocaleString("pt-BR")} {i.unidade}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {descreverMetragem(i) ?? <span className="text-muted-foreground">—</span>}
+                              {/* Mínimo aplicado precisa aparecer: o vendedor tem de saber
+                                  por que a conta deu mais que a área da peça. */}
+                              {Number(i.area_cobrada ?? 0) > Number(i.area_total ?? 0) && (
+                                <span className="block text-amber-600">
+                                  cobrado {m2(Number(i.area_cobrada))} (mínimo)
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {i.acabamento || <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell>
+                              <MiniaturaDoItem
+                                capa={capas.data?.[i.id]}
+                                onAbrir={() => setArtesDe({ id: i.id, descricao: i.descricao, numero })}
+                              />
+                            </TableCell>
+                            {canSeePrices && (
+                              <>
+                                <TableCell className="whitespace-nowrap text-right tabular-nums">
+                                  {brl(i.valor_unitario)}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
+                                  {brl(i.valor_total)}
+                                </TableCell>
+                              </>
+                            )}
+                            <TableCell className="whitespace-nowrap text-right">
+                              {podeMexer && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Subir na lista"
+                                    aria-label={`Subir o item ${numero}`}
+                                    disabled={indice === 0}
+                                    onClick={() => void moverItem(indice, -1)}
+                                  >
+                                    <ArrowUp className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Descer na lista"
+                                    aria-label={`Descer o item ${numero}`}
+                                    disabled={indice === itens.length - 1}
+                                    onClick={() => void moverItem(indice, 1)}
+                                  >
+                                    <ArrowDown className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Editar item"
+                                    aria-label={`Editar o item ${numero}`}
+                                    onClick={() => editarItem(i, numero)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Duplicar item"
+                                    aria-label={`Duplicar o item ${numero}`}
+                                    onClick={() => void duplicarItem(i)}
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Tirar o item"
+                                    aria-label={`Tirar o item ${numero}`}
+                                    onClick={() => setARemover({ id: i.id, descricao: i.descricao, numero })}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t pt-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Itens:</span> <strong>{itens.length}</strong>
+                </div>
+                {semArte > 0 && (
+                  <div className="text-amber-500">
+                    {semArte === 1 ? "1 item sem arte" : `${semArte} itens sem arte`}
                   </div>
                 )}
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                {somaArea > 0 && (
+                  <div>
+                    <span className="text-muted-foreground">Soma área:</span> <strong>{m2(somaArea)}</strong>
+                  </div>
+                )}
+                {/* Total é preço: o vendedor vê. Custo e margem seguem só para o financeiro. */}
+                {canSeePrices && (
+                  <div>
+                    <span className="text-muted-foreground">Total:</span>{" "}
+                    <strong className="tabular-nums">{brl(orc.valor_total)}</strong>
+                  </div>
+                )}
+                {canSeeFinancials && (
+                  <>
+                    <div>
+                      <span className="text-muted-foreground">Custo:</span>{" "}
+                      <span className="tabular-nums">{brl(orc.custo_estimado)}</span>
+                    </div>
+                    {margem !== null && (
+                      <div>
+                        <span className="text-muted-foreground">Margem:</span>{" "}
+                        <strong className={margem < 20 ? "text-destructive" : "text-accent"}>
+                          {margem.toFixed(1)}%
+                        </strong>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-      <PDFHistoryCard tipo="orcamento" referencia_id={id} />
+          <PDFHistoryCard tipo="orcamento" referencia_id={id} />
+        </div>
+
+        {/* O combinado com o cliente fica ao lado dos itens, compacto — antes
+            eram dois cartões largos que empurravam os itens para baixo. */}
+        <aside className="min-w-0 space-y-4">
+          {acordo.isError ? (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <div className="space-y-2">
+                <p>Não foi possível carregar prazos e pagamento: {mensagemErro(acordo.error)}</p>
+                <Button size="sm" variant="outline" onClick={() => void acordo.refetch()}>
+                  Tentar de novo
+                </Button>
+              </div>
+            </div>
+          ) : dadosDoAcordo ? (
+            <>
+              <EntregaEPrazos acordo={dadosDoAcordo} podeEditar={podeMexer} />
+              {/* Parcelamento é divisão de preço: quem não vê preço não vê este
+                  bloco (mostraria "1× de R$ 0,00", que é mentira). */}
+              {canSeePrices && (
+                <Pagamento
+                  orcamentoId={id}
+                  total={Number(orc.valor_total ?? 0)}
+                  condicao={dadosDoAcordo.condicao_pagamento}
+                  podeEditar={podeMexer}
+                />
+              )}
+              <Observacoes acordo={dadosDoAcordo} podeEditar={podeMexer} />
+            </>
+          ) : (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando prazos e pagamento…
+            </p>
+          )}
+        </aside>
+      </div>
+
+      <DialogoDeLayouts
+        item={artesDe}
+        orcamentoId={id}
+        clienteId={(orc as any)?.cliente_id ?? null}
+        podeEditar={podeMexer}
+        onFechar={() => setArtesDe(null)}
+      />
+
+      <AlertDialog open={aRemover !== null} onOpenChange={(aberto) => !aberto && setARemover(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Tirar o item {aRemover?.numero} · {aRemover?.descricao}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              O item sai do orçamento e o total é recalculado. As artes que estavam nele continuam
+              guardadas no sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (aRemover) void removerItem(aRemover.id);
+                setARemover(null);
+              }}
+            >
+              Tirar o item
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <PDFPreviewDialog
         open={previewOpen}
@@ -1286,207 +1575,5 @@ function OrcamentoDetailPage() {
         mostrarValores={false}
       />
     </div>
-  );
-}
-
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-/** Data ISO (aaaa-mm-dd) em dd/mm/aaaa. Meio-dia para o fuso não comer um dia. */
-const emBR = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR");
-
-/**
- * Soma dias a uma data ISO. Monta a volta com as partes locais em vez de
- * `toISOString()`: converter para UTC é o que faz a data voltar um dia.
- */
-function somarDias(iso: string, dias: number) {
-  const d = new Date(`${iso}T12:00:00`);
-  d.setDate(d.getDate() + dias);
-  const dois = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
-}
-
-/**
- * Como o cliente vai pagar: em quantas vezes, de quanto em quanto tempo e a
- * partir de quando.
- *
- * `orcamentos.condicao_pagamento` é jsonb e, até 24/09/2026, era só LIDO — pelo
- * PDF e pela conversão em OS. Nenhuma tela escrevia nele, então os 9 orçamentos
- * do sistema estavam com `{"parcelas": 1}` e toda conta a receber nascia com
- * UMA parcela vencendo no dia da conversão. A cobrança já saía atrasada.
- *
- * As três chaves são exatamente as que `converter_orcamento_em_os` lê:
- * `parcelas`, `intervalo_dias` (padrão 30) e `primeiro_vencimento` (padrão
- * CURRENT_DATE). A prévia abaixo repete a mesma conta da função — inclusive a
- * sobra na última parcela — para a pessoa conferir ANTES de converter, que é
- * quando ainda dá para corrigir.
- */
-function CondicaoDePagamento({
-  orcamentoId,
-  total,
-  condicao,
-  podeEditar,
-}: {
-  orcamentoId: string;
-  total: number;
-  condicao: Record<string, unknown> | null;
-  podeEditar: boolean;
-}) {
-  const qc = useQueryClient();
-  const atual = condicao ?? {};
-  const [parcelas, setParcelas] = useState(String(Number(atual.parcelas ?? 1) || 1));
-  const [intervalo, setIntervalo] = useState(String(Number(atual.intervalo_dias ?? 30) || 30));
-  const [primeiro, setPrimeiro] = useState(
-    typeof atual.primeiro_vencimento === "string" ? atual.primeiro_vencimento : "",
-  );
-  const [salvando, setSalvando] = useState(false);
-
-  // Mesmos limites da função de conversão: parcelas >= 1, intervalo >= 0.
-  const nParcelas = Math.max(1, Math.round(Number(parcelas) || 1));
-  const nIntervalo = Math.max(0, Math.round(Number(intervalo) || 0));
-
-  async function salvar() {
-    if (!podeEditar) return;
-    const novo = {
-      // Preserva o que já estava gravado (`forma`, por exemplo, que o PDF usa).
-      ...atual,
-      parcelas: nParcelas,
-      intervalo_dias: nIntervalo,
-      primeiro_vencimento: primeiro || null,
-    };
-    // Nada mudou: não grava nem avisa.
-    if (
-      Number(atual.parcelas ?? 1) === nParcelas &&
-      Number(atual.intervalo_dias ?? 30) === nIntervalo &&
-      (atual.primeiro_vencimento ?? null) === (primeiro || null)
-    ) {
-      return;
-    }
-    setSalvando(true);
-    try {
-      const { data, error } = await supabase
-        .from("orcamentos")
-        .update({ condicao_pagamento: novo } as never)
-        .eq("id", orcamentoId)
-        .select("id");
-      if (error) throw error;
-      // Escrita barrada pela RLS devolve 0 linhas e nenhum erro.
-      if (!data || data.length === 0) {
-        throw new Error("Seu perfil não pode alterar este orçamento.");
-      }
-      toast.success("Condição de pagamento salva");
-      await qc.invalidateQueries({ queryKey: ["orcamento", orcamentoId] });
-    } catch (e: unknown) {
-      toast.error(mensagemErro(e));
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  // Mesma conta da conversão: todas iguais, e a última leva a sobra dos
-  // centavos para o somatório bater com o total do orçamento.
-  const valorParcela = Math.round((total / nParcelas) * 100) / 100;
-  const valorUltima = Math.round((total - valorParcela * (nParcelas - 1)) * 100) / 100;
-  const sobra = nParcelas > 1 && Math.abs(valorUltima - valorParcela) >= 0.005;
-  const ultimoVenc = primeiro ? somarDias(primeiro, nIntervalo * (nParcelas - 1)) : null;
-
-  return (
-    <Card>
-      <CardContent className="space-y-3 p-4">
-        <div className="flex items-center gap-2">
-          <CreditCard className="h-4 w-4 text-[color:var(--bex-cyan)]" />
-          <h2 className="text-sm font-medium">Condição de pagamento</h2>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="cond-parcelas" className="text-xs">
-              Parcelas
-            </Label>
-            <Input
-              id="cond-parcelas"
-              type="number"
-              min="1"
-              step="1"
-              inputMode="numeric"
-              disabled={!podeEditar || salvando}
-              value={parcelas}
-              onChange={(e) => setParcelas(e.target.value)}
-              onBlur={salvar}
-            />
-          </div>
-          <div>
-            <Label htmlFor="cond-intervalo" className="text-xs">
-              Intervalo (dias)
-            </Label>
-            <Input
-              id="cond-intervalo"
-              type="number"
-              min="0"
-              step="1"
-              inputMode="numeric"
-              disabled={!podeEditar || salvando}
-              value={intervalo}
-              onChange={(e) => setIntervalo(e.target.value)}
-              onBlur={salvar}
-            />
-            <p className="mt-1 text-xs text-muted-foreground">30 = uma vez por mês</p>
-          </div>
-          <div>
-            <Label htmlFor="cond-primeiro" className="text-xs">
-              1º vencimento
-            </Label>
-            <Input
-              id="cond-primeiro"
-              type="date"
-              disabled={!podeEditar || salvando}
-              value={primeiro}
-              onChange={(e) => setPrimeiro(e.target.value)}
-              onBlur={salvar}
-            />
-          </div>
-        </div>
-
-        {/* A conferência antes da conversão: é aqui que se vê o parcelamento
-            errado, enquanto ainda dá para arrumar sem mexer no financeiro. */}
-        <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
-          {total <= 0 ? (
-            <span className="text-muted-foreground">
-              O orçamento ainda está zerado — adicione itens abaixo para ver o valor de cada
-              parcela.
-            </span>
-          ) : (
-            <span>
-              Vai virar{" "}
-              <strong>
-                {nParcelas}× de {brl(valorParcela)}
-              </strong>
-              {sobra && <> (a última de {brl(valorUltima)})</>}
-              {primeiro ? (
-                <>
-                  , a primeira em {emBR(primeiro)}
-                  {nParcelas > 1 && ultimoVenc && (
-                    <>
-                      {" "}
-                      e a última em {emBR(ultimoVenc)}, a cada {nIntervalo} dia(s)
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  , a primeira <strong>no dia em que o orçamento virar OS</strong>
-                  {nParcelas > 1 && <> e as seguintes a cada {nIntervalo} dia(s)</>}
-                </>
-              )}
-              .
-            </span>
-          )}
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          É isto que a conversão em OS usa para criar as parcelas do a receber. Sem preencher,
-          sai uma parcela só, vencendo no mesmo dia — e a cobrança já nasce atrasada.
-        </p>
-      </CardContent>
-    </Card>
   );
 }
