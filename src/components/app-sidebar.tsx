@@ -74,6 +74,7 @@ import { getRoutePermissions } from "@/lib/permissions";
 import type { Permission } from "@/lib/permissions";
 import { dicaMenu } from "@/lib/dicas";
 import { Dica } from "@/components/bex/Dica";
+import logoSidebar from "@/assets/bex-print-sidebar.png.asset.json";
 
 type Item = { title: string; url: string; icon: LucideIcon };
 
@@ -242,20 +243,16 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5 px-2 py-3">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 font-bold text-sm"
-            style={{ background: "var(--gradient-cmyk)", color: "#050506" }}
-          >
-            B
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1 leading-tight">
-              <div className="text-lg font-bold tracking-tight text-white">
-                Bex <span className="text-[color:var(--bex-cyan)]">Print</span>
-              </div>
-            </div>
-          )}
+        <div className="flex items-center justify-center gap-2.5 px-2 py-3">
+          <img
+            src={logoSidebar.url}
+            alt="Bex Print"
+            width={1165}
+            height={532}
+            className={collapsed && !isMobile
+              ? "h-8 w-8 shrink-0 object-contain"
+              : "h-auto w-40 max-w-full shrink object-contain"}
+          />
           {/* O X do Sheet fica escondido pelo componente base; sem este botão a única
               saída no celular é acertar a faixa estreita do overlay. */}
           {isMobile && (
