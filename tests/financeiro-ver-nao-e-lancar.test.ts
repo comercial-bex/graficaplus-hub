@@ -488,14 +488,17 @@ describe("tela: os botões de lançar e dar baixa ficam atrás da chave", () => 
 });
 
 describe("reserva estática do gestor = banco", () => {
-  // perfil_permissoes em 05/10/2026: 69 chaves para o gestor. A reserva só vale
-  // quando a matriz não carrega, mas não pode prometer o que o banco nega.
-  it("69 chaves, vê o financeiro e não tem nenhuma de pagamento", () => {
+  // perfil_permissoes em 06/10/2026: 71 chaves para o gestor (as 69 da Fase 0
+  // + catalogo.read e catalogo.manage). A reserva só vale quando a matriz não
+  // carrega, mas não pode prometer o que o banco nega.
+  it("71 chaves, vê o financeiro e não tem nenhuma de pagamento", () => {
     const gestor = rolePermissions.gestor as readonly string[];
-    expect(gestor).toHaveLength(69);
-    expect(new Set(gestor).size).toBe(69);
+    expect(gestor).toHaveLength(71);
+    expect(new Set(gestor).size).toBe(71);
     expect(gestor).toContain("financeiro.read");
     expect(gestor).toContain("financeiro.sensitive.read");
+    expect(gestor).toContain("catalogo.read");
+    expect(gestor).toContain("catalogo.manage");
     expect(gestor.filter((p) => p.startsWith("pagamentos."))).toEqual([]);
   });
 

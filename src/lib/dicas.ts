@@ -189,6 +189,25 @@ export const dicas = {
         "Anexa as artes do item. A marcada com estrela é a que sai no PDF e no link do cliente.",
     },
   },
+  "/catalogos": {
+    menu: "Brindes dos fornecedores com foto, código BX e preço de venda pronto.",
+    tela: "O catálogo de cada fornecedor: foto, nome, especificação e o código Bex Print (BX-0001…). Quem vende vê o preço de venda já calculado; quem vê o financeiro vê também o custo da tabela do fornecedor e a margem. O cliente recebe um link com a vitrine — sem o nome e sem o código do fornecedor, e só com os itens que têm foto. Item sem regra de venda, fora da tabela ou com a unidade do preço em dúvida fica 'sob consulta': nunca R$ 0,00.",
+    campos: {
+      margem:
+        "Quanto o preço de venda fica acima do custo. 60% sobre R$ 10,00 de custo dá R$ 16,00. Sem margem, o item fica sob consulta.",
+      frete:
+        "Quanto custa trazer UMA peça do fornecedor até a gráfica. Entra antes da margem. No item vendido por cento, conta 100 vezes.",
+      arredondamento:
+        "O preço sempre arredonda PARA CIMA no passo escolhido: com R$ 0,50, R$ 33,33 vira R$ 33,50.",
+    },
+    acoes: {
+      orcar:
+        "Põe o item num orçamento em rascunho (ou num novo para o cliente), com o preço de venda e o custo gravados pelo sistema. Confere o mínimo e o múltiplo do fornecedor.",
+      foto: "Escolhe a foto que mostra ESTE item, entre as fotos do mesmo código — ou tira a foto. Item sem foto não aparece no link do cliente.",
+      duvida:
+        "A tabela não diz se o valor é do pacote ou da peça. Registre o que o fornecedor confirmou: até lá o item fica sob consulta.",
+    },
+  },
   "/impressao-3d": {
     menu: "Orçamentos e trabalhos de impressão 3D.",
     tela: "Lista dos orçamentos de impressão 3D. O cálculo usa as tarifas reais de filamento, energia e mão de obra cadastradas no sistema.",

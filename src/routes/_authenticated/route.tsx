@@ -29,6 +29,7 @@ const NOMES_DE_TELA: Record<string, string> = {
   os: "Ordens de serviço",
   kanban: "Quadro de produção",
   orcamentos: "Orçamentos",
+  catalogos: "Catálogos",
   clientes: "Clientes",
   produtos: "Produtos",
   materiais: "Materiais",

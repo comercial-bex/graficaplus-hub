@@ -52,6 +52,7 @@ const moduloLabels: Record<string, string> = {
   automacoes: "Automações",
   templates: "Templates",
   orcamentos: "Orçamentos",
+  catalogo: "Catálogos de fornecedores",
   desconto: "Descontos",
   margem: "Margem",
   impressao3d: "Impressão 3D",
