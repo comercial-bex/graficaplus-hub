@@ -35,7 +35,7 @@ export function Dica({
       <TooltipTrigger asChild>
         <span className={cn("inline-flex", className)}>{children}</span>
       </TooltipTrigger>
-      <TooltipContent side={lado} className="max-w-xs text-xs leading-relaxed">
+      <TooltipContent side={lado} className="max-w-sm text-xs leading-relaxed">
         {texto}
       </TooltipContent>
     </Tooltip>
@@ -112,7 +112,7 @@ export function DicaIcone({
           <HelpCircle className="h-3.5 w-3.5" />
         </button>
       </TooltipTrigger>
-      <TooltipContent side={lado} className="max-w-xs text-xs leading-relaxed">
+      <TooltipContent side={lado} className="max-w-sm text-xs leading-relaxed">
         {texto}
       </TooltipContent>
     </Tooltip>

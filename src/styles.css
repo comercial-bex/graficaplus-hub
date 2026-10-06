@@ -51,60 +51,65 @@
   --color-bex-magenta: var(--bex-magenta);
   --color-bex-lime: var(--bex-lime);
   --color-bex-amber: var(--bex-amber);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
   --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
 }
 
-/* BEX PRINT OS — Precisão industrial (Neon Print) */
+/* BEX PRINT OS — painel industrial híbrido, claro por padrão. */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
 
-  --background: #050506;
-  --foreground: #e2e8f0;
+  --background: #f7f9fc;
+  --foreground: #20242d;
 
-  --card: #12131a;
-  --card-foreground: #e2e8f0;
+  --card: #ffffff;
+  --card-foreground: #20242d;
 
-  --popover: #12131a;
-  --popover-foreground: #e2e8f0;
+  --popover: #ffffff;
+  --popover-foreground: #20242d;
 
-  /* Ciano = ação primária */
-  --primary: #00d3f2;
-  --primary-foreground: #050506;
+  --primary: #00a9c6;
+  --primary-foreground: #ffffff;
 
-  --secondary: #1a1c25;
-  --secondary-foreground: #e2e8f0;
+  --secondary: #edf1f5;
+  --secondary-foreground: #20242d;
 
-  --muted: #1a1c25;
-  --muted-foreground: #8b94a7;
+  --muted: #edf1f5;
+  --muted-foreground: #687386;
 
-  /* Amarelo = accent / atenção */
-  --accent: #f5d90a;
-  --accent-foreground: #050506;
+  --accent: #e6f7fa;
+  --accent-foreground: #096b7d;
 
-  /* Magenta = destrutivo */
-  --destructive: #ff2d9b;
-  --destructive-foreground: #050506;
+  --destructive: #d92d72;
+  --destructive-foreground: #ffffff;
 
-  --success: #00d3f2;
-  --success-foreground: #050506;
-  --warning: #f5d90a;
-  --warning-foreground: #050506;
-  --info: #00d3f2;
-  --info-foreground: #050506;
+  --success: #16825d;
+  --success-foreground: #ffffff;
+  --warning: #c78300;
+  --warning-foreground: #20242d;
+  --info: #00a9c6;
+  --info-foreground: #ffffff;
+  --positive: #16825d;
+  --positive-foreground: #ffffff;
 
-  --border: #23252f;
-  --input: #1a1c25;
-  --ring: #00d3f2;
+  --border: #dce2e9;
+  --input: #cfd7e1;
+  --ring: #00a9c6;
+  --surface-raised: #ffffff;
+  --surface-subtle: #f1f4f8;
 
-  --chart-1: #00d3f2;
-  --chart-2: #ff2d9b;
-  --chart-3: #f5d90a;
+  --chart-1: #00a9c6;
+  --chart-2: #e32686;
+  --chart-3: #c78300;
   --chart-4: #7c5cff;
   --chart-5: #4ade80;
 
-  /* Sidebar — superfície grafite */
+  /* Sidebar permanece escura nos dois temas. */
   --sidebar: #12131a;
   --sidebar-foreground: #cbd5e1;
   --sidebar-primary: #00d3f2;
@@ -115,15 +120,15 @@
   --sidebar-ring: #00d3f2;
 
   /* Bex raw */
-  --bex-cyan: #00d3f2;
-  --bex-magenta: #ff2d9b;
-  --bex-lime: #f5d90a;
-  --bex-amber: #f5d90a;
+  --bex-cyan: #00a9c6;
+  --bex-magenta: #e32686;
+  --bex-lime: #16825d;
+  --bex-amber: #c78300;
 
-  --gradient-cmyk: linear-gradient(135deg, #00d3f2 0%, #ff2d9b 55%, #f5d90a 100%);
-  --shadow-neon-lime: 0 0 24px -6px rgba(245, 217, 10, 0.45);
-  --shadow-neon-magenta: 0 0 24px -6px rgba(255, 45, 155, 0.45);
-  --shadow-neon-cyan: 0 0 15px rgba(0, 211, 242, 0.4);
+  --gradient-cmyk: linear-gradient(135deg, #00a9c6 0%, #e32686 58%, #c78300 100%);
+  --shadow-neon-lime: 0 8px 24px -16px color-mix(in oklab, var(--bex-lime) 45%, transparent);
+  --shadow-neon-magenta: 0 8px 24px -16px color-mix(in oklab, var(--bex-magenta) 45%, transparent);
+  --shadow-neon-cyan: 0 8px 24px -16px color-mix(in oklab, var(--bex-cyan) 45%, transparent);
 }
 
 .dark {
@@ -143,9 +148,19 @@
   --accent-foreground: #050506;
   --destructive: #ff2d9b;
   --destructive-foreground: #050506;
+  --success: #45d4a0;
+  --success-foreground: #050506;
+  --warning: #f5d90a;
+  --warning-foreground: #050506;
+  --info: #00d3f2;
+  --info-foreground: #050506;
+  --positive: #45d4a0;
+  --positive-foreground: #050506;
   --border: #23252f;
   --input: #1a1c25;
   --ring: #00d3f2;
+  --surface-raised: #171820;
+  --surface-subtle: #0d0e12;
   --sidebar: #12131a;
   --sidebar-foreground: #cbd5e1;
   --sidebar-primary: #00d3f2;
@@ -167,10 +182,26 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  body {
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @utility bex-grid {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-image: radial-gradient(color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 

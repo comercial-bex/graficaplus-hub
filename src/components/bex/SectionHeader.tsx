@@ -23,20 +23,20 @@ export function SectionHeader({
       className={cn(
         // No celular as ações descem para baixo do título: lado a lado em 375px
         // o botão "Nova OS" espremia o título em duas letras.
-        "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border pb-4 mb-6",
+        "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border pb-5 mb-6",
         className,
       )}
     >
       <div className="min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{title}</h1>
-          <DicaIcone texto={ajuda} rotulo={title} lado="bottom" className="h-5 w-5" />
-        </div>
         {breadcrumb && (
-          <p className="mt-0.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             {breadcrumb}
           </p>
         )}
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="truncate text-xl font-extrabold text-foreground md:text-2xl">{title}</h1>
+          <DicaIcone texto={ajuda} rotulo={title} lado="bottom" className="h-5 w-5" />
+        </div>
         {description && (
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>
         )}

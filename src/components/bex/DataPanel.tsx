@@ -28,12 +28,12 @@ export function DataPanel({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-border bg-card shadow-2xl",
+        "overflow-hidden rounded-lg border border-border bg-card shadow-sm",
         className,
       )}
     >
       {temBarra && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3 md:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-subtle/60 p-3 md:p-4">
           {onBusca ? (
             <div className="relative w-full sm:w-64">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

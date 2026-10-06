@@ -14,6 +14,7 @@ import { destinoParaLevarAoLogin } from "@/domain/acesso/destino-apos-login";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { InstalarApp } from "@/components/pwa/instalar-app";
+import { ThemeToggle } from "@/components/bex/ThemeToggle";
 import { DespachanteDeAvisos } from "@/components/whatsapp/despachante-de-avisos";
 import { getRoutePermissions, permissionLabels } from "@/lib/permissions";
 
@@ -136,7 +137,7 @@ function AuthenticatedLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-2 md:gap-3 border-b border-border bg-card/60 backdrop-blur-xl px-2 md:px-4 sticky top-0 z-10 relative">
+          <header className="h-14 flex items-center gap-2 md:gap-3 border-b border-border bg-card/90 backdrop-blur-xl px-2 md:px-4 sticky top-0 z-30 relative shadow-sm">
             {/* No celular o gatilho do menu é o alvo principal: 44px */}
             <SidebarTrigger className="h-11 w-11 md:h-7 md:w-7" />
             {!noInicio && (
@@ -157,6 +158,7 @@ function AuthenticatedLayout() {
               Print OS Online
             </div>
             <div className="hidden md:block flex-1" />
+            <ThemeToggle />
             <div className="hidden sm:block font-mono text-[10px] uppercase tracking-wider text-muted-foreground truncate max-w-[200px]">
               {user.email}
             </div>
@@ -167,7 +169,7 @@ function AuthenticatedLayout() {
             />
           </header>
           {/* Celular: margem menor e sem o fundo de pontos (contraste em tela barata ao sol) */}
-          <main className="flex-1 p-4 md:p-6 overflow-auto md:bex-grid">
+          <main className="flex-1 p-4 md:p-7 lg:p-8 overflow-auto bg-background md:bex-grid">
             {canAccessRoute ? (
               <>
                 <AlertaWhatsapp />
