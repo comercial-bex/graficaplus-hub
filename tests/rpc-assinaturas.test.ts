@@ -186,6 +186,13 @@ const ASSINATURAS: Record<string, string[]> = {
   catalogo_resumo: [],
   catalogo_revogar_link: ["p_link_id"],
   catalogo_salvar_regras: ["p_catalogo_id", "p_regras"],
+  // Migração 20261006200000 (permissões por pessoa), ensaiada no Postgres em
+  // 06/10/2026. Chamadas por src/lib/api/permissoes-por-pessoa.ts.
+  minhas_permissoes: [],
+  permissoes_da_pessoa: ["p_usuario_id"],
+  definir_excecao_permissao: ["p_usuario_id", "p_permissao", "p_concede", "p_expira_em", "p_motivo"],
+  remover_excecao_permissao: ["p_usuario_id", "p_permissao", "p_motivo"],
+  permissoes_uso_no_banco: [],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */

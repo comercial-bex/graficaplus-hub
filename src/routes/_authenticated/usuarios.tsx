@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   Shield,
+  ShieldCheck,
   Trash2,
   UserCheck,
   Users,
@@ -70,8 +71,9 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { useAuth, type AppRole } from "@/lib/auth-context";
-import { DicaIcone } from "@/components/bex/Dica";
-import { dicaCampo, dicaTela } from "@/lib/dicas";
+import { Dica, DicaIcone } from "@/components/bex/Dica";
+import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
+import { PermissoesDaPessoaSheet } from "@/components/usuarios/permissoes-da-pessoa";
 import {
   atribuirPerfil,
   atualizarUsuario,
@@ -88,13 +90,13 @@ import {
 export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => ({
     meta: [
-      { title: "Usuários & Permissões — BEX PRINT OS" },
+      { title: "Equipe e acessos — BEX PRINT OS" },
       {
         name: "description",
         content:
           "Cadastre usuários, edite dados, defina perfis de acesso e gerencie senhas do BEX PRINT OS.",
       },
-      { property: "og:title", content: "Usuários & Permissões — BEX PRINT OS" },
+      { property: "og:title", content: "Equipe e acessos — BEX PRINT OS" },
       {
         property: "og:description",
         content: "Gestão completa de usuários e perfis de acesso do ERP BEX PRINT.",
@@ -150,7 +152,11 @@ const emptyForm: FormState = {
 
 function UsuariosPage() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  // O painel de permissões é só do administrador: espelha o has_role(admin)
+  // que as funções do banco conferem (e a lista desta tela já é só dele).
+  const ehAdmin = hasRole("admin");
+  const [permissoesDe, setPermissoesDe] = useState<{ id: string; nome: string } | null>(null);
 
   const listar = useServerFn(listarUsuarios);
   const criar = useServerFn(criarUsuario);
@@ -265,8 +271,8 @@ function UsuariosPage() {
       <SectionHeader
         ajuda={dicaTela("/usuarios")}
         breadcrumb="Administração"
-        title="Usuários & Permissões"
-        description="Cadastre a equipe, defina perfis de acesso, altere senhas e controle quem pode entrar no sistema."
+        title="Equipe e acessos"
+        description="Cadastre a equipe, defina perfis de acesso, altere senhas e controle quem pode entrar no sistema. Em Permissões, veja o que cada pessoa pode fazer e dê ou tire uma permissão só dela."
         actions={
           <NeonButton onClick={() => setForm({ ...emptyForm, senha: gerarSenha() })}>
             <Plus className="h-4 w-4" /> Novo usuário
@@ -274,11 +280,12 @@ function UsuariosPage() {
         }
       />
 
+      {/* Lista que não carregou não tem zero pessoas: "—", e o erro aparece na tabela. */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Usuários" value={totais.total} icon={Users} />
-        <KpiCard label="Ativos" value={totais.ativos} icon={UserCheck} tone="lime" />
-        <KpiCard label="Administradores" value={totais.admins} icon={Shield} tone="magenta" />
-        <KpiCard label="Sem perfil" value={totais.semPerfil} tone="muted" />
+        <KpiCard label="Usuários" value={error ? "—" : totais.total} icon={Users} />
+        <KpiCard label="Ativos" value={error ? "—" : totais.ativos} icon={UserCheck} tone="lime" />
+        <KpiCard label="Administradores" value={error ? "—" : totais.admins} icon={Shield} tone="magenta" />
+        <KpiCard label="Sem perfil" value={error ? "—" : totais.semPerfil} tone="muted" />
       </div>
 
       <Card>
@@ -370,6 +377,18 @@ function UsuariosPage() {
                               ? `Último acesso ${new Date(u.ultimo_acesso).toLocaleDateString("pt-BR")}`
                               : "Nunca acessou"}
                           </div>
+                          {ehAdmin && (
+                            <Dica texto={dicaAcao("/usuarios", "permissoes")}>
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="h-8 gap-1 px-0 text-xs"
+                                onClick={() => setPermissoesDe({ id: u.id, nome: u.nome })}
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5" /> Permissões
+                              </Button>
+                            </Dica>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -475,6 +494,11 @@ function UsuariosPage() {
                           >
                             <Pencil className="mr-2 h-4 w-4" /> Editar dados
                           </DropdownMenuItem>
+                          {ehAdmin && (
+                            <DropdownMenuItem onClick={() => setPermissoesDe({ id: u.id, nome: u.nome })}>
+                              <ShieldCheck className="mr-2 h-4 w-4" /> Permissões
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={() => {
                               setSenhaAlvo(u);
@@ -517,6 +541,8 @@ function UsuariosPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PermissoesDaPessoaSheet pessoa={permissoesDe} onFechar={() => setPermissoesDe(null)} />
 
       {/* Criar / editar */}
       <Dialog open={Boolean(form)} onOpenChange={(o) => !o && setForm(null)}>
