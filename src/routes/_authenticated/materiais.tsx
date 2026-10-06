@@ -30,6 +30,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   AlertTriangle,
   ArrowDownCircle,
   ArrowUpCircle,
@@ -48,6 +58,16 @@ import { DataPanel } from "@/components/bex/DataPanel";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
+import { ConferenciaDeDuplicidade } from "@/components/materiais/conferencia-de-duplicidade";
+import { conferirMaterialComIa } from "@/lib/api/materiais-ia.functions";
+import {
+  UNIDADES_DE_MATERIAL,
+  contarPorUnidade,
+  materiaisParecidos,
+  normalizarTexto,
+  normalizarUnidade,
+  type ConferenciaIa,
+} from "@/domain/materiais/parecidos";
 
 export const Route = createFileRoute("/_authenticated/materiais")({
   head: () => ({
@@ -83,7 +103,22 @@ type Material = {
   estoque_minimo: number | null;
   fornecedor: string | null;
   localizacao: string | null;
+  caracteristicas: string | null;
 };
+
+const formVazio = {
+  nome: "",
+  caracteristicas: "",
+  unidade: "m²",
+  estoque: "0",
+  custo_unitario: "",
+  estoque_minimo: "0",
+  fornecedor: "",
+};
+
+/** O que foi conferido pela IA: o resultado só vale para este texto. */
+const chaveDaConferencia = (f: { nome: string; unidade: string; caracteristicas: string }) =>
+  `${normalizarTexto(f.nome)}|${normalizarUnidade(f.unidade)}|${normalizarTexto(f.caracteristicas)}`;
 
 type MovForm = {
   material_id: string;
@@ -105,17 +140,17 @@ const movVazio: MovForm = {
 
 function MateriaisPage() {
   const qc = useQueryClient();
-  const { canSeeFinancials } = useAuth();
+  const { canSeeFinancials, hasAnyRole } = useAuth();
+  // Cadastrar material é de admin, gestor e estoque — a mesma regra da policy
+  // de escrita da tabela. Para os outros, o botão não aparece (antes aparecia
+  // e o salvar estourava permissão).
+  const podeCadastrar = hasAnyRole(["admin", "gestor", "estoque"]);
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
-  const [form, setForm] = useState({
-    nome: "",
-    unidade: "un",
-    estoque: "0",
-    custo_unitario: "",
-    estoque_minimo: "0",
-    fornecedor: "",
-  });
+  const [filtroUnidade, setFiltroUnidade] = useState<string | null>(null);
+  const [form, setForm] = useState({ ...formVazio });
+  const [ia, setIa] = useState<{ chave: string; resultado: ConferenciaIa } | null>(null);
+  const [confirmarDuplicado, setConfirmarDuplicado] = useState<string[] | null>(null);
   const [movOpen, setMovOpen] = useState(false);
   const [mov, setMov] = useState<MovForm>(movVazio);
 
@@ -216,7 +251,8 @@ function MateriaisPage() {
   const criar = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("materiais").insert({
-        nome: form.nome,
+        nome: form.nome.trim(),
+        caracteristicas: form.caracteristicas.trim() || null,
         unidade: form.unidade || "un",
         estoque: Number(form.estoque) || 0,
         estoque_minimo: Number(form.estoque_minimo) || 0,
@@ -224,24 +260,68 @@ function MateriaisPage() {
         custo_unitario:
           canSeeFinancials && form.custo_unitario ? Number(form.custo_unitario) : null,
         custo_medio: canSeeFinancials && form.custo_unitario ? Number(form.custo_unitario) : null,
-      });
+        // `as never`: `caracteristicas` (05/10/2026) ainda não está nos tipos gerados.
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Material cadastrado");
       qc.invalidateQueries({ queryKey: ["materiais"] });
       setOpen(false);
-      setForm({
-        nome: "",
-        unidade: "un",
-        estoque: "0",
-        custo_unitario: "",
-        estoque_minimo: "0",
-        fornecedor: "",
-      });
+      setForm({ ...formVazio });
+      setIa(null);
     },
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
+
+  // Parecidos pelo texto: de graça, enquanto digita, contra a lista inteira.
+  const parecidos = useMemo(
+    () =>
+      materiaisParecidos(
+        { nome: form.nome, unidade: form.unidade, caracteristicas: form.caracteristicas },
+        materiais,
+      ),
+    [form.nome, form.unidade, form.caracteristicas, materiais],
+  );
+  // A resposta da IA só vale para o texto que foi conferido.
+  const iaAtual = ia && ia.chave === chaveDaConferencia(form) ? ia.resultado : null;
+
+  const conferirComIa = useMutation({
+    mutationFn: async () => {
+      const chave = chaveDaConferencia(form);
+      const resultado = await conferirMaterialComIa({
+        data: { nome: form.nome, unidade: form.unidade, caracteristicas: form.caracteristicas },
+      });
+      return { chave, resultado };
+    },
+    onSuccess: (r) => setIa(r),
+    onError: (e: unknown) => toast.error(mensagemErro(e, "A conferência com IA falhou")),
+  });
+
+  /** Salvar: se já existe algo forte, pergunta antes — duplicar é dividir o estoque. */
+  function salvarMaterial() {
+    const fortes = [
+      ...parecidos.filter((p) => p.nivel !== "parecido").map((p) => p.material.nome),
+      ...(iaAtual?.estado === "ok"
+        ? iaAtual.duplicados.filter((d) => d.certeza === "alta").map((d) => d.nome)
+        : []),
+    ];
+    const unicos = [...new Set(fortes)];
+    if (unicos.length > 0) {
+      setConfirmarDuplicado(unicos);
+      return;
+    }
+    criar.mutate();
+  }
+
+  function usarExistente(material: { nome: string }) {
+    setOpen(false);
+    setForm({ ...formVazio });
+    setIa(null);
+    setFiltroUnidade(null);
+    setBusca(material.nome);
+    toast.success(`Use o material já cadastrado: ${material.nome}`);
+  }
 
   /**
    * Entrada e saída de material.
@@ -305,13 +385,20 @@ function MateriaisPage() {
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
+  const contagemPorUnidade = useMemo(() => contarPorUnidade(materiais), [materiais]);
+
   const filtrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    if (!q) return materiais;
-    return materiais.filter(
-      (m) => m.nome.toLowerCase().includes(q) || (m.fornecedor ?? "").toLowerCase().includes(q),
-    );
-  }, [materiais, busca]);
+    const q = normalizarTexto(busca);
+    return materiais.filter((m) => {
+      if (filtroUnidade && normalizarUnidade(m.unidade) !== filtroUnidade) return false;
+      if (!q) return true;
+      return (
+        normalizarTexto(m.nome).includes(q) ||
+        normalizarTexto(m.fornecedor).includes(q) ||
+        normalizarTexto(m.caracteristicas).includes(q)
+      );
+    });
+  }, [materiais, busca, filtroUnidade]);
 
   const kpis = useMemo(() => {
     const valor = materiais.reduce(
@@ -346,10 +433,12 @@ function MateriaisPage() {
               <ArrowUpCircle className="mr-2 h-4 w-4" />
               Entrada / saída
             </Button>
-            <NeonButton onClick={() => setOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Novo material
-            </NeonButton>
+            {podeCadastrar && (
+              <NeonButton onClick={() => setOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Novo material
+              </NeonButton>
+            )}
           </>
         }
       />
@@ -393,17 +482,56 @@ function MateriaisPage() {
         </div>
       )}
 
+      {/* Filtro por unidade. "m2" e "m²" são a mesma unidade: a contagem já
+          junta as grafias. m², un e kg aparecem sempre (pedido do dono). */}
+      <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por unidade">
+        <span className="text-xs text-muted-foreground">Unidade:</span>
+        <Button
+          type="button"
+          size="sm"
+          variant={filtroUnidade === null ? "default" : "outline"}
+          className="h-7 rounded-full px-3 text-xs"
+          aria-pressed={filtroUnidade === null}
+          onClick={() => setFiltroUnidade(null)}
+        >
+          Todas · {materiais.length}
+        </Button>
+        {contagemPorUnidade.map((c) => (
+          <Button
+            key={c.unidade}
+            type="button"
+            size="sm"
+            variant={filtroUnidade === c.unidade ? "default" : "outline"}
+            className="h-7 rounded-full px-3 text-xs"
+            aria-pressed={filtroUnidade === c.unidade}
+            disabled={c.total === 0}
+            title={c.total === 0 ? `Nenhum material em ${c.unidade}` : undefined}
+            onClick={() => setFiltroUnidade(filtroUnidade === c.unidade ? null : c.unidade)}
+          >
+            {c.unidade} · {c.total}
+          </Button>
+        ))}
+      </div>
+
       <DataPanel
         busca={busca}
         onBusca={setBusca}
-        placeholder="Buscar material ou fornecedor..."
-        rodape={<span>{filtrados.length} material(is) listado(s)</span>}
+        placeholder="Buscar material, característica ou fornecedor..."
+        rodape={
+          <span>
+            {filtrados.length === materiais.length
+              ? `${materiais.length} material(is)`
+              : `${filtrados.length} de ${materiais.length} material(is)`}
+          </span>
+        }
       >
         {isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
         ) : filtrados.length === 0 ? (
           <div className="p-12 text-center text-sm text-muted-foreground">
-            Nenhum material cadastrado
+            {materiais.length === 0
+              ? "Nenhum material cadastrado"
+              : "Nenhum material com esse filtro."}
           </div>
         ) : (
           <Table>
@@ -430,8 +558,11 @@ function MateriaisPage() {
                   <TableRow key={m.id}>
                     <TableCell>
                       <div className="font-medium">{m.nome}</div>
+                      {m.caracteristicas && (
+                        <div className="text-xs text-muted-foreground">{m.caracteristicas}</div>
+                      )}
                       <div className="text-[11px] text-muted-foreground">
-                        {m.unidade}
+                        {normalizarUnidade(m.unidade)}
                         {m.fornecedor ? ` · ${m.fornecedor}` : ""}
                         {m.localizacao ? ` · ${m.localizacao}` : ""}
                       </div>
@@ -488,20 +619,43 @@ function MateriaisPage() {
 
       {/* Novo material */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cadastrar material</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label className="flex items-center gap-1.5">
+              <Label htmlFor="material-nome" className="flex items-center gap-1.5">
                 Nome *
                 <DicaIcone texto={dicaCampo("/materiais", "Nome *")} rotulo="Nome *" />
               </Label>
               <Input
+                id="material-nome"
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 placeholder="Lona 440g"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="material-caracteristicas">Características</Label>
+              <Textarea
+                id="material-caracteristicas"
+                rows={2}
+                value={form.caracteristicas}
+                onChange={(e) => setForm({ ...form, caracteristicas: e.target.value })}
+                placeholder="Cor, espessura, gramatura, acabamento, largura da bobina…"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <ConferenciaDeDuplicidade
+                nome={form.nome}
+                parecidos={parecidos}
+                ia={iaAtual}
+                conferindo={conferirComIa.isPending}
+                podeUsarIa={podeCadastrar}
+                onConferirComIa={() => conferirComIa.mutate()}
+                onUsarExistente={usarExistente}
+                onUsarNome={(nome) => setForm({ ...form, nome })}
               />
             </div>
             <div className="space-y-2">
@@ -514,9 +668,11 @@ function MateriaisPage() {
                   <SelectValue placeholder="Escolha a unidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="m²">m² (metro quadrado)</SelectItem>
-                  <SelectItem value="un">un (unidade)</SelectItem>
-                  <SelectItem value="kg">kg (quilo)</SelectItem>
+                  {UNIDADES_DE_MATERIAL.map((u) => (
+                    <SelectItem key={u.valor} value={u.valor}>
+                      {u.rotulo}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -570,12 +726,42 @@ function MateriaisPage() {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={() => criar.mutate()} disabled={!form.nome || criar.isPending}>
+            <Button onClick={salvarMaterial} disabled={!form.nome.trim() || criar.isPending}>
               Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicar material divide o estoque em dois saldos: pergunta antes. */}
+      <AlertDialog
+        open={confirmarDuplicado !== null}
+        onOpenChange={(aberto) => !aberto && setConfirmarDuplicado(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Já existe material parecido</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmarDuplicado?.length === 1
+                ? `"${confirmarDuplicado[0]}" parece ser o mesmo material.`
+                : `${confirmarDuplicado?.map((n) => `"${n}"`).join(", ")} parecem ser o mesmo material.`}{" "}
+              Cadastrar outro divide o estoque e o custo em dois. Se for mesmo um material diferente,
+              diga a diferença nas características.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar e conferir</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmarDuplicado(null);
+                criar.mutate();
+              }}
+            >
+              Cadastrar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Entrada / saída */}
       <Dialog open={movOpen} onOpenChange={setMovOpen}>
