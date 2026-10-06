@@ -31,8 +31,8 @@ import {
  *   429 {erro:"muitas_tentativas", libera_s} + retry-after
  *                                     5 erros deste endereço, ou 30 no total,
  *                                     em 15 minutos
- *   403 {erro:"pin_desligado"}       o PIN foi desligado em /telas: a TV usa o
- *                                     pareamento por código
+ *   403 {erro:"pin_desligado"}       o PIN foi desligado em /telas: a TV avisa
+ *                                     e espera ser ligado de novo
  *   409 {erro:"token_revogado"}      o crachá que a TV guardou foi revogado:
  *                                     ela sorteia outro e repete
  *   400 {erro:"corpo_invalido" | "token_mal_formado" | "pin_mal_formado"}

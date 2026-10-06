@@ -18,7 +18,7 @@ import {
  *   200 liberado   a TV guarda o crachá que ela mesma sorteou
  *   401            PIN errado, com quantas tentativas restam
  *   429            muitas erradas: espera, com retry-after
- *   403            PIN desligado: a TV vai para o código
+ *   403            PIN desligado: a TV avisa e espera ligarem (não há outra porta)
  *   409            crachá revogado: a TV sorteia outro
  *   503            banco fora — nunca um 200 inventado
  * E que o banco recebe o HASH do token, nunca o token; e que nenhuma resposta
@@ -239,7 +239,7 @@ describe("o PIN visto pela TV", () => {
     });
     // corpo sem o tempo: vale o retry-after
     expect(passoDaResposta(429, null, 120)).toEqual({ tipo: "esperar", s: 120 });
-    expect(passoDaResposta(403, { erro: "pin_desligado" }, null)).toEqual({ tipo: "usar_codigo" });
+    expect(passoDaResposta(403, { erro: "pin_desligado" }, null)).toEqual({ tipo: "pin_desligado" });
     expect(passoDaResposta(409, { erro: "token_revogado" }, null)).toEqual({ tipo: "trocar_cracha" });
     expect(passoDaResposta(503, { erro: "banco_indisponivel" }, null)).toEqual({
       tipo: "sem_servidor",

@@ -178,7 +178,7 @@ describe("o selo de idade nunca diz AO VIVO sem prova", () => {
 });
 
 describe("o que a TV faz com cada resposta do servidor", () => {
-  it("401 revogada volta ao pareamento dizendo o motivo", () => {
+  it("401 revogada volta ao PIN dizendo o motivo", () => {
     expect(interpretarResposta(401, { erro: "tv_revogada" })).toEqual({
       tipo: "recusada",
       motivo: "tv_revogada",

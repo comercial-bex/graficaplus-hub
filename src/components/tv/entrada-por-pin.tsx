@@ -3,7 +3,6 @@ import { Icone } from "./icones";
 import { Relogio } from "./relogio";
 import { MarcaETitulo } from "./tela-da-oficina";
 import { gravarToken, gravarTokenPendente, lerTokenPendente } from "./cracha";
-import type { MotivoDoPareamento } from "./pareamento";
 import { ROTA_DAS_TELAS } from "@/domain/tv/pareamento";
 import {
   ROTA_DO_PIN,
@@ -16,7 +15,14 @@ import { gerarSegredo } from "@/domain/whatsapp/segredo-webhook";
 import { horaMinuto } from "@/domain/tv/frescor";
 
 /**
+ * Por que a TV voltou para a entrada: o crachá dela foi revogado em /telas
+ * (ou o PIN mudou), ou o servidor não reconhece mais o crachá guardado.
+ */
+export type MotivoDaEntrada = "tv_nao_pareada" | "tv_revogada" | null;
+
+/**
  * A TV sem crachá, com a entrada por PIN ligada: um teclado em letra de parede.
+ * É a ÚNICA porta da TV desde 06/10/2026 — decisão do dono, "só PIN mesmo".
  *
  * Dá para digitar de três jeitos, porque cada TV de oficina tem um:
  *   - os números do controle remoto (chegam como tecla "0"–"9"; alguns
@@ -30,7 +36,8 @@ import { horaMinuto } from "@/domain/tv/frescor";
  *   pin_errado      limpa as casas e diz quantas tentativas restam
  *   esperar         conta o tempo pelo CRONÔMETRO (nunca a hora do aparelho)
  *                   e não deixa mandar até acabar
- *   usar_codigo     o PIN foi desligado em /telas: vai para o pareamento
+ *   pin_desligado   o PIN foi desligado em /telas: sai do teclado para o
+ *                   aviso de entrada desligada
  *   trocar_cracha   o crachá guardado foi revogado: sorteia outro e repete
  *                   uma vez, sozinho
  *   sem_servidor    avisa e deixa digitar de novo
@@ -64,13 +71,13 @@ export function EntradaPorPin({
   motivo,
   avisoInicial,
   aoEntrar,
-  aoUsarCodigo,
+  aoPinDesligado,
 }: {
   digitos: number;
-  motivo: MotivoDoPareamento;
+  motivo: MotivoDaEntrada;
   avisoInicial?: Aviso | null;
   aoEntrar: (token: string) => void;
-  aoUsarCodigo: () => void;
+  aoPinDesligado: () => void;
 }) {
   const [pin, setPin] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -81,8 +88,8 @@ export function EntradaPorPin({
   const teclasRef = useRef<(HTMLButtonElement | null)[]>([]);
   const aoEntrarRef = useRef(aoEntrar);
   aoEntrarRef.current = aoEntrar;
-  const aoUsarCodigoRef = useRef(aoUsarCodigo);
-  aoUsarCodigoRef.current = aoUsarCodigo;
+  const aoPinDesligadoRef = useRef(aoPinDesligado);
+  aoPinDesligadoRef.current = aoPinDesligado;
 
   const esperando = restam !== null && restam > 0;
 
@@ -166,8 +173,8 @@ export function EntradaPorPin({
           texto: "MUITOS PINS ERRADOS — por segurança, a entrada espera antes de aceitar de novo.",
         });
         break;
-      case "usar_codigo":
-        aoUsarCodigoRef.current();
+      case "pin_desligado":
+        aoPinDesligadoRef.current();
         return;
       case "sem_servidor":
         setAviso({
@@ -301,9 +308,6 @@ export function EntradaPorPin({
               <span>use os números do controle, as setas e OK, ou toque nas teclas</span>
             )}
           </div>
-          <button type="button" className="trocar" onClick={() => aoUsarCodigoRef.current()}>
-            Sem o PIN? Parear pelo código, com aprovação no celular
-          </button>
         </div>
         <div className="teclado" role="group" aria-label="Teclado do PIN">
           {TECLAS.map((tecla, i) => (
@@ -340,6 +344,60 @@ export function EntradaPorPin({
           ligada às {horaMinuto(ligouEm)} · o PIN é trocado em {ROTA_DAS_TELAS}, por administrador ou
           gestor
         </span>
+        <span className="fixo">/tv/maquinas</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A TV sem crachá com o PIN DESLIGADO em /telas. Não há outra porta (o
+ * pareamento por código saiu em 06/10/2026), então a tela diz o que fazer e
+ * espera: quem a desenha (`SemCracha`) pergunta de novo ao servidor de tempos
+ * em tempos e troca para o teclado assim que o PIN voltar a ser ligado.
+ */
+export function EntradaDesligada({
+  motivo,
+  conferirACadaS,
+}: {
+  motivo: MotivoDaEntrada;
+  conferirACadaS: number;
+}) {
+  const [ligouEm] = useState(() => Date.now());
+  return (
+    <div className="pareamento pin desligada" data-pin="desligado">
+      <header className="cab">
+        <MarcaETitulo data="TV DA OFICINA" exemplo={false} />
+        <div className="dir">
+          <div className="chip cinza fixo">
+            <Icone nome="Lock" px={24} />
+            <span>SEM CRACHÁ · PIN DESLIGADO</span>
+          </div>
+          <Relogio desvioMs={0} />
+        </div>
+      </header>
+      {motivo === "tv_revogada" ? (
+        <div className="aviso vermelha">
+          <Icone nome="TriangleAlert" px={30} />
+          <span>ESTA TV FOI DESCONECTADA em {ROTA_DAS_TELAS}.</span>
+        </div>
+      ) : null}
+      <div className="aviso ambar" data-aviso="ambar">
+        <Icone nome="CircleAlert" px={30} />
+        <span>A ENTRADA DA TV ESTÁ DESLIGADA — o PIN foi desligado em {ROTA_DAS_TELAS}.</span>
+      </div>
+      <div className="miolo">
+        <div>
+          <div className="passo cx fixo">Entrar com PIN</div>
+          <div className="chamada">Peça para ligarem o PIN da TV.</div>
+          <p className="instrucao">
+            Um <b>administrador ou gestor</b> liga o PIN em <b>TVs da oficina</b> ({ROTA_DAS_TELAS}). Esta
+            tela confere sozinha a cada {conferirACadaS} s e mostra o teclado assim que o PIN for ligado.
+          </p>
+        </div>
+      </div>
+      <div className="rodape-par">
+        <span className="fixo">ligada às {horaMinuto(ligouEm)} · a TV entra só pelo PIN</span>
         <span className="fixo">/tv/maquinas</span>
       </div>
     </div>

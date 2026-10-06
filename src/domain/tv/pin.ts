@@ -3,8 +3,10 @@
  * cada resposta quer dizer.
  *
  * A TV mostra um teclado; quem está na frente dela digita o PIN. O PIN certo
- * não abre o painel direto: vira um CRACHÁ para aquela TV (o mesmo das
- * pareadas por código), que ela guarda e usa dali em diante. Quem confere é o
+ * não abre o painel direto: vira um CRACHÁ para aquela TV, que ela guarda e
+ * usa dali em diante. Desde 06/10/2026 o PIN é a ÚNICA entrada da TV (decisão
+ * do dono: "só PIN mesmo"); as TVs que entraram antes pelo código continuam
+ * com o crachá delas até alguém revogar em /telas. Quem confere é o
  * banco (`tv_entrar_com_pin`), contra um hash bcrypt — o PIN não existe no
  * pacote do navegador nem no código.
  *
@@ -76,7 +78,9 @@ export function interpretarEstadoDoPin(corpo: unknown): EstadoDoPin | null {
  *   pin_errado      limpa as casas e diz quantas tentativas restam
  *   esperar         muitas erradas: espera `s` segundos (cronômetro, nunca a
  *                   hora do aparelho)
- *   usar_codigo     o PIN foi desligado em /telas: vai para o pareamento
+ *   pin_desligado   o PIN foi desligado em /telas: a TV avisa e espera ele
+ *                   ser ligado de novo (desde 06/10/2026 a TV entra SÓ pelo
+ *                   PIN — não existe mais o pareamento por código)
  *   trocar_cracha   o crachá guardado foi revogado: sorteia outro e repete
  *   sem_servidor    rede ou servidor fora: avisa e deixa digitar de novo
  */
@@ -84,7 +88,7 @@ export type PassoDoPin =
   | { tipo: "liberado"; nome: string }
   | { tipo: "pin_errado"; restantes: number }
   | { tipo: "esperar"; s: number }
-  | { tipo: "usar_codigo" }
+  | { tipo: "pin_desligado" }
   | { tipo: "trocar_cracha" }
   | { tipo: "sem_servidor"; detalhe: string };
 
@@ -109,7 +113,7 @@ export function passoDaResposta(
     const espera = Number.isFinite(s) && s > 0 ? s : (retryAfter ?? 60);
     return { tipo: "esperar", s: Math.ceil(espera) };
   }
-  if (status === 403 && c.erro === "pin_desligado") return { tipo: "usar_codigo" };
+  if (status === 403 && c.erro === "pin_desligado") return { tipo: "pin_desligado" };
   if (status === 409 && c.erro === "token_revogado") return { tipo: "trocar_cracha" };
   if (status === 200) return { tipo: "sem_servidor", detalhe: "resposta fora do contrato" };
   return { tipo: "sem_servidor", detalhe: status === 503 ? "503" : `HTTP ${status}` };

@@ -115,7 +115,7 @@ describe("o extrator enxerga o que precisa", () => {
   it("acha as três rotas e os arquivos de servidor — não pode passar por não achar nada", () => {
     expect(rotas.map((a) => a.nome)).toEqual(["api.tv.painel.ts", "api.tv.parear.ts", "api.tv.pin.ts"]);
     expect(servidores.map((a) => a.nome)).toEqual(
-      expect.arrayContaining(["tv-painel.server.ts", "tv-parear.server.ts", "tv-pin.server.ts"]),
+      expect.arrayContaining(["tv-comum.server.ts", "tv-painel.server.ts", "tv-pin.server.ts"]),
     );
   });
 
@@ -264,24 +264,20 @@ describe("rotas da TV: o token não vaza", () => {
   it("o banco recebe hash, nunca o valor em claro", () => {
     // Todo parâmetro que carrega credencial termina em _hash; o que vai nele
     // é uma variável que saiu de hashDoSegredo.
-    const parear = servidores.find((a) => a.nome === "tv-parear.server.ts")!.codigo;
     const painel = servidores.find((a) => a.nome === "tv-painel.server.ts")!.codigo;
     const pin = servidores.find((a) => a.nome === "tv-pin.server.ts")!.codigo;
     const comum = servidores.find((a) => a.nome === "tv-comum.server.ts")!.codigo;
-    const params = [...`${parear}\n${painel}\n${pin}`.matchAll(/\b(p_\w+)\s*:\s*([\w.]+)/g)].map(
+    const params = [...`${painel}\n${pin}`.matchAll(/\b(p_\w+)\s*:\s*([\w.]+)/g)].map(
       (m) => [m[1], m[2]],
     );
     const credenciais = params.filter(([p]) => p.endsWith("_hash"));
-    expect(credenciais.length).toBeGreaterThanOrEqual(6);
+    expect(credenciais.length).toBeGreaterThanOrEqual(3);
     for (const [param, valor] of credenciais) expect(valor, param).toMatch(/^hashD[ao]/);
     expect(params.filter(([, v]) => /^(token|retirada)$/.test(v))).toEqual([]);
-    expect(parear).toMatch(/hashDaRetirada = await hashDoSegredo\(retirada\)/);
-    expect(parear).toMatch(/hashDoToken = await hashDoSegredo\(token\)/);
     expect(painel).toMatch(/hashDoToken = await hashDoSegredo\(token\)/);
     expect(pin).toMatch(/hashDoToken = await hashDoSegredo\(token\)/);
     // O endereço de quem pede também só vai como hash — uma função só, para as duas portas.
     expect(comum).toMatch(/return hashDoSegredo\(`bexprint-tv-origem:\$\{limpo\}`\)/);
-    expect(parear).toMatch(/p_origem_hash: hashDaOrigem\b/);
     expect(pin).toMatch(/p_origem_hash: hashDaOrigem\b/);
     // O PIN é a única credencial que vai como veio: quem confere contra o
     // bcrypt é o banco. E só para a função que confere.
@@ -296,24 +292,14 @@ describe("rotas da TV: o token não vaza", () => {
     expect(respostas.filter((r) => /\bpin\b\s*[,:}]|\bpin\s*$/.test(r))).toEqual([]);
   });
 
-  it("o token é derivado do segredo de retirada, não sorteado", () => {
-    // Sorteado, o token só existia na resposta "pareado": se ela se perdesse,
-    // a TV ficava sem crachá e o banco com um dispositivo órfão.
-    const parear = servidores.find((a) => a.nome === "tv-parear.server.ts")!.codigo;
-    expect(parear).toMatch(/const token = await derivarToken\(pareamentoId, retirada\)/);
-    expect(parear).toMatch(/name: "HMAC", hash: "SHA-256"/);
-    // O único sorteio de segredo que sobra é o da retirada.
-    expect([...parear.matchAll(/gerarSegredo\(\)/g)]).toHaveLength(1);
-    expect(parear).toMatch(/const retirada = gerarSegredo\(\)/);
-  });
-
-  it("o token só sai na resposta 'pareado'", () => {
-    const parear = servidores.find((a) => a.nome === "tv-parear.server.ts")!.codigo;
-    const respostasComToken = [
-      ...parear.matchAll(/respostaTv\(\s*\d+\s*,\s*\{[^}]*\btoken\b[^}]*\}/g),
-    ].map((m) => m[0]);
-    expect(respostasComToken).toHaveLength(1);
-    expect(respostasComToken[0]).toContain('estado: "pareado"');
+  it("a porta do código está fechada: /api/tv/parear só responde 410, sem banco", () => {
+    // Desde 06/10/2026 a TV entra só pelo PIN. A rota antiga ficou de pé só
+    // para dar um "não" claro à TV com a tela velha aberta.
+    const rota = rotas.find((a) => a.nome === "api.tv.parear.ts")!.codigo;
+    expect(rota).toMatch(/pareamentoEncerrado\(\)/);
+    expect(rota).not.toMatch(/tv-parear\.server|supabase|rpc\(/);
+    const comum = servidores.find((a) => a.nome === "tv-comum.server.ts")!.codigo;
+    expect(comum).toMatch(/respostaTv\(410, \{\s*erro: "so_pin"/);
   });
 
   it("a chave de serviço não entra no pacote do navegador", () => {
@@ -386,14 +372,24 @@ describe("o contrato com as funções tv_* do banco", () => {
    * cria o pedido SEM o freio por origem — a segunda porta para o mesmo fato.
    */
   const SO_O_BANCO_CHAMA = ["tv_criar_pareamento"];
+  // O pareamento por código saiu em 06/10/2026: a TV entra só pelo PIN
+  // (decisão do dono). As funções seguem no banco — objeto do banco só se apaga
+  // com o OK do dono —, mas nada no sistema pode voltar a chamá-las.
+  const APOSENTADAS = [
+    "tv_aprovar_pareamento",
+    "tv_criar_pareamento_da_origem",
+    "tv_limpar_pedidos",
+    "tv_retirar_pareamento",
+  ];
 
-  it("o servidor entra pela porta que conta a origem, nunca pela de dentro", () => {
-    const nomes = servidores.flatMap((a) => chamadas(a.codigo).map((c) => c.rpc));
-    expect(nomes).toContain("tv_criar_pareamento_da_origem");
-    for (const interna of SO_O_BANCO_CHAMA) expect(nomes).not.toContain(interna);
-    // E a de fora chama mesmo a de dentro: sem isso o teto da fila some.
-    const sql = readFileSync(MIGRACAO, "utf8");
-    expect(sql).toMatch(/v_resposta := public\.tv_criar_pareamento\(p_codigo, p_retirada_hash\);/);
+  it("ninguém chama o pareamento por código aposentado, nem a função de dentro", () => {
+    const tela = semComentarios(readFileSync(TELA_LOGADA, "utf8"));
+    const nomes = [...servidores.map((a) => a.codigo), tela].flatMap((codigo) =>
+      chamadas(codigo).map((c) => c.rpc),
+    );
+    for (const f of [...SO_O_BANCO_CHAMA, ...APOSENTADAS]) expect(nomes).not.toContain(f);
+    // E a entrada que sobrou é a do PIN, que também conta a origem.
+    expect(nomes).toContain("tv_entrar_com_pin");
   });
 
   it("servidor e tela chamam cada função com exatamente os parâmetros que ela tem", () => {
@@ -412,7 +408,7 @@ describe("o contrato com as funções tv_* do banco", () => {
     const conferiveis = feitas.filter((c) => c.rpc in esperado);
     expect(conferiveis.map((c) => c.rpc).sort()).toEqual(
       Object.keys(esperado)
-        .filter((f) => !SO_O_BANCO_CHAMA.includes(f))
+        .filter((f) => !SO_O_BANCO_CHAMA.includes(f) && !APOSENTADAS.includes(f))
         .sort(),
     );
     for (const c of conferiveis) {
