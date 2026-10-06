@@ -287,6 +287,17 @@ beforeEach(() => {
 const nenhumaLeituraCom = (padrao: RegExp) =>
   b.leituras.filter((l) => padrao.test(l.colunas)).map((l) => `${l.relacao}: ${l.colunas}`);
 
+describe("logo da Bex Print", () => {
+  it("todo documento sai com a logo oficial para fundo branco, sem ler o bucket privado", async () => {
+    // Decisão do dono (06/10/2026). Antes vinha de empresa_config.logo_path, no
+    // bucket privado: vendedor e financeiro não liam a pasta empresa/ e o PDF
+    // deles saía com a caixa do nome no lugar da logo.
+    const p = await carregarPropsOrcamento(ORC, true, "comercial");
+    expect(p.empresa.logo_url).toMatch(/\/marca\/bex-print-fundo-claro\.png$/);
+    expect(nenhumaLeituraCom(/logo_path/)).toEqual([]);
+  });
+});
+
 describe("orçamento", () => {
   it("via do cliente: o combinado vem da tabela, o preço da view, nada pela metade", async () => {
     const p = await carregarPropsOrcamento(ORC, true, "comercial");
