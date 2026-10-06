@@ -146,6 +146,8 @@ const criarEstilos = (C: string) =>
     datasRow: { flexDirection: "row", justifyContent: "space-between", fontSize: 9, marginBottom: 4 },
     clienteGrid: { flexDirection: "row", flexWrap: "wrap", borderWidth: 0.5, borderColor: "#ccc", borderRadius: 3, paddingVertical: 4, paddingHorizontal: 6 },
     clienteCel: { width: "50%", fontSize: 8.5, paddingVertical: 1.5 },
+    clienteCabecalho: { marginTop: 10, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: "#ccc" },
+    clienteCabecalhoLinha: { fontSize: 9, lineHeight: 1.4, marginBottom: 4 },
     respLabel: { fontFamily: "Helvetica-Bold", color: "#333" },
     respRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, fontSize: 9 },
     resumoItens: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, paddingHorizontal: 4, borderTopWidth: 1, borderTopColor: C, fontSize: 9 },
@@ -272,6 +274,22 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
                 <Text style={s.metaValue}>{p.status}</Text>
               </View>
             )}
+            {isOrc && (
+              <View style={s.clienteCabecalho} wrap={false}>
+                {([
+                  ["Razão Social", p.cliente.razao_social || p.cliente.nome],
+                  [p.cliente.documento ? rotuloDoDocumento(p.cliente.documento).replace(/:$/, "") : "CNPJ", p.cliente.documento],
+                  ["Endereço", p.cliente.endereco],
+                  ["Telefone", p.cliente.telefone || p.cliente.celular],
+                  ["Bairro", p.cliente.bairro],
+                ] as [string, string | null | undefined][]).map(([rotulo, valor]) => (
+                  <Text style={s.clienteCabecalhoLinha} key={rotulo}>
+                    <Text style={s.respLabel}>{rotulo}: </Text>
+                    {valor || "—"}
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
@@ -280,7 +298,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             <Text style={s.respLabel}>Data de Emissão: </Text>
             {p.data_solicitacao ?? "—"}
           </Text>
-          {(p.data_entrega || p.tipo === "os" || isOrc) && (
+          {!isOrc && (p.data_entrega || p.tipo === "os") && (
             <Text>
               <Text style={s.respLabel}>Data de Entrega: </Text>
               {p.data_entrega ?? "—"}
@@ -288,7 +306,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           )}
         </View>
 
-        <View style={s.clienteGrid} wrap={false}>
+        {!isOrc && <View style={s.clienteGrid} wrap={false}>
           {(
             [
               ["Razão Social", p.cliente.razao_social ?? p.cliente.nome],
@@ -313,7 +331,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
               {valor || ""}
             </Text>
           ))}
-        </View>
+        </View>}
 
         <Text style={s.sectionTitle}>PRODUTOS / SERVIÇOS</Text>
         <View style={s.thead}>
