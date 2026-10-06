@@ -90,6 +90,34 @@ export const dicas = {
     menu: "Saldo real das contas e importação do extrato do banco.",
     tela: "Cadastre as contas da gráfica e envie o extrato (OFX do banco ou planilha CSV). Cada lançamento novo entra no caixa e atualiza o saldo real; lançamentos já importados são ignorados, então pode reenviar o mesmo arquivo sem duplicar nada.",
   },
+  "/avisos": {
+    menu: "Fila de mensagens automáticas e manuais que serão enviadas aos clientes.",
+    tela: "Acompanhe os avisos gerados pelo sistema, veja o motivo de cada envio e corrija os que falharam. Um aviso só sai quando há cliente, telefone válido e conexão disponível.",
+  },
+  "/funil": {
+    menu: "Negociações por etapa, do primeiro contato até a conversão em OS.",
+    tela: "Visão comercial dos orçamentos por etapa. Mover um cartão altera a situação da negociação; a produção só começa depois da aprovação e da conversão em ordem de serviço.",
+  },
+  "/breakdown-3d": {
+    menu: "Composição do custo de cada peça 3D: material, máquina, energia e trabalho.",
+    tela: "Abra o preço de uma peça 3D para conferir de onde cada valor veio. Os cálculos usam filamento, tempo de impressão, energia, mão de obra, perda e margem cadastrados no sistema.",
+  },
+  "/produtividade-3d": {
+    menu: "Rendimento das impressoras 3D, falhas, horas usadas e peças concluídas.",
+    tela: "Compare o tempo previsto com o realizado, a taxa de falhas e a ocupação das impressoras. Os números vêm dos apontamentos feitos na fila de produção 3D.",
+  },
+  "/telas": {
+    menu: "Configure e acompanhe as TVs que exibem a fila da oficina.",
+    tela: "Gerencie as telas da oficina, gere o código de pareamento e confira a última comunicação. Uma TV sem atualização pode estar sem internet, despareada ou com o navegador fechado.",
+  },
+  "/planilha-custos": {
+    menu: "Custos reais usados para formar preços, margens e previsões.",
+    tela: "Edite os custos-base da gráfica em um só lugar. Alterações afetam os próximos cálculos de orçamento e simulação; trabalhos já fechados preservam os valores registrados neles.",
+  },
+  "/compromissos": {
+    menu: "Contas e obrigações futuras que entram na previsão do caixa.",
+    tela: "Registre pagamentos previstos, recorrências e vencimentos. Eles entram no saldo projetado; o saldo real só muda quando o pagamento é efetivamente lançado.",
+  },
   "/dashboard": {
     menu: "Visão geral do dia: vendas, produção e o que precisa de atenção.",
     tela: "Resumo do negócio em números reais do sistema. Os cartões mudam conforme os orçamentos, as ordens de serviço e os pagamentos registrados.",

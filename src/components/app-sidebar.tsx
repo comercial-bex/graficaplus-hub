@@ -294,7 +294,7 @@ export function AppSidebar() {
           if (visibleItems.length === 0) return null;
           return (
             <SidebarGroup key={group.label} className="mb-4">
-              <SidebarGroupLabel className="px-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground md:text-[10px]">
+              <SidebarGroupLabel className="px-2 text-[11px] font-bold uppercase tracking-widest text-sidebar-foreground/55 md:text-[10px]">
                 {group.label}
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -333,7 +333,7 @@ export function AppSidebar() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-bold text-white">{user.email}</p>
-                <p className="truncate text-[10px] text-muted-foreground">Usuário do sistema</p>
+                <p className="truncate text-[10px] text-sidebar-foreground/55">Usuário do sistema</p>
               </div>
             </div>
           )}

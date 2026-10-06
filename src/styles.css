@@ -51,6 +51,10 @@
   --color-bex-magenta: var(--bex-magenta);
   --color-bex-lime: var(--bex-lime);
   --color-bex-amber: var(--bex-amber);
+  --color-status-cyan: var(--status-cyan);
+  --color-status-magenta: var(--status-magenta);
+  --color-status-amber: var(--status-amber);
+  --color-status-positive: var(--status-positive);
   --color-surface-raised: var(--surface-raised);
   --color-surface-subtle: var(--surface-subtle);
   --color-positive: var(--positive);
@@ -124,6 +128,10 @@
   --bex-magenta: #e32686;
   --bex-lime: #16825d;
   --bex-amber: #c78300;
+  --status-cyan: #00788d;
+  --status-magenta: #b91e68;
+  --status-amber: #805600;
+  --status-positive: #116b4d;
 
   --gradient-cmyk: linear-gradient(135deg, #00a9c6 0%, #e32686 58%, #c78300 100%);
   --shadow-neon-lime: 0 8px 24px -16px color-mix(in oklab, var(--bex-lime) 45%, transparent);
@@ -161,6 +169,10 @@
   --ring: #00d3f2;
   --surface-raised: #171820;
   --surface-subtle: #0d0e12;
+  --status-cyan: #00d3f2;
+  --status-magenta: #ff5aae;
+  --status-amber: #f5d90a;
+  --status-positive: #45d4a0;
   --sidebar: #12131a;
   --sidebar-foreground: #cbd5e1;
   --sidebar-primary: #00d3f2;

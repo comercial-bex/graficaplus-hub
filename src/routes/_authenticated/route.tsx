@@ -153,9 +153,12 @@ function AuthenticatedLayout() {
             <h1 className="md:hidden min-w-0 flex-1 truncate text-base font-semibold leading-tight">
               {nomeDaTela(pathname)}
             </h1>
-            <div className="hidden md:flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+            <div className="hidden md:flex min-w-0 items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--bex-lime)] animate-pulse" />
-              Print OS Online
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-foreground">{nomeDaTela(pathname)}</p>
+                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">BEX Print OS · Online</p>
+              </div>
             </div>
             <div className="hidden md:block flex-1" />
             <ThemeToggle />

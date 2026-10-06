@@ -69,18 +69,11 @@ export function KpiCard({
           {Icon && <Icon className={cn("h-4 w-4", a.text)} />}
         </div>
         <h3 className="mt-1 text-3xl font-extrabold text-foreground">{value}</h3>
-        {(delta || hint) && (
+        {delta && (
           <div className="mt-2 flex items-center gap-2">
-            {delta && (
-              <span className={cn("text-[10px] font-bold uppercase tracking-wide", a.text)}>
-                {delta}
-              </span>
-            )}
-            {hint && !delta && (
-              <span className="truncate text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                {hint}
-              </span>
-            )}
+            <span className={cn("text-[10px] font-bold uppercase tracking-wide", a.text)}>
+              {delta}
+            </span>
           </div>
         )}
       </div>
