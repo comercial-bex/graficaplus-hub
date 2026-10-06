@@ -165,6 +165,10 @@ const ASSINATURAS: Record<string, string[]> = {
   portal_meu_painel: ["p_cliente_id"],
   portal_registrar_envio: ["p_cliente_id", "p_os_id", "p_tipo", "p_caminho", "p_nome", "p_mensagem"],
   portal_revogar_link: ["p_link_id"],
+  // Migração 20261005220000 (link do cliente do orçamento), conferida no
+  // Postgres em 05/10/2026. Chamada pela função de servidor
+  // gerarLinkPublicoOrcamento, com a sessão de quem clicou.
+  orcamento_link_publico: ["p_orcamento_id"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */

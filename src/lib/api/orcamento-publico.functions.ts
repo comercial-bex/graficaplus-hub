@@ -40,26 +40,40 @@ export type OrcamentoPublico = {
   }[];
 };
 
-/** Cria (ou reaproveita) o token do link do cliente. */
+/**
+ * Cria (ou reaproveita) o token do link do cliente.
+ *
+ * Até 05/10/2026 esta função lia `token_publico` direto da tabela com a sessão
+ * de quem clicou. O papel `authenticated` não tem SELECT nessa coluna — o
+ * grant por coluna existe justamente porque o token é a credencial do
+ * cliente —, e tabela com grant por coluna recusa a consulta INTEIRA: 42501
+ * para todo mundo, admin inclusive. O erro virava "Orçamento não encontrado" e
+ * nenhum dos orçamentos chegou a ter link.
+ *
+ * Agora quem lê e grava o token é `orcamento_link_publico`, uma função do
+ * banco que confere `orcamentos.send` antes de qualquer coisa. Ficou no banco,
+ * e não na chave de serviço daqui, porque a regra de quem pode mandar o
+ * orçamento já mora lá (has_permission, a mesma matriz das policies): uma
+ * conferência só, no mesmo lugar, em vez de reescrever a permissão aqui e
+ * torcer para as duas não divergirem. A chamada continua com a sessão de quem
+ * clicou, como o resto deste arquivo que exige login.
+ *
+ * O erro sai com a causa real (falta de permissão, orçamento inexistente,
+ * sessão vencida). O token nunca vai para log: é a senha do cliente.
+ */
 export const gerarLinkPublicoOrcamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { orcamentoId: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: orc, error } = await context.supabase
-      .from("orcamentos")
-      .select("id, token_publico")
-      .eq("id", data.orcamentoId)
-      .single();
-    if (error || !orc) throw new Error("Orçamento não encontrado");
-
-    let token = (orc as { token_publico: string | null }).token_publico;
-    if (!token) {
-      token = crypto.randomUUID();
-      const { error: erroUpdate } = await context.supabase
-        .from("orcamentos")
-        .update({ token_publico: token } as never)
-        .eq("id", data.orcamentoId);
-      if (erroUpdate) throw new Error("Não foi possível gerar o link do cliente");
+    // `as any`: a função é nova e ainda não está nos tipos gerados do banco.
+    const { data: token, error } = await (context.supabase.rpc as any)("orcamento_link_publico", {
+      p_orcamento_id: data.orcamentoId,
+    });
+    if (error) {
+      throw new Error(error.message || "Não foi possível gerar o link do cliente.");
+    }
+    if (typeof token !== "string" || token === "") {
+      throw new Error("O banco não devolveu o link do cliente. Tente de novo.");
     }
     return { token };
   });

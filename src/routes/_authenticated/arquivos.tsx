@@ -32,12 +32,18 @@ function ArquivosPage() {
   const [preview, setPreview] = useState<any | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const { data: arquivos = [], isLoading, refetch } = useQuery({
+  const { data: arquivos = [], isLoading, isError, error, isFetching, refetch } = useQuery({
     queryKey: ["arquivos", busca, tipo, status],
     queryFn: async () => {
+      // `arquivos` tem TRÊS chaves para `usuarios` (enviado_por, aprovado_por e
+      // created_by). Um `usuarios(nome)` sem dizer qual delas é ambíguo: o
+      // PostgREST recusa a consulta inteira (PGRST201) e a lista nunca
+      // carregou. O nome aqui é de quem enviou o arquivo — daí a chave
+      // explícita. O `usuarios(nome)` dentro de `aprovacoes` não precisa:
+      // aprovacoes só tem uma chave para usuarios.
       let query = (supabase
         .from("arquivos")
-        .select("*, ordens_servico(id, numero, titulo), clientes(id, nome, telefone, whatsapp_principal), usuarios(nome), aprovacoes(id, aprovado, canal, created_at, observacao, usuarios(nome), cliente_contatos(nome))")
+        .select("*, ordens_servico(id, numero, titulo), clientes(id, nome, telefone, whatsapp_principal), usuarios!arquivos_enviado_por_fkey(nome), aprovacoes(id, aprovado, canal, created_at, observacao, usuarios(nome), cliente_contatos(nome))")
         .order("created_at", { ascending: false })
         .limit(200) as any);
 
@@ -72,9 +78,13 @@ function ArquivosPage() {
     setPreviewUrl(data.signedUrl);
   }
 
-  const ativos = arquivos.filter((arquivo: any) => arquivo.ativo && !["substituido", "inativo"].includes(arquivo.status)).length;
-  const substituidos = arquivos.filter((arquivo: any) => arquivo.status === "substituido").length;
-  const aprovados = arquivos.filter((arquivo: any) => arquivo.status === "aprovado").length;
+  // Com a consulta caída os contadores mostram "—": zero ali diria "nenhum
+  // arquivo", e o que houve foi não conseguir ler.
+  const contar = (filtro: (arquivo: any) => boolean) =>
+    isError ? "—" : arquivos.filter(filtro).length;
+  const ativos = contar((arquivo) => arquivo.ativo && !["substituido", "inativo"].includes(arquivo.status));
+  const substituidos = contar((arquivo) => arquivo.status === "substituido");
+  const aprovados = contar((arquivo) => arquivo.status === "aprovado");
 
   return (
     <div className="space-y-6">
@@ -127,7 +137,18 @@ function ArquivosPage() {
 
       <Card>
         <CardContent className="p-0">
-          {isLoading ? <div className="p-6 text-muted-foreground">Carregando...</div> : (
+          {isError ? (
+            // A tela lançava o erro e não lia `isError`: depois das tentativas
+            // a lista ficava vazia, igual a "nenhum arquivo".
+            <div role="alert" className="space-y-2 p-6 text-sm">
+              <p className="font-medium">Não foi possível carregar os arquivos.</p>
+              <p className="text-muted-foreground">{mensagemErro(error)}</p>
+              <p className="text-muted-foreground">Isto é uma falha de consulta, não uma lista vazia.</p>
+              <Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+                {isFetching ? "Tentando..." : "Tentar de novo"}
+              </Button>
+            </div>
+          ) : isLoading ? <div className="p-6 text-muted-foreground">Carregando...</div> : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -210,7 +231,7 @@ function ArquivosPage() {
   );
 }
 
-function Metric({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
+function Metric({ icon, value, label }: { icon: React.ReactNode; value: number | string; label: string }) {
   return <div className="flex items-center gap-3">{icon}<div><div className="text-2xl font-bold">{value}</div><div className="text-xs text-muted-foreground">{label}</div></div></div>;
 }
 
