@@ -169,6 +169,23 @@ const ASSINATURAS: Record<string, string[]> = {
   // Postgres em 05/10/2026. Chamada pela função de servidor
   // gerarLinkPublicoOrcamento, com a sessão de quem clicou.
   orcamento_link_publico: ["p_orcamento_id"],
+  // Migração 20261005200000 (catálogos de fornecedores), conferidas no Postgres
+  // em 05/10/2026. `catalogo_link_abrir` é só da rota de servidor (service_role).
+  catalogo_adicionar_ao_orcamento: [
+    "p_item_id", "p_modalidade", "p_quantidade", "p_orcamento_id", "p_cliente_id", "p_titulo",
+  ],
+  catalogo_apontar_foto: ["p_item_id", "p_foto_id"],
+  catalogo_gerar_link: ["p_catalogo_id", "p_itens", "p_titulo", "p_cliente_id", "p_dias"],
+  catalogo_importar: ["p_catalogo_id", "p_plano"],
+  catalogo_link_abrir: ["p_token_hash"],
+  catalogo_links: ["p_catalogo_id"],
+  catalogo_precos: ["p_catalogo_id"],
+  catalogo_previa_regras: ["p_catalogo_id", "p_regras"],
+  catalogo_registrar_fotos: ["p_catalogo_id", "p_fotos", "p_substituir"],
+  catalogo_resolver_duvida: ["p_item_id", "p_unidade_preco", "p_nota"],
+  catalogo_resumo: [],
+  catalogo_revogar_link: ["p_link_id"],
+  catalogo_salvar_regras: ["p_catalogo_id", "p_regras"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */

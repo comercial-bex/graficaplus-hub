@@ -53,6 +53,7 @@ import {
   Tv,
   SlidersHorizontal,
   UserRound,
+  BookOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -93,6 +94,7 @@ const groups: { label: string; gate?: "financial" | "admin"; items: Item[] }[] =
       { title: "Leads", url: "/leads", icon: UserPlus },
       { title: "Funil", url: "/funil", icon: Workflow },
       { title: "Orçamentos", url: "/orcamentos", icon: FileText },
+      { title: "Catálogos", url: "/catalogos", icon: BookOpen },
       { title: "Aprovações", url: "/aprovacoes", icon: FileCheck2 },
       { title: "Metragem por cliente", url: "/metragem", icon: Ruler },
       { title: "Meta do mês", url: "/meta", icon: Target },

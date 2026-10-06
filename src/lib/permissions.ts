@@ -4,6 +4,7 @@ export const permissions = [
   "agenda.operate", "agenda.read", "agenda.reschedule", "agenda.schedule",
   "arquivos.approve", "arquivos.delete", "arquivos.finalize", "arquivos.read", "arquivos.register_approval", "arquivos.request_approval", "arquivos.upload", "arquivos.version",
   "automacoes.manage", "automacoes.read",
+  "catalogo.manage", "catalogo.read",
   "clientes.create", "clientes.delete", "clientes.read", "clientes.sensitive.read", "clientes.update",
   "compras.cancel", "compras.create", "compras.read", "compras.receive",
   "configuracoes.manage",
@@ -59,12 +60,14 @@ const allPermissions = [...permissions];
  * Sincronizado com o banco em 05/10/2026 (perfil_permissoes): o gestor tem 69
  * chaves, entre elas financeiro.read e financeiro.sensitive.read, e NENHUMA
  * pagamentos.* — decisão de 03/10: ele vê o financeiro, não lança nem dá baixa.
+ * Catálogo de fornecedores (catalogo.read / catalogo.manage) acrescentado em
+ * 05/10/2026, igual à migração 20261005200000: gestor 71 chaves.
  */
 export const rolePermissions = {
   admin: allPermissions,
-  gestor: ["arquivos.approve", "arquivos.finalize", "arquivos.read", "arquivos.register_approval", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "entregas.manage", "entregas.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "maquinas.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.assign", "os.close", "os.create", "os.read", "os.status.advance", "os.update", "parceiros.manage", "parceiros.read", "precos.read", "producao.read", "qualidade.manage", "qualidade.read", "resultado.read", "tarefas.assign", "tarefas.complete", "tarefas.create", "tarefas.read", "tarefas.reopen", "tarefas.update", "whatsapp.assign", "whatsapp.read", "whatsapp.reply", "whatsapp.transfer"],
-  financeiro: ["clientes.read", "compras.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read", "precos.read"],
-  vendedor: ["clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "parceiros.read", "whatsapp.read", "whatsapp.reply", "precos.read"],
+  gestor: ["arquivos.approve", "arquivos.finalize", "arquivos.read", "arquivos.register_approval", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "catalogo.manage", "catalogo.read", "clientes.create", "clientes.read", "clientes.sensitive.read", "clientes.update", "compras.cancel", "compras.create", "compras.read", "compras.receive", "custos.read", "entregas.manage", "entregas.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "instalacao.update", "kanban.move", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "logs.read", "maquinas.read", "orcamentos.approve", "orcamentos.convert", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.assign", "os.close", "os.create", "os.read", "os.status.advance", "os.update", "parceiros.manage", "parceiros.read", "precos.read", "producao.read", "qualidade.manage", "qualidade.read", "resultado.read", "tarefas.assign", "tarefas.complete", "tarefas.create", "tarefas.read", "tarefas.reopen", "tarefas.update", "whatsapp.assign", "whatsapp.read", "whatsapp.reply", "whatsapp.transfer"],
+  financeiro: ["catalogo.read", "clientes.read", "compras.read", "custos.read", "financeiro.read", "financeiro.sensitive.read", "impressao3d.cost.read", "impressao3d.read", "impressao3d.reports.read", "orcamentos.read", "os.read", "pagamentos.confirm", "pagamentos.create", "pagamentos.reverse", "pagamentos.update", "resultado.read", "precos.read"],
+  vendedor: ["catalogo.read", "clientes.create", "clientes.read", "clientes.update", "impressao3d.quote.create", "impressao3d.quote.update", "impressao3d.read", "leads.assign", "leads.convert", "leads.create", "leads.read", "leads.update", "orcamentos.create", "orcamentos.read", "orcamentos.send", "orcamentos.update", "os.read", "parceiros.read", "whatsapp.read", "whatsapp.reply", "precos.read"],
   designer: ["arquivos.finalize", "arquivos.read", "arquivos.request_approval", "arquivos.upload", "arquivos.version", "clientes.read", "os.read", "os.status.advance", "os.update", "tarefas.complete", "tarefas.read", "tarefas.update"],
   operador: ["agenda.operate", "agenda.read", "arquivos.read", "impressao3d.production.update", "impressao3d.read", "maquinas.read", "os.read", "os.status.advance", "os.update", "producao.finish", "producao.pause", "producao.read", "producao.start", "qualidade.manage", "qualidade.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
   estoque: ["compras.create", "compras.read", "compras.receive", "custos.read", "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse", "os.read", "tarefas.complete", "tarefas.read", "tarefas.update"],
@@ -94,6 +97,11 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/respostas-rapidas", permissions: ["templates.manage", "whatsapp.read", "whatsapp.manage"] },
   { path: "/automacoes", permissions: ["automacoes.read"] },
   { path: "/orcamentos", permissions: ["orcamentos.read", "orcamentos.create"] },
+  // Catálogos de fornecedores: as tabelas e `catalogo_resumo` pedem catalogo.read.
+  // O preço, o custo e as abas de gestão seguem os níveis de dinheiro dentro da tela
+  // — e o banco confere de novo em cada função. A vitrine do cliente é
+  // /catalogo/$token, fora deste layout e sem login.
+  { path: "/catalogos", permissions: ["catalogo.read"] },
   { path: "/parceiros", permissions: ["parceiros.read"] },
   { path: "/impressao-3d", permissions: ["impressao3d.read"] },
   { path: "/produtividade-3d", permissions: ["impressao3d.reports.read", "impressao3d.read"] },

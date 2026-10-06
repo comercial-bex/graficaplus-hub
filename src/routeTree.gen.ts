@@ -72,6 +72,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
+import { Route as CatalogoTokenRouteImport } from './routes/catalogo.$token'
 import { Route as ConviteCodigoRouteImport } from './routes/convite.$codigo'
 import { Route as OrcamentoPublicoTokenRouteImport } from './routes/orcamento-publico.$token'
 import { Route as ParceiroIndexRouteImport } from './routes/parceiro.index'
@@ -80,6 +81,8 @@ import { Route as ParceiroTabelaRouteImport } from './routes/parceiro.tabela'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
 import { Route as TvIndexRouteImport } from './routes/tv.index'
 import { Route as TvMaquinasRouteImport } from './routes/tv.maquinas'
+import { Route as AuthenticatedCatalogosIndexRouteImport } from './routes/_authenticated/catalogos.index'
+import { Route as AuthenticatedCatalogosIdRouteImport } from './routes/_authenticated/catalogos.$id'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes.$id'
 import { Route as AuthenticatedOrcamento3dIdRouteImport } from './routes/_authenticated/orcamento-3d.$id'
@@ -87,6 +90,7 @@ import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
 import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
 import { Route as AuthenticatedOsIdRouteImport } from './routes/_authenticated/os.$id'
+import { Route as ApiCatalogoVitrineRouteImport } from './routes/api.catalogo.vitrine'
 import { Route as ApiPortalArquivoRouteImport } from './routes/api.portal.arquivo'
 import { Route as ApiPortalArteRouteImport } from './routes/api.portal.arte'
 import { Route as ApiPortalEnvioRouteImport } from './routes/api.portal.envio'
@@ -437,6 +441,11 @@ const AprovarTokenRoute = AprovarTokenRouteImport.update({
   path: '/aprovar/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CatalogoTokenRoute = CatalogoTokenRouteImport.update({
+  id: '/catalogo/$token',
+  path: '/catalogo/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConviteCodigoRoute = ConviteCodigoRouteImport.update({
   id: '/convite/$codigo',
   path: '/convite/$codigo',
@@ -477,6 +486,18 @@ const TvMaquinasRoute = TvMaquinasRouteImport.update({
   path: '/tv/maquinas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedCatalogosIndexRoute =
+  AuthenticatedCatalogosIndexRouteImport.update({
+    id: '/catalogos/',
+    path: '/catalogos/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCatalogosIdRoute =
+  AuthenticatedCatalogosIdRouteImport.update({
+    id: '/catalogos/$id',
+    path: '/catalogos/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientesIndexRoute =
   AuthenticatedClientesIndexRouteImport.update({
     id: '/clientes/',
@@ -515,6 +536,11 @@ const AuthenticatedOsIdRoute = AuthenticatedOsIdRouteImport.update({
   id: '/os/$id',
   path: '/os/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiCatalogoVitrineRoute = ApiCatalogoVitrineRouteImport.update({
+  id: '/api/catalogo/vitrine',
+  path: '/api/catalogo/vitrine',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPortalArquivoRoute = ApiPortalArquivoRouteImport.update({
   id: '/api/portal/arquivo',
@@ -640,6 +666,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
@@ -648,10 +675,12 @@ export interface FileRoutesByFullPath {
   '/tv/maquinas': typeof TvMaquinasRoute
   '/parceiro/': typeof ParceiroIndexRoute
   '/tv/': typeof TvIndexRoute
+  '/catalogos/$id': typeof AuthenticatedCatalogosIdRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
   '/api/portal/arte': typeof ApiPortalArteRoute
   '/api/portal/envio': typeof ApiPortalEnvioRoute
@@ -663,6 +692,7 @@ export interface FileRoutesByFullPath {
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
+  '/catalogos/': typeof AuthenticatedCatalogosIndexRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
   '/os/': typeof AuthenticatedOsIndexRoute
@@ -730,6 +760,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
@@ -738,10 +769,12 @@ export interface FileRoutesByTo {
   '/tv/maquinas': typeof TvMaquinasRoute
   '/parceiro': typeof ParceiroIndexRoute
   '/tv': typeof TvIndexRoute
+  '/catalogos/$id': typeof AuthenticatedCatalogosIdRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
   '/api/portal/arte': typeof ApiPortalArteRoute
   '/api/portal/envio': typeof ApiPortalEnvioRoute
@@ -753,6 +786,7 @@ export interface FileRoutesByTo {
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
+  '/catalogos': typeof AuthenticatedCatalogosIndexRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/orcamentos': typeof AuthenticatedOrcamentosIndexRoute
   '/os': typeof AuthenticatedOsIndexRoute
@@ -823,6 +857,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/aprovar/$token': typeof AprovarTokenRoute
+  '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
@@ -831,10 +866,12 @@ export interface FileRoutesById {
   '/tv/maquinas': typeof TvMaquinasRoute
   '/parceiro/': typeof ParceiroIndexRoute
   '/tv/': typeof TvIndexRoute
+  '/_authenticated/catalogos/$id': typeof AuthenticatedCatalogosIdRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
   '/api/portal/arte': typeof ApiPortalArteRoute
   '/api/portal/envio': typeof ApiPortalEnvioRoute
@@ -846,6 +883,7 @@ export interface FileRoutesById {
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
+  '/_authenticated/catalogos/': typeof AuthenticatedCatalogosIndexRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
   '/_authenticated/os/': typeof AuthenticatedOsIndexRoute
@@ -916,6 +954,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
     | '/parceiro/marca'
@@ -924,10 +963,12 @@ export interface FileRouteTypes {
     | '/tv/maquinas'
     | '/parceiro/'
     | '/tv/'
+    | '/catalogos/$id'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
     | '/api/portal/arte'
     | '/api/portal/envio'
@@ -939,6 +980,7 @@ export interface FileRouteTypes {
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
+    | '/catalogos/'
     | '/clientes/'
     | '/orcamentos/'
     | '/os/'
@@ -1006,6 +1048,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
     | '/parceiro/marca'
@@ -1014,10 +1057,12 @@ export interface FileRouteTypes {
     | '/tv/maquinas'
     | '/parceiro'
     | '/tv'
+    | '/catalogos/$id'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
     | '/api/portal/arte'
     | '/api/portal/envio'
@@ -1029,6 +1074,7 @@ export interface FileRouteTypes {
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
+    | '/catalogos'
     | '/clientes'
     | '/orcamentos'
     | '/os'
@@ -1098,6 +1144,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-monitor'
     | '/aprovar/$token'
+    | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
     | '/parceiro/marca'
@@ -1106,10 +1153,12 @@ export interface FileRouteTypes {
     | '/tv/maquinas'
     | '/parceiro/'
     | '/tv/'
+    | '/_authenticated/catalogos/$id'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
+    | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
     | '/api/portal/arte'
     | '/api/portal/envio'
@@ -1121,6 +1170,7 @@ export interface FileRouteTypes {
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
+    | '/_authenticated/catalogos/'
     | '/_authenticated/clientes/'
     | '/_authenticated/orcamentos/'
     | '/_authenticated/os/'
@@ -1136,11 +1186,13 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   Tv2Route: typeof Tv2Route
   AprovarTokenRoute: typeof AprovarTokenRoute
+  CatalogoTokenRoute: typeof CatalogoTokenRoute
   ConviteCodigoRoute: typeof ConviteCodigoRoute
   OrcamentoPublicoTokenRoute: typeof OrcamentoPublicoTokenRoute
   PublicoTokenRoute: typeof PublicoTokenRoute
   TvMaquinasRoute: typeof TvMaquinasRoute
   TvIndexRoute: typeof TvIndexRoute
+  ApiCatalogoVitrineRoute: typeof ApiCatalogoVitrineRoute
   ApiPortalArquivoRoute: typeof ApiPortalArquivoRoute
   ApiPortalArteRoute: typeof ApiPortalArteRoute
   ApiPortalEnvioRoute: typeof ApiPortalEnvioRoute
@@ -1596,6 +1648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AprovarTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/catalogo/$token': {
+      id: '/catalogo/$token'
+      path: '/catalogo/$token'
+      fullPath: '/catalogo/$token'
+      preLoaderRoute: typeof CatalogoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/convite/$codigo': {
       id: '/convite/$codigo'
       path: '/convite/$codigo'
@@ -1652,6 +1711,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TvMaquinasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/catalogos/': {
+      id: '/_authenticated/catalogos/'
+      path: '/catalogos'
+      fullPath: '/catalogos/'
+      preLoaderRoute: typeof AuthenticatedCatalogosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/catalogos/$id': {
+      id: '/_authenticated/catalogos/$id'
+      path: '/catalogos/$id'
+      fullPath: '/catalogos/$id'
+      preLoaderRoute: typeof AuthenticatedCatalogosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clientes/': {
       id: '/_authenticated/clientes/'
       path: '/clientes'
@@ -1700,6 +1773,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/os/$id'
       preLoaderRoute: typeof AuthenticatedOsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/catalogo/vitrine': {
+      id: '/api/catalogo/vitrine'
+      path: '/api/catalogo/vitrine'
+      fullPath: '/api/catalogo/vitrine'
+      preLoaderRoute: typeof ApiCatalogoVitrineRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/portal/arquivo': {
       id: '/api/portal/arquivo'
@@ -1844,10 +1924,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
+  AuthenticatedCatalogosIdRoute: typeof AuthenticatedCatalogosIdRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedOrcamento3dIdRoute: typeof AuthenticatedOrcamento3dIdRoute
   AuthenticatedOrcamentosIdRoute: typeof AuthenticatedOrcamentosIdRoute
   AuthenticatedOsIdRoute: typeof AuthenticatedOsIdRoute
+  AuthenticatedCatalogosIndexRoute: typeof AuthenticatedCatalogosIndexRoute
   AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
   AuthenticatedOrcamentosIndexRoute: typeof AuthenticatedOrcamentosIndexRoute
   AuthenticatedOsIndexRoute: typeof AuthenticatedOsIndexRoute
@@ -1910,10 +1992,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
+  AuthenticatedCatalogosIdRoute: AuthenticatedCatalogosIdRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedOrcamento3dIdRoute: AuthenticatedOrcamento3dIdRoute,
   AuthenticatedOrcamentosIdRoute: AuthenticatedOrcamentosIdRoute,
   AuthenticatedOsIdRoute: AuthenticatedOsIdRoute,
+  AuthenticatedCatalogosIndexRoute: AuthenticatedCatalogosIndexRoute,
   AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
   AuthenticatedOrcamentosIndexRoute: AuthenticatedOrcamentosIndexRoute,
   AuthenticatedOsIndexRoute: AuthenticatedOsIndexRoute,
@@ -1951,11 +2035,13 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   Tv2Route: Tv2Route,
   AprovarTokenRoute: AprovarTokenRoute,
+  CatalogoTokenRoute: CatalogoTokenRoute,
   ConviteCodigoRoute: ConviteCodigoRoute,
   OrcamentoPublicoTokenRoute: OrcamentoPublicoTokenRoute,
   PublicoTokenRoute: PublicoTokenRoute,
   TvMaquinasRoute: TvMaquinasRoute,
   TvIndexRoute: TvIndexRoute,
+  ApiCatalogoVitrineRoute: ApiCatalogoVitrineRoute,
   ApiPortalArquivoRoute: ApiPortalArquivoRoute,
   ApiPortalArteRoute: ApiPortalArteRoute,
   ApiPortalEnvioRoute: ApiPortalEnvioRoute,
