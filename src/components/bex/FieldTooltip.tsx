@@ -1,7 +1,6 @@
-import { Info } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { DicaIcone } from "@/components/bex/Dica";
 
 /**
  * Label com ícone de "?" que abre tooltip explicando o campo.
@@ -25,26 +24,7 @@ export function FieldTooltip({
         {label}
         {required && <span className="text-[color:var(--bex-magenta)] ml-0.5">*</span>}
       </Label>
-      <TooltipProvider delayDuration={150}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              tabIndex={-1}
-              aria-label={`Ajuda: ${label}`}
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-[color:var(--bex-cyan)] transition-colors"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent
-            side="top"
-            className="max-w-xs bg-popover text-popover-foreground border border-border text-xs leading-relaxed shadow-xl"
-          >
-            {hint}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <DicaIcone texto={hint} rotulo={label} />
     </div>
   );
 }

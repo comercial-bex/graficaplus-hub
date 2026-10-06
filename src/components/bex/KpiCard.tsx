@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
+import { DicaIcone } from "@/components/bex/Dica";
 
 type Tone = "cyan" | "magenta" | "lime" | "amber" | "muted";
 
@@ -54,31 +55,25 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border border-l-4 bg-card p-5 shadow-lg",
+        "relative overflow-hidden rounded-lg border border-border border-l-4 bg-card p-4 shadow-sm transition-shadow hover:shadow-md",
         a.border,
         className,
       )}
     >
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <p className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+            <DicaIcone texto={hint} rotulo={label} />
+          </div>
           {Icon && <Icon className={cn("h-4 w-4", a.text)} />}
         </div>
-        <h3 className="mt-1 text-3xl font-bold tracking-tight text-foreground">{value}</h3>
-        {(delta || hint) && (
+        <h3 className="mt-1 text-3xl font-extrabold text-foreground">{value}</h3>
+        {delta && (
           <div className="mt-2 flex items-center gap-2">
-            {delta && (
-              <span className={cn("text-[10px] font-bold uppercase tracking-wide", a.text)}>
-                {delta}
-              </span>
-            )}
-            {hint && (
-              <span className="truncate text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                {hint}
-              </span>
-            )}
+            <span className={cn("text-[10px] font-bold uppercase tracking-wide", a.text)}>
+              {delta}
+            </span>
           </div>
         )}
       </div>
