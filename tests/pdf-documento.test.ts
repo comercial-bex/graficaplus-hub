@@ -1,6 +1,8 @@
 import { test, expect } from "vitest";
 import { DocumentoPDF, type DocumentoPDFProps } from "../src/lib/pdf/DocumentoPDF";
 import type { Empresa } from "../src/lib/pdf/empresa";
+import { isValidElement, type ReactNode } from "react";
+import { mkdir, writeFile } from "node:fs/promises";
 
 /**
  * Renderiza o documento de verdade (não só monta props) e confere o PDF gerado.
@@ -88,6 +90,51 @@ async function renderizar(p: DocumentoPDFProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return await renderToBuffer(DocumentoPDF(p) as any);
 }
+
+function textoDoDocumento(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textoDoDocumento).join("");
+  if (isValidElement<{ children?: ReactNode }>(node)) return textoDoDocumento(node.props.children);
+  return "";
+}
+
+test("orçamento identifica o cliente no cabeçalho com cinco campos e prazo somente no rodapé", async () => {
+  const exemplo: DocumentoPDFProps = {
+    ...props,
+    cliente: {
+      ...props.cliente,
+      razao_social: "DISTRIBUIDORA ESTRELA LTDA.",
+      documento: "12.147.968/0001-24",
+      endereco: "DE DUCA SERRA, 1921, A",
+      bairro: "MARABAIXO",
+      telefone: "(96) 99157-8102",
+      nome_fantasia: "FANTASIA OCULTA",
+      inscricao_estadual: "IE OCULTA",
+      email: "email-oculto@exemplo.com",
+      cep: "CEP OCULTO",
+      contato: "CONTATO OCULTO",
+    },
+  };
+  const texto = textoDoDocumento(DocumentoPDF(exemplo));
+  for (const campo of ["Razão Social:", "CNPJ:", "Endereço:", "Telefone:", "Bairro:"]) {
+    expect(texto).toContain(campo);
+  }
+  for (const campo of ["Nome Fantasia:", "Inscrição Estadual:", "CEP:", "Cidade:", "Celular:", "E-mail:", "Contato:", "Data de Entrega:"]) {
+    expect(texto).not.toContain(campo);
+  }
+  expect(texto.indexOf("Razão Social:")).toBeLessThan(texto.indexOf("Data de Emissão:"));
+  expect(texto).toContain("Data de expedição prevista: 07/08/2026");
+  const buffer = await renderizar(exemplo);
+  expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  if (process.env.PDF_QA_DIR) {
+    await mkdir(process.env.PDF_QA_DIR, { recursive: true });
+    await writeFile(`${process.env.PDF_QA_DIR}/orcamento.pdf`, buffer);
+    await writeFile(`${process.env.PDF_QA_DIR}/orcamento-longo.pdf`, await renderizar({
+      ...exemplo,
+      cliente: { ...exemplo.cliente, razao_social: "DISTRIBUIDORA DE PRODUTOS GRAFICOS E COMUNICACAO VISUAL ESTRELA LTDA.", endereco: "Avenida de Duca Serra, numero 1921, bloco A, sala 12, proximo ao centro comercial" },
+    }));
+  }
+}, 30_000);
 
 test("orçamento com metragem e layout renderiza um PDF válido", async () => {
   const buffer = await renderizar(props);
