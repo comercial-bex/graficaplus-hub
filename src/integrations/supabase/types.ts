@@ -5325,6 +5325,7 @@ export type Database = {
       }
       materiais: {
         Row: {
+          caracteristicas: string | null
           comprimento_bobina_m: number | null
           created_at: string
           custo_medio: number | null
@@ -5342,6 +5343,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          caracteristicas?: string | null
           comprimento_bobina_m?: number | null
           created_at?: string
           custo_medio?: number | null
@@ -5359,6 +5361,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          caracteristicas?: string | null
           comprimento_bobina_m?: number | null
           created_at?: string
           custo_medio?: number | null
@@ -6844,6 +6847,7 @@ export type Database = {
           custo_unitario: number
           desconto: number
           descricao: string
+          especificacao: string | null
           id: string
           largura: number | null
           margem_prevista: number | null
@@ -6873,6 +6877,7 @@ export type Database = {
           custo_unitario?: number
           desconto?: number
           descricao: string
+          especificacao?: string | null
           id?: string
           largura?: number | null
           margem_prevista?: number | null
@@ -6902,6 +6907,7 @@ export type Database = {
           custo_unitario?: number
           desconto?: number
           descricao?: string
+          especificacao?: string | null
           id?: string
           largura?: number | null
           margem_prevista?: number | null
@@ -13763,24 +13769,6 @@ export type Database = {
         }
         Relationships: []
       }
-      zz_carga_catalogo: {
-        Row: {
-          chave: string
-          criado_em: string
-          texto: string
-        }
-        Insert: {
-          chave: string
-          criado_em?: string
-          texto: string
-        }
-        Update: {
-          chave?: string
-          criado_em?: string
-          texto?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       agenda_maquinas: {
@@ -14388,6 +14376,7 @@ export type Database = {
       }
       materiais_financeiro: {
         Row: {
+          caracteristicas: string | null
           comprimento_bobina_m: number | null
           created_at: string | null
           custo_medio: number | null
@@ -14408,6 +14397,7 @@ export type Database = {
       }
       materiais_operacional: {
         Row: {
+          caracteristicas: string | null
           comprimento_bobina_m: number | null
           created_at: string | null
           estoque: number | null
@@ -14420,6 +14410,7 @@ export type Database = {
           unidade: string | null
         }
         Insert: {
+          caracteristicas?: string | null
           comprimento_bobina_m?: number | null
           created_at?: string | null
           estoque?: number | null
@@ -14432,6 +14423,7 @@ export type Database = {
           unidade?: string | null
         }
         Update: {
+          caracteristicas?: string | null
           comprimento_bobina_m?: number | null
           created_at?: string | null
           estoque?: number | null
@@ -14456,12 +14448,14 @@ export type Database = {
           arquivo_id: string | null
           created_at: string | null
           descricao: string | null
+          especificacao: string | null
           id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
           produto_id: string | null
           quantidade: number | null
+          tipo_produto: string | null
           unidade: string | null
           valor_total: number | null
           valor_unitario: number | null
@@ -14558,12 +14552,14 @@ export type Database = {
           created_at: string | null
           custo_unitario: number | null
           descricao: string | null
+          especificacao: string | null
           id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
           produto_id: string | null
           quantidade: number | null
+          tipo_produto: string | null
           unidade: string | null
           valor_total: number | null
           valor_unitario: number | null
@@ -14659,12 +14655,14 @@ export type Database = {
           arquivo_id: string | null
           created_at: string | null
           descricao: string | null
+          especificacao: string | null
           id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
           produto_id: string | null
           quantidade: number | null
+          tipo_produto: string | null
           unidade: string | null
         }
         Insert: {
@@ -14677,12 +14675,14 @@ export type Database = {
           arquivo_id?: string | null
           created_at?: string | null
           descricao?: string | null
+          especificacao?: string | null
           id?: string | null
           largura?: number | null
           orcamento_id?: string | null
           ordem?: number | null
           produto_id?: string | null
           quantidade?: number | null
+          tipo_produto?: string | null
           unidade?: string | null
         }
         Update: {
@@ -14695,12 +14695,14 @@ export type Database = {
           arquivo_id?: string | null
           created_at?: string | null
           descricao?: string | null
+          especificacao?: string | null
           id?: string | null
           largura?: number | null
           orcamento_id?: string | null
           ordem?: number | null
           produto_id?: string | null
           quantidade?: number | null
+          tipo_produto?: string | null
           unidade?: string | null
         }
         Relationships: [
@@ -17677,6 +17679,10 @@ export type Database = {
         Args: { p_orcamento_id: string; p_usuario_id: string }
         Returns: Json
       }
+      orcamento_link_publico: {
+        Args: { p_orcamento_id: string }
+        Returns: string
+      }
       os_bloqueios_do_quadro: {
         Args: never
         Returns: {
@@ -18488,10 +18494,6 @@ export type Database = {
       whatsapp_vincular_cliente: {
         Args: { p_cliente_id: string; p_conversa_id: string }
         Returns: Json
-      }
-      zz_carga_aplicar: {
-        Args: { p_chave: string; p_md5: string; p_tipo: string }
-        Returns: string
       }
     }
     Enums: {
