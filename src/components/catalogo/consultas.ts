@@ -15,6 +15,8 @@ import {
 import type { RegrasDeVenda } from "@/domain/catalogo/preco-de-venda";
 import type { LinkDaVitrine } from "@/domain/catalogo/link-do-catalogo";
 import type { Modalidade } from "@/domain/catalogo/modalidades";
+import { itemDaLojaDoCatalogo, type ItemDaLoja } from "@/domain/catalogo/loja";
+import type { ItemParaOrcar } from "@/domain/catalogo/carrinho";
 
 /**
  * As leituras e as chamadas da tela de catálogos.
@@ -48,7 +50,9 @@ async function lerTudo<T>(montar: (de: number, ate: number) => PromiseLike<Pagin
     if (total !== null ? saida.length >= total : lote.length < PAGINA) break;
   }
   if (total !== null && saida.length !== total) {
-    throw new Error(`A leitura veio pela metade (${saida.length} de ${total}). Recarregue a página.`);
+    throw new Error(
+      `A leitura veio pela metade (${saida.length} de ${total}). Recarregue a página.`,
+    );
   }
   return saida;
 }
@@ -67,7 +71,9 @@ export type CatalogoDoFornecedor = {
 export async function lerCatalogo(id: string): Promise<CatalogoDoFornecedor> {
   const { data, error } = await (supabase as any)
     .from("fornecedor_catalogos")
-    .select("id, titulo, edicao, fornecedor_id, importado_em, sincronizado_em, ativo, fornecedores(nome)")
+    .select(
+      "id, titulo, edicao, fornecedor_id, importado_em, sincronizado_em, ativo, fornecedores(nome)",
+    )
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
@@ -99,6 +105,7 @@ export async function lerSecoes(catalogoId: string): Promise<SecaoDoCatalogo[]> 
     ordem: Number(s.ordem ?? 0),
     titulo: String(s.titulo ?? ""),
     especificacao: (s.especificacao as string | null) ?? null,
+    categoria: (s.categoria as string | null) ?? null,
   }));
 }
 
@@ -106,7 +113,9 @@ export async function lerItens(catalogoId: string): Promise<ItemDoCatalogo[]> {
   const linhas = await lerTudo<Record<string, unknown>>((de, ate) =>
     (supabase as any)
       .from("fornecedor_itens")
-      .select(`${COLUNAS_DO_ITEM}, fornecedor_item_modalidades(${COLUNAS_DA_MODALIDADE})`, { count: "exact" })
+      .select(`${COLUNAS_DO_ITEM}, fornecedor_item_modalidades(${COLUNAS_DA_MODALIDADE})`, {
+        count: "exact",
+      })
       .eq("catalogo_id", catalogoId)
       .order("ordem", { ascending: true })
       .order("id", { ascending: true })
@@ -135,7 +144,9 @@ export async function lerFotos(catalogoId: string): Promise<FotoDoAcervo[]> {
 
 /** Preço de venda por item e opção, no nível de quem pede (custo só para o financeiro). */
 export async function lerPrecos(catalogoId: string): Promise<PrecosDoCatalogo> {
-  const { data, error } = await (supabase.rpc as any)("catalogo_precos", { p_catalogo_id: catalogoId });
+  const { data, error } = await (supabase.rpc as any)("catalogo_precos", {
+    p_catalogo_id: catalogoId,
+  });
   if (error) throw error;
   if (!data || typeof data !== "object" || typeof data.precos !== "object") {
     throw new Error("O banco não devolveu os preços do catálogo.");
@@ -221,7 +232,10 @@ export type PreviaDasRegras = {
   }[];
 };
 
-export async function previaDasRegras(catalogoId: string, regras: RegrasDeVenda): Promise<PreviaDasRegras> {
+export async function previaDasRegras(
+  catalogoId: string,
+  regras: RegrasDeVenda,
+): Promise<PreviaDasRegras> {
   const { data, error } = await (supabase.rpc as any)("catalogo_previa_regras", {
     p_catalogo_id: catalogoId,
     p_regras: regras,
@@ -255,7 +269,10 @@ export type ResultadoDaImportacao = {
   iguais: number;
 };
 
-export async function importarPlanilha(catalogoId: string, plano: unknown): Promise<ResultadoDaImportacao> {
+export async function importarPlanilha(
+  catalogoId: string,
+  plano: unknown,
+): Promise<ResultadoDaImportacao> {
   const { data, error } = await (supabase.rpc as any)("catalogo_importar", {
     p_catalogo_id: catalogoId,
     p_plano: plano,
@@ -283,7 +300,9 @@ export type ImportacaoFeita = {
 export async function lerImportacoes(catalogoId: string): Promise<ImportacaoFeita[]> {
   const { data, error } = await (supabase as any)
     .from("fornecedor_importacoes")
-    .select("id, tipo, edicao, arquivo, novos, subiram, desceram, outras_mudancas, sairam, voltaram, iguais, feito_em")
+    .select(
+      "id, tipo, edicao, arquivo, novos, subiram, desceram, outras_mudancas, sairam, voltaram, iguais, feito_em",
+    )
     .eq("catalogo_id", catalogoId)
     .order("feito_em", { ascending: false })
     .limit(10);
@@ -319,7 +338,11 @@ export async function apontarFoto(itemId: string, fotoId: string | null): Promis
   if (!data?.ok) throw new Error("O banco não confirmou a troca da foto.");
 }
 
-export async function resolverDuvida(itemId: string, unidade: string | null, nota: string): Promise<void> {
+export async function resolverDuvida(
+  itemId: string,
+  unidade: string | null,
+  nota: string,
+): Promise<void> {
   const { data, error } = await (supabase.rpc as any)("catalogo_resolver_duvida", {
     p_item_id: itemId,
     p_unidade_preco: unidade,
@@ -372,7 +395,13 @@ export async function gerarLink(dados: {
   titulo: string;
   clienteId: string | null;
   dias: number;
-}): Promise<{ link_id: string; token: string; expira_em: string; itens: number; ignorados: number }> {
+}): Promise<{
+  link_id: string;
+  token: string;
+  expira_em: string;
+  itens: number;
+  ignorados: number;
+}> {
   const { data, error } = await (supabase.rpc as any)("catalogo_gerar_link", {
     p_catalogo_id: dados.catalogoId,
     p_itens: dados.itens,
@@ -385,15 +414,21 @@ export async function gerarLink(dados: {
   return data;
 }
 
-export async function lerLinks(catalogoId: string): Promise<{ agora: string; links: LinkDaVitrine[] }> {
-  const { data, error } = await (supabase.rpc as any)("catalogo_links", { p_catalogo_id: catalogoId });
+export async function lerLinks(
+  catalogoId: string,
+): Promise<{ agora: string; links: LinkDaVitrine[] }> {
+  const { data, error } = await (supabase.rpc as any)("catalogo_links", {
+    p_catalogo_id: catalogoId,
+  });
   if (error) throw error;
   if (!data || !Array.isArray(data.links)) throw new Error("O banco não devolveu os links.");
   return { agora: String(data.agora), links: data.links as LinkDaVitrine[] };
 }
 
 export async function revogarLink(linkId: string): Promise<void> {
-  const { data, error } = await (supabase.rpc as any)("catalogo_revogar_link", { p_link_id: linkId });
+  const { data, error } = await (supabase.rpc as any)("catalogo_revogar_link", {
+    p_link_id: linkId,
+  });
   if (error) throw error;
   if (!data?.ok) throw new Error("O banco não confirmou o cancelamento.");
 }
@@ -428,8 +463,154 @@ export type ResumoDosCatalogos = {
 export async function lerResumo(): Promise<ResumoDosCatalogos> {
   const { data, error } = await (supabase.rpc as any)("catalogo_resumo");
   if (error) throw error;
-  if (!data || !Array.isArray(data.fornecedores)) throw new Error("O banco não devolveu os catálogos.");
+  if (!data || !Array.isArray(data.fornecedores))
+    throw new Error("O banco não devolveu os catálogos.");
   return data as ResumoDosCatalogos;
+}
+
+export type Loja = {
+  itens: ItemDaLoja[];
+  /** Quantos itens ficaram de fora da loja por não ter foto ou por estar fora da tabela. */
+  foraDaLoja: number;
+  catalogos: { id: string; titulo: string }[];
+};
+
+/**
+ * A loja da equipe: os itens de TODOS os catálogos ativos, no formato da
+ * vitrine, com o preço no nível de quem pede (`catalogo_precos`). Reaproveita
+ * as mesmas leituras paginadas da tela de gestão — uma falha em qualquer uma
+ * derruba a leitura inteira, e a tela diz "não carregou" em vez de mostrar uma
+ * loja pela metade.
+ */
+export async function lerLoja(vePreco: boolean): Promise<Loja> {
+  const resumo = await lerResumo();
+  const catalogos = resumo.fornecedores
+    .flatMap((f) => f.catalogos)
+    .filter((c) => c.ativo)
+    .map((c) => ({ id: c.id, titulo: c.titulo }));
+  const itens: ItemDaLoja[] = [];
+  let foraDaLoja = 0;
+  for (const c of catalogos) {
+    const [lista, secoes, fotos, precos] = await Promise.all([
+      lerItens(c.id),
+      lerSecoes(c.id),
+      lerFotos(c.id),
+      vePreco ? lerPrecos(c.id) : Promise.resolve(null),
+    ]);
+    const fotoPorId = new Map(fotos.map((f) => [f.id, f]));
+    const secaoPorId = new Map(secoes.map((s) => [s.id, s]));
+    for (const item of lista) {
+      const daLoja = itemDaLojaDoCatalogo(
+        item,
+        item.foto_id ? (fotoPorId.get(item.foto_id) ?? null) : null,
+        item.secao_id ? (secaoPorId.get(item.secao_id) ?? null) : null,
+        precos ? (precos.precos[item.id] ?? []) : null,
+      );
+      if (daLoja) itens.push(daLoja);
+      else foraDaLoja++;
+    }
+  }
+  return { itens, foraDaLoja, catalogos };
+}
+
+export type OrcamentoGerado = {
+  orcamento_id: string;
+  orcamento_numero: number | null;
+  itens: number;
+  valor_total: number | null;
+  sem_cliente: boolean;
+  avisos: string[];
+};
+
+/** O carrinho inteiro vira UM orçamento em rascunho (`catalogo_gerar_orcamento`). */
+export async function gerarOrcamentoDoCarrinho(dados: {
+  itens: ItemParaOrcar[];
+  clienteId: string | null;
+  titulo: string | null;
+}): Promise<OrcamentoGerado> {
+  const { data, error } = await (supabase.rpc as any)("catalogo_gerar_orcamento", {
+    p_itens: dados.itens,
+    p_cliente_id: dados.clienteId,
+    p_titulo: dados.titulo,
+  });
+  if (error) throw error;
+  if (!data?.ok || !data.orcamento_id) throw new Error("O banco não confirmou o orçamento.");
+  return {
+    orcamento_id: String(data.orcamento_id),
+    orcamento_numero: numeroOuNulo(data.orcamento_numero),
+    itens: Number(data.itens ?? 0),
+    valor_total: numeroOuNulo(data.valor_total),
+    sem_cliente: Boolean(data.sem_cliente),
+    avisos: Array.isArray(data.avisos) ? data.avisos.map(String) : [],
+  };
+}
+
+export type ItemDoPedidoDeCotacao = {
+  codigo: string;
+  nome: string;
+  modalidade: string | null;
+  rotulo: string | null;
+  quantidade: number;
+};
+
+export type PedidoDeCotacaoRecebido = {
+  id: string;
+  criado_em: string;
+  nome: string;
+  telefone: string;
+  itens: ItemDoPedidoDeCotacao[];
+  atendido_em: string | null;
+  atendido_por: string | null;
+  link_id: string;
+  link_titulo: string;
+  cliente: string | null;
+  catalogo_id: string;
+  catalogo_titulo: string;
+};
+
+/** Os pedidos de cotação que chegaram pelos links (os 200 mais recentes). */
+export async function lerCotacoes(): Promise<{
+  agora: string;
+  abertos: number;
+  pedidos: PedidoDeCotacaoRecebido[];
+}> {
+  const { data, error } = await (supabase.rpc as any)("catalogo_cotacoes");
+  if (error) throw error;
+  if (!data || !Array.isArray(data.pedidos))
+    throw new Error("O banco não devolveu os pedidos de cotação.");
+  return {
+    agora: String(data.agora),
+    abertos: Number(data.abertos ?? 0),
+    pedidos: (data.pedidos as Record<string, unknown>[]).map((p) => ({
+      id: String(p.id),
+      criado_em: String(p.criado_em),
+      nome: String(p.nome ?? ""),
+      telefone: String(p.telefone ?? ""),
+      itens: (Array.isArray(p.itens) ? p.itens : []).map((i: Record<string, unknown>) => ({
+        codigo: String(i.codigo ?? ""),
+        nome: String(i.nome ?? ""),
+        modalidade: (i.modalidade as string | null) ?? null,
+        rotulo: (i.rotulo as string | null) ?? null,
+        quantidade: Number(i.quantidade ?? 0),
+      })),
+      atendido_em: (p.atendido_em as string | null) ?? null,
+      atendido_por: (p.atendido_por as string | null) ?? null,
+      link_id: String(p.link_id),
+      link_titulo: String(p.link_titulo ?? ""),
+      cliente: (p.cliente as string | null) ?? null,
+      catalogo_id: String(p.catalogo_id),
+      catalogo_titulo: String(p.catalogo_titulo ?? ""),
+    })),
+  };
+}
+
+export async function atenderCotacao(id: string, atendida: boolean): Promise<void> {
+  const { data, error } = await (supabase.rpc as any)("catalogo_cotacao_atender", {
+    p_id: id,
+    p_atendida: atendida,
+  });
+  if (error) throw error;
+  if (!data?.ok) throw new Error("O banco não confirmou o atendimento.");
 }
 
 export type OrcamentoEmRascunho = {
@@ -477,7 +658,11 @@ export async function lerClientes(): Promise<ClienteParaEscolher[]> {
 }
 
 /** Cadastro de fornecedor e de catálogo (catalogo.manage): só as colunas com GRANT. */
-export async function criarFornecedor(nome: string, site: string | null, telefone: string | null): Promise<string> {
+export async function criarFornecedor(
+  nome: string,
+  site: string | null,
+  telefone: string | null,
+): Promise<string> {
   const { data, error } = await (supabase as any)
     .from("fornecedores")
     .insert({ nome: nome.trim(), site, telefone })
@@ -487,7 +672,11 @@ export async function criarFornecedor(nome: string, site: string | null, telefon
   return String(data.id);
 }
 
-export async function criarCatalogo(fornecedorId: string, titulo: string, edicao: string | null): Promise<string> {
+export async function criarCatalogo(
+  fornecedorId: string,
+  titulo: string,
+  edicao: string | null,
+): Promise<string> {
   const { data, error } = await (supabase as any)
     .from("fornecedor_catalogos")
     .insert({ fornecedor_id: fornecedorId, titulo: titulo.trim(), edicao })

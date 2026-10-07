@@ -1,4 +1,10 @@
-import { ehModalidade, ehUnidadeDePreco, type Modalidade, type UnidadeDePreco } from "@/domain/catalogo/modalidades";
+import { ehCategoria, type Categoria } from "@/domain/catalogo/categorias-da-loja";
+import {
+  ehModalidade,
+  ehUnidadeDePreco,
+  type Modalidade,
+  type UnidadeDePreco,
+} from "@/domain/catalogo/modalidades";
 
 /**
  * O que o cliente recebe na vitrine (`/catalogo/$token`), chave por chave.
@@ -31,6 +37,8 @@ export type ItemDaVitrine = {
   especificacao: string | null;
   dimensoes: string | null;
   secao: string | null;
+  /** A prateleira da loja (migração 20261006230000). `null` = deduzida do título da seção. */
+  categoria: Categoria | null;
   unidade_preco: UnidadeDePreco;
   foto: { origem: "repositorio" | "storage"; caminho: string };
   opcoes: OpcaoDaVitrine[];
@@ -55,7 +63,17 @@ export type Vitrine = {
 export const CHAVES_DA_VITRINE = {
   raiz: ["titulo", "vence_em", "empresa", "itens"],
   empresa: ["nome", "slogan", "cidade", "estado", "telefones"],
-  item: ["codigo", "nome", "especificacao", "dimensoes", "secao", "unidade_preco", "foto", "opcoes"],
+  item: [
+    "codigo",
+    "nome",
+    "especificacao",
+    "dimensoes",
+    "secao",
+    "categoria",
+    "unidade_preco",
+    "foto",
+    "opcoes",
+  ],
   foto: ["origem", "caminho"],
   opcao: ["modalidade", "rotulo", "preco", "quantidade_minima", "multiplo", "faixa"],
 } as const;
@@ -63,7 +81,9 @@ export const CHAVES_DA_VITRINE = {
 type Bruto = Record<string, unknown>;
 
 function objeto(valor: unknown): Bruto | null {
-  return valor !== null && typeof valor === "object" && !Array.isArray(valor) ? (valor as Bruto) : null;
+  return valor !== null && typeof valor === "object" && !Array.isArray(valor)
+    ? (valor as Bruto)
+    : null;
 }
 
 function texto(valor: unknown): string | null {
@@ -109,6 +129,7 @@ function itemFechado(valor: unknown): ItemDaVitrine | null {
     especificacao: texto(i.especificacao),
     dimensoes: texto(i.dimensoes),
     secao: texto(i.secao),
+    categoria: ehCategoria(i.categoria) ? i.categoria : null,
     unidade_preco: ehUnidadeDePreco(i.unidade_preco) ? i.unidade_preco : "unidade",
     foto: { origem, caminho },
     opcoes: (Array.isArray(i.opcoes) ? i.opcoes : [])

@@ -83,6 +83,8 @@ import { Route as TvIndexRouteImport } from './routes/tv.index'
 import { Route as TvMaquinasRouteImport } from './routes/tv.maquinas'
 import { Route as AuthenticatedCatalogosIndexRouteImport } from './routes/_authenticated/catalogos.index'
 import { Route as AuthenticatedCatalogosIdRouteImport } from './routes/_authenticated/catalogos.$id'
+import { Route as AuthenticatedCatalogosGerenciarRouteImport } from './routes/_authenticated/catalogos.gerenciar'
+import { Route as AuthenticatedCatalogosPedidosRouteImport } from './routes/_authenticated/catalogos.pedidos'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes.$id'
 import { Route as AuthenticatedOrcamento3dIdRouteImport } from './routes/_authenticated/orcamento-3d.$id'
@@ -90,6 +92,7 @@ import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
 import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
 import { Route as AuthenticatedOsIdRouteImport } from './routes/_authenticated/os.$id'
+import { Route as ApiCatalogoCotacaoRouteImport } from './routes/api.catalogo.cotacao'
 import { Route as ApiCatalogoVitrineRouteImport } from './routes/api.catalogo.vitrine'
 import { Route as ApiPortalArquivoRouteImport } from './routes/api.portal.arquivo'
 import { Route as ApiPortalArteRouteImport } from './routes/api.portal.arte'
@@ -498,6 +501,18 @@ const AuthenticatedCatalogosIdRoute =
     path: '/catalogos/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCatalogosGerenciarRoute =
+  AuthenticatedCatalogosGerenciarRouteImport.update({
+    id: '/catalogos/gerenciar',
+    path: '/catalogos/gerenciar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCatalogosPedidosRoute =
+  AuthenticatedCatalogosPedidosRouteImport.update({
+    id: '/catalogos/pedidos',
+    path: '/catalogos/pedidos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientesIndexRoute =
   AuthenticatedClientesIndexRouteImport.update({
     id: '/clientes/',
@@ -536,6 +551,11 @@ const AuthenticatedOsIdRoute = AuthenticatedOsIdRouteImport.update({
   id: '/os/$id',
   path: '/os/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiCatalogoCotacaoRoute = ApiCatalogoCotacaoRouteImport.update({
+  id: '/api/catalogo/cotacao',
+  path: '/api/catalogo/cotacao',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCatalogoVitrineRoute = ApiCatalogoVitrineRouteImport.update({
   id: '/api/catalogo/vitrine',
@@ -676,10 +696,13 @@ export interface FileRoutesByFullPath {
   '/parceiro/': typeof ParceiroIndexRoute
   '/tv/': typeof TvIndexRoute
   '/catalogos/$id': typeof AuthenticatedCatalogosIdRoute
+  '/catalogos/gerenciar': typeof AuthenticatedCatalogosGerenciarRoute
+  '/catalogos/pedidos': typeof AuthenticatedCatalogosPedidosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/catalogo/cotacao': typeof ApiCatalogoCotacaoRoute
   '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
   '/api/portal/arte': typeof ApiPortalArteRoute
@@ -770,10 +793,13 @@ export interface FileRoutesByTo {
   '/parceiro': typeof ParceiroIndexRoute
   '/tv': typeof TvIndexRoute
   '/catalogos/$id': typeof AuthenticatedCatalogosIdRoute
+  '/catalogos/gerenciar': typeof AuthenticatedCatalogosGerenciarRoute
+  '/catalogos/pedidos': typeof AuthenticatedCatalogosPedidosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/catalogo/cotacao': typeof ApiCatalogoCotacaoRoute
   '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
   '/api/portal/arte': typeof ApiPortalArteRoute
@@ -867,10 +893,13 @@ export interface FileRoutesById {
   '/parceiro/': typeof ParceiroIndexRoute
   '/tv/': typeof TvIndexRoute
   '/_authenticated/catalogos/$id': typeof AuthenticatedCatalogosIdRoute
+  '/_authenticated/catalogos/gerenciar': typeof AuthenticatedCatalogosGerenciarRoute
+  '/_authenticated/catalogos/pedidos': typeof AuthenticatedCatalogosPedidosRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
+  '/api/catalogo/cotacao': typeof ApiCatalogoCotacaoRoute
   '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
   '/api/portal/arte': typeof ApiPortalArteRoute
@@ -964,10 +993,13 @@ export interface FileRouteTypes {
     | '/parceiro/'
     | '/tv/'
     | '/catalogos/$id'
+    | '/catalogos/gerenciar'
+    | '/catalogos/pedidos'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/api/catalogo/cotacao'
     | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
     | '/api/portal/arte'
@@ -1058,10 +1090,13 @@ export interface FileRouteTypes {
     | '/parceiro'
     | '/tv'
     | '/catalogos/$id'
+    | '/catalogos/gerenciar'
+    | '/catalogos/pedidos'
     | '/clientes/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/api/catalogo/cotacao'
     | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
     | '/api/portal/arte'
@@ -1154,10 +1189,13 @@ export interface FileRouteTypes {
     | '/parceiro/'
     | '/tv/'
     | '/_authenticated/catalogos/$id'
+    | '/_authenticated/catalogos/gerenciar'
+    | '/_authenticated/catalogos/pedidos'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
+    | '/api/catalogo/cotacao'
     | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
     | '/api/portal/arte'
@@ -1192,6 +1230,7 @@ export interface RootRouteChildren {
   PublicoTokenRoute: typeof PublicoTokenRoute
   TvMaquinasRoute: typeof TvMaquinasRoute
   TvIndexRoute: typeof TvIndexRoute
+  ApiCatalogoCotacaoRoute: typeof ApiCatalogoCotacaoRoute
   ApiCatalogoVitrineRoute: typeof ApiCatalogoVitrineRoute
   ApiPortalArquivoRoute: typeof ApiPortalArquivoRoute
   ApiPortalArteRoute: typeof ApiPortalArteRoute
@@ -1725,6 +1764,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCatalogosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/catalogos/gerenciar': {
+      id: '/_authenticated/catalogos/gerenciar'
+      path: '/catalogos/gerenciar'
+      fullPath: '/catalogos/gerenciar'
+      preLoaderRoute: typeof AuthenticatedCatalogosGerenciarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/catalogos/pedidos': {
+      id: '/_authenticated/catalogos/pedidos'
+      path: '/catalogos/pedidos'
+      fullPath: '/catalogos/pedidos'
+      preLoaderRoute: typeof AuthenticatedCatalogosPedidosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clientes/': {
       id: '/_authenticated/clientes/'
       path: '/clientes'
@@ -1773,6 +1826,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/os/$id'
       preLoaderRoute: typeof AuthenticatedOsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/catalogo/cotacao': {
+      id: '/api/catalogo/cotacao'
+      path: '/api/catalogo/cotacao'
+      fullPath: '/api/catalogo/cotacao'
+      preLoaderRoute: typeof ApiCatalogoCotacaoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/catalogo/vitrine': {
       id: '/api/catalogo/vitrine'
@@ -1925,6 +1985,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
   AuthenticatedCatalogosIdRoute: typeof AuthenticatedCatalogosIdRoute
+  AuthenticatedCatalogosGerenciarRoute: typeof AuthenticatedCatalogosGerenciarRoute
+  AuthenticatedCatalogosPedidosRoute: typeof AuthenticatedCatalogosPedidosRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedOrcamento3dIdRoute: typeof AuthenticatedOrcamento3dIdRoute
   AuthenticatedOrcamentosIdRoute: typeof AuthenticatedOrcamentosIdRoute
@@ -1993,6 +2055,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
   AuthenticatedCatalogosIdRoute: AuthenticatedCatalogosIdRoute,
+  AuthenticatedCatalogosGerenciarRoute: AuthenticatedCatalogosGerenciarRoute,
+  AuthenticatedCatalogosPedidosRoute: AuthenticatedCatalogosPedidosRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedOrcamento3dIdRoute: AuthenticatedOrcamento3dIdRoute,
   AuthenticatedOrcamentosIdRoute: AuthenticatedOrcamentosIdRoute,
@@ -2041,6 +2105,7 @@ const rootRouteChildren: RootRouteChildren = {
   PublicoTokenRoute: PublicoTokenRoute,
   TvMaquinasRoute: TvMaquinasRoute,
   TvIndexRoute: TvIndexRoute,
+  ApiCatalogoCotacaoRoute: ApiCatalogoCotacaoRoute,
   ApiCatalogoVitrineRoute: ApiCatalogoVitrineRoute,
   ApiPortalArquivoRoute: ApiPortalArquivoRoute,
   ApiPortalArteRoute: ApiPortalArteRoute,

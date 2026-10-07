@@ -22,7 +22,7 @@ export const COLUNAS_DA_MODALIDADE =
 
 export const COLUNAS_DA_FOTO = "id, codigo_fornecedor, legenda, origem, caminho";
 
-export const COLUNAS_DA_SECAO = "id, ordem, titulo, especificacao";
+export const COLUNAS_DA_SECAO = "id, ordem, titulo, especificacao, categoria";
 
 export type ModalidadeDoItem = {
   modalidade: Modalidade;
@@ -74,6 +74,8 @@ export type SecaoDoCatalogo = {
   ordem: number;
   titulo: string;
   especificacao: string | null;
+  /** A prateleira da loja (`categorias.ts`); `null` = ainda não apontada, a loja deduz do título. */
+  categoria: string | null;
 };
 
 /** Uma linha de `catalogo_precos().precos[item]`. Custo e margem só vêm no nível financeiro. */
@@ -103,7 +105,9 @@ export function numeroOuNulo(valor: unknown): number | null {
 
 /** Normaliza a linha crua do banco (numeric como texto, modalidades fora de ordem). */
 export function itemDaLinha(linha: Record<string, unknown>): ItemDoCatalogo {
-  const modalidades = (Array.isArray(linha.fornecedor_item_modalidades) ? linha.fornecedor_item_modalidades : [])
+  const modalidades = (
+    Array.isArray(linha.fornecedor_item_modalidades) ? linha.fornecedor_item_modalidades : []
+  )
     .map((m: Record<string, unknown>) => ({
       modalidade: m.modalidade as Modalidade,
       posicao: Number(m.posicao ?? 0),
@@ -164,14 +168,14 @@ export const ROTULO_DO_FILTRO: Record<FiltroDoCatalogo, string> = {
 };
 
 function chaveDeBusca(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
+  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
 /** Item que não tem NENHUMA opção com preço de venda (é contagem, não valor). */
-export function semPrecoDeVenda(item: ItemDoCatalogo, precos: PrecosDoCatalogo | null | undefined): boolean {
+export function semPrecoDeVenda(
+  item: ItemDoCatalogo,
+  precos: PrecosDoCatalogo | null | undefined,
+): boolean {
   const lista = precos?.precos[item.id] ?? [];
   return !lista.some((p) => p.preco != null);
 }
@@ -211,8 +215,12 @@ export function filtrarItens(
         break;
     }
     if (termos.length === 0) return true;
-    const alvo = chaveDeBusca(`${item.nome} ${item.descricao} ${item.codigo_bex} ${item.codigo_fornecedor}`);
-    const codigos = `${item.codigo_bex} ${item.codigo_fornecedor}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const alvo = chaveDeBusca(
+      `${item.nome} ${item.descricao} ${item.codigo_bex} ${item.codigo_fornecedor}`,
+    );
+    const codigos = `${item.codigo_bex} ${item.codigo_fornecedor}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
     return termos.every((t) => {
       if (alvo.includes(t)) return true;
       const compacto = t.replace(/[^a-z0-9]/g, "");
@@ -230,9 +238,16 @@ export function fotosParaApontar(
   item: Pick<ItemDoCatalogo, "codigo_fornecedor">,
   busca: string,
 ): { doCodigo: FotoDoAcervo[]; outras: FotoDoAcervo[] } {
-  const codigo = item.codigo_fornecedor.replace(/[^A-Za-z0-9]/g, "").toUpperCase().replace(/^0+/, "");
+  const codigo = item.codigo_fornecedor
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toUpperCase()
+    .replace(/^0+/, "");
   const doCodigo = fotos.filter(
-    (f) => (f.codigo_fornecedor ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase().replace(/^0+/, "") === codigo,
+    (f) =>
+      (f.codigo_fornecedor ?? "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase()
+        .replace(/^0+/, "") === codigo,
   );
   const termos = chaveDeBusca(busca).split(/\s+/).filter(Boolean);
   const outras =

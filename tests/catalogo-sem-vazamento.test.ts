@@ -81,22 +81,38 @@ function arquivosDe(dir: string, acc: string[] = []): string[] {
 
 const rota = ler("src/routes/api.catalogo.vitrine.ts");
 const servidor = ler("src/lib/api/catalogo-link.server.ts");
+const rotaDaCotacao = ler("src/routes/api.catalogo.cotacao.ts");
+const servidorDaCotacao = ler("src/lib/api/catalogo-cotacao.server.ts");
 const pagina = ler("src/routes/catalogo.$token.tsx");
+/**
+ * Tudo que roda no navegador do CLIENTE. A loja (`components/catalogo/loja/*`)
+ * é a mesma para a equipe e para o cliente — por isso entra aqui inteira: o
+ * que a equipe vê na loja é exatamente o que o cliente vê.
+ */
 const publicos = [
   pagina,
-  ler("src/components/catalogo/cartao-da-vitrine.tsx"),
+  ...arquivosDe("src/components/catalogo/loja").map(ler),
+  ler("src/components/catalogo/pedir-cotacao-dialog.tsx"),
   ler("src/lib/catalogo-publico.ts"),
   ler("src/domain/catalogo/vitrine.ts"),
+  ler("src/domain/catalogo/loja.ts"),
+  ler("src/domain/catalogo/carrinho.ts"),
+  ler("src/domain/catalogo/cotacao.ts"),
+  ler("src/domain/catalogo/categorias-da-loja.ts"),
 ];
 const novos = [
   ...arquivosDe("src/components/catalogo"),
   ...arquivosDe("src/domain/catalogo"),
   "src/routes/_authenticated/catalogos.index.tsx",
+  "src/routes/_authenticated/catalogos.gerenciar.tsx",
+  "src/routes/_authenticated/catalogos.pedidos.tsx",
   "src/routes/_authenticated/catalogos.$id.tsx",
   "src/routes/catalogo.$token.tsx",
   "src/routes/api.catalogo.vitrine.ts",
+  "src/routes/api.catalogo.cotacao.ts",
   "src/lib/catalogo-publico.ts",
   "src/lib/api/catalogo-link.server.ts",
+  "src/lib/api/catalogo-cotacao.server.ts",
 ].map(ler);
 
 /** `.from(` que não vem logo depois de `.storage`: leitura de tabela. */
@@ -120,22 +136,76 @@ describe("os detectores acusam quando o defeito existe", () => {
     expect(leTabelaDireto("supabase.storage.from(BUCKET).getPublicUrl(c)")).toBe(false);
     expect(credencialNoConsole('console.error("falhou", hash);')).toBe(true);
     expect(credencialNoConsole('console.error("[catalogo] falhou", r.error.code);')).toBe(false);
-    expect(novos.length).toBeGreaterThan(15);
+    expect(novos.length).toBeGreaterThan(25);
+    expect(publicos.length).toBeGreaterThan(10);
+  });
+});
+
+describe("a rota do pedido de cotação (a mesma trava da vitrine)", () => {
+  it("a chave de serviço não entra no pacote do navegador", () => {
+    const estaticos = [
+      ...rotaDaCotacao.codigo.matchAll(/^import\s[^;]*from\s+["']([^"']+)["']/gm),
+    ].map((m) => m[1]);
+    expect(estaticos).toEqual(["@tanstack/react-router"]);
+    expect(rotaDaCotacao.codigo).toMatch(/await import\("@\/lib\/api\/catalogo-cotacao\.server"\)/);
+    // Só POST: um GET nesta rota não existe.
+    expect(/\bGET\b/.test(rotaDaCotacao.codigo)).toBe(false);
+  });
+
+  it("o servidor não lê tabela: só chama catalogo_link_pedir_cotacao, com o hash do token e da origem", () => {
+    expect(leTabelaDireto(servidorDaCotacao.codigo)).toBe(false);
+    expect(/\.select\s*\(/.test(servidorDaCotacao.codigo)).toBe(false);
+    const nomes = [
+      ...servidorDaCotacao.codigo.matchAll(
+        /\.rpc\s*(?:as any\s*\))?\s*\(\s*["'`]([a-z0-9_]+)["'`]/g,
+      ),
+    ].map((m) => m[1]);
+    expect(nomes).toEqual(["catalogo_link_pedir_cotacao"]);
+    expect(servidorDaCotacao.codigo).toMatch(/const hash = await hashDoSegredo\(token\)/);
+    expect(servidorDaCotacao.codigo).toMatch(/p_token_hash:\s*hash/);
+    expect(servidorDaCotacao.codigo).toMatch(/p_origem_hash:\s*origem/);
+    // O corpo passa pela lista fechada ANTES de ir ao banco.
+    expect(servidorDaCotacao.codigo).toMatch(/const pedido = pedidoDeCotacaoFechado\(corpo\)/);
+    expect(servidorDaCotacao.codigo).toMatch(/p_nome:\s*pedido\.nome/);
+    expect(servidorDaCotacao.codigo).toMatch(/p_itens:\s*pedido\.itens/);
+  });
+
+  it("o token vem do cabeçalho, nunca da URL, e nem token nem telefone entram em log", () => {
+    expect(servidorDaCotacao.codigo).toMatch(/request\.headers\.get\(CABECALHO_DO_CATALOGO\)/);
+    for (const a of [rotaDaCotacao, servidorDaCotacao]) {
+      expect(/request\.url|searchParams/.test(a.codigo), a.nome).toBe(false);
+      expect(credencialNoConsole(a.codigo), a.nome).toBe(false);
+      expect(/console\.\w+\([^;]*telefone/.test(a.codigo), a.nome).toBe(false);
+    }
+  });
+
+  it("toda resposta sem cache; estado desconhecido vira 503, nunca 'registrado'", () => {
+    expect(servidorDaCotacao.codigo).toMatch(/"cache-control":\s*"no-store"/);
+    expect([...servidorDaCotacao.codigo.matchAll(/new Response\(/g)]).toHaveLength(1);
+    expect(servidorDaCotacao.codigo).toMatch(/default:\s*return indisponivel\(\)/);
+    expect(servidorDaCotacao.codigo).toMatch(
+      /case "registrado":\s*return resposta\(200, \{ estado: "registrado" \}\)/,
+    );
   });
 });
 
 describe("a rota da vitrine", () => {
   it("a chave de serviço não entra no pacote do navegador", () => {
-    const estaticos = [...rota.codigo.matchAll(/^import\s[^;]*from\s+["']([^"']+)["']/gm)].map((m) => m[1]);
+    const estaticos = [...rota.codigo.matchAll(/^import\s[^;]*from\s+["']([^"']+)["']/gm)].map(
+      (m) => m[1],
+    );
     expect(estaticos).toEqual(["@tanstack/react-router"]);
     expect(rota.codigo).toMatch(/await import\("@\/lib\/api\/catalogo-link\.server"\)/);
-    for (const a of publicos) expect(/client\.server|supabaseAdmin/.test(a.codigo), a.nome).toBe(false);
+    for (const a of publicos)
+      expect(/client\.server|supabaseAdmin/.test(a.codigo), a.nome).toBe(false);
   });
 
   it("o servidor não lê tabela nem faz select: só chama catalogo_link_abrir, com o hash", () => {
     expect(leTabelaDireto(servidor.codigo)).toBe(false);
     expect(/\.select\s*\(/.test(servidor.codigo)).toBe(false);
-    const nomes = [...servidor.codigo.matchAll(/\.rpc\s*(?:as any\s*\))?\s*\(\s*["'`]([a-z0-9_]+)["'`]/g)].map((m) => m[1]);
+    const nomes = [
+      ...servidor.codigo.matchAll(/\.rpc\s*(?:as any\s*\))?\s*\(\s*["'`]([a-z0-9_]+)["'`]/g),
+    ].map((m) => m[1]);
     expect(nomes).toEqual(["catalogo_link_abrir"]);
     expect(servidor.codigo).toMatch(/const hash = await hashDoSegredo\(token\)/);
     expect(servidor.codigo).toMatch(/\{\s*p_token_hash:\s*hash\s*\}/);
@@ -184,7 +254,10 @@ function semComentariosSql(sql: string): string {
 
 describe("o banco do catálogo (retrato em 20261005200000)", () => {
   const sql = semComentariosSql(
-    readFileSync(join(RAIZ, "supabase/migrations/20261005200000_catalogo_de_fornecedores.sql"), "utf8"),
+    readFileSync(
+      join(RAIZ, "supabase/migrations/20261005200000_catalogo_de_fornecedores.sql"),
+      "utf8",
+    ),
   );
   const tabelas = [
     "fornecedores",
@@ -216,7 +289,9 @@ describe("o banco do catálogo (retrato em 20261005200000)", () => {
       "fornecedor_regras_venda",
       "fornecedor_importacoes",
     ]) {
-      const politicas = [...sql.matchAll(new RegExp(`CREATE POLICY "[^"]+" ON public\\.${t} FOR SELECT[^;]*;`, "g"))];
+      const politicas = [
+        ...sql.matchAll(new RegExp(`CREATE POLICY "[^"]+" ON public\\.${t} FOR SELECT[^;]*;`, "g")),
+      ];
       expect(politicas.length, t).toBe(1);
       expect(politicas[0][0], t).toMatch(/can_see_financials/);
     }
@@ -226,20 +301,28 @@ describe("o banco do catálogo (retrato em 20261005200000)", () => {
     for (const t of ["catalogo_links", "catalogo_link_itens"]) {
       expect(new RegExp(`CREATE POLICY [^;]* ON public\\.${t}\\b`).test(sql), t).toBe(false);
       // GRANT de TABELA; a função `catalogo_links(uuid)` tem o mesmo nome e abre, de propósito.
-      expect(new RegExp(`GRANT (?!EXECUTE)[^;]*\\bpublic\\.${t}\\b(?!\\()`).test(sql), t).toBe(false);
+      expect(new RegExp(`GRANT (?!EXECUTE)[^;]*\\bpublic\\.${t}\\b(?!\\()`).test(sql), t).toBe(
+        false,
+      );
     }
   });
 
   it("toda função nasce fechada; a vitrine só para a rota de servidor; as internas para ninguém", () => {
-    const funcoes = [...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.([a-z_]+)\(/g)].map((m) => m[1]);
+    const funcoes = [...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.([a-z_]+)\(/g)].map(
+      (m) => m[1],
+    );
     expect(funcoes.length).toBe(24);
     for (const f of funcoes) {
       expect(
-        new RegExp(`REVOKE ALL ON FUNCTION public\\.${f}\\([^)]*\\) FROM PUBLIC, anon, authenticated, service_role;`).test(sql),
+        new RegExp(
+          `REVOKE ALL ON FUNCTION public\\.${f}\\([^)]*\\) FROM PUBLIC, anon, authenticated, service_role;`,
+        ).test(sql),
         f,
       ).toBe(true);
     }
-    const grants = [...sql.matchAll(/GRANT EXECUTE ON FUNCTION public\.([a-z_]+)\([^)]*\) TO (\w+);/g)];
+    const grants = [
+      ...sql.matchAll(/GRANT EXECUTE ON FUNCTION public\.([a-z_]+)\([^)]*\) TO (\w+);/g),
+    ];
     for (const [, f, papel] of grants) {
       if (f === "catalogo_link_abrir") expect(papel, f).toBe("service_role");
       else expect(papel, f).toBe("authenticated");
@@ -248,18 +331,44 @@ describe("o banco do catálogo (retrato em 20261005200000)", () => {
     expect(grants).toHaveLength(13);
   });
 
-  it("as chaves que catalogo_link_abrir monta estão na lista da vitrine — e custo não está", () => {
-    const inicio = sql.indexOf("CREATE OR REPLACE FUNCTION public.catalogo_link_abrir");
-    const corpo = sql.slice(inicio, sql.indexOf("$f$;", inicio));
-    const chaves = new Set([...corpo.matchAll(/'([a-z_]+)',\s/g)].map((m) => m[1]));
-    const permitidas = new Set([...Object.values(CHAVES_DA_VITRINE).flat(), "situacao"]);
-    for (const c of chaves) {
-      if (["aberto", "invalido", "revogado", "vencido"].includes(c)) continue;
-      expect(permitidas.has(c), c).toBe(true);
-    }
-    expect(corpo).not.toMatch(/'custo'|'margem_pct'|'codigo_fornecedor'|'descricao'|'regra'|'motivo'/);
-    // Todo texto que sai passa pelo filtro do fornecedor.
-    expect([...corpo.matchAll(/fornecedor_texto_para_cliente\(/g)].length).toBeGreaterThanOrEqual(5);
+  // A função foi reescrita em 20261006230000 (+ a chave 'categoria'): a trava
+  // vale para as DUAS versões — a que vive hoje é a última.
+  const sqlDaLoja = semComentariosSql(
+    readFileSync(
+      join(RAIZ, "supabase/migrations/20261007120000_catalogo_vitrine_e_carrinho.sql"),
+      "utf8",
+    ),
+  );
+
+  it.each([
+    ["20261005200000", sql],
+    ["20261006230000", sqlDaLoja],
+  ])(
+    "as chaves que catalogo_link_abrir monta (%s) estão na lista da vitrine — e custo não está",
+    (_, fonte) => {
+      const inicio = fonte.indexOf("CREATE OR REPLACE FUNCTION public.catalogo_link_abrir");
+      const corpo = fonte.slice(inicio, fonte.indexOf("$f$;", inicio));
+      const chaves = new Set([...corpo.matchAll(/'([a-z_]+)',\s/g)].map((m) => m[1]));
+      const permitidas = new Set([...Object.values(CHAVES_DA_VITRINE).flat(), "situacao"]);
+      for (const c of chaves) {
+        if (["aberto", "invalido", "revogado", "vencido"].includes(c)) continue;
+        expect(permitidas.has(c), c).toBe(true);
+      }
+      expect(corpo).not.toMatch(
+        /'custo'|'margem_pct'|'codigo_fornecedor'|'descricao'|'regra'|'motivo'/,
+      );
+      // Todo texto que sai passa pelo filtro do fornecedor.
+      expect([...corpo.matchAll(/fornecedor_texto_para_cliente\(/g)].length).toBeGreaterThanOrEqual(
+        5,
+      );
+    },
+  );
+
+  it("a categoria que sai para o cliente é um valor da lista fechada (o CHECK), não texto livre", () => {
+    expect(sqlDaLoja).toMatch(/categoria IS NULL OR categoria IN \(/);
+    const inicio = sqlDaLoja.indexOf("CREATE OR REPLACE FUNCTION public.catalogo_link_abrir");
+    const corpo = sqlDaLoja.slice(inicio, sqlDaLoja.indexOf("$f$;", inicio));
+    expect(corpo).toMatch(/'categoria', s\.categoria,/);
   });
 
   it("sem regra é sob consulta, nunca zero nem o custo", () => {
@@ -269,7 +378,8 @@ describe("o banco do catálogo (retrato em 20261005200000)", () => {
 
 describe("as telas novas leem o erro", () => {
   it("nenhum `const { data } = await` que descarta o erro", () => {
-    for (const a of novos) expect(/const\s*\{\s*data\s*\}\s*=\s*await/.test(a.codigo), a.nome).toBe(false);
+    for (const a of novos)
+      expect(/const\s*\{\s*data\s*\}\s*=\s*await/.test(a.codigo), a.nome).toBe(false);
   });
 
   it("toda chamada ao Supabase das consultas confere o erro", () => {
@@ -283,8 +393,16 @@ describe("as telas novas leem o erro", () => {
 
   it("o PostgREST corta em 1.000: as listas grandes são lidas em páginas com contagem exata", () => {
     const consultas = novos.find((a) => a.nome.endsWith("catalogo/consultas.ts"))!.codigo;
-    for (const tabela of ["fornecedor_itens", "fornecedor_fotos", "fornecedor_secoes", "clientes"]) {
-      const trecho = consultas.slice(consultas.indexOf(`.from("${tabela}")`), consultas.indexOf(`.from("${tabela}")`) + 400);
+    for (const tabela of [
+      "fornecedor_itens",
+      "fornecedor_fotos",
+      "fornecedor_secoes",
+      "clientes",
+    ]) {
+      const trecho = consultas.slice(
+        consultas.indexOf(`.from("${tabela}")`),
+        consultas.indexOf(`.from("${tabela}")`) + 400,
+      );
       expect(trecho, tabela).toMatch(/count: "exact"/);
       expect(trecho, tabela).toMatch(/\.range\(de, ate\)/);
     }

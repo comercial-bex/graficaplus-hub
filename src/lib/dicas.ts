@@ -216,8 +216,8 @@ export const dicas = {
     },
   },
   "/catalogos": {
-    menu: "Brindes dos fornecedores com foto, código BX e preço de venda pronto.",
-    tela: "O catálogo de cada fornecedor: foto, nome, especificação e o código Bex Print (BX-0001…). Quem vende vê o preço de venda já calculado; quem vê o financeiro vê também o custo da tabela do fornecedor e a margem. O cliente recebe um link com a vitrine — sem o nome e sem o código do fornecedor, e só com os itens que têm foto. Item sem regra de venda, fora da tabela ou com a unidade do preço em dúvida fica 'sob consulta': nunca R$ 0,00.",
+    menu: "A loja de brindes: foto, código BX, preço de venda, carrinho e orçamento.",
+    tela: "O catálogo de brindes como uma loja, só para orçar: categorias (canetas, copos, chaveiros…), produtos com foto, código Bex Print (BX-0001…) e preço de venda, ficha com as opções de gravação, carrinho e 'Gerar orçamento' — um orçamento em rascunho com tudo, com ou sem cliente. É o que se mostra ao cliente no iPad, no computador ou no celular, por isso aqui não aparece custo nem margem: isso fica em Gerenciar, com a planilha, as fotos, a regra de venda e os links. Item sem regra de venda, fora da tabela ou com a unidade do preço em dúvida fica 'sob consulta': nunca R$ 0,00. Item sem foto não entra na loja.",
     campos: {
       margem:
         "Quanto o preço de venda fica acima do custo. 60% sobre R$ 10,00 de custo dá R$ 16,00. Sem margem, o item fica sob consulta.",
@@ -232,6 +232,14 @@ export const dicas = {
       foto: "Escolhe a foto que mostra ESTE item, entre as fotos do mesmo código — ou tira a foto. Item sem foto não aparece no link do cliente.",
       duvida:
         "A tabela não diz se o valor é do pacote ou da peça. Registre o que o fornecedor confirmou: até lá o item fica sob consulta.",
+      gerar_orcamento:
+        "Cria UM orçamento em rascunho com todos os itens do carrinho que têm preço, pelo mesmo caminho de 'Adicionar ao orçamento'. Dá para deixar sem cliente (orçamento prévio) e vincular depois.",
+      gerenciar:
+        "A parte de dentro do catálogo: planilha do fornecedor, fotos, regra de venda (margem), links para clientes. Custo e margem só aparecem aqui.",
+      pedidos:
+        "Os pedidos de cotação que os clientes fizeram pelos links da vitrine: quem, quando e o quê. Responda pelo WhatsApp e marque como atendido.",
+      cotacao:
+        "O cliente monta o carrinho pelo link, diz nome e WhatsApp, e o pedido fica registrado aqui. Depois ele abre o WhatsApp com a lista pronta. Nada é mandado ao cliente automaticamente.",
     },
   },
   "/impressao-3d": {

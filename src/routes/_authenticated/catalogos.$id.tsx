@@ -104,7 +104,7 @@ function CatalogoPage() {
               <RefreshCw className="mr-1 h-4 w-4" /> Tentar de novo
             </Button>
             <Button asChild variant="ghost" className="h-11 md:h-9">
-              <Link to="/catalogos">
+              <Link to="/catalogos/gerenciar">
                 <ChevronLeft className="mr-1 h-4 w-4" /> Catálogos
               </Link>
             </Button>
@@ -140,7 +140,7 @@ function CatalogoPage() {
           .join(" · ")}
         actions={
           <Button asChild variant="outline" className="h-11 md:h-9">
-            <Link to="/catalogos">
+            <Link to="/catalogos/gerenciar">
               <ChevronLeft className="mr-1 h-4 w-4" /> Catálogos
             </Link>
           </Button>
