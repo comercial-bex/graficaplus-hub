@@ -59,7 +59,25 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
-import { OrcamentoProdutoPicker } from "@/components/orcamento-produto-picker";
+import {
+  EscolhaDeProduto,
+  tipoDoItemGravado,
+  type ProdutoDaEscolha,
+} from "@/components/orcamento/escolha-de-produto";
+import { useProdutosParaEscolha } from "@/components/orcamento/use-produtos-para-escolha";
+import { MedidasDaPeca } from "@/components/orcamento/medidas-da-peca";
+import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
+import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
+import { ResumoDoItem } from "@/components/orcamento/resumo-do-item";
+import {
+  camposDaUnidade,
+  tipoDoProduto,
+  tipoPelaChave,
+  tipoPeloRotulo,
+  unidadeAoEscolherTipo,
+  type ChaveDoTipo,
+  type TipoDeProduto,
+} from "@/domain/orcamentos/tipos-de-produto";
 import { CalculadoraCusto } from "@/components/orcamento/calculadora-custo";
 import {
   RestricaoDoProduto,
@@ -95,7 +113,6 @@ import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
   areaCobrada,
-  areaTotal,
   areaUnitaria,
   descreverMetragem,
   ehUnidadeDeArea,
@@ -202,6 +219,12 @@ function OrcamentoDetailPage() {
   // botão nem aparece — antes ele estourava "Orçamento não encontrado".
   const podeMandar = hasPermission("orcamentos.send");
   const [form, setForm] = useState({ ...itemVazio });
+  // A escolha visual: o tipo confirmado (lona, adesivo…) e se o item é fora
+  // do catálogo. O rótulo curto do tipo é o que vai em `tipo_produto`.
+  const [tipoEscolhido, setTipoEscolhido] = useState<ChaveDoTipo | null>(null);
+  const [itemLivre, setItemLivre] = useState(false);
+  // Produto por unidade pode ganhar medida se o vendedor quiser (era assim).
+  const [medidasAbertas, setMedidasAbertas] = useState(false);
   // Artes do item ainda não gravado: já estão no Storage, esperando o item.
   const [layoutsRascunho, setLayoutsRascunho] = useState<LayoutRascunho[]>([]);
   // Item em edição: o mesmo formulário, preenchido, com "Salvar alterações".
@@ -274,6 +297,14 @@ function OrcamentoDetailPage() {
     id,
     itens.map((i) => i.id as string),
   );
+
+  // O catálogo para a escolha visual, com os atalhos. Só consulta quando o
+  // formulário está na tela (quem não edita não precisa do catálogo).
+  const podeEditarItens = podeEditar && !(orc?.status === "convertido" || !!orc?.os_id);
+  const catalogo = useProdutosParaEscolha({
+    ativo: !!orc && podeEditarItens,
+    clienteId: (orc as any)?.cliente_id ?? null,
+  });
 
   // Tamanhos do produto escolhido no catálogo. Só busca quando há produto: item
   // digitado à mão não tem preset para oferecer.
@@ -379,7 +410,24 @@ function OrcamentoDetailPage() {
       ? valorUnitarioComMinimo(dimensoesForm, precoM2Form, form.area_minima)
       : null;
   const areaFaturada = vendidoPorArea ? areaCobrada(dimensoesForm, form.area_minima) : 0;
-  const minimoAplicado = areaFaturada > areaTotal(dimensoesForm) + 0.0001;
+
+  // O que o formulário pergunta depende da unidade: m² pede medida; os outros,
+  // só quantidade. Medida já preenchida (tamanho fixo do produto) aparece sempre.
+  const camposDoItem = camposDaUnidade(form.unidade);
+  const mostrarMedidas = camposDoItem.medidas || vendidoPorArea || medidasAbertas;
+  const produtoDoForm: ProdutoDaEscolha | null = form.produto_id
+    ? (catalogo.produtos.find((p) => p.id === form.produto_id) ?? null)
+    : null;
+  const tipoDoItem: TipoDeProduto | null = tipoEscolhido
+    ? tipoPelaChave(tipoEscolhido)
+    : produtoDoForm
+      ? tipoDoProduto(produtoDoForm)
+      : tipoPeloRotulo(form.tipo_produto);
+  // Tamanhos prontos: os do produto; sem eles, os comuns do tipo.
+  const tamanhosParaOferecer =
+    tamanhos.length > 0
+      ? tamanhos.map((t) => ({ nome: t.nome, largura: Number(t.largura), altura: Number(t.altura) }))
+      : (tipoDoItem?.tamanhosComuns ?? tipoPelaChave("outros").tamanhosComuns);
 
   // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
   const quantidadeForm = paraNumero(form.quantidade) || 1;
@@ -402,21 +450,25 @@ function OrcamentoDetailPage() {
   // área, senão a quantidade de peças.
   const baseConsumo = vendidoPorArea ? areaFaturada : quantidadeForm;
 
-  /** Aplica o produto do catálogo ao formulário, já com preço, custo e limites. */
-  function aplicarProduto(p: {
-    id: string;
-    nome: string;
-    unidade: string;
-    preco_base: number | null;
-    custo_medio: number;
-    margem_minima: number;
-    area_minima_cobrada: number | null;
-    tempo_producao_min: number | null;
-  }) {
+  /**
+   * Aplica o produto do catálogo ao formulário, já com preço, custo e limites.
+   * O tipo (lona, adesivo…) vai junto, no texto curto de `tipo_produto` — é
+   * o que sai na coluna "Tipo Produto" do PDF. Na edição,
+   * trocar o produto preserva o que é do pedido — quantidade, acabamento e
+   * especificação — e troca só o que é do produto.
+   */
+  function aplicarProduto(p: ProdutoDaEscolha) {
+    const tipo = tipoDoProduto(p);
+    setTipoEscolhido(tipo.chave);
+    setItemLivre(false);
+    setMedidasAbertas(false);
     setForm({
       ...itemVazio,
       descricao: p.nome,
       quantidade: form.quantidade || "1",
+      acabamento: editando ? form.acabamento : "",
+      especificacao: editando ? form.especificacao : "",
+      tipo_produto: tipo.rotuloCurto,
       unidade: p.unidade,
       preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
       valor_unitario: String(p.preco_base ?? 0),
@@ -426,6 +478,31 @@ function OrcamentoDetailPage() {
       margem_minima: Number(p.margem_minima ?? 0) || null,
       tempo_producao_min: p.tempo_producao_min ?? null,
     });
+  }
+
+  /** Item fora do catálogo, mas de um tipo: a descrição e o preço são digitados. */
+  function aplicarItemLivre(tipo: TipoDeProduto) {
+    setTipoEscolhido(tipo.chave);
+    setItemLivre(true);
+    setForm((atual) => ({
+      ...atual,
+      tipo_produto: tipo.rotuloCurto,
+      // Trocou de produto do catálogo para item livre: o que era do produto sai.
+      produto_id: null,
+      area_minima: null,
+      margem_minima: null,
+      tempo_producao_min: null,
+      // Item novo pega a unidade do tipo (lona → m², e a medida aparece);
+      // item livre em edição fica com a unidade que já tinha.
+      unidade: unidadeAoEscolherTipo(tipo, {
+        unidade: atual.unidade,
+        tinhaProduto: !!atual.produto_id,
+        editando: !!editando,
+      }),
+      preco_m2: atual.produto_id ? "" : atual.preco_m2,
+      valor_unitario: atual.produto_id ? "0" : atual.valor_unitario,
+      custo_unitario: atual.produto_id ? "0" : atual.custo_unitario,
+    }));
   }
 
   /** Usa o preço da faixa atingida no item em edição. */
@@ -445,6 +522,9 @@ function OrcamentoDetailPage() {
     setForm({ ...itemVazio });
     setLayoutsRascunho([]);
     setEditando(null);
+    setTipoEscolhido(null);
+    setItemLivre(false);
+    setMedidasAbertas(false);
   }
 
   /**
@@ -477,6 +557,10 @@ function OrcamentoDetailPage() {
       produto_id: (i.produto_id as string | null) ?? null,
       area_minima: i.area_minima != null ? Number(i.area_minima) : null,
     });
+    // A escolha visual abre encolhida, com o produto e o tipo do item.
+    setTipoEscolhido(tipoDoItemGravado(i, catalogo.produtos));
+    setItemLivre(!i.produto_id);
+    setMedidasAbertas(false);
     setEditando({ id: i.id as string, numero });
     formulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -908,38 +992,53 @@ function OrcamentoDetailPage() {
             <CardContent className="space-y-5">
               {podeMexer ? (
                 <div ref={formulario} className="scroll-mt-48 space-y-4 rounded-lg border border-dashed p-3 sm:p-4">
-                  {/* Escolher do catálogo é o caminho principal: traz medida, preço,
-                      custo e material certos. Digitar à mão continua liberado. */}
-                  {!editando && (
-                    <div className="space-y-1">
-                      <OrcamentoProdutoPicker
-                        clienteId={(orc as any)?.cliente_id ?? null}
-                        produtosNoOrcamento={[
+                  {/* Passo 1 — o tipo e o produto, em cartões. Escolher do
+                      catálogo traz medida, preço, custo e material certos; o
+                      item fora do catálogo continua liberado. Na edição abre
+                      encolhido, com o produto do item, e "Trocar" reabre. */}
+                  <EscolhaDeProduto
+                    produtos={catalogo.produtos}
+                    carregando={catalogo.carregando}
+                    erro={catalogo.erro}
+                    onTentarDeNovo={catalogo.tentarDeNovo}
+                    verPreco={canSeePrices}
+                    produtoId={form.produto_id}
+                    itemLivre={itemLivre}
+                    tipo={tipoEscolhido}
+                    descricaoAtual={form.descricao}
+                    onEscolherProduto={aplicarProduto}
+                    onItemLivre={aplicarItemLivre}
+                    desabilitado={salvandoItem}
+                    atalhos={[
+                      {
+                        titulo: "Neste orçamento",
+                        icone: "Repeat",
+                        ids: [
                           ...new Set(
                             (itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[],
                           ),
-                        ]}
-                        onSelect={aplicarProduto}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Escolha um produto do catálogo ou preencha à mão um item fora do padrão.
-                      </p>
-                    </div>
-                  )}
+                        ],
+                      },
+                      { titulo: "Este cliente já comprou", icone: "History", ids: catalogo.doCliente },
+                      { titulo: "Mais vendidos", icone: "Star", ids: catalogo.maisUsados },
+                    ]}
+                  />
 
                   <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-12 md:col-span-6">
+                    <div className="col-span-12 md:col-span-8">
                       <Label htmlFor="item-descricao">Descrição</Label>
                       <Input
                         id="item-descricao"
-                        autoFocus={itens.length === 0 && !editando}
                         placeholder="Ex.: Adesivo vinil fosco"
                         value={form.descricao}
                         onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                       />
                     </div>
-                    <div className="col-span-6 md:col-span-3">
-                      <Label htmlFor="item-tipo">Tipo de produto</Label>
+                    <div className="col-span-12 md:col-span-4">
+                      <Label htmlFor="item-tipo" className="flex items-center gap-1">
+                        Tipo de produto
+                        <DicaIcone texto={dicaCampo("/orcamentos", "tipo_de_produto")} rotulo="Tipo de produto" className="h-5 w-5" />
+                      </Label>
                       <Input
                         id="item-tipo"
                         placeholder="Adesivo, lona, placa…"
@@ -947,18 +1046,65 @@ function OrcamentoDetailPage() {
                         onChange={(e) => setForm({ ...form, tipo_produto: e.target.value })}
                       />
                     </div>
-                    <div className="col-span-6 md:col-span-3">
-                      <Label htmlFor="item-acabamento">Acabamento</Label>
+                  </div>
+
+                  {/* Passo 2 — a medida, desenhada, para o que vende por m²
+                      (ou já tem medida). Preencher as duas liga a venda por m². */}
+                  {mostrarMedidas ? (
+                    <MedidasDaPeca
+                      largura={form.largura}
+                      altura={form.altura}
+                      quantidade={paraNumero(form.quantidade)}
+                      areaMinima={form.area_minima}
+                      tamanhos={tamanhosParaOferecer}
+                      origemDosTamanhos={tamanhos.length > 0 ? "produto" : "tipo"}
+                      onMudar={(campo, valor) => setForm({ ...form, [campo]: valor })}
+                      onAplicarTamanho={(t) =>
+                        setForm((atual) => ({ ...atual, largura: String(t.largura), altura: String(t.altura) }))
+                      }
+                      desabilitado={salvandoItem}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-xs text-primary underline-offset-2 hover:underline"
+                      onClick={() => setMedidasAbertas(true)}
+                    >
+                      Este item tem medida? Informar largura × altura
+                    </button>
+                  )}
+
+                  <div className="grid grid-cols-12 gap-2 items-start">
+                    <div className="col-span-8 md:col-span-4">
+                      <QuantidadeDoItem
+                        valor={form.quantidade}
+                        campos={camposDoItem}
+                        onMudar={(valor) => setForm({ ...form, quantidade: valor })}
+                        desabilitado={salvandoItem}
+                      />
+                    </div>
+                    <div className="col-span-4 md:col-span-2">
+                      <Label htmlFor="item-unidade">Unidade</Label>
                       <Input
-                        id="item-acabamento"
-                        placeholder="Refile, ilhós…"
-                        value={form.acabamento}
-                        onChange={(e) => setForm({ ...form, acabamento: e.target.value })}
+                        id="item-unidade"
+                        className="h-11 sm:h-9"
+                        value={form.unidade}
+                        onChange={(e) => setForm({ ...form, unidade: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-12 md:col-span-6">
+                      <AcabamentoDoItem
+                        valor={form.acabamento}
+                        opcoes={tipoDoItem?.acabamentos ?? []}
+                        onMudar={(valor) => setForm({ ...form, acabamento: valor })}
+                        desabilitado={salvandoItem}
                       />
                     </div>
                     <div className="col-span-12">
-                      <Label htmlFor="item-especificacao">
-                        Especificações para a produção <span className="text-muted-foreground">(opcional — sai no PDF embaixo da descrição)</span>
+                      <Label htmlFor="item-especificacao" className="flex flex-wrap items-center gap-1">
+                        Especificações para a produção
+                        <span className="text-muted-foreground">(opcional — sai no PDF embaixo da descrição)</span>
+                        <DicaIcone texto={dicaCampo("/orcamentos", "especificacao")} rotulo="Especificações" className="h-5 w-5" />
                       </Label>
                       <Textarea
                         id="item-especificacao"
@@ -969,101 +1115,6 @@ function OrcamentoDetailPage() {
                       />
                     </div>
                   </div>
-
-                  {/* Medidas em metros: preencher as duas liga a venda por m². */}
-                  <div className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-4 md:col-span-2">
-                      <Label htmlFor="item-qtd">Qtd</Label>
-                      <Input
-                        id="item-qtd"
-                        type="number"
-                        min="0"
-                        step="1"
-                        inputMode="decimal"
-                        value={form.quantidade}
-                        onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-4 md:col-span-2">
-                      <Label htmlFor="item-unidade">Unidade</Label>
-                      <Input
-                        id="item-unidade"
-                        value={form.unidade}
-                        onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-4 md:col-span-2">
-                      <Label htmlFor="item-largura">Largura (m)</Label>
-                      <Input
-                        id="item-largura"
-                        type="number"
-                        min="0"
-                        step="0.001"
-                        inputMode="decimal"
-                        value={form.largura}
-                        onChange={(e) => setForm({ ...form, largura: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-4 md:col-span-2">
-                      <Label htmlFor="item-altura">Altura (m)</Label>
-                      <Input
-                        id="item-altura"
-                        type="number"
-                        min="0"
-                        step="0.001"
-                        inputMode="decimal"
-                        value={form.altura}
-                        onChange={(e) => setForm({ ...form, altura: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-8 md:col-span-4">
-                      <Label>Área</Label>
-                      <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm">
-                        {vendidoPorArea ? (
-                          <span>
-                            {m2(areaUnitaria(dimensoesForm))} cada ·{" "}
-                            <strong>{m2(areaTotal(dimensoesForm))}</strong> no total
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">sem medida: vende por unidade</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tamanhos que a gráfica vende sempre iguais: um clique evita
-                      redigitar medida — e medida redigitada é onde entra erro. */}
-                  {tamanhos.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-muted-foreground">Tamanhos comuns:</span>
-                      {tamanhos.map((t) => {
-                        const ativo =
-                          paraNumero(form.largura) === Number(t.largura) &&
-                          paraNumero(form.altura) === Number(t.altura);
-                        return (
-                          <Button
-                            key={t.id}
-                            type="button"
-                            size="sm"
-                            variant={ativo ? "default" : "outline"}
-                            className="h-7 text-xs font-normal"
-                            onClick={() => aplicarTamanho(t)}
-                          >
-                            {t.nome}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Área mínima faturada: o vendedor precisa saber por que a conta
-                      deu mais que a área da peça. */}
-                  {minimoAplicado && (
-                    <p className="text-xs text-amber-500">
-                      Área mínima do produto aplicada: serão cobrados {m2(areaFaturada)} em vez de{" "}
-                      {m2(areaTotal(dimensoesForm))}.
-                    </p>
-                  )}
 
                   {/* Conferência de material e estoque, só aviso. */}
                   {form.produto_id && <RestricaoDoProduto restricao={restricao} />}
@@ -1285,6 +1336,17 @@ function OrcamentoDetailPage() {
                       outras vão juntas para a produção.
                     </p>
                   </div>
+
+                  {/* A conferência em uma frase, antes de gravar. */}
+                  <ResumoDoItem
+                    descricao={form.descricao}
+                    quantidade={quantidadeForm}
+                    unidade={form.unidade}
+                    largura={vendidoPorArea ? dimensoesForm.largura : null}
+                    altura={vendidoPorArea ? dimensoesForm.altura : null}
+                    areaMinima={form.area_minima}
+                    valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}
+                  />
 
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     {editando && (
