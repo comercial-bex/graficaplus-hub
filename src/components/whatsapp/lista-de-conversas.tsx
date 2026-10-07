@@ -220,7 +220,7 @@ export function ListaDeConversas({
                           <span className="ml-auto flex items-center gap-1">
                             {naoLidas > 0 && (
                               <span
-                                className="rounded-full bg-status-positive px-1.5 text-[10px] font-semibold leading-4 text-background"
+                                className="rounded-full bg-positive px-1.5 text-[10px] font-semibold leading-4 text-positive-foreground"
                                 aria-label={`${naoLidas} não lida(s)`}
                               >
                                 {naoLidas}
