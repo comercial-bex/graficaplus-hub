@@ -291,6 +291,10 @@ export const dicas = {
     menu: "Conversas com clientes pelo WhatsApp.",
     tela: "Caixa de entrada do WhatsApp da empresa. Responda o cliente (com respostas rápidas), ligue a conversa ao cliente e abra o orçamento já com o pedido.",
   },
+  "/whatsapp-fila-humana": {
+    menu: "Clientes esperando resposta, de quem espera há mais tempo.",
+    tela: "As conversas abertas em que o cliente escreveu e ninguém respondeu ainda — inclusive as que a assistente passou para a equipe. Âmbar passa de 15 minutos; vermelho, de 1 hora. Assuma e responda pela caixa.",
+  },
   "/whatsapp-monitor": {
     menu: "Acompanhamento das mensagens ligadas a cada trabalho.",
     tela: "Mostra as mensagens trocadas por ordem de serviço, para saber o que foi combinado com o cliente sem sair do sistema.",

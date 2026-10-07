@@ -18,19 +18,33 @@ import {
 } from "@/domain/whatsapp/caixa-de-entrada";
 import {
   useContadores,
+  useContagemPorFila,
   useConversa,
   useConversasPaginadas,
   useEquipe,
   useInstancias,
+  useMinhasFilas,
+  useNaoLidasPorMim,
   useTempoRealDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
+import { filtroDaUrl, setoresDoFiltro, type FiltroDeSetor } from "@/domain/whatsapp/filas";
 import { ListaDeConversas } from "@/components/whatsapp/lista-de-conversas";
 import { ConversaAberta } from "@/components/whatsapp/conversa-aberta";
 import { PainelDaConversa } from "@/components/whatsapp/painel-da-conversa";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type Busca = { fila?: string; conversa?: string };
+
 export const Route = createFileRoute("/_authenticated/whatsapp")({
   head: () => ({ meta: [{ title: "WhatsApp — BEX PRINT OS" }] }),
+  // `?fila=producao` abre na fila do setor; `?conversa=<id>` já com a conversa
+  // aberta (é o "Abrir" da fila humana). As duas são opcionais.
+  validateSearch: (busca: Record<string, unknown>): Busca => ({
+    fila: typeof busca.fila === "string" ? busca.fila : undefined,
+    conversa: typeof busca.conversa === "string" && UUID.test(busca.conversa) ? busca.conversa : undefined,
+  }),
   component: CaixaDeEntradaPage,
 });
 
@@ -57,13 +71,18 @@ function CaixaDeEntradaPage() {
   const meuId = user?.id ?? null;
 
   useTempoRealDaCaixa();
+  const daUrl = Route.useSearch();
   const instancias = useInstancias();
   const equipe = useEquipe();
+  const minhasFilas = useMinhasFilas();
+  const contagemPorFila = useContagemPorFila();
+  const naoLidasPorMim = useNaoLidasPorMim();
   const [busca, setBusca] = useState("");
   const [buscaAtiva, setBuscaAtiva] = useState("");
   const [fila, setFila] = useState<Fila>("todas");
+  const [setor, setSetor] = useState<FiltroDeSetor>(() => filtroDaUrl(daUrl.fila));
   const [status, setStatus] = useState<AbaStatus>("aberta");
-  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(daUrl.conversa ?? null);
   const [painelAberto, setPainelAberto] = useState(true);
 
   useEffect(() => {
@@ -71,8 +90,17 @@ function CaixaDeEntradaPage() {
     return () => clearTimeout(t);
   }, [busca]);
 
-  const conversas = useConversasPaginadas({ fila, status, busca: buscaAtiva, userId: meuId });
-  const contadores = useContadores(status, meuId);
+  // O link do menu ou da fila humana pode trocar a URL com a tela aberta.
+  useEffect(() => {
+    if (daUrl.fila) setSetor(filtroDaUrl(daUrl.fila));
+    if (daUrl.conversa) setSelecionadaId(daUrl.conversa);
+  }, [daUrl.fila, daUrl.conversa]);
+
+  // "Minhas filas" espera as filas da pessoa chegarem; se a leitura falhar,
+  // mostra todas (esconder tudo pareceria caixa vazia).
+  const setores = setoresDoFiltro(setor, minhasFilas.isError ? null : minhasFilas.data);
+  const conversas = useConversasPaginadas({ fila, status, busca: buscaAtiva, userId: meuId, setores });
+  const contadores = useContadores(status, meuId, setores);
   const lista = (conversas.data?.pages ?? []).flat();
   const daLista = lista.find((c) => c.id === selecionadaId) ?? null;
   const umaSo = useConversa(selecionadaId);
@@ -84,7 +112,10 @@ function CaixaDeEntradaPage() {
   const instanciaDaConversa = selecionada
     ? (listaInstancias.find((i) => i.id === selecionada.instancia_id) ?? null)
     : null;
+  // "Caixa vazia" só sem filtro de setor: fila vazia não é "ninguém escreveu"
+  // (a lista diz isso no lugar dela).
   const nenhumaNunca =
+    !setores &&
     !conversas.isPending &&
     (contadores.data?.aberta ?? 0) +
       (contadores.data?.pendente ?? 0) +
@@ -189,6 +220,10 @@ function CaixaDeEntradaPage() {
             onFila={setFila}
             status={status}
             onStatus={setStatus}
+            setor={setor}
+            onSetor={setSetor}
+            contagemPorFila={contagemPorFila.data}
+            naoLidasPorMim={naoLidasPorMim.data}
           />
           {selecionada ? (
             <>

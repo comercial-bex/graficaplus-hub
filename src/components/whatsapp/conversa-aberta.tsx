@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import {
   Archive,
   ArrowLeft,
+  ArrowRightLeft,
+  Bot,
   CheckCheck,
   Clock,
   Hand,
@@ -23,13 +25,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { useAuth } from "@/lib/auth-context";
@@ -62,8 +57,9 @@ import {
   enfileirarResposta,
   linkDaMidia,
   mapaDeNomes,
-  marcarComoLida,
   subirAnexo,
+  useAtendimentos,
+  useConfiguracoesWhatsapp,
   useEquipe,
   useEventosDaConversa,
   useMensagensPaginadas,
@@ -74,8 +70,17 @@ import {
 import {
   acaoNaConversa,
   enfileirarArquivo,
+  marcarLidaPorMim,
   type AcaoNaConversa,
 } from "@/lib/api/whatsapp-caixa.functions";
+import { atendidoPermitido, infoDoSetor, type MotivoResolucao } from "@/domain/whatsapp/filas";
+import {
+  DialogoResolver,
+  DialogoTransferir,
+  FaixaDoModo,
+  useAtalhosDaConversa,
+} from "@/components/whatsapp/acoes-da-conversa";
+import { semAssinatura } from "@/domain/whatsapp/assistente";
 import { RespostasRapidasMenu } from "@/components/whatsapp/respostas-rapidas-menu";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
@@ -120,11 +125,16 @@ export function ConversaAberta({
   const meuId = user?.id ?? null;
   const acao = useServerFn(acaoNaConversa);
   const enviarArquivo = useServerFn(enfileirarArquivo);
+  const marcarLida = useServerFn(marcarLidaPorMim);
   const mensagens = useMensagensPaginadas(conversa.id);
   const eventos = useEventosDaConversa(conversa.id);
   const equipe = useEquipe();
   const respostas = useRespostasRapidas();
+  const config = useConfiguracoesWhatsapp();
+  const atendimentos = useAtendimentos(conversa.id);
   useTempoRealDaConversa(conversa.id);
+  const [transferirAberto, setTransferirAberto] = useState(false);
+  const [resolverAberto, setResolverAberto] = useState(false);
 
   const [modo, setModo] = useState<"mensagem" | "nota">("mensagem");
   const [texto, setTexto] = useState("");
@@ -157,13 +167,19 @@ export function ConversaAberta({
     void qc.invalidateQueries({ queryKey: ["wa-caixa-eventos", conversa.id] });
   };
 
+  // Abrir marca como lida PARA QUEM ABRIU (cada um tem a sua leitura) — e,
+  // para quem responde, zera o contador geral, como antes. De novo quando
+  // chega mensagem com a conversa aberta.
+  const qtdMensagens = (mensagens.data?.pages ?? []).reduce((n, p) => n + p.length, 0);
   useEffect(() => {
-    if (!temPermissaoDeResponder || (conversa.nao_lidas ?? 0) === 0) return;
-    marcarComoLida(conversa.id)
-      .then(() => qc.invalidateQueries({ queryKey: CHAVES.conversas }))
-      .catch((e) => toast.error(`Não foi possível marcar como lida: ${mensagemErro(e)}`));
+    marcarLida({ data: { conversaId: conversa.id } })
+      .then(() => qc.invalidateQueries({ queryKey: CHAVES.naoLidas }))
+      .then(() => {
+        if ((conversa.nao_lidas ?? 0) > 0) void qc.invalidateQueries({ queryKey: CHAVES.conversas });
+      })
+      .catch((e: unknown) => toast.error(`Não foi possível marcar como lida: ${mensagemErro(e)}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversa.id, conversa.nao_lidas, temPermissaoDeResponder]);
+  }, [conversa.id, qtdMensagens]);
 
   const linha: ItemDaLinha[] = useMemo(() => {
     const msgs = (mensagens.data?.pages ?? []).flat();
@@ -206,14 +222,17 @@ export function ConversaAberta({
     void mensagens.fetchNextPage();
   }
 
-  async function executar(dados: AcaoNaConversa, sucesso: string) {
+  async function executar(dados: AcaoNaConversa, sucesso: string): Promise<boolean> {
     setOcupado(true);
     try {
       await acao({ data: dados });
       toast.success(sucesso);
       recarregar();
+      void qc.invalidateQueries({ queryKey: CHAVES.atendimentos(conversa.id) });
+      return true;
     } catch (e) {
       toast.error(mensagemErro(e));
+      return false;
     } finally {
       setOcupado(false);
     }
@@ -340,22 +359,25 @@ export function ConversaAberta({
           .filter((r) => `${r.titulo} ${r.categoria}`.toLowerCase().includes(atalho))
           .slice(0, 6);
 
-  const resolver = (
-    motivo: "atendido" | "sem_resposta_necessaria" | "spam" | "duplicado" | "outro",
-  ) => {
-    let nota: string | undefined;
-    if (motivo === "outro") {
-      nota = window.prompt("Descreva o motivo da resolução:")?.trim() || undefined;
-      if (!nota) return;
-    }
-    void executar(
-      { acao: "resolver", conversaId: conversa.id, motivo, nota },
-      "Atendimento resolvido",
-    );
-  };
+  const resolver = (motivo: MotivoResolucao, nota?: string) =>
+    executar({ acao: "resolver", conversaId: conversa.id, motivo, nota }, "Atendimento resolvido");
 
   const acaoStatus = (status: "aberta" | "pendente" | "arquivada", rotulo: string) =>
     void executar({ acao: "status", conversaId: conversa.id, status }, rotulo);
+
+  const aberta = conversa.status === "aberta" || conversa.status === "pendente";
+  const atendimentoAtual = (atendimentos.data ?? []).find((a) => !a.fechado_em) ?? null;
+  const podeAtendido = atendidoPermitido((mensagens.data?.pages ?? []).flat());
+  const setorAtual = conversa.fila ? infoDoSetor(conversa.fila) : null;
+
+  const assumir = () =>
+    void executar({ acao: "assumir", conversaId: conversa.id }, "Você assumiu o atendimento");
+
+  useAtalhosDaConversa(temPermissaoDeResponder, {
+    assumir: conversa.responsavel_id !== meuId ? assumir : undefined,
+    transferir: () => setTransferirAberto(true),
+    resolver: aberta ? () => setResolverAberto(true) : undefined,
+  });
 
   return (
     <Card className={cn("flex flex-col overflow-hidden", className)}>
@@ -389,6 +411,13 @@ export function ConversaAberta({
                 </Link>
               )}
               <span>· {responsavel ? `com ${responsavel}` : "sem responsável"}</span>
+              {setorAtual && (
+                <span className="inline-flex items-center gap-1" title={`Fila ${setorAtual.rotulo}`}>
+                  · <span className={cn("h-1.5 w-1.5 rounded-full", setorAtual.ponto)} aria-hidden />
+                  {setorAtual.rotulo}
+                </span>
+              )}
+              {atendimentoAtual && <span className="font-mono">· {atendimentoAtual.numero}</span>}
             </div>
           </div>
           {conversa.status !== "aberta" && (
@@ -446,40 +475,26 @@ export function ConversaAberta({
                 variant="outline"
                 className="h-7 text-xs"
                 disabled={ocupado}
-                onClick={() =>
-                  void executar(
-                    { acao: "assumir", conversaId: conversa.id },
-                    "Você assumiu o atendimento",
-                  )
-                }
+                onClick={assumir}
+                title="Assumir (tecla R)"
+                aria-keyshortcuts="R"
               >
                 <Hand className="h-3.5 w-3.5 sm:mr-1" />
                 <span className="hidden sm:inline">Assumir</span>
               </Button>
             )}
-            <Select
-              value=""
-              onValueChange={(para) =>
-                void executar(
-                  { acao: "transferir", conversaId: conversa.id, para },
-                  "Conversa transferida",
-                )
-              }
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
               disabled={ocupado}
+              onClick={() => setTransferirAberto(true)}
+              title="Transferir para uma pessoa ou outra fila (tecla T)"
+              aria-keyshortcuts="T"
             >
-              <SelectTrigger className="h-7 w-[170px] text-xs" aria-label="Transferir para">
-                <SelectValue placeholder="Transferir para…" />
-              </SelectTrigger>
-              <SelectContent>
-                {(equipe.data ?? [])
-                  .filter((p) => p.id !== conversa.responsavel_id)
-                  .map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome ?? "Sem nome"}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+              <ArrowRightLeft className="h-3.5 w-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">Transferir</span>
+            </Button>
             <span className="ml-auto" />
             {conversa.status === "aberta" && (
               <Button
@@ -494,24 +509,19 @@ export function ConversaAberta({
                 <span className="hidden sm:inline">Marcar pendente</span>
               </Button>
             )}
-            {(conversa.status === "aberta" || conversa.status === "pendente") && (
-              <Select
-                value=""
-                onValueChange={(v) => resolver(v as Parameters<typeof resolver>[0])}
+            {aberta && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
                 disabled={ocupado}
+                onClick={() => setResolverAberto(true)}
+                title="Resolver com o motivo (tecla E)"
+                aria-keyshortcuts="E"
               >
-                <SelectTrigger className="h-7 w-[130px] text-xs" aria-label="Resolver">
-                  <CheckCheck className="mr-1 h-3.5 w-3.5" />
-                  <SelectValue placeholder="Resolver…" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="atendido">Atendido</SelectItem>
-                  <SelectItem value="sem_resposta_necessaria">Sem resposta necessária</SelectItem>
-                  <SelectItem value="spam">Spam</SelectItem>
-                  <SelectItem value="duplicado">Duplicado</SelectItem>
-                  <SelectItem value="outro">Outro (com nota)</SelectItem>
-                </SelectContent>
-              </Select>
+                <CheckCheck className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Resolver</span>
+              </Button>
             )}
             {conversa.status !== "arquivada" && (
               <Button
@@ -542,6 +552,48 @@ export function ConversaAberta({
           </div>
         )}
       </div>
+
+      <FaixaDoModo
+        iaLigada={config.data?.ia_ativa === true}
+        modo={conversa.modo}
+        temResponsavel={!!conversa.responsavel_id}
+        aberta={aberta}
+        podeDevolver={temPermissaoDeResponder}
+        ocupado={ocupado}
+        onDevolver={() =>
+          void executar({ acao: "devolver_ia", conversaId: conversa.id }, "Conversa devolvida à assistente")
+        }
+      />
+
+      {temPermissaoDeResponder && (
+        <>
+          <DialogoTransferir
+            aberto={transferirAberto}
+            onAberto={setTransferirAberto}
+            equipe={equipe.data ?? []}
+            responsavelAtual={conversa.responsavel_id}
+            filaAtual={conversa.fila}
+            ocupado={ocupado}
+            onPessoa={(para) =>
+              executar({ acao: "transferir", conversaId: conversa.id, para }, "Conversa transferida")
+            }
+            onFila={(fila, motivo) =>
+              executar(
+                { acao: "transferir_fila", conversaId: conversa.id, fila, motivo },
+                `Conversa passada para a fila ${infoDoSetor(fila).rotulo}`,
+              )
+            }
+          />
+          <DialogoResolver
+            aberto={resolverAberto}
+            onAberto={setResolverAberto}
+            atendidoPermitido={podeAtendido}
+            numeroDoAtendimento={atendimentoAtual?.numero ?? null}
+            ocupado={ocupado}
+            onResolver={resolver}
+          />
+        </>
+      )}
 
       <div
         ref={rolagemRef}
@@ -620,11 +672,16 @@ export function ConversaAberta({
                   <div
                     className={cn(
                       "max-w-[80%] rounded-lg border p-2.5 text-sm text-foreground",
-                      nossa ? "border-positive/25 bg-positive/10" : "bg-card",
+                      !nossa
+                        ? "bg-card"
+                        : m.origem === "ia"
+                          ? "border-status-cyan/25 bg-status-cyan/5"
+                          : "border-positive/25 bg-positive/10",
                     )}
                   >
                     {autor && (
-                      <div className="mb-0.5 text-[10px] font-semibold text-muted-foreground">
+                      <div className="mb-0.5 flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
+                        {m.origem === "ia" && <Bot className="h-3 w-3" aria-hidden />}
                         {autor}
                       </div>
                     )}
@@ -634,7 +691,7 @@ export function ConversaAberta({
                         naoSuportada && "italic text-muted-foreground",
                       )}
                     >
-                      {conteudoDaMensagem(m)}
+                      {m.origem === "ia" ? semAssinatura(conteudoDaMensagem(m)) : conteudoDaMensagem(m)}
                     </div>
                     {temMidia &&
                       (m.storage_path && m.storage_bucket ? (

@@ -28,6 +28,11 @@ import {
   ReprocessarSemTexto,
 } from "@/components/whatsapp/ferramentas-monitor";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import {
+  ConfiguracaoDoAssistente,
+  DecisoesDoAssistente,
+  FilasDaEquipe,
+} from "@/components/whatsapp/assistente-monitor";
 import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { desfechoDoEnvio } from "@/domain/whatsapp/caixa-de-entrada";
 
@@ -258,6 +263,9 @@ function WhatsappMonitorPage() {
       <div className="flex justify-end">
         <ReprocessarSemTexto />
       </div>
+      <ConfiguracaoDoAssistente />
+      <DecisoesDoAssistente />
+      <FilasDaEquipe />
       <DiagnosticoWebhooks />
 
       <Card>

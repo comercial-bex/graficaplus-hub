@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Loader2, Search, Tag } from "lucide-react";
+import { Bot, Clock, Loader2, Search, Tag } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,7 +15,14 @@ import {
   type ConversaDaCaixa,
   type Fila,
 } from "@/domain/whatsapp/caixa-de-entrada";
-import type { PessoaDaEquipe } from "@/components/whatsapp/usar-caixa-de-entrada";
+import type { ContagemDaFila, PessoaDaEquipe } from "@/components/whatsapp/usar-caixa-de-entrada";
+import {
+  SETORES,
+  corDaEspera,
+  esperaDe,
+  infoDoSetor,
+  type FiltroDeSetor,
+} from "@/domain/whatsapp/filas";
 
 const ABAS: { valor: AbaStatus; rotulo: string }[] = [
   { valor: "aberta", rotulo: "Abertas" },
@@ -28,6 +35,10 @@ const FILAS: { valor: Fila; rotulo: string }[] = [
   { valor: "nao_atribuidas", rotulo: "Não atribuídas" },
   { valor: "todas", rotulo: "Todas" },
 ];
+
+function estaAbertaOuPendente(s: string): boolean {
+  return s === "aberta" || s === "pendente";
+}
 
 /** Cor discreta e estável por etiqueta (mesma etiqueta, mesma cor). */
 function corDaEtiqueta(e: string): string {
@@ -46,8 +57,11 @@ export type Contadores = {
   resolvida: number;
 };
 
-function vazio(fila: Fila, status: AbaStatus, busca: string): string {
+function vazio(fila: Fila, status: AbaStatus, busca: string, setor: FiltroDeSetor): string {
   if (busca.trim()) return "Nenhuma conversa com esse termo. Tente o telefone só com números.";
+  if (setor !== "todas" && setor !== "minhas_filas" && status === "aberta") {
+    return `Nenhuma conversa aberta em ${infoDoSetor(setor).rotulo}. Veja “Todas” para as outras filas.`;
+  }
   if (fila === "nao_atribuidas") return "Nenhuma conversa não atribuída — tudo em dia.";
   if (fila === "minhas") return "Nenhuma conversa com você. Assuma uma em “Não atribuídas”.";
   if (status === "pendente") return "Nenhuma conversa pendente.";
@@ -72,8 +86,17 @@ export function ListaDeConversas({
   onFila,
   status,
   onStatus,
+  setor,
+  onSetor,
+  contagemPorFila,
+  naoLidasPorMim,
   className,
 }: {
+  /** Caixa v3: o setor filtrado, a contagem de cada um e as não lidas de quem olha. */
+  setor: FiltroDeSetor;
+  onSetor: (s: FiltroDeSetor) => void;
+  contagemPorFila: ContagemDaFila[] | undefined;
+  naoLidasPorMim: Map<string, number> | undefined;
   conversas: ConversaDaCaixa[];
   carregando: boolean;
   temMais: boolean;
@@ -118,7 +141,48 @@ export function ListaDeConversas({
             aria-label="Buscar conversa"
           />
         </div>
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Fila">
+        {/* Setores: as filas da pessoa (padrão), todas, ou uma. O número é
+            de conversas abertas ou pendentes naquela fila. */}
+        <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Filas por setor">
+          {(["minhas_filas", "todas"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={setor === v}
+              onClick={() => onSetor(v)}
+              className={cn(
+                "shrink-0 rounded-md border px-2 py-0.5 text-[11px] transition-colors",
+                setor === v
+                  ? "border-foreground/30 bg-foreground/10 font-semibold text-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {v === "minhas_filas" ? "Minhas filas" : "Todas as filas"}
+            </button>
+          ))}
+          {SETORES.map((s) => {
+            const n = contagemPorFila?.find((c) => c.fila === s.valor);
+            const ativo = setor === s.valor;
+            return (
+              <button
+                key={s.valor}
+                type="button"
+                aria-pressed={ativo}
+                onClick={() => onSetor(s.valor)}
+                title={n ? `${n.abertas} aberta(s), ${n.aguardando} esperando resposta` : undefined}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors",
+                  ativo ? cn(s.cor, "font-semibold") : "border-border text-muted-foreground hover:bg-muted",
+                )}
+              >
+                <span className={cn("h-1.5 w-1.5 rounded-full", s.ponto)} aria-hidden />
+                {s.rotulo}
+                {n && n.abertas > 0 && <span className="font-mono">{n.abertas}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Responsável">
           {FILAS.map((f) => (
             <button
               key={f.valor}
@@ -167,7 +231,7 @@ export function ListaDeConversas({
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
           </div>
         ) : conversas.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted-foreground">{vazio(fila, status, busca)}</p>
+          <p className="p-6 text-center text-sm text-muted-foreground">{vazio(fila, status, busca, setor)}</p>
         ) : (
           agruparPorDia(conversas).map(({ grupo, itens }) => (
             <div key={grupo}>
@@ -176,8 +240,13 @@ export function ListaDeConversas({
               </div>
               {itens.map((c) => {
                 const nome = nomeDaConversa(c);
-                const naoLidas = c.nao_lidas ?? 0;
+                // As de quem olha, quando já carregou; senão, o contador geral.
+                const naoLidas = naoLidasPorMim ? (naoLidasPorMim.get(c.id) ?? 0) : (c.nao_lidas ?? 0);
                 const resp = c.responsavel_id ? pessoas.get(c.responsavel_id) : null;
+                const espera =
+                  c.status === "aberta" || c.status === "pendente" ? esperaDe(c.aguardando_desde) : null;
+                const setorDaConversa = c.fila ? infoDoSetor(c.fila) : null;
+                const comAssistente = c.modo === "auto" && !c.responsavel_id && estaAbertaOuPendente(c.status);
                 return (
                   <button
                     key={c.id}
@@ -198,7 +267,16 @@ export function ListaDeConversas({
                           <span className={cn("truncate text-sm", naoLidas > 0 ? "font-bold" : "font-medium")}>
                             {nome}
                           </span>
-                          <span className="shrink-0 text-[10px] text-muted-foreground">
+                          <span className="flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
+                            {espera && (
+                              <span
+                                className={cn("inline-flex items-center gap-0.5 font-semibold", corDaEspera(espera.nivel))}
+                                title={`O cliente espera resposta há ${espera.texto}`}
+                              >
+                                <Clock className="h-3 w-3" aria-hidden />
+                                {espera.texto}
+                              </span>
+                            )}
                             {horaCurta(c.ultima_mensagem_at)}
                           </span>
                         </div>
@@ -206,6 +284,20 @@ export function ListaDeConversas({
                           {resumoDaConversa(c.ultima_mensagem)}
                         </div>
                         <div className="mt-1 flex items-center gap-1.5">
+                          {setorDaConversa && setor !== c.fila && (
+                            <span
+                              className="inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground"
+                              title={`Fila ${setorDaConversa.rotulo}`}
+                            >
+                              <span className={cn("h-1.5 w-1.5 rounded-full", setorDaConversa.ponto)} aria-hidden />
+                              {setorDaConversa.rotulo}
+                            </span>
+                          )}
+                          {comAssistente && (
+                            <Bot className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="Com a assistente">
+                              <title>Com a assistente</title>
+                            </Bot>
+                          )}
                           <span className="truncate text-[10px] text-muted-foreground">
                             {c.cliente ? c.cliente.nome : telefoneLegivel(c.telefone)}
                           </span>

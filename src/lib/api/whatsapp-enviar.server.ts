@@ -401,6 +401,26 @@ export async function despacharPeloServidor(request: Request): Promise<Response>
   return rodada({ tipo: "servidor" });
 }
 
+/**
+ * O mesmo token do despachante, para outras portas do servidor (a da
+ * assistente de IA, POST /api/whatsapp/agente). Sem a variável, recusa.
+ */
+export async function tokenDoServidorConfere(request: Request): Promise<boolean> {
+  const esperado = process.env.DESPACHANTE_TOKEN ?? "";
+  const recebido = request.headers.get(CABECALHO_DO_DESPACHANTE) ?? "";
+  if (!esperado || !recebido) return false;
+  return hashesIguais(await hashDoSegredo(recebido), await hashDoSegredo(esperado));
+}
+
+/**
+ * A mesma rodada, chamada de DENTRO do servidor — sem porta HTTP e sem token.
+ * Quem usa é a assistente de IA (`whatsapp-assistente.server.ts`): a resposta
+ * dela sai na hora, em vez de esperar o job de 2 min ou uma aba aberta.
+ */
+export async function rodadaDoServidor(): Promise<Response> {
+  return rodada({ tipo: "servidor" });
+}
+
 /* ------------------------------------------------------------------ */
 /* Reserva esquecida                                                   */
 /* ------------------------------------------------------------------ */
