@@ -58,7 +58,7 @@ export const casosDeUso: EtapaFluxo[] = [
     ],
     validacoes: [
       "Item precisa de quantidade > 0 e preço unitário definido",
-      "Desconto acima do limite exige permissão desconto.approve",
+      "Desconto abaixo do preço mínimo (margem mínima do produto; 10% quando falta custo) exige desconto.approve — conferido no banco, e o orçamento só vira OS com a aprovação valendo",
       "Margem mínima checada contra produto_precificacao",
       "Cliente é opcional no orçamento, obrigatório na conversão em OS",
     ],

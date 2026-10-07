@@ -351,11 +351,14 @@ const OUTRA = "__outra__";
 export function Pagamento({
   orcamentoId,
   total,
+  previa = false,
   condicao: cru,
   podeEditar,
 }: {
   orcamentoId: string;
   total: number;
+  /** o total vem de um desconto digitado e ainda não aplicado */
+  previa?: boolean;
   condicao: Record<string, unknown> | null;
   podeEditar: boolean;
 }) {
@@ -493,6 +496,11 @@ export function Pagamento({
         {/* A conferência antes da conversão: é aqui que se vê o parcelamento
             errado, enquanto ainda dá para arrumar sem mexer no financeiro. */}
         <div className="rounded-md border bg-muted/40 p-2.5 text-xs">
+          {previa && total > 0 && (
+            <p className="mb-1 text-muted-foreground">
+              Com o desconto digitado (ainda não aplicado):
+            </p>
+          )}
           {total <= 0 ? (
             <span className="text-muted-foreground">
               Adicione itens para ver o valor de cada parcela.

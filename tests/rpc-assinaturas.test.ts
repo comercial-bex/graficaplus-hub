@@ -169,6 +169,10 @@ const ASSINATURAS: Record<string, string[]> = {
   // Postgres em 05/10/2026. Chamada pela função de servidor
   // gerarLinkPublicoOrcamento, com a sessão de quem clicou.
   orcamento_link_publico: ["p_orcamento_id"],
+  // Migração 20261006230000 (desconto no orçamento), ensaiada no Postgres em
+  // 06/10/2026. Chamadas pelo quadro Desconto (desconto-do-orcamento.tsx).
+  desconto_do_orcamento: ["p_orcamento_id", "p_modo", "p_valor"],
+  definir_desconto_do_orcamento: ["p_orcamento_id", "p_modo", "p_valor"],
   // Migração 20261005200000 (catálogos de fornecedores), conferidas no Postgres
   // em 05/10/2026. `catalogo_link_abrir` é só da rota de servidor (service_role).
   catalogo_adicionar_ao_orcamento: [

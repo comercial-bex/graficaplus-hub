@@ -186,6 +186,13 @@ function semear(): BancoFalso {
   );
   b.tabelas.itens_os_comercial = itensOs.map(({ custo_unitario, ...i }) => i);
   b.tabelas.itens_os_financeiro = itensOs;
+  // A especificação da OS mora na TABELA (jsonb {"texto": …}, gravado pela
+  // conversão a partir do item do orçamento); as views não têm a coluna.
+  b.tabelas.itens_os = itensOs.map((i) => ({
+    id: i.id,
+    os_id: OS,
+    especificacoes: i.id === "os-i1" ? { texto: "Vinil branco brilho, laminação fosca" } : {},
+  }));
   b.rpcs.identificacao_legal_os = () =>
     "Impresso por CNPJ 68.726.406/0001-90 para AGENCIA BEX MCP (37.914.628/0001-02). Tiragem: 4 exemplares. Art. 38, Lei 9.504/1997.";
   // Duas peças com a MESMA descrição: cada item precisa do seu custo.
@@ -436,6 +443,24 @@ describe("OS, fatura, recibo e 3D", () => {
     expect(p.observacoes).toContain("Lei 9.504/1997");
     expect(p.itens[0].layout_url).toContain("orcamento/orc-1059/1.png");
     expect(nenhumaLeituraCom(/valor_|custo_/)).toEqual([]);
+  });
+
+  it("OS via de produção leva a especificação que o vendedor escreveu no orçamento", async () => {
+    const p = await carregarPropsOS(OS, false);
+    expect(p.itens[0].especificacao).toBe("Vinil branco brilho, laminação fosca");
+    expect(p.itens[1].especificacao).toBeNull();
+    // lida da tabela, só id e especificação — nada de dinheiro
+    expect(b.leituras.find((l) => l.relacao === "itens_os")?.colunas).toBe("id, especificacoes");
+  });
+
+  it("sem a leitura da especificação (banco antigo), a OS sai sem ela — não cai", async () => {
+    b.falhas.add("itens_os");
+    const aviso = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const p = await carregarPropsOS(OS, false);
+    expect(p.itens).toHaveLength(2);
+    expect(p.itens[0].especificacao).toBeNull();
+    expect(aviso).toHaveBeenCalled();
+    aviso.mockRestore();
   });
 
   it("OS via do cliente: valores do nível comercial, desconto derivado dos itens", async () => {

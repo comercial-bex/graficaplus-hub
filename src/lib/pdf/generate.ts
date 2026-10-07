@@ -85,12 +85,20 @@ export const COLUNAS_DOS_ITENS_DO_ORCAMENTO =
   "id, descricao, quantidade, unidade, ordem, created_at, largura, altura, area_total, acabamento, arquivo_id, tipo_produto, especificacao";
 
 /**
- * Itens da OS. As views `itens_os_*` não têm tipo nem especificação, e na
- * tabela `itens_os` a coluna `especificacoes` está sem SELECT para a equipe: a
- * OS sai sem os dois até alguém liberar a leitura.
+ * Itens da OS. As views `itens_os_*` não têm tipo nem especificação; a
+ * especificação vem da TABELA (`ESPECIFICACAO_DOS_ITENS_DA_OS`), à parte.
  */
 export const COLUNAS_DOS_ITENS_DA_OS =
   "id, descricao, quantidade, unidade, ordem, created_at, largura, altura, area_total, acabamento, arquivo_id";
+
+/**
+ * A especificação de cada item da OS: `itens_os.especificacoes` é jsonb, e a
+ * conversão grava `{"texto": …}` com a especificação do item do orçamento
+ * (gatilho `tg_itens_os_herda_especificacao`). A coluna ganhou SELECT para a
+ * equipe na migração 20261006230000 — antes, a via de produção da OS saía sem
+ * a especificação que o vendedor escreveu.
+ */
+export const ESPECIFICACAO_DOS_ITENS_DA_OS = "id, especificacoes";
 
 /** Preço do item: só nas views comercial e financeira. */
 export const COLUNAS_DE_PRECO_DO_ITEM = "valor_unitario, valor_total";
@@ -688,7 +696,38 @@ async function lerOS(osId: string, visao: NivelDeVisao, comPreco: boolean) {
     endereco_entrega: unknown;
   } | null;
   const linhas = (exigir(rItens, "ler os itens da OS") ?? []) as LinhaDeItem[];
-  return { os, endereco_entrega: endereco?.endereco_entrega ?? null, linhas };
+  return {
+    os,
+    endereco_entrega: endereco?.endereco_entrega ?? null,
+    linhas: await comEspecificacaoDaOS(osId, linhas),
+  };
+}
+
+/**
+ * Junta a especificação de cada item (lida da tabela) às linhas da view.
+ *
+ * Reserva, como o nome do responsável: a especificação enfeita o documento,
+ * não muda nada que se cobra nem o que se produz em medida e quantidade. Se a
+ * leitura falhar — o banco sem a migração 20261006230000, por exemplo —, a OS
+ * sai sem ela e o motivo vai para o console, em vez de o PDF inteiro cair.
+ */
+async function comEspecificacaoDaOS(osId: string, linhas: LinhaDeItem[]): Promise<LinhaDeItem[]> {
+  if (linhas.length === 0) return linhas;
+  const { data, error } = await db
+    .from("itens_os")
+    .select(ESPECIFICACAO_DOS_ITENS_DA_OS)
+    .eq("os_id", osId);
+  if (error) {
+    console.warn("[pdf] a OS sai sem a especificação dos itens:", error);
+    return linhas;
+  }
+  const porItem = new Map<string, string>();
+  for (const l of (data ?? []) as { id: string; especificacoes: unknown }[]) {
+    const e = l.especificacoes;
+    const texto = e && typeof e === "object" ? (e as Record<string, unknown>).texto : null;
+    if (temTexto(texto)) porItem.set(l.id, texto.trim());
+  }
+  return linhas.map((l) => (porItem.has(l.id) ? { ...l, especificacao: porItem.get(l.id) } : l));
 }
 
 export async function carregarPropsOS(

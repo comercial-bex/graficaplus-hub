@@ -87,6 +87,10 @@ import {
   Pagamento,
   type AcordoDoOrcamento,
 } from "@/components/orcamento/acordo-do-orcamento";
+import {
+  DescontoDoOrcamento,
+  useDescontoDoOrcamento,
+} from "@/components/orcamento/desconto-do-orcamento";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { StatusChip } from "@/components/bex/StatusChip";
 import {
@@ -111,7 +115,7 @@ import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 
 import { Dica, DicaIcone } from "@/components/bex/Dica";
-import { dicaAcao, dicaTela } from "@/lib/dicas";
+import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
 
 const itemVazio = {
   descricao: "",
@@ -174,6 +178,7 @@ const ROTULO_DO_STATUS: Record<string, string> = {
 const ONDE_RESOLVER: Record<string, string> = {
   "data de entrega": "acordo-entrega",
   "condição de pagamento": "acordo-pagamento",
+  "aprovação do desconto": "acordo-desconto",
   itens: "itens-do-orcamento",
 };
 
@@ -215,6 +220,12 @@ function OrcamentoDetailPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewProducaoOpen, setPreviewProducaoOpen] = useState(false);
   const [gerandoLink, setGerandoLink] = useState(false);
+  // Total com o desconto DIGITADO e ainda não aplicado: o Pagamento mostra as
+  // parcelas com ele enquanto a pessoa negocia. Nulo = vale o total gravado.
+  const [totalPrevisto, setTotalPrevisto] = useState<number | null>(null);
+  // Desconto é preço: quem não vê preço nem pergunta (o banco recusaria).
+  const desconto = useDescontoDoOrcamento(id, canSeePrices);
+  const descontoPendente = desconto.data?.pendente === true;
 
   const { data: orc, isLoading } = useQuery({
     queryKey: ["orcamento", id, nivelDeVisao],
@@ -720,7 +731,13 @@ function OrcamentoDetailPage() {
     verPreco: canSeePrices,
     temCondicao: dadosDoAcordo ? !!dadosDoAcordo.condicao_pagamento : true,
     itens: itens as { arquivo_id: string | null }[],
+    descontoPendente,
   });
+  const subtotalGravado = Number(orc.valor_subtotal ?? 0);
+  const descontoGravado = Math.max(
+    0,
+    Math.round((subtotalGravado - Number(orc.valor_total ?? 0)) * 100) / 100,
+  );
   const semArte = (itens as any[]).filter((i) => !i.arquivo_id).length;
   const somaArea = somaAreaTotal(itens);
 
@@ -762,9 +779,19 @@ function OrcamentoDetailPage() {
               converte e por onde essa pessoa é avisada. */}
           {!fechado && (
             podeConverter ? (
-              <Button onClick={converterEmOS} className="shrink-0 h-11 md:h-10">
-                Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
+              // Desconto que passou da alçada sem aprovação: o banco recusa a
+              // conversão (converter_orcamento_em_os), então o botão já trava
+              // aqui com o motivo.
+              <Dica texto={descontoPendente ? dicaCampo("/orcamentos", "desconto_pendente") : null}>
+                <Button
+                  onClick={converterEmOS}
+                  disabled={descontoPendente}
+                  className="shrink-0 h-11 md:h-10"
+                >
+                  {descontoPendente ? <Lock className="h-4 w-4 mr-1" /> : null}
+                  Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Dica>
             ) : (
               <div className="shrink-0 max-w-xs rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                 <p className="flex items-center gap-1.5 font-medium text-foreground">
@@ -1461,7 +1488,31 @@ function OrcamentoDetailPage() {
                     <span className="text-muted-foreground">Soma área:</span> <strong>{m2(somaArea)}</strong>
                   </div>
                 )}
-                {/* Total é preço: o vendedor vê. Custo e margem seguem só para o financeiro. */}
+                {/* Total é preço: o vendedor vê. Custo e margem seguem só para o financeiro.
+                    Com desconto (ou crédito de parceiro), mostra de onde o total saiu —
+                    é a mesma conta do PDF: Total Produtos − Valor Desconto. */}
+                {canSeePrices && descontoGravado > 0 && (
+                  <>
+                    <div>
+                      <span className="text-muted-foreground">Itens:</span>{" "}
+                      <span className="tabular-nums">{brl(subtotalGravado)}</span>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className="text-muted-foreground underline-offset-2 hover:underline"
+                        onClick={() =>
+                          document
+                            .getElementById("acordo-desconto")
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }
+                      >
+                        Desconto:
+                      </button>{" "}
+                      <span className="tabular-nums">− {brl(descontoGravado)}</span>
+                    </div>
+                  </>
+                )}
                 {canSeePrices && (
                   <div>
                     <span className="text-muted-foreground">Total:</span>{" "}
@@ -1507,12 +1558,22 @@ function OrcamentoDetailPage() {
           ) : dadosDoAcordo ? (
             <>
               <EntregaEPrazos acordo={dadosDoAcordo} podeEditar={podeMexer} />
-              {/* Parcelamento é divisão de preço: quem não vê preço não vê este
-                  bloco (mostraria "1× de R$ 0,00", que é mentira). */}
+              {/* Desconto e parcelamento são preço: quem não vê preço não vê
+                  estes blocos (mostrariam "1× de R$ 0,00", que é mentira). O
+                  desconto vem antes porque é ele que muda o total das parcelas. */}
+              {canSeePrices && (
+                <DescontoDoOrcamento
+                  orcamentoId={id}
+                  podeEditar={podeMexer}
+                  verCusto={canSeeFinancials}
+                  onPrevia={setTotalPrevisto}
+                />
+              )}
               {canSeePrices && (
                 <Pagamento
                   orcamentoId={id}
-                  total={Number(orc.valor_total ?? 0)}
+                  total={totalPrevisto ?? Number(orc.valor_total ?? 0)}
+                  previa={totalPrevisto != null}
                   condicao={dadosDoAcordo.condicao_pagamento}
                   podeEditar={podeMexer}
                 />
