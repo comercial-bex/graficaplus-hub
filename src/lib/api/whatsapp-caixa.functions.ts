@@ -31,7 +31,13 @@ const acaoSchema = z.discriminatedUnion("acao", [
   z.object({
     acao: z.literal("status"),
     conversaId: z.string().uuid(),
-    status: z.enum(["aberta", "pendente", "resolvida", "arquivada"]),
+    status: z.enum(["aberta", "pendente", "arquivada"]),
+  }),
+  z.object({
+    acao: z.literal("resolver"),
+    conversaId: z.string().uuid(),
+    motivo: z.enum(["atendido", "sem_resposta_necessaria", "spam", "duplicado", "outro"]),
+    nota: z.string().max(1000).optional(),
   }),
   z.object({ acao: z.literal("nota"), conversaId: z.string().uuid(), texto: z.string().min(1).max(4000) }),
   z.object({ acao: z.literal("vincular_orcamento"), conversaId: z.string().uuid(), orcamentoId: z.string().uuid() }),
@@ -57,6 +63,9 @@ export const acaoNaConversa = createServerFn({ method: "POST" })
         break;
       case "status":
         r = await db.rpc("whatsapp_mudar_status", { p_conversa_id: data.conversaId, p_usuario: u, p_status: data.status });
+        break;
+      case "resolver":
+        r = await db.rpc("whatsapp_resolver", { p_conversa_id: data.conversaId, p_usuario: u, p_motivo: data.motivo, p_nota: data.nota ?? null });
         break;
       case "nota":
         r = await db.rpc("whatsapp_nota", { p_conversa_id: data.conversaId, p_usuario: u, p_texto: data.texto });
