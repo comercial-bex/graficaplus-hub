@@ -20,6 +20,7 @@ import { MessageCircle, Send, AlertTriangle, RefreshCw, CheckCheck } from "lucid
 import { toast } from "sonner";
 import { ConexaoZapi } from "@/components/whatsapp/conexao-zapi";
 import { DiagnosticoWebhooks } from "@/components/whatsapp/diagnostico-webhooks";
+import { AvisoNotificarEnviadas, ConectarPorQrCode, ReprocessarSemTexto } from "@/components/whatsapp/ferramentas-monitor";
 
 export const Route = createFileRoute("/_authenticated/whatsapp-monitor")({
   head: () => ({ meta: [{ title: "Monitor WhatsApp — BEX PRINT OS" }] }),
@@ -129,7 +130,12 @@ function WhatsappMonitorPage() {
         }
       />
 
+      <AvisoNotificarEnviadas />
       <ConexaoZapi />
+      <ConectarPorQrCode />
+      <div className="flex justify-end">
+        <ReprocessarSemTexto />
+      </div>
       <DiagnosticoWebhooks />
 
       <Card>
