@@ -19,9 +19,9 @@ export const LOGO_FUNDO_CLARO = "/marca/bex-print-fundo-claro.png";
 
 /**
  * LOGO PARA FUNDO ESCURO — letras brancas e o X colorido (1165 × 532). É a que
- * o dono mandou em 06/10/2026 para o menu lateral, que é sempre escuro. Só em
- * fundo escuro: em fundo branco as letras somem. Em PDF e no que o cliente vê
- * sobre fundo claro, a de cima.
+ * o dono mandou em 06/10/2026 para o menu lateral (sempre escuro) e para o
+ * painel escuro da tela de entrada. Só em fundo escuro: em fundo branco as
+ * letras somem. Em PDF e no que o cliente vê sobre fundo claro, a de cima.
  */
 export const LOGO_FUNDO_ESCURO = "/marca/bex-print-fundo-escuro.png";
 
