@@ -64,7 +64,7 @@ import {
   useTempoRealDaConversa,
   type InstanciaDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
-import { acaoNaConversa, enfileirarArquivo } from "@/lib/api/whatsapp-caixa.functions";
+import { acaoNaConversa, enfileirarArquivo, type AcaoNaConversa } from "@/lib/api/whatsapp-caixa.functions";
 import { RespostasRapidasMenu } from "@/components/whatsapp/respostas-rapidas-menu";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
@@ -189,7 +189,7 @@ export function ConversaAberta({
     void mensagens.fetchNextPage();
   }
 
-  async function executar(dados: z.input<typeof acaoSchemaTipo>, sucesso: string) {
+  async function executar(dados: AcaoNaConversa, sucesso: string) {
     setOcupado(true);
     try {
       await acao({ data: dados });

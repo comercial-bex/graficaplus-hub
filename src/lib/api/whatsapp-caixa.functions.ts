@@ -38,6 +38,8 @@ const acaoSchema = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("vincular_os"), conversaId: z.string().uuid(), osId: z.string().uuid() }),
 ]);
 
+export type AcaoNaConversa = z.infer<typeof acaoSchema>;
+
 export const acaoNaConversa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => acaoSchema.parse(d))
