@@ -13115,6 +13115,7 @@ export type Database = {
           cargo_pretendido: string | null
           created_at: string
           email: string
+          filas: Database["public"]["Enums"]["whatsapp_fila"][]
           horas_semanais: number
           id: string
           nome: string
@@ -13127,6 +13128,7 @@ export type Database = {
           cargo_pretendido?: string | null
           created_at?: string
           email: string
+          filas?: Database["public"]["Enums"]["whatsapp_fila"][]
           horas_semanais?: number
           id: string
           nome: string
@@ -13139,6 +13141,7 @@ export type Database = {
           cargo_pretendido?: string | null
           created_at?: string
           email?: string
+          filas?: Database["public"]["Enums"]["whatsapp_fila"][]
           horas_semanais?: number
           id?: string
           nome?: string
@@ -13184,6 +13187,149 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_atendimento_seq: {
+        Row: {
+          mes: string
+          ultimo: number
+        }
+        Insert: {
+          mes: string
+          ultimo: number
+        }
+        Update: {
+          mes?: string
+          ultimo?: number
+        }
+        Relationships: []
+      }
+      whatsapp_atendimentos: {
+        Row: {
+          aberto_em: string
+          aberto_por: string | null
+          conversa_id: string
+          fechado_em: string | null
+          fechado_por: string | null
+          fila: Database["public"]["Enums"]["whatsapp_fila"]
+          id: string
+          motivo_resolucao:
+            | Database["public"]["Enums"]["whatsapp_motivo_resolucao"]
+            | null
+          nota_resolucao: string | null
+          numero: string
+          origem_abertura: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          primeira_resposta_em: string | null
+          reaberto_de: string | null
+          responsavel_id: string | null
+        }
+        Insert: {
+          aberto_em?: string
+          aberto_por?: string | null
+          conversa_id: string
+          fechado_em?: string | null
+          fechado_por?: string | null
+          fila?: Database["public"]["Enums"]["whatsapp_fila"]
+          id?: string
+          motivo_resolucao?:
+            | Database["public"]["Enums"]["whatsapp_motivo_resolucao"]
+            | null
+          nota_resolucao?: string | null
+          numero: string
+          origem_abertura?: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          primeira_resposta_em?: string | null
+          reaberto_de?: string | null
+          responsavel_id?: string | null
+        }
+        Update: {
+          aberto_em?: string
+          aberto_por?: string | null
+          conversa_id?: string
+          fechado_em?: string | null
+          fechado_por?: string | null
+          fila?: Database["public"]["Enums"]["whatsapp_fila"]
+          id?: string
+          motivo_resolucao?:
+            | Database["public"]["Enums"]["whatsapp_motivo_resolucao"]
+            | null
+          nota_resolucao?: string | null
+          numero?: string
+          origem_abertura?: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          primeira_resposta_em?: string | null
+          reaberto_de?: string | null
+          responsavel_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_atendimentos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_atendimentos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_atendimentos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_atendimentos_reaberto_de_fkey"
+            columns: ["reaberto_de"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_atendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_configuracoes: {
+        Row: {
+          assinatura: string
+          dias_semana: number[]
+          endereco: string | null
+          horario_fim: string
+          horario_inicio: string
+          horario_texto: string | null
+          ia_ativa: boolean
+          id: boolean
+          mensagem_fora_horario: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assinatura?: string
+          dias_semana?: number[]
+          endereco?: string | null
+          horario_fim?: string
+          horario_inicio?: string
+          horario_texto?: string | null
+          ia_ativa?: boolean
+          id?: boolean
+          mensagem_fora_horario?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assinatura?: string
+          dias_semana?: number[]
+          endereco?: string | null
+          horario_fim?: string
+          horario_inicio?: string
+          horario_texto?: string | null
+          ia_ativa?: boolean
+          id?: boolean
+          mensagem_fora_horario?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       whatsapp_contatos: {
         Row: {
@@ -13292,16 +13438,60 @@ export type Database = {
           },
         ]
       }
+      whatsapp_conversa_leituras: {
+        Row: {
+          conversa_id: string
+          lido_em: string
+          user_id: string
+        }
+        Insert: {
+          conversa_id: string
+          lido_em?: string
+          user_id: string
+        }
+        Update: {
+          conversa_id?: string
+          lido_em?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversa_leituras_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversa_leituras_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversa_leituras_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_conversas: {
         Row: {
+          aguardando_desde: string | null
+          atendimento_ativo_id: string | null
           atribuido_para: string | null
           cliente_id: string | null
           created_at: string
           etiquetas: string[]
+          fila: Database["public"]["Enums"]["whatsapp_fila"]
           id: string
           instancia_id: string
           lead_id: string | null
           metadados: Json
+          modo: Database["public"]["Enums"]["whatsapp_modo"]
           nao_lidas: number
           nome_contato: string | null
           os_id: string | null
@@ -13315,14 +13505,18 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aguardando_desde?: string | null
+          atendimento_ativo_id?: string | null
           atribuido_para?: string | null
           cliente_id?: string | null
           created_at?: string
           etiquetas?: string[]
+          fila?: Database["public"]["Enums"]["whatsapp_fila"]
           id?: string
           instancia_id: string
           lead_id?: string | null
           metadados?: Json
+          modo?: Database["public"]["Enums"]["whatsapp_modo"]
           nao_lidas?: number
           nome_contato?: string | null
           os_id?: string | null
@@ -13336,14 +13530,18 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aguardando_desde?: string | null
+          atendimento_ativo_id?: string | null
           atribuido_para?: string | null
           cliente_id?: string | null
           created_at?: string
           etiquetas?: string[]
+          fila?: Database["public"]["Enums"]["whatsapp_fila"]
           id?: string
           instancia_id?: string
           lead_id?: string | null
           metadados?: Json
+          modo?: Database["public"]["Enums"]["whatsapp_modo"]
           nao_lidas?: number
           nome_contato?: string | null
           os_id?: string | null
@@ -13357,6 +13555,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversas_atendimento_ativo_id_fkey"
+            columns: ["atendimento_ativo_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_atendimentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "whatsapp_conversas_atribuido_para_fkey"
             columns: ["atribuido_para"]
@@ -13542,6 +13747,80 @@ export type Database = {
           },
         ]
       }
+      whatsapp_ia_logs: {
+        Row: {
+          conversa_id: string | null
+          created_at: string
+          duracao_ms: number | null
+          entrada: string | null
+          erro: string | null
+          etapa: string
+          id: string
+          mensagem_id: string | null
+          modelo: string | null
+          saida: Json | null
+          tokens_entrada: number | null
+          tokens_saida: number | null
+        }
+        Insert: {
+          conversa_id?: string | null
+          created_at?: string
+          duracao_ms?: number | null
+          entrada?: string | null
+          erro?: string | null
+          etapa: string
+          id?: string
+          mensagem_id?: string | null
+          modelo?: string | null
+          saida?: Json | null
+          tokens_entrada?: number | null
+          tokens_saida?: number | null
+        }
+        Update: {
+          conversa_id?: string | null
+          created_at?: string
+          duracao_ms?: number | null
+          entrada?: string | null
+          erro?: string | null
+          etapa?: string
+          id?: string
+          mensagem_id?: string | null
+          modelo?: string | null
+          saida?: Json | null
+          tokens_entrada?: number | null
+          tokens_saida?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_ia_logs_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_ia_logs_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_ia_logs_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_ia_logs_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_instancias: {
         Row: {
           ativa: boolean
@@ -13668,6 +13947,7 @@ export type Database = {
       whatsapp_mensagens: {
         Row: {
           arquivo_id: string | null
+          atendimento_id: string | null
           cliente_id: string | null
           conversa_id: string
           created_at: string
@@ -13695,6 +13975,7 @@ export type Database = {
         }
         Insert: {
           arquivo_id?: string | null
+          atendimento_id?: string | null
           cliente_id?: string | null
           conversa_id: string
           created_at?: string
@@ -13722,6 +14003,7 @@ export type Database = {
         }
         Update: {
           arquivo_id?: string | null
+          atendimento_id?: string | null
           cliente_id?: string | null
           conversa_id?: string
           created_at?: string
@@ -13753,6 +14035,13 @@ export type Database = {
             columns: ["arquivo_id"]
             isOneToOne: false
             referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_atendimentos"
             referencedColumns: ["id"]
           },
           {
@@ -17189,6 +17478,14 @@ export type Database = {
     }
     Functions: {
       _apply_pending_migration: { Args: { p_sql: string }; Returns: undefined }
+      _wa_abrir_atendimento: {
+        Args: {
+          p_conversa_id: string
+          p_origem: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          p_usuario: string
+        }
+        Returns: string
+      }
       _wa_exigir_resposta: { Args: { p_usuario: string }; Returns: undefined }
       abrir_aprovacao: { Args: { p_token: string }; Returns: Json }
       agendar_os_interno: {
@@ -18703,22 +19000,68 @@ export type Database = {
         }
         Returns: string
       }
+      whatsapp_contagem_por_fila: {
+        Args: never
+        Returns: {
+          abertas: number
+          aguardando: number
+          fila: Database["public"]["Enums"]["whatsapp_fila"]
+        }[]
+      }
+      whatsapp_definir_filas_usuario: {
+        Args: { p_admin: string; p_filas: string[]; p_usuario_alvo: string }
+        Returns: Json
+      }
+      whatsapp_devolver_ia: {
+        Args: { p_conversa_id: string; p_usuario: string }
+        Returns: Json
+      }
       whatsapp_equipe: {
         Args: never
         Returns: {
           avatar_url: string
+          filas: Database["public"]["Enums"]["whatsapp_fila"][]
           id: string
           nome: string
         }[]
+      }
+      whatsapp_ia_classificar: {
+        Args: { p_conversa_id: string; p_fila: string; p_intencao: string }
+        Returns: Json
+      }
+      whatsapp_ia_enviar: {
+        Args: { p_conversa_id: string; p_payload: Json; p_texto: string }
+        Returns: Json
+      }
+      whatsapp_ia_transferir: {
+        Args: { p_conversa_id: string; p_motivo: string }
+        Returns: Json
+      }
+      whatsapp_marcar_lida: {
+        Args: { p_conversa_id: string; p_usuario: string }
+        Returns: Json
+      }
+      whatsapp_minhas_filas: {
+        Args: never
+        Returns: Database["public"]["Enums"]["whatsapp_fila"][]
       }
       whatsapp_mudar_status: {
         Args: { p_conversa_id: string; p_status: string; p_usuario: string }
         Returns: Json
       }
+      whatsapp_nao_lidas: {
+        Args: never
+        Returns: {
+          conversa_id: string
+          fila: Database["public"]["Enums"]["whatsapp_fila"]
+          nao_lidas: number
+        }[]
+      }
       whatsapp_nota: {
         Args: { p_conversa_id: string; p_texto: string; p_usuario: string }
         Returns: Json
       }
+      whatsapp_proximo_numero_atendimento: { Args: never; Returns: string }
       whatsapp_registrar_mensagem: {
         Args: {
           p_direcao: Database["public"]["Enums"]["whatsapp_mensagem_direcao"]
@@ -18745,6 +19088,15 @@ export type Database = {
         Returns: Json
       }
       whatsapp_reprocessar_sistema: { Args: never; Returns: number }
+      whatsapp_resolver: {
+        Args: {
+          p_conversa_id: string
+          p_motivo: string
+          p_nota?: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
       whatsapp_responder: {
         Args: { p_conversa_id: string; p_texto: string }
         Returns: Json
@@ -18760,8 +19112,21 @@ export type Database = {
         }
         Returns: Json
       }
+      whatsapp_salvar_configuracoes: {
+        Args: { p_config: Json; p_usuario: string }
+        Returns: Json
+      }
       whatsapp_transferir: {
         Args: { p_conversa_id: string; p_para: string; p_usuario: string }
+        Returns: Json
+      }
+      whatsapp_transferir_fila: {
+        Args: {
+          p_conversa_id: string
+          p_fila: string
+          p_motivo: string
+          p_usuario: string
+        }
         Returns: Json
       }
       whatsapp_vincular_cliente: {
@@ -18906,6 +19271,7 @@ export type Database = {
         | "pendente"
         | "resolvida"
         | "arquivada"
+      whatsapp_fila: "comercial" | "producao" | "financeiro" | "administrativo"
       whatsapp_instancia_status:
         | "desconectada"
         | "conectando"
@@ -18937,6 +19303,14 @@ export type Database = {
         | "localizacao"
         | "contato"
         | "sistema"
+      whatsapp_modo: "auto" | "humano"
+      whatsapp_motivo_resolucao:
+        | "atendido"
+        | "sem_resposta_necessaria"
+        | "spam"
+        | "duplicado"
+        | "outro"
+      whatsapp_origem_abertura: "mensagem_recebida" | "manual" | "reaberto"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -19202,6 +19576,7 @@ export const Constants = {
         "resolvida",
         "arquivada",
       ],
+      whatsapp_fila: ["comercial", "producao", "financeiro", "administrativo"],
       whatsapp_instancia_status: [
         "desconectada",
         "conectando",
@@ -19237,6 +19612,15 @@ export const Constants = {
         "contato",
         "sistema",
       ],
+      whatsapp_modo: ["auto", "humano"],
+      whatsapp_motivo_resolucao: [
+        "atendido",
+        "sem_resposta_necessaria",
+        "spam",
+        "duplicado",
+        "outro",
+      ],
+      whatsapp_origem_abertura: ["mensagem_recebida", "manual", "reaberto"],
     },
   },
 } as const
