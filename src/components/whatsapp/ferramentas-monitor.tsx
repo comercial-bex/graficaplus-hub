@@ -122,7 +122,7 @@ export function ConectarPorQrCode() {
 
 /** Corrige mensagens antigas que ficaram sem texto ("[sistema]"). Só administrador. */
 export function ReprocessarSemTexto() {
-  const { roles } = useAuth() as unknown as { roles?: string[] };
+  const { roles } = useAuth();
   const reprocessar = useServerFn(reprocessarMensagensSemTexto);
   const qc = useQueryClient();
   const [rodando, setRodando] = useState(false);
