@@ -7,10 +7,12 @@ import { dicaTela } from "@/lib/dicas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Check, Minus } from "lucide-react";
-import { permissions, rolePermissions, type Permission } from "@/lib/permissions";
+import { permissions, type Permission } from "@/lib/permissions";
 import { motivoParaNaoMudarPermissao } from "@/lib/criar-usuario";
 import { toast } from "sonner";
-import type { AppRole } from "@/lib/auth-context";
+import { useAuth, type AppRole } from "@/lib/auth-context";
+import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import { lerMatrizDosPapeis } from "@/lib/api/permissoes-por-pessoa";
 
 export const Route = createFileRoute("/_authenticated/matriz-permissoes")({
   head: () => ({
@@ -73,28 +75,33 @@ function MatrizPermissoesPage() {
   const [busca, setBusca] = useState("");
   const [salvando, setSalvando] = useState<string | null>(null);
   const qc = useQueryClient();
+  // Só o administrador grava a matriz: é o que as policies de perfil_permissoes
+  // exigem desde 06/10/2026 (has_role admin; permissoes.manage deixou de bastar).
+  // Quem mais abrir a tela confere, mas não clica.
+  const { hasRole } = useAuth();
+  const podeEditar = hasRole("admin");
 
-  const { data: dbMatrix, isLoading } = useQuery({
+  const {
+    data: dbMatrix,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["role-permission-matrix"],
+    // Falha é falha: antes caía em silêncio no retrato do código e a grade
+    // mostrava (e deixava clicar em cima de) um estado que não é o do banco.
+    // A leitura é em páginas: as contagens por perfil não podem passar pelo
+    // corte de 1.000 linhas do PostgREST.
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("role_permission_matrix" as never)
-        .select("role, permission");
-      if (error || !data) return null;
-      const matrix: Record<string, Set<string>> = {};
-      for (const row of data as unknown as { role: string; permission: string }[]) {
-        (matrix[row.role] ??= new Set()).add(row.permission);
-      }
-      return matrix;
+      const matriz = await lerMatrizDosPapeis();
+      return Object.fromEntries(
+        Object.entries(matriz).map(([papel, chaves]) => [papel, new Set(chaves)]),
+      ) as Record<string, Set<string>>;
     },
   });
 
-  const fonte = dbMatrix && Object.keys(dbMatrix).length > 0 ? "banco" : "catálogo local";
-
-  const can = (role: AppRole, permission: Permission) => {
-    if (dbMatrix && Object.keys(dbMatrix).length > 0) return dbMatrix[role]?.has(permission) ?? false;
-    return (rolePermissions[role] as readonly Permission[]).includes(permission);
-  };
+  const can = (role: AppRole, permission: Permission) => dbMatrix?.[role]?.has(permission) ?? false;
 
   const grupos = useMemo(() => {
     const filtro = busca.trim().toLowerCase();
@@ -121,6 +128,7 @@ function MatrizPermissoesPage() {
    * no próximo carregamento, sem publicar nada.
    */
   async function alternar(role: AppRole, permission: Permission) {
+    if (!podeEditar) return toast.error("Só o administrador muda permissões.");
     const impedimento = motivoParaNaoMudarPermissao(role);
     if (impedimento) return toast.error(impedimento);
 
@@ -159,7 +167,11 @@ function MatrizPermissoesPage() {
         ajuda={dicaTela("/matriz-permissoes")}
         breadcrumb="Administração"
         title="Matriz de permissões por perfil"
-        description={`Clique para conceder ou remover. Cada linha é uma ação, cada coluna é um perfil. Fonte de verdade: ${fonte}.`}
+        description={
+          podeEditar
+            ? "Clique para conceder ou remover. Cada linha é uma ação, cada coluna é um perfil; vale para todo mundo daquele perfil. Para uma pessoa só, use Permissões na lista da equipe."
+            : "Cada linha é uma ação, cada coluna é um perfil. Só o administrador muda permissões: aqui você só confere."
+        }
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -172,7 +184,16 @@ function MatrizPermissoesPage() {
         {isLoading && <span className="text-sm text-muted-foreground">Carregando matriz...</span>}
       </div>
 
-      <Card>
+      {isError && (
+        <FalhaDeConsulta
+          titulo="Não deu para ler a matriz de permissões do banco"
+          erro={error}
+          onTentarDeNovo={() => refetch()}
+        />
+      )}
+
+      {/* Sem matriz do banco, sem grade: um quadradinho "desligado" ali seria mentira. */}
+      <Card className={isError || isLoading ? "hidden" : undefined}>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-card">
@@ -207,7 +228,7 @@ function MatrizPermissoesPage() {
                       <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{p}</td>
                       {ROLES.map((r) => {
                         const marcado = can(r, p);
-                        const fixo = r === "admin";
+                        const fixo = r === "admin" || !podeEditar;
                         return (
                           <td key={r} className="px-2 py-2 text-center">
                             <button
@@ -215,7 +236,9 @@ function MatrizPermissoesPage() {
                               disabled={fixo || salvando === `${r}:${p}`}
                               onClick={() => alternar(r, p)}
                               title={
-                                fixo
+                                !podeEditar
+                                  ? "Só o administrador muda permissões"
+                                  : r === "admin"
                                   ? "O perfil admin mantém todas as permissões"
                                   : marcado
                                     ? `Remover ${p} de ${r}`

@@ -462,15 +462,29 @@ export const dicas = {
       perfil:
         "Define o acesso: administrador vê tudo; vendedor vê comercial; operador vê produção.",
       email: "É o login da pessoa. A senha inicial é enviada para esse endereço.",
+      // Painel "Permissões" de cada pessoa (exceções por pessoa, 06/10/2026).
+      motivo:
+        "Por que esta pessoa fica diferente do papel dela. Vai para o histórico com o seu nome e a data — é o que explica a exceção daqui a seis meses.",
+      vale_ate:
+        "Vencer: no fim do dia escolhido (horário de Belém) a exceção para de valer sozinha e a pessoa volta ao que o papel dá. Em branco, vale até alguém desfazer.",
+      ainda_nao_faz_nada:
+        "Nenhuma regra do banco, nenhuma tela e nenhum botão confere esta permissão hoje. Dar ou tirar não muda nada até ela ser ligada a alguma coisa.",
+      so_o_papel:
+        "Dar e tirar valem em tudo o que o sistema confere por permissão: menu, botões e as regras do banco. Algumas regras ainda olham só o papel da pessoa — cadastrar e apagar cliente, por exemplo — e nelas a exceção não muda nada.",
+      do_papel: "Vale porque um papel da pessoa dá. Muda para todo mundo do mesmo papel na Matriz de permissões.",
     },
     acoes: {
       novo: "Cria o acesso de uma nova pessoa e gera a senha inicial.",
       excluir: "Remove o acesso. Você não pode excluir a si mesmo.",
+      permissoes: "Ver o que esta pessoa pode fazer, de onde vem cada permissão, e dar ou tirar uma só dela.",
+      dar: "Dar: a pessoa passa a ter esta permissão mesmo que o papel dela não tenha. Vale só para ela; os colegas do mesmo papel não mudam.",
+      tirar: "Tirar: a pessoa perde esta permissão mesmo que o papel dela tenha. Vale só para ela; os colegas do mesmo papel continuam com ela.",
+      desfazer: "Desfazer: apaga a exceção e a pessoa volta a ter só o que o papel dá.",
     },
   },
   "/matriz-permissoes": {
     menu: "O que cada perfil pode ver e fazer.",
-    tela: "Tabela de permissões por perfil. Use para conferir o que um vendedor, um operador ou o financeiro consegue acessar.",
+    tela: "Tabela de permissões por perfil: ligar uma permissão aqui vale para todo mundo daquele papel, e só o administrador muda. Para uma pessoa só, use Permissões na lista da equipe.",
   },
   "/casos-de-uso": {
     menu: "Passo a passo das rotinas do dia a dia.",
