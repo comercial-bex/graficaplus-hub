@@ -56,7 +56,7 @@ function CatalogosPage() {
     <div>
       <SectionHeader
         ajuda={dicaAcao("/catalogos", "gerenciar")}
-        breadcrumb="Print OS · Comercial · Loja de brindes"
+        breadcrumb="Print OS · Comercial · Catálogo de brindes"
         title="Gerenciar catálogos"
         description="Fornecedores e catálogos: planilha, fotos, regra de venda e links para clientes. Preço de venda para quem vende, custo para quem vê o financeiro."
         actions={

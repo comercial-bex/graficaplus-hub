@@ -392,7 +392,7 @@ describe("contagens no menu", () => {
 });
 
 describe("a barra de abas do hub, desenhada", () => {
-  it("o admin em Enviados vê as cinco telas do WhatsApp, com Enviados marcada", () => {
+  it("o admin no Monitor vê as cinco telas do WhatsApp, com Monitor marcada", () => {
     estado.permissoes = new Set(banco.admin);
     estado.pathname = "/whatsapp-monitor";
     const html = renderToStaticMarkup(createElement(AbasDaTela));
@@ -403,7 +403,7 @@ describe("a barra de abas do hub, desenhada", () => {
       "/respostas-rapidas",
       "/automacoes",
     ]);
-    expect(/<a[^>]*aria-current="page"[^>]*>([^<]*)</.exec(html)?.[1]).toBe("Enviados");
+    expect(/<a[^>]*aria-current="page"[^>]*>([^<]*)</.exec(html)?.[1]).toBe("Monitor");
   });
 
   it("o Sergio em Ordens de serviço não vê barra nenhuma (não é hub)", () => {

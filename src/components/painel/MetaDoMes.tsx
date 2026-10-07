@@ -281,9 +281,13 @@ export function MetaDoMes({ className }: { className?: string }) {
                 )}
                 <span>
                   <strong>{atrasado ? "Atrás do ritmo do mês" : "No ritmo"}.</strong>{" "}
+                  {/* `dias_corridos` conta os dias JÁ FECHADOS (no dia 7 vale 6).
+                      "Dia 6 de 31" no dia 7 parecia erro de data. */}
                   <span className="text-muted-foreground">
-                    Dia {diasCorridos} de {diasNoMes}: o esperado até hoje era {pct(esperado)} da
-                    meta.
+                    {diasCorridos === 1
+                      ? `1 de ${diasNoMes} dias do mês já fechou`
+                      : `${diasCorridos} de ${diasNoMes} dias do mês já fecharam`}
+                    : até ontem, o esperado era {pct(esperado)} da meta.
                   </span>
                 </span>
               </div>

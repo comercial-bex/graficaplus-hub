@@ -53,7 +53,7 @@ export function CartaoDaLoja({
       <button
         type="button"
         onClick={onAbrir}
-        className="relative aspect-square w-full overflow-hidden bg-white text-left"
+        className="relative aspect-[4/3] w-full overflow-hidden bg-white text-left"
         aria-label={`Abrir ${item.nome}`}
       >
         {url && !fotoFalhou ? (

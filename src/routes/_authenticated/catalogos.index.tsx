@@ -17,7 +17,7 @@ import { useCarrinho } from "@/components/catalogo/loja/use-carrinho";
 import { GerarOrcamentoDialog } from "@/components/catalogo/gerar-orcamento-dialog";
 
 export const Route = createFileRoute("/_authenticated/catalogos/")({
-  head: () => ({ meta: [{ title: "Loja de brindes — BEX PRINT OS" }] }),
+  head: () => ({ meta: [{ title: "Catálogo de brindes — BEX PRINT OS" }] }),
   component: LojaDaEquipePage,
 });
 
@@ -55,7 +55,7 @@ function LojaDaEquipePage() {
       <SectionHeader
         ajuda={dicaTela("/catalogos")}
         breadcrumb="Print OS · Comercial"
-        title="Loja de brindes"
+        title="Catálogo de brindes"
         description="O catálogo para mostrar ao cliente: foto, código Bex Print e preço de venda. Escolha a quantidade, monte o carrinho e gere o orçamento."
         actions={
           <>

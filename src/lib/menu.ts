@@ -55,7 +55,7 @@ import { getRoutePermissions, type Permission } from "@/lib/permissions";
  * Administração —, cada uma com subgrupos e itens.
  *
  * Um item pode ser um HUB: telas parentes atrás de uma entrada só (WhatsApp,
- * Enviados, Respostas rápidas, Automações). O hub aparece se a pessoa abre
+ * Fila humana, Monitor, Respostas rápidas, Automações). O hub aparece se a pessoa abre
  * QUALQUER uma das telas dele e leva à primeira que ela abre; dentro delas, a
  * barra de abas (`abasDaTela`) mostra as irmãs.
  *
@@ -141,7 +141,7 @@ export const AREAS: AreaDoMenu[] = [
             MessageCircle,
             [
               aba("Fila humana", "/whatsapp-fila-humana"),
-              aba("Enviados", "/whatsapp-monitor", "Monitor do WhatsApp"),
+              aba("Monitor", "/whatsapp-monitor", "Enviados"),
               aba("Respostas rápidas", "/respostas-rapidas"),
               aba("Automações", "/automacoes"),
             ],
@@ -160,7 +160,9 @@ export const AREAS: AreaDoMenu[] = [
           }),
           // Acrescentado pelo dono depois da proposta (06/10/2026): o catálogo
           // da LUGA é de onde sai o item de brinde que entra no orçamento.
-          item("Catálogos de fornecedores", "/catalogos", BookOpen, [], { antes: "Catálogos" }),
+          item("Catálogo de brindes", "/catalogos", BookOpen, [], {
+            antes: "Catálogos de fornecedores",
+          }),
         ],
       },
       {

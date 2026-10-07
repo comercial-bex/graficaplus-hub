@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ChevronLeft, ImageOff, Search, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,19 @@ export function Loja({
   const [limite, setLimite] = useState(PASSO);
 
   useEffect(() => setLimite(PASSO), [busca, categoria]);
+
+  // Trocar de categoria troca a tela inteira, mas a rolagem ficava onde
+  // estava: quem tocava em "Canetas" lá embaixo caía no meio da lista
+  // (visto em 07/10/2026). Sobe até o começo do que acabou de abrir.
+  const topo = useRef<HTMLElement | null>(null);
+  const primeiraVez = useRef(true);
+  useEffect(() => {
+    if (primeiraVez.current) {
+      primeiraVez.current = false;
+      return;
+    }
+    topo.current?.scrollIntoView({ block: "start" });
+  }, [categoria]);
 
   const azulejos = useMemo(() => azulejosDeCategorias(itens), [itens]);
   const visiveis = useMemo(
@@ -132,7 +145,7 @@ export function Loja({
           A loja está sem produtos com foto agora.
         </p>
       ) : naEntrada ? (
-        <section className="space-y-3">
+        <section ref={topo} className="scroll-mt-40 space-y-3">
           <h2 className="text-base font-semibold">O que você procura?</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {azulejos.map((a) => (
@@ -141,7 +154,7 @@ export function Loja({
           </div>
         </section>
       ) : (
-        <section className="space-y-3">
+        <section ref={topo} className="scroll-mt-40 space-y-3">
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -167,7 +180,7 @@ export function Loja({
             </p>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {visiveis.slice(0, limite).map((item) => (
                   <CartaoDaLoja
                     key={item.codigo}
