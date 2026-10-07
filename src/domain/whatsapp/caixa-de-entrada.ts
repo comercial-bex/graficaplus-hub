@@ -1,6 +1,7 @@
 import { chaveWhatsApp, formatarTelefone } from "@/domain/documentos";
 import { situacaoDaConexao, type InstanciaResumo } from "@/domain/whatsapp/situacao-conexao";
 import type { StatusMensagem } from "@/domain/whatsapp/status-das-filas";
+import { rotuloDoMotivo, rotuloDoSetor } from "@/domain/whatsapp/filas";
 
 /**
  * A caixa de entrada do WhatsApp (/whatsapp), em regras puras.
@@ -38,6 +39,11 @@ export type ConversaDaCaixa = {
   created_at: string;
   cliente?: { id: string; nome: string } | null;
   lead?: { id: string; nome: string | null; status: string | null } | null;
+  /** Caixa v3: setor, quem está no comando, desde quando o cliente espera. */
+  fila?: string | null;
+  modo?: "auto" | "humano" | string | null;
+  aguardando_desde?: string | null;
+  atendimento_ativo_id?: string | null;
 };
 
 export type MensagemDaCaixa = {
@@ -540,14 +546,26 @@ export function autorDoBalao(
   if (m.direcao !== "saida") return null;
   if (m.enviada_por) return nomes.get(m.enviada_por) ?? "Equipe";
   if (m.origem === "automacao") return "Automático";
-  if (m.origem === "ia") return "Assistente (IA)";
+  if (m.origem === "ia") return ASSINATURA_DA_IA;
   return "Celular";
 }
+
+/** Nome da assistente no balão (a assinatura configurável vai no texto). */
+export const ASSINATURA_DA_IA = "Bex Print · assistente";
 
 export type EventoDaConversa = {
   id: string;
   conversa_id: string;
-  tipo: "assumida" | "transferida" | "status" | "vinculo" | "nota";
+  tipo:
+    | "assumida"
+    | "transferida"
+    | "status"
+    | "vinculo"
+    | "nota"
+    | "fila"
+    | "transferida_ia"
+    | "devolvida_ia"
+    | "atendimento";
   de_usuario: string | null;
   para_usuario: string | null;
   detalhe: Record<string, unknown> | null;
@@ -571,14 +589,33 @@ export function fraseDoEvento(e: EventoDaConversa, nomes: Map<string, string>): 
       return `${quem} assumiu o atendimento`;
     case "transferida":
       return `${quem} transferiu para ${para}`;
-    case "status":
-      return `${quem} marcou como ${ROTULO_STATUS[String(d.para)] ?? String(d.para)}`;
+    case "status": {
+      const para = ROTULO_STATUS[String(d.para)] ?? String(d.para);
+      const motivo = d.motivo ? ` — ${rotuloDoMotivo(String(d.motivo))}` : "";
+      const nota = d.nota ? ` (${String(d.nota)})` : "";
+      const numero = d.atendimento ? ` · ${String(d.atendimento)}` : "";
+      return `${quem} marcou como ${para}${motivo}${nota}${numero}`;
+    }
     case "vinculo":
       return d.orcamento_id
         ? `${quem} vinculou o orçamento #${String(d.numero ?? "")}`
         : `${quem} vinculou a OS #${String(d.numero ?? "")}`;
     case "nota":
       return String(d.texto ?? "");
+    case "fila": {
+      // Sem autor = a assistente classificou.
+      const autor = e.de_usuario ? quem : "A assistente";
+      const motivo = d.motivo ? ` — ${String(d.motivo)}` : "";
+      return `${autor} passou de ${rotuloDoSetor(String(d.de ?? ""))} para ${rotuloDoSetor(String(d.para ?? ""))}${motivo}`;
+    }
+    case "transferida_ia":
+      return `A assistente passou a conversa para a equipe${d.motivo ? ` — ${String(d.motivo)}` : ""}`;
+    case "devolvida_ia":
+      return `${quem} devolveu a conversa à assistente`;
+    case "atendimento":
+      return `Atendimento ${String(d.numero ?? "")}`.trim();
+    default:
+      return "";
   }
 }
 

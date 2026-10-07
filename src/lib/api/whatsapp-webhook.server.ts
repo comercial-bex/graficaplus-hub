@@ -130,7 +130,33 @@ export async function processarWebhookZapi(request: Request): Promise<Response> 
     // a checagem de repetido só barra o que tem processado_em.
     return json(500, { ok: false, erro });
   }
+
+  // A assistente de IA (caixa v3): só para mensagem NOVA de cliente — nem eco
+  // do celular, nem modelo de empresa, nem reenvio. Roda aqui dentro, com
+  // teto de tempo, e nunca derruba o 200: a mensagem já está gravada.
+  const alvo = alvoDoAssistente(evento, resultado);
+  if (alvo) {
+    try {
+      const { assistenteSemDerrubar } = await import("@/lib/api/whatsapp-assistente.server");
+      resultado.assistente = await assistenteSemDerrubar(alvo.conversaId, alvo.mensagemId);
+    } catch (e) {
+      resultado.assistente = { acao: "erro", erro: e instanceof Error ? e.message : String(e) };
+    }
+  }
   return json(200, { ok: true, value: true, tipo: evento.tipo, ...resultado });
+}
+
+/** A mensagem que a assistente deve olhar, ou `null`. */
+export function alvoDoAssistente(
+  evento: EventoZapi,
+  resultado: Resposta,
+): { conversaId: string; mensagemId: string } | null {
+  if (evento.tipo !== "mensagem" || evento.deMim || evento.deModelo) return null;
+  const m = resultado.mensagem as
+    | { duplicada?: boolean; mensagem_id?: string; conversa_id?: string }
+    | undefined;
+  if (!m || m.duplicada || !m.mensagem_id || !m.conversa_id) return null;
+  return { conversaId: m.conversa_id, mensagemId: m.mensagem_id };
 }
 
 async function registrarEvento(

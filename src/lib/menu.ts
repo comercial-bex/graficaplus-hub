@@ -140,6 +140,7 @@ export const AREAS: AreaDoMenu[] = [
             "/whatsapp",
             MessageCircle,
             [
+              aba("Fila humana", "/whatsapp-fila-humana"),
               aba("Enviados", "/whatsapp-monitor", "Monitor do WhatsApp"),
               aba("Respostas rápidas", "/respostas-rapidas"),
               aba("Automações", "/automacoes"),

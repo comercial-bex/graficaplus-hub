@@ -27,6 +27,7 @@ import {
 } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { VincularCliente } from "@/components/whatsapp/vincular-cliente";
 import { VinculosDaConversa } from "@/components/whatsapp/vinculos-da-conversa";
+import { AtendimentosDaConversa } from "@/components/whatsapp/atendimentos-da-conversa";
 import {
   CriarOrcamentoDaConversa,
   CriarOsDaConversa,
@@ -104,6 +105,8 @@ export function PainelDaConversa({
         )}
         {podeResponder && <VincularCliente conversa={conversa} />}
       </section>
+
+      <AtendimentosDaConversa conversaId={conversa.id} />
 
       <section className="space-y-2 border-b p-4">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">

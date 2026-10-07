@@ -71,6 +71,7 @@ import { Route as AuthenticatedTelasRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
+import { Route as AuthenticatedWhatsappFilaHumanaRouteImport } from './routes/_authenticated/whatsapp-fila-humana'
 import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as CatalogoTokenRouteImport } from './routes/catalogo.$token'
 import { Route as ConviteCodigoRouteImport } from './routes/convite.$codigo'
@@ -102,6 +103,7 @@ import { Route as ApiPortalPainelRouteImport } from './routes/api.portal.painel'
 import { Route as ApiTvPainelRouteImport } from './routes/api.tv.painel'
 import { Route as ApiTvParearRouteImport } from './routes/api.tv.parear'
 import { Route as ApiTvPinRouteImport } from './routes/api.tv.pin'
+import { Route as ApiWhatsappAgenteRouteImport } from './routes/api.whatsapp.agente'
 import { Route as ApiWhatsappDespacharRouteImport } from './routes/api.whatsapp.despachar'
 import { Route as ApiWhatsappEnviarRouteImport } from './routes/api.whatsapp.enviar'
 import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
@@ -440,6 +442,12 @@ const AuthenticatedWhatsappMonitorRoute =
     path: '/whatsapp-monitor',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWhatsappFilaHumanaRoute =
+  AuthenticatedWhatsappFilaHumanaRouteImport.update({
+    id: '/whatsapp-fila-humana',
+    path: '/whatsapp-fila-humana',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AprovarTokenRoute = AprovarTokenRouteImport.update({
   id: '/aprovar/$token',
   path: '/aprovar/$token',
@@ -603,6 +611,11 @@ const ApiTvPinRoute = ApiTvPinRouteImport.update({
   path: '/api/tv/pin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWhatsappAgenteRoute = ApiWhatsappAgenteRouteImport.update({
+  id: '/api/whatsapp/agente',
+  path: '/api/whatsapp/agente',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWhatsappDespacharRoute = ApiWhatsappDespacharRouteImport.update({
   id: '/api/whatsapp/despachar',
   path: '/api/whatsapp/despachar',
@@ -691,6 +704,7 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -718,6 +732,7 @@ export interface FileRoutesByFullPath {
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
+  '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
@@ -789,6 +804,7 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -816,6 +832,7 @@ export interface FileRoutesByTo {
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
+  '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
@@ -890,6 +907,7 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
+  '/_authenticated/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -917,6 +935,7 @@ export interface FileRoutesById {
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
+  '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
@@ -991,6 +1010,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/whatsapp'
     | '/whatsapp-monitor'
+    | '/whatsapp-fila-humana'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1018,6 +1038,7 @@ export interface FileRouteTypes {
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/tv/pin'
+    | '/api/whatsapp/agente'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
@@ -1089,6 +1110,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/whatsapp'
     | '/whatsapp-monitor'
+    | '/whatsapp-fila-humana'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1116,6 +1138,7 @@ export interface FileRouteTypes {
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/tv/pin'
+    | '/api/whatsapp/agente'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
@@ -1189,6 +1212,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-monitor'
+    | '/_authenticated/whatsapp-fila-humana'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1216,6 +1240,7 @@ export interface FileRouteTypes {
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/tv/pin'
+    | '/api/whatsapp/agente'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
@@ -1252,6 +1277,7 @@ export interface RootRouteChildren {
   ApiTvPainelRoute: typeof ApiTvPainelRoute
   ApiTvParearRoute: typeof ApiTvParearRoute
   ApiTvPinRoute: typeof ApiTvPinRoute
+  ApiWhatsappAgenteRoute: typeof ApiWhatsappAgenteRoute
   ApiWhatsappDespacharRoute: typeof ApiWhatsappDespacharRoute
   ApiWhatsappEnviarRoute: typeof ApiWhatsappEnviarRoute
   ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
@@ -1693,6 +1719,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappMonitorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/whatsapp-fila-humana': {
+      id: '/_authenticated/whatsapp-fila-humana'
+      path: '/whatsapp-fila-humana'
+      fullPath: '/whatsapp-fila-humana'
+      preLoaderRoute: typeof AuthenticatedWhatsappFilaHumanaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/aprovar/$token': {
       id: '/aprovar/$token'
       path: '/aprovar/$token'
@@ -1910,6 +1943,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTvPinRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/whatsapp/agente': {
+      id: '/api/whatsapp/agente'
+      path: '/api/whatsapp/agente'
+      fullPath: '/api/whatsapp/agente'
+      preLoaderRoute: typeof ApiWhatsappAgenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/whatsapp/despachar': {
       id: '/api/whatsapp/despachar'
       path: '/api/whatsapp/despachar'
@@ -2004,6 +2044,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
+  AuthenticatedWhatsappFilaHumanaRoute: typeof AuthenticatedWhatsappFilaHumanaRoute
   AuthenticatedCatalogosIdRoute: typeof AuthenticatedCatalogosIdRoute
   AuthenticatedCatalogosGerenciarRoute: typeof AuthenticatedCatalogosGerenciarRoute
   AuthenticatedCatalogosPedidosRoute: typeof AuthenticatedCatalogosPedidosRoute
@@ -2074,6 +2115,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
+  AuthenticatedWhatsappFilaHumanaRoute: AuthenticatedWhatsappFilaHumanaRoute,
   AuthenticatedCatalogosIdRoute: AuthenticatedCatalogosIdRoute,
   AuthenticatedCatalogosGerenciarRoute: AuthenticatedCatalogosGerenciarRoute,
   AuthenticatedCatalogosPedidosRoute: AuthenticatedCatalogosPedidosRoute,
@@ -2135,6 +2177,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTvPainelRoute: ApiTvPainelRoute,
   ApiTvParearRoute: ApiTvParearRoute,
   ApiTvPinRoute: ApiTvPinRoute,
+  ApiWhatsappAgenteRoute: ApiWhatsappAgenteRoute,
   ApiWhatsappDespacharRoute: ApiWhatsappDespacharRoute,
   ApiWhatsappEnviarRoute: ApiWhatsappEnviarRoute,
   ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,

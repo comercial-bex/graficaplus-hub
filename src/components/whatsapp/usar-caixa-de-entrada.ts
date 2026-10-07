@@ -11,6 +11,8 @@ import type {
   MensagemDaCaixa,
   RespostaDoConsumidor,
 } from "@/domain/whatsapp/caixa-de-entrada";
+import { ehSetor, type AtendimentoResumo, type Setor } from "@/domain/whatsapp/filas";
+import { CONFIG_PADRAO, type ConfigAssistente } from "@/domain/whatsapp/assistente";
 
 /**
  * As leituras e gravações da caixa de entrada (/whatsapp).
@@ -40,6 +42,15 @@ export const CHAVES = {
   clientes: ["wa-caixa-clientes"] as const,
   historico: (clienteId: string, nivel: NivelDeVisao) =>
     ["wa-caixa-historico", clienteId, nivel] as const,
+  // Caixa v3. Começam com o prefixo das conversas para o tempo real da lista
+  // (que invalida CHAVES.conversas) atualizar contagens e fila humana junto.
+  minhasFilas: ["wa-caixa-minhas-filas"] as const,
+  porFila: ["wa-caixa-conversas", "por-fila"] as const,
+  naoLidas: ["wa-caixa-conversas", "nao-lidas"] as const,
+  filaHumana: ["wa-caixa-conversas", "fila-humana"] as const,
+  atendimentos: (conversaId: string) => ["wa-caixa-atendimentos", conversaId] as const,
+  configuracoes: ["wa-configuracoes"] as const,
+  decisoes: ["wa-ia-decisoes"] as const,
 };
 
 export type InstanciaDaCaixa = {
@@ -76,6 +87,7 @@ export function useInstancias() {
 export const SELECT_CONVERSAS =
   "id, instancia_id, telefone, nome_contato, cliente_id, lead_id, os_id, status, etiquetas, " +
   "ultima_mensagem, ultima_mensagem_at, nao_lidas, responsavel_id, created_at, " +
+  "fila, modo, aguardando_desde, atendimento_ativo_id, " +
   "cliente:clientes!whatsapp_conversas_cliente_id_fkey(id, nome), " +
   "lead:leads!whatsapp_conversas_lead_id_fkey(id, nome, status)";
 
@@ -243,21 +255,6 @@ export function ligarConversaAOs(conversaId: string, osId: string) {
   return atualizarConversa(conversaId, { os_id: osId });
 }
 
-/**
- * Abrir a conversa marca como lida. Só para quem pode responder — o RLS
- * recusaria os outros — e só quando há o que marcar. Zero linhas aqui não é
- * erro: outra pessoa pode ter lido no mesmo instante.
- */
-export async function marcarComoLida(conversaId: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from("whatsapp_conversas")
-    .update({ nao_lidas: 0 })
-    .eq("id", conversaId)
-    .gt("nao_lidas", 0)
-    .select("id");
-  if (error) throw error;
-}
-
 export async function vincularCliente(conversaId: string, clienteId: string) {
   const { data, error } = await (supabase.rpc as any)("whatsapp_vincular_cliente", {
     p_conversa_id: conversaId,
@@ -331,10 +328,21 @@ function termoSeguro(t: string): string {
   return t.replace(/[,()%*]/g, " ").trim();
 }
 
-function filtrarConsulta(q: any, f: { fila: Fila; status: AbaStatus; busca: string; userId: string | null }) {
+/** Filtro da lista: responsável, situação, busca e — caixa v3 — os setores. */
+export type FiltroDaLista = {
+  fila: Fila;
+  status: AbaStatus;
+  busca: string;
+  userId: string | null;
+  /** `null` = todos os setores. */
+  setores?: Setor[] | null;
+};
+
+function filtrarConsulta(q: any, f: FiltroDaLista) {
   q = f.status === "resolvida" ? q.in("status", ["resolvida", "arquivada"]) : q.eq("status", f.status);
   if (f.fila === "minhas") q = q.eq("responsavel_id", f.userId ?? "00000000-0000-0000-0000-000000000000");
   if (f.fila === "nao_atribuidas") q = q.is("responsavel_id", null);
+  if (f.setores && f.setores.length) q = q.in("fila", f.setores);
   const termo = termoSeguro(f.busca);
   if (termo) {
     const digitos = termo.replace(/\D/g, "");
@@ -345,9 +353,9 @@ function filtrarConsulta(q: any, f: { fila: Fila; status: AbaStatus; busca: stri
   return q;
 }
 
-export function useConversasPaginadas(f: { fila: Fila; status: AbaStatus; busca: string; userId: string | null }) {
+export function useConversasPaginadas(f: FiltroDaLista) {
   return useInfiniteQuery({
-    queryKey: [...CHAVES.conversas, "pag", f.fila, f.status, f.busca, f.userId] as const,
+    queryKey: [...CHAVES.conversas, "pag", f.fila, f.status, f.busca, f.userId, (f.setores ?? []).join(",")] as const,
     initialPageParam: 0,
     refetchInterval: INTERVALO_MS,
     queryFn: async ({ pageParam }) => {
@@ -365,15 +373,15 @@ export function useConversasPaginadas(f: { fila: Fila; status: AbaStatus; busca:
 }
 
 /** Contadores das pílulas e abas (consulta só de contagem, sem linhas). */
-export function useContadores(status: AbaStatus, userId: string | null) {
+export function useContadores(status: AbaStatus, userId: string | null, setores: Setor[] | null = null) {
   return useQuery({
-    queryKey: [...CHAVES.conversas, "contadores", status, userId] as const,
+    queryKey: [...CHAVES.conversas, "contadores", status, userId, (setores ?? []).join(",")] as const,
     refetchInterval: INTERVALO_MS,
     queryFn: async () => {
       const contar = async (fila: Fila, st: AbaStatus) => {
         const q = filtrarConsulta(
           (supabase as any).from("whatsapp_conversas").select("id", { count: "exact", head: true }),
-          { fila, status: st, busca: "", userId },
+          { fila, status: st, busca: "", userId, setores },
         );
         const { count, error } = await q;
         if (error) throw error;
@@ -446,7 +454,13 @@ export function useEventosDaConversa(conversaId: string) {
   });
 }
 
-export type PessoaDaEquipe = { id: string; nome: string | null; avatar_url: string | null };
+export type PessoaDaEquipe = {
+  id: string;
+  nome: string | null;
+  avatar_url: string | null;
+  /** As filas (setores) da pessoa — `usuarios.filas`, caixa v3. */
+  filas?: string[] | null;
+};
 
 export function useEquipe() {
   return useQuery({
@@ -495,6 +509,11 @@ export function useTempoRealDaConversa(conversaId: string) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "whatsapp_conversa_eventos", filter: `conversa_id=eq.${conversaId}` },
         () => void qc.invalidateQueries({ queryKey: ["wa-caixa-eventos", conversaId] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "whatsapp_atendimentos", filter: `conversa_id=eq.${conversaId}` },
+        () => void qc.invalidateQueries({ queryKey: CHAVES.atendimentos(conversaId) }),
       )
       .subscribe();
     return () => {
@@ -593,4 +612,154 @@ export async function subirAnexo(conversaId: string, arquivo: Blob, nome: string
     .upload(caminho, arquivo, { contentType: arquivo.type || undefined, upsert: false });
   if (error) throw error;
   return caminho;
+}
+
+/* ------------------------------------------------------------------ */
+/* Caixa v3: filas por setor, atendimentos, fila humana, assistente     */
+/* ------------------------------------------------------------------ */
+
+/** As filas (setores) de quem está logado — `usuarios.filas`. */
+export function useMinhasFilas() {
+  return useQuery({
+    queryKey: CHAVES.minhasFilas,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("whatsapp_minhas_filas");
+      if (error) throw error;
+      return ((data ?? []) as unknown[]).filter(ehSetor) as Setor[];
+    },
+  });
+}
+
+export type ContagemDaFila = { fila: Setor; abertas: number; aguardando: number };
+
+/** Abertas e aguardando resposta por setor (chips da lista e menu). */
+export function useContagemPorFila() {
+  return useQuery({
+    queryKey: CHAVES.porFila,
+    refetchInterval: INTERVALO_MS,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("whatsapp_contagem_por_fila");
+      if (error) throw error;
+      return ((data ?? []) as { fila: string; abertas: number | string; aguardando: number | string }[])
+        .filter((l) => ehSetor(l.fila))
+        .map((l) => ({ fila: l.fila as Setor, abertas: Number(l.abertas), aguardando: Number(l.aguardando) }));
+    },
+  });
+}
+
+/**
+ * Não lidas DE QUEM ESTÁ LOGADO (whatsapp_conversa_leituras), por conversa.
+ * O `nao_lidas` da conversa é um contador só, de todo mundo: quem abriu zera
+ * para os outros também. Este é o de cada um.
+ */
+export function useNaoLidasPorMim() {
+  return useQuery({
+    queryKey: CHAVES.naoLidas,
+    refetchInterval: INTERVALO_MS,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("whatsapp_nao_lidas");
+      if (error) throw error;
+      return new Map(
+        ((data ?? []) as { conversa_id: string; nao_lidas: number | string }[]).map((l) => [
+          l.conversa_id,
+          Number(l.nao_lidas),
+        ]),
+      );
+    },
+  });
+}
+
+/** Os atendimentos (WA-AAMM-NNNN) da conversa, do mais novo ao mais antigo. */
+export function useAtendimentos(conversaId: string) {
+  return useQuery({
+    queryKey: CHAVES.atendimentos(conversaId),
+    refetchInterval: INTERVALO_MS,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_atendimentos")
+        .select(
+          "id, numero, fila, aberto_em, origem_abertura, responsavel_id, primeira_resposta_em, fechado_em, motivo_resolucao, nota_resolucao",
+        )
+        .eq("conversa_id", conversaId)
+        .order("aberto_em", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as AtendimentoResumo[];
+    },
+  });
+}
+
+/** A fila humana: conversas abertas com cliente esperando resposta. */
+export function useFilaHumana(setores: Setor[] | null) {
+  return useQuery({
+    queryKey: [...CHAVES.filaHumana, (setores ?? []).join(",")] as const,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("whatsapp_conversas")
+        .select(SELECT_CONVERSAS)
+        .in("status", ["aberta", "pendente"])
+        .not("aguardando_desde", "is", null);
+      if (setores && setores.length) q = q.in("fila", setores);
+      const { data, error } = await q.order("aguardando_desde", { ascending: true }).limit(LIMITE_CONVERSAS);
+      if (error) throw error;
+      return (data ?? []) as ConversaDaCaixa[];
+    },
+  });
+}
+
+/** Configurações da assistente e do horário (linha única). */
+export function useConfiguracoesWhatsapp() {
+  return useQuery({
+    queryKey: CHAVES.configuracoes,
+    queryFn: async (): Promise<ConfigAssistente & { updated_at: string | null }> => {
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_configuracoes")
+        .select(
+          "ia_ativa, horario_inicio, horario_fim, dias_semana, mensagem_fora_horario, assinatura, endereco, horario_texto, updated_at",
+        )
+        .maybeSingle();
+      if (error) throw error;
+      return { ...CONFIG_PADRAO, updated_at: null, ...(data ?? {}) };
+    },
+  });
+}
+
+export type DecisaoDoAssistente = {
+  id: string;
+  conversa_id: string | null;
+  mensagem_id: string | null;
+  etapa: "classificacao" | "resposta" | "transferencia";
+  entrada: string | null;
+  saida: Record<string, unknown> | null;
+  modelo: string | null;
+  tokens_entrada: number | null;
+  tokens_saida: number | null;
+  duracao_ms: number | null;
+  erro: string | null;
+  created_at: string;
+  conversa?: { id: string; nome_contato: string | null; telefone: string } | null;
+};
+
+/** O que a assistente decidiu nas últimas 24 h — para a equipe auditar. */
+export function useDecisoesDoAssistente() {
+  return useQuery({
+    queryKey: CHAVES.decisoes,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const desde = new Date(Date.now() - 24 * 3_600_000).toISOString();
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_ia_logs")
+        .select(
+          "id, conversa_id, mensagem_id, etapa, entrada, saida, modelo, tokens_entrada, tokens_saida, duracao_ms, erro, created_at, " +
+            "conversa:whatsapp_conversas(id, nome_contato, telefone)",
+        )
+        .gte("created_at", desde)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as DecisaoDoAssistente[];
+    },
+  });
 }

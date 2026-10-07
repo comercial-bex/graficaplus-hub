@@ -153,6 +153,33 @@ const ASSINATURAS: Record<string, string[]> = {
   // WhatsApp: a caixa de entrada real.
   whatsapp_responder: ["p_conversa_id", "p_texto"],
   whatsapp_vincular_cliente: ["p_conversa_id", "p_cliente_id"],
+  // Caixa v2 e v3 (Lovable, 07/10/2026; drizzle/migrations/0001 e 0002),
+  // conferidas no Postgres em 07/10/2026 com pg_get_function_identity_arguments.
+  // As que escrevem só o servidor chama (supabaseAdmin), em
+  // src/lib/api/whatsapp-caixa.functions.ts e whatsapp-assistente.server.ts.
+  whatsapp_assumir: ["p_conversa_id", "p_usuario"],
+  whatsapp_transferir: ["p_conversa_id", "p_usuario", "p_para"],
+  whatsapp_mudar_status: ["p_conversa_id", "p_usuario", "p_status"],
+  whatsapp_resolver: ["p_conversa_id", "p_usuario", "p_motivo", "p_nota"],
+  whatsapp_nota: ["p_conversa_id", "p_usuario", "p_texto"],
+  whatsapp_vincular_orcamento: ["p_conversa_id", "p_usuario", "p_orcamento_id"],
+  whatsapp_vincular_os: ["p_conversa_id", "p_usuario", "p_os_id"],
+  whatsapp_responder_arquivo: [
+    "p_conversa_id", "p_usuario", "p_tipo", "p_storage_path", "p_nome_arquivo", "p_legenda",
+  ],
+  whatsapp_reprocessar_sistema: [],
+  whatsapp_transferir_fila: ["p_conversa_id", "p_usuario", "p_fila", "p_motivo"],
+  whatsapp_devolver_ia: ["p_conversa_id", "p_usuario"],
+  whatsapp_marcar_lida: ["p_conversa_id", "p_usuario"],
+  whatsapp_definir_filas_usuario: ["p_admin", "p_usuario_alvo", "p_filas"],
+  whatsapp_salvar_configuracoes: ["p_usuario", "p_config"],
+  whatsapp_ia_classificar: ["p_conversa_id", "p_intencao", "p_fila"],
+  whatsapp_ia_enviar: ["p_conversa_id", "p_texto", "p_payload"],
+  whatsapp_ia_transferir: ["p_conversa_id", "p_motivo"],
+  whatsapp_equipe: [],
+  whatsapp_minhas_filas: [],
+  whatsapp_contagem_por_fila: [],
+  whatsapp_nao_lidas: [],
   // Compras com vários itens.
   cancelar_pedido_compra: ["p_pedido_id", "p_motivo"],
   receber_pedido_compra: ["p_pedido_id", "p_itens", "p_nota"],

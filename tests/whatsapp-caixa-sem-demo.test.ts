@@ -155,6 +155,11 @@ const COLUNAS: Record<string, string[]> = {
     "responsavel_id",
     "unread_count",
     "telefone_normalizado",
+    // Caixa v3 (drizzle/0002), conferidas em information_schema em 07/10/2026.
+    "fila",
+    "modo",
+    "aguardando_desde",
+    "atendimento_ativo_id",
   ],
   whatsapp_mensagens: [
     "id",

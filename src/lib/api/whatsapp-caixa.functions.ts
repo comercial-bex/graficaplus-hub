@@ -42,6 +42,13 @@ const acaoSchema = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("nota"), conversaId: z.string().uuid(), texto: z.string().min(1).max(4000) }),
   z.object({ acao: z.literal("vincular_orcamento"), conversaId: z.string().uuid(), orcamentoId: z.string().uuid() }),
   z.object({ acao: z.literal("vincular_os"), conversaId: z.string().uuid(), osId: z.string().uuid() }),
+  z.object({
+    acao: z.literal("transferir_fila"),
+    conversaId: z.string().uuid(),
+    fila: z.enum(["comercial", "producao", "financeiro", "administrativo"]),
+    motivo: z.string().trim().min(3).max(300),
+  }),
+  z.object({ acao: z.literal("devolver_ia"), conversaId: z.string().uuid() }),
 ]);
 
 export type AcaoNaConversa = z.infer<typeof acaoSchema>;
@@ -80,6 +87,17 @@ export const acaoNaConversa = createServerFn({ method: "POST" })
       case "vincular_os":
         r = await db.rpc("whatsapp_vincular_os", { p_conversa_id: data.conversaId, p_usuario: u, p_os_id: data.osId });
         break;
+      case "transferir_fila":
+        r = await db.rpc("whatsapp_transferir_fila", {
+          p_conversa_id: data.conversaId,
+          p_usuario: u,
+          p_fila: data.fila,
+          p_motivo: data.motivo,
+        });
+        break;
+      case "devolver_ia":
+        r = await db.rpc("whatsapp_devolver_ia", { p_conversa_id: data.conversaId, p_usuario: u });
+        break;
     }
     if (r.error) throw new Error(r.error.message);
     const d = (r.data ?? {}) as { cliente_herdado?: boolean };
@@ -117,6 +135,68 @@ export const enfileirarArquivo = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return r as { mensagem_id: string; fila_id: string };
+  });
+
+/**
+ * Abrir a conversa marca como lida PARA ESTA PESSOA (whatsapp_conversa_leituras)
+ * — e zera o contador global para quem pode responder, como antes. Só precisa
+ * ler o WhatsApp: a leitura de cada um é dele.
+ */
+export const marcarLidaPorMim = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ conversaId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await exigir(context.supabase, context.userId, "whatsapp.read");
+    const db = (await admin()) as any;
+    const { error } = await db.rpc("whatsapp_marcar_lida", { p_conversa_id: data.conversaId, p_usuario: context.userId });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** As filas (setores) de cada pessoa da equipe. Só o administrador muda. */
+export const definirFilasDaPessoa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        usuarioId: z.string().uuid(),
+        filas: z.array(z.enum(["comercial", "producao", "financeiro", "administrativo"])).max(4),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const db = (await admin()) as any;
+    const { error } = await db.rpc("whatsapp_definir_filas_usuario", {
+      p_admin: context.userId,
+      p_usuario_alvo: data.usuarioId,
+      p_filas: data.filas,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const configSchema = z.object({
+  ia_ativa: z.boolean(),
+  horario_inicio: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+  horario_fim: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+  dias_semana: z.array(z.number().int().min(1).max(7)).min(1).max(7),
+  mensagem_fora_horario: z.string().trim().min(5).max(500),
+  assinatura: z.string().trim().min(2).max(60),
+  endereco: z.string().trim().max(300).nullable(),
+  horario_texto: z.string().trim().max(200).nullable(),
+});
+
+/** Configurações da assistente de IA e do horário. Exige whatsapp › manage. */
+export const salvarConfiguracoesWhatsapp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => configSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await exigir(context.supabase, context.userId, "whatsapp.manage");
+    if (data.horario_inicio >= data.horario_fim) throw new Error("O início do horário precisa ser antes do fim.");
+    const db = (await admin()) as any;
+    const { error } = await db.rpc("whatsapp_salvar_configuracoes", { p_usuario: context.userId, p_config: data });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const reprocessarMensagensSemTexto = createServerFn({ method: "POST" })
