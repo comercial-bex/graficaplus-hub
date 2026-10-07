@@ -42,6 +42,9 @@ export function ConectarPorQrCode() {
         .select("id, conectado, status")
         .eq("ativa", true)
         .order("created_at")
+        // pai-arbitrario-ok: o servidor tem UM token do Z-API (ZAPI_TOKEN), então
+        // há uma instância para operar, e qrCodeZapi escolhe com este mesmo filtro
+        // e ordem. O cartão só espelha essa escolha e não grava nada com o id.
         .limit(1)
         .maybeSingle();
       if (error) throw error;
