@@ -122,6 +122,13 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #1e2029;
   --sidebar-ring: #00d3f2;
+  /* O trilho dos módulos (coluna estreita à esquerda do menu) é da cor da
+     marca; o ícone do módulo ativo fica num quadrado escuro. Para o trilho
+     roxo da empresa (#7B2E8B): trilho #7B2E8B, ícone #ffffff, marca #c084fc. */
+  --sidebar-trilho: #00a9c6;
+  --sidebar-trilho-foreground: #050506;
+  --sidebar-marca: #00d3f2;
+  --sidebar-online: #45d4a0;
 
   /* Bex raw */
   --bex-cyan: #00a9c6;
@@ -181,6 +188,10 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #1e2029;
   --sidebar-ring: #00d3f2;
+  --sidebar-trilho: #00a9c6;
+  --sidebar-trilho-foreground: #050506;
+  --sidebar-marca: #00d3f2;
+  --sidebar-online: #45d4a0;
 }
 
 

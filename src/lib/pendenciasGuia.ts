@@ -60,7 +60,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   orcamento_sem_item: {
     acao: 'Abrir orçamentos',
     passos: [
-      'Abra Comercial › Orçamentos.',
+      'Abra Vendas › Orçamentos.',
       'Clique no orçamento sem valor.',
       'Use "Adicionar item" e escolha o produto — o preço vem da tabela e do cálculo por m².',
       'Salve: o valor total aparece e o botão de enviar ao cliente destrava.',
@@ -69,7 +69,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   orcamento_parado: {
     acao: 'Ver orçamentos enviados',
     passos: [
-      'Abra Comercial › Orçamentos e filtre por "enviado".',
+      'Abra Vendas › Orçamentos e filtre por "enviado".',
       'Ligue ou mande mensagem para o contato do orçamento.',
       'Se o cliente desistiu, marque como rejeitado — orçamento parado polui a fila de todo mundo.',
     ],
@@ -77,7 +77,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   orcamento_aprovado_sem_os: {
     acao: 'Abrir orçamentos',
     passos: [
-      'Abra Comercial › Orçamentos e filtre por "aprovado".',
+      'Abra Vendas › Orçamentos e filtre por "aprovado".',
       'Abra o orçamento e use "Converter em OS".',
       'A OS já nasce com o material previsto, o estoque reservado, a conta a receber e a máquina agendada — por isso converter é o passo que solta tudo.',
       'Se o cliente desistiu depois de aprovar, marque como rejeitado em vez de deixar parado.',
@@ -86,7 +86,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   os_pronta_sem_entrega_agendada: {
     acao: 'Abrir entregas',
     passos: [
-      'Abra Produção › Entregas & Instalações.',
+      'Abra Produção › Entregas e instalações.',
       'A entrega costuma nascer sozinha quando a peça fica pronta; se não apareceu, use "Agendar".',
       'Confira o endereço e escolha quem vai levar.',
       'Ao voltar, registre a conclusão com foto ou assinatura — é o que fecha o serviço para o cliente.',
@@ -105,7 +105,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
     passos: [
       'A peça já foi prometida ao cliente e o material não está na prateleira.',
       'Abra a OS: o card de materiais previstos mostra o que falta, com quantidade e unidade.',
-      'Dê entrada no estoque em Catálogo & Estoque › Materiais, ou avise o cliente do novo prazo.',
+      'Dê entrada no estoque em Produção › Materiais e estoque, ou avise o cliente do novo prazo.',
       'Enquanto faltar, a OS não consegue dar baixa de material nem fechar — e a trava não diz o motivo em lugar nenhum além daqui.',
     ],
   },
@@ -121,7 +121,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   arte_aguardando_cliente: {
     acao: 'Ver ordens de serviço',
     passos: [
-      'Abra Produção › Ordens de Serviço e filtre por "aguardando aprovação de arte".',
+      'Abra Produção › Ordens de serviço e filtre por "aguardando aprovação de arte".',
       'Reenvie o link de aprovação pelo WhatsApp do cliente.',
       'Se ele aprovou por fora (telefone, presencial), registre a aprovação na OS com o canal correto.',
     ],
@@ -129,7 +129,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   cliente_sem_contato: {
     acao: 'Abrir clientes',
     passos: [
-      'Abra Cadastros › Clientes.',
+      'Abra Vendas › Clientes.',
       'Procure quem está sem telefone e sem e-mail.',
       'Preencha ao menos o WhatsApp — é por onde saem orçamento, arte e aviso de entrega pronta.',
     ],
@@ -137,7 +137,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   os_na_fila_de_producao: {
     acao: 'Abrir produção',
     passos: [
-      'Abra Produção › Painel de Produção.',
+      'Abra Produção › Quadro de produção.',
       'Comece pela de menor prazo, não pela mais recente.',
       'Mova o cartão conforme avança: impressão, acabamento, pronto.',
     ],
@@ -145,7 +145,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   os_pronta_para_sair: {
     acao: 'Ver ordens prontas',
     passos: [
-      'Abra Produção › Ordens de Serviço e filtre por "aguardando retirada" ou "aguardando entrega".',
+      'Abra Produção › Ordens de serviço e filtre por "aguardando retirada" ou "aguardando entrega".',
       'Avise o cliente que está pronto.',
       'Ao sair, mude o status — enquanto não mudar, o trabalho conta como ocupando a gráfica.',
     ],
@@ -153,7 +153,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   os_parada: {
     acao: 'Ver ordens paradas',
     passos: [
-      'Abra Produção › Ordens de Serviço.',
+      'Abra Produção › Ordens de serviço.',
       'Veja o que trava cada uma: falta arte aprovada, falta material ou falta máquina livre.',
       'Se o trabalho morreu, cancele a OS — OS parada sem fim vira gargalo falso no painel.',
     ],
@@ -162,14 +162,14 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
     acao: 'Ver ordens sem material',
     passos: [
       'Abra a OS e veja se o produto dela tem ficha técnica.',
-      'Se não tiver, cadastre a ficha em Cadastros › Produtos (aba Materiais).',
+      'Se não tiver, cadastre a ficha em Financeiro › Produtos e serviços (aba Materiais).',
       'Com a ficha pronta, a OS passa a prever o material, reservar o estoque e fechar o custo real.',
     ],
   },
   baixa_de_estoque_pendente: {
     acao: 'Ver ordens concluídas',
     passos: [
-      'Abra Produção › Ordens de Serviço e filtre por concluídas.',
+      'Abra Produção › Ordens de serviço e filtre por concluídas.',
       'Confira com o impressor o que foi realmente consumido.',
       'Use "Dar baixa no estoque" na OS: o material sai da prateleira e entra no custo do trabalho.',
     ],
@@ -177,7 +177,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   produto_sem_ficha: {
     acao: 'Abrir produtos',
     passos: [
-      'Abra Cadastros › Produtos.',
+      'Abra Financeiro › Produtos e serviços.',
       'Os que estão sem ficha têm a etiqueta "sem receita" na lista.',
       'Abra o produto, vá em Materiais e diga quanto de cada material entra por unidade de venda (por m², no caso de impressão).',
     ],
@@ -185,7 +185,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   estoque_nunca_carregado: {
     acao: 'Abrir materiais',
     passos: [
-      'Abra Estoque › Materiais.',
+      'Abra Produção › Materiais e estoque.',
       'Para cada material que já está na prateleira, use "Entrada / saída" e registre a quantidade real com o custo de compra.',
       'A partir da primeira entrada, a OS passa a reservar e baixar sozinha.',
     ],
@@ -193,7 +193,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   estoque_abaixo_minimo: {
     acao: 'Abrir materiais',
     passos: [
-      'Abra Estoque › Materiais e veja os marcados como "Repor".',
+      'Abra Produção › Materiais e estoque e veja os marcados como "Repor".',
       'Confira o fornecedor no cadastro do material.',
       'Registre a entrada assim que a compra chegar.',
     ],
@@ -201,7 +201,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   material_sem_custo: {
     acao: 'Abrir materiais',
     passos: [
-      'Abra Estoque › Materiais.',
+      'Abra Produção › Materiais e estoque.',
       'O material sem preço aparece com "sem custo" na coluna de custo unitário.',
       'Preencha o custo de compra: o custo dos produtos que usam esse material volta a ser calculado sozinho.',
     ],
@@ -209,7 +209,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   os_entregue_sem_cobranca: {
     acao: 'Abrir financeiro',
     passos: [
-      'Abra Financeiro › Contas a Receber.',
+      'Abra Financeiro › Contas a receber.',
       'Compare com as OS concluídas do período.',
       'Gere a cobrança a partir da OS, para a receita ficar ligada ao trabalho que a gerou.',
     ],
@@ -217,7 +217,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   conta_pagar_vencida: {
     acao: 'Abrir contas a pagar',
     passos: [
-      'Abra Financeiro › Contas a Pagar e ordene por vencimento.',
+      'Abra Financeiro › Caixa e contas a pagar, aba Contas a pagar, e ordene por vencimento.',
       'Pague ou renegocie o que está vencido.',
       'Se já foi paga, registre o pagamento — senão ela fica contando como atraso para sempre.',
     ],
@@ -246,7 +246,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   comissoes_a_pagar: {
     acao: 'Abrir financeiro',
     passos: [
-      'Abra Financeiro e desça até o bloco de Comissões.',
+      'Abra Financeiro › Pagamentos e comissões e desça até o bloco de Comissões.',
       'Confira quem trouxe cada venda e o valor: a comissão nasce sozinha quando a OS é paga, sobre o bruto dela.',
       'Pague no fechamento e marque como paga — ela não gera lançamento em contas a pagar, então só sai da lista por aqui.',
     ],

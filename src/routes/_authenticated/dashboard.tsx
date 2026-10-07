@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getRoutePermissions, type Permission } from "@/lib/permissions";
+import { podeAbrirRota } from "@/lib/menu";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { PendenciasDoMeuPapel } from "@/components/painel/PendenciasDoMeuPapel";
 import { MinhasComissoes } from "@/components/painel/MinhasComissoes";
@@ -416,7 +417,9 @@ function PainelCompleto({
 
       <MinhasComissoes />
 
-      {Number(avisosParados.data ?? 0) > 0 && (
+      {/* Só para quem abre a fila: desde 06/10/2026 o operador não abre
+          /avisos, e o aviso aqui seria uma porta para "Acesso restrito". */}
+      {Number(avisosParados.data ?? 0) > 0 && podeAbrirRota("/avisos", hasPermission) && (
         <Link
           to="/avisos"
           className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm hover:bg-amber-500/15"
