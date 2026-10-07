@@ -26,6 +26,7 @@ import {
   useMensagens,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { VincularCliente } from "@/components/whatsapp/vincular-cliente";
+import { VinculosDaConversa } from "@/components/whatsapp/vinculos-da-conversa";
 import {
   CriarOrcamentoDaConversa,
   CriarOsDaConversa,
@@ -142,6 +143,8 @@ export function PainelDaConversa({
           </p>
         )}
       </section>
+
+      <VinculosDaConversa conversa={conversa} podeEditar={podeResponder} />
 
       <Etiquetas conversa={conversa} podeEditar={podeResponder} />
 

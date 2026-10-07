@@ -7186,7 +7186,14 @@ export type Database = {
           custo_estimado: number
           data_entrega_prometida: string | null
           data_inicio: string | null
+          desconto_aprovado_em: string | null
+          desconto_aprovado_por: string | null
+          desconto_aprovado_subtotal: number | null
+          desconto_aprovado_valor: number | null
+          desconto_informado: number
+          desconto_modo: string
           desconto_percentual: number
+          desconto_valor: number
           descricao: string | null
           endereco_entrega: Json | null
           enviado_em: string | null
@@ -7228,7 +7235,14 @@ export type Database = {
           custo_estimado?: number
           data_entrega_prometida?: string | null
           data_inicio?: string | null
+          desconto_aprovado_em?: string | null
+          desconto_aprovado_por?: string | null
+          desconto_aprovado_subtotal?: number | null
+          desconto_aprovado_valor?: number | null
+          desconto_informado?: number
+          desconto_modo?: string
           desconto_percentual?: number
+          desconto_valor?: number
           descricao?: string | null
           endereco_entrega?: Json | null
           enviado_em?: string | null
@@ -7270,7 +7284,14 @@ export type Database = {
           custo_estimado?: number
           data_entrega_prometida?: string | null
           data_inicio?: string | null
+          desconto_aprovado_em?: string | null
+          desconto_aprovado_por?: string | null
+          desconto_aprovado_subtotal?: number | null
+          desconto_aprovado_valor?: number | null
+          desconto_informado?: number
+          desconto_modo?: string
           desconto_percentual?: number
+          desconto_valor?: number
           descricao?: string | null
           endereco_entrega?: Json | null
           enviado_em?: string | null
@@ -7320,6 +7341,13 @@ export type Database = {
           {
             foreignKeyName: "orcamentos_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_desconto_aprovado_por_fkey"
+            columns: ["desconto_aprovado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
@@ -10325,6 +10353,103 @@ export type Database = {
         }
         Relationships: []
       }
+      permissoes_excecoes: {
+        Row: {
+          concede: boolean
+          created_at: string
+          criado_por: string | null
+          expira_em: string | null
+          motivo: string
+          permissao: string
+          usuario_id: string
+        }
+        Insert: {
+          concede: boolean
+          created_at?: string
+          criado_por?: string | null
+          expira_em?: string | null
+          motivo: string
+          permissao: string
+          usuario_id: string
+        }
+        Update: {
+          concede?: boolean
+          created_at?: string
+          criado_por?: string | null
+          expira_em?: string | null
+          motivo?: string
+          permissao?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permissoes_excecoes_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permissoes_excecoes_permissao_fkey"
+            columns: ["permissao"]
+            isOneToOne: false
+            referencedRelation: "permissoes"
+            referencedColumns: ["chave"]
+          },
+          {
+            foreignKeyName: "permissoes_excecoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permissoes_excecoes_historico: {
+        Row: {
+          acao: string
+          antes: Json | null
+          autor_id: string | null
+          autor_nome: string | null
+          concede: boolean | null
+          expira_em: string | null
+          id: number
+          motivo: string | null
+          permissao: string
+          quando: string
+          usuario_id: string
+          usuario_nome: string | null
+        }
+        Insert: {
+          acao: string
+          antes?: Json | null
+          autor_id?: string | null
+          autor_nome?: string | null
+          concede?: boolean | null
+          expira_em?: string | null
+          id?: never
+          motivo?: string | null
+          permissao: string
+          quando?: string
+          usuario_id: string
+          usuario_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          antes?: Json | null
+          autor_id?: string | null
+          autor_nome?: string | null
+          concede?: boolean | null
+          expira_em?: string | null
+          id?: never
+          motivo?: string | null
+          permissao?: string
+          quando?: string
+          usuario_id?: string
+          usuario_nome?: string | null
+        }
+        Relationships: []
+      }
       portal_cliente_acessos: {
         Row: {
           ativo: boolean
@@ -13115,6 +13240,58 @@ export type Database = {
           },
         ]
       }
+      whatsapp_conversa_eventos: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          de_usuario: string | null
+          detalhe: Json
+          id: string
+          para_usuario: string | null
+          tipo: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          de_usuario?: string | null
+          detalhe?: Json
+          id?: string
+          para_usuario?: string | null
+          tipo: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          de_usuario?: string | null
+          detalhe?: Json
+          id?: string
+          para_usuario?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversa_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversa_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversa_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_conversas: {
         Row: {
           atribuido_para: string | null
@@ -13504,6 +13681,7 @@ export type Database = {
           legenda: string | null
           lido_em: string | null
           media_url: string | null
+          origem: string | null
           os_id: string | null
           payload: Json
           recebido_em: string | null
@@ -13530,6 +13708,7 @@ export type Database = {
           legenda?: string | null
           lido_em?: string | null
           media_url?: string | null
+          origem?: string | null
           os_id?: string | null
           payload?: Json
           recebido_em?: string | null
@@ -13556,6 +13735,7 @@ export type Database = {
           legenda?: string | null
           lido_em?: string | null
           media_url?: string | null
+          origem?: string | null
           os_id?: string | null
           payload?: Json
           recebido_em?: string | null
@@ -17009,6 +17189,7 @@ export type Database = {
     }
     Functions: {
       _apply_pending_migration: { Args: { p_sql: string }; Returns: undefined }
+      _wa_exigir_resposta: { Args: { p_usuario: string }; Returns: undefined }
       abrir_aprovacao: { Args: { p_token: string }; Returns: Json }
       agendar_os_interno: {
         Args: { p_a_partir_de?: string; p_os_id: string }
@@ -17423,6 +17604,20 @@ export type Database = {
         }
         Returns: Json
       }
+      definir_desconto_do_orcamento: {
+        Args: { p_modo: string; p_orcamento_id: string; p_valor: number }
+        Returns: Json
+      }
+      definir_excecao_permissao: {
+        Args: {
+          p_concede: boolean
+          p_expira_em: string
+          p_motivo: string
+          p_permissao: string
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
       delete_filamento_3d: {
         Args: { p_material_id: string }
         Returns: undefined
@@ -17430,6 +17625,41 @@ export type Database = {
       delete_impressora_3d: {
         Args: { p_maquina_id: string }
         Returns: undefined
+      }
+      desconto_avaliar: {
+        Args: {
+          p_credito: number
+          p_desconto: number
+          p_orcamento_id: string
+          p_subtotal: number
+        }
+        Returns: Json
+      }
+      desconto_do_orcamento: {
+        Args: { p_modo?: string; p_orcamento_id: string; p_valor?: number }
+        Returns: Json
+      }
+      desconto_em_reais: {
+        Args: {
+          p_credito: number
+          p_informado: number
+          p_modo: string
+          p_subtotal: number
+        }
+        Returns: number
+      }
+      desconto_erro_de_entrada: {
+        Args: {
+          p_credito: number
+          p_informado: number
+          p_modo: string
+          p_subtotal: number
+        }
+        Returns: string
+      }
+      desconto_situacao_interna: {
+        Args: { p_informado?: number; p_modo?: string; p_orcamento_id: string }
+        Returns: Json
       }
       endereco_da_entrega: { Args: { p_os_id: string }; Returns: string }
       enfileirar_notificacao: {
@@ -17669,6 +17899,7 @@ export type Database = {
       }
       meta_por_produto: { Args: { p_mes?: string }; Returns: Json }
       minhas_comissoes: { Args: never; Returns: Json }
+      minhas_permissoes: { Args: never; Returns: string[] }
       nome_do_cliente: { Args: { _cliente_id: string }; Returns: string }
       normalize_document: { Args: { _doc: string }; Returns: string }
       normalize_email: { Args: { _email: string }; Returns: string }
@@ -17885,6 +18116,8 @@ export type Database = {
           total: number
         }[]
       }
+      permissoes_da_pessoa: { Args: { p_usuario_id: string }; Returns: Json }
+      permissoes_uso_no_banco: { Args: never; Returns: Json }
       ponto_de_equilibrio: { Args: { p_mes?: string }; Returns: Json }
       portal_arquivo_visivel: {
         Args: { p_arquivo_id: string; p_cliente_id: string }
@@ -18227,6 +18460,10 @@ export type Database = {
         }
         Returns: Json
       }
+      remover_excecao_permissao: {
+        Args: { p_motivo: string; p_permissao: string; p_usuario_id: string }
+        Returns: Json
+      }
       require_permission: { Args: { _permission: string }; Returns: string }
       reservar_materiais_os: { Args: { p_os_id: string }; Returns: Json }
       reservar_materiais_os_interno: {
@@ -18453,6 +18690,10 @@ export type Database = {
         Args: { p_cliente_id: string; p_usuario_id: string }
         Returns: Json
       }
+      whatsapp_assumir: {
+        Args: { p_conversa_id: string; p_usuario: string }
+        Returns: Json
+      }
       whatsapp_configurar_instancia: {
         Args: {
           p_nome: string
@@ -18461,6 +18702,22 @@ export type Database = {
           p_zapi_instance_id: string
         }
         Returns: string
+      }
+      whatsapp_equipe: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          id: string
+          nome: string
+        }[]
+      }
+      whatsapp_mudar_status: {
+        Args: { p_conversa_id: string; p_status: string; p_usuario: string }
+        Returns: Json
+      }
+      whatsapp_nota: {
+        Args: { p_conversa_id: string; p_texto: string; p_usuario: string }
+        Returns: Json
       }
       whatsapp_registrar_mensagem: {
         Args: {
@@ -18487,12 +18744,40 @@ export type Database = {
         }
         Returns: Json
       }
+      whatsapp_reprocessar_sistema: { Args: never; Returns: number }
       whatsapp_responder: {
         Args: { p_conversa_id: string; p_texto: string }
         Returns: Json
       }
+      whatsapp_responder_arquivo: {
+        Args: {
+          p_conversa_id: string
+          p_legenda?: string
+          p_nome_arquivo: string
+          p_storage_path: string
+          p_tipo: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
+      whatsapp_transferir: {
+        Args: { p_conversa_id: string; p_para: string; p_usuario: string }
+        Returns: Json
+      }
       whatsapp_vincular_cliente: {
         Args: { p_cliente_id: string; p_conversa_id: string }
+        Returns: Json
+      }
+      whatsapp_vincular_orcamento: {
+        Args: {
+          p_conversa_id: string
+          p_orcamento_id: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
+      whatsapp_vincular_os: {
+        Args: { p_conversa_id: string; p_os_id: string; p_usuario: string }
         Returns: Json
       }
     }

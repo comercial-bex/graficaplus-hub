@@ -1,51 +1,70 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
+  Archive,
   ArrowLeft,
   CheckCheck,
+  Clock,
+  Hand,
   Loader2,
+  Lock,
+  PanelRightClose,
+  PanelRightOpen,
   Paperclip,
   RefreshCw,
   RotateCcw,
   Send,
+  StickyNote,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { mensagemErro } from "@/lib/erros";
 import {
+  ANEXO_TIPOS,
+  autorDoBalao,
   conteudoDaMensagem,
   desfechoDoEnvio,
   diaEHora,
-  estaAberta,
+  fraseDoEvento,
+  iniciais,
   nomeDaConversa,
   podeResponder,
   quandoFoi,
   rotuloDoTipo,
   seloDoStatus,
   telefoneLegivel,
+  validarAnexo,
   type ConversaDaCaixa,
   type Desfecho,
+  type EventoDaConversa,
   type Liberacao,
   type MensagemDaCaixa,
 } from "@/domain/whatsapp/caixa-de-entrada";
 import {
   CHAVES,
-  LIMITE_MENSAGENS,
   acionarEnvio,
-  concluirAtendimento,
   enfileirarResposta,
   linkDaMidia,
+  mapaDeNomes,
   marcarComoLida,
-  reabrirAtendimento,
-  useMensagens,
+  subirAnexo,
+  useEquipe,
+  useEventosDaConversa,
+  useMensagensPaginadas,
+  useRespostasRapidas,
+  useTempoRealDaConversa,
   type InstanciaDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
+import { acaoNaConversa, enfileirarArquivo, type AcaoNaConversa } from "@/lib/api/whatsapp-caixa.functions";
 import { RespostasRapidasMenu } from "@/components/whatsapp/respostas-rapidas-menu";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
@@ -55,13 +74,13 @@ function avisar(d: Desfecho) {
   else toast.warning(d.texto);
 }
 
+type ItemDaLinha =
+  | { tipo: "msg"; quando: string; m: MensagemDaCaixa }
+  | { tipo: "evento"; quando: string; e: EventoDaConversa };
+
 /**
- * A conversa aberta: o histórico que o webhook gravou e a resposta.
- *
- * A resposta segue o caminho de envio que já existia: `whatsapp_responder`
- * grava a mensagem como PENDENTE e a linha de `whatsapp_fila_envio` numa
- * transação, e em seguida o POST /api/whatsapp/enviar tenta mandar. A tela só
- * diz "enviada" quando o consumidor diz que aquela linha saiu.
+ * A conversa aberta: histórico (mensagens + eventos da equipe), responsável,
+ * situação, resposta, nota interna e anexo.
  */
 export function ConversaAberta({
   conversa,
@@ -69,43 +88,58 @@ export function ConversaAberta({
   conexaoComFalha,
   temPermissaoDeResponder,
   onVoltar,
+  painelAberto,
+  onAlternarPainel,
   className,
 }: {
   conversa: ConversaDaCaixa;
   instancia: InstanciaDaCaixa | null;
-  /** A leitura das instâncias caiu: sem ela, "não configurado" seria mentira. */
   conexaoComFalha: boolean;
   temPermissaoDeResponder: boolean;
   onVoltar: () => void;
+  painelAberto: boolean;
+  onAlternarPainel: () => void;
   className?: string;
 }) {
   const qc = useQueryClient();
-  const mensagens = useMensagens(conversa.id);
+  const { user } = useAuth();
+  const meuId = user?.id ?? null;
+  const acao = useServerFn(acaoNaConversa);
+  const enviarArquivo = useServerFn(enfileirarArquivo);
+  const mensagens = useMensagensPaginadas(conversa.id);
+  const eventos = useEventosDaConversa(conversa.id);
+  const equipe = useEquipe();
+  const respostas = useRespostasRapidas();
+  useTempoRealDaConversa(conversa.id);
+
+  const [modo, setModo] = useState<"mensagem" | "nota">("mensagem");
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [tentando, setTentando] = useState(false);
-  const [mudandoStatus, setMudandoStatus] = useState(false);
-  const fimRef = useRef<HTMLDivElement>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const rolagemRef = useRef<HTMLDivElement>(null);
+  const noFimRef = useRef(true);
+  const alturaAntesRef = useRef<number | null>(null);
+  const anexoRef = useRef<HTMLInputElement>(null);
 
+  const nomes = useMemo(() => mapaDeNomes(equipe.data), [equipe.data]);
   const liberacao: Liberacao =
     conexaoComFalha && temPermissaoDeResponder
       ? {
           liberado: false,
           rotulo: "Não foi possível conferir a conexão do WhatsApp",
-          motivo:
-            "A leitura da conexão falhou (o erro está no topo da tela). Recarregue antes de responder.",
+          motivo: "A leitura da conexão falhou (o erro está no topo da tela). Recarregue antes de responder.",
         }
       : podeResponder(instancia, temPermissaoDeResponder);
   const nome = nomeDaConversa(conversa);
-  const aberta = estaAberta(conversa);
+  const responsavel = conversa.responsavel_id ? (nomes.get(conversa.responsavel_id) ?? "Equipe") : null;
 
   const recarregar = () => {
     void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) });
     void qc.invalidateQueries({ queryKey: CHAVES.conversas });
+    void qc.invalidateQueries({ queryKey: ["wa-caixa-eventos", conversa.id] });
   };
 
-  // Abrir a conversa é ler. Só quem pode responder grava (o RLS recusaria os
-  // outros), e só quando há o que marcar.
   useEffect(() => {
     if (!temPermissaoDeResponder || (conversa.nao_lidas ?? 0) === 0) return;
     marcarComoLida(conversa.id)
@@ -114,26 +148,89 @@ export function ConversaAberta({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversa.id, conversa.nao_lidas, temPermissaoDeResponder]);
 
-  // A conversa lê de cima para baixo e abre no fim, como no celular.
+  const linha: ItemDaLinha[] = useMemo(() => {
+    const msgs = (mensagens.data?.pages ?? []).flat();
+    const maisAntiga = msgs.length ? msgs[msgs.length - 1].created_at : null;
+    const itens: ItemDaLinha[] = msgs.map((m) => ({ tipo: "msg", quando: quandoFoi(m), m }));
+    for (const e of eventos.data ?? []) {
+      // Eventos mais antigos que a mensagem mais antiga carregada esperam o
+      // "mensagens anteriores" — senão apareceriam soltos no topo.
+      if (mensagens.hasNextPage && maisAntiga && e.created_at < maisAntiga) continue;
+      itens.push({ tipo: "evento", quando: e.created_at, e });
+    }
+    return itens.sort((a, b) => a.quando.localeCompare(b.quando));
+  }, [mensagens.data, eventos.data, mensagens.hasNextPage]);
+
+  // Rola para o fim só se a pessoa já estava no fim; ao carregar anteriores,
+  // mantém a posição de leitura.
+  useLayoutEffect(() => {
+    const el = rolagemRef.current;
+    if (!el) return;
+    if (alturaAntesRef.current != null) {
+      el.scrollTop = el.scrollHeight - alturaAntesRef.current;
+      alturaAntesRef.current = null;
+      return;
+    }
+    if (noFimRef.current) el.scrollTop = el.scrollHeight;
+  }, [linha.length]);
+
   useEffect(() => {
-    fimRef.current?.scrollIntoView({ block: "end" });
-  }, [mensagens.data?.length, conversa.id]);
+    noFimRef.current = true;
+  }, [conversa.id]);
+
+  function aoRolar() {
+    const el = rolagemRef.current;
+    if (!el) return;
+    noFimRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }
+
+  function carregarAnteriores() {
+    alturaAntesRef.current = rolagemRef.current?.scrollHeight ?? null;
+    void mensagens.fetchNextPage();
+  }
+
+  async function executar(dados: AcaoNaConversa, sucesso: string) {
+    setOcupado(true);
+    try {
+      await acao({ data: dados });
+      toast.success(sucesso);
+      recarregar();
+    } catch (e) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setOcupado(false);
+    }
+  }
 
   async function enviar() {
     const limpo = texto.trim();
-    if (!limpo || !liberacao.liberado || enviando) return;
+    if (!limpo || enviando) return;
+    if (modo === "nota") {
+      setEnviando(true);
+      try {
+        await acao({ data: { acao: "nota", conversaId: conversa.id, texto: limpo } });
+        setTexto("");
+        noFimRef.current = true;
+        recarregar();
+      } catch (e) {
+        toast.error(mensagemErro(e));
+      } finally {
+        setEnviando(false);
+      }
+      return;
+    }
+    if (!liberacao.liberado) return;
     setEnviando(true);
     try {
       let enfileirada: { mensagem_id: string; fila_id: string };
       try {
         enfileirada = await enfileirarResposta(conversa.id, limpo);
       } catch (e) {
-        // Recusada pelo banco (desconectado, sem permissão, número fixo):
-        // nada foi gravado e o texto fica na caixa para não se perder.
         toast.error(mensagemErro(e));
         return;
       }
       setTexto("");
+      noFimRef.current = true;
       recarregar();
       const http = await acionarEnvio();
       avisar(desfechoDoEnvio(http, enfileirada.fila_id, enfileirada.mensagem_id));
@@ -143,27 +240,52 @@ export function ConversaAberta({
     }
   }
 
-  /** Aciona o consumidor de novo e lê no banco o que aconteceu com ESTA mensagem. */
+  async function anexar(arquivo: File) {
+    const erro = validarAnexo(arquivo);
+    if (erro) {
+      toast.error(erro);
+      return;
+    }
+    setEnviando(true);
+    try {
+      const caminho = await subirAnexo(conversa.id, arquivo, arquivo.name);
+      const r = await enviarArquivo({
+        data: {
+          conversaId: conversa.id,
+          tipo: ANEXO_TIPOS[arquivo.type],
+          caminho,
+          nomeArquivo: arquivo.name,
+          legenda: texto.trim() || undefined,
+        },
+      });
+      setTexto("");
+      noFimRef.current = true;
+      recarregar();
+      const http = await acionarEnvio();
+      avisar(desfechoDoEnvio(http, r.fila_id, r.mensagem_id));
+      recarregar();
+    } catch (e) {
+      toast.error(`O arquivo não foi enviado: ${mensagemErro(e)}`);
+    } finally {
+      setEnviando(false);
+      if (anexoRef.current) anexoRef.current.value = "";
+    }
+  }
+
   async function tentarDeNovo(m: MensagemDaCaixa) {
     setTentando(true);
     try {
       const http = await acionarEnvio();
       const atual = await mensagens.refetch();
-      const depois = (atual.data ?? []).find((x) => x.id === m.id);
-      if (
-        depois?.status === "enviada" ||
-        depois?.status === "entregue" ||
-        depois?.status === "lida"
-      ) {
+      const depois = (atual.data?.pages ?? []).flat().find((x) => x.id === m.id);
+      if (depois?.status === "enviada" || depois?.status === "entregue" || depois?.status === "lida") {
         toast.success("Mensagem enviada.");
       } else if (depois?.status === "falha") {
         toast.error(`A mensagem não saiu: ${depois.erro ?? "o Z-API recusou"}.`);
       } else {
         const motivo =
           depois?.erro ??
-          ("falhaDeRede" in http
-            ? http.falhaDeRede
-            : (http.corpo?.erro ?? "o envio vai ser tentado de novo"));
+          ("falhaDeRede" in http ? http.falhaDeRede : (http.corpo?.erro ?? "o envio vai ser tentado de novo"));
         toast.warning(`Ainda na fila: ${motivo}.`);
       }
       void qc.invalidateQueries({ queryKey: CHAVES.conversas });
@@ -172,23 +294,7 @@ export function ConversaAberta({
     }
   }
 
-  async function mudarStatus(concluir: boolean) {
-    setMudandoStatus(true);
-    try {
-      if (concluir) await concluirAtendimento(conversa.id);
-      else await reabrirAtendimento(conversa.id);
-      toast.success(concluir ? "Atendimento concluído" : "Atendimento reaberto");
-      void qc.invalidateQueries({ queryKey: CHAVES.conversas });
-    } catch (e) {
-      toast.error(mensagemErro(e));
-    } finally {
-      setMudandoStatus(false);
-    }
-  }
-
   async function abrirMidia(m: MensagemDaCaixa) {
-    // A janela abre no clique (antes do await): aberta depois, o navegador
-    // trataria como pop-up e bloquearia.
     const janela = window.open("", "_blank");
     try {
       const url = await linkDaMidia(m.storage_bucket as string, m.storage_path as string);
@@ -202,62 +308,116 @@ export function ConversaAberta({
     }
   }
 
-  const lista = mensagens.data ?? [];
+  // Atalho "/": digitar "/" no começo abre as respostas rápidas filtradas.
+  const atalho = modo === "mensagem" && texto.startsWith("/") ? texto.slice(1).toLowerCase() : null;
+  const sugestoes =
+    atalho === null
+      ? []
+      : (respostas.data ?? [])
+          .filter((r) => `${r.titulo} ${r.categoria}`.toLowerCase().includes(atalho))
+          .slice(0, 6);
+
+  const acaoStatus = (status: "aberta" | "pendente" | "resolvida" | "arquivada", rotulo: string) =>
+    void executar({ acao: "status", conversaId: conversa.id, status }, rotulo);
 
   return (
     <Card className={cn("flex flex-col overflow-hidden", className)}>
-      <div className="flex items-center gap-3 border-b p-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          onClick={onVoltar}
-          aria-label="Voltar às conversas"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <Avatar>
-          <AvatarFallback>{nome.charAt(0).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-medium">{nome}</div>
-          <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-            <span>{telefoneLegivel(conversa.telefone)}</span>
-            {conversa.cliente && (
-              <Link
-                to="/clientes/$id"
-                params={{ id: conversa.cliente.id }}
-                className="text-primary underline underline-offset-2"
+      <div className="space-y-2 border-b p-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={onVoltar} aria-label="Voltar às conversas">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Avatar>
+            <AvatarFallback>{iniciais(nome)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-medium">{nome}</div>
+            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+              <span>{telefoneLegivel(conversa.telefone)}</span>
+              {conversa.cliente && (
+                <Link to="/clientes/$id" params={{ id: conversa.cliente.id }} className="underline underline-offset-2">
+                  ver cliente
+                </Link>
+              )}
+              <span>· {responsavel ? `com ${responsavel}` : "sem responsável"}</span>
+            </div>
+          </div>
+          {conversa.status !== "aberta" && (
+            <StatusChip
+              label={conversa.status}
+              tone={conversa.status === "pendente" ? "amber" : "muted"}
+            />
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden xl:inline-flex"
+            onClick={onAlternarPainel}
+            aria-label={painelAberto ? "Recolher painel lateral" : "Abrir painel lateral"}
+            title={painelAberto ? "Recolher painel" : "Abrir painel"}
+          >
+            {painelAberto ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+          </Button>
+        </div>
+        {temPermissaoDeResponder && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {conversa.responsavel_id !== meuId && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                disabled={ocupado}
+                onClick={() => void executar({ acao: "assumir", conversaId: conversa.id }, "Você assumiu o atendimento")}
               >
-                ver cliente
-              </Link>
+                <Hand className="mr-1 h-3.5 w-3.5" /> Assumir
+              </Button>
+            )}
+            <Select
+              value=""
+              onValueChange={(para) =>
+                void executar({ acao: "transferir", conversaId: conversa.id, para }, "Conversa transferida")
+              }
+              disabled={ocupado}
+            >
+              <SelectTrigger className="h-7 w-[170px] text-xs" aria-label="Transferir para">
+                <SelectValue placeholder="Transferir para…" />
+              </SelectTrigger>
+              <SelectContent>
+                {(equipe.data ?? [])
+                  .filter((p) => p.id !== conversa.responsavel_id)
+                  .map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome ?? "Sem nome"}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <span className="ml-auto" />
+            {conversa.status === "aberta" && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("pendente", "Marcada como pendente")}>
+                <Clock className="mr-1 h-3.5 w-3.5" /> Marcar pendente
+              </Button>
+            )}
+            {(conversa.status === "aberta" || conversa.status === "pendente") && (
+              <Button size="sm" variant="outline" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("resolvida", "Atendimento resolvido")}>
+                <CheckCheck className="mr-1 h-3.5 w-3.5" /> Resolver
+              </Button>
+            )}
+            {conversa.status !== "arquivada" && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("arquivada", "Conversa arquivada")}>
+                <Archive className="mr-1 h-3.5 w-3.5" /> Arquivar
+              </Button>
+            )}
+            {conversa.status !== "aberta" && (
+              <Button size="sm" variant="outline" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("aberta", "Conversa reaberta")}>
+                <RotateCcw className="mr-1 h-3.5 w-3.5" /> Reabrir
+              </Button>
             )}
           </div>
-        </div>
-        {!aberta && <StatusChip label="concluída" tone="muted" />}
-        {temPermissaoDeResponder &&
-          (aberta ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => mudarStatus(true)}
-              disabled={mudandoStatus}
-            >
-              <CheckCheck className="mr-1 h-4 w-4" /> Concluir atendimento
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => mudarStatus(false)}
-              disabled={mudandoStatus}
-            >
-              <RotateCcw className="mr-1 h-4 w-4" /> Reabrir
-            </Button>
-          ))}
+        )}
       </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-auto bg-muted/20 p-4">
+      <div ref={rolagemRef} onScroll={aoRolar} className="min-h-0 flex-1 space-y-2.5 overflow-auto bg-muted/30 p-4">
         {mensagens.isError ? (
           <FalhaDeConsulta
             titulo="Não foi possível carregar as mensagens"
@@ -268,68 +428,72 @@ export function ConversaAberta({
           <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando as mensagens…
           </div>
-        ) : lista.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Nenhuma mensagem gravada nesta conversa.
-          </p>
+        ) : linha.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma mensagem gravada nesta conversa.</p>
         ) : (
           <>
-            {lista.length >= LIMITE_MENSAGENS && (
-              <p className="text-center text-[11px] text-muted-foreground">
-                Mostrando as {LIMITE_MENSAGENS} mensagens mais recentes.
-              </p>
+            {mensagens.hasNextPage && (
+              <div className="flex justify-center">
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={carregarAnteriores} disabled={mensagens.isFetchingNextPage}>
+                  {mensagens.isFetchingNextPage && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                  Mensagens anteriores
+                </Button>
+              </div>
             )}
-            {lista.map((m) => {
+            {linha.map((item) => {
+              if (item.tipo === "evento") {
+                const e = item.e;
+                if (e.tipo === "nota") {
+                  return (
+                    <div key={e.id} className="mx-auto max-w-[85%] rounded-md border border-warning/40 bg-warning/10 p-2.5 text-sm text-foreground">
+                      <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
+                        <Lock className="h-3 w-3" /> Nota de {(e.de_usuario && nomes.get(e.de_usuario)) || "Equipe"} · visível só para a equipe
+                      </div>
+                      <div className="whitespace-pre-wrap break-words">{fraseDoEvento(e, nomes)}</div>
+                      <div className="mt-1 text-[10px] text-muted-foreground">{diaEHora(e.created_at)}</div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={e.id} className="py-0.5 text-center text-[11px] text-muted-foreground">
+                    {fraseDoEvento(e, nomes)} · {diaEHora(e.created_at)}
+                  </div>
+                );
+              }
+              const m = item.m;
               const nossa = m.direcao === "saida";
               const selo = seloDoStatus(m);
               const temMidia = !!m.storage_path || !!m.media_url;
+              const autor = autorDoBalao(m, nomes);
+              const naoSuportada = m.tipo === "sistema" && !m.texto;
               return (
                 <div key={m.id} className={cn("flex", nossa ? "justify-end" : "justify-start")}>
                   <div
                     className={cn(
-                      "max-w-[80%] rounded-lg p-2.5 text-sm",
-                      nossa ? "bg-emerald-600 text-white" : "border bg-card",
+                      "max-w-[80%] rounded-lg border p-2.5 text-sm text-foreground",
+                      nossa ? "border-positive/25 bg-positive/10" : "bg-card",
                     )}
                   >
-                    <div className="whitespace-pre-wrap break-words">{conteudoDaMensagem(m)}</div>
+                    {autor && <div className="mb-0.5 text-[10px] font-semibold text-muted-foreground">{autor}</div>}
+                    <div className={cn("whitespace-pre-wrap break-words", naoSuportada && "italic text-muted-foreground")}>
+                      {conteudoDaMensagem(m)}
+                    </div>
                     {temMidia &&
                       (m.storage_path && m.storage_bucket ? (
-                        <button
-                          type="button"
-                          onClick={() => abrirMidia(m)}
-                          className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2"
-                        >
-                          <Paperclip className="h-3 w-3" /> Abrir{" "}
-                          {rotuloDoTipo(m.tipo).toLowerCase()}
+                        <button type="button" onClick={() => abrirMidia(m)} className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2">
+                          <Paperclip className="h-3 w-3" /> Abrir {rotuloDoTipo(m.tipo).toLowerCase()}
                         </button>
                       ) : m.media_url ? (
-                        // Sem a cópia no nosso armazenamento, só o link do Z-API
-                        // (vale por 30 dias) — e a tela diz isso.
-                        <a
-                          href={m.media_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2"
-                        >
-                          <Paperclip className="h-3 w-3" /> Abrir{" "}
-                          {rotuloDoTipo(m.tipo).toLowerCase()} (link do Z-API, vale 30 dias)
+                        <a href={m.media_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2">
+                          <Paperclip className="h-3 w-3" /> Abrir {rotuloDoTipo(m.tipo).toLowerCase()} (link do Z-API, vale 30 dias)
                         </a>
                       ) : null)}
-                    <div
-                      className={cn(
-                        "mt-1 flex flex-wrap items-center gap-2 text-[10px]",
-                        nossa ? "text-emerald-50" : "text-muted-foreground",
-                      )}
-                    >
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
                       <span>{diaEHora(quandoFoi(m))}</span>
-                      {selo && (
-                        <span className="font-semibold uppercase tracking-wide">{selo.texto}</span>
-                      )}
+                      {selo && <span className="font-semibold uppercase tracking-wide">{selo.texto}</span>}
                     </div>
                     {nossa && m.erro && m.status !== "enviada" && (
-                      <div className="mt-1 rounded bg-black/20 px-1.5 py-1 text-[11px]">
-                        Motivo: {m.erro}
-                      </div>
+                      <div className="mt-1 rounded bg-destructive/10 px-1.5 py-1 text-[11px] text-destructive">Motivo: {m.erro}</div>
                     )}
                     {nossa && temPermissaoDeResponder && m.status === "pendente" && (
                       <Button
@@ -340,19 +504,11 @@ export function ConversaAberta({
                         disabled={tentando || !liberacao.liberado}
                         title={liberacao.liberado ? undefined : liberacao.rotulo}
                       >
-                        <RefreshCw className={cn("mr-1 h-3 w-3", tentando && "animate-spin")} />{" "}
-                        Tentar de novo
+                        <RefreshCw className={cn("mr-1 h-3 w-3", tentando && "animate-spin")} /> Tentar de novo
                       </Button>
                     )}
                     {nossa && temPermissaoDeResponder && m.status === "falha" && (
-                      // A linha da fila já é falha definitiva — o consumidor não
-                      // pega de novo. O caminho honesto é mandar outra mensagem.
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="mt-2 h-7 text-xs"
-                        onClick={() => setTexto(m.texto ?? "")}
-                      >
+                      <Button size="sm" variant="secondary" className="mt-2 h-7 text-xs" onClick={() => setTexto(m.texto ?? "")}>
                         Reescrever na caixa de resposta
                       </Button>
                     )}
@@ -362,54 +518,110 @@ export function ConversaAberta({
             })}
           </>
         )}
-        <div ref={fimRef} />
       </div>
 
       <div className="space-y-2 border-t p-3">
+        {temPermissaoDeResponder && (
+          <div className="flex gap-1 text-xs" role="tablist" aria-label="Tipo de escrita">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={modo === "mensagem"}
+              onClick={() => setModo("mensagem")}
+              className={cn("rounded px-2 py-1", modo === "mensagem" ? "bg-muted font-semibold" : "text-muted-foreground hover:bg-muted/60")}
+            >
+              Mensagem
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={modo === "nota"}
+              onClick={() => setModo("nota")}
+              className={cn("inline-flex items-center gap-1 rounded px-2 py-1", modo === "nota" ? "bg-warning/15 font-semibold" : "text-muted-foreground hover:bg-muted/60")}
+            >
+              <StickyNote className="h-3 w-3" /> Nota
+            </button>
+            {modo === "nota" && (
+              <span className="ml-2 self-center text-[11px] text-muted-foreground">
+                <Lock className="mr-0.5 inline h-3 w-3" />A nota fica só na equipe — nunca vai para o cliente.
+              </span>
+            )}
+          </div>
+        )}
+        {sugestoes.length > 0 && (
+          <div className="rounded-md border bg-popover p-1 shadow-sm">
+            {sugestoes.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-muted"
+                onClick={() => setTexto(r.texto)}
+              >
+                <span className="font-medium">{r.titulo}</span>{" "}
+                <span className="text-muted-foreground">— {r.texto.slice(0, 70)}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-end gap-2">
-          <RespostasRapidasMenu
-            desabilitado={!temPermissaoDeResponder}
-            onEscolher={(t) => setTexto((atual) => (atual.trim() ? `${atual.trimEnd()}\n${t}` : t))}
-          />
+          {modo === "mensagem" && (
+            <>
+              <RespostasRapidasMenu
+                desabilitado={!temPermissaoDeResponder}
+                onEscolher={(t) => setTexto((atual) => (atual.trim() ? `${atual.trimEnd()}\n${t}` : t))}
+              />
+              <input
+                ref={anexoRef}
+                type="file"
+                className="hidden"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void anexar(f);
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={!liberacao.liberado || enviando}
+                onClick={() => anexoRef.current?.click()}
+                title="Anexar PDF ou imagem (até 10 MB) — o texto escrito vira legenda"
+                aria-label="Anexar arquivo"
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
+            </>
+          )}
           <Textarea
             rows={2}
-            className="min-h-[44px] flex-1 resize-none"
+            className={cn("min-h-[44px] flex-1 resize-none", modo === "nota" && "border-warning/50 bg-warning/5")}
             placeholder={
-              temPermissaoDeResponder
-                ? "Escreva a resposta… (Ctrl+Enter envia)"
-                : "Seu perfil só lê as conversas"
+              !temPermissaoDeResponder
+                ? "Seu perfil só lê as conversas"
+                : modo === "nota"
+                  ? "Nota interna para a equipe… (Ctrl+Enter grava)"
+                  : "Escreva a resposta… “/” abre respostas rápidas · Ctrl+Enter envia"
             }
             value={texto}
             disabled={!temPermissaoDeResponder || enviando}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => {
-              // Enter sozinho quebra a linha: mensagem que sai pela metade para
-              // um cliente real não tem volta. Ctrl/⌘+Enter envia.
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 void enviar();
               }
             }}
-            aria-label="Resposta"
+            aria-label={modo === "nota" ? "Nota interna" : "Resposta"}
           />
-          {liberacao.liberado && (
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => void enviar()}
-              disabled={enviando || !texto.trim()}
-            >
-              {enviando ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-1 h-4 w-4" />
-              )}
-              Enviar
+          {(modo === "nota" ? temPermissaoDeResponder : liberacao.liberado) && (
+            <Button onClick={() => void enviar()} disabled={enviando || !texto.trim()} variant={modo === "nota" ? "outline" : "default"}>
+              {enviando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : modo === "nota" ? <StickyNote className="mr-1 h-4 w-4" /> : <Send className="mr-1 h-4 w-4" />}
+              {modo === "nota" ? "Gravar nota" : "Enviar"}
             </Button>
           )}
         </div>
-        {!liberacao.liberado && (
-          // O botão desabilitado diz o motivo no próprio rótulo — nunca um
-          // "Enviar" cinza sem explicação, e nunca um "enviado" que não saiu.
+        {modo === "mensagem" && !liberacao.liberado && (
           <div className="space-y-1">
             <Button disabled className="h-auto w-full whitespace-normal py-2">
               {liberacao.rotulo}

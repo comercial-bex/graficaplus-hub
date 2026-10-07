@@ -249,3 +249,17 @@ describe("chave de idempotência", () => {
     expect(entregue).not.toBe(lida);
   });
 });
+
+describe("mensagens de modelo e formatos especiais", async () => {
+  const { classificarEventoZapi } = await import("@/domain/whatsapp/evento-zapi");
+  const base = { type: "ReceivedCallback", instanceId: "I", messageId: "M", phone: "5596981216527" };
+  it("hydratedTemplate vira texto com título, corpo e rodapé", () => {
+    const e = classificarEventoZapi({ ...base, hydratedTemplate: { title: "Bloqueio", message: "Olá", footer: "STOP" } });
+    expect(e).toMatchObject({ tipo: "mensagem", tipoMensagem: "texto", texto: "Bloqueio\n\nOlá\n\nSTOP" });
+  });
+  it("enquete, vídeo-nota e pedido", () => {
+    expect(classificarEventoZapi({ ...base, poll: { question: "Cor?" } })).toMatchObject({ texto: "[Enquete] Cor?" });
+    expect(classificarEventoZapi({ ...base, ptv: { url: "https://x/v.mp4" } })).toMatchObject({ tipoMensagem: "video" });
+    expect(classificarEventoZapi({ ...base, order: {} })).toMatchObject({ texto: "[Pedido]" });
+  });
+});

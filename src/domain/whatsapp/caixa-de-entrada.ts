@@ -54,6 +54,8 @@ export type MensagemDaCaixa = {
   recebido_em: string | null;
   enviado_em: string | null;
   created_at: string;
+  enviada_por?: string | null;
+  origem?: string | null;
 };
 
 /* ------------------------------------------------------------------ */
@@ -284,6 +286,7 @@ export function rotuloDoTipo(tipo: string): string {
 export function conteudoDaMensagem(m: Pick<MensagemDaCaixa, "texto" | "legenda" | "tipo">): string {
   const texto = m.texto?.trim() || m.legenda?.trim();
   if (texto) return texto;
+  if (m.tipo === "sistema") return MENSAGEM_NAO_SUPORTADA;
   return `[${rotuloDoTipo(m.tipo)}]`;
 }
 
@@ -478,4 +481,118 @@ export function desfechoDoEnvio(
     texto:
       "A resposta ficou na fila — outra rodada de envio pode estar com ela. O selo da mensagem muda quando ela sair.",
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Caixa v2: filas, status, agrupamento e autoria                      */
+/* ------------------------------------------------------------------ */
+
+export const MENSAGEM_NAO_SUPORTADA = "Mensagem não suportada — ver evento bruto";
+
+/** Resumo da conversa na lista: "[sistema]" antigo vira rótulo legível. */
+export function resumoDaConversa(ultima: string | null): string {
+  if (!ultima) return "Sem mensagens";
+  if (ultima === "[sistema]") return MENSAGEM_NAO_SUPORTADA;
+  return ultima;
+}
+
+export type Fila = "minhas" | "nao_atribuidas" | "todas";
+export type AbaStatus = "aberta" | "pendente" | "resolvida";
+
+export type GrupoDoDia = "Hoje" | "Ontem" | "Esta semana" | "Anteriores";
+
+export function grupoDoDia(iso: string | null, agora: Date = new Date()): GrupoDoDia {
+  if (!iso) return "Anteriores";
+  const d = new Date(iso);
+  const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
+  const dia = 86_400_000;
+  const t = d.getTime();
+  if (t >= inicioHoje) return "Hoje";
+  if (t >= inicioHoje - dia) return "Ontem";
+  if (t >= inicioHoje - 6 * dia) return "Esta semana";
+  return "Anteriores";
+}
+
+export function agruparPorDia<T extends { ultima_mensagem_at: string | null }>(
+  lista: T[],
+  agora: Date = new Date(),
+): { grupo: GrupoDoDia; itens: T[] }[] {
+  const ordem: GrupoDoDia[] = ["Hoje", "Ontem", "Esta semana", "Anteriores"];
+  const mapa = new Map<GrupoDoDia, T[]>();
+  for (const c of lista) {
+    const g = grupoDoDia(c.ultima_mensagem_at, agora);
+    mapa.set(g, [...(mapa.get(g) ?? []), c]);
+  }
+  return ordem.filter((g) => mapa.has(g)).map((g) => ({ grupo: g, itens: mapa.get(g)! }));
+}
+
+export function iniciais(nome: string | null | undefined): string {
+  const partes = (nome ?? "").trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  return ((partes[0][0] ?? "") + (partes.length > 1 ? (partes[partes.length - 1][0] ?? "") : "")).toUpperCase();
+}
+
+/** Quem mandou o balão de saída: pessoa da equipe, o celular ou o sistema. */
+export function autorDoBalao(
+  m: Pick<MensagemDaCaixa, "direcao" | "enviada_por" | "origem">,
+  nomes: Map<string, string>,
+): string | null {
+  if (m.direcao !== "saida") return null;
+  if (m.enviada_por) return nomes.get(m.enviada_por) ?? "Equipe";
+  if (m.origem === "automacao") return "Automático";
+  if (m.origem === "ia") return "Assistente (IA)";
+  return "Celular";
+}
+
+export type EventoDaConversa = {
+  id: string;
+  conversa_id: string;
+  tipo: "assumida" | "transferida" | "status" | "vinculo" | "nota";
+  de_usuario: string | null;
+  para_usuario: string | null;
+  detalhe: Record<string, unknown> | null;
+  created_at: string;
+};
+
+const ROTULO_STATUS: Record<string, string> = {
+  aberta: "aberta",
+  pendente: "pendente",
+  resolvida: "resolvida",
+  arquivada: "arquivada",
+};
+
+/** A frase cinza do meio da conversa ("Harison assumiu o atendimento"). */
+export function fraseDoEvento(e: EventoDaConversa, nomes: Map<string, string>): string {
+  const quem = (e.de_usuario && nomes.get(e.de_usuario)) || "Alguém da equipe";
+  const para = (e.para_usuario && nomes.get(e.para_usuario)) || "outra pessoa";
+  const d = e.detalhe ?? {};
+  switch (e.tipo) {
+    case "assumida":
+      return `${quem} assumiu o atendimento`;
+    case "transferida":
+      return `${quem} transferiu para ${para}`;
+    case "status":
+      return `${quem} marcou como ${ROTULO_STATUS[String(d.para)] ?? String(d.para)}`;
+    case "vinculo":
+      return d.orcamento_id
+        ? `${quem} vinculou o orçamento #${String(d.numero ?? "")}`
+        : `${quem} vinculou a OS #${String(d.numero ?? "")}`;
+    case "nota":
+      return String(d.texto ?? "");
+  }
+}
+
+/** Limites do anexo enviado pela caixa. */
+export const ANEXO_MAX_BYTES = 10 * 1024 * 1024;
+export const ANEXO_TIPOS: Record<string, "documento" | "imagem"> = {
+  "application/pdf": "documento",
+  "image/jpeg": "imagem",
+  "image/png": "imagem",
+  "image/webp": "imagem",
+};
+
+export function validarAnexo(arquivo: { type: string; size: number }): string | null {
+  if (!ANEXO_TIPOS[arquivo.type]) return "Envie PDF ou imagem (JPG, PNG ou WEBP).";
+  if (arquivo.size > ANEXO_MAX_BYTES) return "Arquivo acima de 10 MB.";
+  return null;
 }

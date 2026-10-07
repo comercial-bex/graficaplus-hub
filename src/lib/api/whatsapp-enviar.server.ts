@@ -314,7 +314,7 @@ export type ResultadoDaLinha = {
  */
 function pedidoDaLinha(linha: LinhaDaFila, telefone: string): PedidoDeEnvio {
   const p = linha.payload ?? {};
-  const tipo = p.tipo === "pdf" ? "pdf" : "texto";
+  const tipo = p.tipo === "pdf" ? "pdf" : p.tipo === "imagem" ? "imagem" : "texto";
   return {
     tipo,
     para: (p.para as string) ?? telefone,
@@ -452,7 +452,25 @@ export async function processarFilaZapi(request: Request): Promise<Response> {
       telefone = (conversa?.telefone as string) ?? "";
     }
 
-    const montado = montarEnvio(pedidoDaLinha(linha, telefone), {
+    const pedido = pedidoDaLinha(linha, telefone);
+    // Arquivo enviado pela caixa: mora no bucket privado. O Z-API baixa por
+    // um link temporário (1 h), gerado aqui no servidor.
+    const caminho = (linha.payload?.storage_path as string | undefined) ?? null;
+    if (pedido.tipo !== "texto" && !pedido.documento && caminho) {
+      const bucket = (linha.payload?.storage_bucket as string | undefined) ?? "whatsapp-midias";
+      const { data: assinado, error: erroLink } = await supabaseAdmin.storage
+        .from(bucket)
+        .createSignedUrl(caminho, 3600);
+      if (erroLink || !assinado) {
+        resultados.push(
+          await marcarFalha(erros, linha, tentativas, `falha ao gerar o link do arquivo: ${erroLink?.message ?? "sem link"}`, false),
+        );
+        continue;
+      }
+      pedido.documento = assinado.signedUrl;
+    }
+
+    const montado = montarEnvio(pedido, {
       instanceId: instancia.zapi_instance_id,
       token,
     });
