@@ -23,7 +23,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
@@ -64,7 +71,11 @@ import {
   useTempoRealDaConversa,
   type InstanciaDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
-import { acaoNaConversa, enfileirarArquivo, type AcaoNaConversa } from "@/lib/api/whatsapp-caixa.functions";
+import {
+  acaoNaConversa,
+  enfileirarArquivo,
+  type AcaoNaConversa,
+} from "@/lib/api/whatsapp-caixa.functions";
 import { RespostasRapidasMenu } from "@/components/whatsapp/respostas-rapidas-menu";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
@@ -90,6 +101,7 @@ export function ConversaAberta({
   onVoltar,
   painelAberto,
   onAlternarPainel,
+  acoes,
   className,
 }: {
   conversa: ConversaDaCaixa;
@@ -99,6 +111,8 @@ export function ConversaAberta({
   onVoltar: () => void;
   painelAberto: boolean;
   onAlternarPainel: () => void;
+  /** O painel da conversa (cliente, etiquetas, orçamento): no celular abre numa gaveta. */
+  acoes?: React.ReactNode;
   className?: string;
 }) {
   const qc = useQueryClient();
@@ -128,11 +142,14 @@ export function ConversaAberta({
       ? {
           liberado: false,
           rotulo: "Não foi possível conferir a conexão do WhatsApp",
-          motivo: "A leitura da conexão falhou (o erro está no topo da tela). Recarregue antes de responder.",
+          motivo:
+            "A leitura da conexão falhou (o erro está no topo da tela). Recarregue antes de responder.",
         }
       : podeResponder(instancia, temPermissaoDeResponder);
   const nome = nomeDaConversa(conversa);
-  const responsavel = conversa.responsavel_id ? (nomes.get(conversa.responsavel_id) ?? "Equipe") : null;
+  const responsavel = conversa.responsavel_id
+    ? (nomes.get(conversa.responsavel_id) ?? "Equipe")
+    : null;
 
   const recarregar = () => {
     void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) });
@@ -278,14 +295,20 @@ export function ConversaAberta({
       const http = await acionarEnvio();
       const atual = await mensagens.refetch();
       const depois = (atual.data?.pages ?? []).flat().find((x) => x.id === m.id);
-      if (depois?.status === "enviada" || depois?.status === "entregue" || depois?.status === "lida") {
+      if (
+        depois?.status === "enviada" ||
+        depois?.status === "entregue" ||
+        depois?.status === "lida"
+      ) {
         toast.success("Mensagem enviada.");
       } else if (depois?.status === "falha") {
         toast.error(`A mensagem não saiu: ${depois.erro ?? "o Z-API recusou"}.`);
       } else {
         const motivo =
           depois?.erro ??
-          ("falhaDeRede" in http ? http.falhaDeRede : (http.corpo?.erro ?? "o envio vai ser tentado de novo"));
+          ("falhaDeRede" in http
+            ? http.falhaDeRede
+            : (http.corpo?.erro ?? "o envio vai ser tentado de novo"));
         toast.warning(`Ainda na fila: ${motivo}.`);
       }
       void qc.invalidateQueries({ queryKey: CHAVES.conversas });
@@ -317,13 +340,18 @@ export function ConversaAberta({
           .filter((r) => `${r.titulo} ${r.categoria}`.toLowerCase().includes(atalho))
           .slice(0, 6);
 
-  const resolver = (motivo: "atendido" | "sem_resposta_necessaria" | "spam" | "duplicado" | "outro") => {
+  const resolver = (
+    motivo: "atendido" | "sem_resposta_necessaria" | "spam" | "duplicado" | "outro",
+  ) => {
     let nota: string | undefined;
     if (motivo === "outro") {
       nota = window.prompt("Descreva o motivo da resolução:")?.trim() || undefined;
       if (!nota) return;
     }
-    void executar({ acao: "resolver", conversaId: conversa.id, motivo, nota }, "Atendimento resolvido");
+    void executar(
+      { acao: "resolver", conversaId: conversa.id, motivo, nota },
+      "Atendimento resolvido",
+    );
   };
 
   const acaoStatus = (status: "aberta" | "pendente" | "arquivada", rotulo: string) =>
@@ -333,18 +361,30 @@ export function ConversaAberta({
     <Card className={cn("flex flex-col overflow-hidden", className)}>
       <div className="space-y-2 border-b p-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={onVoltar} aria-label="Voltar às conversas">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={onVoltar}
+            aria-label="Voltar às conversas"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Avatar>
             <AvatarFallback>{iniciais(nome)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="truncate font-medium">{nome}</div>
+            {/* Sem `truncate`: a 375 px o nome ficava cortado atrás dos botões.
+                Quebra em até duas linhas e o cabeçalho se acomoda. */}
+            <div className="line-clamp-2 break-words font-medium leading-tight">{nome}</div>
             <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
               <span>{telefoneLegivel(conversa.telefone)}</span>
               {conversa.cliente && (
-                <Link to="/clientes/$id" params={{ id: conversa.cliente.id }} className="underline underline-offset-2">
+                <Link
+                  to="/clientes/$id"
+                  params={{ id: conversa.cliente.id }}
+                  className="underline underline-offset-2"
+                >
                   ver cliente
                 </Link>
               )}
@@ -365,8 +405,38 @@ export function ConversaAberta({
             aria-label={painelAberto ? "Recolher painel lateral" : "Abrir painel lateral"}
             title={painelAberto ? "Recolher painel" : "Abrir painel"}
           >
-            {painelAberto ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            {painelAberto ? (
+              <PanelRightClose className="h-4 w-4" />
+            ) : (
+              <PanelRightOpen className="h-4 w-4" />
+            )}
           </Button>
+          {acoes && (
+            // No celular o painel da conversa (cliente, etiquetas, orçamento,
+            // histórico) não cabe embaixo do chat: abre numa gaveta.
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="lg:hidden"
+                  aria-label="Ações da conversa"
+                >
+                  <PanelRightOpen className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Ações</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="right"
+                className="w-[92vw] max-w-md overflow-y-auto p-0 sm:max-w-md"
+              >
+                <SheetHeader className="p-4 pb-0 text-left">
+                  <SheetTitle>Ações da conversa</SheetTitle>
+                </SheetHeader>
+                {acoes}
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
         {temPermissaoDeResponder && (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -376,15 +446,24 @@ export function ConversaAberta({
                 variant="outline"
                 className="h-7 text-xs"
                 disabled={ocupado}
-                onClick={() => void executar({ acao: "assumir", conversaId: conversa.id }, "Você assumiu o atendimento")}
+                onClick={() =>
+                  void executar(
+                    { acao: "assumir", conversaId: conversa.id },
+                    "Você assumiu o atendimento",
+                  )
+                }
               >
-                <Hand className="mr-1 h-3.5 w-3.5" /> Assumir
+                <Hand className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Assumir</span>
               </Button>
             )}
             <Select
               value=""
               onValueChange={(para) =>
-                void executar({ acao: "transferir", conversaId: conversa.id, para }, "Conversa transferida")
+                void executar(
+                  { acao: "transferir", conversaId: conversa.id, para },
+                  "Conversa transferida",
+                )
               }
               disabled={ocupado}
             >
@@ -403,12 +482,24 @@ export function ConversaAberta({
             </Select>
             <span className="ml-auto" />
             {conversa.status === "aberta" && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("pendente", "Marcada como pendente")}>
-                <Clock className="mr-1 h-3.5 w-3.5" /> Marcar pendente
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                disabled={ocupado}
+                aria-label="Marcar pendente"
+                onClick={() => acaoStatus("pendente", "Marcada como pendente")}
+              >
+                <Clock className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Marcar pendente</span>
               </Button>
             )}
             {(conversa.status === "aberta" || conversa.status === "pendente") && (
-              <Select value="" onValueChange={(v) => resolver(v as Parameters<typeof resolver>[0])} disabled={ocupado}>
+              <Select
+                value=""
+                onValueChange={(v) => resolver(v as Parameters<typeof resolver>[0])}
+                disabled={ocupado}
+              >
                 <SelectTrigger className="h-7 w-[130px] text-xs" aria-label="Resolver">
                   <CheckCheck className="mr-1 h-3.5 w-3.5" />
                   <SelectValue placeholder="Resolver…" />
@@ -423,20 +514,40 @@ export function ConversaAberta({
               </Select>
             )}
             {conversa.status !== "arquivada" && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("arquivada", "Conversa arquivada")}>
-                <Archive className="mr-1 h-3.5 w-3.5" /> Arquivar
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                disabled={ocupado}
+                aria-label="Arquivar conversa"
+                onClick={() => acaoStatus("arquivada", "Conversa arquivada")}
+              >
+                <Archive className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Arquivar</span>
               </Button>
             )}
             {conversa.status !== "aberta" && (
-              <Button size="sm" variant="outline" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("aberta", "Conversa reaberta")}>
-                <RotateCcw className="mr-1 h-3.5 w-3.5" /> Reabrir
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                disabled={ocupado}
+                aria-label="Reabrir conversa"
+                onClick={() => acaoStatus("aberta", "Conversa reaberta")}
+              >
+                <RotateCcw className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Reabrir</span>
               </Button>
             )}
           </div>
         )}
       </div>
 
-      <div ref={rolagemRef} onScroll={aoRolar} className="min-h-0 flex-1 space-y-2.5 overflow-auto bg-muted/30 p-4">
+      <div
+        ref={rolagemRef}
+        onScroll={aoRolar}
+        className="min-h-0 flex-1 space-y-2.5 overflow-auto bg-muted/30 p-4"
+      >
         {mensagens.isError ? (
           <FalhaDeConsulta
             titulo="Não foi possível carregar as mensagens"
@@ -448,13 +559,23 @@ export function ConversaAberta({
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando as mensagens…
           </div>
         ) : linha.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma mensagem gravada nesta conversa.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Nenhuma mensagem gravada nesta conversa.
+          </p>
         ) : (
           <>
             {mensagens.hasNextPage && (
               <div className="flex justify-center">
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={carregarAnteriores} disabled={mensagens.isFetchingNextPage}>
-                  {mensagens.isFetchingNextPage && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={carregarAnteriores}
+                  disabled={mensagens.isFetchingNextPage}
+                >
+                  {mensagens.isFetchingNextPage && (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  )}
                   Mensagens anteriores
                 </Button>
               </div>
@@ -464,12 +585,21 @@ export function ConversaAberta({
                 const e = item.e;
                 if (e.tipo === "nota") {
                   return (
-                    <div key={e.id} className="mx-auto max-w-[85%] rounded-md border border-warning/40 bg-warning/10 p-2.5 text-sm text-foreground">
+                    <div
+                      key={e.id}
+                      className="mx-auto max-w-[85%] rounded-md border border-warning/40 bg-warning/10 p-2.5 text-sm text-foreground"
+                    >
                       <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
-                        <Lock className="h-3 w-3" /> Nota de {(e.de_usuario && nomes.get(e.de_usuario)) || "Equipe"} · visível só para a equipe
+                        <Lock className="h-3 w-3" /> Nota de{" "}
+                        {(e.de_usuario && nomes.get(e.de_usuario)) || "Equipe"} · visível só para a
+                        equipe
                       </div>
-                      <div className="whitespace-pre-wrap break-words">{fraseDoEvento(e, nomes)}</div>
-                      <div className="mt-1 text-[10px] text-muted-foreground">{diaEHora(e.created_at)}</div>
+                      <div className="whitespace-pre-wrap break-words">
+                        {fraseDoEvento(e, nomes)}
+                      </div>
+                      <div className="mt-1 text-[10px] text-muted-foreground">
+                        {diaEHora(e.created_at)}
+                      </div>
                     </div>
                   );
                 }
@@ -493,26 +623,50 @@ export function ConversaAberta({
                       nossa ? "border-positive/25 bg-positive/10" : "bg-card",
                     )}
                   >
-                    {autor && <div className="mb-0.5 text-[10px] font-semibold text-muted-foreground">{autor}</div>}
-                    <div className={cn("whitespace-pre-wrap break-words", naoSuportada && "italic text-muted-foreground")}>
+                    {autor && (
+                      <div className="mb-0.5 text-[10px] font-semibold text-muted-foreground">
+                        {autor}
+                      </div>
+                    )}
+                    <div
+                      className={cn(
+                        "whitespace-pre-wrap break-words",
+                        naoSuportada && "italic text-muted-foreground",
+                      )}
+                    >
                       {conteudoDaMensagem(m)}
                     </div>
                     {temMidia &&
                       (m.storage_path && m.storage_bucket ? (
-                        <button type="button" onClick={() => abrirMidia(m)} className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2">
-                          <Paperclip className="h-3 w-3" /> Abrir {rotuloDoTipo(m.tipo).toLowerCase()}
+                        <button
+                          type="button"
+                          onClick={() => abrirMidia(m)}
+                          className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2"
+                        >
+                          <Paperclip className="h-3 w-3" /> Abrir{" "}
+                          {rotuloDoTipo(m.tipo).toLowerCase()}
                         </button>
                       ) : m.media_url ? (
-                        <a href={m.media_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2">
-                          <Paperclip className="h-3 w-3" /> Abrir {rotuloDoTipo(m.tipo).toLowerCase()} (link do Z-API, vale 30 dias)
+                        <a
+                          href={m.media_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2"
+                        >
+                          <Paperclip className="h-3 w-3" /> Abrir{" "}
+                          {rotuloDoTipo(m.tipo).toLowerCase()} (link do Z-API, vale 30 dias)
                         </a>
                       ) : null)}
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
                       <span>{diaEHora(quandoFoi(m))}</span>
-                      {selo && <span className="font-semibold uppercase tracking-wide">{selo.texto}</span>}
+                      {selo && (
+                        <span className="font-semibold uppercase tracking-wide">{selo.texto}</span>
+                      )}
                     </div>
                     {nossa && m.erro && m.status !== "enviada" && (
-                      <div className="mt-1 rounded bg-destructive/10 px-1.5 py-1 text-[11px] text-destructive">Motivo: {m.erro}</div>
+                      <div className="mt-1 rounded bg-destructive/10 px-1.5 py-1 text-[11px] text-destructive">
+                        Motivo: {m.erro}
+                      </div>
                     )}
                     {nossa && temPermissaoDeResponder && m.status === "pendente" && (
                       <Button
@@ -523,11 +677,17 @@ export function ConversaAberta({
                         disabled={tentando || !liberacao.liberado}
                         title={liberacao.liberado ? undefined : liberacao.rotulo}
                       >
-                        <RefreshCw className={cn("mr-1 h-3 w-3", tentando && "animate-spin")} /> Tentar de novo
+                        <RefreshCw className={cn("mr-1 h-3 w-3", tentando && "animate-spin")} />{" "}
+                        Tentar de novo
                       </Button>
                     )}
                     {nossa && temPermissaoDeResponder && m.status === "falha" && (
-                      <Button size="sm" variant="secondary" className="mt-2 h-7 text-xs" onClick={() => setTexto(m.texto ?? "")}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="mt-2 h-7 text-xs"
+                        onClick={() => setTexto(m.texto ?? "")}
+                      >
                         Reescrever na caixa de resposta
                       </Button>
                     )}
@@ -547,7 +707,12 @@ export function ConversaAberta({
               role="tab"
               aria-selected={modo === "mensagem"}
               onClick={() => setModo("mensagem")}
-              className={cn("rounded px-2 py-1", modo === "mensagem" ? "bg-muted font-semibold" : "text-muted-foreground hover:bg-muted/60")}
+              className={cn(
+                "rounded px-2 py-1",
+                modo === "mensagem"
+                  ? "bg-muted font-semibold"
+                  : "text-muted-foreground hover:bg-muted/60",
+              )}
             >
               Mensagem
             </button>
@@ -556,13 +721,19 @@ export function ConversaAberta({
               role="tab"
               aria-selected={modo === "nota"}
               onClick={() => setModo("nota")}
-              className={cn("inline-flex items-center gap-1 rounded px-2 py-1", modo === "nota" ? "bg-warning/15 font-semibold" : "text-muted-foreground hover:bg-muted/60")}
+              className={cn(
+                "inline-flex items-center gap-1 rounded px-2 py-1",
+                modo === "nota"
+                  ? "bg-warning/15 font-semibold"
+                  : "text-muted-foreground hover:bg-muted/60",
+              )}
             >
               <StickyNote className="h-3 w-3" /> Nota
             </button>
             {modo === "nota" && (
               <span className="ml-2 self-center text-[11px] text-muted-foreground">
-                <Lock className="mr-0.5 inline h-3 w-3" />A nota fica só na equipe — nunca vai para o cliente.
+                <Lock className="mr-0.5 inline h-3 w-3" />A nota fica só na equipe — nunca vai para
+                o cliente.
               </span>
             )}
           </div>
@@ -587,7 +758,9 @@ export function ConversaAberta({
             <>
               <RespostasRapidasMenu
                 desabilitado={!temPermissaoDeResponder}
-                onEscolher={(t) => setTexto((atual) => (atual.trim() ? `${atual.trimEnd()}\n${t}` : t))}
+                onEscolher={(t) =>
+                  setTexto((atual) => (atual.trim() ? `${atual.trimEnd()}\n${t}` : t))
+                }
               />
               <input
                 ref={anexoRef}
@@ -614,7 +787,10 @@ export function ConversaAberta({
           )}
           <Textarea
             rows={2}
-            className={cn("min-h-[44px] flex-1 resize-none", modo === "nota" && "border-warning/50 bg-warning/5")}
+            className={cn(
+              "min-h-[44px] flex-1 resize-none",
+              modo === "nota" && "border-warning/50 bg-warning/5",
+            )}
             placeholder={
               !temPermissaoDeResponder
                 ? "Seu perfil só lê as conversas"
@@ -634,8 +810,18 @@ export function ConversaAberta({
             aria-label={modo === "nota" ? "Nota interna" : "Resposta"}
           />
           {(modo === "nota" ? temPermissaoDeResponder : liberacao.liberado) && (
-            <Button onClick={() => void enviar()} disabled={enviando || !texto.trim()} variant={modo === "nota" ? "outline" : "default"}>
-              {enviando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : modo === "nota" ? <StickyNote className="mr-1 h-4 w-4" /> : <Send className="mr-1 h-4 w-4" />}
+            <Button
+              onClick={() => void enviar()}
+              disabled={enviando || !texto.trim()}
+              variant={modo === "nota" ? "outline" : "default"}
+            >
+              {enviando ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : modo === "nota" ? (
+                <StickyNote className="mr-1 h-4 w-4" />
+              ) : (
+                <Send className="mr-1 h-4 w-4" />
+              )}
               {modo === "nota" ? "Gravar nota" : "Enviar"}
             </Button>
           )}

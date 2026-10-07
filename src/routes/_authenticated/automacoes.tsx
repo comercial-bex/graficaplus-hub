@@ -19,6 +19,7 @@ import { AutomacaoDialog } from "@/components/automacoes/automacao-dialog";
 import { ModelosProntos } from "@/components/automacoes/modelos-prontos";
 import { ExecucoesRecentes } from "@/components/automacoes/execucoes-recentes";
 import { SaudeDoEnvio, useSaudeDoEnvio } from "@/components/automacoes/saude-do-envio";
+import { lerSaudeDoDespachante } from "@/components/whatsapp/usar-caixa-de-entrada";
 import {
   FORM_VAZIO,
   lerAutomacao,
@@ -51,6 +52,13 @@ function AutoPage() {
   // mesma régua do banco.
   const podeGerenciar = hasPermission("automacoes.manage");
   const saude = useSaudeDoEnvio();
+  // Desde 06/10/2026 a automação sai pelo despachante do WhatsApp. Enquanto o
+  // do servidor (pg_cron) não estiver ligado, só sai com alguém logado.
+  const despachante = useQuery({
+    queryKey: ["despachante-do-servidor"],
+    queryFn: lerSaudeDoDespachante,
+    refetchInterval: 300_000,
+  });
   const [editor, setEditor] = useState<{ inicial: FormAutomacao; id: string | null } | null>(null);
 
   const lista = useQuery({
@@ -134,6 +142,30 @@ function AutoPage() {
       </div>
 
       <SaudeDoEnvio saude={saude} />
+
+      {despachante.isSuccess && !despachante.data.ligado && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>As regras só disparam com alguém logado</AlertTitle>
+          <AlertDescription>
+            Hoje quem leva as mensagens é o sistema aberto no navegador de quem pode responder no
+            WhatsApp (whatsapp › reply), a cada 2 minutos. Fora desse horário — à noite, no fim
+            de semana — nada sai até alguém entrar. O despachante do servidor, que roda 24 h,
+            ainda não está ligado: falta cadastrar a variável DESPACHANTE_TOKEN no servidor e o
+            segredo despachante_token no banco (quem administra o sistema faz isso).
+          </AlertDescription>
+        </Alert>
+      )}
+      {despachante.isError && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Não deu para conferir o despachante do servidor</AlertTitle>
+          <AlertDescription>
+            {mensagemErro(despachante.error)}. Até confirmar, conte que as regras só disparam
+            enquanto alguém com permissão de responder no WhatsApp estiver com o sistema aberto.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

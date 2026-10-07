@@ -301,6 +301,20 @@ export async function acionarEnvio(): Promise<
   }
 }
 
+/**
+ * O despachante do SERVIDOR (job do pg_cron → POST /api/whatsapp/despachar)
+ * está ligado? GET na mesma rota diz se há DESPACHANTE_TOKEN, sem mostrá-lo.
+ * Rota ausente (front antigo) ou servidor fora lançam: "não deu para conferir"
+ * é diferente de "desligado".
+ */
+export async function lerSaudeDoDespachante(): Promise<{ ligado: boolean }> {
+  const resposta = await fetch("/api/whatsapp/despachar");
+  if (!resposta.ok) throw new Error(`o servidor respondeu ${resposta.status}`);
+  const corpo = (await resposta.json().catch(() => null)) as { ligado?: unknown } | null;
+  if (typeof corpo?.ligado !== "boolean") throw new Error("resposta inesperada do servidor");
+  return { ligado: corpo.ligado };
+}
+
 /** Link temporário para a mídia guardada no nosso armazenamento (bucket privado). */
 export async function linkDaMidia(bucket: string, caminho: string): Promise<string> {
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(caminho, 120);

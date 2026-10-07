@@ -3,14 +3,16 @@
  * medir pela tela.
  *
  *   1. O WHATSAPP da gráfica conectado no Z-API (whatsapp_instancias).
- *   2. O PROCESSADOR da fila rodando. Automação (automacao_execucoes) só sai
- *      pela função process-automations. Os avisos ao cliente
- *      (notificacoes_fila) saem por ela OU pelo envio do próprio app
- *      (POST /api/whatsapp/enviar). Pendente com horário vencido há mais de
- *      15 minutos = ninguém consumiu. Sem pendente não dá para afirmar que
- *      roda — a tela diz isso, em vez de pintar de verde.
- *   3. O MOTOR enfileirando: a falha de `enqueue_automacoes` agora deixa rastro
- *      em logs_auditoria (acao 'motor_falhou'). Foi a falta desse rastro que
+ *   2. O DESPACHANTE rodando. Desde 06/10/2026 as duas filas — automação
+ *      (automacao_execucoes) e avisos ao cliente (notificacoes_fila) — saem
+ *      pelo MESMO consumidor (POST /api/whatsapp/enviar), chamado pelo
+ *      navegador de quem atende e, com o job do pg_cron ligado, pelo próprio
+ *      servidor a cada 2 minutos. A função process-automations deixou de ser
+ *      o caminho. Pendente com horário vencido há mais de 15 minutos =
+ *      ninguém consumiu. Sem pendente não dá para afirmar que roda — a tela
+ *      diz isso, em vez de pintar de verde.
+ *   3. O MOTOR enfileirando: a falha de `enqueue_automacoes` deixa rastro em
+ *      logs_auditoria (acao 'motor_falhou'). Foi a falta desse rastro que
  *      escondeu, por meses, que o motor devolvia 0 para todo evento.
  *
  * Em 02/10/2026 as duas primeiras estavam vermelhas: instância "desconectada",
@@ -89,7 +91,7 @@ export function saudeDoEnvio(e: EntradaSaude): ItemSaude[] {
     itens.push({
       chave: "processador",
       estado: "desconhecido",
-      titulo: "Processador da fila: não deu para conferir",
+      titulo: "Despachante: não deu para conferir",
       detalhe: "A consulta da fila falhou.",
     });
   } else {
@@ -99,13 +101,13 @@ export function saudeDoEnvio(e: EntradaSaude): ItemSaude[] {
       if (p.automacoes > 0) {
         const desde = quando(p.automacoesDesde);
         frases.push(
-          `${p.automacoes} ${p.automacoes === 1 ? "mensagem de automação espera" : "mensagens de automação esperam"} há mais de 15 minutos${desde ? ` (desde ${desde})` : ""}. Automação só sai pela função process-automations: ela precisa estar publicada, com os segredos do Z-API, e ser chamada de tempos em tempos.`,
+          `${p.automacoes} ${p.automacoes === 1 ? "mensagem de automação espera" : "mensagens de automação esperam"} há mais de 15 minutos${desde ? ` (desde ${desde})` : ""}. Automação sai pelo despachante do WhatsApp: alguém com permissão de responder precisa estar com o sistema aberto, ou o despachante do servidor (pg_cron) precisa estar ligado.`,
         );
       }
       if (p.avisos > 0) {
         const desde = quando(p.avisosDesde);
         frases.push(
-          `${p.avisos} ${p.avisos === 1 ? "aviso ao cliente espera" : "avisos ao cliente esperam"} na fila${desde ? ` desde ${desde}` : ""}: nem a função process-automations nem o envio do app os pegaram.${p.automacoes === 0 ? " Automação ligada hoje ficaria parada do mesmo jeito." : ""}`,
+          `${p.avisos} ${p.avisos === 1 ? "aviso ao cliente espera" : "avisos ao cliente esperam"} na fila${desde ? ` desde ${desde}` : ""}: o despachante não os pegou.${p.automacoes === 0 ? " Automação ligada hoje ficaria parada do mesmo jeito." : ""}`,
         );
       }
       frases.push("Quando o envio voltar, o que está na fila sai de uma vez.");
@@ -119,9 +121,9 @@ export function saudeDoEnvio(e: EntradaSaude): ItemSaude[] {
       itens.push({
         chave: "processador",
         estado: "desconhecido",
-        titulo: "Processador da fila: sem mensagem esperando",
+        titulo: "Despachante: sem mensagem esperando",
         detalhe:
-          "Não há nada parado na fila, então não dá para provar daqui que a função process-automations está rodando.",
+          "Não há nada parado na fila, então não dá para provar daqui que o despachante está rodando.",
       });
     }
   }

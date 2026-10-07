@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAXIMO_DE_DIGITOS_DE_TELEFONE,
   chaveDoEvento,
   classificarEventoZapi,
+  eventoSemRegistro,
   mapearStatusZapi,
 } from "../src/domain/whatsapp/evento-zapi";
 
@@ -70,7 +72,11 @@ describe("o recibo traz uma LISTA de ids", () => {
   });
 
   it("recibo sem ids é ignorado, não vira atualização vazia", () => {
-    const e = classificarEventoZapi({ instanceId: "X", type: "MessageStatusCallback", status: "READ" });
+    const e = classificarEventoZapi({
+      instanceId: "X",
+      type: "MessageStatusCallback",
+      status: "READ",
+    });
     expect(e.tipo).toBe("ignorado");
   });
 
@@ -112,14 +118,18 @@ describe("grupo, canal e transmissão não viram lead", () => {
   });
 
   it("id de grupo sem a flag também não passa como telefone", () => {
-    const e = classificarEventoZapi({ ...base, phone: "120363019502650977-group", text: { message: "x" } });
+    const e = classificarEventoZapi({
+      ...base,
+      phone: "120363019502650977-group",
+      text: { message: "x" },
+    });
     expect(e.tipo).toBe("ignorado");
   });
 
   it("canal e lista de transmissão são ignorados", () => {
-    expect(classificarEventoZapi({ ...base, isNewsletter: true, text: { message: "x" } }).tipo).toBe(
-      "ignorado",
-    );
+    expect(
+      classificarEventoZapi({ ...base, isNewsletter: true, text: { message: "x" } }).tipo,
+    ).toBe("ignorado");
     expect(classificarEventoZapi({ ...base, broadcast: true, text: { message: "x" } }).tipo).toBe(
       "ignorado",
     );
@@ -138,7 +148,11 @@ describe("o conteúdo de cada tipo de mensagem", () => {
   it("imagem traz a URL da mídia e a legenda", () => {
     const e = classificarEventoZapi({
       ...base,
-      image: { mimeType: "image/jpeg", imageUrl: "https://z-api.io/img.jpg", caption: "arte aprovada?" },
+      image: {
+        mimeType: "image/jpeg",
+        imageUrl: "https://z-api.io/img.jpg",
+        caption: "arte aprovada?",
+      },
     });
     expect(e).toMatchObject({
       tipo: "mensagem",
@@ -165,8 +179,9 @@ describe("o conteúdo de cada tipo de mensagem", () => {
   });
 
   it("áudio, vídeo e figurinha viram mídia do tipo certo", () => {
-    expect(classificarEventoZapi({ ...base, audio: { audioUrl: "https://a", mimeType: "audio/ogg" } }))
-      .toMatchObject({ tipoMensagem: "audio" });
+    expect(
+      classificarEventoZapi({ ...base, audio: { audioUrl: "https://a", mimeType: "audio/ogg" } }),
+    ).toMatchObject({ tipoMensagem: "audio" });
     expect(classificarEventoZapi({ ...base, video: { videoUrl: "https://v" } })).toMatchObject({
       tipoMensagem: "video",
     });
@@ -184,15 +199,113 @@ describe("o conteúdo de cada tipo de mensagem", () => {
   });
 
   it("resposta de botão é texto", () => {
-    const e = classificarEventoZapi({ ...base, buttonsResponseMessage: { message: "Aprovar arte" } });
+    const e = classificarEventoZapi({
+      ...base,
+      buttonsResponseMessage: { message: "Aprovar arte" },
+    });
     expect(e).toMatchObject({ tipoMensagem: "texto", texto: "Aprovar arte" });
   });
 });
 
 describe("mensagem enviada do próprio celular", () => {
-  it("fromMe vira saída, sem nome de remetente virando lead", () => {
-    const e = classificarEventoZapi({ ...base, fromMe: true, text: { message: "Seu pedido está pronto" } });
+  it("fromMe sem fromApi (digitada no celular) vira saída, sem nome de remetente virando lead", () => {
+    const e = classificarEventoZapi({
+      ...base,
+      fromMe: true,
+      fromApi: false,
+      text: { message: "Seu pedido está pronto" },
+    });
     expect(e).toMatchObject({ tipo: "mensagem", deMim: true });
+  });
+
+  it("fromMe + fromApi (mandada pelo sistema) é ignorada: quem enviou já registrou", () => {
+    // É o que deixa ligar "Notificar as enviadas por mim também" no Z-API sem
+    // duplicar o aviso que o despachante acabou de gravar com o mesmo messageId.
+    const e = classificarEventoZapi({
+      ...base,
+      fromMe: true,
+      fromApi: true,
+      text: { message: "aviso" },
+    });
+    expect(e).toMatchObject({ tipo: "ignorado", motivo: expect.stringContaining("API") });
+  });
+});
+
+describe("telefone tem teto: mais de 13 dígitos é o lid, não um número", () => {
+  it("14 dígitos crus no phone (o caso Kwai de 06/10/2026) não viram lead", () => {
+    const e = classificarEventoZapi({ ...base, phone: "62895426250367", text: { message: "x" } });
+    expect(e).toMatchObject({ tipo: "ignorado", motivo: "remetente não é um telefone" });
+    expect(MAXIMO_DE_DIGITOS_DE_TELEFONE).toBe(13);
+  });
+
+  it("13 dígitos com o 55 continuam valendo; o lid só vem em chatLid", () => {
+    const e = classificarEventoZapi({
+      ...base,
+      phone: "5519958714824",
+      chatLid: "65876879499442@lid",
+      text: { message: "x" },
+    });
+    expect(e).toMatchObject({ tipo: "mensagem", telefone: "5519958714824" });
+  });
+});
+
+describe("mensagem de modelo (template de empresa) é automação, não gente", () => {
+  it("hydratedTemplate vira texto (título, corpo e rodapé — o formato do dono) e marca deModelo", () => {
+    const e = classificarEventoZapi({
+      ...base,
+      hydratedTemplate: {
+        title: "Bloqueio de Linha",
+        message: "Olá! Sua linha pode ser bloqueada.",
+        footer: "",
+        hydratedButtons: [
+          { index: 0, quickReplyButton: { displayText: "Recarregar agora", id: "x" } },
+        ],
+      },
+    });
+    expect(e).toMatchObject({
+      tipo: "mensagem",
+      tipoMensagem: "texto",
+      texto: "Bloqueio de Linha\n\nOlá! Sua linha pode ser bloqueada.",
+      deModelo: true,
+    });
+  });
+
+  it("mensagem de gente não é modelo", () => {
+    expect(classificarEventoZapi({ ...base, text: { message: "oi" } })).toMatchObject({
+      deModelo: false,
+    });
+  });
+
+  it("sem nada reconhecível continua sendo 'sistema'", () => {
+    expect(classificarEventoZapi({ ...base, protocolMessage: {} })).toMatchObject({
+      tipoMensagem: "sistema",
+    });
+  });
+});
+
+describe("o que nem entra no histórico", () => {
+  it("presença e status@broadcast têm motivo; mensagem e recibo de gente, não", () => {
+    expect(
+      eventoSemRegistro({ type: "PresenceChatCallback", phone: "5596", status: "AVAILABLE" }),
+    ).toMatch(/presença/);
+    expect(
+      eventoSemRegistro({
+        type: "MessageStatusCallback",
+        phone: "status@broadcast",
+        status: "READ_BY_ME",
+        ids: ["A"],
+      }),
+    ).toMatch(/status@broadcast/);
+    expect(eventoSemRegistro(base)).toBeNull();
+    expect(
+      eventoSemRegistro({
+        type: "MessageStatusCallback",
+        phone: "559681234567",
+        status: "READ",
+        ids: ["A"],
+      }),
+    ).toBeNull();
+    expect(eventoSemRegistro(null)).toBeNull();
   });
 });
 
@@ -210,8 +323,9 @@ describe("mensagem ainda cifrada", () => {
 
 describe("conexão", () => {
   it("conectou e desconectou", () => {
-    expect(classificarEventoZapi({ type: "ConnectedCallback", instanceId: "X", connected: true }))
-      .toMatchObject({ tipo: "conexao", conectado: true });
+    expect(
+      classificarEventoZapi({ type: "ConnectedCallback", instanceId: "X", connected: true }),
+    ).toMatchObject({ tipo: "conexao", conectado: true });
     expect(
       classificarEventoZapi({ type: "DisconnectedCallback", instanceId: "X", disconnected: true }),
     ).toMatchObject({ tipo: "conexao", conectado: false });
@@ -244,7 +358,11 @@ describe("chave de idempotência", () => {
   it("status diferentes do mesmo id têm chaves diferentes", () => {
     // Entregue e lida são dois eventos: o segundo não pode ser barrado como
     // repetição do primeiro.
-    const entregue = chaveDoEvento({ type: "MessageStatusCallback", status: "RECEIVED", ids: ["A"] });
+    const entregue = chaveDoEvento({
+      type: "MessageStatusCallback",
+      status: "RECEIVED",
+      ids: ["A"],
+    });
     const lida = chaveDoEvento({ type: "MessageStatusCallback", status: "READ", ids: ["A"] });
     expect(entregue).not.toBe(lida);
   });
@@ -252,14 +370,30 @@ describe("chave de idempotência", () => {
 
 describe("mensagens de modelo e formatos especiais", async () => {
   const { classificarEventoZapi } = await import("@/domain/whatsapp/evento-zapi");
-  const base = { type: "ReceivedCallback", instanceId: "I", messageId: "M", phone: "5596981216527" };
+  const base = {
+    type: "ReceivedCallback",
+    instanceId: "I",
+    messageId: "M",
+    phone: "5596981216527",
+  };
   it("hydratedTemplate vira texto com título, corpo e rodapé", () => {
-    const e = classificarEventoZapi({ ...base, hydratedTemplate: { title: "Bloqueio", message: "Olá", footer: "STOP" } });
-    expect(e).toMatchObject({ tipo: "mensagem", tipoMensagem: "texto", texto: "Bloqueio\n\nOlá\n\nSTOP" });
+    const e = classificarEventoZapi({
+      ...base,
+      hydratedTemplate: { title: "Bloqueio", message: "Olá", footer: "STOP" },
+    });
+    expect(e).toMatchObject({
+      tipo: "mensagem",
+      tipoMensagem: "texto",
+      texto: "Bloqueio\n\nOlá\n\nSTOP",
+    });
   });
   it("enquete, vídeo-nota e pedido", () => {
-    expect(classificarEventoZapi({ ...base, poll: { question: "Cor?" } })).toMatchObject({ texto: "[Enquete] Cor?" });
-    expect(classificarEventoZapi({ ...base, ptv: { url: "https://x/v.mp4" } })).toMatchObject({ tipoMensagem: "video" });
+    expect(classificarEventoZapi({ ...base, poll: { question: "Cor?" } })).toMatchObject({
+      texto: "[Enquete] Cor?",
+    });
+    expect(classificarEventoZapi({ ...base, ptv: { url: "https://x/v.mp4" } })).toMatchObject({
+      tipoMensagem: "video",
+    });
     expect(classificarEventoZapi({ ...base, order: {} })).toMatchObject({ texto: "[Pedido]" });
   });
 });

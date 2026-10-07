@@ -18,11 +18,14 @@
  *   CONDIÇÃO    `automacao_condicao_ok` só lê TRÊS chaves: `status` (mudança de
  *               etapa), `estoque_minimo` e `margem_minima`. Qualquer outra chave
  *               é ignorada calada — por isso a tela não oferece outras.
- *   AÇÃO        o processador (supabase/functions/process-automations) só sabe
- *               mandar texto no WhatsApp: acao diferente de 'whatsapp' vira erro
- *               "Ação não suportada".
+ *   AÇÃO        o consumidor do envio (src/lib/api/whatsapp-enviar.server.ts,
+ *               desde 06/10/2026 — antes era a função process-automations,
+ *               que ninguém chamava) só sabe mandar texto no WhatsApp: acao
+ *               diferente de 'whatsapp' vira erro "Ação não suportada".
  *   PARA QUEM   `payload.telefone` (aceita {{ }}), senão o telefone do contexto,
- *               senão a variável AUTOMATION_DEFAULT_PHONE do servidor.
+ *               senão a variável AUTOMATION_DEFAULT_PHONE do servidor — e
+ *               nunca o cliente quando `aceitaCliente` é false
+ *               (domain/automacoes/destino.ts).
  */
 
 /** Os seis valores do enum `automacao_gatilho`, conferidos no banco em 02/10/2026. */

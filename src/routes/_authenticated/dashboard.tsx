@@ -34,6 +34,7 @@ import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { coberturaDoCusto, lucroComparavel } from "@/domain/os/resultado";
+import { resumoDaConversa } from "@/domain/whatsapp/caixa-de-entrada";
 import {
   AreaChart,
   Area,
@@ -743,7 +744,9 @@ function PainelCompleto({
               <div key={c.id} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0">
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">{c.nome}</div>
-                  <div className="text-xs text-muted-foreground truncate">{c.ultima_mensagem}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {resumoDaConversa(c.ultima_mensagem)}
+                  </div>
                 </div>
                 {c.nao_lidas > 0 && <StatusChip label={String(c.nao_lidas)} tone="lime" />}
               </div>

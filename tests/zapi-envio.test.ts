@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   lerRespostaZapi,
   montarBotoes,
@@ -6,6 +7,7 @@ import {
   renderizarTemplate,
   telefoneParaZapi,
   valeTentarDeNovo,
+  valorLegivel,
 } from "../src/domain/whatsapp/zapi-envio";
 
 const CRED = { instanceId: "3ABC", token: "TOK" };
@@ -120,10 +122,11 @@ describe("renderizar o modelo da mensagem", () => {
     ).toBe("Boa notícia, Max Lima: o pedido 44 (Banner 2×1) entrou em produção. Previsão de entrega: 30/09.");
   });
 
-  it("variável ausente não vira {{prazo}} cru no WhatsApp do cliente", () => {
+  it("variável ausente não vira {{prazo}} cru — e a frase do rótulo cai inteira", () => {
+    // Antes sobrava "Previsão de entrega." — frase que promete e não diz.
     const r = renderizarTemplate(PRODUCAO, { cliente: "Max", os_numero: 44, os_titulo: "Banner" });
     expect(r).not.toContain("{{");
-    expect(r).toBe("Boa notícia, Max: o pedido 44 (Banner) entrou em produção. Previsão de entrega.");
+    expect(r).toBe("Boa notícia, Max: o pedido 44 (Banner) entrou em produção.");
   });
 
   it("título vazio não deixa parênteses sozinhos", () => {
@@ -136,6 +139,78 @@ describe("renderizar o modelo da mensagem", () => {
     const r = renderizarTemplate(PRODUCAO, null);
     expect(r).not.toContain("{{");
     expect(r.length).toBeGreaterThan(10);
+    expect(r).toBe("Boa notícia: o pedido entrou em produção.");
+  });
+});
+
+describe("os seis modelos reais (notificacao_templates, lidos do banco em 06/10/2026)", () => {
+  type Modelo = { evento: string; corpo: string };
+  const MODELOS = JSON.parse(readFileSync("tests/fixtures/notificacao-templates-06-10.json", "utf8")) as Modelo[];
+  const corpo = (evento: string) => MODELOS.find((m) => m.evento === evento)!.corpo;
+
+  it("a data do prazo sai como dd/mm/aaaa, por fatia da string — nunca pelo relógio", () => {
+    // `prazo` vem do gatilho como a coluna date: "2026-10-15". Em UTC, um
+    // `new Date("2026-10-15")` renderizado em Macapá daria 14/10.
+    expect(valorLegivel("2026-10-15")).toBe("15/10/2026");
+    expect(valorLegivel("2026-01-01")).toBe("01/01/2026");
+    expect(valorLegivel(44)).toBe("44");
+    expect(valorLegivel("30/09")).toBe("30/09");
+    expect(valorLegivel(null)).toBe("");
+    const r = renderizarTemplate(corpo("os_em_producao"), {
+      cliente: "Max Lima",
+      os_numero: 49,
+      os_titulo: "FAIXA BANNER",
+      prazo: "2026-10-15",
+    });
+    expect(r).toBe(
+      "Boa notícia, Max Lima: o pedido 49 (FAIXA BANNER) entrou em produção. Previsão de entrega: 15/10/2026.",
+    );
+  });
+
+  it("em produção sem prazo: a frase da previsão cai inteira", () => {
+    const r = renderizarTemplate(corpo("os_em_producao"), {
+      cliente: "Max Lima",
+      os_numero: 49,
+      os_titulo: "FAIXA BANNER",
+      prazo: null,
+    });
+    expect(r).toBe("Boa notícia, Max Lima: o pedido 49 (FAIXA BANNER) entrou em produção.");
+    expect(r).not.toContain("Previsão");
+  });
+
+  it("orçamento aprovado é o texto que saiu três vezes em 05 e 06/10 (nome com espaço no fim)", () => {
+    const r = renderizarTemplate(corpo("orcamento_aprovado"), {
+      cliente: "Max Lima ",
+      orcamento_numero: 62,
+      orcamento_id: "7976ca75",
+      valor_total: 57.6,
+    });
+    expect(r).toBe(
+      "Olá, Max Lima! Recebemos a aprovação do orçamento nº 62. Já vamos abrir a ordem de serviço e te avisamos quando a produção começar.",
+    );
+  });
+
+  it("orçamento aprovado sem número: a frase do nº cai, o resto fica", () => {
+    const r = renderizarTemplate(corpo("orcamento_aprovado"), { cliente: "Dani" });
+    expect(r).toBe("Olá, Dani! Já vamos abrir a ordem de serviço e te avisamos quando a produção começar.");
+  });
+
+  it("modelo que começa pelo nome: sem o nome, a vírgula que sobrava some", () => {
+    const r = renderizarTemplate(corpo("os_pronta_retirada"), { os_numero: 44 });
+    expect(r).not.toMatch(/^[,\s]/);
+    expect(r).toContain("seu pedido 44 está pronto");
+  });
+
+  it("todo modelo renderiza sem chave crua e sem pontuação dobrada, com e sem variáveis", () => {
+    const cheio = { cliente: "Ana", os_numero: 7, os_titulo: "Cartão", prazo: "2026-10-20", orcamento_numero: 9 };
+    for (const m of MODELOS) {
+      for (const v of [cheio, {}]) {
+        const r = renderizarTemplate(m.corpo, v);
+        expect(r, `${m.evento} com ${JSON.stringify(v)}`).not.toContain("{{");
+        expect(r, m.evento).not.toMatch(/[,:]\s*[,:.]/);
+        expect(r, m.evento).not.toMatch(/\(\s*\)/);
+      }
+    }
   });
 });
 
