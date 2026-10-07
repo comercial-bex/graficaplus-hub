@@ -190,6 +190,12 @@ const ASSINATURAS: Record<string, string[]> = {
   catalogo_resumo: [],
   catalogo_revogar_link: ["p_link_id"],
   catalogo_salvar_regras: ["p_catalogo_id", "p_regras"],
+  // Migração 20261006230000 (catálogo como loja: carrinho e pedido de cotação).
+  // `catalogo_link_pedir_cotacao` é só da rota de servidor (service_role).
+  catalogo_cotacao_atender: ["p_id", "p_atendida"],
+  catalogo_cotacoes: [],
+  catalogo_gerar_orcamento: ["p_itens", "p_cliente_id", "p_titulo"],
+  catalogo_link_pedir_cotacao: ["p_token_hash", "p_nome", "p_telefone", "p_itens", "p_origem_hash"],
   // Migração 20261006200000 (permissões por pessoa), ensaiada no Postgres em
   // 06/10/2026. Chamadas por src/lib/api/permissoes-por-pessoa.ts.
   minhas_permissoes: [],

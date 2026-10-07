@@ -1,29 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type ReactNode } from "react";
-import { AlertCircle, Clock, Loader2, MessageCircle, Phone, RefreshCw, Search } from "lucide-react";
+import {
+  AlertCircle,
+  Clock,
+  Loader2,
+  MessageCircle,
+  Phone,
+  RefreshCw,
+  ShoppingCart,
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { BexLogo } from "@/components/bex/BexLogo";
-import { CartaoDaVitrine } from "@/components/catalogo/cartao-da-vitrine";
+import { Loja } from "@/components/catalogo/loja/loja";
+import { CarrinhoDrawer } from "@/components/catalogo/loja/carrinho-drawer";
+import { useCarrinho } from "@/components/catalogo/loja/use-carrinho";
+import { PedirCotacaoDialog } from "@/components/catalogo/pedir-cotacao-dialog";
 import { ErroDaVitrine, abrirVitrine } from "@/lib/catalogo-publico";
 import {
   MENSAGEM_VITRINE_INVALIDA,
-  linkDoWhatsapp,
-  mensagemDoPedido,
   tokenDoCatalogoBemFormado,
   whatsappDaEmpresa,
 } from "@/domain/catalogo/link-do-catalogo";
-import { ROTULO_DA_MODALIDADE, ehModalidade } from "@/domain/catalogo/modalidades";
-import { secoesDaVitrine, type Vitrine } from "@/domain/catalogo/vitrine";
+import { itemDaLojaDaVitrine } from "@/domain/catalogo/loja";
+import type { Vitrine } from "@/domain/catalogo/vitrine";
 import { dataCurta } from "@/domain/portal/link-do-portal";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 
 /**
  * A vitrine do cliente — sem login, aberta no celular a partir do WhatsApp.
+ * A MESMA loja da equipe (categorias, grade, ficha, carrinho), com o que o
+ * cliente faz no fim: "Pedir cotação" registra a lista na gráfica e abre o
+ * WhatsApp com a mensagem pronta.
  *
  * DECISÃO DO DONO (05/10/2026): o cliente vê foto, nome, especificação,
  * código BX e o preço de venda já pronto; não vê o nome nem o código do
@@ -31,8 +42,9 @@ import { cn } from "@/lib/utils";
  * "sob consulta" — nunca R$ 0,00.
  *
  * O link é gerado pela equipe em /catalogos/$id (aba Links), o banco guarda só
- * o hash do token, com validade e cancelamento, e tudo passa pela rota
- * /api/catalogo/vitrine. Link que não abre diz isso e mais nada.
+ * o hash do token, com validade e cancelamento, e tudo passa pelas rotas
+ * /api/catalogo/vitrine e /api/catalogo/cotacao. Link que não abre diz isso e
+ * mais nada.
  */
 export const Route = createFileRoute("/catalogo/$token")({
   head: () => ({
@@ -47,8 +59,6 @@ export const Route = createFileRoute("/catalogo/$token")({
   }),
   component: VitrinePage,
 });
-
-type Escolha = { codigo: string; opcao: string | null };
 
 function VitrinePage() {
   const { token } = Route.useParams();
@@ -66,7 +76,9 @@ function VitrinePage() {
 
   if (
     !bemFormado ||
-    (vitrine.isError && vitrine.error instanceof ErroDaVitrine && vitrine.error.motivo === "link_invalido")
+    (vitrine.isError &&
+      vitrine.error instanceof ErroDaVitrine &&
+      vitrine.error.motivo === "link_invalido")
   ) {
     return (
       <Moldura>
@@ -108,130 +120,44 @@ function VitrinePage() {
     );
   }
 
-  return <VitrineAberta v={vitrine.data} />;
+  return <VitrineAberta v={vitrine.data} token={token} />;
 }
 
-function VitrineAberta({ v }: { v: Vitrine }) {
-  const [busca, setBusca] = useState("");
-  const [secao, setSecao] = useState<string | null>(null);
-  const [escolhas, setEscolhas] = useState<Escolha[]>([]);
-  const secoes = useMemo(() => secoesDaVitrine(v.itens), [v.itens]);
+function VitrineAberta({ v, token }: { v: Vitrine; token: string }) {
+  const qc = useQueryClient();
+  const itens = useMemo(() => v.itens.map((i, n) => itemDaLojaDaVitrine(i, n)), [v.itens]);
+  // O carrinho é deste link: outro link, outro carrinho (os itens são outros).
+  const { carrinho, adicionar, mudarQuantidade, remover, limpar } = useCarrinho(
+    `vitrine-${token.slice(0, 12)}`,
+  );
+  const [carrinhoAberto, setCarrinhoAberto] = useState(false);
+  const [pedindo, setPedindo] = useState(false);
   const whatsapp = whatsappDaEmpresa(v.empresa.telefones);
   const nomeDaEmpresa = v.empresa.nome ?? "Bex Print";
-
-  const visiveis = useMemo(() => {
-    const termos = busca
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean);
-    return v.itens.filter((i) => {
-      if (secao && i.secao !== secao) return false;
-      if (termos.length === 0) return true;
-      const alvo = `${i.nome} ${i.codigo} ${i.especificacao ?? ""}`
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .toLowerCase();
-      return termos.every((t) => alvo.includes(t));
-    });
-  }, [v.itens, busca, secao]);
-
-  function alternar(codigo: string, opcao: string | null) {
-    setEscolhas((atual) =>
-      atual.some((e) => e.codigo === codigo && e.opcao === opcao)
-        ? atual.filter((e) => !(e.codigo === codigo && e.opcao === opcao))
-        : [...atual, { codigo, opcao }],
-    );
-  }
-
-  const linkDoPedido =
-    whatsapp && escolhas.length > 0
-      ? linkDoWhatsapp(
-          whatsapp,
-          mensagemDoPedido(
-            v.titulo,
-            escolhas.map((e) => ({
-              codigo: e.codigo,
-              nome: v.itens.find((i) => i.codigo === e.codigo)?.nome ?? e.codigo,
-              opcao: e.opcao && ehModalidade(e.opcao) ? ROTULO_DA_MODALIDADE[e.opcao] : null,
-            })),
-          ),
-        )
-      : null;
+  const pecas = carrinho.reduce((s, l) => s + l.quantidade, 0);
 
   return (
-    <Moldura empresa={nomeDaEmpresa} rodape={escolhas.length > 0}>
-      <header className="mb-5 space-y-2">
-        <div className="flex items-center gap-3">
-          <BexLogo size="sm" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{nomeDaEmpresa}</p>
-            {v.empresa.slogan && <p className="truncate text-xs text-muted-foreground">{v.empresa.slogan}</p>}
-          </div>
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight">{v.titulo}</h1>
-        <p className="text-sm text-muted-foreground">
-          Toque nas opções que interessam e peça o orçamento pelo WhatsApp com os códigos BX já escritos.
-        </p>
-        <p className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" /> Preços válidos até {dataCurta(v.vence_em)}, sujeitos à confirmação no
-          orçamento.
-        </p>
-      </header>
-
+    <Moldura empresa={nomeDaEmpresa} rodape={carrinho.length > 0}>
       {v.itens.length === 0 ? (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Este catálogo está sem itens agora</AlertTitle>
-          <AlertDescription>
-            Os itens deste link saíram do catálogo. Fale com a {nomeDaEmpresa} para receber um link novo.
-          </AlertDescription>
-        </Alert>
-      ) : (
         <>
-          <div className="sticky top-0 z-10 -mx-4 mb-4 space-y-2 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por nome ou código BX"
-                className="h-11 pl-9"
-                aria-label="Buscar no catálogo"
-              />
-            </div>
-            {secoes.length > 1 && (
-              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Seções">
-                <Chip ativo={secao === null} onClick={() => setSecao(null)}>
-                  Tudo ({v.itens.length})
-                </Chip>
-                {secoes.map((s) => (
-                  <Chip key={s} ativo={secao === s} onClick={() => setSecao(secao === s ? null : s)}>
-                    {s}
-                  </Chip>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {visiveis.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              Nada encontrado com essa busca. Tente outra palavra ou o código BX.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {visiveis.map((item) => (
-                <CartaoDaVitrine
-                  key={item.codigo}
-                  item={item}
-                  escolhidas={escolhas.filter((e) => e.codigo === item.codigo).map((e) => e.opcao)}
-                  onAlternar={(opcao) => alternar(item.codigo, opcao)}
-                />
-              ))}
-            </div>
-          )}
+          <Cabecalho v={v} nomeDaEmpresa={nomeDaEmpresa} />
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Este catálogo está sem itens agora</AlertTitle>
+            <AlertDescription>
+              Os itens deste link saíram do catálogo. Fale com a {nomeDaEmpresa} para receber um
+              link novo.
+            </AlertDescription>
+          </Alert>
         </>
+      ) : (
+        <Loja
+          itens={itens}
+          carrinho={carrinho}
+          onAdicionar={adicionar}
+          onAbrirCarrinho={() => setCarrinhoAberto(true)}
+          acima={<Cabecalho v={v} nomeDaEmpresa={nomeDaEmpresa} />}
+        />
       )}
 
       <footer className="mt-10 space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
@@ -246,52 +172,91 @@ function VitrineAberta({ v }: { v: Vitrine }) {
         )}
       </footer>
 
-      {escolhas.length > 0 && (
+      {carrinho.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
           <div className="mx-auto flex max-w-5xl items-center gap-3">
             <p className="min-w-0 flex-1 text-sm">
               <span className="font-semibold">
-                {escolhas.length === 1 ? "1 opção escolhida" : `${escolhas.length} opções escolhidas`}
+                {carrinho.length === 1 ? "1 item" : `${carrinho.length} itens`} ·{" "}
+                {pecas.toLocaleString("pt-BR")} peças
               </span>
-              <button
-                type="button"
-                className="ml-2 text-xs text-muted-foreground underline underline-offset-2"
-                onClick={() => setEscolhas([])}
-              >
-                limpar
-              </button>
             </p>
-            {linkDoPedido ? (
-              <Button asChild className="h-11">
-                <a href={linkDoPedido} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="mr-1 h-4 w-4" /> Pedir orçamento
-                </a>
-              </Button>
-            ) : (
-              <p className="text-right text-xs text-muted-foreground">
-                Ligue para {v.empresa.telefones ?? nomeDaEmpresa} e diga os códigos BX.
-              </p>
-            )}
+            <Button variant="outline" className="h-11" onClick={() => setCarrinhoAberto(true)}>
+              <ShoppingCart className="mr-1 h-4 w-4" /> Carrinho
+            </Button>
+            <Button className="h-11" onClick={() => setPedindo(true)}>
+              <MessageCircle className="mr-1 h-4 w-4" /> Pedir cotação
+            </Button>
           </div>
         </div>
       )}
+
+      <CarrinhoDrawer
+        aberto={carrinhoAberto}
+        onOpenChange={setCarrinhoAberto}
+        carrinho={carrinho}
+        itens={itens}
+        onMudarQuantidade={mudarQuantidade}
+        onRemover={remover}
+        onLimpar={limpar}
+        onAbrirProduto={() => setCarrinhoAberto(false)}
+        acao={
+          <Button
+            type="button"
+            className="h-12 w-full text-base"
+            onClick={() => {
+              setCarrinhoAberto(false);
+              setPedindo(true);
+            }}
+          >
+            <MessageCircle className="mr-2 h-5 w-5" /> Pedir cotação
+          </Button>
+        }
+        rodape={
+          !whatsapp ? (
+            <p className="text-right text-xs text-muted-foreground">
+              Ligue para {v.empresa.telefones ?? nomeDaEmpresa}.
+            </p>
+          ) : undefined
+        }
+      />
+
+      <PedirCotacaoDialog
+        aberto={pedindo}
+        token={token}
+        titulo={v.titulo}
+        whatsapp={whatsapp}
+        carrinho={carrinho}
+        onOpenChange={setPedindo}
+        onRegistrado={limpar}
+        onLinkInvalido={() => qc.invalidateQueries({ queryKey: ["catalogo-vitrine", token] })}
+      />
     </Moldura>
   );
 }
 
-function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => void; children: ReactNode }) {
+function Cabecalho({ v, nomeDaEmpresa }: { v: Vitrine; nomeDaEmpresa: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={ativo}
-      className={cn(
-        "h-9 shrink-0 whitespace-nowrap rounded-full border px-3 text-xs font-medium",
-        ativo ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted",
-      )}
-    >
-      {children}
-    </button>
+    <header className="space-y-2">
+      <div className="flex items-center gap-3">
+        <BexLogo size="sm" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{nomeDaEmpresa}</p>
+          {v.empresa.slogan && (
+            <p className="truncate text-xs text-muted-foreground">{v.empresa.slogan}</p>
+          )}
+        </div>
+      </div>
+      <h1 className="text-2xl font-bold tracking-tight">{v.titulo}</h1>
+      <p className="text-sm text-muted-foreground">
+        Escolha a quantidade, monte o carrinho e peça a cotação: a lista vai pronta para o WhatsApp,
+        com os códigos BX.
+      </p>
+      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Clock className="h-3 w-3" /> Preços válidos até {dataCurta(v.vence_em)}, sujeitos à
+        confirmação no orçamento.
+      </p>
+    </header>
   );
 }
 
