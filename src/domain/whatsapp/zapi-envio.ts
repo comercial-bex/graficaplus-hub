@@ -15,7 +15,7 @@ import { chaveWhatsApp } from "@/domain/documentos";
  */
 
 /** O que o Z-API aceita e o sistema usa. */
-export type TipoEnvio = "texto" | "pdf";
+export type TipoEnvio = "texto" | "pdf" | "imagem";
 
 export type PedidoDeEnvio = {
   tipo: TipoEnvio;
@@ -73,6 +73,15 @@ export function montarEnvio(
     const message = (pedido.texto ?? "").trim();
     if (!message) return { erro: "mensagem sem texto" };
     return { url: `${base}/send-text`, corpo: { phone, message } };
+  }
+
+  if (pedido.tipo === "imagem") {
+    const image = (pedido.documento ?? "").trim();
+    if (!image) return { erro: "envio de imagem sem o arquivo" };
+    return {
+      url: `${base}/send-image`,
+      corpo: { phone, image, caption: (pedido.texto ?? "").trim() || undefined },
+    };
   }
 
   const document = (pedido.documento ?? "").trim();

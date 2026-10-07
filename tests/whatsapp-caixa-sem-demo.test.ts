@@ -175,6 +175,7 @@ const COLUNAS: Record<string, string[]> = {
     "payload",
     "erro",
     "enviada_por",
+    "origem",
     "recebido_em",
     "enviado_em",
     "entregue_em",

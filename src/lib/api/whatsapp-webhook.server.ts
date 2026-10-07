@@ -177,6 +177,13 @@ async function tratar(evento: EventoZapi, instanciaId: string): Promise<Resposta
     }
 
     case "mensagem": {
+      // Eco de envio feito pela tela: o Z-API pode avisar o "fromMe" antes de
+      // o consumidor gravar o zapi_message_id na mensagem pendente. Completa a
+      // pendente em vez de criar uma segunda cópia na conversa.
+      if (evento.deMim && evento.texto) {
+        const completada = await completarPendente(instanciaId, evento.telefone, evento.texto, evento.messageId);
+        if (completada) return { mensagem: { duplicada: false, completou_pendente: completada } };
+      }
       // O evento cru já está em whatsapp_webhook_eventos; na mensagem fica o
       // ponteiro. Fora da chamada para o objeto dela não ter chave aninhada —
       // senão tests/rpc-assinaturas desiste de conferir os parâmetros.
@@ -204,6 +211,13 @@ async function tratar(evento: EventoZapi, instanciaId: string): Promise<Resposta
         os_id?: string | null;
         lead_criado?: boolean;
       };
+      if (!gravada.duplicada && gravada.mensagem_id && evento.deMim) {
+        // Resposta dada pelo celular da empresa (notifySentByMe).
+        await supabaseAdmin
+          .from("whatsapp_mensagens")
+          .update({ origem: "celular" } as never)
+          .eq("id", gravada.mensagem_id);
+      }
       if (gravada.duplicada || !evento.midia || !gravada.mensagem_id || !gravada.conversa_id) {
         return { mensagem: gravada };
       }
@@ -224,6 +238,39 @@ async function tratar(evento: EventoZapi, instanciaId: string): Promise<Resposta
       }
     }
   }
+}
+
+/** Procura a saída pendente (mesmo texto, mesma conversa, últimos 60 s) e a completa. */
+async function completarPendente(
+  instanciaId: string,
+  telefone: string,
+  texto: string,
+  messageId: string,
+): Promise<string | null> {
+  const desde = new Date(Date.now() - 60_000).toISOString();
+  const { data } = await supabaseAdmin
+    .from("whatsapp_mensagens")
+    .select("id, conversa:whatsapp_conversas!whatsapp_mensagens_conversa_id_fkey(telefone)")
+    .eq("instancia_id", instanciaId)
+    .eq("direcao", "saida")
+    .eq("status", "pendente")
+    .eq("texto", texto)
+    .is("zapi_message_id", null)
+    .gte("created_at", desde)
+    .order("created_at", { ascending: true })
+    .limit(5);
+  const fim = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
+  const alvo = ((data ?? []) as { id: string; conversa: { telefone: string } | null }[]).find(
+    (m) => fim(m.conversa?.telefone) === fim(telefone),
+  );
+  if (!alvo) return null;
+  const { data: feita } = await supabaseAdmin
+    .from("whatsapp_mensagens")
+    .update({ zapi_message_id: messageId, status: "enviada", enviado_em: new Date().toISOString() })
+    .eq("id", alvo.id)
+    .is("zapi_message_id", null)
+    .select("id");
+  return feita && feita.length > 0 ? alvo.id : null;
 }
 
 const EXTENSAO: Record<string, string> = {

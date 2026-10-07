@@ -203,6 +203,44 @@ function conteudo(p: Json): {
       midia: null,
     };
   }
+  // Mensagem de empresa em formato de modelo (Claro, bancos, apps): o corpo
+  // vem em title/message/footer. Antes caía em "sistema" sem texto nenhum.
+  const modelo = obj(p.hydratedTemplate);
+  if (modelo) {
+    const corpo = [texto(modelo.title), texto(modelo.message) ?? texto(modelo.content), texto(modelo.footer)]
+      .filter(Boolean)
+      .join("\n\n");
+    return { tipoMensagem: "texto", texto: corpo || null, legenda: null, midia: null };
+  }
+  const enquete = obj(p.poll);
+  if (enquete) {
+    const pergunta = texto(enquete.question) ?? texto(enquete.name) ?? "";
+    return { tipoMensagem: "texto", texto: `[Enquete] ${pergunta}`.trim(), legenda: null, midia: null };
+  }
+  if (obj(p.editedMessage) || p.isEdit === true) {
+    return { tipoMensagem: "texto", texto: "[mensagem editada]", legenda: null, midia: null };
+  }
+  if (p.revoked != null && p.revoked !== false) {
+    return { tipoMensagem: "texto", texto: "[mensagem apagada]", legenda: null, midia: null };
+  }
+  const ptv = obj(p.ptv);
+  if (ptv) {
+    const url = texto(ptv.url) ?? texto(ptv.videoUrl);
+    return {
+      tipoMensagem: "video",
+      texto: null,
+      legenda: null,
+      midia: url ? { url, mimeType: texto(ptv.mimeType), nomeArquivo: null } : null,
+    };
+  }
+  const produto = obj(p.product);
+  if (produto) {
+    const nome = texto(produto.title) ?? texto(produto.name) ?? "";
+    return { tipoMensagem: "texto", texto: `[Produto] ${nome}`.trim(), legenda: null, midia: null };
+  }
+  if (obj(p.order)) {
+    return { tipoMensagem: "texto", texto: "[Pedido]", legenda: null, midia: null };
+  }
   return { tipoMensagem: "sistema", texto: null, legenda: null, midia: null };
 }
 
