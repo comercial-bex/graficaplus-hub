@@ -1,20 +1,20 @@
 /**
- * A mensagem da automação, do jeito que o PROCESSADOR vai montar.
+ * A mensagem da automação, do jeito que o DESPACHANTE vai montar.
  *
- * Quem troca {{os.numero}} pelo número é `renderTemplate` em
- * supabase/functions/process-automations/index.ts, não a tela. Esta cópia
- * existe para duas coisas: mostrar a prévia antes de salvar e recusar variável
- * que não existe. O processador não recusa nada — caminho desconhecido vira
- * texto vazio, calado, e o cliente recebe "Seu pedido  está pronto". Um teste
- * confere que a expressão daqui é a mesma de lá.
+ * Desde 06/10/2026 quem troca {{os.numero}} pelo número na hora de mandar é
+ * `textoDaAutomacao` (domain/automacoes/destino.ts), que chama ESTA função —
+ * a tela e o envio usam o mesmo código. Antes a troca ficava em
+ * supabase/functions/process-automations/index.ts, que ninguém chamava. A
+ * regra continua: caminho desconhecido vira texto vazio, calado — por isso a
+ * tela recusa variável que não existe antes de salvar.
  */
 
-/** A mesma expressão de `renderTemplate` no processador. */
+/** A expressão das variáveis: {{os.numero}}, {{cliente.nome}}. */
 export const PADRAO_VARIAVEL = /{{\s*([\w.]+)\s*}}/g;
 
 type Dados = Record<string, unknown>;
 
-/** Igual a `getByPath` do processador: segue os pontos; o que faltar vira undefined. */
+/** Segue os pontos do caminho; o que faltar vira undefined. */
 function valorNoCaminho(fonte: unknown, caminho: string): unknown {
   return caminho.split(".").reduce<unknown>((acc, chave) => {
     if (acc && typeof acc === "object" && chave in (acc as Dados)) {
@@ -24,7 +24,7 @@ function valorNoCaminho(fonte: unknown, caminho: string): unknown {
   }, fonte);
 }
 
-/** Igual a `renderTemplate`: null e undefined viram texto vazio. */
+/** null e undefined viram texto vazio. */
 export function renderizarMensagem(modelo: string, dados: Dados): string {
   return modelo.replace(new RegExp(PADRAO_VARIAVEL.source, "g"), (_, caminho: string) => {
     const valor = valorNoCaminho(dados, caminho);

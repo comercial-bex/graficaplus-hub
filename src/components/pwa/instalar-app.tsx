@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { Download, Share, X } from "lucide-react";
+import { Download, RefreshCw, Share, X } from "lucide-react";
 
 /**
  * Registra o service worker e oferece instalar o Bex Print como app.
@@ -80,6 +80,11 @@ export function InstalarApp() {
   const [manual, setManual] = useState(false);
   // Faixa automática liberada nesta carga (2ª visita+, não instalado, não dispensado).
   const [autoLiberado, setAutoLiberado] = useState(false);
+  // Uma publicação nova foi instalada pelo service worker enquanto esta aba
+  // estava aberta. O app instalado no celular não recarrega sozinho: sem esta
+  // faixa, a pessoa ficava dias numa versão velha (foi assim no catálogo em
+  // 06/10/2026). Recarregar é decisão dela — pode estar no meio de um texto.
+  const [novaVersao, setNovaVersao] = useState(false);
   // Refs para os handlers do window lerem o estado atual sem re-registrar.
   const promptRef = useRef<PromptInstalacao | null>(null);
   const pathnameRef = useRef(pathname);
@@ -92,10 +97,32 @@ export function InstalarApp() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Só avisa de versão nova se JÁ havia um SW controlando a página: na
+    // primeira visita o `controllerchange` do claim() não é atualização.
+    const tinhaControlador = "serviceWorker" in navigator && !!navigator.serviceWorker.controller;
+    const aoTrocarControlador = () => {
+      if (tinhaControlador) setNovaVersao(true);
+    };
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        /* sem SW o app continua funcionando; só perde o "offline" */
-      });
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((registro) => {
+          // O SW novo instalou enquanto o antigo ainda controla a página:
+          // há versão nova esperando (o sw.js dá skipWaiting, então em
+          // seguida vem o controllerchange — o aviso aparece uma vez só).
+          const vigiar = (sw: ServiceWorker | null) => {
+            if (!sw) return;
+            sw.addEventListener("statechange", () => {
+              if (sw.state === "installed" && navigator.serviceWorker.controller) setNovaVersao(true);
+            });
+          };
+          vigiar(registro.installing);
+          registro.addEventListener("updatefound", () => vigiar(registro.installing));
+        })
+        .catch(() => {
+          /* sem SW o app continua funcionando; só perde o "offline" */
+        });
+      navigator.serviceWorker.addEventListener("controllerchange", aoTrocarControlador);
     }
 
     const visitas = contarVisita();
@@ -152,6 +179,9 @@ export function InstalarApp() {
     return () => {
       window.removeEventListener("beforeinstallprompt", aoPoderInstalar);
       window.removeEventListener(EVENTO_INSTALAR, aoPedirInstalar);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("controllerchange", aoTrocarControlador);
+      }
       if (t) clearTimeout(t);
     };
   }, []);
@@ -189,9 +219,21 @@ export function InstalarApp() {
     setPrompt(null);
   }
 
-  if (!visivel) return null;
+  const faixaDeAtualizacao = novaVersao ? (
+    <button
+      type="button"
+      onClick={() => window.location.reload()}
+      className="fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-50 mx-auto flex max-w-md items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold shadow-2xl"
+    >
+      <RefreshCw className="h-4 w-4" /> Nova versão disponível — toque para atualizar
+    </button>
+  ) : null;
+
+  if (!visivel) return faixaDeAtualizacao;
 
   return (
+    <>
+    {faixaDeAtualizacao}
     <div
       role="dialog"
       aria-label="Instalar o Bex Print"
@@ -249,5 +291,6 @@ export function InstalarApp() {
         </button>
       </div>
     </div>
+    </>
   );
 }

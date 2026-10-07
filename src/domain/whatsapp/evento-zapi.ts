@@ -52,6 +52,12 @@ export type EventoZapi =
       telefone: string;
       /** enviada do próprio celular da empresa — é saída, não vira lead */
       deMim: boolean;
+      /**
+       * Mensagem de MODELO (hydratedTemplate): mandada por uma automação de
+       * empresa (Claro, Kwai, Renova Be), nunca por uma pessoa. Entra na caixa
+       * como texto, mas não abre lead nem atendimento (origem 'automacao').
+       */
+      deModelo: boolean;
       nome: string | null;
       tipoMensagem: TipoMensagem;
       texto: string | null;
@@ -59,7 +65,13 @@ export type EventoZapi =
       midia: Midia | null;
       momento: Date | null;
     }
-  | { tipo: "status"; instanceId: string; ids: string[]; status: StatusMensagem; momento: Date | null }
+  | {
+      tipo: "status";
+      instanceId: string;
+      ids: string[];
+      status: StatusMensagem;
+      momento: Date | null;
+    }
   | { tipo: "conexao"; instanceId: string; conectado: boolean; momento: Date | null }
   | { tipo: "ignorado"; instanceId: string | null; motivo: string };
 
@@ -109,13 +121,22 @@ export function mapearStatusZapi(status: unknown): StatusMensagem | null {
 /**
  * Telefone de pessoa: só dígitos. Id de grupo (`120363...-group`, `...@g.us`),
  * canal (`@newsletter`) e lista de transmissão (`@broadcast`) não são pessoa.
+ *
+ * E tem teto: DDI + DDD + número cabem em 13 dígitos (5596981216527). O id
+ * interno do WhatsApp (lid) tem 14 ou 15 e o Z-API o manda à parte, em
+ * `chatLid` ("253386293268636@lid") — mas em 06/10/2026 um chegou CRU no
+ * `phone` (62895426250367) e virou o lead "62895426250367", que ninguém
+ * consegue ligar nem responder. Mais que 13 dígitos não é telefone.
  */
+export const MAXIMO_DE_DIGITOS_DE_TELEFONE = 13;
+
 function telefoneDePessoa(phone: unknown): string | null {
   const p = texto(phone);
   if (!p) return null;
   if (/[@-]/.test(p)) return null;
   const digitos = p.replace(/\D/g, "");
-  return digitos.length >= 10 ? digitos : null;
+  if (digitos.length < 10 || digitos.length > MAXIMO_DE_DIGITOS_DE_TELEFONE) return null;
+  return digitos;
 }
 
 function conteudo(p: Json): {
@@ -187,7 +208,12 @@ function conteudo(p: Json): {
   }
   const contact = obj(p.contact);
   if (contact) {
-    return { tipoMensagem: "contato", texto: texto(contact.displayName), legenda: null, midia: null };
+    return {
+      tipoMensagem: "contato",
+      texto: texto(contact.displayName),
+      legenda: null,
+      midia: null,
+    };
   }
   const text = obj(p.text);
   if (text) {
@@ -207,7 +233,11 @@ function conteudo(p: Json): {
   // vem em title/message/footer. Antes caía em "sistema" sem texto nenhum.
   const modelo = obj(p.hydratedTemplate);
   if (modelo) {
-    const corpo = [texto(modelo.title), texto(modelo.message) ?? texto(modelo.content), texto(modelo.footer)]
+    const corpo = [
+      texto(modelo.title),
+      texto(modelo.message) ?? texto(modelo.content),
+      texto(modelo.footer),
+    ]
       .filter(Boolean)
       .join("\n\n");
     return { tipoMensagem: "texto", texto: corpo || null, legenda: null, midia: null };
@@ -215,7 +245,12 @@ function conteudo(p: Json): {
   const enquete = obj(p.poll);
   if (enquete) {
     const pergunta = texto(enquete.question) ?? texto(enquete.name) ?? "";
-    return { tipoMensagem: "texto", texto: `[Enquete] ${pergunta}`.trim(), legenda: null, midia: null };
+    return {
+      tipoMensagem: "texto",
+      texto: `[Enquete] ${pergunta}`.trim(),
+      legenda: null,
+      midia: null,
+    };
   }
   if (obj(p.editedMessage) || p.isEdit === true) {
     return { tipoMensagem: "texto", texto: "[mensagem editada]", legenda: null, midia: null };
@@ -244,6 +279,24 @@ function conteudo(p: Json): {
   return { tipoMensagem: "sistema", texto: null, legenda: null, midia: null };
 }
 
+/**
+ * Evento que nem merece linha em `whatsapp_webhook_eventos`.
+ *
+ * Em 06/10/2026, dos 46 eventos gravados, 7 eram "presença" (fulano ficou
+ * online) e 13 eram recibos de `status@broadcast` (a empresa viu um status de
+ * contato). Nenhum dos dois vira mensagem, recibo útil ou conexão — só enchem
+ * o histórico do Monitor e escondem o que importa. São respondidos com 200
+ * ANTES de gravar; a decisão é aqui, pura, para o teste ler.
+ */
+export function eventoSemRegistro(payload: unknown): string | null {
+  const p = obj(payload);
+  if (!p) return null;
+  if (texto(p.type) === "PresenceChatCallback") return "presença (online/offline) não é registrada";
+  if (texto(p.phone) === "status@broadcast")
+    return "status de contato (status@broadcast) não é registrado";
+  return null;
+}
+
 export function classificarEventoZapi(payload: unknown): EventoZapi {
   const p = obj(payload);
   if (!p) return { tipo: "ignorado", instanceId: null, motivo: "corpo não é um objeto JSON" };
@@ -255,7 +308,8 @@ export function classificarEventoZapi(payload: unknown): EventoZapi {
   switch (tipo) {
     case "ReceivedCallback": {
       if (p.isGroup === true) return { tipo: "ignorado", instanceId, motivo: "mensagem de grupo" };
-      if (p.isNewsletter === true) return { tipo: "ignorado", instanceId, motivo: "mensagem de canal" };
+      if (p.isNewsletter === true)
+        return { tipo: "ignorado", instanceId, motivo: "mensagem de canal" };
       if (p.broadcast === true) {
         return { tipo: "ignorado", instanceId, motivo: "lista de transmissão" };
       }
@@ -264,6 +318,20 @@ export function classificarEventoZapi(payload: unknown): EventoZapi {
       // versão legível, com o mesmo messageId, ser descartada como repetida.
       if (p.waitingMessage === true) {
         return { tipo: "ignorado", instanceId, motivo: "mensagem ainda cifrada no aparelho" };
+      }
+      // Mandada pela própria API (o aviso ao cliente, a resposta da caixa de
+      // entrada): quem mandou já gravou a linha com o messageId que o Z-API
+      // devolveu. Gravar de novo aqui disputaria a chave única
+      // (instancia_id, zapi_message_id) com esse registro. É o que torna
+      // seguro ligar "Notificar as enviadas por mim também" no painel do
+      // Z-API: a digitada no celular (fromApi=false) entra como saída; a da
+      // API, não.
+      if (p.fromMe === true && p.fromApi === true) {
+        return {
+          tipo: "ignorado",
+          instanceId,
+          motivo: "enviada pela API: quem enviou já registrou",
+        };
       }
 
       const messageId = texto(p.messageId);
@@ -277,6 +345,7 @@ export function classificarEventoZapi(payload: unknown): EventoZapi {
         messageId,
         telefone,
         deMim: p.fromMe === true,
+        deModelo: obj(p.hydratedTemplate) !== null,
         nome: texto(p.senderName) ?? texto(p.chatName),
         ...conteudo(p),
         momento: momento(p.momment),

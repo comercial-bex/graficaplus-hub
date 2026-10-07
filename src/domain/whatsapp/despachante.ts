@@ -1,24 +1,40 @@
 /**
  * O despachante: quem aciona o envio do WhatsApp sem ninguém clicar.
  *
- * Sem `pg_cron` e sem `pg_net` no projeto, o banco não chama nada sozinho, e
- * a função `process-automations` não tem quem a dispare. Os avisos ao cliente
- * (`notificacoes_fila`) ficavam esperando alguém responder uma conversa para
- * pegar carona no POST /api/whatsapp/enviar. Desde 02/10/2026, com o WhatsApp
- * conectado, o dono decidiu: os avisos saem na hora. Quem os leva é o próprio
- * sistema aberto na tela de quem atende — cada aba visível de quem tem
- * `whatsapp.reply` chama o envio a cada 2 minutos.
+ * DOIS DESPACHANTES, O MESMO CONSUMIDOR.
  *
- * Várias abas, várias pessoas: o consumidor RESERVA cada linha antes de
- * mandar (`pendente` → `enviando` só se ainda estava pendente), então duas
- * chamadas ao mesmo tempo não mandam o mesmo aviso duas vezes.
+ * 1. O do navegador (`despachante-de-avisos.tsx`): cada aba visível de quem
+ *    tem `whatsapp.reply` chama POST /api/whatsapp/enviar a cada 2 minutos.
+ *    Existe desde 02/10/2026, quando o banco não tinha `pg_cron` nem `pg_net`.
+ *    Só funciona com o sistema aberto: medido em 06/10, o aviso "orçamento
+ *    aprovado" levou de 36 min a 2 h 14 para sair, e à noite não saía.
+ *
+ * 2. O do servidor (`/api/whatsapp/despachar`, migração de 06/10/2026): um
+ *    job do `pg_cron` chama a rota a cada 2 minutos, 24 h, com o token que
+ *    mora no Vault do banco e em DESPACHANTE_TOKEN no servidor. Sem a
+ *    variável a rota responde 503 e o despachante do navegador segue
+ *    valendo — nada depende de o servidor estar ligado para o aviso sair.
+ *
+ * Várias abas, várias pessoas e o servidor, ao mesmo tempo: o consumidor
+ * RESERVA cada linha antes de mandar (`pendente` → `enviando` só se ainda
+ * estava pendente), então duas chamadas simultâneas não mandam o mesmo
+ * aviso duas vezes.
  */
 
 /** De quanto em quanto tempo cada aba visível chama o envio. */
 export const INTERVALO_DO_DESPACHANTE_MS = 2 * 60_000;
 
-/** A aba confere a decisão a cada tanto — barato, sem chamar o servidor. */
+/**
+ * A aba confere a decisão a cada 15 segundos — barato, sem chamar o
+ * servidor. A chamada em si respeita INTERVALO_DO_DESPACHANTE_MS (2 min).
+ */
 export const CONFERIR_A_CADA_MS = 15_000;
+
+/** O cabeçalho em que o despachante do servidor manda o token (nunca na URL). */
+export const CABECALHO_DO_DESPACHANTE = "x-despachante-token";
+
+/** A frase do 503 quando DESPACHANTE_TOKEN não está no servidor. */
+export const DESPACHANTE_DESLIGADO = "despachante do servidor desligado";
 
 export type EstadoDoDespachante = {
   temPermissao: boolean;

@@ -42,3 +42,12 @@ export type StatusMensagem = (typeof STATUS_MENSAGEM)[number];
  */
 export const STATUS_FILA = ["pendente", "enviando", "enviada", "falha"] as const;
 export type StatusFila = (typeof STATUS_FILA)[number];
+
+/**
+ * `automacao_execucoes.status` — CHECK `automacao_execucoes_status_check`
+ * (conferido no banco vivo em 06/10/2026). Quarto vocabulário para a mesma
+ * ideia: aqui "processando" é a reserva e "erro" é tanto a falha quanto o
+ * cancelamento (texto 'Cancelada: …' — ver domain/automacoes/execucoes.ts).
+ */
+export const STATUS_EXECUCAO = ["pendente", "processando", "sucesso", "erro"] as const;
+export type StatusExecucao = (typeof STATUS_EXECUCAO)[number];

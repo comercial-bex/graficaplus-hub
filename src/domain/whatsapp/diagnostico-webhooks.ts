@@ -44,11 +44,84 @@ export function rotuloDoTipo(tipo: string): string {
   return ROTULO_TIPO[tipo] ?? tipo;
 }
 
-export type SituacaoEvento = "processado" | "erro" | "pendente";
+/**
+ * "processado_com_falha" é o evento que ENTROU (a mensagem foi gravada) mas
+ * deixou algo para trás — a cópia da mídia, por exemplo. Antes ele aparecia
+ * como "processado" e o motivo só voltava ao Z-API na resposta HTTP, que
+ * ninguém lê: foi assim que um PDF de cliente ficou no bucket sem linha em
+ * `arquivos` e sem ninguém saber (06/10/2026).
+ */
+export type SituacaoEvento = "processado" | "processado_com_falha" | "erro" | "pendente";
+
+export const ROTULO_SITUACAO: Record<SituacaoEvento, string> = {
+  processado: "Processado",
+  processado_com_falha: "Processado com falha",
+  erro: "Com erro",
+  pendente: "Pendente",
+};
 
 export function situacaoDoEvento(e: Pick<EventoGravado, "processado_em" | "erro">): SituacaoEvento {
+  if (e.processado_em && e.erro) return "processado_com_falha";
   if (e.erro) return "erro";
   return e.processado_em ? "processado" : "pendente";
+}
+
+/** O evento trouxe mídia (imagem, documento, áudio, vídeo ou figurinha)? */
+export function eventoTemMidia(payload: unknown): boolean {
+  const p = obj(payload);
+  if (p.type !== "ReceivedCallback") return false;
+  return !!(
+    obj(p.image).imageUrl ||
+    obj(p.document).documentUrl ||
+    obj(p.audio).audioUrl ||
+    obj(p.video).videoUrl ||
+    obj(p.sticker).stickerUrl
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* As duas medidas permanentes da entrada                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * O que a função `whatsapp_medidas_de_entrada` do banco devolve.
+ *
+ *   recibos_sem_mensagem  READ_BY_ME (a empresa leu no celular) cujo id não
+ *                         tem evento `msg:<id>`: a mensagem chegou no aparelho
+ *                         e NUNCA chegou ao sistema. Em 06/10/2026 era 1
+ *                         ("Gratidão", 17:35 UTC) — o webhook caiu na loteria
+ *                         de DNS que havia até esse dia.
+ *   midias_sem_copia      mensagens com link de mídia do Z-API e sem cópia no
+ *                         nosso armazenamento. O link vence em 30 dias.
+ *
+ * Os dois números certos são ZERO. Qualquer coisa acima é mensagem de cliente
+ * que o sistema deve e não tem.
+ */
+export type MedidasDeEntrada = {
+  recibos_sem_mensagem: number;
+  midias_sem_copia: number;
+  recibos: { id: string; telefone: string | null; momento: string | null }[];
+  medido_em: string;
+};
+
+export function lerMedidasDeEntrada(valor: unknown): MedidasDeEntrada {
+  const v = obj(valor);
+  const n1 = Number(v.recibos_sem_mensagem);
+  const n2 = Number(v.midias_sem_copia);
+  if (!Number.isInteger(n1) || !Number.isInteger(n2) || typeof v.medido_em !== "string") {
+    throw new Error("a função whatsapp_medidas_de_entrada devolveu um formato inesperado");
+  }
+  const recibos = Array.isArray(v.recibos)
+    ? v.recibos.map((r) => {
+        const o = obj(r);
+        return {
+          id: String(o.id ?? ""),
+          telefone: typeof o.telefone === "string" ? o.telefone : null,
+          momento: typeof o.momento === "string" ? o.momento : null,
+        };
+      })
+    : [];
+  return { recibos_sem_mensagem: n1, midias_sem_copia: n2, recibos, medido_em: v.medido_em };
 }
 
 /** Uma linha curta com o que ajuda a entender o evento. */

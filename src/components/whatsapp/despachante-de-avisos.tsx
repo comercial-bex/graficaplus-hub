@@ -8,15 +8,16 @@ import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
  *
  * Os avisos automáticos (`notificacoes_fila`: orçamento aprovado, arte para
  * aprovar, em produção, pronto para retirar, saiu para entrega, concluído)
- * nascem dos gatilhos do banco e não tinham quem os mandasse: sem `pg_cron` e
- * sem `pg_net`, nada no servidor acorda sozinho. Desde 02/10/2026, com o
- * WhatsApp conectado, o dono decidiu que saem na hora — e quem leva é o
- * sistema aberto na tela de quem atende.
+ * nascem dos gatilhos do banco. Desde 02/10/2026, com o WhatsApp conectado,
+ * o dono decidiu que saem na hora — e quem leva é o sistema aberto na tela de
+ * quem atende. Desde 06/10/2026 há também o despachante do SERVIDOR (job do
+ * pg_cron → /api/whatsapp/despachar, 24 h); este daqui continua valendo:
+ * é o que garante o envio quando o do servidor está desligado ou fora.
  *
  * Para quem tem `whatsapp.reply`: chama POST /api/whatsapp/enviar logo ao
  * montar e depois a cada 2 minutos, só com a aba visível, uma chamada por vez.
- * O consumidor reserva cada linha antes de mandar, então várias abas e várias
- * pessoas ao mesmo tempo não repetem aviso.
+ * O consumidor reserva cada linha antes de mandar, então várias abas, várias
+ * pessoas e o servidor ao mesmo tempo não repetem aviso.
  *
  * SEM BARULHO: nada de toast, nada de tela vermelha. Rede fora, sessão
  * vencida, 401 ou 503 (WhatsApp desconectado) só vão para o console.debug, e

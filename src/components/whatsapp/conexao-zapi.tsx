@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 import { gerarSegredo, hashDoSegredo, urlDoWebhook } from "@/domain/whatsapp/segredo-webhook";
 import { origemServeParaWebhook, situacaoDaConexao } from "@/domain/whatsapp/situacao-conexao";
 
@@ -23,6 +24,14 @@ import { origemServeParaWebhook, situacaoDaConexao } from "@/domain/whatsapp/sit
  * O segredo do webhook é sorteado AQUI, no navegador, aparece uma vez e só o
  * hash vai ao banco. Por isso a URL não pode ser mostrada de novo depois:
  * quem perdeu gera outra, e a antiga para de valer.
+ *
+ * A LEITURA QUE CAI NÃO ABRE O CADASTRO (06/10/2026). Antes, a consulta das
+ * instâncias com erro virava lista vazia, e lista vazia mostrava o formulário
+ * de cadastro: um clique ali trocava o segredo da instância que já estava
+ * recebendo e derrubava a recepção. Agora erro é erro na tela, e o cadastro
+ * só aparece quando a leitura deu certo e não há instância. Trocar o segredo
+ * é só pelo botão "Gerar novo endereço", que manda `p_trocar_segredo` ao
+ * banco — o cadastro inicial não manda, e o banco recusa a troca sem ele.
  */
 
 type Instancia = {
@@ -41,7 +50,7 @@ export function ConexaoZapi() {
   const { hasPermission } = useAuth();
   const podeGerenciar = hasPermission("whatsapp.manage");
 
-  const { data: instancias = [], isLoading } = useQuery({
+  const consulta = useQuery({
     queryKey: ["whatsapp-instancias"],
     queryFn: async () => {
       // Lista explícita de colunas: o hash do segredo não é legível pela
@@ -54,6 +63,10 @@ export function ConexaoZapi() {
       return (data ?? []) as Instancia[];
     },
   });
+  const instancias = consulta.data ?? [];
+  const isLoading = consulta.isPending;
+  // Só com a leitura certa e sem instância o cadastro aparece.
+  const semInstancia = consulta.isSuccess && instancias.length === 0;
 
   const [zapiId, setZapiId] = useState("");
   const [nome, setNome] = useState("");
@@ -65,7 +78,13 @@ export function ConexaoZapi() {
   const origem = typeof window !== "undefined" ? window.location.origin : "";
   const origemValida = origemServeParaWebhook(origem);
 
-  async function gerarEndereco(dados: { zapiInstanceId: string; nome?: string; numero?: string }) {
+  async function gerarEndereco(dados: {
+    zapiInstanceId: string;
+    nome?: string;
+    numero?: string;
+    /** Só o botão "Gerar novo endereço" passa true: o cadastro inicial nunca troca segredo. */
+    trocarSegredo: boolean;
+  }) {
     if (!origemValida) {
       toast.error("Abra o sistema pelo endereço publicado para gerar a URL do webhook.");
       return;
@@ -79,6 +98,7 @@ export function ConexaoZapi() {
         p_nome: dados.nome ?? null,
         p_numero: dados.numero ?? null,
         p_webhook_secret_hash: hash,
+        p_trocar_segredo: dados.trocarSegredo,
       });
       if (error) throw error;
       setUrlGerada(urlDoWebhook(origem, segredo));
@@ -113,9 +133,17 @@ export function ConexaoZapi() {
         <CardTitle className="flex items-center gap-2 text-base">
           <Plug className="h-4 w-4" /> Conexão com o WhatsApp
         </CardTitle>
-        {!isLoading && <StatusChip label={situacao.rotulo} tone={situacao.tom} />}
+        {consulta.isSuccess && <StatusChip label={situacao.rotulo} tone={situacao.tom} />}
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
+        {consulta.isError && (
+          <FalhaDeConsulta
+            titulo="Não foi possível ler a instância do WhatsApp"
+            erro={consulta.error}
+            onTentarDeNovo={() => void consulta.refetch()}
+          />
+        )}
+        {isLoading && <p className="text-xs text-muted-foreground">Conferindo a conexão…</p>}
         {instancias.map((i) => (
           <div key={i.id} className="rounded border border-border/60 bg-muted/30 p-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -143,7 +171,7 @@ export function ConexaoZapi() {
                       "Gerar um novo endereço faz o atual parar de funcionar. Você vai precisar colar o novo no painel do Z-API. Continuar?",
                     )
                   ) {
-                    gerarEndereco({ zapiInstanceId: i.zapi_instance_id });
+                    gerarEndereco({ zapiInstanceId: i.zapi_instance_id, trocarSegredo: true });
                   }
                 }}
               >
@@ -153,7 +181,7 @@ export function ConexaoZapi() {
           </div>
         ))}
 
-        {situacao.proximoPasso && (
+        {consulta.isSuccess && situacao.proximoPasso && (
           <p className="text-xs text-muted-foreground">{situacao.proximoPasso}</p>
         )}
 
@@ -179,12 +207,12 @@ export function ConexaoZapi() {
           </div>
         )}
 
-        {podeGerenciar && instancias.length === 0 && (
+        {podeGerenciar && semInstancia && (
           <form
             className="grid gap-3 md:grid-cols-3"
             onSubmit={(e) => {
               e.preventDefault();
-              gerarEndereco({ zapiInstanceId: zapiId, nome, numero });
+              gerarEndereco({ zapiInstanceId: zapiId, nome, numero, trocarSegredo: false });
             }}
           >
             <div className="space-y-1">
@@ -222,7 +250,7 @@ export function ConexaoZapi() {
           </p>
         )}
 
-        {!podeGerenciar && instancias.length === 0 && (
+        {!podeGerenciar && semInstancia && (
           <p className="text-xs text-muted-foreground">
             Peça a quem administra o sistema para conectar o WhatsApp (permissão whatsapp › manage).
           </p>

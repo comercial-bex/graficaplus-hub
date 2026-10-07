@@ -79,7 +79,7 @@ describe("por que a mensagem não sai", () => {
     expect(envioFunciona(itens)).toBe(false);
   });
 
-  it("automação parada aponta para quem a envia: só a função process-automations", () => {
+  it("automação parada aponta para quem a envia: o despachante do WhatsApp (desde 06/10/2026)", () => {
     const itens = saudeDoEnvio({
       instancias: [desconectada],
       paradas: { automacoes: 2, automacoesDesde: ha(40), avisos: 0, avisosDesde: null },
@@ -87,7 +87,10 @@ describe("por que a mensagem não sai", () => {
     });
     const proc = itens.find((i) => i.chave === "processador")!;
     expect(proc.detalhe).toContain("2 mensagens de automação esperam");
-    expect(proc.detalhe).toContain("process-automations");
+    expect(proc.detalhe).toContain("despachante");
+    // A função process-automations não é mais o caminho: a tela não manda
+    // ninguém publicá-la.
+    expect(proc.detalhe).not.toContain("process-automations");
   });
 
   it("fila vazia não prova que o processador roda — não pinta de verde", () => {

@@ -1,0 +1,38 @@
+[
+  {
+    "evento": "orcamento_aprovado",
+    "descricao": "Orçamento aprovado pelo cliente",
+    "ativo": true,
+    "corpo": "Olá, {{cliente}}! Recebemos a aprovação do orçamento nº {{orcamento_numero}}. Já vamos abrir a ordem de serviço e te avisamos quando a produção começar."
+  },
+  {
+    "evento": "os_arte_para_aprovar",
+    "descricao": "Arte pronta, aguardando aprovação do cliente",
+    "ativo": true,
+    "corpo": "Oi, {{cliente}}! A arte do pedido {{os_numero}} ({{os_titulo}}) está pronta para sua aprovação. Assim que você aprovar, entra na fila de produção."
+  },
+  {
+    "evento": "os_concluida",
+    "descricao": "Pedido concluído",
+    "ativo": true,
+    "corpo": "Pedido {{os_numero}} concluído, {{cliente}}. Obrigado pela preferência! Se puder responder como foi a experiência, ajuda muito a gente."
+  },
+  {
+    "evento": "os_em_producao",
+    "descricao": "OS entrou em produção",
+    "ativo": true,
+    "corpo": "Boa notícia, {{cliente}}: o pedido {{os_numero}} ({{os_titulo}}) entrou em produção. Previsão de entrega: {{prazo}}."
+  },
+  {
+    "evento": "os_pronta_retirada",
+    "descricao": "Pedido pronto para retirada",
+    "ativo": true,
+    "corpo": "{{cliente}}, seu pedido {{os_numero}} está pronto e à sua espera aqui na gráfica. Nosso horário de atendimento é de segunda a sexta."
+  },
+  {
+    "evento": "os_saiu_entrega",
+    "descricao": "Pedido saiu para entrega",
+    "ativo": true,
+    "corpo": "{{cliente}}, o pedido {{os_numero}} saiu para entrega hoje. Qualquer coisa é só responder por aqui."
+  }
+]

@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   STATUS_AVISO,
+  STATUS_EXECUCAO,
   STATUS_FILA,
   STATUS_MENSAGEM,
 } from "../src/domain/whatsapp/status-das-filas";
@@ -203,7 +204,12 @@ describe("o consumidor só grava status que o banco aceita", () => {
   it("cada tabela é gravada por UMA função tipada — nenhum update escapa da trava", () => {
     // Um `.from("notificacoes_fila").update({ status: "falha" })` solto no meio
     // do arquivo passaria pelas checagens de cima; esta não deixa.
-    for (const tabela of ["notificacoes_fila", "whatsapp_fila_envio", "whatsapp_mensagens"]) {
+    for (const tabela of [
+      "notificacoes_fila",
+      "whatsapp_fila_envio",
+      "whatsapp_mensagens",
+      "automacao_execucoes",
+    ]) {
       const updates = [
         ...fonte.matchAll(new RegExp(`from\\(\\s*"${tabela}"\\s*\\)\\s*\\.update\\(`, "g")),
       ];
@@ -212,34 +218,62 @@ describe("o consumidor só grava status que o banco aceita", () => {
     expect(fonte).toMatch(/function gravarAviso\([\s\S]*?status:\s*StatusAviso/);
     expect(fonte).toMatch(/function gravarFila\([\s\S]*?status:\s*StatusFila/);
     expect(fonte).toMatch(/function gravarMensagem\([\s\S]*?status:\s*StatusMensagem/);
+    expect(fonte).toMatch(/function gravarExecucao\([\s\S]*?status:\s*StatusExecucao/);
+  });
+
+  it("automacao_execucoes recebe só os valores do CHECK (pendente|processando|sucesso|erro)", () => {
+    const gravados = [
+      ...chamadas("gravarExecucao").flatMap(statusEm),
+      ...updatesDiretos("automacao_execucoes"),
+    ];
+    expect(gravados.length).toBeGreaterThan(0);
+    const fora = gravados.filter((s) => !(STATUS_EXECUCAO as readonly string[]).includes(s));
+    expect(fora).toEqual([]);
   });
 });
 
-describe("duas chamadas ao mesmo tempo não mandam a mesma linha duas vezes", () => {
-  // O despachante chama de 2 em 2 minutos de cada aba visível, e a caixa de
-  // entrada chama a cada resposta: chamadas simultâneas são o caso normal.
-  it("as duas filas reservam (pendente → enviando) antes de mandar, e só segue quem reservou", () => {
-    for (const nome of ["gravarFila", "gravarAviso"]) {
-      const reserva = chamadas(nome).find(
-        (c) => /status:\s*"enviando"/.test(c) && /quandoStatus:\s*"pendente"/.test(c),
+describe("três chamadas ao mesmo tempo não mandam a mesma linha duas vezes", () => {
+  // O despachante do navegador chama de 2 em 2 minutos de cada aba visível, o
+  // do servidor (pg_cron) de 2 em 2 minutos, e a caixa de entrada chama a cada
+  // resposta: chamadas simultâneas são o caso normal.
+  it("as três filas reservam (pendente → enviando/processando) antes de mandar, e só segue quem reservou", () => {
+    for (const [nome, reserva] of [
+      ["gravarFila", "enviando"],
+      ["gravarAviso", "enviando"],
+      ["gravarExecucao", "processando"],
+    ] as const) {
+      const achada = chamadas(nome).find(
+        (c) =>
+          new RegExp(`status:\\s*"${reserva}"`).test(c) && /quandoStatus:\s*"pendente"/.test(c),
       );
-      expect(reserva, `${nome}: falta a reserva condicionada a "pendente"`).toBeDefined();
+      expect(achada, `${nome}: falta a reserva condicionada a "pendente"`).toBeDefined();
     }
-    expect(fonte.match(/if\s*\(!reservada\)\s*continue/g)?.length).toBe(2);
-    // A reserva precisa vir ANTES da chamada ao Z-API, nas duas filas.
+    expect(fonte.match(/if\s*\(!reservada\)\s*continue/g)?.length).toBe(3);
+    // A reserva precisa vir ANTES da chamada ao Z-API, nas três filas.
     const reservas = [...fonte.matchAll(/quandoStatus:\s*"pendente"/g)].map((m) => m.index ?? 0);
-    const envios = [...fonte.matchAll(/await fetch\(montado\.url/g)].map((m) => m.index ?? 0);
-    expect(envios).toHaveLength(2);
-    expect(reservas[0]).toBeLessThan(envios[0]);
-    expect(reservas[1]).toBeLessThan(envios[1]);
-    expect(reservas[1]).toBeGreaterThan(envios[0]);
+    const envios = [...fonte.matchAll(/await chamarZapi\(montado/g)].map((m) => m.index ?? 0);
+    expect(envios).toHaveLength(3);
+    expect(reservas).toHaveLength(3);
+    for (let i = 0; i < 3; i++) {
+      expect(reservas[i], `fila ${i}`).toBeLessThan(envios[i]);
+      if (i > 0) expect(reservas[i], `fila ${i}`).toBeGreaterThan(envios[i - 1]);
+    }
   });
 
   it("a condição da reserva é aplicada no UPDATE (só grava se o status ainda for o esperado)", () => {
     expect(fonte).toMatch(
       /if \(condicao\) consulta = consulta\.eq\("status", condicao\.quandoStatus\)/,
     );
-    expect(fonte.match(/consulta\.select\("id"\)/g)?.length).toBe(2);
+    expect(fonte.match(/consulta\.select\("id"\)/g)?.length).toBe(3);
+  });
+
+  it("a varredura das situações roda antes de ler a fila de automações", () => {
+    const varredura = fonte.indexOf('"criar_eventos_automacoes_recorrentes"');
+    const leitura = fonte.search(
+      /\.from\("automacao_execucoes"\)\s*\.select\(\s*"id, automacao_id/,
+    );
+    expect(varredura).toBeGreaterThan(0);
+    expect(leitura).toBeGreaterThan(varredura);
   });
 
   it("reserva esquecida em 'enviando' volta à fila no começo da rodada", () => {
@@ -283,5 +317,73 @@ describe("o consumidor lê o erro de cada ida ao banco", () => {
   it("o erro de gravação vai para o log e para a resposta", () => {
     expect(fonte).toMatch(/console\.error\(\s*"\[whatsapp-enviar\] gravação recusada pelo banco"/);
     expect(fonte).toMatch(/erros_de_gravacao:\s*erros/);
+  });
+});
+
+describe("o que saiu fica registrado em whatsapp_logs (06/10/2026)", () => {
+  it("UM insert em whatsapp_logs, dentro de registrarLog, chamado em toda ida ao Z-API", () => {
+    expect(fonte.match(/from\("whatsapp_logs"\)\s*\.insert\(/g)?.length).toBe(1);
+    // fila das conversas (rede + resposta), avisos (rede, recusa, sucesso),
+    // automações (rede + resposta): no mínimo sete chamadas.
+    expect(chamadas("registrarLog").length).toBeGreaterThanOrEqual(7);
+  });
+
+  it("o tipo do log é do enum whatsapp_log_tipo — nunca um valor inventado", () => {
+    const tipos = chamadas("registrarLog").flatMap((c) =>
+      [...c.matchAll(/tipo:\s*([^,\n]+)/g)].flatMap((m) => literais(m[1])),
+    );
+    expect(tipos.length).toBeGreaterThan(0);
+    const enumDoBanco = [
+      "envio_texto",
+      "envio_imagem",
+      "envio_documento",
+      "webhook_mensagem",
+      "webhook_status",
+      "webhook_conexao",
+      "erro",
+    ];
+    expect(tipos.filter((t) => !enumDoBanco.includes(t))).toEqual([]);
+    expect(fonte).not.toMatch(/tipo:\s*"automacao"/);
+  });
+
+  it("o token nunca vai para o log: a URL montada não entra em registrarLog", () => {
+    for (const c of chamadas("registrarLog")) {
+      expect(c).not.toMatch(/\burl\b|\btoken\b/);
+    }
+    // O request guarda telefone, texto final, fila e id da linha.
+    expect(fonte).toMatch(
+      /request: \{ phone: string; message: string; fila: string; fila_id: string \}/,
+    );
+  });
+
+  it("o aviso que saiu vira mensagem da conversa, depois do 'enviado' e sem desfazê-lo", () => {
+    const enviado = fonte.search(/status:\s*"enviado"/);
+    const registro = fonte.indexOf('"whatsapp_registrar_mensagem"');
+    expect(enviado).toBeGreaterThan(0);
+    expect(registro).toBeGreaterThan(enviado);
+    const chamada = fonte.slice(registro, registro + 600);
+    expect(chamada).toMatch(/p_direcao:\s*"saida"/);
+    expect(chamada).toMatch(/p_texto:\s*textoDoAviso/);
+    // A falha do registro vai para erros_de_gravacao, não para um novo status.
+    expect(fonte).toMatch(/o aviso saiu, mas não ficou na conversa/);
+  });
+});
+
+describe("a porta lateral da fila está fechada no consumidor", () => {
+  it("o destino é o telefone da conversa; payload.para não é lido", () => {
+    expect(fonte).not.toMatch(/p\.para\b/);
+    expect(fonte).toMatch(/para:\s*telefoneDaConversa/);
+  });
+
+  it("linha sem conversa ou sem autor é falha definitiva, com o motivo — só a IA (chave 'ia:') passa sem autor", () => {
+    // `whatsapp_ia_enviar` (caixa v3, SECURITY DEFINER, só service_role)
+    // enfileira sem created_by. Sem esta exceção, ligar a assistente faria
+    // toda resposta dela virar "pedido de fora".
+    expect(fonte).toMatch(/const daIa = \(linha\.idempotency_key \?\? ""\)\.startsWith\("ia:"\)/);
+    expect(fonte).toMatch(/if \(!linha\.conversa_id \|\| \(!linha\.created_by && !daIa\)\)/);
+    expect(fonte).toMatch(/sem conversa ou sem autor/);
+    expect(fonte).toMatch(
+      /\.select\("id, conversa_id, mensagem_id, payload, tentativas, created_by, idempotency_key"\)/,
+    );
   });
 });

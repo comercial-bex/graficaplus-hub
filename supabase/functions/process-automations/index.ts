@@ -128,8 +128,13 @@ async function logWhatsapp(params: {
   error?: string;
 }) {
   // Colunas reais de whatsapp_logs: tipo, sucesso, request, response, erro.
+  // `tipo` é o enum whatsapp_log_tipo (envio_texto, envio_imagem,
+  // envio_documento, webhook_mensagem, webhook_status, webhook_conexao,
+  // erro): "automacao" não existe nele e o INSERT era recusado calado.
+  // Desde 06/10/2026 esta função não é mais o caminho da automação — o
+  // despachante do app (src/lib/api/whatsapp-enviar.server.ts) drena a fila.
   await supabase.from("whatsapp_logs").insert({
-    tipo: "automacao",
+    tipo: params.status === "sucesso" ? "envio_texto" : "erro",
     sucesso: params.status === "sucesso",
     request: {
       provider: "z-api",

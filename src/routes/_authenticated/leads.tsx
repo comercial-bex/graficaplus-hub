@@ -376,6 +376,18 @@ function LeadsPage() {
                           {l.empresa && (
                             <div className="text-xs text-muted-foreground">{l.empresa}</div>
                           )}
+                          {/* O webhook do WhatsApp abre o lead sozinho, pelo telefone, antes
+                              de alguém ler a conversa. Dito aqui para ninguém tratar como
+                              pedido já qualificado — nem como cliente. */}
+                          {l.temporario && !l.cliente_id && (
+                            <Badge
+                              variant="outline"
+                              className="mt-1 font-normal text-[10px]"
+                              title="Aberto automaticamente por uma mensagem no WhatsApp da empresa. Qualifique na caixa de entrada ou feche como perdido."
+                            >
+                              veio do WhatsApp, ainda não qualificado
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm">
                           {l.telefone || l.email ? (

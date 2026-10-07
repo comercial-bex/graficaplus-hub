@@ -95,12 +95,24 @@ const ASSINATURAS: Record<string, string[]> = {
   sugerir_compra_da_os: ["p_os_id"],
   vincular_usuario_ao_portal: ["p_usuario_id", "p_cliente_id"],
   // Migração 20260911120000 (entrada do WhatsApp), conferidas no Postgres.
-  whatsapp_configurar_instancia: ["p_zapi_instance_id", "p_nome", "p_numero", "p_webhook_secret_hash"],
+  // `whatsapp_configurar_instancia` ganhou p_trocar_segredo (default false) na
+  // migração 20261007150000 — a assinatura antiga de 4 parâmetros foi apagada.
+  whatsapp_configurar_instancia: [
+    "p_zapi_instance_id", "p_nome", "p_numero", "p_webhook_secret_hash", "p_trocar_segredo",
+  ],
   whatsapp_registrar_mensagem: [
     "p_instancia_id", "p_zapi_message_id", "p_telefone", "p_direcao", "p_tipo",
     "p_texto", "p_legenda", "p_media_url", "p_nome_contato", "p_payload", "p_momento",
+    // 20261007150000: quem mandou — 'humano' (padrão), 'automacao' (aviso do
+    // sistema na saída; modelo de empresa na entrada).
+    "p_origem",
   ],
   whatsapp_registrar_status: ["p_instancia_id", "p_ids", "p_status", "p_momento"],
+  // Migração 20261007150000 (WhatsApp, onda 1): o cartão de medidas do Monitor
+  // (sem parâmetros) e a varredura das automações, que o consumidor do envio
+  // chama a cada rodada (antes, só a função process-automations chamava).
+  whatsapp_medidas_de_entrada: [],
+  criar_eventos_automacoes_recorrentes: [],
   // Migração 20261001110000 ("Começar" acende a máquina), conferidas no Postgres
   // em 01/10/2026. As quatro com prefixo p_ — ao contrário de `avancar_os_status`,
   // que elas chamam por dentro.

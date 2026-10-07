@@ -34,6 +34,7 @@ import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { coberturaDoCusto, lucroComparavel } from "@/domain/os/resultado";
+import { nomeDaConversa, resumoDaConversa } from "@/domain/whatsapp/caixa-de-entrada";
 import {
   AreaChart,
   Area,
@@ -257,8 +258,18 @@ function PainelCompleto({
           supabase.from("produtos").select("nome"),
           supabase.from("maquinas").select("nome"),
           db.from("ocorrencias").select("setor, retrabalho"),
-          // colunas reais: nome_contato / ultima_mensagem_at (aliases mantêm o shape usado abaixo)
-          db.from("whatsapp_conversas").select("nome:nome_contato, ultima_mensagem, nao_lidas, ultima_interacao:ultima_mensagem_at"),
+          // Mesmo nome da caixa de entrada (cliente → nome no WhatsApp → lead →
+          // telefone) e da mais recente para a mais antiga. Antes o nome era só
+          // o do WhatsApp — conversa sem ele saía em branco — e "recentes" era a
+          // ordem em que o banco devolvia as linhas.
+          db
+            .from("whatsapp_conversas")
+            .select(
+              "id, telefone, nome_contato, ultima_mensagem, nao_lidas, ultima_mensagem_at, " +
+                "cliente:clientes!whatsapp_conversas_cliente_id_fkey(id, nome), " +
+                "lead:leads!whatsapp_conversas_lead_id_fkey(id, nome, status)",
+            )
+            .order("ultima_mensagem_at", { ascending: false, nullsFirst: false }),
           supabase.from("materiais").select("id, nome, unidade, estoque"),
           // valor_total do item é preço de venda (ordena "Produtos · mais
           // vendidos"): o vendedor vê pela view comercial, que tem valor_total
@@ -742,8 +753,10 @@ function PainelCompleto({
             {conversas.slice(0, 5).map((c: any) => (
               <div key={c.id} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{c.nome}</div>
-                  <div className="text-xs text-muted-foreground truncate">{c.ultima_mensagem}</div>
+                  <div className="text-sm font-medium truncate">{nomeDaConversa(c)}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {resumoDaConversa(c.ultima_mensagem)}
+                  </div>
                 </div>
                 {c.nao_lidas > 0 && <StatusChip label={String(c.nao_lidas)} tone="lime" />}
               </div>

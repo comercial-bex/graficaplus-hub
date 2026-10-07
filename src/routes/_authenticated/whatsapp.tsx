@@ -84,7 +84,13 @@ function CaixaDeEntradaPage() {
   const instanciaDaConversa = selecionada
     ? (listaInstancias.find((i) => i.id === selecionada.instancia_id) ?? null)
     : null;
-  const nenhumaNunca = !conversas.isPending && (contadores.data?.aberta ?? 0) + (contadores.data?.pendente ?? 0) + (contadores.data?.resolvida ?? 0) === 0 && !buscaAtiva;
+  const nenhumaNunca =
+    !conversas.isPending &&
+    (contadores.data?.aberta ?? 0) +
+      (contadores.data?.pendente ?? 0) +
+      (contadores.data?.resolvida ?? 0) ===
+      0 &&
+    !buscaAtiva;
 
   return (
     <div className="space-y-4">
@@ -99,24 +105,29 @@ function CaixaDeEntradaPage() {
             {!instancias.isPending && !instancias.isError && (
               <StatusChip label={situacao.rotulo} tone={situacao.tom} />
             )}
+            {/* No celular os botões ficam só com o ícone (o rótulo vai no
+                aria-label); a partir de sm o texto volta. */}
             {abre("/whatsapp-monitor") && principal && principal.conectado !== true && (
               <Button asChild size="sm">
-                <Link to="/whatsapp-monitor">
-                  <QrCode className="mr-1 h-4 w-4" /> Conectar
+                <Link to="/whatsapp-monitor" aria-label="Conectar o WhatsApp">
+                  <QrCode className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Conectar</span>
                 </Link>
               </Button>
             )}
             {abre("/respostas-rapidas") && (
               <Button asChild variant="outline" size="sm">
-                <Link to="/respostas-rapidas">
-                  <ListChecks className="mr-1 h-4 w-4" /> Respostas rápidas
+                <Link to="/respostas-rapidas" aria-label="Respostas rápidas">
+                  <ListChecks className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Respostas rápidas</span>
                 </Link>
               </Button>
             )}
             {abre("/whatsapp-monitor") && (
               <Button asChild variant="outline" size="sm">
-                <Link to="/whatsapp-monitor">
-                  <Activity className="mr-1 h-4 w-4" /> Monitor
+                <Link to="/whatsapp-monitor" aria-label="Monitor do WhatsApp">
+                  <Activity className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Monitor</span>
                 </Link>
               </Button>
             )}
@@ -155,8 +166,14 @@ function CaixaDeEntradaPage() {
             selecionada && painelAberto && "xl:grid-cols-[320px_minmax(0,1fr)_300px]",
           )}
         >
+          {/* No celular a conversa ocupa a tela toda (dvh: a barra do navegador
+              não come o rodapé de resposta); o painel da conversa vira uma
+              gaveta aberta pelo botão "Ações" do cabeçalho. */}
           <ListaDeConversas
-            className={cn("h-[70vh] lg:h-auto lg:min-h-0", selecionada && "hidden lg:flex")}
+            className={cn(
+              "h-[calc(100dvh-8rem)] lg:h-auto lg:min-h-0",
+              selecionada && "hidden lg:flex",
+            )}
             conversas={lista}
             carregando={conversas.isPending}
             temMais={!!conversas.hasNextPage}
@@ -177,7 +194,7 @@ function CaixaDeEntradaPage() {
             <>
               <ConversaAberta
                 key={selecionada.id}
-                className="h-[75vh] lg:h-auto lg:min-h-0"
+                className="h-[calc(100dvh-8rem)] lg:h-auto lg:min-h-0"
                 conversa={selecionada}
                 instancia={instanciaDaConversa}
                 conexaoComFalha={instancias.isError}
@@ -185,9 +202,13 @@ function CaixaDeEntradaPage() {
                 onVoltar={() => setSelecionadaId(null)}
                 painelAberto={painelAberto}
                 onAlternarPainel={() => setPainelAberto((v) => !v)}
+                acoes={<PainelDaConversa conversa={selecionada} className="border-0 shadow-none" />}
               />
               {painelAberto && (
-                <PainelDaConversa className="lg:col-span-2 xl:col-span-1 xl:h-auto xl:min-h-0" conversa={selecionada} />
+                <PainelDaConversa
+                  className="hidden lg:flex lg:col-span-2 xl:col-span-1 xl:h-auto xl:min-h-0"
+                  conversa={selecionada}
+                />
               )}
             </>
           ) : (

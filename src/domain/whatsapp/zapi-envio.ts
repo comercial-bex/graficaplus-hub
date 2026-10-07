@@ -142,25 +142,63 @@ export function valeTentarDeNovo(erro: string): boolean {
  * já existiam, bem escritos, desde agosto — o que nunca existiu foi quem
  * trocasse as chaves e mandasse.
  *
- * Variável ausente vira string vazia, e a frase é limpa em seguida: melhor uma
- * frase mais curta que um "{{prazo}}" cru chegando ao cliente.
+ * DATA. `{{prazo}}` vem do gatilho como a coluna `date` sai do banco:
+ * "2026-10-15". O cliente lê "15/10/2026". A troca é por fatia da string,
+ * nunca por `new Date`: o servidor roda em UTC e a data viraria o dia anterior
+ * em Macapá.
+ *
+ * VARIÁVEL VAZIA. Até 06/10/2026 ela virava string vazia e sobrava
+ * "Previsão de entrega." — frase que promete e não diz. Agora a FRASE INTEIRA
+ * cai quando a variável vazia era o valor de um rótulo ("…: {{prazo}}",
+ * "…nº {{orcamento_numero}}"): sem o valor, o rótulo não diz nada. Variável
+ * vazia no meio de uma frase ("Boa notícia, {{cliente}}: o pedido…") só é
+ * retirada e a frase é limpa — a frase ainda faz sentido sem o nome.
  */
+const VARIAVEL = /\{\{\s*([a-z_0-9]+)\s*\}\}/gi;
+const DATA_SO_DIA = /^\d{4}-\d{2}-\d{2}$/;
+/** Rótulo seguido de variável: "Previsão: {{prazo}}", "orçamento nº {{numero}}". */
+const ROTULO_COM_VARIAVEL = /(?::|\bn\.?[º°]|\bnúmero)\s*\{\{\s*([a-z_0-9]+)\s*\}\}/gi;
+
+/** "2026-10-15" → "15/10/2026"; qualquer outro valor passa como texto. */
+export function valorLegivel(valor: unknown): string {
+  if (valor === null || valor === undefined) return "";
+  const s = String(valor);
+  if (DATA_SO_DIA.test(s)) return `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
+  return s;
+}
+
 export function renderizarTemplate(
   corpo: string,
   variaveis: Record<string, unknown> | null | undefined,
 ): string {
   const v = variaveis ?? {};
-  const trocado = corpo.replace(/\{\{\s*([a-z_0-9]+)\s*\}\}/gi, (_, chave: string) => {
+  const vazia = (chave: string) => {
     const valor = v[chave];
-    if (valor === null || valor === undefined || valor === "") return "";
-    return String(valor);
+    return valor === null || valor === undefined || String(valor).trim() === "";
+  };
+
+  // Frase por frase: cada trecho termina em . ! ? (ou no fim do texto). O
+  // corte é feito no MODELO, antes da troca — um valor com ponto ("R$ 57.6")
+  // nunca vira fim de frase.
+  const frases = corpo.match(/[^.!?]+[.!?]*\s*/g) ?? [corpo];
+  const mantidas = frases.filter((frase) => {
+    for (const m of frase.matchAll(ROTULO_COM_VARIAVEL)) if (vazia(m[1])) return false;
+    return true;
   });
+
+  const trocado = mantidas
+    .join("")
+    .replace(VARIAVEL, (_, chave: string) => (vazia(chave) ? "" : valorLegivel(v[chave])));
 
   return trocado
     // "Previsão de entrega: ." quando o prazo não veio
     .replace(/:\s*\./g, ".")
     // parênteses que ficaram vazios: "pedido 12 ()"
     .replace(/\s*\(\s*\)/g, "")
+    // pontuação dobrada depois de um nome que sumiu: "Boa notícia, : o pedido"
+    .replace(/([,;:])\s*(?=[,;:.!?])/g, "")
+    // vírgula ou ponto e vírgula que ficou abrindo a frase: ", seu pedido"
+    .replace(/(^|[.!?]\s+)[,;]\s*/g, "$1")
     // espaço dobrado e espaço antes de pontuação
     .replace(/[ \t]{2,}/g, " ")
     .replace(/\s+([.,!?;:])/g, "$1")

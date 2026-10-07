@@ -1,13 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { KpiCard } from "@/components/bex/KpiCard";
-import { AlertTriangle, BellRing, Check, Clock, Trash2, UserX } from "lucide-react";
+import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import { AvisosEnviados } from "@/components/avisos/avisos-enviados";
+import { AlertTriangle, BellRing, Check, CheckCheck, Clock, Trash2, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { ehOrfao, resumoDaLimpeza, rotuloOrfao } from "@/domain/avisos/orfao";
 
@@ -20,30 +24,18 @@ const dia = (d: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") :
 
 const ROTULO: Record<string, string> = {
   os_arte_para_aprovar: "Arte pronta para aprovar",
+  os_em_producao: "Entrou em produção",
+  os_pronta_retirada: "Pronto para retirar",
+  os_saiu_entrega: "Saiu para entrega",
   os_concluida: "Serviço concluído",
   orcamento_aprovado: "Orçamento aprovado",
 };
 
-/**
- * Avisos ao cliente que ainda não saíram.
- *
- * A fila `notificacoes_fila` existia, enchia sozinha a cada arte pronta, OS
- * concluída e orçamento aprovado — e NENHUMA tela do sistema lia ela. Doze
- * avisos se acumularam desde agosto com ZERO tentativa de envio: não há
- * instância de WhatsApp conectada nem função que drene a fila.
- *
- * Fila que só enche é pior que fila que falha: a que falha deixa erro, a que
- * nunca é tentada não deixa rastro nenhum. Enquanto o canal automático não
- * existe, esta tela transforma a fila no que ela é hoje de verdade — uma lista
- * de quem precisa ser avisado à mão.
- *
- * Por isso `enviado_manualmente` é coluna separada: marcar como "enviado" sem
- * ela faria o sistema reivindicar um envio que ele não fez.
- */
 function AvisosPage() {
   const qc = useQueryClient();
+  const [aba, setAba] = useState<"pendentes" | "enviados">("pendentes");
 
-  const { data: avisos = [], isLoading } = useQuery({
+  const pendentes = useQuery({
     queryKey: ["avisos-pendentes"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -54,6 +46,8 @@ function AvisosPage() {
       return (data ?? []) as any[];
     },
   });
+  const avisos = pendentes.data ?? [];
+  const isLoading = pendentes.isPending;
 
   const recarregar = () => qc.invalidateQueries({ queryKey: ["avisos-pendentes"] });
 
@@ -114,15 +108,36 @@ function AvisosPage() {
     <div className="space-y-6">
       <SectionHeader
         title="Avisos ao cliente"
-        description="O que o sistema registrou que precisava ser comunicado e ainda não saiu"
+        description="O que o sistema registrou que precisava ser comunicado: o que ainda não saiu e o que já saiu"
         actions={
-          orfaos.length > 0 ? (
+          aba === "pendentes" && orfaos.length > 0 ? (
             <Button variant="outline" disabled={limparOrfaos.isPending} onClick={() => limparOrfaos.mutate()}>
               <Trash2 className="h-4 w-4 mr-1" /> Limpar {orfaos.length} órfão(s)
             </Button>
           ) : undefined
         }
       />
+
+      <Tabs value={aba} onValueChange={(v) => setAba(v as "pendentes" | "enviados")}>
+        <TabsList>
+          <TabsTrigger value="pendentes">
+            <BellRing className="mr-1 h-4 w-4" /> Pendentes{pendentes.isSuccess ? ` (${avisos.length})` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="enviados">
+            <CheckCheck className="mr-1 h-4 w-4" /> Enviados
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="enviados" className="mt-4">
+          <AvisosEnviados />
+        </TabsContent>
+        <TabsContent value="pendentes" className="mt-4 space-y-6">
+      {pendentes.isError && (
+        <FalhaDeConsulta
+          titulo="Não foi possível carregar os avisos pendentes"
+          erro={pendentes.error}
+          onTentarDeNovo={() => void pendentes.refetch()}
+        />
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Avisos parados" value={String(avisos.length)} icon={BellRing} />
@@ -146,7 +161,7 @@ function AvisosPage() {
         </div>
       )}
 
-      {isLoading ? (
+      {pendentes.isError ? null : isLoading ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">Carregando…</CardContent>
         </Card>
@@ -222,6 +237,8 @@ function AvisosPage() {
           })}
         </div>
       )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
