@@ -189,7 +189,7 @@ export function ConversaAberta({
     void mensagens.fetchNextPage();
   }
 
-  async function executar(dados: Parameters<typeof acao>[0]["data"], sucesso: string) {
+  async function executar(dados: z.input<typeof acaoSchemaTipo>, sucesso: string) {
     setOcupado(true);
     try {
       await acao({ data: dados });

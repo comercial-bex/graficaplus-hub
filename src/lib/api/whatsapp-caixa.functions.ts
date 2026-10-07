@@ -71,7 +71,8 @@ export const acaoNaConversa = createServerFn({ method: "POST" })
         break;
     }
     if (r.error) throw new Error(r.error.message);
-    return (r.data ?? { ok: true }) as Record<string, unknown>;
+    const d = (r.data ?? {}) as { cliente_herdado?: boolean };
+    return { ok: true, cliente_herdado: d.cliente_herdado === true };
   });
 
 export const enfileirarArquivo = createServerFn({ method: "POST" })
