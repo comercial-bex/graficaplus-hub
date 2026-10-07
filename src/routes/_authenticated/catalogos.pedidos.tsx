@@ -20,7 +20,7 @@ function PedidosPage() {
     <div>
       <SectionHeader
         ajuda={dicaAcao("/catalogos", "pedidos")}
-        breadcrumb="Print OS · Comercial · Loja de brindes"
+        breadcrumb="Print OS · Comercial · Catálogo de brindes"
         title="Pedidos de cotação"
         description="O que os clientes pediram pelos links da vitrine. Responda pelo WhatsApp e marque como atendido."
         actions={

@@ -21,7 +21,7 @@ export const PESSOAS: Record<string, string[]> = {
 
 /**
  * O que o dono aprovou para cada pessoa: o cenário B de 05/10/2026, mais o
- * que entrou depois dele — "Catálogos de fornecedores" em Vendas › Orçamentos,
+ * que entrou depois dele — "Catálogo de brindes" (era "Catálogos de fornecedores") em Vendas › Orçamentos,
  * logo depois de Aprovações do cliente, para quem tem catalogo.read.
  */
 export function menuAprovado(nome: string, temCatalogo: boolean): ResumoDoMenu {
@@ -34,7 +34,7 @@ export function menuAprovado(nome: string, temCatalogo: boolean): ResumoDoMenu {
   orcamentos.itens.splice(
     orcamentos.itens.indexOf("Aprovações do cliente") + 1,
     0,
-    "Catálogos de fornecedores",
+    "Catálogo de brindes",
   );
   b.itens += 1;
   // Uma linha a mais só quando Vendas abre sozinha (rotina em até duas áreas).

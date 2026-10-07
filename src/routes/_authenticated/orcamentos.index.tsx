@@ -70,7 +70,10 @@ function OrcamentosPage() {
   const navigate = useNavigate();
   // valor_total do orçamento é preço de venda: o vendedor precisa ver.
   // Custo/margem não aparecem nesta tela, então canSeeFinancials não entra aqui.
-  const { canSeePrices, nivelDeVisao } = useAuth();
+  const { canSeePrices, nivelDeVisao, hasPermission } = useAuth();
+  // Converter em OS é `orcamentos.convert` (gerente e admin), e o banco só
+  // aceita orçamento aprovado. O botão aparece só onde a conversão é possível.
+  const podeConverter = hasPermission("orcamentos.convert");
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
 
@@ -131,13 +134,20 @@ function OrcamentosPage() {
     const abertos = lista.filter(
       (o) => !["convertido", "rejeitado", "expirado"].includes(o.status),
     );
-    const enviados = lista.filter((o) => o.status === "enviado" || o.status === "aprovado");
+    const soma = (l: any[]) => l.reduce((a, o) => a + Number(o.valor_total ?? 0), 0);
+    // Antes "Aguardando aprovação" contava enviado E aprovado: os 7 aprovados
+    // de 07/10/2026 apareciam como se esperassem o cliente, quando esperavam
+    // a gráfica converter. E "Valor total" somava rejeitado e convertido.
+    const comCliente = lista.filter((o) => o.status === "enviado");
+    const aprovadosSemOs = lista.filter((o) => o.status === "aprovado" && !o.os_id);
     return {
       abertos: abertos.length,
-      enviados: enviados.length,
+      comCliente: comCliente.length,
+      valorComCliente: soma(comCliente),
+      aprovadosSemOs: aprovadosSemOs.length,
+      valorAprovadosSemOs: soma(aprovadosSemOs),
       convertidos: lista.filter((o) => o.status === "convertido").length,
-      valorEnviados: enviados.reduce((a, o) => a + Number(o.valor_total ?? 0), 0),
-      valorTotal: lista.reduce((a, o) => a + Number(o.valor_total ?? 0), 0),
+      valorEmAberto: soma(abertos),
     };
   }, [orcamentos]);
 
@@ -308,16 +318,34 @@ function OrcamentosPage() {
       <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Orçamentos em aberto" value={kpis.abertos} tone="cyan" icon={FileText} />
         <KpiCard
-          label="Aguardando aprovação"
-          value={kpis.enviados}
+          label="Aguardando o cliente"
+          value={kpis.comCliente}
           tone="amber"
-          hint={canSeePrices ? `Total ${moeda(kpis.valorEnviados)}` : undefined}
+          hint={
+            canSeePrices
+              ? `Enviados ao cliente e ainda sem resposta. Total ${moeda(kpis.valorComCliente)}.`
+              : "Enviados ao cliente e ainda sem resposta."
+          }
         />
-        <KpiCard label="Convertidos em OS" value={kpis.convertidos} tone="magenta" />
         <KpiCard
-          label={canSeePrices ? "Valor total" : "Total de orçamentos"}
-          value={canSeePrices ? moeda(kpis.valorTotal) : orcamentos.length}
+          label="Aprovados sem OS"
+          value={kpis.aprovadosSemOs}
+          tone="magenta"
+          hint={
+            `O cliente aprovou e a produção ainda não foi avisada: falta "Converter em OS".` +
+            (canSeePrices ? ` Total ${moeda(kpis.valorAprovadosSemOs)}.` : "") +
+            ` Já viraram OS: ${kpis.convertidos}.`
+          }
+        />
+        <KpiCard
+          label={canSeePrices ? "Valor em aberto" : "Total de orçamentos"}
+          value={canSeePrices ? moeda(kpis.valorEmAberto) : orcamentos.length}
           tone="cyan"
+          hint={
+            canSeePrices
+              ? "Soma dos orçamentos em aberto: rascunho, enviado e aprovado sem OS. Rejeitado, expirado e convertido ficam de fora."
+              : undefined
+          }
         />
       </div>
 
@@ -400,8 +428,11 @@ function OrcamentosPage() {
                     </TableCell>
                   )}
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    {o.status !== "convertido" && (
-                      <Button size="sm" variant="outline" onClick={() => converterEmOS(o)}>
+                    {/* Só aprovado e sem OS: em rascunho, enviado ou rejeitado o
+                        banco recusa ("Orçamento sem versão aprovada"), e o botão
+                        em todas as linhas escondia quais 7 esperavam a gráfica. */}
+                    {podeConverter && o.status === "aprovado" && !o.os_id && (
+                      <Button size="sm" onClick={() => converterEmOS(o)}>
                         Converter em OS <ArrowRight className="h-3 w-3 ml-1" />
                       </Button>
                     )}

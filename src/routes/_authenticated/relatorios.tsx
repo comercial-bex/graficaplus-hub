@@ -367,7 +367,9 @@ function RelatPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["relatorios-prioritarios", inicio, fim],
     queryFn: async () => {
-      const rpc = supabase.rpc as unknown as RelatoriosRpc;
+      // `.bind(supabase)`: solto, o método perde o `this` e a chamada lança
+      // antes de sair do navegador (achado em 07/10/2026).
+      const rpc = supabase.rpc.bind(supabase) as unknown as RelatoriosRpc;
       const { data: result, error: rpcError } = await rpc("get_relatorios_prioritarios", {
         p_inicio: inicio,
         p_fim: fim,

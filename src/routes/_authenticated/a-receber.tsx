@@ -120,7 +120,12 @@ type RpcSemTipo = (
   args?: Record<string, unknown>,
 ) => Promise<{ data: unknown; error: unknown }>;
 
-const rpc = supabase.rpc as unknown as RpcSemTipo;
+// `.bind(supabase)` é obrigatório: `rpc` é método da classe e lê `this.rest`.
+// Solto numa constante, cada chamada lançava "Cannot read properties of
+// undefined (reading 'rest')" — a tela nunca mostrou a conta de R$ 121,15
+// vencida desde 04/09/2026 (achado em 07/10/2026). A guarda
+// `tests/cliente-supabase-sem-metodo-solto.test.ts` segura a volta.
+const rpc = supabase.rpc.bind(supabase) as unknown as RpcSemTipo;
 
 /**
  * Contas a receber.
@@ -342,7 +347,11 @@ function AReceberPage() {
         </Card>
       )}
 
-      {isLoading ? (
+      {/* Sem resposta ainda é "carregando", não "nada a receber". `isLoading`
+          fica falso quando a nova tentativa está PAUSADA (aba em segundo plano
+          ou sem rede): era assim que a falha da consulta virava a frase "Nada
+          a receber no momento" com uma conta vencida no banco. */}
+      {isLoading || (!resumo && !error) ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">Carregando…</CardContent>
         </Card>

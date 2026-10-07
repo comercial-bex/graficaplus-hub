@@ -45,6 +45,24 @@ function NotFoundComponent() {
 const ERRO_CHUNK_ANTIGO = /dynamically imported module|Importing a module script failed|Failed to fetch dynamically imported/i;
 const CHAVE_RECARGA = "bexprint:recarregado_por_versao_nova";
 
+/**
+ * Recarrega UMA vez por minuto. Se o erro volta logo depois da recarga, não é
+ * versão nova — insistir vira laço: a aba recarrega sem parar e para de
+ * responder. A marca expira em 1 min para o próximo deploy (dias depois, na
+ * mesma sessão) recarregar de novo. Devolve se recarregou.
+ */
+function recarregarUmaVez(): boolean {
+  try {
+    const ultima = Number(sessionStorage.getItem(CHAVE_RECARGA) ?? 0);
+    if (Date.now() - ultima < 60_000) return false;
+    sessionStorage.setItem(CHAVE_RECARGA, String(Date.now()));
+  } catch {
+    /* sem storage: recarrega mesmo assim (não há como guardar o laço) */
+  }
+  window.location.reload();
+  return true;
+}
+
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
@@ -54,17 +72,8 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   }, [error]);
   useEffect(() => {
     if (!versaoNova) return;
-    // Recarrega UMA vez: se o erro voltar logo depois da recarga, não é versão
-    // nova — fica na tela com o botão em vez de entrar em loop. A marca expira em
-    // 1 min para o próximo deploy (dias depois, mesma sessão) recarregar de novo.
-    try {
-      const ultima = Number(sessionStorage.getItem(CHAVE_RECARGA) ?? 0);
-      if (Date.now() - ultima < 60_000) return;
-      sessionStorage.setItem(CHAVE_RECARGA, String(Date.now()));
-    } catch {
-      /* sem storage: recarrega mesmo assim (não há como guardar o loop) */
-    }
-    window.location.reload();
+    // Se o erro voltar logo depois da recarga, fica na tela com o botão.
+    recarregarUmaVez();
   }, [versaoNova]);
   if (versaoNova) {
     return (
@@ -180,9 +189,12 @@ function RootComponent() {
   // Vite avisa quando um chunk de hash antigo falha ao carregar (deploy novo com
   // HTML velho na tela). Recarregar a página traz o HTML novo com os chunks certos.
   useEffect(() => {
+    // Com a mesma trava da tela de erro: antes este caminho recarregava sem
+    // limite, e um arquivo que seguisse falhando (deploy no meio da
+    // propagação, rede instável) deixava a aba presa recarregando. Sem
+    // recarregar, o erro segue para a tela de erro, que tem o botão.
     const aoFalharChunk = (e: Event) => {
-      e.preventDefault();
-      window.location.reload();
+      if (recarregarUmaVez()) e.preventDefault();
     };
     window.addEventListener("vite:preloadError", aoFalharChunk);
     return () => window.removeEventListener("vite:preloadError", aoFalharChunk);

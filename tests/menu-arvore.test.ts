@@ -141,7 +141,7 @@ describe("a árvore cobre o mapa de rotas, e o mapa cobre a árvore", () => {
     ]);
   });
 
-  it("Catálogos de fornecedores fica em Vendas › Orçamentos, logo depois de Aprovações do cliente", () => {
+  it("Catálogo de brindes fica em Vendas › Orçamentos, logo depois de Aprovações do cliente", () => {
     const orcamentos = AREAS[0].subgrupos.find((s) => s.label === "Orçamentos");
     expect(orcamentos?.itens.map((i) => i.url)).toEqual([
       "/orcamentos",
@@ -290,12 +290,12 @@ describe("o módulo do trilho", () => {
 describe("barra de abas do hub", () => {
   const de = (papeis: string[]) => daPessoa(papeis, banco).podeAbrir;
 
-  it("o admin, em Enviados, vê as cinco telas do WhatsApp com Enviados marcada", () => {
+  it("o admin, no Monitor, vê as cinco telas do WhatsApp com Monitor marcada", () => {
     const abas = abasDaTela("/whatsapp-monitor", de(["admin"]));
     expect(abas?.telas.map((t) => t.title)).toEqual([
       "WhatsApp",
       "Fila humana",
-      "Enviados",
+      "Monitor",
       "Respostas rápidas",
       "Automações",
     ]);
@@ -346,7 +346,7 @@ describe("o nome da tela no cabeçalho vem da árvore, nunca da URL", () => {
     expect(nomeDaTela("/breakdown-3d")).toBe("Custo por peça");
     expect(nomeDaTela("/a-receber")).toBe("Contas a receber");
     expect(nomeDaTela("/onde-para")).toBe("Trabalho parado");
-    expect(nomeDaTela("/whatsapp-monitor")).toBe("Enviados");
+    expect(nomeDaTela("/whatsapp-monitor")).toBe("Monitor");
   });
 
   it("toda rota em disco tem nome na árvore ou na lista de fora do menu", () => {
