@@ -199,6 +199,24 @@ export const dicas = {
         "Item digitado à mão, sem custo cadastrado: o sistema não sabe onde fica o mínimo. Por isso vale o limite fixo de 10% do subtotal para quem vende; acima disso, é com quem aprova desconto.",
       desconto_so_material:
         "Estes produtos têm só o material no custo, sem hora de máquina e de gente. Com o custo menor que o real, o mínimo sai baixo e a alçada de quem vende fica maior do que devia. Complete a composição em Produtos.",
+      // Escolha visual do produto no item (07/10/2026): tipo em cartões,
+      // medidas desenhadas, resumo antes de adicionar.
+      tipo_de_produto:
+        "O tipo é o primeiro filtro: mostra só os produtos daquela família e já diz o que o item precisa. Lona, adesivo e placa pedem largura × altura e vendem por m²; papel e brinde pedem só a quantidade. O tipo entra sozinho no campo 'Tipo de produto' (Lona, Adesivo, Placa…), que sai na coluna 'Tipo Produto' do PDF — dá para trocar o texto à mão.",
+      medidas:
+        "Largura (X) e altura (Y) da peça pronta, em metros: 3 metros = 3,00; 50 cm = 0,50. A área e o preço mudam enquanto você digita. Os tamanhos prontos evitam redigitar medida — e medida redigitada é onde nasce erro de produção.",
+      area_cobrada:
+        "Área real é largura × altura vezes a quantidade. Área cobrada é a que entra no preço: igual à real, a não ser que a peça seja menor que a área mínima do produto — aí cada peça paga o mínimo.",
+      area_minima:
+        "Peça pequena consome o mesmo setup de máquina e o mesmo refile de uma grande. Por isso o produto pode ter uma área mínima: abaixo dela, cobra-se o mínimo por peça, vezes a quantidade. O valor vem do cadastro do produto; sem mínimo, cobra a área real.",
+      quantidade:
+        "Quantas peças iguais. Para cartão e panfleto a unidade é o milheiro: 2 = 2.000 folhas. Para bainha, metros; para instalação, horas.",
+      acabamento:
+        "O que a peça leva além da impressão: bainha, ilhós, refile, laminação, furos. Toque nos chips ou escreva. Sai no PDF e vai para a produção, mas não muda o preço sozinho — acabamento cobrado à parte entra como item.",
+      especificacao:
+        "Instruções para a oficina: material, cores, frente e verso, onde vai o ilhós. Sai no PDF embaixo da descrição e na via de produção.",
+      item_fora_do_catalogo:
+        "Item que não está no catálogo: você escreve a descrição, a unidade e o preço. Sem custo cadastrado, o desconto de quem vende fica limitado a 10% do subtotal.",
     },
     acoes: {
       aplicar_desconto:
