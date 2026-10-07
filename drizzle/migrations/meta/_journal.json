@@ -15,6 +15,13 @@
       "when": 1791347473649,
       "tag": "0001_whatsapp_caixa_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791373756860,
+      "tag": "0002_whatsapp_caixa_v3_filas_atendimentos_ia",
+      "breakpoints": true
     }
   ]
 }

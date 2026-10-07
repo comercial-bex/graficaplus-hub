@@ -317,7 +317,16 @@ export function ConversaAberta({
           .filter((r) => `${r.titulo} ${r.categoria}`.toLowerCase().includes(atalho))
           .slice(0, 6);
 
-  const acaoStatus = (status: "aberta" | "pendente" | "resolvida" | "arquivada", rotulo: string) =>
+  const resolver = (motivo: "atendido" | "sem_resposta_necessaria" | "spam" | "duplicado" | "outro") => {
+    let nota: string | undefined;
+    if (motivo === "outro") {
+      nota = window.prompt("Descreva o motivo da resolução:")?.trim() || undefined;
+      if (!nota) return;
+    }
+    void executar({ acao: "resolver", conversaId: conversa.id, motivo, nota }, "Atendimento resolvido");
+  };
+
+  const acaoStatus = (status: "aberta" | "pendente" | "arquivada", rotulo: string) =>
     void executar({ acao: "status", conversaId: conversa.id, status }, rotulo);
 
   return (
@@ -399,9 +408,19 @@ export function ConversaAberta({
               </Button>
             )}
             {(conversa.status === "aberta" || conversa.status === "pendente") && (
-              <Button size="sm" variant="outline" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("resolvida", "Atendimento resolvido")}>
-                <CheckCheck className="mr-1 h-3.5 w-3.5" /> Resolver
-              </Button>
+              <Select value="" onValueChange={(v) => resolver(v as Parameters<typeof resolver>[0])} disabled={ocupado}>
+                <SelectTrigger className="h-7 w-[130px] text-xs" aria-label="Resolver">
+                  <CheckCheck className="mr-1 h-3.5 w-3.5" />
+                  <SelectValue placeholder="Resolver…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="atendido">Atendido</SelectItem>
+                  <SelectItem value="sem_resposta_necessaria">Sem resposta necessária</SelectItem>
+                  <SelectItem value="spam">Spam</SelectItem>
+                  <SelectItem value="duplicado">Duplicado</SelectItem>
+                  <SelectItem value="outro">Outro (com nota)</SelectItem>
+                </SelectContent>
+              </Select>
             )}
             {conversa.status !== "arquivada" && (
               <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={ocupado} onClick={() => acaoStatus("arquivada", "Conversa arquivada")}>
