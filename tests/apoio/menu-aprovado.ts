@@ -26,6 +26,7 @@ export const PESSOAS: Record<string, string[]> = {
  */
 export function menuAprovado(nome: string, temCatalogo: boolean): ResumoDoMenu {
   const b = structuredClone((cenarioB as unknown as Record<string, ResumoDoMenu>)[nome]);
+  somarFilaHumana(b);
   if (!temCatalogo) return b;
   const vendas = b.arvore.find((a) => a.area === "Vendas");
   const orcamentos = vendas?.subs.find((s) => s.sub === "Orçamentos");
@@ -39,4 +40,22 @@ export function menuAprovado(nome: string, temCatalogo: boolean): ResumoDoMenu {
   // Uma linha a mais só quando Vendas abre sozinha (rotina em até duas áreas).
   if (vendas.rotina && b.rotina.length <= 2) b.linhas += 1;
   return b;
+}
+
+/**
+ * Pedido do dono em 07/10/2026 (caixa v3 do WhatsApp): a aba "Fila humana"
+ * entra no hub do WhatsApp. Quem já via o WhatsApp no cenário B (abre com
+ * whatsapp.read, a mesma porta da fila humana) ganha uma aba; ninguém ganha
+ * item nem linha.
+ */
+function somarFilaHumana(b: ResumoDoMenu): void {
+  const atendimento = b.arvore
+    .find((a) => a.area === "Vendas")
+    ?.subs.find((s) => s.sub === "Atendimento");
+  if (!atendimento) return;
+  const i = atendimento.itens.findIndex((t) => t === "WhatsApp" || t.startsWith("WhatsApp ("));
+  if (i < 0) return;
+  const n = Number(/\(\+(\d+) abas?\)/.exec(atendimento.itens[i])?.[1] ?? 0) + 1;
+  atendimento.itens[i] = `WhatsApp (+${n} aba${n > 1 ? "s" : ""})`;
+  b.abas += 1;
 }
