@@ -178,8 +178,34 @@ export const dicas = {
       data_inicio: "Quando a produção começa, se o cliente aprovar.",
       prazo:
         "Data prometida de entrega. Alimenta o prazo da ordem de serviço e os alertas de atraso.",
+      // Quadro Desconto (06/10/2026). A regra mora no banco — o gatilho de
+      // totais de `orcamentos` recusa o que passa da alçada, venha da tela ou
+      // não. Estes textos explicam a regra; quem decide é o banco.
+      desconto:
+        "Abate do total que o cliente paga. Sai no PDF em “Valor Desconto”, aparece como “Desconto” no link do cliente e vai para a OS: ela nasce com o total já descontado, e a conta a receber e as parcelas também.",
+      modo_do_desconto:
+        "Em %, o desconto acompanha o subtotal: se entrar ou sair item, o valor em reais muda junto. Em R$, o valor fica fixo e quem muda é o percentual.",
+      alcada_do_desconto:
+        "Quem vende decide sozinho até o preço mínimo: o custo dos itens mais a margem mínima de cada produto (30% no item fora do catálogo), contando imposto e metade da taxa do cartão. Se algum item não tem custo, vale o limite que a casa já usava: até 10% do subtotal.",
+      alcada_sem_numero:
+        "O limite em reais não aparece para você porque sai do custo das peças, que fica com o financeiro. O sistema confere enquanto você digita: se passar, o botão trava e diz por quê.",
+      acima_da_alcada:
+        "Passou do mínimo: só quem tem a permissão “Aprovar desconto” (hoje, gerente e administrador) aplica. O botão trava porque o banco recusaria de qualquer jeito — a regra vale para a tela, para o link e para a OS. Peça ao gerente para abrir este orçamento e aplicar; fica registrado quem aprovou.",
+      piso_do_desconto:
+        "Piso é onde o lucro zera: o custo dos itens mais imposto e cartão. Abaixo dele, cada peça vendida sai do bolso da gráfica. Só quem aprova desconto aplica, e o sistema pede confirmação.",
+      desconto_pendente:
+        "A aprovação vale para o orçamento como estava. Os itens mudaram depois dela e, com os valores de agora, o desconto passa da alçada de quem vende: precisa de nova aprovação. Sem ela, o orçamento não vira OS.",
+      desconto_sem_custo:
+        "Item digitado à mão, sem custo cadastrado: o sistema não sabe onde fica o mínimo. Por isso vale o limite fixo de 10% do subtotal para quem vende; acima disso, é com quem aprova desconto.",
+      desconto_so_material:
+        "Estes produtos têm só o material no custo, sem hora de máquina e de gente. Com o custo menor que o real, o mínimo sai baixo e a alçada de quem vende fica maior do que devia. Complete a composição em Produtos.",
     },
     acoes: {
+      aplicar_desconto:
+        "Grava o desconto. O total, as parcelas, o PDF e o link do cliente mudam na hora.",
+      aprovar_desconto:
+        "Aprova o desconto com os valores de agora. Fica registrado com o seu nome; se o valor dos itens mudar de novo, ele volta a pedir aprovação.",
+      tirar_desconto: "Volta o total para a soma dos itens. A aprovação, se havia, deixa de valer.",
       converter: "Cria a ordem de serviço a partir desta proposta. Exige um cliente cadastrado.",
       pdf: "Gera o orçamento impresso com dados da empresa, do cliente, medidas e valores.",
       producao: "Mesma impressão, sem valores — a via que vai para a oficina.",

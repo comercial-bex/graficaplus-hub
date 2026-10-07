@@ -5,7 +5,8 @@
  * Domínio puro (sem banco, sem rede). Duas regras daqui espelham funções do
  * banco e não podem divergir delas:
  *   - as parcelas seguem `converter_orcamento_em_os`: todas `round(total/n, 2)`
- *     e a última leva a sobra dos centavos, para a soma bater com o total;
+ *     e a última leva a sobra dos centavos, para a soma bater com o total —
+ *     em centavos inteiros (`valoresDasParcelas`), que é o que faz bater;
  *   - `prazo` é o que a OS herda como data de entrega na conversão.
  */
 
@@ -150,21 +151,44 @@ export function lerCondicao(cru: unknown): CondicaoDePagamento {
 export type Parcela = { numero: number; valor: number; vencimento: string | null };
 
 /**
- * As parcelas, com a MESMA conta da conversão em OS: todas iguais e a última
- * com a sobra dos centavos. Sem primeiro vencimento, a conversão vence a
- * primeira no dia em que vira OS — aqui a data fica nula.
+ * Os valores das parcelas com a conta de `converter_orcamento_em_os`, lida do
+ * corpo da função no banco:
+ *
+ *   v_valor_parcela := round(COALESCE(v_orc.valor_total, 0) / v_parcelas, 2);
+ *   -- todas menos a última: v_valor_parcela
+ *   -- a última: COALESCE(v_orc.valor_total, 0) - v_acumulado
+ *
+ * Em centavos INTEIROS. A conta antiga, em ponto flutuante, fazia
+ * `Math.round(total / n * 100)`: R$ 501,15 em 10x dá 50,114999… e virava
+ * 50,11 na tela, enquanto o Postgres (numeric exato) chega em 50,115 e grava
+ * 50,12 — 1 em cada 116 combinações de total e parcelas divergia assim. Em
+ * inteiros, `centavos / n` só dá ,5 quando o quociente é ,5 de verdade (e ,5 é
+ * representável), e `Math.round` arredonda esse meio para cima — que, para
+ * total positivo, é o "longe do zero" do `round` do Postgres.
+ */
+export function valoresDasParcelas(total: number, parcelas: number): number[] {
+  const n = Math.max(1, Math.round(Number(parcelas) || 1));
+  const centavos = Math.round(Number(total || 0) * 100);
+  const porParcela = Math.round(centavos / n);
+  const ultima = centavos - porParcela * (n - 1);
+  return Array.from({ length: n }, (_, i) => (i === n - 1 ? ultima : porParcela) / 100);
+}
+
+/**
+ * As parcelas, com a MESMA conta da conversão em OS (`valoresDasParcelas`):
+ * todas iguais e a última com a sobra dos centavos. Sem primeiro vencimento, a
+ * conversão vence a primeira no dia em que vira OS — aqui a data fica nula.
  */
 export function parcelasDoOrcamento(total: number, condicao: CondicaoDePagamento): Parcela[] {
   const n = Math.max(1, Math.round(Number(condicao.parcelas ?? 1) || 1));
   const intervalo = Math.max(0, Math.round(Number(condicao.intervalo_dias ?? 30) || 0));
-  const valor = Math.round((total / n) * 100) / 100;
-  const ultima = Math.round((total - valor * (n - 1)) * 100) / 100;
+  const valores = valoresDasParcelas(total, n);
   const primeiro = typeof condicao.primeiro_vencimento === "string" && condicao.primeiro_vencimento
     ? condicao.primeiro_vencimento
     : null;
-  return Array.from({ length: n }, (_, i) => ({
+  return valores.map((valor, i) => ({
     numero: i + 1,
-    valor: i === n - 1 ? ultima : valor,
+    valor,
     vencimento: primeiro ? somarDias(primeiro, intervalo * i) : null,
   }));
 }
@@ -179,11 +203,15 @@ export function pendenciasParaEnviar(o: {
   verPreco: boolean;
   temCondicao: boolean;
   itens: { arquivo_id: string | null }[];
+  /** desconto acima da alçada sem aprovação válida (o banco não deixa virar OS) */
+  descontoPendente?: boolean;
 }): string[] {
   const falta: string[] = [];
   if (!o.temClienteOuContato) falta.push("cliente ou contato");
   if (!o.dataEntrega) falta.push("data de entrega");
   if (o.verPreco && !o.temCondicao) falta.push("condição de pagamento");
+  // O cliente veria no PDF e no link um desconto que a gráfica ainda não deu.
+  if (o.verPreco && o.descontoPendente) falta.push("aprovação do desconto");
   if (o.itens.length === 0) falta.push("itens");
   const semArte = o.itens.filter((i) => !i.arquivo_id).length;
   if (semArte === 1) falta.push("layout em 1 item");

@@ -168,12 +168,15 @@ function MarcaDoParceiroPage() {
         </p>
       </div>
 
-      {/* Prévia do cabeçalho — fundo branco como no papel */}
+      {/* Prévia do cabeçalho — fundo branco como no papel. Preto e branco como o
+          PDF: a cor só aparece na caixa do nome, quando não há logo. */}
       <section aria-label="Prévia do cabeçalho do orçamento" className="overflow-hidden rounded-2xl border border-border bg-white text-neutral-900 shadow-lg">
-        <div className="h-2" style={{ background: cor }} />
         <div className="grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_auto]">
           <div className="min-w-0 space-y-1">
-            <div className="mb-2 flex h-14 w-40 items-center justify-center overflow-hidden rounded border" style={{ borderColor: cor }}>
+            <div
+              className="mb-2 flex h-14 w-40 items-center justify-center overflow-hidden rounded border"
+              style={logoUrl ? undefined : { borderColor: cor }}
+            >
               {logoUrl ? (
                 <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
               ) : (
@@ -197,9 +200,7 @@ function MarcaDoParceiroPage() {
             {marca.email && <p className="text-xs text-neutral-600">{marca.email}</p>}
           </div>
           <div className="sm:border-l sm:border-neutral-200 sm:pl-5">
-            <p className="text-lg font-bold" style={{ color: cor }}>
-              ORÇAMENTO Nº 1
-            </p>
+            <p className="text-lg font-bold">ORÇAMENTO Nº 1</p>
             <p className="text-xs text-neutral-500">Emissão {new Date().toLocaleDateString("pt-BR")}</p>
           </div>
         </div>
@@ -300,7 +301,9 @@ const AJUDA: Record<string, string> = {
   "m-tel": "Telefone que o seu cliente vai usar para falar com VOCÊ.",
   "m-email": "E-mail que sai no documento. Não é o e-mail de login.",
   "m-uf": "Sigla do estado, duas letras.",
-  "m-cor": "Cor da faixa e dos títulos do PDF. Use a cor da sua marca.",
+  // O PDF é preto e branco desde 06/10/2026 (modelo 1059): a cor só entra na
+  // caixa com o nome da marca, e só quando não há logo (DocumentoPDF, logoCaixa).
+  "m-cor": "Só aparece no PDF enquanto você não envia o logo: é a cor do nome da sua marca no lugar dele. O resto do orçamento sai em preto e branco.",
   "m-rodape": "Texto que sai no fim do orçamento: prazo, forma de pagamento, condições. Se deixar vazio, entra um texto neutro.",
 };
 

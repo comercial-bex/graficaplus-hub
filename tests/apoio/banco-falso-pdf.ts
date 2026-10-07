@@ -6,7 +6,8 @@ import { lerSelect, type ItemDoSelect } from "./contrato-do-banco";
  * coluna para `authenticated`.
  *
  * Retrato medido no banco em 05/10/2026 (information_schema.columns +
- * column_privileges), depois da migração 20261005233000. Pedir coluna que a
+ * column_privileges), depois da migração 20261005233000; em 06/10/2026 a
+ * 20261006230000 deu SELECT em `itens_os.especificacoes`. Pedir coluna que a
  * relação não tem devolve 42703; coluna que existe sem GRANT devolve 42501 —
  * e qualquer um dos dois derruba a consulta INTEIRA, como no PostgREST. Foi
  * exatamente o que a varredura achou na via de produção: 42501 em
@@ -58,7 +59,7 @@ export const LEGIVEL: Record<string, string[]> = {
   ordens_servico_financeiro: lista(
     `${OS_OPERACIONAL}, valor_total, custo_previsto, custo_real, margem_real`,
   ),
-  itens_os: lista(ITENS_OS_OPERACIONAL),
+  itens_os: lista(`${ITENS_OS_OPERACIONAL}, especificacoes`),
   itens_os_operacional: lista(ITENS_OS_OPERACIONAL),
   itens_os_comercial: lista(`${ITENS_OS_OPERACIONAL}, valor_unitario, valor_total`),
   itens_os_financeiro: lista(
@@ -117,7 +118,7 @@ export const SEM_GRANT: Record<string, string[]> = {
     "valor_total, custo_previsto, custo_real, margem_real, estoque_baixado_em, numero_os, contato_id, status_financeiro, status_arte, status_producao, prazo_cliente, prazo_interno, valor_venda, lucro_previsto, lucro_real, margem_prevista, status_comercial, status_logistica, status_geral, desconto, data_fechamento, condicao_pagamento",
   ),
   itens_os: lista(
-    "valor_unitario, custo_unitario, valor_total, orcamento_item_id, produto_snapshot, parametros, especificacoes, custos_previstos, preco_snapshot, margem_prevista, planejamento, requer_qualidade, precisa_entrega, precisa_instalacao, preco_m2",
+    "valor_unitario, custo_unitario, valor_total, orcamento_item_id, produto_snapshot, parametros, custos_previstos, preco_snapshot, margem_prevista, planejamento, requer_qualidade, precisa_entrega, precisa_instalacao, preco_m2",
   ),
   materiais: lista("custo_unitario, fornecedor, custo_medio, estoque_maximo, updated_at"),
 };

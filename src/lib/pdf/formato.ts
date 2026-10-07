@@ -11,6 +11,7 @@ import {
   modoDeEntrega,
   ROTULO_DO_MODO,
   textoDoEndereco,
+  valoresDasParcelas,
   type CondicaoDePagamento,
   type Parcela,
 } from "@/domain/orcamentos/acordo";
@@ -93,11 +94,12 @@ export function validadeAte(
  * com o total. O documento que o cliente assina e a conta a receber que nasce
  * na conversão não podem discordar em um centavo.
  *
- * A conta é feita em centavos INTEIROS. Em ponto flutuante, `total / n * 100`
- * cai em ...,4999 onde o Postgres vê ...,5 exato: R$ 501,15 em 10x dá 50,11 na
- * conta de float e 50,12 no banco — 1 em cada 116 combinações de total e
- * parcelas diverge assim (medido de R$ 0,01 a R$ 20.000,00, 2 a 12 parcelas).
- * Em centavos inteiros, nenhuma diverge.
+ * A divisão é `valoresDasParcelas` (domain/orcamentos/acordo), em centavos
+ * INTEIROS — a mesma que a tela do orçamento usa. Em ponto flutuante,
+ * `total / n * 100` cai em ...,4999 onde o Postgres vê ...,5 exato: R$ 501,15
+ * em 10x dava 50,11 na conta de float e 50,12 no banco — 1 em cada 116
+ * combinações de total e parcelas divergia assim (medido de R$ 0,01 a
+ * R$ 20.000,00, 2 a 12 parcelas). Em centavos inteiros, nenhuma diverge.
  *
  * Com `primeiro_vencimento`, cada parcela vence `intervalo_dias` (padrão 30)
  * depois da anterior. Sem ele a conversão vence a primeira no dia em que vira
@@ -112,18 +114,13 @@ export function parcelasDoAcordo(
   const n = Math.max(1, Math.round(Number(c.parcelas ?? 1) || 1));
   const intervaloLido = Math.round(Number(c.intervalo_dias ?? 30));
   const intervalo = Number.isFinite(intervaloLido) ? Math.max(0, intervaloLido) : 30;
-  const centavos = Math.round(Number(total || 0) * 100);
-  // round() do Postgres arredonda o meio para longe do zero; para total
-  // positivo é o mesmo que Math.round.
-  const porParcela = Math.round(centavos / n);
-  const ultima = centavos - porParcela * (n - 1);
   const primeiro =
     typeof c.primeiro_vencimento === "string" && SO_DATA.test(c.primeiro_vencimento.trim())
       ? c.primeiro_vencimento.trim()
       : null;
-  return Array.from({ length: n }, (_, i) => ({
+  return valoresDasParcelas(total, n).map((valor, i) => ({
     numero: i + 1,
-    valor: (i === n - 1 ? ultima : porParcela) / 100,
+    valor,
     vencimento: primeiro ? somarDias(primeiro, intervalo * i) : null,
   }));
 }
