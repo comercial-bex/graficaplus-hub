@@ -85,6 +85,9 @@
 --   20261008043800 já aplicadas: mesmo resultado (só o anon passou a ser
 --   recusado também em get_relatorios_prioritarios, pela 043800).
 --
+-- APLICADA no banco vivo em 08/10/2026 (MCP, com OK do dono), conferida com
+-- as consultas abaixo e com o ensaio das 6 contas no banco já aplicado.
+--
 -- COMO CONFERIR DEPOIS DE APLICAR
 --   select policyname, cmd from pg_policies
 --    where tablename = 'apontamentos_producao' order by 1;

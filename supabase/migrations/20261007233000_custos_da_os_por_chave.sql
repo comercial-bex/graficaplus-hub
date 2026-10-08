@@ -142,6 +142,9 @@
 --   junto. Reensaiada em 08/10/2026 no banco com 201500, 221500, 20261008043700
 --   e 20261008043800 já aplicadas: mesmo resultado para as 6 contas.
 --
+-- APLICADA no banco vivo em 08/10/2026 (MCP, com OK do dono), conferida com
+-- as consultas abaixo e com o ensaio das 6 contas no banco já aplicado.
+--
 -- COMO CONFERIR DEPOIS DE APLICAR
 --   select policyname, cmd from pg_policies
 --    where tablename = 'custos_operacionais_os' order by 1;
