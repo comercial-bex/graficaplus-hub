@@ -17,6 +17,7 @@ import { Toaster } from "../components/ui/sonner";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { supabase } from "../integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { trocouDeConta, type DonoDaSessao } from "../domain/acesso/sessao";
 
 function NotFoundComponent() {
   return (
@@ -175,7 +176,17 @@ function AuthInvalidator() {
   const router = useRouter();
   const queryClient = useQueryClient();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    // Só a TROCA de pessoa (entrar, sair, outra conta) recarrega tudo. A
+    // biblioteca de login avisa "SIGNED_IN" a cada volta à aba e
+    // "TOKEN_REFRESHED" a cada hora; recarregar a cada aviso fazia o painel
+    // repetir todas as consultas — 59 chamadas ao banco por volta, medido em
+    // 07/10/2026. Ver src/domain/acesso/sessao.ts.
+    let dono: DonoDaSessao = undefined;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evento, sessao) => {
+      const atual = sessao?.user?.id ?? null;
+      const trocou = trocouDeConta(dono, atual);
+      dono = atual;
+      if (!trocou) return;
       router.invalidate();
       queryClient.invalidateQueries();
     });
