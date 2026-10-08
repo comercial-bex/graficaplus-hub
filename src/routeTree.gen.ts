@@ -72,6 +72,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappFilaHumanaRouteImport } from './routes/_authenticated/whatsapp-fila-humana'
+import { Route as AuthenticatedWhatsappVisaoGeralRouteImport } from './routes/_authenticated/whatsapp-visao-geral'
 import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as CatalogoTokenRouteImport } from './routes/catalogo.$token'
 import { Route as ConviteCodigoRouteImport } from './routes/convite.$codigo'
@@ -448,6 +449,12 @@ const AuthenticatedWhatsappFilaHumanaRoute =
     path: '/whatsapp-fila-humana',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWhatsappVisaoGeralRoute =
+  AuthenticatedWhatsappVisaoGeralRouteImport.update({
+    id: '/whatsapp-visao-geral',
+    path: '/whatsapp-visao-geral',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AprovarTokenRoute = AprovarTokenRouteImport.update({
   id: '/aprovar/$token',
   path: '/aprovar/$token',
@@ -705,6 +712,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
+  '/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -805,6 +813,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
+  '/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -908,6 +917,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/_authenticated/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
+  '/_authenticated/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -1011,6 +1021,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/whatsapp-monitor'
     | '/whatsapp-fila-humana'
+    | '/whatsapp-visao-geral'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1111,6 +1122,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/whatsapp-monitor'
     | '/whatsapp-fila-humana'
+    | '/whatsapp-visao-geral'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1213,6 +1225,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-monitor'
     | '/_authenticated/whatsapp-fila-humana'
+    | '/_authenticated/whatsapp-visao-geral'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1726,6 +1739,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappFilaHumanaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/whatsapp-visao-geral': {
+      id: '/_authenticated/whatsapp-visao-geral'
+      path: '/whatsapp-visao-geral'
+      fullPath: '/whatsapp-visao-geral'
+      preLoaderRoute: typeof AuthenticatedWhatsappVisaoGeralRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/aprovar/$token': {
       id: '/aprovar/$token'
       path: '/aprovar/$token'
@@ -2045,6 +2065,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
   AuthenticatedWhatsappFilaHumanaRoute: typeof AuthenticatedWhatsappFilaHumanaRoute
+  AuthenticatedWhatsappVisaoGeralRoute: typeof AuthenticatedWhatsappVisaoGeralRoute
   AuthenticatedCatalogosIdRoute: typeof AuthenticatedCatalogosIdRoute
   AuthenticatedCatalogosGerenciarRoute: typeof AuthenticatedCatalogosGerenciarRoute
   AuthenticatedCatalogosPedidosRoute: typeof AuthenticatedCatalogosPedidosRoute
@@ -2116,6 +2137,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
   AuthenticatedWhatsappFilaHumanaRoute: AuthenticatedWhatsappFilaHumanaRoute,
+  AuthenticatedWhatsappVisaoGeralRoute: AuthenticatedWhatsappVisaoGeralRoute,
   AuthenticatedCatalogosIdRoute: AuthenticatedCatalogosIdRoute,
   AuthenticatedCatalogosGerenciarRoute: AuthenticatedCatalogosGerenciarRoute,
   AuthenticatedCatalogosPedidosRoute: AuthenticatedCatalogosPedidosRoute,

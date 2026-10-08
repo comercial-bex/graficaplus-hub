@@ -80,7 +80,7 @@ vi.mock("@/lib/api/whatsapp-enviar.server", () => ({
 
 import { rodarAssistente } from "@/lib/api/whatsapp-assistente.server";
 
-const TERCA_10H = new Date("2026-10-07T13:00:00Z");
+const QUARTA_10H = new Date("2026-10-07T13:00:00Z");
 
 function iaResponde(decisao: Record<string, unknown>): typeof fetch {
   return (async () =>
@@ -131,7 +131,7 @@ describe("a assistente pelo servidor", () => {
     banco.conversa = { ...banco.conversa, responsavel_id: "u-harison", modo: "humano" };
     let chamouIa = false;
     const r = await rodarAssistente("c-1", "m-1", {
-      agora: TERCA_10H,
+      agora: QUARTA_10H,
       chave: "k",
       buscar: (async () => {
         chamouIa = true;
@@ -147,13 +147,13 @@ describe("a assistente pelo servidor", () => {
 
   it("desligada: nem lê a conversa", async () => {
     banco.config = { ia_ativa: false };
-    const r = await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
+    const r = await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
     expect(r).toEqual({ acao: "nada", motivo: "ia_desligada" });
     expect(banco.leituras).toEqual(["whatsapp_configuracoes"]);
   });
 
   it("resposta com dado do banco: classifica, envia com assinatura e despacha na hora", async () => {
-    const r = await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
+    const r = await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
     expect(r).toMatchObject({ acao: "respondeu", intencao: "orcamento" });
     expect(banco.rpcs.map((x) => x.nome)).toEqual(["whatsapp_ia_classificar", "whatsapp_ia_enviar"]);
     const envio = banco.rpcs[1].params as { p_texto: string; p_payload: { ia: { log_id: string } } };
@@ -166,7 +166,7 @@ describe("a assistente pelo servidor", () => {
 
   it("valor inventado: manda a frase de passagem e transfere com o motivo", async () => {
     const r = await rodarAssistente("c-1", "m-1", {
-      agora: TERCA_10H,
+      agora: QUARTA_10H,
       chave: "k",
       buscar: iaResponde({ ...decisaoBoa, resposta: "Fica R$ 99,00." }),
     });
@@ -177,8 +177,8 @@ describe("a assistente pelo servidor", () => {
   });
 
   it("rajada (respondeu há 10 s): só classifica", async () => {
-    banco.ultimaIa = { created_at: new Date(TERCA_10H.getTime() - 10_000).toISOString() };
-    const r = await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
+    banco.ultimaIa = { created_at: new Date(QUARTA_10H.getTime() - 10_000).toISOString() };
+    const r = await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
     expect(r).toMatchObject({ acao: "classificou", motivo: "rajada" });
     expect(banco.rpcs.map((x) => x.nome)).toEqual(["whatsapp_ia_classificar"]);
     expect(despacho.vezes).toBe(0);
@@ -186,7 +186,7 @@ describe("a assistente pelo servidor", () => {
 
   it("IA fora do ar: a equipe assume, sem mensagem ao cliente, e o motivo fica no log", async () => {
     const r = await rodarAssistente("c-1", "m-1", {
-      agora: TERCA_10H,
+      agora: QUARTA_10H,
       chave: "k",
       buscar: (async () => new Response("{}", { status: 429 })) as unknown as typeof fetch,
     });
@@ -205,7 +205,7 @@ describe("a assistente pelo servidor", () => {
       });
       return iaResponde(decisaoBoa)(url, init);
     }) as unknown as typeof fetch;
-    await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "sk-teste", buscar: espia, modelo: "gpt-5-mini" });
+    await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "sk-teste", buscar: espia, modelo: "gpt-5-mini" });
     expect(pedidos).toHaveLength(1);
     expect(pedidos[0].url).toBe("https://api.openai.com/v1/chat/completions");
     expect(pedidos[0].url).not.toContain("lovable");
@@ -220,13 +220,13 @@ describe("a assistente pelo servidor", () => {
       corpo = JSON.parse(String(init.body));
       return iaResponde(decisaoBoa)(_url, init);
     }) as unknown as typeof fetch;
-    await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "sk-teste", buscar: espia, modelo: "gpt-4.1-mini" });
+    await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "sk-teste", buscar: espia, modelo: "gpt-4.1-mini" });
     expect(corpo.model).toBe("gpt-4.1-mini");
     expect(corpo).not.toHaveProperty("reasoning_effort");
   });
 
   it("sem OPENAI_API_KEY: mesma coisa, com o motivo dito", async () => {
-    const r = await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "", buscar: iaResponde(decisaoBoa) });
+    const r = await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "", buscar: iaResponde(decisaoBoa) });
     expect(r.acao).toBe("erro");
     expect(banco.rpcs.map((x) => x.nome)).toEqual(["whatsapp_ia_transferir"]);
   });

@@ -55,7 +55,7 @@ import { getRoutePermissions, type Permission } from "@/lib/permissions";
  * Administração —, cada uma com subgrupos e itens.
  *
  * Um item pode ser um HUB: telas parentes atrás de uma entrada só (WhatsApp,
- * Fila humana, Monitor, Respostas rápidas, Automações). O hub aparece se a pessoa abre
+ * Visão geral, Fila humana, Monitor, Respostas rápidas, Automações). O hub aparece se a pessoa abre
  * QUALQUER uma das telas dele e leva à primeira que ela abre; dentro delas, a
  * barra de abas (`abasDaTela`) mostra as irmãs.
  *
@@ -140,6 +140,7 @@ export const AREAS: AreaDoMenu[] = [
             "/whatsapp",
             MessageCircle,
             [
+              aba("Visão geral", "/whatsapp-visao-geral"),
               aba("Fila humana", "/whatsapp-fila-humana"),
               aba("Monitor", "/whatsapp-monitor", "Enviados"),
               aba("Respostas rápidas", "/respostas-rapidas"),

@@ -290,10 +290,11 @@ describe("o módulo do trilho", () => {
 describe("barra de abas do hub", () => {
   const de = (papeis: string[]) => daPessoa(papeis, banco).podeAbrir;
 
-  it("o admin, no Monitor, vê as cinco telas do WhatsApp com Monitor marcada", () => {
+  it("o admin, no Monitor, vê as seis telas do WhatsApp com Monitor marcada", () => {
     const abas = abasDaTela("/whatsapp-monitor", de(["admin"]));
     expect(abas?.telas.map((t) => t.title)).toEqual([
       "WhatsApp",
+      "Visão geral",
       "Fila humana",
       "Monitor",
       "Respostas rápidas",
@@ -305,6 +306,7 @@ describe("barra de abas do hub", () => {
   it("o vendedor não vê a aba de Automações, que não abre para ele", () => {
     expect(abasDaTela("/whatsapp", de(["vendedor"]))?.telas.map((t) => t.url)).toEqual([
       "/whatsapp",
+      "/whatsapp-visao-geral",
       "/whatsapp-fila-humana",
       "/whatsapp-monitor",
       "/respostas-rapidas",

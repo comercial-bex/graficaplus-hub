@@ -113,6 +113,12 @@
   --chart-4: #7c5cff;
   --chart-5: #4ade80;
 
+  /* Visão geral do WhatsApp: recebidas × enviadas. Validado (dataviz,
+     08/10/2026) contra o card claro #ffffff: banda, croma, daltonismo e
+     contraste 3:1 passam. */
+  --wa-recebidas: #0089a3;
+  --wa-enviadas: #e32686;
+
   /* Sidebar permanece escura nos dois temas. */
   --sidebar: #12131a;
   --sidebar-foreground: #cbd5e1;
@@ -147,6 +153,10 @@
 }
 
 .dark {
+  /* Contra o card escuro #12131a. Daltonismo fica na faixa 6–8: a legenda,
+     o vão entre barras e a ordem fixa (recebidas à esquerda) completam. */
+  --wa-recebidas: #0a9cb5;
+  --wa-enviadas: #e32686;
   --background: #050506;
   --foreground: #e2e8f0;
   --card: #12131a;
