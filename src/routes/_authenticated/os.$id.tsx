@@ -385,7 +385,7 @@ function OSDetailPage() {
         </TabsList>
 
         <TabsContent value="resumo"><ResumoTab os={os} /></TabsContent>
-        <TabsContent value="itens"><ItensTab osId={id} canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} /></TabsContent>
+        <TabsContent value="itens"><ItensTab osId={id} canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} podeEditarItens={hasPermission("kanban.move") || hasPermission("orcamentos.create")} /></TabsContent>
         <TabsContent value="arquivos"><ArquivosTab osId={id} userId={user?.id} /></TabsContent>
         <TabsContent value="tarefas"><TarefasTab osId={id} userId={user?.id} /></TabsContent>
         <TabsContent value="historico"><HistoricoTab osId={id} /></TabsContent>
@@ -619,11 +619,18 @@ function ItensTab({
   canSeeFinancials,
   canSeePrices,
   nivelDeVisao,
+  podeEditarItens,
 }: {
   osId: string;
   canSeeFinancials: boolean;
   canSeePrices: boolean;
   nivelDeVisao: NivelDeVisao;
+  /**
+   * Incluir e apagar item é de quem mexe na venda: kanban.move ou
+   * orcamentos.create, a mesma regra do banco (migração 20261008043700).
+   * Os outros veem a lista — antes viam os botões e a regra recusava.
+   */
+  podeEditarItens: boolean;
 }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -673,76 +680,83 @@ function ItensTab({
     qc.invalidateQueries({ queryKey: ["itens-os", osId] });
   }
   async function remove(id: string) {
-    await supabase.from("itens_os").delete().eq("id", id);
+    const { data, error } = await supabase.from("itens_os").delete().eq("id", id).select("id");
+    if (error) return toast.error(mensagemErro(error));
+    // apagar barrado pela regra devolve 0 linhas e nenhum erro
+    if (!data || data.length === 0) return toast.error("Seu perfil não pode apagar item desta OS.");
     qc.invalidateQueries({ queryKey: ["itens-os", osId] });
   }
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
-        <div className="flex justify-end">
-          <ProdutoAutocomplete
-            onSelect={(p) =>
-              setForm({
-                descricao: p.nome,
-                quantidade: form.quantidade || "1",
-                unidade: p.unidade,
-                valor_unitario: String(p.preco_base ?? 0),
-                custo_unitario: String(p.custo_medio ?? 0),
-                produto_id: p.id,
-              })
-            }
-          />
-        </div>
-        <div className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-5">
-            <Label>Descrição</Label>
-            <Input
-              value={form.descricao}
-              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-            />
-          </div>
-          <div className="col-span-1">
-            <Label>Qtd</Label>
-            <Input
-              type="number"
-              value={form.quantidade}
-              onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
-            />
-          </div>
-          <div className="col-span-1">
-            <Label>Un</Label>
-            <Input
-              value={form.unidade}
-              onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-            />
-          </div>
-          {/* Valor un. é preço (vendedor vê); Custo un. é custo (só financeiro). */}
-          {canSeePrices && (
-            <div className="col-span-2">
-              <Label>Valor un.</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={form.valor_unitario}
-                onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
+        {podeEditarItens && (
+          <>
+            <div className="flex justify-end">
+              <ProdutoAutocomplete
+                onSelect={(p) =>
+                  setForm({
+                    descricao: p.nome,
+                    quantidade: form.quantidade || "1",
+                    unidade: p.unidade,
+                    valor_unitario: String(p.preco_base ?? 0),
+                    custo_unitario: String(p.custo_medio ?? 0),
+                    produto_id: p.id,
+                  })
+                }
               />
             </div>
-          )}
-          {canSeeFinancials && (
-            <div className="col-span-2">
-              <Label>Custo un.</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={form.custo_unitario}
-                onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
-              />
+            <div className="grid grid-cols-12 gap-2 items-end">
+              <div className="col-span-5">
+                <Label>Descrição</Label>
+                <Input
+                  value={form.descricao}
+                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                />
+              </div>
+              <div className="col-span-1">
+                <Label>Qtd</Label>
+                <Input
+                  type="number"
+                  value={form.quantidade}
+                  onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
+                />
+              </div>
+              <div className="col-span-1">
+                <Label>Un</Label>
+                <Input
+                  value={form.unidade}
+                  onChange={(e) => setForm({ ...form, unidade: e.target.value })}
+                />
+              </div>
+              {/* Valor un. é preço (vendedor vê); Custo un. é custo (só financeiro). */}
+              {canSeePrices && (
+                <div className="col-span-2">
+                  <Label>Valor un.</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.valor_unitario}
+                    onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
+                  />
+                </div>
+              )}
+              {canSeeFinancials && (
+                <div className="col-span-2">
+                  <Label>Custo un.</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.custo_unitario}
+                    onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
+                  />
+                </div>
+              )}
+              <Button className="col-span-1" onClick={add}>
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-          <Button className="col-span-1" onClick={add}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+          </>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
@@ -778,9 +792,11 @@ function ItensTab({
                   </>
                 )}
                 <TableCell>
-                  <Button variant="ghost" size="icon" onClick={() => remove(i.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {podeEditarItens && (
+                    <Button variant="ghost" size="icon" onClick={() => remove(i.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
