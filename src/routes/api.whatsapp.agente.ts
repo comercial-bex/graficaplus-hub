@@ -8,8 +8,9 @@ import { createFileRoute } from "@tanstack/react-router";
  * é para reprocessar à mão — por exemplo, depois de ligar a IA, rodar de novo
  * a última mensagem de uma conversa.
  *
- * Só do servidor: exige o token do despachante (DESPACHANTE_TOKEN) no
- * cabeçalho `x-despachante-token`. Sem a variável, 503. Nada do navegador.
+ * Só do servidor: exige o token do despachante no cabeçalho
+ * `x-despachante-token` — o da variável DESPACHANTE_TOKEN ou o do Vault do
+ * banco (`despachante_token`). Sem token, 401. Nada do navegador.
  *
  * Corpo: { "conversa_id": "<uuid>", "mensagem_id": "<uuid>" }
  */
@@ -26,9 +27,8 @@ export const Route = createFileRoute("/api/whatsapp/agente")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        if (!(process.env.DESPACHANTE_TOKEN ?? "")) {
-          return json(503, { ok: false, erro: "DESPACHANTE_TOKEN não está no servidor" });
-        }
+        // O token do despachante: a variável DESPACHANTE_TOKEN, se existir, ou o
+        // do Vault do banco (desde 08/10/2026). Sem nenhum dos dois, recusa.
         const { tokenDoServidorConfere } = await import("@/lib/api/whatsapp-enviar.server");
         if (!(await tokenDoServidorConfere(request))) return json(401, { ok: false, erro: "token inválido" });
 

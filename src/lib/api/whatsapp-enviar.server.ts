@@ -132,13 +132,64 @@ export function saudeDoEnvio(): Response {
  * a tela de automações lê para avisar "só sai com alguém logado" enquanto a
  * variável não existir. Não diz o token, só se há um.
  */
-export function saudeDoDespachante(): Response {
+export async function saudeDoDespachante(): Promise<Response> {
+  const daVariavel = (process.env.DESPACHANTE_TOKEN ?? "").length > 0;
+  const noBanco = daVariavel ? null : await situacaoDoTokenNoBanco(null);
   return json(200, {
     ok: true,
     servico: "despachante do servidor",
     metodo: "POST",
-    ligado: (process.env.DESPACHANTE_TOKEN ?? "").length > 0,
+    ligado: daVariavel || noBanco === "configurado",
+    token: daVariavel ? "variável do servidor" : noBanco === "configurado" ? "Vault do banco" : null,
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* O token do despachante                                              */
+/* ------------------------------------------------------------------ */
+
+type SituacaoDoTokenNoBanco = "sem_segredo" | "configurado" | "confere" | "nao_confere";
+
+/**
+ * O token mora no Vault do banco (`despachante_token`, migração
+ * 20261008020000): foi gerado lá dentro e ninguém viu o valor. O banco
+ * confere e só diz a situação — nunca devolve o token. `null` = o banco não
+ * respondeu.
+ */
+async function situacaoDoTokenNoBanco(token: string | null): Promise<SituacaoDoTokenNoBanco | null> {
+  // A função é nova e o types.ts gerado ainda não a conhece.
+  const rpc = supabaseAdmin.rpc.bind(supabaseAdmin) as unknown as (
+    nome: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("whatsapp_despachante_token_situacao", { p_token: token });
+  if (error) return null;
+  return data === "sem_segredo" || data === "configurado" || data === "confere" || data === "nao_confere"
+    ? data
+    : null;
+}
+
+/**
+ * Confere o token que chegou no cabeçalho. A variável DESPACHANTE_TOKEN, se
+ * existir, manda (comparação em tempo constante, pelo hash dos dois lados).
+ * Sem ela, quem confere é o banco. Antes de 08/10/2026 só a variável valia, e
+ * o despachante do servidor ficou desligado esperando alguém cadastrá-la.
+ */
+async function tokenDoDespachante(
+  recebido: string,
+): Promise<"confere" | "nao_confere" | "desligado" | "falhou"> {
+  const esperado = process.env.DESPACHANTE_TOKEN ?? "";
+  if (esperado) {
+    if (!recebido) return "nao_confere";
+    return hashesIguais(await hashDoSegredo(recebido), await hashDoSegredo(esperado))
+      ? "confere"
+      : "nao_confere";
+  }
+  const situacao = await situacaoDoTokenNoBanco(recebido || null);
+  if (situacao === null) return "falhou";
+  if (situacao === "sem_segredo") return "desligado";
+  if (!recebido) return "nao_confere";
+  return situacao === "confere" ? "confere" : "nao_confere";
 }
 
 /* ------------------------------------------------------------------ */
@@ -384,32 +435,30 @@ export async function processarFilaZapi(request: Request): Promise<Response> {
  * tamanho do que foi mandado. Nada do token vai para log nem para a resposta.
  */
 export async function despacharPeloServidor(request: Request): Promise<Response> {
-  const esperado = process.env.DESPACHANTE_TOKEN ?? "";
-  if (!esperado) {
+  const recebido = request.headers.get(CABECALHO_DO_DESPACHANTE) ?? "";
+  const situacao = await tokenDoDespachante(recebido);
+  if (situacao === "desligado") {
     return json(503, {
       ok: false,
       erro: DESPACHANTE_DESLIGADO,
       comoResolver:
-        "Cadastre DESPACHANTE_TOKEN nas variáveis do servidor e o mesmo valor no Vault do banco como despachante_token. Enquanto isso, o despachante do navegador continua levando os avisos.",
+        "O token do despachante mora no Vault do banco (despachante_token): rode a migração 20261008020000_despachante_token_no_banco.sql. Enquanto isso, o despachante do navegador continua levando os avisos.",
     });
   }
-  const recebido = request.headers.get(CABECALHO_DO_DESPACHANTE) ?? "";
-  const confere =
-    recebido.length > 0 &&
-    hashesIguais(await hashDoSegredo(recebido), await hashDoSegredo(esperado));
-  if (!confere) return json(401, { ok: false, erro: "token do despachante inválido" });
+  if (situacao === "falhou") {
+    return json(503, { ok: false, erro: "não deu para conferir o token do despachante no banco" });
+  }
+  if (situacao !== "confere") return json(401, { ok: false, erro: "token do despachante inválido" });
   return rodada({ tipo: "servidor" });
 }
 
 /**
  * O mesmo token do despachante, para outras portas do servidor (a da
- * assistente de IA, POST /api/whatsapp/agente). Sem a variável, recusa.
+ * assistente de IA, POST /api/whatsapp/agente). Sem token configurado, recusa.
  */
 export async function tokenDoServidorConfere(request: Request): Promise<boolean> {
-  const esperado = process.env.DESPACHANTE_TOKEN ?? "";
   const recebido = request.headers.get(CABECALHO_DO_DESPACHANTE) ?? "";
-  if (!esperado || !recebido) return false;
-  return hashesIguais(await hashDoSegredo(recebido), await hashDoSegredo(esperado));
+  return (await tokenDoDespachante(recebido)) === "confere";
 }
 
 /**

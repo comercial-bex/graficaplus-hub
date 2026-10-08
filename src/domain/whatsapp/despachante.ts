@@ -33,7 +33,7 @@ export const CONFERIR_A_CADA_MS = 15_000;
 /** O cabeçalho em que o despachante do servidor manda o token (nunca na URL). */
 export const CABECALHO_DO_DESPACHANTE = "x-despachante-token";
 
-/** A frase do 503 quando DESPACHANTE_TOKEN não está no servidor. */
+/** A frase do 503 quando não há token do despachante em lugar nenhum (variável nem Vault). */
 export const DESPACHANTE_DESLIGADO = "despachante do servidor desligado";
 
 export type EstadoDoDespachante = {

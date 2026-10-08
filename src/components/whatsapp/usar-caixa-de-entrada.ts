@@ -300,7 +300,7 @@ export async function acionarEnvio(): Promise<
 
 /**
  * O despachante do SERVIDOR (job do pg_cron → POST /api/whatsapp/despachar)
- * está ligado? GET na mesma rota diz se há DESPACHANTE_TOKEN, sem mostrá-lo.
+ * está ligado? GET na mesma rota diz se há token (variável ou Vault), sem mostrá-lo.
  * Rota ausente (front antigo) ou servidor fora lançam: "não deu para conferir"
  * é diferente de "desligado".
  */

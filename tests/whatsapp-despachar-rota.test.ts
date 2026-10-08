@@ -10,16 +10,19 @@ import {
  * verdade, com o banco trocado por um dublê e o ambiente mexido pelo teste.
  *
  * O que se segura:
- *   503 "despachante do servidor desligado"  sem DESPACHANTE_TOKEN no servidor
- *                                            (e o navegador segue valendo)
+ *   503 "despachante do servidor desligado"  sem DESPACHANTE_TOKEN e sem o
+ *                                            token no Vault do banco (e o
+ *                                            navegador segue valendo)
  *   401                                      token ausente ou errado
  *   passa                                    token certo: a rodada começa
+ * O token vale pela variável do servidor (prioridade) ou pelo Vault do banco,
+ * conferido por whatsapp_despachante_token_situacao (08/10/2026).
  * E que nenhuma resposta nem log leva o token.
  */
 
 const banco = vi.hoisted(() => {
   const estado = {
-    chamadas: [] as { tabela: string; metodo: string }[],
+    chamadas: [] as { tabela: string; metodo: string; args?: unknown }[],
     respostas: new Map<string, unknown>(),
     responder(tabela: string, resposta: unknown) {
       estado.respostas.set(tabela, resposta);
@@ -52,9 +55,9 @@ const banco = vi.hoisted(() => {
         );
       return cadeia;
     },
-    rpc(nome: string) {
-      estado.chamadas.push({ tabela: `rpc:${nome}`, metodo: "rpc" });
-      return Promise.resolve({ data: null, error: null });
+    rpc(nome: string, args?: unknown) {
+      estado.chamadas.push({ tabela: `rpc:${nome}`, metodo: "rpc", args });
+      return Promise.resolve(estado.respostas.get(`rpc:${nome}`) ?? { data: null, error: null });
     },
   };
   return estado;
@@ -63,7 +66,7 @@ const banco = vi.hoisted(() => {
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     from: (tabela: string) => banco.from(tabela),
-    rpc: (nome: string) => banco.rpc(nome),
+    rpc: (nome: string, args?: unknown) => banco.rpc(nome, args),
     auth: { getUser: async () => ({ data: { user: null }, error: { message: "sem sessão" } }) },
   },
 }));
@@ -104,15 +107,49 @@ function pedir(token?: string): Promise<Response> {
   );
 }
 
+const SITUACAO = "rpc:whatsapp_despachante_token_situacao";
+
 describe("POST /api/whatsapp/despachar", () => {
-  it("sem DESPACHANTE_TOKEN no servidor: 503 desligado, sem tocar no banco — mesmo com token no cabeçalho", async () => {
+  it("sem DESPACHANTE_TOKEN e sem token no Vault: 503 desligado — só pergunta ao banco", async () => {
+    banco.responder(SITUACAO, { data: "sem_segredo", error: null });
     const r = await pedir(TOKEN);
     expect(r.status).toBe(503);
     const corpo = await r.json();
     expect(corpo.erro).toBe(DESPACHANTE_DESLIGADO);
-    expect(corpo.comoResolver).toContain("DESPACHANTE_TOKEN");
-    expect(banco.chamadas).toEqual([]);
+    expect(corpo.comoResolver).toContain("Vault");
+    expect(banco.chamadas.map((c) => c.tabela)).toEqual([SITUACAO]);
     expect(JSON.stringify(corpo)).not.toContain(TOKEN);
+  });
+
+  it("sem DESPACHANTE_TOKEN, com o token do Vault: o banco confere e a rodada começa", async () => {
+    banco.responder(SITUACAO, { data: "confere", error: null });
+    const r = await pedir(TOKEN);
+    // Sem ZAPI_TOKEN a rodada para no 503 do Z-API — passou da porta.
+    expect(r.status).toBe(503);
+    expect((await r.json()).erro).toContain("ZAPI_TOKEN");
+    // O token vai para o banco conferir, e só para lá.
+    expect(banco.chamadas[0]).toEqual({ tabela: SITUACAO, metodo: "rpc", args: { p_token: TOKEN } });
+    expect(JSON.stringify(erros.mock.calls)).not.toContain(TOKEN);
+  });
+
+  it("sem DESPACHANTE_TOKEN: token errado ou ausente é 401", async () => {
+    banco.responder(SITUACAO, { data: "nao_confere", error: null });
+    expect((await pedir("outro-token")).status).toBe(401);
+    banco.responder(SITUACAO, { data: "configurado", error: null });
+    expect((await pedir(undefined)).status).toBe(401);
+    expect((await pedir("")).status).toBe(401);
+  });
+
+  it("sem DESPACHANTE_TOKEN e o banco não respondeu: 503, sem abrir a porta", async () => {
+    banco.responder(SITUACAO, { data: null, error: { message: "fora do ar" } });
+    const r = await pedir(TOKEN);
+    expect(r.status).toBe(503);
+    expect((await r.json()).erro).toContain("conferir o token");
+  });
+
+  it("resposta estranha do banco não vale como 'confere'", async () => {
+    banco.responder(SITUACAO, { data: true, error: null });
+    expect((await pedir(TOKEN)).status).toBe(503);
   });
 
   it("token ausente ou errado: 401, sem tocar no banco", async () => {
@@ -162,11 +199,14 @@ describe("POST /api/whatsapp/despachar", () => {
     expect(JSON.stringify(erros.mock.calls)).not.toContain(TOKEN);
   });
 
-  it("GET diz se está ligado, sem mostrar o token", async () => {
-    expect(await saudeDoDespachante().json()).toMatchObject({ ok: true, ligado: false });
+  it("GET diz se está ligado e de onde vem o token, sem mostrá-lo", async () => {
+    banco.responder(SITUACAO, { data: "sem_segredo", error: null });
+    expect(await (await saudeDoDespachante()).json()).toMatchObject({ ok: true, ligado: false, token: null });
+    banco.responder(SITUACAO, { data: "configurado", error: null });
+    expect(await (await saudeDoDespachante()).json()).toMatchObject({ ligado: true, token: "Vault do banco" });
     vi.stubEnv("DESPACHANTE_TOKEN", TOKEN);
-    const corpo = await saudeDoDespachante().json();
-    expect(corpo.ligado).toBe(true);
+    const corpo = await (await saudeDoDespachante()).json();
+    expect(corpo).toMatchObject({ ligado: true, token: "variável do servidor" });
     expect(JSON.stringify(corpo)).not.toContain(TOKEN);
   });
 });
@@ -209,6 +249,19 @@ describe("a rota e o arquivo de servidor", () => {
     );
     // E o token nunca vai para log nem para a resposta.
     expect(servidor).not.toMatch(/console\.\w+\([^)]*\b(recebido|esperado)\b/);
+  });
+
+  it("o token do Vault é gerado no banco, conferido por função só do service_role", () => {
+    const sql = readFileSync("supabase/migrations/20261008020000_despachante_token_no_banco.sql", "utf8");
+    expect(sql).toMatch(/vault\.create_secret\(\s*encode\(extensions\.gen_random_bytes\(32\), 'hex'\)/);
+    expect(sql).toMatch(
+      /REVOKE ALL ON FUNCTION public\.whatsapp_despachante_token_situacao\(text\) FROM PUBLIC, anon, authenticated;/,
+    );
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.whatsapp_despachante_token_situacao\(text\) TO service_role;/);
+    // A função diz a situação e nunca devolve o valor.
+    expect(sql).not.toMatch(/RETURN v_segredo/);
+    expect(sql).toMatch(/cron\.schedule\(\s*'whatsapp-despachar',\s*'\*\/2 \* \* \* \*'/);
+    expect(sql).not.toMatch(/x-despachante-token',\s*'[^(]/);
   });
 
   it("a migração agenda o job só com o segredo no Vault, lendo-o na hora de rodar", () => {
