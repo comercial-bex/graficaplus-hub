@@ -1246,6 +1246,10 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
     qc.invalidateQueries({ queryKey: ["pag-os", osId] });
   }
 
+  // Lançar custo: o banco aceita de quem vê o financeiro (a mesma porta desta
+  // aba), em nome próprio e só estas colunas (migração 20261007233000). Campo
+  // novo aqui precisa entrar no GRANT INSERT; alterar ou apagar lançamento
+  // não existe pela API.
   async function addCusto() {
     if (!custo.descricao || !custo.valor || !custo.categoria)
       return toast.error("Descrição, categoria e valor obrigatórios");
