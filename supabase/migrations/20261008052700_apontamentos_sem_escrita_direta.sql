@@ -1,0 +1,110 @@
+-- ============================================================================
+-- Apontamentos de produção: ninguém grava direto pela API; a equipe continua
+-- lendo
+-- ============================================================================
+--
+-- POR QUÊ
+--   O apontamento é o relógio da máquina: ao fechar, fechar_apontamento_interno
+--   lança em custos_operacionais_os horas × custo/hora da máquina; a TV da
+--   Oficina e a capacidade contam por ele. A tabela tinha três regras FOR ALL
+--   (vindas de três migrações diferentes) e GRANT de tudo para anon e
+--   authenticated, mais um grant por coluna em agenda_id:
+--     "apontamentos staff write"  ALL  is_staff              (20260531203000)
+--     "producao write"            ALL  is_staff              (20260711153521)
+--     "apontamento write"         ALL  producao.start        (20260825110000)
+--   As permissivas somam por OU: QUALQUER pessoa da equipe (gestor, financeiro,
+--   vendedor, designer, instalador, estoque) criava, alterava e apagava
+--   apontamento direto pela API, sem passar pela guarda producao.start /
+--   producao.finish das funções.
+--
+--   Medido em 08/10/2026 na OS 49 (ac27e850), com um apontamento aberto há 2 h
+--   na plotter (R$ 14,4313/h), montado como postgres; contas simuladas com
+--   claims + SET LOCAL ROLE; cada tentativa num sub-bloco desfeito, e o bloco
+--   inteiro desfeito no fim:
+--                               ANTES                      DEPOIS
+--     Harison  (admin)          lê; cria, retroage,        lê; não grava direto
+--     Yvens    (gestor)         fecha e apaga direto       (só pelas funções,
+--     Cibele   (financeiro)                                para quem tem a chave)
+--     Leonardo (vendedor+oper.)
+--     Sergio   (operador)
+--     visitante (anon)          nada (a regra pública      sem grant nenhum
+--                               chama has_permission, que
+--                               ele não executa)
+--   As cadeias, antes: retroagir o início para 6 h atrás fazia o fechamento
+--   normal lançar R$ 86,59 de máquina em vez de R$ 28,86; fechar direto
+--   (finalizado_em = now()) parava o relógio SEM lançar custo nenhum (R$ 0 de
+--   máquina na OS). Depois: as duas são recusadas ("permission denied").
+--   As contas foram SIMULADAS: uso real até 08/10/2026 = zero; a tabela nunca
+--   teve apontamento.
+--   O caminho certo deu o MESMO resultado antes e depois:
+--     iniciar_apontamento      admin, Leonardo, Sergio abrem; Yvens e Cibele:
+--                              "Permissão necessária: producao.start"
+--     comecar_na_maquina       mesma guarda; na OS 49 a trava do Kanban recusa
+--                              ("A OS não pode avançar ainda"), igual antes e
+--                              depois
+--     finalizar_apontamento    admin, Leonardo, Sergio: R$ 28,86 de máquina
+--     terminar_so_esta_maquina idem, R$ 28,86; Yvens e Cibele: producao.finish
+--     get_relatorios_prioritarios  lê (DEFINER) para a equipe
+--     tv_painel_maquinas       só service_role executa (o servidor da TV); igual
+--
+-- QUEM LÊ E QUEM GRAVA (mapa medido antes de mexer)
+--   Gravam, como DEFINER donas postgres (dona da tabela, sem FORCE RLS):
+--     iniciar_apontamento (INSERT), chamada também por comecar_na_maquina;
+--     fechar_apontamento_interno (UPDATE + custo), chamada por
+--     finalizar_apontamento (← terminar_na_maquina ← mandar_para_acabamento;
+--     terminar_so_esta_maquina) e pelo gatilho tg_os_saiu_da_oficina.
+--     O gatilho tg_apontamento_alimenta_agenda (DEFINER) só acerta agenda_id.
+--   Tela (src/): só LÊ — apontamento-card.tsx (apontamentos da OS),
+--   PainelProducao.tsx (abertos; contagem de finalizados). Tudo que grava vai
+--   por RPC. A TV lê por tv_painel_maquinas com a chave de serviço
+--   (tv-painel.server.ts). Edge functions: nenhuma. Cron: nenhum. Nenhuma
+--   regra de outra tabela consulta esta.
+--   Leem como DEFINER (não mudam): capacidade_das_pessoas, maquinas_para_comecar,
+--   fechar_os, get_relatorios_prioritarios (via rel_producao_por_maquina e
+--   rel_tempo_medio_por_etapa, as duas security_invoker).
+--
+-- O QUE ESTA MIGRAÇÃO FAZ
+--   1. Tira as três regras ALL. Sem regra de escrita, a RLS recusaria; sem
+--      grant, a tentativa morre antes ("permission denied").
+--   2. Tira de anon e authenticated todo privilégio (inclusive o grant por
+--      coluna de agenda_id) e devolve só SELECT ao authenticated. REVOKE de
+--      PUBLIC não basta: no Supabase anon e authenticated têm grant próprio.
+--      service_role e o papel da plataforma (sandbox_exec) ficam como estão.
+--
+-- O QUE FICA DE FORA, DE PROPÓSITO
+--   * A leitura continua para a equipe ("apontamentos staff read" is_staff, e
+--     as duas por chave, redundantes). A linha não tem dinheiro: o custo/hora
+--     está em maquinas, e o cartão da OS só pede custo_hora a quem vê
+--     financeiro.
+--   * "apontamento read" é TO public (inclui anon); sem grant, o anon não
+--     chega nela. Não mexo para não mudar a leitura de ninguém.
+--
+-- ORDEM
+--   Independente das outras (20261007201500, 20261007221500, 20261007233000).
+--
+-- COMO CONFERIR DEPOIS DE APLICAR
+--   select policyname, cmd from pg_policies
+--    where tablename = 'apontamentos_producao' order by 1;
+--     → "apontamento read" SELECT; "apontamentos staff read" SELECT;
+--       "producao read" SELECT — e mais nada
+--   select grantee, privilege_type from information_schema.role_table_grants
+--    where table_name = 'apontamentos_producao' and grantee in ('anon','authenticated');
+--     → authenticated SELECT, e mais nada
+--   select attname from pg_attribute
+--    where attrelid = 'public.apontamentos_producao'::regclass and attacl is not null;
+--     → nenhuma linha
+-- ============================================================================
+
+-- 1. Saem as três regras de escrita. As três de leitura ("apontamento read",
+--    "apontamentos staff read", "producao read") ficam como estão.
+DROP POLICY IF EXISTS "apontamento write" ON public.apontamentos_producao;
+DROP POLICY IF EXISTS "apontamentos staff write" ON public.apontamentos_producao;
+DROP POLICY IF EXISTS "producao write" ON public.apontamentos_producao;
+
+-- 2. Grants: só leitura para authenticated, nada para anon. O REVOKE da tabela
+--    leva junto o grant por coluna de agenda_id (SELECT/INSERT/UPDATE).
+REVOKE ALL ON public.apontamentos_producao FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.apontamentos_producao TO authenticated;
+
+COMMENT ON TABLE public.apontamentos_producao IS
+  'Tempo de máquina por OS (vira custo de máquina ao fechar, conta na TV da Oficina e na capacidade). Sem regra nem grant de escrita para anon/authenticated DE PROPÓSITO: só função SECURITY DEFINER grava (iniciar_apontamento e comecar_na_maquina abrem; fechar_apontamento_interno fecha e lança o custo, chamada por finalizar_apontamento, terminar_na_maquina, terminar_so_esta_maquina, mandar_para_acabamento e pelo gatilho da OS que sai da oficina). Lê a equipe. Migração 20261008052700.';
