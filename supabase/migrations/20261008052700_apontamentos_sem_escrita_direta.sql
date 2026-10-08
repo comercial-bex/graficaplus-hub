@@ -81,6 +81,9 @@
 --
 -- ORDEM
 --   Independente das outras (20261007201500, 20261007221500, 20261007233000).
+--   Reensaiada em 08/10/2026 no banco com 201500, 221500, 20261008043700 e
+--   20261008043800 já aplicadas: mesmo resultado (só o anon passou a ser
+--   recusado também em get_relatorios_prioritarios, pela 043800).
 --
 -- COMO CONFERIR DEPOIS DE APLICAR
 --   select policyname, cmd from pg_policies

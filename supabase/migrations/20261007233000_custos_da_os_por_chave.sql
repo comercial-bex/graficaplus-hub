@@ -139,7 +139,8 @@
 -- ORDEM
 --   Independente de 20261007201500 e 20261007221500 (cada uma mexe nas suas
 --   tabelas); ensaiada sozinha e depois das duas. Pode ir antes, depois ou
---   junto.
+--   junto. Reensaiada em 08/10/2026 no banco com 201500, 221500, 20261008043700
+--   e 20261008043800 já aplicadas: mesmo resultado para as 6 contas.
 --
 -- COMO CONFERIR DEPOIS DE APLICAR
 --   select policyname, cmd from pg_policies
