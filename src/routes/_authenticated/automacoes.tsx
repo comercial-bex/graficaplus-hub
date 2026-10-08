@@ -151,8 +151,8 @@ function AutoPage() {
             Hoje quem leva as mensagens é o sistema aberto no navegador de quem pode responder no
             WhatsApp (whatsapp › reply), a cada 2 minutos. Fora desse horário — à noite, no fim
             de semana — nada sai até alguém entrar. O despachante do servidor, que roda 24 h,
-            ainda não está ligado: falta cadastrar a variável DESPACHANTE_TOKEN no servidor e o
-            segredo despachante_token no banco (quem administra o sistema faz isso).
+            ainda não está ligado: falta o token do despachante no Vault do banco
+            (despachante_token). Quem administra o sistema roda a migração do despachante.
           </AlertDescription>
         </Alert>
       )}
