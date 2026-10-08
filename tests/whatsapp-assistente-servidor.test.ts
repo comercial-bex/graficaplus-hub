@@ -188,14 +188,44 @@ describe("a assistente pelo servidor", () => {
     const r = await rodarAssistente("c-1", "m-1", {
       agora: TERCA_10H,
       chave: "k",
-      buscar: (async () => new Response("{}", { status: 402 })) as unknown as typeof fetch,
+      buscar: (async () => new Response("{}", { status: 429 })) as unknown as typeof fetch,
     });
-    expect(r).toEqual({ acao: "erro", erro: "saldo de IA do Lovable acabou (HTTP 402)" });
+    expect(r).toEqual({ acao: "erro", erro: "limite ou saldo da OpenAI esgotado (HTTP 429)" });
     expect(banco.rpcs.map((x) => x.nome)).toEqual(["whatsapp_ia_transferir"]);
-    expect(banco.logs[0]).toMatchObject({ etapa: "classificacao", erro: "saldo de IA do Lovable acabou (HTTP 402)" });
+    expect(banco.logs[0]).toMatchObject({ etapa: "classificacao", erro: "limite ou saldo da OpenAI esgotado (HTTP 429)" });
   });
 
-  it("sem LOVABLE_API_KEY: mesma coisa, com o motivo dito", async () => {
+  it("motor é a OpenAI, com a chave da agência — nunca o gateway do Lovable", async () => {
+    const pedidos: { url: string; corpo: Record<string, unknown>; auth: string }[] = [];
+    const espia = (async (url: string, init: RequestInit) => {
+      pedidos.push({
+        url,
+        corpo: JSON.parse(String(init.body)),
+        auth: String((init.headers as Record<string, string>).Authorization),
+      });
+      return iaResponde(decisaoBoa)(url, init);
+    }) as unknown as typeof fetch;
+    await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "sk-teste", buscar: espia, modelo: "gpt-5-mini" });
+    expect(pedidos).toHaveLength(1);
+    expect(pedidos[0].url).toBe("https://api.openai.com/v1/chat/completions");
+    expect(pedidos[0].url).not.toContain("lovable");
+    expect(pedidos[0].auth).toBe("Bearer sk-teste");
+    expect(pedidos[0].corpo).toMatchObject({ model: "gpt-5-mini", reasoning_effort: "minimal" });
+    expect(banco.logs[0]).toMatchObject({ modelo: "gpt-5-mini" });
+  });
+
+  it("modelo fora da família gpt-5 não recebe reasoning_effort", async () => {
+    let corpo: Record<string, unknown> = {};
+    const espia = (async (_url: string, init: RequestInit) => {
+      corpo = JSON.parse(String(init.body));
+      return iaResponde(decisaoBoa)(_url, init);
+    }) as unknown as typeof fetch;
+    await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "sk-teste", buscar: espia, modelo: "gpt-4.1-mini" });
+    expect(corpo.model).toBe("gpt-4.1-mini");
+    expect(corpo).not.toHaveProperty("reasoning_effort");
+  });
+
+  it("sem OPENAI_API_KEY: mesma coisa, com o motivo dito", async () => {
     const r = await rodarAssistente("c-1", "m-1", { agora: TERCA_10H, chave: "", buscar: iaResponde(decisaoBoa) });
     expect(r.acao).toBe("erro");
     expect(banco.rpcs.map((x) => x.nome)).toEqual(["whatsapp_ia_transferir"]);

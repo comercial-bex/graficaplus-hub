@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Bot, Loader2, Save, UsersRound } from "lucide-react";
@@ -24,7 +24,11 @@ import {
   useEquipe,
   type DecisaoDoAssistente,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
-import { definirFilasDaPessoa, salvarConfiguracoesWhatsapp } from "@/lib/api/whatsapp-caixa.functions";
+import {
+  definirFilasDaPessoa,
+  estadoDaAssistente,
+  salvarConfiguracoesWhatsapp,
+} from "@/lib/api/whatsapp-caixa.functions";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
 /**
@@ -51,6 +55,10 @@ export function ConfiguracaoDoAssistente() {
   const podeConfigurar = hasPermission("whatsapp.manage");
   const config = useConfiguracoesWhatsapp();
   const salvar = useServerFn(salvarConfiguracoesWhatsapp);
+  const lerEstado = useServerFn(estadoDaAssistente);
+  // Só o booleano "tem chave" e o nome do modelo: o segredo nunca sai do servidor.
+  const estado = useQuery({ queryKey: ["wa-ia-estado"], queryFn: () => lerEstado(), staleTime: 60_000 });
+  const semChave = estado.data?.chaveOpenai === false;
   const qc = useQueryClient();
   const [form, setForm] = useState<ConfigAssistente | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -111,13 +119,37 @@ export function ConfiguracaoDoAssistente() {
           Responde só conversas <strong>sem responsável</strong>, com os dados do sistema (situação de
           orçamento e OS, endereço, horário) e pede o que falta para orçar. Nunca fala de preço que não está
           no sistema, de prazo, de pagamento ou de desconto: nesses casos chama a equipe e a conversa vai
-          para a <strong>Fila humana</strong>. Gasta saldo de IA do Lovable a cada mensagem recebida.
+          para a <strong>Fila humana</strong>.
         </p>
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 p-2 text-xs">
+          <span>Motor: OpenAI</span>
+          {estado.data && <span className="font-mono">{estado.data.modelo}</span>}
+          {estado.isPending ? (
+            <span className="text-muted-foreground">conferindo a chave…</span>
+          ) : estado.isError ? (
+            <span className="text-destructive">não foi possível conferir a chave</span>
+          ) : (
+            <StatusChip
+              label={semChave ? "OPENAI_API_KEY não cadastrada" : "chave da OpenAI cadastrada"}
+              tone={semChave ? "amber" : "lime"}
+            />
+          )}
+          <span className="text-muted-foreground">
+            Não usa o saldo do Lovable: o custo, por mensagem de cliente, aparece na conta da OpenAI.
+          </span>
+        </div>
+        {semChave && (
+          <p className="text-xs text-muted-foreground">
+            Para ligar um dia: no Lovable, em Cloud › Secrets do Bex Print, cadastre <code>OPENAI_API_KEY</code>{" "}
+            (a mesma chave da OpenAI usada no Bex Lite). Enquanto isso a caixa funciona normalmente — só a
+            assistente fica desligada.
+          </p>
+        )}
         <div className="flex items-center gap-3 rounded-md border p-3">
           <Switch
             id="ia-ativa"
             checked={form.ia_ativa}
-            disabled={!podeConfigurar || salvando}
+            disabled={!podeConfigurar || salvando || (!form.ia_ativa && semChave)}
             onCheckedChange={(v) =>
               void gravar({ ...form, ia_ativa: v }, v ? "Assistente ligada." : "Assistente desligada.")
             }

@@ -193,10 +193,31 @@ export const salvarConfiguracoesWhatsapp = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await exigir(context.supabase, context.userId, "whatsapp.manage");
     if (data.horario_inicio >= data.horario_fim) throw new Error("O início do horário precisa ser antes do fim.");
+    // Sem a chave, ligada ela só passaria toda conversa para a equipe com
+    // "assistente indisponível". Melhor não deixar ligar (decisão de 08/10).
+    if (data.ia_ativa && !(process.env.OPENAI_API_KEY ?? "").trim()) {
+      throw new Error(
+        "Para ligar a assistente, cadastre OPENAI_API_KEY nos segredos do projeto (a mesma chave da OpenAI do Bex Lite). Ela não usa o saldo do Lovable.",
+      );
+    }
     const db = (await admin()) as any;
     const { error } = await db.rpc("whatsapp_salvar_configuracoes", { p_usuario: context.userId, p_config: data });
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/**
+ * O que o Monitor precisa saber da assistente sem ver segredo nenhum: se a
+ * chave da OpenAI está no servidor e qual modelo será usado.
+ */
+export const estadoDaAssistente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await exigir(context.supabase, context.userId, "whatsapp.read");
+    return {
+      chaveOpenai: (process.env.OPENAI_API_KEY ?? "").trim().length > 0,
+      modelo: (process.env.OPENAI_MODEL ?? "").trim() || "gpt-5-mini",
+    };
   });
 
 export const reprocessarMensagensSemTexto = createServerFn({ method: "POST" })
