@@ -37,11 +37,26 @@ import {
  * SE A IA FALHA (sem chave, sem saldo, fora do ar, resposta ilegível): a
  * conversa vai para a equipe, sem mensagem ao cliente, e o motivo fica no log.
  * O cliente nunca fica sem ninguém olhando.
+ *
+ * MOTOR: a OpenAI, com a chave da agência (`OPENAI_API_KEY`, a mesma do Bex
+ * Lite) — decisão do dono em 08/10/2026: a assistente NÃO usa o saldo de IA do
+ * Lovable. O modelo vem de `OPENAI_MODEL`; sem ele, `gpt-5-mini` (barato e bom
+ * em português). Sem a chave, a assistente nem pode ser ligada no Monitor.
  */
 
-const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODELO = "google/gemini-2.5-flash";
+const OPENAI = "https://api.openai.com/v1/chat/completions";
+export const MODELO_PADRAO = "gpt-5-mini";
 const TEMPO_LIMITE_IA_MS = 20_000;
+
+/** O modelo em uso: `OPENAI_MODEL` ou o padrão. */
+export function modeloDaIa(): string {
+  return (process.env.OPENAI_MODEL ?? "").trim() || MODELO_PADRAO;
+}
+
+/** A chave da OpenAI do servidor — nunca sai daqui. */
+export function chaveDaIa(): string | undefined {
+  return (process.env.OPENAI_API_KEY ?? "").trim() || undefined;
+}
 /** Teto do assistente inteiro dentro do webhook. */
 export const TEMPO_LIMITE_TOTAL_MS = 25_000;
 
@@ -174,36 +189,42 @@ type RespostaDaIa =
   | { ok: true; decisao: DecisaoDaIa; tokensEntrada: number | null; tokensSaida: number | null }
   | { ok: false; erro: string };
 
-/** Uma chamada à IA do Lovable (AI Gateway), com ferramenta obrigatória. */
+/** Uma chamada à OpenAI (Chat Completions), com ferramenta obrigatória. */
 export async function perguntarAIa(
   pergunta: ReturnType<typeof montarPergunta>,
   chave: string | undefined,
   buscar: typeof fetch = fetch,
+  modelo: string = MODELO_PADRAO,
 ): Promise<RespostaDaIa> {
-  if (!chave) return { ok: false, erro: "LOVABLE_API_KEY não está no servidor (IA do Lovable desligada)" };
+  if (!chave) return { ok: false, erro: "OPENAI_API_KEY não está nos segredos do projeto" };
   const controle = new AbortController();
   const limite = setTimeout(() => controle.abort(), TEMPO_LIMITE_IA_MS);
   let resposta: Response;
   try {
-    resposta = await buscar(GATEWAY, {
+    resposta = await buscar(OPENAI, {
       method: "POST",
       headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: MODELO,
+        model: modelo,
         messages: pergunta,
         tools: [FERRAMENTA_DO_ASSISTENTE],
         tool_choice: { type: "function", function: { name: FERRAMENTA_DO_ASSISTENTE.function.name } },
+        // Família gpt-5: raciocínio mínimo — resposta curta, mais rápida e mais barata.
+        ...(modelo.startsWith("gpt-5") ? { reasoning_effort: "minimal" } : {}),
       }),
       signal: controle.signal,
     });
   } catch {
-    return { ok: false, erro: "o serviço de IA não respondeu a tempo" };
+    return { ok: false, erro: "a OpenAI não respondeu a tempo" };
   } finally {
     clearTimeout(limite);
   }
-  if (resposta.status === 402) return { ok: false, erro: "saldo de IA do Lovable acabou (HTTP 402)" };
-  if (resposta.status === 429) return { ok: false, erro: "muitas chamadas seguidas à IA (HTTP 429)" };
-  if (!resposta.ok) return { ok: false, erro: `o serviço de IA respondeu HTTP ${resposta.status}` };
+  if (resposta.status === 401) return { ok: false, erro: "a OpenAI recusou a chave (HTTP 401)" };
+  if (resposta.status === 404) {
+    return { ok: false, erro: `o modelo ${modelo} não está disponível nesta conta da OpenAI (HTTP 404)` };
+  }
+  if (resposta.status === 429) return { ok: false, erro: "limite ou saldo da OpenAI esgotado (HTTP 429)" };
+  if (!resposta.ok) return { ok: false, erro: `a OpenAI respondeu HTTP ${resposta.status}` };
   let corpo: any;
   try {
     corpo = await resposta.json();
@@ -267,7 +288,7 @@ async function aindaLivre(conversaId: string): Promise<boolean> {
 export async function rodarAssistente(
   conversaId: string,
   mensagemId: string,
-  opcoes: { agora?: Date; chave?: string; buscar?: typeof fetch } = {},
+  opcoes: { agora?: Date; chave?: string; buscar?: typeof fetch; modelo?: string } = {},
 ): Promise<ResultadoDoAssistente> {
   const agora = opcoes.agora ?? new Date();
   try {
@@ -337,7 +358,8 @@ export async function rodarAssistente(
     const texto = textoDaMensagem(mensagem) || `[${mensagem.tipo}]`;
     const pergunta = montarPergunta(contexto, texto, config.assinatura);
     const inicio = Date.now();
-    const ia = await perguntarAIa(pergunta, opcoes.chave ?? process.env.LOVABLE_API_KEY, opcoes.buscar);
+    const modelo = opcoes.modelo ?? modeloDaIa();
+    const ia = await perguntarAIa(pergunta, opcoes.chave ?? chaveDaIa(), opcoes.buscar, modelo);
     const duracao = Date.now() - inicio;
 
     if (!ia.ok) {
@@ -346,7 +368,7 @@ export async function rodarAssistente(
         mensagem_id: mensagemId,
         etapa: "classificacao",
         entrada: texto.slice(0, 2000),
-        modelo: MODELO,
+        modelo,
         duracao_ms: duracao,
         erro: ia.erro,
       });
@@ -371,7 +393,7 @@ export async function rodarAssistente(
       etapa: "classificacao",
       entrada: texto.slice(0, 2000),
       saida: { ...decisao, portao: portao.responde ? "responde" : portao.motivo },
-      modelo: MODELO,
+      modelo,
       tokens_entrada: ia.tokensEntrada,
       tokens_saida: ia.tokensSaida,
       duracao_ms: duracao,

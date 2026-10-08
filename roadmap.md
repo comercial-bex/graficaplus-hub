@@ -14,5 +14,7 @@
 - [x] D) Assistente de IA (chamada pelo webhook com teto de tempo; rota /api/whatsapp/agente para reprocessar; classificação, resposta, transferência, configurações, logs). Nasce DESLIGADA.
 - [x] E) UX: chips de fila coloridos, atalhos R/T/E/Esc, estados vazios
 - [x] Testes: resolver atendido recusado, reabertura, agente com responsável, flood control
-- [ ] Ligar a assistente no Monitor depois de conferir LOVABLE_API_KEY e o saldo de IA; auditar as primeiras decisões
+- [x] Assistente usa a OpenAI (OPENAI_API_KEY, modelo OPENAI_MODEL ou gpt-5-mini), nunca o saldo do Lovable; não liga sem a chave (08/10)
+- [x] "Reprocessar mensagens sem texto" consertado (a função dava 42P10 e nunca gravou); as 3 mensagens de modelo recuperadas (08/10)
+- [ ] Assistente fica DESLIGADA por decisão do dono (08/10). Se um dia ligar: cadastrar OPENAI_API_KEY no Bex Print, preencher endereço e horário, auditar as primeiras decisões
 - [ ] `whatsapp_responder` e `whatsapp_vincular_cliente` ainda aceitam chamada do navegador (conferem a permissão por dentro): passar para o padrão server function + REVOKE
