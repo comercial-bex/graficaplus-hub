@@ -96,6 +96,9 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/whatsapp", permissions: ["whatsapp.read"] },
   // Caixa v3: conversas esperando resposta. Lê whatsapp_conversas (whatsapp.read).
   { path: "/whatsapp-fila-humana", permissions: ["whatsapp.read"] },
+  // Números do atendimento (08/10/2026). Lê as tabelas whatsapp_* (whatsapp.read);
+  // leads e orçamentos só aparecem para quem tem leads.read / orcamentos.read.
+  { path: "/whatsapp-visao-geral", permissions: ["whatsapp.read"] },
   { path: "/respostas-rapidas", permissions: ["templates.manage", "whatsapp.read", "whatsapp.manage"] },
   { path: "/automacoes", permissions: ["automacoes.read"] },
   { path: "/orcamentos", permissions: ["orcamentos.read", "orcamentos.create"] },

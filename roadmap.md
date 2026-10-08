@@ -17,4 +17,8 @@
 - [x] Assistente usa a OpenAI (OPENAI_API_KEY, modelo OPENAI_MODEL ou gpt-5-mini), nunca o saldo do Lovable; não liga sem a chave (08/10)
 - [x] "Reprocessar mensagens sem texto" consertado (a função dava 42P10 e nunca gravou); as 3 mensagens de modelo recuperadas (08/10)
 - [ ] Assistente fica DESLIGADA por decisão do dono (08/10). Se um dia ligar: cadastrar OPENAI_API_KEY no Bex Print, preencher endereço e horário, auditar as primeiras decisões
-- [ ] `whatsapp_responder` e `whatsapp_vincular_cliente` ainda aceitam chamada do navegador (conferem a permissão por dentro): passar para o padrão server function + REVOKE
+- [x] `whatsapp_responder` e `whatsapp_vincular_cliente`: conferidas (08/10) — são SECURITY INVOKER, rodam como quem chamou (RLS vale) e conferem auth.uid() + whatsapp.reply. Não dão poder a mais; ficam como estão
+- [x] Visão geral (/whatsapp-visao-geral, 08/10): esperando agora, recebidas/enviadas, atendimentos do dia, 1ª resposta (mediana), leads e orçamentos da caixa, mensagens por dia, abertas por setor, quem atendeu, motivos e saúde da conexão
+- [x] Os 3 leads de propaganda (Claro, Renova Be, Kwai) fechados como perdidos e as conversas resolvidas como spam, a pedido do dono (08/10). "Gratidão" segue aberto
+- [x] Despachante do servidor ligado (job `whatsapp-despachar`, a cada 2 min, token no Vault; testado com 200) (08/10)
+- [x] 12 funções SECURITY DEFINER que gravam fechadas para `anon` (migração 20261008040000, aplicada e conferida) (08/10)

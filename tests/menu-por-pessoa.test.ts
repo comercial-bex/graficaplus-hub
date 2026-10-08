@@ -392,12 +392,13 @@ describe("contagens no menu", () => {
 });
 
 describe("a barra de abas do hub, desenhada", () => {
-  it("o admin no Monitor vê as cinco telas do WhatsApp, com Monitor marcada", () => {
+  it("o admin no Monitor vê as seis telas do WhatsApp, com Monitor marcada", () => {
     estado.permissoes = new Set(banco.admin);
     estado.pathname = "/whatsapp-monitor";
     const html = renderToStaticMarkup(createElement(AbasDaTela));
     expect([...html.matchAll(/<a href="([^"]+)"/g)].map((m) => m[1])).toEqual([
       "/whatsapp",
+      "/whatsapp-visao-geral",
       "/whatsapp-fila-humana",
       "/whatsapp-monitor",
       "/respostas-rapidas",
