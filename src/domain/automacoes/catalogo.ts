@@ -185,9 +185,9 @@ export const CATALOGO: Record<Gatilho, InfoGatilho> = {
   },
   orcamento_aprovado_sem_os: {
     gatilho: "orcamento_aprovado_sem_os",
-    rotulo: "Orçamentos aprovados esperando virar OS (lembrete à gerência)",
+    rotulo: "O que está parado com a gerência (lembrete diário)",
     quando:
-      "Todo dia, de segunda a sábado, às 9h: se há orçamento aprovado pelo cliente que ainda não virou OS, cada gestor recebe UMA mensagem com a lista inteira. Sem nenhum, não manda nada. Gestor sem telefone no cadastro de Usuários não recebe.",
+      "Todo dia, de segunda a sábado, às 9h: orçamentos aprovados pelo cliente que ainda não viraram OS e OS paradas (paga e ainda aberta, sem nenhum item, ou sem movimento há mais de 5 dias). Cada gestor recebe UMA mensagem com tudo. Nada parado, nada enviado. Gestor sem telefone no cadastro de Usuários não recebe.",
     alvo: "gestor",
     // A frequência é a do job (uma vez por dia), não o intervalo mínimo.
     situacao: false,
@@ -204,7 +204,18 @@ export const CATALOGO: Record<Gatilho, InfoGatilho> = {
         rotulo: "a lista, um orçamento por linha",
         exemplo: "#55 · Max Lima · banner · R$ 38,40 · aprovado há 12 dias",
       },
-      { chave: "link", rotulo: "endereço da tela de orçamentos", exemplo: "https://bexprint.com.br/orcamentos" },
+      { chave: "os_quantidade", rotulo: "quantas OS estão paradas", exemplo: "2" },
+      {
+        chave: "os_lista",
+        rotulo: "as OS paradas, uma por linha",
+        exemplo: "#49 · Max Lima · FAIXA BANNER · sem nenhum item, parada há 31 dias: preencha ou cancele",
+      },
+      {
+        chave: "resumo",
+        rotulo: "tudo montado: os orçamentos e as OS, só os blocos que têm alguma coisa",
+        exemplo: "Orçamentos aprovados pelo cliente que ainda não viraram OS: 8, somando R$ 2.299,91. …",
+      },
+      { chave: "link", rotulo: "endereço do Início do sistema", exemplo: "https://bexprint.com.br/dashboard" },
     ],
   },
   margem_abaixo_minimo: {
