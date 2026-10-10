@@ -211,3 +211,42 @@ describe("o painel de preço, lido com desconfiança", () => {
     expect(lerPainelDePrecos({ catalogos: "x" })).toEqual([]);
   });
 });
+
+describe("o lembrete leva também as OS paradas (migração 20261010200000)", () => {
+  const SQL2 = readFileSync("supabase/migrations/20261010200000_lembrete_gestao_os_paradas.sql", "utf8");
+  const mensagem = SQL2.match(/'mensagem', E'((?:[^']|'')*)'/)?.[1].replace(/\\n/g, "\n") ?? "";
+
+  it("a mensagem nova só usa variáveis que a tela conhece", () => {
+    expect(mensagem).toContain("{{resumo}}");
+    const declaradas = CATALOGO.orcamento_aprovado_sem_os.variaveis.map((v) => v.chave);
+    expect(variaveisUsadas(mensagem).filter((v) => !declaradas.includes(v))).toEqual([]);
+  });
+
+  it("só troca a mensagem que ainda é a de 10/10: edição feita na tela fica", () => {
+    expect(SQL2).toMatch(/AND payload->>'mensagem' LIKE E'Olá, \{\{gestor\.nome\}\}! Lembrete do Bex Print\.\\n\\nOrçamentos aprovados pelo cliente%'/);
+  });
+
+  it("OS parada é paga e aberta, sem item ou sem movimento há 5 dias; nada parado, nada enviado", () => {
+    expect(SQL2).toMatch(/os\.status_financeiro::text = 'pago'/);
+    expect(SQL2).toMatch(/interval '5 days'/);
+    expect(SQL2).toMatch(/IF v_qtd = 0 AND v_os_qtd = 0 THEN\s*RETURN/);
+  });
+
+  it("orçamento convertido, rejeitado, expirado ou 3D não conta como 'sem item'", () => {
+    expect(SQL2).toMatch(/NOT IN \('convertido','rejeitado','expirado'\) AND NOT EXISTS \(SELECT 1 FROM public\.orcamento_itens/);
+    expect(SQL2).toMatch(/NOT EXISTS \(SELECT 1 FROM public\.orcamentos_3d t WHERE t\.orcamento_id=o\.id\)/);
+  });
+
+  it("o resumo montado sai inteiro na mensagem", () => {
+    const texto = textoDaAutomacao({
+      gatilho: "orcamento_aprovado_sem_os",
+      contexto: { ...CONTEXTO, resumo: "OS paradas: 1.\n#49 · Max Lima · FAIXA BANNER", link: "https://bexprint.com.br/dashboard" },
+      payload: {},
+      automacao: { payload: { telefone: TELEFONE_DOS_GESTORES, mensagem } },
+      telefonePadrao: null,
+    });
+    expect(texto).toContain("o que está parado com a gerência");
+    expect(texto).toContain("#49 · Max Lima");
+    expect(texto).not.toMatch(/{{|}}/);
+  });
+});
