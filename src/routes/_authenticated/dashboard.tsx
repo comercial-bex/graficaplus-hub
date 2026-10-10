@@ -30,6 +30,7 @@ import { PendenciasDoMeuPapel } from "@/components/painel/PendenciasDoMeuPapel";
 import { MinhasComissoes } from "@/components/painel/MinhasComissoes";
 import { PainelProducao } from "@/components/painel/PainelProducao";
 import { MetaDoMes } from "@/components/painel/MetaDoMes";
+import { PrecoDoCatalogo } from "@/components/painel/PrecoDoCatalogo";
 import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -427,6 +428,10 @@ function PainelCompleto({
       <PendenciasDoMeuPapel />
 
       <MinhasComissoes />
+
+      {/* Como ficou o preço do catálogo de brindes (pedido do dono, 10/10/2026):
+          só admin e gestor — mostra custo ao lado do preço. */}
+      <PrecoDoCatalogo />
 
       {/* Só para quem abre a fila: desde 06/10/2026 o operador não abre
           /avisos, e o aviso aqui seria uma porta para "Acesso restrito". */}

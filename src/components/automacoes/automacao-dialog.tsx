@@ -40,6 +40,7 @@ import {
   type Gatilho,
 } from "@/domain/automacoes/catalogo";
 import {
+  mesmoAlvo,
   validarAutomacao,
   type CampoForm,
   type FormAutomacao,
@@ -158,8 +159,13 @@ export function AutomacaoDialog({
     setForm((f) => ({
       ...f,
       gatilho: g,
-      // Evento sem cliente não pode ficar com destino "cliente".
-      destino: novo.aceitaCliente ? f.destino : "fixo",
+      // Evento sem cliente não pode ficar com destino "cliente"; o lembrete à
+      // gerência já nasce mandando para os gestores do cadastro.
+      destino: novo.paraGestores
+        ? "gestores"
+        : f.destino === "gestores" || (f.destino === "cliente" && !novo.aceitaCliente)
+          ? "fixo"
+          : f.destino,
       // Situação que dura pede intervalo longo; acontecimento, o padrão do banco.
       intervaloSegundos: novo.situacao ? Math.max(f.intervaloSegundos, 86400) : f.intervaloSegundos,
       etapas: novo.condicao === "status" ? f.etapas : [],
@@ -180,7 +186,7 @@ export function AutomacaoDialog({
     }));
   }
 
-  const alvo = info?.alvo === "material" ? "o mesmo material" : `a mesma ${info?.alvo ?? "OS"}`;
+  const alvo = mesmoAlvo(info?.alvo);
 
   return (
     <Dialog open={aberto} onOpenChange={onAbertoChange}>
@@ -322,6 +328,12 @@ export function AutomacaoDialog({
               onValueChange={(v) => setForm({ ...form, destino: v as FormAutomacao["destino"] })}
               className="gap-2"
             >
+              {info?.paraGestores && (
+                <label className="flex items-center gap-2 text-sm">
+                  <RadioGroupItem value="gestores" id="destino-gestores" />
+                  Os gestores (o telefone de cada um no cadastro de Usuários)
+                </label>
+              )}
               <label className="flex items-center gap-2 text-sm">
                 <RadioGroupItem value="fixo" id="destino-fixo" />
                 Um número da equipe
@@ -342,7 +354,9 @@ export function AutomacaoDialog({
                 Este evento avisa só a equipe:{" "}
                 {info.gatilho === "estoque_minimo"
                   ? "material não tem cliente."
-                  : "é assunto de dinheiro."}
+                  : info.paraGestores
+                    ? "é assunto da gerência."
+                    : "é assunto de dinheiro."}
               </p>
             )}
             {form.destino === "fixo" && (

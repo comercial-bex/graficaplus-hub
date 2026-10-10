@@ -27,7 +27,7 @@ const MIGRACAO = readFileSync(
 );
 
 describe("os gatilhos são os do banco", () => {
-  it("a lista bate com o enum automacao_gatilho (lido no banco em 02/10/2026)", () => {
+  it("a lista bate com o enum automacao_gatilho (lido no banco em 02/10/2026; o 7º em 10/10/2026)", () => {
     const DO_ENUM = [
       "status_os_alterado",
       "pagamento_atrasado",
@@ -35,6 +35,8 @@ describe("os gatilhos são os do banco", () => {
       "margem_abaixo_minimo",
       "os_atrasada",
       "os_concluida",
+      // ALTER TYPE da migração 20261010120000 (lembrete à gerência).
+      "orcamento_aprovado_sem_os",
     ];
     expect([...GATILHOS].sort()).toEqual([...DO_ENUM].sort());
     for (const g of GATILHOS) expect(CATALOGO[g].gatilho).toBe(g);
