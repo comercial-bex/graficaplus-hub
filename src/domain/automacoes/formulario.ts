@@ -13,13 +13,14 @@ import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 import {
   ETAPAS_COM_AVISO_AO_CLIENTE,
   TELEFONE_DO_CLIENTE,
+  TELEFONE_DOS_GESTORES,
   infoDoGatilho,
   rotuloDeDuracao,
   type Gatilho,
 } from "./catalogo";
 import { variaveisDesconhecidas } from "./mensagem";
 
-export type Destino = "cliente" | "fixo";
+export type Destino = "cliente" | "fixo" | "gestores";
 
 export type FormAutomacao = {
   nome: string;
@@ -86,6 +87,12 @@ export type Validacao =
 const STATUS_VALIDOS = new Set(STATUS.map((s) => s.status));
 const TRINTA_DIAS = 30 * 86400;
 
+/** "a mesma OS", "a mesma parcela", "o mesmo material", "o mesmo gestor". */
+export function mesmoAlvo(alvo: string | undefined): string {
+  if (alvo === "material" || alvo === "gestor") return `o mesmo ${alvo}`;
+  return `a mesma ${alvo ?? "OS"}`;
+}
+
 function numero(texto: string): number | null {
   const limpo = texto.trim().replace(",", ".");
   if (limpo === "") return null;
@@ -119,7 +126,7 @@ function avisosDe(form: FormAutomacao): string[] {
 
   if (info.situacao && form.intervaloSegundos < 86400) {
     const porDia = Math.floor(86400 / Math.max(form.intervaloSegundos, 1));
-    const mesmo = info.alvo === "material" ? "o mesmo material" : `a mesma ${info.alvo}`;
+    const mesmo = mesmoAlvo(info.alvo);
     avisos.push(
       `“${info.rotulo}” é uma situação que dura: com intervalo de ${rotuloDeDuracao(form.intervaloSegundos)}, ${mesmo} pode gerar até ${porDia} mensagens por dia enquanto não for resolvido.`,
     );
@@ -170,7 +177,13 @@ export function validarAutomacao(form: FormAutomacao): Validacao {
 
   // Destino.
   let telefone = "";
-  if (form.destino === "cliente") {
+  if (form.destino === "gestores") {
+    if (!info?.paraGestores) {
+      erros.destino = "Este evento não sabe quem é o gestor: escolha um número da equipe.";
+    } else {
+      telefone = TELEFONE_DOS_GESTORES;
+    }
+  } else if (form.destino === "cliente") {
     if (info && !info.aceitaCliente) {
       erros.destino = "Este evento não manda para o cliente: escolha um número da equipe.";
     } else {
@@ -279,9 +292,13 @@ export function lerAutomacao(linha: LinhaAutomacao): FormAutomacao {
     // cliente). Ao editar, isso vira o destino "cliente" — que agora grava o
     // telefone com o 55 explícito.
     destino:
-      telefone === TELEFONE_DO_CLIENTE || (!telefone && info?.aceitaCliente) ? "cliente" : "fixo",
+      telefone === TELEFONE_DOS_GESTORES
+        ? "gestores"
+        : telefone === TELEFONE_DO_CLIENTE || (!telefone && info?.aceitaCliente)
+          ? "cliente"
+          : "fixo",
     telefone:
-      telefone && telefone !== TELEFONE_DO_CLIENTE
+      telefone && telefone !== TELEFONE_DO_CLIENTE && telefone !== TELEFONE_DOS_GESTORES
         ? formatarTelefone(chaveWhatsApp(telefone) ?? telefone)
         : "",
     mensagem: textoDe(payload.mensagem),
@@ -332,7 +349,9 @@ export function resumoDaAutomacao(linha: LinhaAutomacao): {
   const destino =
     telefone === TELEFONE_DO_CLIENTE
       ? "cliente da OS"
-      : telefone
+      : telefone === TELEFONE_DOS_GESTORES
+        ? "os gestores, no telefone do cadastro de cada um"
+        : telefone
         ? formatarTelefone(chaveWhatsApp(telefone) ?? telefone)
         : info?.aceitaCliente
           ? "telefone do cadastro do cliente, sem o 55"

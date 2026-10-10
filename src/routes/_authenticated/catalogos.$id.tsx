@@ -20,12 +20,18 @@ import { FotosEmLote } from "@/components/catalogo/fotos-em-lote";
 import { LinksDoCatalogo } from "@/components/catalogo/links-do-catalogo";
 import type { PermissoesDoCatalogo } from "@/components/catalogo/cartao-do-item";
 
+type Aba = "itens" | "regra" | "planilha" | "fotos" | "links";
+const ABAS: readonly Aba[] = ["itens", "regra", "planilha", "fotos", "links"];
+
 export const Route = createFileRoute("/_authenticated/catalogos/$id")({
   head: () => ({ meta: [{ title: "Catálogo do fornecedor — BEX PRINT OS" }] }),
+  // ?aba=regra abre direto na regra de venda (o painel de preço do Início leva para lá).
+  validateSearch: (busca: Record<string, unknown>): { aba?: Aba } =>
+    typeof busca.aba === "string" && (ABAS as readonly string[]).includes(busca.aba)
+      ? { aba: busca.aba as Aba }
+      : {},
   component: CatalogoPage,
 });
-
-type Aba = "itens" | "regra" | "planilha" | "fotos" | "links";
 
 /**
  * Um catálogo de fornecedor por dentro.
@@ -45,7 +51,8 @@ function CatalogoPage() {
   const qc = useQueryClient();
   const { hasPermission, canSeePrices, canSeeFinancials } = useAuth();
   const gerenciar = hasPermission("catalogo.manage");
-  const [aba, setAba] = useState<Aba>("itens");
+  const { aba: abaPedida } = Route.useSearch();
+  const [aba, setAba] = useState<Aba>(abaPedida ?? "itens");
   const [filtroInicial, setFiltroInicial] = useState<FiltroDoCatalogo>("todos");
 
   const catalogo = useQuery({ queryKey: ["catalogo", id], queryFn: () => lerCatalogo(id) });

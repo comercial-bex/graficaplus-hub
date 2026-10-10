@@ -14,7 +14,10 @@
  *               ordens_servico, tg_automacao_pagamento_eventos em pagamentos,
  *               tg_automacao_material_eventos em materiais) e a varredura
  *               `criar_eventos_automacoes_recorrentes`, que o processador chama
- *               a cada rodada. Seis gatilhos: o enum `automacao_gatilho`.
+ *               a cada rodada. O lembrete à gerência (orçamento aprovado sem
+ *               OS) tem varredura própria, `lembrete_orcamentos_aprovados_sem_os`,
+ *               num job do pg_cron às 9h de segunda a sábado (10/10/2026).
+ *               Sete gatilhos: o enum `automacao_gatilho`.
  *   CONDIÇÃO    `automacao_condicao_ok` só lê TRÊS chaves: `status` (mudança de
  *               etapa), `estoque_minimo` e `margem_minima`. Qualquer outra chave
  *               é ignorada calada — por isso a tela não oferece outras.
@@ -28,7 +31,7 @@
  *               (domain/automacoes/destino.ts).
  */
 
-/** Os seis valores do enum `automacao_gatilho`, conferidos no banco em 02/10/2026. */
+/** Os valores do enum `automacao_gatilho`: seis conferidos no banco em 02/10/2026, mais o lembrete à gerência (10/10/2026). */
 export const GATILHOS = [
   "status_os_alterado",
   "os_concluida",
@@ -36,6 +39,7 @@ export const GATILHOS = [
   "pagamento_atrasado",
   "estoque_minimo",
   "margem_abaixo_minimo",
+  "orcamento_aprovado_sem_os",
 ] as const;
 
 export type Gatilho = (typeof GATILHOS)[number];
@@ -88,7 +92,7 @@ export type InfoGatilho = {
   /** Quando dispara, nas palavras de quem usa — e sem prometer mais que o motor faz. */
   quando: string;
   /** Do que se fala: entra no resumo "no máximo 1 aviso por OS a cada…". */
-  alvo: "OS" | "parcela" | "material";
+  alvo: "OS" | "parcela" | "material" | "gestor";
   /**
    * Situação, não acontecimento: enquanto durar, a varredura volta a enfileirar
    * depois do intervalo mínimo. É aqui que o intervalo decide quantas mensagens
@@ -97,6 +101,11 @@ export type InfoGatilho = {
   situacao: boolean;
   /** O contexto tem cliente com telefone (eventos de OS). */
   aceitaCliente: boolean;
+  /**
+   * A varredura monta uma execução por gestor, com o telefone do cadastro dele
+   * em `gestor.telefone_normalizado`: o destino "os gestores" fica disponível.
+   */
+  paraGestores?: boolean;
   condicao: "status" | "estoque_minimo" | "margem_minima" | null;
   variaveis: Variavel[];
 };
@@ -174,6 +183,30 @@ export const CATALOGO: Record<Gatilho, InfoGatilho> = {
       { chave: "material.unidade", rotulo: "unidade", exemplo: "m²" },
     ],
   },
+  orcamento_aprovado_sem_os: {
+    gatilho: "orcamento_aprovado_sem_os",
+    rotulo: "Orçamentos aprovados esperando virar OS (lembrete à gerência)",
+    quando:
+      "Todo dia, de segunda a sábado, às 9h: se há orçamento aprovado pelo cliente que ainda não virou OS, cada gestor recebe UMA mensagem com a lista inteira. Sem nenhum, não manda nada. Gestor sem telefone no cadastro de Usuários não recebe.",
+    alvo: "gestor",
+    // A frequência é a do job (uma vez por dia), não o intervalo mínimo.
+    situacao: false,
+    // Assunto da gerência: nunca vai ao cliente.
+    aceitaCliente: false,
+    paraGestores: true,
+    condicao: null,
+    variaveis: [
+      { chave: "gestor.nome", rotulo: "primeiro nome do gestor", exemplo: "Yvens" },
+      { chave: "quantidade", rotulo: "quantos orçamentos estão esperando", exemplo: "8" },
+      { chave: "valor_total", rotulo: "soma dos valores", exemplo: "R$ 2.299,91" },
+      {
+        chave: "lista",
+        rotulo: "a lista, um orçamento por linha",
+        exemplo: "#55 · Max Lima · banner · R$ 38,40 · aprovado há 12 dias",
+      },
+      { chave: "link", rotulo: "endereço da tela de orçamentos", exemplo: "https://bexprint.com.br/orcamentos" },
+    ],
+  },
   margem_abaixo_minimo: {
     gatilho: "margem_abaixo_minimo",
     rotulo: "A OS fecha com margem baixa",
@@ -189,6 +222,9 @@ export const CATALOGO: Record<Gatilho, InfoGatilho> = {
     ],
   },
 };
+
+/** O destino "os gestores": o telefone do cadastro de cada gestor, com o 55 que o Z-API pede. */
+export const TELEFONE_DOS_GESTORES = "55{{gestor.telefone_normalizado}}";
 
 export function infoDoGatilho(gatilho: string | null | undefined): InfoGatilho | null {
   return ehGatilho(gatilho) ? CATALOGO[gatilho] : null;
