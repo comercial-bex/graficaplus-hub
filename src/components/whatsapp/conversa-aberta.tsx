@@ -51,6 +51,7 @@ import {
   type Liberacao,
   type MensagemDaCaixa,
 } from "@/domain/whatsapp/caixa-de-entrada";
+import { mapaDeRotulos, mapaDeSetores } from "@/domain/whatsapp/equipe";
 import {
   CHAVES,
   acionarEnvio,
@@ -147,6 +148,8 @@ export function ConversaAberta({
   const anexoRef = useRef<HTMLInputElement>(null);
 
   const nomes = useMemo(() => mapaDeNomes(equipe.data), [equipe.data]);
+  const rotulos = useMemo(() => mapaDeRotulos(equipe.data), [equipe.data]);
+  const setoresDaEquipe = useMemo(() => mapaDeSetores(equipe.data), [equipe.data]);
   const liberacao: Liberacao =
     conexaoComFalha && temPermissaoDeResponder
       ? {
@@ -157,8 +160,9 @@ export function ConversaAberta({
         }
       : podeResponder(instancia, temPermissaoDeResponder);
   const nome = nomeDaConversa(conversa);
+  // "assumida por Yvens · Gerência": quem está com a conversa e de que setor.
   const responsavel = conversa.responsavel_id
-    ? (nomes.get(conversa.responsavel_id) ?? "Equipe")
+    ? (rotulos.get(conversa.responsavel_id) ?? "Equipe")
     : null;
 
   const recarregar = () => {
@@ -410,7 +414,7 @@ export function ConversaAberta({
                   ver cliente
                 </Link>
               )}
-              <span>· {responsavel ? `com ${responsavel}` : "sem responsável"}</span>
+              <span>· {responsavel ? `assumida por ${responsavel}` : "sem responsável"}</span>
               {setorAtual && (
                 <span className="inline-flex items-center gap-1" title={`Fila ${setorAtual.rotulo}`}>
                   · <span className={cn("h-1.5 w-1.5 rounded-full", setorAtual.ponto)} aria-hidden />
@@ -647,7 +651,7 @@ export function ConversaAberta({
                         equipe
                       </div>
                       <div className="whitespace-pre-wrap break-words">
-                        {fraseDoEvento(e, nomes)}
+                        {fraseDoEvento(e, nomes, setoresDaEquipe)}
                       </div>
                       <div className="mt-1 text-[10px] text-muted-foreground">
                         {diaEHora(e.created_at)}
@@ -657,7 +661,7 @@ export function ConversaAberta({
                 }
                 return (
                   <div key={e.id} className="py-0.5 text-center text-[11px] text-muted-foreground">
-                    {fraseDoEvento(e, nomes)} · {diaEHora(e.created_at)}
+                    {fraseDoEvento(e, nomes, setoresDaEquipe)} · {diaEHora(e.created_at)}
                   </div>
                 );
               }

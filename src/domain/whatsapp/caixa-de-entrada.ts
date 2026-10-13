@@ -580,9 +580,20 @@ const ROTULO_STATUS: Record<string, string> = {
 };
 
 /** A frase cinza do meio da conversa ("Harison assumiu o atendimento"). */
-export function fraseDoEvento(e: EventoDaConversa, nomes: Map<string, string>): string {
-  const quem = (e.de_usuario && nomes.get(e.de_usuario)) || "Alguém da equipe";
-  const para = (e.para_usuario && nomes.get(e.para_usuario)) || "outra pessoa";
+export function fraseDoEvento(
+  e: EventoDaConversa,
+  nomes: Map<string, string>,
+  setores?: Map<string, string>,
+): string {
+  // "Yvens (Gerência)": o setor vem do papel da pessoa (domain/whatsapp/equipe).
+  const pessoa = (id: string | null | undefined, senao: string) => {
+    const n = id ? nomes.get(id) : undefined;
+    if (!n) return senao;
+    const s = id ? setores?.get(id) : undefined;
+    return s ? `${n} (${s})` : n;
+  };
+  const quem = pessoa(e.de_usuario, "Alguém da equipe");
+  const para = pessoa(e.para_usuario, "outra pessoa");
   const d = e.detalhe ?? {};
   switch (e.tipo) {
     case "assumida":

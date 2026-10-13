@@ -99,8 +99,18 @@ function CaixaDeEntradaPage() {
   // "Minhas filas" espera as filas da pessoa chegarem; se a leitura falhar,
   // mostra todas (esconder tudo pareceria caixa vazia).
   const setores = setoresDoFiltro(setor, minhasFilas.isError ? null : minhasFilas.data);
-  const conversas = useConversasPaginadas({ fila, status, busca: buscaAtiva, userId: meuId, setores });
-  const contadores = useContadores(status, meuId, setores);
+  // Em "Minhas filas" a lista espera as filas chegarem: antes disparava com
+  // setor nulo e de novo com o certo (19 consultas na abertura, 13/10/2026).
+  const filasProntas = setor !== "minhas_filas" || minhasFilas.isSuccess || minhasFilas.isError;
+  const conversas = useConversasPaginadas({
+    fila,
+    status,
+    busca: buscaAtiva,
+    userId: meuId,
+    setores,
+    pronto: filasProntas,
+  });
+  const contadores = useContadores(status, meuId, setores, filasProntas);
   const lista = (conversas.data?.pages ?? []).flat();
   const daLista = lista.find((c) => c.id === selecionadaId) ?? null;
   const umaSo = useConversa(selecionadaId);

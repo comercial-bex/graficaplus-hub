@@ -16,6 +16,7 @@ import {
   ETIQUETAS_SUGERIDAS,
   adicionarEtiqueta,
   removerEtiqueta,
+  nomeDaConversa,
   telefoneLegivel,
   type ConversaDaCaixa,
 } from "@/domain/whatsapp/caixa-de-entrada";
@@ -67,17 +68,30 @@ export function PainelDaConversa({
   const podeOrcar = hasPermission("orcamentos.create");
   const podeAbrirOs = hasPermission("os.create");
   const mensagens = useMensagens(conversa.id);
+  // Conversa que a gráfica começou (aviso automático): o cliente ainda não
+  // escreveu, e é isso que o painel de atendimentos tem de dizer.
+  const semMensagemDoCliente =
+    !!mensagens.data && !mensagens.data.some((m) => m.direcao === "entrada");
   const historico = useHistoricoDoCliente(conversa.cliente_id, nivelDeVisao);
 
   return (
     <Card className={cn("flex flex-col overflow-auto", className)}>
       <section className="space-y-2 border-b p-4">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">Contato</div>
+        {/* Primeiro quem é (o cliente do cadastro); o nome do WhatsApp é detalhe.
+            Antes o título era "Sem nome no WhatsApp" com o cliente logo abaixo. */}
         <div className="flex items-center gap-2 font-medium">
           <User className="h-4 w-4 shrink-0" />
-          <span className="truncate">{conversa.nome_contato || "Sem nome no WhatsApp"}</span>
+          <span className="truncate">{nomeDaConversa(conversa)}</span>
         </div>
-        <div className="text-xs text-muted-foreground">{telefoneLegivel(conversa.telefone)}</div>
+        <div className="text-xs text-muted-foreground">
+          {telefoneLegivel(conversa.telefone)}
+          {conversa.nome_contato && conversa.cliente && conversa.nome_contato.trim() !== conversa.cliente.nome.trim()
+            ? ` · no WhatsApp: ${conversa.nome_contato}`
+            : !conversa.nome_contato
+              ? " · sem nome no WhatsApp"
+              : ""}
+        </div>
         {conversa.cliente ? (
           <p className="text-sm">
             Cliente:{" "}
@@ -106,7 +120,7 @@ export function PainelDaConversa({
         {podeResponder && <VincularCliente conversa={conversa} />}
       </section>
 
-      <AtendimentosDaConversa conversaId={conversa.id} />
+      <AtendimentosDaConversa conversaId={conversa.id} semMensagemDoCliente={semMensagemDoCliente} />
 
       <section className="space-y-2 border-b p-4">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">
