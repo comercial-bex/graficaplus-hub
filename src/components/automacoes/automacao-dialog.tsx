@@ -352,11 +352,12 @@ export function AutomacaoDialog({
             {info && !info.aceitaCliente && (
               <p className="text-xs text-muted-foreground">
                 Este evento avisa só a equipe:{" "}
-                {info.gatilho === "estoque_minimo"
-                  ? "material não tem cliente."
-                  : info.paraGestores
-                    ? "é assunto da gerência."
-                    : "é assunto de dinheiro."}
+                {info.motivoSoEquipe ??
+                  (info.gatilho === "estoque_minimo"
+                    ? "material não tem cliente."
+                    : info.paraGestores
+                      ? "é assunto da gerência."
+                      : "é assunto de dinheiro.")}
               </p>
             )}
             {form.destino === "fixo" && (

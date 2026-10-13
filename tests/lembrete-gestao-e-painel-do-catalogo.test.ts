@@ -250,3 +250,52 @@ describe("o lembrete leva também as OS paradas (migração 20261010200000)", ()
     expect(texto).not.toMatch(/{{|}}/);
   });
 });
+
+describe("lembretes do financeiro e da operação, e a trava de arte nas OS 3D (migração 20261013090000)", () => {
+  const SQL3 = readFileSync("supabase/migrations/20261013090000_lembretes_da_equipe_e_trava_de_arte_3d.sql", "utf8");
+
+  it("os dois gatilhos não vão ao cliente e mostram o motivo na tela", () => {
+    for (const g of ["lembrete_financeiro", "lembrete_operacao"] as const) {
+      expect(CATALOGO[g].aceitaCliente).toBe(false);
+      expect(CATALOGO[g].motivoSoEquipe).toBeTruthy();
+      expect(CATALOGO[g].variaveis.map((v) => v.chave)).toContain("resumo");
+    }
+  });
+
+  it("cada automação nasce com a mensagem usando só variáveis que a tela conhece", () => {
+    for (const [g, nome] of [
+      ["lembrete_financeiro", "Cibele"],
+      ["lembrete_operacao", "Leonardo"],
+    ] as const) {
+      const modelo = SQL3.match(new RegExp(`E'Olá, ${nome}![^']*'`))?.[0] ?? "";
+      expect(modelo, g).toContain("{{resumo}}");
+      const declaradas = CATALOGO[g].variaveis.map((v) => v.chave);
+      expect(variaveisUsadas(modelo).filter((v) => !declaradas.includes(v)), g).toEqual([]);
+    }
+  });
+
+  it("o número vem do cadastro de Usuários: nenhum telefone gravado no arquivo", () => {
+    expect(SQL3).toMatch(/'55' \|\| public\.normalize_whatsapp_phone\(u\.telefone\)/);
+    expect(SQL3).not.toMatch(/'55\d{10,11}'/);
+  });
+
+  it("a varredura só roda pelo servidor, às 9h de Macapá de segunda a sábado, e dá silêncio sem pendência", () => {
+    expect(SQL3).toMatch(/REVOKE ALL ON FUNCTION public\.lembretes_da_equipe\(\) FROM PUBLIC, anon, authenticated;/);
+    expect(SQL3).toMatch(/'lembrete-equipe',\s*'0 12 \* \* 1-6'/);
+    expect(SQL3).toMatch(/IF v_nfin > 0 THEN/);
+    expect(SQL3).toMatch(/IF v_nop > 0 THEN/);
+  });
+
+  it("o motor conhece os dois gatilhos: condição e lista de situações", () => {
+    expect(SQL3).toMatch(/'orcamento_aprovado_sem_os','lembrete_financeiro','lembrete_operacao'\) THEN/);
+    expect(SQL3).toMatch(/'orcamento_aprovado_sem_os','lembrete_financeiro','lembrete_operacao'\)\$b\$/);
+  });
+
+  it("a trava de arte sai só da OS 3D; pagamento, arquivo final e material seguem", () => {
+    expect(SQL3).toMatch(/AND NOT EXISTS \(\s*SELECT 1 FROM public\.orcamentos_3d t3/);
+    expect(SQL3).toMatch(/t3\.os_id = os_bloqueios_para\.os_id/);
+    // Só o teste da arte é trocado: os outros códigos de bloqueio não aparecem no ALTER.
+    const bloco = SQL3.slice(SQL3.indexOf("$arte3d$"), SQL3.indexOf("-- 2. Dois ajudantes"));
+    expect(bloco).not.toMatch(/sem_pagamento|sem_arquivo_final|material_insuficiente|margem_baixa/);
+  });
+});
