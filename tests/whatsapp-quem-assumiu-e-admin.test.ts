@@ -106,8 +106,9 @@ describe("a migração 20261013150000", () => {
 });
 
 describe("a casca estática", () => {
-  it("o modo SPA está ligado no vite.config.ts", () => {
+  it("o modo SPA fica desligado: a hospedagem não serve a casca e o servidor já está no piso (medição no PR #127)", () => {
     const cfg = readFileSync("vite.config.ts", "utf8");
-    expect(cfg).toMatch(/spa:\s*\{\s*enabled:\s*true\s*\}/);
+    expect(cfg).not.toMatch(/spa:\s*\{\s*enabled:\s*true\s*\}/);
+    expect(cfg).toMatch(/Sem modo SPA/);
   });
 });

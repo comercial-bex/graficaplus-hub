@@ -11,12 +11,9 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
-    // Casca estática para toda página (13/10/2026). Medido no site publicado:
-    // o servidor levava de 0,5 s a 2,4 s para devolver o HTML de cada tela,
-    // antes de o navegador baixar qualquer coisa — e esse HTML era sempre
-    // "Carregando...", porque a tela inteira é do cliente. Com o modo SPA o
-    // Lovable serve a casca pré-renderizada da borda; as rotas de API (api.*)
-    // e as funções de servidor continuam no servidor.
-    spa: { enabled: true },
+    // Sem modo SPA (casca pré-renderizada): ligado e desligado em 13/10/2026.
+    // A hospedagem do Lovable não serve a casca pré-renderizada — o HTML continua
+    // gerado por rota no servidor — e o tempo até o primeiro byte já está no piso
+    // da hospedagem (~0,45 s, igual ao de uma rota inexistente). Medição no PR #127.
   },
 });
