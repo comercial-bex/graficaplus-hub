@@ -175,6 +175,8 @@ const MARGEM = 28.5;
 const RECUO = 4.5;
 /** Altura da miniatura no bloco LAYOUT; a largura segue a proporção da arte. */
 const ALTURA_LAYOUT = 60;
+/** A foto da peça 3D é o produto, não uma miniatura de arte: cabe bem com o cabeçalho na mesma página. */
+const ALTURA_FOTO_DO_MODELO = 170;
 const LARGURA_UTIL = 595.28 - 2 * MARGEM - 2 * RECUO;
 
 const s = StyleSheet.create({
@@ -312,6 +314,7 @@ const s = StyleSheet.create({
   layouts: { flexDirection: "row", flexWrap: "wrap", paddingTop: 6, paddingBottom: 4 },
   layout: { marginRight: 18, marginBottom: 6, position: "relative" },
   layoutImg: { height: ALTURA_LAYOUT, maxWidth: LARGURA_UTIL, objectFit: "contain" },
+  fotoModeloImg: { height: ALTURA_FOTO_DO_MODELO, maxWidth: LARGURA_UTIL, objectFit: "contain" },
   layoutSemPrevia: {
     height: ALTURA_LAYOUT,
     width: 150,
@@ -455,6 +458,7 @@ const temTexto = (v: string | null | undefined): v is string => !!v && v.trim() 
 export function DocumentoPDF(p: DocumentoPDFProps) {
   const empresa = p.empresa;
   const ehOrcamento = p.tipo === "orcamento" || p.tipo === "orcamento_3d";
+  const eh3d = p.tipo === "orcamento_3d";
   const ehRecibo = p.tipo === "recibo_material";
   const mostrar = (p.mostrarValores ?? true) && !ehRecibo;
   const titulo = TITULO[p.tipo];
@@ -716,16 +720,18 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
 
         {/* --------------------------------------------------- layout */}
         {layouts.length > 0 && (
-          <Caixa titulo="LAYOUT" inteira={false}>
+          // No 3D a imagem é a foto da peça pronta, não uma arte: título próprio
+          // e tamanho de vitrine — é o que o cliente olha antes do preço.
+          <Caixa titulo={eh3d ? "FOTO DO MODELO" : "LAYOUT"} inteira={false}>
             <View style={s.layouts}>
               {layouts.map(({ item, numero }) => (
                 <View style={s.layout} key={numero} wrap={false}>
                   {item.layout_url && !item.layout_sem_previa ? (
-                    <Image style={s.layoutImg} src={item.layout_url} />
+                    <Image style={eh3d ? s.fotoModeloImg : s.layoutImg} src={item.layout_url} />
                   ) : (
                     <View style={s.layoutSemPrevia}>
                       <Text style={s.layoutSemPreviaTexto}>
-                        arte sem prévia: {item.layout_nome ?? "arquivo"}
+                        {eh3d ? "foto sem prévia" : "arte sem prévia"}: {item.layout_nome ?? "arquivo"}
                       </Text>
                     </View>
                   )}

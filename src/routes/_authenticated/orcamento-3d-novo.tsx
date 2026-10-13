@@ -29,8 +29,15 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { FieldTooltip } from "@/components/bex/FieldTooltip";
 import { Dropzone, type DropzoneStatus } from "@/components/bex/Dropzone";
 import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao3d/ocr";
+import { fecharPreco } from "@/domain/impressao3d/preco";
+import {
+  BUCKET_DOS_ARQUIVOS_3D,
+  caminhoDoArquivo3d,
+  descreverFilamento,
+} from "@/domain/impressao3d/arquivos";
 import { cn } from "@/lib/utils";
 import { mensagemErro } from "@/lib/erros";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/orcamento-3d-novo")({
   head: () => ({ meta: [{ title: "Novo orçamento 3D — BEX PRINT OS" }] }),
@@ -50,25 +57,10 @@ const num = (v: string, fallback = 0) => {
 const money = (v: any) =>
   `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-/**
- * Sanitiza o nome do arquivo para uso como chave do Supabase Storage.
- * O Storage rejeita chaves com espaço/acento/símbolo ("Invalid key") — e os
- * prints do macOS vêm como "Captura de Tela 2026-07-14 às 18.37.36.png".
- */
-function slugFile(name: string) {
-  const semAcento = (name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const ponto = semAcento.lastIndexOf(".");
-  const base =
-    (ponto > 0 ? semAcento.slice(0, ponto) : semAcento)
-      .replace(/[^a-zA-Z0-9._-]+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 60) || "arquivo";
-  const ext = (ponto > 0 ? semAcento.slice(ponto + 1) : "")
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .toLowerCase();
-  return ext ? `${base}.${ext}` : base;
-}
+/** Campo do OCR deixado em branco é "não sei", não zero: 0% de preenchimento existe. */
+const numOuNulo = (v: string) => (String(v ?? "").trim() === "" ? null : num(v));
+
+const vezes = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}×`;
 
 type FormState = {
   cliente_id: string;
@@ -132,6 +124,11 @@ const PRESETS: {
 
 function NovoOrcamento3D() {
   const navigate = useNavigate();
+  // A mesma régua da tela do orçamento salvo: custo, lucro, margem e os
+  // parâmetros de custo são de quem tem impressao3d.cost.read. O vendedor
+  // cota e vê o preço — o que vai para o cliente.
+  const { hasPermission } = useAuth();
+  const podeVerCusto = hasPermission("impressao3d.cost.read");
 
   const [f, setF] = useState<FormState>({
     cliente_id: "",
@@ -251,7 +248,7 @@ function NovoOrcamento3D() {
       const { data, error } = await (supabase as any)
         .from("config_precificacao_3d")
         .select(
-          "tarifa_kwh_padrao, mo_custo_hora_padrao, markup_padrao, pct_acabamento_padrao, pct_falha_padrao, custo_admin_padrao",
+          "tarifa_kwh_padrao, mo_custo_hora_padrao, markup_padrao, markup_atacado_padrao, pct_acabamento_padrao, pct_falha_padrao, custo_admin_padrao",
         )
         .maybeSingle();
       if (error) throw error;
@@ -348,10 +345,9 @@ function NovoOrcamento3D() {
       indiretosRateados: indireto.toString(),
     });
     const markup = num(f.markup, 2) || 2;
-    const preco = operacional.mul(markup); // TOTAL do lote (qtd peças)
-    const lucro = preco.sub(operacional);
-    const margem = preco.gt(0) ? lucro.div(preco) : D(0);
-    const unitario = qtd > 0 ? preco.div(qtd) : preco;
+    // TOTAL do lote = unitário arredondado × quantidade: o PDF fecha a conta.
+    const { preco, unitario, lucro, margem } = fecharPreco(operacional, markup, qtd);
+    const markupAtacado = Number(configPrec?.markup_atacado_padrao ?? 1.5) || 1.5;
     const equilibrio = operacional.mul(1 / 0.9); // margem 10%
     return {
       cpg,
@@ -368,14 +364,15 @@ function NovoOrcamento3D() {
       unitario,
       lucro,
       margem,
-      atacado: operacional.mul(1.5),
+      atacado: operacional.mul(markupAtacado),
+      markupAtacado,
       equilibrio,
       qtd,
       pecasPlaca,
       placas,
       markup,
     };
-  }, [f, impressora, filamento]);
+  }, [f, impressora, filamento, configPrec]);
 
   const faltando: string[] = [];
   if (!f.titulo) faltando.push("título");
@@ -396,16 +393,14 @@ function NovoOrcamento3D() {
       let fotoPath: string | null = null;
       const ts = Date.now();
       if (slicerFile) {
-        const path = `orcamentos-3d/${ts}_slicer_${slugFile(slicerFile.name)}`;
-        const { error } = await supabase.storage.from("arquivos-clientes").upload(path, slicerFile);
+        const path = caminhoDoArquivo3d("slicer", slicerFile.name, ts);
+        const { error } = await supabase.storage.from(BUCKET_DOS_ARQUIVOS_3D).upload(path, slicerFile);
         if (error) throw error;
         slicerPath = path;
       }
       if (fotoModelo) {
-        const path = `orcamentos-3d/${ts}_modelo_${slugFile(fotoModelo.name)}`;
-        const { error } = await supabase.storage
-          .from("arquivos-clientes")
-          .upload(path, fotoModelo);
+        const path = caminhoDoArquivo3d("modelo", fotoModelo.name, ts);
+        const { error } = await supabase.storage.from(BUCKET_DOS_ARQUIVOS_3D).upload(path, fotoModelo);
         if (error) throw error;
         fotoPath = path;
       }
@@ -419,8 +414,8 @@ function NovoOrcamento3D() {
         peso_purga_g: num(f.peso_purga),
         pecas_por_placa: num(f.pecas_placa, 1) || 1,
         filamento_tipo_detectado: f.filamento_tipo_detectado || null,
-        altura_camada_mm: num(f.altura_camada),
-        infill_pct: num(f.infill_pct),
+        altura_camada_mm: numOuNulo(f.altura_camada),
+        infill_pct: numOuNulo(f.infill_pct),
         horas_totais: horasTotais,
         custo_hora_maquina: num(f.custo_hora),
         potencia_w: num(f.potencia_w),
@@ -476,10 +471,12 @@ function NovoOrcamento3D() {
       if (error) throw error;
       const id = data as string;
 
-      // grava a foto do modelo e os dados do contato avulso em orcamentos_3d
-      // (não bloqueiam o salvar — só avisam se falharem).
+      // grava a foto do modelo, o material (para o PDF) e os dados do contato
+      // avulso em orcamentos_3d (não bloqueiam o salvar — só avisam se falharem).
       const extras: Record<string, unknown> = {};
       if (fotoPath) extras.foto_modelo_path = fotoPath;
+      const material = descreverFilamento(filamento);
+      if (material) extras.material_descricao = material;
       if (!f.cliente_id) {
         extras.contato_nome = f.contato_nome.trim() || null;
         extras.contato_telefone = f.contato_telefone.trim() || null;
@@ -490,7 +487,7 @@ function NovoOrcamento3D() {
           .from("orcamentos_3d")
           .update(extras)
           .eq("id", id);
-        if (extraErr) toast.warning("Orçamento salvo, mas foto/contato não foram vinculados.");
+        if (extraErr) toast.warning("Orçamento salvo, mas foto, material ou contato não foram vinculados.");
       }
       return id;
     },
@@ -524,7 +521,11 @@ function NovoOrcamento3D() {
         ajuda={dicaTela("/orcamento-3d-novo")}
         breadcrumb="Impressão 3D · Novo orçamento"
         title="Novo orçamento 3D"
-        description="Preencha o print do fatiador e o motor calcula custo, preço e margem em tempo real."
+        description={
+          podeVerCusto
+            ? "Solte o print do fatiador e o motor calcula custo, preço e margem em tempo real."
+            : "Solte o print do fatiador e o motor calcula o preço em tempo real."
+        }
         actions={
           <Button asChild variant="ghost" size="sm">
             <Link to="/impressao-3d">
@@ -552,7 +553,7 @@ function NovoOrcamento3D() {
                     aria-label="Título"
                     value={f.titulo}
                     onChange={(e) => set("titulo", e.target.value)}
-                    placeholder="Porta-joias Verde Matcha"
+                    placeholder="ex.: Porta-joias verde matcha"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -633,7 +634,7 @@ function NovoOrcamento3D() {
 
               <Dropzone
                 label="Foto do modelo (opcional)"
-                hint="Imagem final da peça — vira capa do orçamento, PDF e listagem"
+                hint="A peça como o cliente vai recebê-la — sai no PDF, na listagem e na OS"
                 file={fotoModelo}
                 onFile={setFotoModelo}
                 accent="magenta"
@@ -675,7 +676,9 @@ function NovoOrcamento3D() {
                       )}
                       {impressoras.map((m: any) => (
                         <SelectItem key={m.maquina_id} value={m.maquina_id}>
-                          {m.maquinas?.nome} · R$ {Number(m.custo_hora_calculado ?? 0).toFixed(2)}/h · {Number(m.potencia_media_w ?? 0).toFixed(0)} W
+                          {m.maquinas?.nome}
+                          {podeVerCusto &&
+                            ` · ${money(m.custo_hora_calculado ?? 0)}/h · ${Number(m.potencia_media_w ?? 0).toFixed(0)} W`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -703,7 +706,8 @@ function NovoOrcamento3D() {
                           <SelectItem key={m.material_id} value={m.material_id}>
                             {m.materiais?.nome}
                             {m.tipo ? ` · ${m.tipo}` : ""}
-                            {m.cor ? ` · ${m.cor}` : ""} · R$ {kg.toFixed(2)}/kg
+                            {m.cor ? ` · ${m.cor}` : ""}
+                            {podeVerCusto && ` · ${money(kg)}/kg`}
                           </SelectItem>
                         );
                       })}
@@ -723,7 +727,7 @@ function NovoOrcamento3D() {
                     aria-label="Peso do modelo (g)"
                     value={f.gramas}
                     onChange={(e) => set("gramas", e.target.value.replace(",", "."))}
-                    placeholder="6.52"
+                    placeholder="ex.: 6,52"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -816,7 +820,7 @@ function NovoOrcamento3D() {
                       aria-label="Altura camada (mm)"
                       value={f.altura_camada}
                       onChange={(e) => set("altura_camada", e.target.value.replace(",", "."))}
-                      placeholder="0.2"
+                      placeholder="ex.: 0,2"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -827,7 +831,7 @@ function NovoOrcamento3D() {
                       aria-label="Infill (%)"
                       value={f.infill_pct}
                       onChange={(e) => set("infill_pct", e.target.value.replace(",", "."))}
-                      placeholder="15"
+                      placeholder="ex.: 15"
                     />
                   </div>
                 </div>
@@ -848,7 +852,30 @@ function NovoOrcamento3D() {
 
 
 
-          {/* 3. Parâmetros de custo */}
+          {/* 3. Parâmetros de custo — só para quem vê custo; os demais cotam com a
+              base das Configurações 3D, sem ver os números de custo. */}
+          {!podeVerCusto ? (
+            <Card>
+              <CardContent className="pt-6 space-y-2">
+                <BlocoTitulo
+                  n="3"
+                  icone={<Wand2 className="h-4 w-4" />}
+                  titulo="Parâmetros de custo"
+                  sub="Seguem as Configurações 3D da gráfica"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Custo-hora, energia, mão de obra, perdas e markup vêm da base da gráfica. Quem tem
+                  permissão de ver custo ajusta esses números; aqui você cota com eles.
+                </p>
+                {f.maquina_id && num(f.custo_hora) <= 0 && (
+                  <p className="text-xs text-destructive">
+                    A impressora escolhida está sem custo-hora no cadastro: peça à gerência para
+                    corrigir antes de enviar este preço.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
           <Card>
             <CardContent className="pt-6 space-y-4">
               <BlocoTitulo
@@ -965,6 +992,7 @@ function NovoOrcamento3D() {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
 
         {/* ---- Resumo herói (sticky) ---- */}
@@ -979,25 +1007,32 @@ function NovoOrcamento3D() {
                   <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest font-bold">
                     <Calculator className="h-3.5 w-3.5" /> Resultado
                   </div>
-                  <StatusChip
-                    label={`${margemPct.toFixed(1)}% margem`}
-                    tone={margemTone}
-                  />
+                  {podeVerCusto && (
+                    <StatusChip
+                      label={`${margemPct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% de margem`}
+                      tone={margemTone}
+                    />
+                  )}
                 </div>
               </div>
               <CardContent className="pt-5 space-y-4">
                 <div>
+                  {/* "Preço (2×)" lia como "duas peças": a quantidade e o markup
+                      agora têm nome. */}
                   <div className="text-xs uppercase tracking-widest text-muted-foreground font-mono">
-                    {calc.qtd > 1 ? `Preço total (${calc.qtd} un · ${calc.markup}×)` : `Preço (${calc.markup}×)`}
+                    {calc.qtd > 1 ? `Preço total · ${calc.qtd} peças` : "Preço"}
+                    {podeVerCusto && ` · markup ${vezes(calc.markup)}`}
                   </div>
                   <div className="font-mono text-4xl font-black tracking-tight">
                     {money(calc.preco)}
                   </div>
-                  <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
-                    <span>Custo {money(calc.operacional)}</span>
-                    <span>·</span>
-                    <span>Lucro {money(calc.lucro)}</span>
-                  </div>
+                  {podeVerCusto && (
+                    <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
+                      <span>Custo {money(calc.operacional)}</span>
+                      <span>·</span>
+                      <span>Lucro {money(calc.lucro)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {calc.qtd > 1 && (
@@ -1010,9 +1045,11 @@ function NovoOrcamento3D() {
                   </div>
                 )}
 
+                {podeVerCusto && (
+                <>
                 <div className="space-y-2">
                   <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
-                    Breakdown do custo
+                    De onde vem o custo
                   </div>
                   {breakdown.map((b) => {
                     const pct = total > 0 ? (b.value / total) * 100 : 0;
@@ -1041,15 +1078,27 @@ function NovoOrcamento3D() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-lg border border-border px-2 py-1.5">
-                    <div className="text-[10px] uppercase text-muted-foreground font-mono">Atacado 1,5×</div>
+                  <div
+                    className="rounded-lg border border-border px-2 py-1.5"
+                    title={`Preço de atacado: custo × ${vezes(calc.markupAtacado)} (markup de atacado das Configurações 3D)`}
+                  >
+                    <div className="text-[10px] uppercase text-muted-foreground font-mono">
+                      Atacado {vezes(calc.markupAtacado)}
+                    </div>
                     <div className="font-mono font-semibold">{money(calc.atacado)}</div>
+                    <div className="text-[10px] text-muted-foreground">preço para revenda</div>
                   </div>
-                  <div className="rounded-lg border border-border px-2 py-1.5">
-                    <div className="text-[10px] uppercase text-muted-foreground font-mono">Equilíbrio 10%</div>
+                  <div
+                    className="rounded-lg border border-border px-2 py-1.5"
+                    title="O menor preço que ainda deixa 10% de margem. Abaixo dele, a peça dá prejuízo."
+                  >
+                    <div className="text-[10px] uppercase text-muted-foreground font-mono">Piso · 10% de margem</div>
                     <div className="font-mono font-semibold">{money(calc.equilibrio)}</div>
+                    <div className="text-[10px] text-muted-foreground">não vender abaixo</div>
                   </div>
                 </div>
+                </>
+                )}
 
                 {faltando.length > 0 && (
                   <div className="text-xs rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-amber-300 flex items-start gap-2">

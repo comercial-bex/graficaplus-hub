@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/bex/StatusChip";
-import { AlertTriangle, ArrowLeft, FileDown, Lock } from "lucide-react";
+import { AlertTriangle, ArrowLeft, FileDown, ImagePlus, Lock } from "lucide-react";
+import { BUCKET_DOS_ARQUIVOS_3D, caminhoDoArquivo3d } from "@/domain/impressao3d/arquivos";
 import { toast } from "sonner";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { mensagemErro } from "@/lib/erros";
@@ -41,8 +42,11 @@ function OrcamentoDetalhe() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const podeVerCusto = hasPermission("impressao3d.cost.read");
+  const podeEditar = hasPermission("impressao3d.quote.update");
   const [shotUrl, setShotUrl] = useState<string | null>(null);
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [pdfOpen, setPdfOpen] = useState(false);
+  const seletorDeFoto = useRef<HTMLInputElement>(null);
 
   const {
     data: orc,
@@ -56,7 +60,7 @@ function OrcamentoDetalhe() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("orcamentos_3d")
-        .select("*, clientes(nome)")
+        .select("*, clientes(nome), orcamentos(numero)")
         .eq("id", id)
         .maybeSingle();
       // Consulta caída não é "orçamento não encontrado".
@@ -103,6 +107,51 @@ function OrcamentoDetalhe() {
       active = false;
     };
   }, [inputs?.slicer_screenshot]);
+
+  // A foto do modelo é do orçamento (vai para o PDF do cliente): todo mundo
+  // que abre esta tela a vê, com ou sem permissão de custo.
+  const caminhoDaFoto: string | null = orc?.foto_modelo_path ?? null;
+  useEffect(() => {
+    if (!caminhoDaFoto) {
+      setFotoUrl(null);
+      return;
+    }
+    let active = true;
+    supabase.storage
+      .from(BUCKET_DOS_ARQUIVOS_3D)
+      .createSignedUrl(caminhoDaFoto, 600)
+      .then(({ data }) => {
+        if (active) setFotoUrl(data?.signedUrl ?? null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [caminhoDaFoto]);
+
+  // Foto esquecida no cadastro não precisa de orçamento novo.
+  const trocarFoto = useMutation({
+    mutationFn: async (arquivo: File) => {
+      const caminho = caminhoDoArquivo3d("modelo", arquivo.name);
+      const { error: erroDoEnvio } = await supabase.storage
+        .from(BUCKET_DOS_ARQUIVOS_3D)
+        .upload(caminho, arquivo);
+      if (erroDoEnvio) throw erroDoEnvio;
+      const { data, error } = await (supabase as any)
+        .from("orcamentos_3d")
+        .update({ foto_modelo_path: caminho })
+        .eq("id", id)
+        .select("id");
+      if (error) throw error;
+      // Escrita barrada pela RLS volta sem linhas e sem erro.
+      if (!data || data.length === 0) throw new Error("Seu perfil não pode alterar este orçamento.");
+    },
+    onSuccess: () => {
+      toast.success("Foto do modelo atualizada");
+      qc.invalidateQueries({ queryKey: ["orcamento-3d", id] });
+      qc.invalidateQueries({ queryKey: ["orcamentos-3d"] });
+    },
+    onError: (e: any) => toast.error(mensagemErro(e)),
+  });
 
   const converter = useMutation({
     mutationFn: async () => {
@@ -187,7 +236,9 @@ function OrcamentoDetalhe() {
             <DicaIcone texto={dicaTela("/orcamento-3d")} rotulo="Orçamento 3D" lado="bottom" className="h-5 w-5" />
           </div>
           <p className="text-muted-foreground">
+            {orc.orcamentos?.numero != null && <>Orçamento Nº {orc.orcamentos.numero} · </>}
             {orc.clientes?.nome ?? orc.contato_nome ?? "Sem cliente"} · Qtd {Number(orc.quantidade ?? 1)}
+            {orc.material_descricao && <> · {orc.material_descricao}</>}
           </p>
         </div>
         <StatusChip label={orc.status} tone={orc.status === "convertido" ? "lime" : "muted"} />
@@ -314,11 +365,55 @@ function OrcamentoDetalhe() {
           )}
         </div>
 
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Foto do modelo</CardTitle>
+              {podeEditar && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={trocarFoto.isPending}
+                    onClick={() => seletorDeFoto.current?.click()}
+                  >
+                    <ImagePlus className="h-4 w-4 mr-1" />
+                    {trocarFoto.isPending ? "Enviando..." : caminhoDaFoto ? "Trocar" : "Adicionar"}
+                  </Button>
+                  <input
+                    ref={seletorDeFoto}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    aria-label="Escolher a foto do modelo"
+                    onChange={(e) => {
+                      const arquivo = e.target.files?.[0];
+                      e.target.value = "";
+                      if (arquivo) trocarFoto.mutate(arquivo);
+                    }}
+                  />
+                </>
+              )}
+            </CardHeader>
+            <CardContent>
+              {fotoUrl ? (
+                <a href={fotoUrl} target="_blank" rel="noreferrer">
+                  <img src={fotoUrl} alt={`Foto do modelo: ${orc.titulo}`} className="rounded-lg border max-w-full" />
+                </a>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {caminhoDaFoto
+                    ? "Não foi possível abrir a foto agora."
+                    : "Sem foto. Ela sai no PDF do cliente: adicione uma imagem da peça pronta."}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
         {/* O print do fatiador é guardado junto do cálculo de custo
             (inputs_json): sem a permissão não há como saber se existe, então
             o cartão some em vez de dizer "sem print anexado". */}
         {podeVerCusto && (
-          <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Print do fatiador</CardTitle>
@@ -335,8 +430,8 @@ function OrcamentoDetalhe() {
                 )}
               </CardContent>
             </Card>
-          </div>
         )}
+        </div>
       </div>
 
       <PDFPreviewDialog

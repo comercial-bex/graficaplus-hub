@@ -22,6 +22,7 @@ import {
   proximaTentativaEm,
 } from "@/domain/whatsapp/despachante";
 import { hashDoSegredo, hashesIguais } from "@/domain/whatsapp/segredo-webhook";
+import { assinarMensagem, assinaturaDaPessoa } from "@/domain/whatsapp/assinatura";
 import {
   destinoDaAutomacao,
   textoDaAutomacao,
@@ -631,6 +632,37 @@ async function marcarFalha(
   return { fila_id: linha.id, mensagem_id: linha.mensagem_id, situacao, erro };
 }
 
+/**
+ * "*Harison · Direção*" para o autor da resposta, uma consulta por pessoa por
+ * rodada. Sem leitura do cadastro a mensagem sai sem assinatura: o cliente
+ * não pode ficar sem resposta por causa do nome.
+ */
+async function assinaturaDoAutor(
+  usuarioId: string,
+  cache: Map<string, string | null>,
+): Promise<string | null> {
+  if (cache.has(usuarioId)) return cache.get(usuarioId) ?? null;
+  const [rUsuario, rPapeis] = await Promise.all([
+    supabaseAdmin.from("usuarios").select("nome").eq("id", usuarioId).maybeSingle(),
+    supabaseAdmin.from("user_roles").select("role").eq("user_id", usuarioId),
+  ]);
+  if (rUsuario.error || rPapeis.error) {
+    console.warn(
+      "[whatsapp-enviar] sem a assinatura do autor",
+      usuarioId,
+      rUsuario.error?.message ?? rPapeis.error?.message,
+    );
+    cache.set(usuarioId, null);
+    return null;
+  }
+  const assinatura = assinaturaDaPessoa({
+    nome: (rUsuario.data?.nome as string | null) ?? null,
+    papeis: (rPapeis.data ?? []).map((r) => String(r.role)),
+  });
+  cache.set(usuarioId, assinatura);
+  return assinatura;
+}
+
 /* ------------------------------------------------------------------ */
 /* A rodada                                                            */
 /* ------------------------------------------------------------------ */
@@ -700,6 +732,7 @@ async function rodada(quem: Quem): Promise<Response> {
   }
 
   const resultados: ResultadoDaLinha[] = [];
+  const assinaturas = new Map<string, string | null>();
 
   for (const linha of (linhas ?? []) as LinhaDaFila[]) {
     // A RESERVA: só segue quem virou a linha de pendente para enviando. Se
@@ -774,6 +807,15 @@ async function rodada(quem: Quem): Promise<Response> {
         continue;
       }
       pedido.documento = assinado.signedUrl;
+    }
+
+    // Quem escreveu assina: o cliente vê "*Harison · Direção*" no topo. A
+    // assistente de IA (sem autor) não leva nome de pessoa.
+    if (linha.created_by && !daIa) {
+      pedido.texto = assinarMensagem(
+        pedido.texto,
+        await assinaturaDoAutor(linha.created_by, assinaturas),
+      );
     }
 
     const montado = montarEnvio(pedido, { instanceId: instancia.zapi_instance_id, token });

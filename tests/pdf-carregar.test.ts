@@ -509,4 +509,43 @@ describe("OS, fatura, recibo e 3D", () => {
     expect(p.vendedor).toBe("FRANCYERICA SILVA ARAUJO");
     expect(p.itens[0]).toMatchObject({ quantidade: 50, valor_unitario: 6.9, valor_total: 345 });
   });
+
+  // 13/10/2026: o PDF do orçamento 3D saía sem a foto do modelo (salva e nunca
+  // lida), com um pedaço do UUID no lugar do número e as colunas "Tipo" e
+  // "Acabamento" vazias.
+  it("orçamento 3D: leva a foto do modelo, o número do funil, o tipo e o material", async () => {
+    b.tabelas.orcamentos.push({ id: "orc-3d-80", numero: 80, status: "rascunho" });
+    Object.assign(b.tabelas.orcamentos_3d[0], {
+      orcamento_id: "orc-3d-80",
+      foto_modelo_path: "orcamentos-3d/1791915252700_modelo_chaveiro.png",
+      material_descricao: "PLA · cor Natural",
+    });
+    const p = await carregarPropsOrcamento3d("3f9a1c22-0000-4000-8000-000000000000");
+    expect(p.numero).toBe("80");
+    expect(p.itens[0]).toMatchObject({
+      descricao: "Chaveiro em PLA",
+      tipo_produto: "Impressão 3D",
+      especificacao: "Material: PLA · cor Natural",
+      layout_nome: "foto do modelo",
+      layout_sem_previa: false,
+    });
+    expect(p.itens[0].layout_url).toBe(
+      "https://storage.falso/arquivos-clientes/orcamentos-3d/1791915252700_modelo_chaveiro.png?token=x",
+    );
+  });
+
+  it("orçamento 3D: foto que não abre vira a caixa 'sem prévia', não some", async () => {
+    Object.assign(b.tabelas.orcamentos_3d[0], {
+      foto_modelo_path: "orcamentos-3d/1_modelo_sumiu.png",
+    });
+    b.semAssinatura.add("orcamentos-3d/1_modelo_sumiu.png");
+    const p = await carregarPropsOrcamento3d("3f9a1c22-0000-4000-8000-000000000000");
+    expect(p.itens[0]).toMatchObject({ layout_url: null, layout_sem_previa: true });
+  });
+
+  it("orçamento 3D sem foto e sem número do funil: sem caixa de foto e o código de antes", async () => {
+    const p = await carregarPropsOrcamento3d("3f9a1c22-0000-4000-8000-000000000000");
+    expect(p.numero).toBe("3F9A1C22");
+    expect(p.itens[0]).toMatchObject({ layout_url: null, layout_sem_previa: false });
+  });
 });

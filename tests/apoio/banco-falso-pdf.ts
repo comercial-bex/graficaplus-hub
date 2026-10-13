@@ -99,7 +99,7 @@ export const LEGIVEL: Record<string, string[]> = {
     "id, nome, unidade, estoque, created_at, estoque_minimo, localizacao, status, largura_bobina_m, comprimento_bobina_m",
   ),
   orcamentos_3d: lista(
-    "id, orcamento_id, cliente_id, titulo, descricao, quantidade, prazo, status, validade, preco_comercial, created_by, created_at, contato_nome, contato_telefone, contato_email",
+    "id, orcamento_id, cliente_id, titulo, descricao, quantidade, prazo, status, validade, preco_comercial, created_by, created_at, contato_nome, contato_telefone, contato_email, foto_modelo_path, material_descricao",
   ),
   orcamento_3d_calculos: lista(
     "id, orcamento_3d_id, versao, valor_unitario, custo_material, margem",

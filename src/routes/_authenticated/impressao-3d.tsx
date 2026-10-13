@@ -2,6 +2,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { BUCKET_DOS_ARQUIVOS_3D } from "@/domain/impressao3d/arquivos";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -72,10 +73,29 @@ function Impressao3DPage() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("orcamentos_3d")
-        .select("*, clientes(nome)")
+        .select("*, clientes(nome), orcamentos(numero)")
         .order("created_at", { ascending: false })
         .limit(50);
       return data ?? [];
+    },
+  });
+
+  // Miniatura da peça na lista: um pedido só de URLs assinadas para a página inteira.
+  const caminhosDasFotos: string[] = orcamentos
+    .map((o: any) => o.foto_modelo_path as string | null)
+    .filter((c: string | null): c is string => !!c);
+  const { data: fotos } = useQuery({
+    queryKey: ["orcamentos-3d-fotos", caminhosDasFotos],
+    enabled: caminhosDasFotos.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from(BUCKET_DOS_ARQUIVOS_3D)
+        .createSignedUrls(caminhosDasFotos, 600);
+      if (error) throw error;
+      const mapa = new Map<string, string>();
+      for (const d of data ?? []) if (d.path && d.signedUrl) mapa.set(d.path, d.signedUrl);
+      return mapa;
     },
   });
 
@@ -266,13 +286,31 @@ function Impressao3DPage() {
                 {orcamentos.map((o: any) => (
                   <TableRow key={o.id}>
                     <TableCell className="font-medium">
-                      <Link
-                        to="/orcamento-3d/$id"
-                        params={{ id: o.id }}
-                        className="hover:underline text-primary"
-                      >
-                        {o.titulo}
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        {o.foto_modelo_path && fotos?.get(o.foto_modelo_path) ? (
+                          <img
+                            src={fotos.get(o.foto_modelo_path)}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-md border object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 shrink-0 rounded-md border border-dashed" aria-hidden />
+                        )}
+                        <div className="min-w-0">
+                          <Link
+                            to="/orcamento-3d/$id"
+                            params={{ id: o.id }}
+                            className="hover:underline text-primary"
+                          >
+                            {o.titulo}
+                          </Link>
+                          {o.orcamentos?.numero != null && (
+                            <div className="text-[11px] font-mono text-muted-foreground">
+                              Nº {o.orcamentos.numero}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>{o.clientes?.nome ?? o.contato_nome ?? "—"}</TableCell>
                     <TableCell>
