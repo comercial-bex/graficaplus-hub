@@ -3,6 +3,7 @@ import { Bot, Clock, Loader2, Search, Tag } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { rotuloDaPessoa } from "@/domain/whatsapp/equipe";
 import { cn } from "@/lib/utils";
 import {
   agruparPorDia,
@@ -319,10 +320,16 @@ export function ListaDeConversas({
                               </span>
                             )}
                             {resp && (
-                              <Avatar className="h-5 w-5" title={`Responsável: ${resp.nome ?? ""}`}>
-                                {resp.avatar_url && <AvatarImage src={resp.avatar_url} alt="" />}
-                                <AvatarFallback className="text-[8px]">{iniciais(resp.nome)}</AvatarFallback>
-                              </Avatar>
+                              <span
+                                className="inline-flex max-w-[11rem] items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                                title={`Assumida por ${rotuloDaPessoa(resp)}`}
+                              >
+                                <Avatar className="h-4 w-4">
+                                  {resp.avatar_url && <AvatarImage src={resp.avatar_url} alt="" />}
+                                  <AvatarFallback className="text-[8px]">{iniciais(resp.nome)}</AvatarFallback>
+                                </Avatar>
+                                <span className="truncate">{rotuloDaPessoa(resp)}</span>
+                              </span>
                             )}
                           </span>
                         </div>

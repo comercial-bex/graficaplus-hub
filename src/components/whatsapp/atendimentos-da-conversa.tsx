@@ -22,7 +22,14 @@ const ROTULO_ORIGEM: Record<string, string> = {
  * um registro novo e imutável. O atual mostra há quanto tempo está aberto e
  * quanto levou a primeira resposta; os anteriores, o período e o motivo.
  */
-export function AtendimentosDaConversa({ conversaId }: { conversaId: string }) {
+export function AtendimentosDaConversa({
+  conversaId,
+  semMensagemDoCliente = false,
+}: {
+  conversaId: string;
+  /** A conversa só tem mensagem da gráfica (aviso automático). */
+  semMensagemDoCliente?: boolean;
+}) {
   const atendimentos = useAtendimentos(conversaId);
   const equipe = useEquipe();
   const nomes = mapaDeNomes(equipe.data);
@@ -43,7 +50,9 @@ export function AtendimentosDaConversa({ conversaId }: { conversaId: string }) {
         <p className="text-xs text-muted-foreground">Carregando…</p>
       ) : lista.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          Nenhum atendimento registrado. O primeiro abre quando o cliente escrever.
+          {semMensagemDoCliente
+            ? "A gráfica começou esta conversa com um aviso automático. O atendimento abre quando o cliente responder."
+            : "Nenhum atendimento registrado. O primeiro abre quando o cliente escrever."}
         </p>
       ) : (
         <>

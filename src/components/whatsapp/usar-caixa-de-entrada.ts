@@ -330,6 +330,8 @@ function termoSeguro(t: string): string {
 
 /** Filtro da lista: responsável, situação, busca e — caixa v3 — os setores. */
 export type FiltroDaLista = {
+  /** false enquanto as filas da pessoa não chegaram: a lista espera em vez de pedir duas vezes. */
+  pronto?: boolean;
   fila: Fila;
   status: AbaStatus;
   busca: string;
@@ -358,6 +360,9 @@ export function useConversasPaginadas(f: FiltroDaLista) {
     queryKey: [...CHAVES.conversas, "pag", f.fila, f.status, f.busca, f.userId, (f.setores ?? []).join(",")] as const,
     initialPageParam: 0,
     refetchInterval: INTERVALO_MS,
+    // Espera as filas da pessoa: ao abrir, a lista disparava com setor nulo e
+    // de novo com o setor certo — 19 consultas em vez de 10 (medido 13/10/2026).
+    enabled: f.pronto !== false,
     queryFn: async ({ pageParam }) => {
       let q = (supabase as any).from("whatsapp_conversas").select(SELECT_CONVERSAS);
       q = filtrarConsulta(q, f);
@@ -373,10 +378,16 @@ export function useConversasPaginadas(f: FiltroDaLista) {
 }
 
 /** Contadores das pílulas e abas (consulta só de contagem, sem linhas). */
-export function useContadores(status: AbaStatus, userId: string | null, setores: Setor[] | null = null) {
+export function useContadores(
+  status: AbaStatus,
+  userId: string | null,
+  setores: Setor[] | null = null,
+  pronto = true,
+) {
   return useQuery({
     queryKey: [...CHAVES.conversas, "contadores", status, userId, (setores ?? []).join(",")] as const,
     refetchInterval: INTERVALO_MS,
+    enabled: pronto,
     queryFn: async () => {
       const contar = async (fila: Fila, st: AbaStatus) => {
         const q = filtrarConsulta(
@@ -460,6 +471,8 @@ export type PessoaDaEquipe = {
   avatar_url: string | null;
   /** As filas (setores) da pessoa — `usuarios.filas`, caixa v3. */
   filas?: string[] | null;
+  /** Os papéis no sistema (user_roles): é de onde sai "Yvens · Gerência". */
+  papeis?: string[] | null;
 };
 
 export function useEquipe() {
