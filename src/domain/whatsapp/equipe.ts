@@ -4,9 +4,9 @@
  * Pedido do dono (13/10/2026): "quando assume, aparece o nome de quem assumiu,
  * Yvens, Cibele, Léo: o primeiro nome, barra a função, se é financeiro, se é
  * comercial". É o que os sistemas de atendimento com número compartilhado
- * fazem por dentro (quem está com cada conversa) e, opcionalmente, por fora
- * (assinatura na mensagem ao cliente). Aqui é o lado de dentro; a assinatura
- * ao cliente é decisão à parte, com a própria chave em Configurações.
+ * fazem por dentro (quem está com cada conversa) e por fora (assinatura na
+ * mensagem ao cliente). Aqui é o rótulo; a assinatura que o cliente vê sai
+ * dele, em assinatura.ts (decisão do dono, 13/10/2026).
  *
  * O setor vem do PAPEL no sistema (user_roles), não da fila: a fila é por onde
  * a conversa entra; o papel é o que a pessoa é na gráfica. Quem acumula função

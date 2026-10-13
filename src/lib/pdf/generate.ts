@@ -9,6 +9,7 @@ import type { DocItem, DocumentoPDFProps } from "./DocumentoPDF";
 import { carregarEmpresa } from "./empresa";
 import { dataBR, descreverEntrega, parcelasDoAcordo, validadeAte } from "./formato";
 import { prepararImagensDoDocumento } from "./imagens";
+import { BUCKET_DOS_ARQUIVOS_3D } from "@/domain/impressao3d/arquivos";
 
 // As consultas abaixo usam listas de colunas montadas em constantes: o
 // gerador de tipos do supabase-js só entende o select literal, e as views nem
@@ -882,6 +883,33 @@ export async function carregarPropsFatura(osId: string): Promise<DocumentoPDFPro
 /* Orçamento 3D                                                               */
 /* ------------------------------------------------------------------------- */
 
+/**
+ * A foto do modelo é a "arte" do orçamento 3D: o cliente vê o que vai receber.
+ * Ficava salva em orcamentos_3d.foto_modelo_path e nenhum PDF a lia (13/10/2026).
+ * Sem URL assinada, o documento mostra a caixa "foto sem prévia" em vez de
+ * sumir com ela em silêncio.
+ */
+async function fotoDoModelo(caminho: string | null) {
+  if (!caminho) return null;
+  const { data, error } = await supabase.storage
+    .from(BUCKET_DOS_ARQUIVOS_3D)
+    .createSignedUrl(caminho, 600);
+  return { url: error ? null : (data?.signedUrl ?? null) };
+}
+
+/** O número do orçamento no funil (orcamentos.numero) — o mesmo da lista de Orçamentos. */
+async function numeroNoFunil(orcamentoId: string | null): Promise<string | null> {
+  if (!orcamentoId) return null;
+  const { data, error } = await db
+    .from("orcamentos")
+    .select("numero")
+    .eq("id", orcamentoId)
+    .maybeSingle();
+  // Sem o número (perfil sem leitura do funil), fica o código do 3D: o PDF sai.
+  if (error || data?.numero == null) return null;
+  return String(data.numero);
+}
+
 export async function carregarPropsOrcamento3d(
   id: string,
   mostrarValores = true,
@@ -890,7 +918,7 @@ export async function carregarPropsOrcamento3d(
     db
       .from("orcamentos_3d")
       .select(
-        "id, titulo, descricao, quantidade, preco_comercial, validade, prazo, status, created_at, created_by, cliente_id, contato_nome, contato_telefone, contato_email",
+        "id, titulo, descricao, quantidade, preco_comercial, validade, prazo, status, created_at, created_by, cliente_id, contato_nome, contato_telefone, contato_email, foto_modelo_path, orcamento_id, material_descricao",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -919,16 +947,21 @@ export async function carregarPropsOrcamento3d(
     contato_nome: string | null;
     contato_telefone: string | null;
     contato_email: string | null;
+    foto_modelo_path: string | null;
+    orcamento_id: string | null;
+    material_descricao: string | null;
   } | null;
   if (!orc) throw new Error("Orçamento 3D não encontrado — ou seu perfil não tem acesso a ele.");
   const calc = exigir(rCalc, "ler o cálculo do orçamento 3D") as {
     valor_unitario: number | string | null;
   } | null;
 
-  const [cliente, nomes, empresa] = await Promise.all([
+  const [cliente, nomes, empresa, foto, numeroDoFunil] = await Promise.all([
     lerCliente(orc.cliente_id),
     nomesDosUsuarios([orc.created_by]),
     carregarEmpresa(),
+    fotoDoModelo(orc.foto_modelo_path),
+    numeroNoFunil(orc.orcamento_id),
   ]);
 
   const qtd = numero(orc.quantidade) || 1;
@@ -937,7 +970,7 @@ export async function carregarPropsOrcamento3d(
 
   return {
     tipo: "orcamento_3d",
-    numero: String(orc.id).slice(0, 8).toUpperCase(),
+    numero: numeroDoFunil ?? String(orc.id).slice(0, 8).toUpperCase(),
     data_solicitacao: dataBR(orc.created_at),
     // `validade` é coluna date: dataBR não a faz voltar um dia.
     data_validade: dataBR(orc.validade) ?? dataBR(validadeAte(orc.created_at, 7)),
@@ -953,11 +986,18 @@ export async function carregarPropsOrcamento3d(
     }),
     itens: [
       {
-        descricao: String(orc.titulo ?? "Peça 3D"),
+        descricao: String(orc.titulo ?? "Peça 3D").trim(),
+        especificacao: textoOuNulo(orc.material_descricao)
+          ? `Material: ${textoOuNulo(orc.material_descricao)}`
+          : null,
+        tipo_produto: "Impressão 3D",
         unidade: "un",
         quantidade: qtd,
         valor_unitario: mostrarValores ? unit : 0,
         valor_total: mostrarValores ? preco : 0,
+        layout_url: foto?.url ?? null,
+        layout_nome: foto ? "foto do modelo" : null,
+        layout_sem_previa: !!foto && !foto.url,
       },
     ],
     subtotal: mostrarValores ? preco : null,
