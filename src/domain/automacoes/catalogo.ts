@@ -16,8 +16,10 @@
  *               `criar_eventos_automacoes_recorrentes`, que o processador chama
  *               a cada rodada. O lembrete à gerência (orçamento aprovado sem
  *               OS) tem varredura própria, `lembrete_orcamentos_aprovados_sem_os`,
- *               num job do pg_cron às 9h de segunda a sábado (10/10/2026).
- *               Sete gatilhos: o enum `automacao_gatilho`.
+ *               num job do pg_cron às 9h de segunda a sábado (10/10/2026); os
+ *               lembretes do financeiro e da operação, idem, em
+ *               `lembretes_da_equipe` (13/10/2026).
+ *               Nove gatilhos: o enum `automacao_gatilho`.
  *   CONDIÇÃO    `automacao_condicao_ok` só lê TRÊS chaves: `status` (mudança de
  *               etapa), `estoque_minimo` e `margem_minima`. Qualquer outra chave
  *               é ignorada calada — por isso a tela não oferece outras.
@@ -40,6 +42,8 @@ export const GATILHOS = [
   "estoque_minimo",
   "margem_abaixo_minimo",
   "orcamento_aprovado_sem_os",
+  "lembrete_financeiro",
+  "lembrete_operacao",
 ] as const;
 
 export type Gatilho = (typeof GATILHOS)[number];
@@ -92,7 +96,7 @@ export type InfoGatilho = {
   /** Quando dispara, nas palavras de quem usa — e sem prometer mais que o motor faz. */
   quando: string;
   /** Do que se fala: entra no resumo "no máximo 1 aviso por OS a cada…". */
-  alvo: "OS" | "parcela" | "material" | "gestor";
+  alvo: "OS" | "parcela" | "material" | "gestor" | "pessoa";
   /**
    * Situação, não acontecimento: enquanto durar, a varredura volta a enfileirar
    * depois do intervalo mínimo. É aqui que o intervalo decide quantas mensagens
@@ -106,9 +110,22 @@ export type InfoGatilho = {
    * em `gestor.telefone_normalizado`: o destino "os gestores" fica disponível.
    */
   paraGestores?: boolean;
+  /** Por que o evento não vai ao cliente, para a frase embaixo de "Para quem". */
+  motivoSoEquipe?: string;
   condicao: "status" | "estoque_minimo" | "margem_minima" | null;
   variaveis: Variavel[];
 };
+
+/** As variáveis dos lembretes diários da equipe: a lista já vem montada pelo banco. */
+const VAR_LEMBRETE_DA_EQUIPE: Variavel[] = [
+  {
+    chave: "resumo",
+    rotulo: "a lista montada: só os blocos que têm alguma coisa, cada um com o que fazer",
+    exemplo: "Contas a pagar vencidas: 2, somando R$ 4.618,00. …",
+  },
+  { chave: "blocos", rotulo: "quantos blocos a lista tem", exemplo: "2" },
+  { chave: "link", rotulo: "endereço do Início do sistema", exemplo: "https://bexprint.com.br/dashboard" },
+];
 
 export const CATALOGO: Record<Gatilho, InfoGatilho> = {
   status_os_alterado: {
@@ -217,6 +234,31 @@ export const CATALOGO: Record<Gatilho, InfoGatilho> = {
       },
       { chave: "link", rotulo: "endereço do Início do sistema", exemplo: "https://bexprint.com.br/dashboard" },
     ],
+  },
+  lembrete_financeiro: {
+    gatilho: "lembrete_financeiro",
+    rotulo: "O que está pendente no financeiro (lembrete diário)",
+    quando:
+      "Todo dia, de segunda a sábado, às 9h: contas a pagar vencidas, parcelas a receber vencidas, comprovantes do portal a conferir, comissões a pagar e trabalhos entregues sem cobrança. Uma mensagem com tudo, para o número desta automação. Nada pendente, nada enviado. Para mais alguém receber, crie outra automação com este evento.",
+    alvo: "pessoa",
+    // A frequência é a do job (uma vez por dia), não o intervalo mínimo.
+    situacao: false,
+    aceitaCliente: false,
+    motivoSoEquipe: "é a lista do financeiro, com dinheiro e fornecedor.",
+    condicao: null,
+    variaveis: VAR_LEMBRETE_DA_EQUIPE,
+  },
+  lembrete_operacao: {
+    gatilho: "lembrete_operacao",
+    rotulo: "O que está na mão da operação (lembrete diário)",
+    quando:
+      "Todo dia, de segunda a sábado, às 9h: fila de produção, prontas esperando retirada ou entrega, prontas sem entrega agendada, artes esperando o cliente há mais de 2 dias, orçamentos enviados sem resposta ou sem item e materiais no mínimo. Uma mensagem com tudo, para o número desta automação. Nada pendente, nada enviado. Para mais alguém receber, crie outra automação com este evento.",
+    alvo: "pessoa",
+    situacao: false,
+    aceitaCliente: false,
+    motivoSoEquipe: "é a lista de trabalho da equipe, com nome de cliente e valor.",
+    condicao: null,
+    variaveis: VAR_LEMBRETE_DA_EQUIPE,
   },
   margem_abaixo_minimo: {
     gatilho: "margem_abaixo_minimo",
