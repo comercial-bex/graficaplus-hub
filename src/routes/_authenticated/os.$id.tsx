@@ -54,6 +54,7 @@ import { KpiCard } from "@/components/bex/KpiCard";
 import { Clock, Package, Factory as FactoryIcon, DollarSign, AlertTriangle } from "lucide-react";
 import { mensagemErro } from "@/lib/erros";
 import { atrasado, formatarData } from "@/domain/os/prazo";
+import { passoDoMovimento, rotuloDoMovimento, type MovimentoDaOs } from "@/domain/os/movimentos";
 import {
   dinheiro,
   divergencia,
@@ -1175,35 +1176,53 @@ function TarefasTab({ osId, userId }: { osId: string; userId?: string }) {
   );
 }
 
+/**
+ * Quem mexeu na OS e quando. Lia `logs_auditoria`, que só recebe o que passa
+ * pelo quadro — e as 8 OS diziam "Sem histórico". `os_status_historico` grava
+ * toda troca de etapa (conversão, quadro, painel, ficha, fechamento) com quem
+ * e quando: é o registro que o dono pediu à vista (13/10/2026).
+ */
 function HistoricoTab({ osId }: { osId: string }) {
-  const { data = [] } = useQuery({
+  const { data, isError, error, isPending } = useQuery({
     queryKey: ["historico-os", osId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("logs_auditoria")
-        .select("*")
-        .eq("entidade", "ordens_servico")
-        .eq("entidade_id", osId)
-        .order("created_at", { ascending: false });
-      return data ?? [];
+      const { data: movimentos, error: erroMov } = await supabase
+        .from("os_status_historico")
+        .select("id, os_id, status_anterior, status_novo, mudou_em, mudou_por")
+        .eq("os_id", osId)
+        .order("mudou_em", { ascending: false });
+      if (erroMov) throw erroMov;
+      const ids = [...new Set((movimentos ?? []).map((m) => m.mudou_por).filter(Boolean))] as string[];
+      const { data: pessoas, error: erroPessoas } = ids.length
+        ? await supabase.from("usuarios").select("id, nome").in("id", ids)
+        : { data: [], error: null };
+      if (erroPessoas) throw erroPessoas;
+      return {
+        movimentos: (movimentos ?? []) as (MovimentoDaOs & { id: string })[],
+        nomes: new Map((pessoas ?? []).map((p) => [p.id, p.nome ?? ""])),
+      };
     },
   });
   return (
     <Card>
       <CardContent className="p-4">
-        {data.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Sem histórico</p>
+        {isPending ? (
+          <p className="text-sm text-muted-foreground text-center py-4">Carregando o histórico...</p>
+        ) : isError ? (
+          <p role="alert" className="text-sm text-destructive text-center py-4">
+            Não foi possível ler o histórico: {mensagemErro(error)}
+          </p>
+        ) : data.movimentos.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">Sem mudança de etapa registrada</p>
         ) : (
-          <div className="space-y-2">
-            {data.map((l: any) => (
-              <div key={l.id} className="text-sm border-l-2 border-accent pl-3 py-1">
-                <div className="font-medium">{l.acao}</div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(l.created_at).toLocaleString("pt-BR")} — {JSON.stringify(l.detalhes)}
-                </div>
-              </div>
+          <ol className="space-y-2">
+            {data.movimentos.map((m) => (
+              <li key={m.id} className="text-sm border-l-2 border-accent pl-3 py-1">
+                <div className="font-medium">{passoDoMovimento(m)}</div>
+                <div className="text-xs text-muted-foreground">por {rotuloDoMovimento(m, data.nomes)}</div>
+              </li>
             ))}
-          </div>
+          </ol>
         )}
       </CardContent>
     </Card>

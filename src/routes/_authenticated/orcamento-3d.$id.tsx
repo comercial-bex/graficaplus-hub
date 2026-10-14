@@ -43,6 +43,9 @@ function OrcamentoDetalhe() {
   const { hasPermission } = useAuth();
   const podeVerCusto = hasPermission("impressao3d.cost.read");
   const podeEditar = hasPermission("impressao3d.quote.update");
+  // A conversão exige impressao3d.quote.approve no banco (admin e gestor): o
+  // vendedor via o botão e tomava "sem permissão" ao clicar.
+  const podeConverter = hasPermission("impressao3d.quote.approve");
   const [shotUrl, setShotUrl] = useState<string | null>(null);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [pdfOpen, setPdfOpen] = useState(false);
@@ -251,14 +254,19 @@ function OrcamentoDetalhe() {
               Ver OS
             </Link>
           </Button>
-        ) : (
+        ) : podeConverter ? (
           <Button
             disabled={!orc.cliente_id || converter.isPending}
             title={!orc.cliente_id ? "Associe um cliente antes de converter" : "Converter em OS"}
             onClick={() => converter.mutate()}
           >
-            Converter em OS
+            {converter.isPending ? "Criando a OS..." : "Converter em OS"}
           </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground" title="Converter em OS é da gerência ou do admin">
+            <Lock className="inline h-3.5 w-3.5 mr-1" />
+            Converter é da gerência
+          </span>
         )}
       </div>
 

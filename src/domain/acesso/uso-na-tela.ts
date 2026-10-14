@@ -33,6 +33,7 @@ export const CHAVES_CONFERIDAS_NA_TELA: readonly string[] = [
   "estoque.reserve",
   "financeiro.read",
   "impressao3d.cost.read",
+  "impressao3d.quote.approve",
   "impressao3d.quote.update",
   "kanban.move",
   "leads.convert",

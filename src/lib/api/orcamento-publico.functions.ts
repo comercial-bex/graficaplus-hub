@@ -191,12 +191,14 @@ export const responderOrcamentoPublico = createServerFn({ method: "POST" })
 
     const { data: orc } = await supabaseAdmin
       .from("orcamentos")
-      .select("id, status, observacoes")
+      .select("id, status, observacoes, os_id")
       .eq("token_publico", data.token)
       .maybeSingle();
     if (!orc) throw new Error("Link inválido ou expirado");
     const o = orc as Record<string, any>;
-    if (o.status === "convertido") throw new Error("Este orçamento já virou Ordem de Serviço");
+    // A conversão comum deixa o orçamento "aprovado" e grava o os_id: só o
+    // status deixava o cliente "rejeitar" um pedido que já estava na oficina.
+    if (o.status === "convertido" || o.os_id) throw new Error("Este orçamento já virou Ordem de Serviço");
 
     const ip =
       getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ??
