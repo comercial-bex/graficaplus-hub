@@ -158,7 +158,8 @@ const ASSINATURAS: Record<string, string[]> = {
   // As que escrevem só o servidor chama (supabaseAdmin), em
   // src/lib/api/whatsapp-caixa.functions.ts e whatsapp-assistente.server.ts.
   whatsapp_assumir: ["p_conversa_id", "p_usuario"],
-  whatsapp_transferir: ["p_conversa_id", "p_usuario", "p_para"],
+  // p_aviso (frase ao cliente na transferência): migração 20261014150000.
+  whatsapp_transferir: ["p_conversa_id", "p_usuario", "p_para", "p_aviso"],
   whatsapp_mudar_status: ["p_conversa_id", "p_usuario", "p_status"],
   whatsapp_resolver: ["p_conversa_id", "p_usuario", "p_motivo", "p_nota"],
   whatsapp_nota: ["p_conversa_id", "p_usuario", "p_texto"],
@@ -168,7 +169,10 @@ const ASSINATURAS: Record<string, string[]> = {
     "p_conversa_id", "p_usuario", "p_tipo", "p_storage_path", "p_nome_arquivo", "p_legenda",
   ],
   whatsapp_reprocessar_sistema: [],
-  whatsapp_transferir_fila: ["p_conversa_id", "p_usuario", "p_fila", "p_motivo"],
+  whatsapp_transferir_fila: ["p_conversa_id", "p_usuario", "p_fila", "p_motivo", "p_aviso"],
+  // Foto do contato (14/10/2026): só o servidor (whatsapp-fotos.server.ts).
+  whatsapp_conversa_do_telefone: ["p_instancia_id", "p_telefone"],
+  whatsapp_fotos_pendentes: ["p_limite"],
   whatsapp_devolver_ia: ["p_conversa_id", "p_usuario"],
   whatsapp_marcar_lida: ["p_conversa_id", "p_usuario"],
   whatsapp_definir_filas_usuario: ["p_admin", "p_usuario_alvo", "p_filas"],

@@ -39,6 +39,37 @@ describe("a assinatura de quem responde", () => {
   });
 });
 
+describe("o setor da conversa (14/10/2026: transferiu do financeiro, cai na produção)", () => {
+  const leonardo = { nome: "Leonardo Pimentel de Almeida", papeis: ["operador", "vendedor"] };
+
+  it("quem é do setor da fila assina com ele, um setor só", () => {
+    expect(assinaturaDaPessoa({ ...leonardo, fila: "comercial" })).toBe("*Leonardo · Comercial*");
+    expect(assinaturaDaPessoa({ ...leonardo, fila: "producao" })).toBe("*Leonardo · Produção*");
+    expect(assinaturaDaPessoa({ nome: "Cibele", papeis: ["financeiro"], fila: "financeiro" })).toBe(
+      "*Cibele · Financeiro*",
+    );
+    expect(assinaturaDaPessoa({ nome: "Harison", papeis: ["admin"], fila: "administrativo" })).toBe(
+      "*Harison · Administrativo*",
+    );
+  });
+
+  it("quem não é do setor da fila continua com o rótulo do papel", () => {
+    expect(assinaturaDaPessoa({ ...leonardo, fila: "financeiro" })).toBe("*Leonardo · Comercial/Produção*");
+    expect(assinaturaDaPessoa({ nome: "Harison", papeis: ["admin"], fila: "comercial" })).toBe("*Harison · Direção*");
+    expect(assinaturaDaPessoa({ nome: "Cibele", papeis: ["financeiro"], fila: "producao" })).toBe(
+      "*Cibele · Financeiro*",
+    );
+    expect(assinaturaDaPessoa({ nome: "Fulano", papeis: [], fila: "comercial" })).toBe("*Fulano*");
+    expect(assinaturaDaPessoa({ ...leonardo, fila: "fila-que-nao-existe" })).toBe("*Leonardo · Comercial/Produção*");
+  });
+
+  it("o despachante usa a fila de quando a pessoa escreveu (payload.fila) antes da fila atual", () => {
+    const fonte = readFileSync("src/lib/api/whatsapp-enviar.server.ts", "utf8");
+    expect(fonte).toContain(".select(\"telefone, fila\")");
+    expect(fonte).toMatch(/linha\.payload\?\.fila as string \| undefined\) \?\? \(conversa\?\.fila/);
+  });
+});
+
 describe("o despachante assina só o que uma pessoa escreveu", () => {
   const fonte = readFileSync("src/lib/api/whatsapp-enviar.server.ts", "utf8");
 

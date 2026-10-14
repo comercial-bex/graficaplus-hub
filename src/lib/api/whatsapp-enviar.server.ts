@@ -632,16 +632,25 @@ async function marcarFalha(
   return { fila_id: linha.id, mensagem_id: linha.mensagem_id, situacao, erro };
 }
 
+type Autor = { nome: string | null; papeis: string[] } | null;
+
 /**
  * "*Harison · Direção*" para o autor da resposta, uma consulta por pessoa por
- * rodada. Sem leitura do cadastro a mensagem sai sem assinatura: o cliente
- * não pode ficar sem resposta por causa do nome.
+ * rodada. Com a fila de quando a pessoa escreveu, quem é daquele setor assina
+ * com ele ("*Leonardo · Produção*"). Sem leitura do cadastro a mensagem sai sem
+ * assinatura: o cliente não pode ficar sem resposta por causa do nome.
  */
 async function assinaturaDoAutor(
   usuarioId: string,
-  cache: Map<string, string | null>,
+  fila: string | null,
+  cache: Map<string, Autor>,
 ): Promise<string | null> {
-  if (cache.has(usuarioId)) return cache.get(usuarioId) ?? null;
+  if (!cache.has(usuarioId)) cache.set(usuarioId, await lerAutor(usuarioId));
+  const autor = cache.get(usuarioId);
+  return autor ? assinaturaDaPessoa({ ...autor, fila }) : null;
+}
+
+async function lerAutor(usuarioId: string): Promise<Autor> {
   const [rUsuario, rPapeis] = await Promise.all([
     supabaseAdmin.from("usuarios").select("nome").eq("id", usuarioId).maybeSingle(),
     supabaseAdmin.from("user_roles").select("role").eq("user_id", usuarioId),
@@ -652,15 +661,12 @@ async function assinaturaDoAutor(
       usuarioId,
       rUsuario.error?.message ?? rPapeis.error?.message,
     );
-    cache.set(usuarioId, null);
     return null;
   }
-  const assinatura = assinaturaDaPessoa({
+  return {
     nome: (rUsuario.data?.nome as string | null) ?? null,
     papeis: (rPapeis.data ?? []).map((r) => String(r.role)),
-  });
-  cache.set(usuarioId, assinatura);
-  return assinatura;
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -732,7 +738,7 @@ async function rodada(quem: Quem): Promise<Response> {
   }
 
   const resultados: ResultadoDaLinha[] = [];
-  const assinaturas = new Map<string, string | null>();
+  const autores = new Map<string, Autor>();
 
   for (const linha of (linhas ?? []) as LinhaDaFila[]) {
     // A RESERVA: só segue quem virou a linha de pendente para enviando. Se
@@ -768,7 +774,7 @@ async function rodada(quem: Quem): Promise<Response> {
 
     const { data: conversa, error: erroConversa } = await supabaseAdmin
       .from("whatsapp_conversas")
-      .select("telefone")
+      .select("telefone, fila")
       .eq("id", linha.conversa_id)
       .maybeSingle();
     if (erroConversa) {
@@ -810,11 +816,14 @@ async function rodada(quem: Quem): Promise<Response> {
     }
 
     // Quem escreveu assina: o cliente vê "*Harison · Direção*" no topo. A
-    // assistente de IA (sem autor) não leva nome de pessoa.
+    // assistente de IA (sem autor) não leva nome de pessoa. A fila é a de
+    // quando a pessoa escreveu (o aviso de transferência a leva no payload);
+    // sem ela, a da conversa agora — a resposta comum sai na hora.
     if (linha.created_by && !daIa) {
+      const fila = (linha.payload?.fila as string | undefined) ?? (conversa?.fila as string | null) ?? null;
       pedido.texto = assinarMensagem(
         pedido.texto,
-        await assinaturaDoAutor(linha.created_by, assinaturas),
+        await assinaturaDoAutor(linha.created_by, fila, autores),
       );
     }
 

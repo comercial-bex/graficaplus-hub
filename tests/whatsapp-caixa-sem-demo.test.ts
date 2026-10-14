@@ -160,6 +160,11 @@ const COLUNAS: Record<string, string[]> = {
     "modo",
     "aguardando_desde",
     "atendimento_ativo_id",
+    // Foto do contato (migração 20261014150000, ensaiada no banco em 14/10/2026).
+    "foto_path",
+    "foto_chave",
+    "foto_atualizada_em",
+    "foto_tentativa_em",
   ],
   whatsapp_mensagens: [
     "id",

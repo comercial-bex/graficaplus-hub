@@ -131,6 +131,18 @@ export async function processarWebhookZapi(request: Request): Promise<Response> 
     return json(500, { ok: false, erro });
   }
 
+  // A foto do contato (14/10/2026): vem em todo ReceivedCallback, inclusive no
+  // eco do que a própria API mandou. Mudou (ou a conversa não tem), guarda a
+  // cópia. Nunca derruba o 200: a mensagem já está gravada.
+  // (fotoDoEvento filtra: só ReceivedCallback de pessoa, com link do WhatsApp.)
+  try {
+    const { fotoPeloWebhook } = await import("@/lib/api/whatsapp-fotos.server");
+    const foto = await fotoPeloWebhook(payload, instancia.id);
+    if (foto) resultado.foto = foto;
+  } catch (e) {
+    resultado.foto = `foto: ${e instanceof Error ? e.message : String(e)}`;
+  }
+
   // A assistente de IA (caixa v3): só para mensagem NOVA de cliente — nem eco
   // do celular, nem modelo de empresa, nem reenvio. Roda aqui dentro, com
   // teto de tempo, e nunca derruba o 200: a mensagem já está gravada.

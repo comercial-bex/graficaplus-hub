@@ -44,6 +44,8 @@ export type ConversaDaCaixa = {
   modo?: "auto" | "humano" | string | null;
   aguardando_desde?: string | null;
   atendimento_ativo_id?: string | null;
+  /** Cópia da foto de perfil do contato (bucket whatsapp-midias), 14/10/2026. */
+  foto_path?: string | null;
 };
 
 export type MensagemDaCaixa = {
@@ -595,11 +597,13 @@ export function fraseDoEvento(
   const quem = pessoa(e.de_usuario, "Alguém da equipe");
   const para = pessoa(e.para_usuario, "outra pessoa");
   const d = e.detalhe ?? {};
+  // Transferência com a frase de passagem ao cliente (14/10/2026).
+  const avisou = d.aviso_ao_cliente === true ? " e avisou o cliente" : "";
   switch (e.tipo) {
     case "assumida":
       return `${quem} assumiu o atendimento`;
     case "transferida":
-      return `${quem} transferiu para ${para}`;
+      return `${quem} transferiu para ${para}${avisou}`;
     case "status": {
       const para = ROTULO_STATUS[String(d.para)] ?? String(d.para);
       const motivo = d.motivo ? ` — ${rotuloDoMotivo(String(d.motivo))}` : "";
@@ -617,7 +621,7 @@ export function fraseDoEvento(
       // Sem autor = a assistente classificou.
       const autor = e.de_usuario ? quem : "A assistente";
       const motivo = d.motivo ? ` — ${String(d.motivo)}` : "";
-      return `${autor} passou de ${rotuloDoSetor(String(d.de ?? ""))} para ${rotuloDoSetor(String(d.para ?? ""))}${motivo}`;
+      return `${autor} passou de ${rotuloDoSetor(String(d.de ?? ""))} para ${rotuloDoSetor(String(d.para ?? ""))}${motivo}${avisou}`;
     }
     case "transferida_ia":
       return `A assistente passou a conversa para a equipe${d.motivo ? ` — ${String(d.motivo)}` : ""}`;

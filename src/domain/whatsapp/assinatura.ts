@@ -1,4 +1,5 @@
-import { rotuloDaPessoa } from "./equipe";
+import { primeiroNome, rotuloDaPessoa } from "./equipe";
+import { ehSetor, rotuloDoSetor, type Setor } from "./filas";
 
 /**
  * A assinatura de quem responde, no topo da mensagem que o cliente recebe.
@@ -12,13 +13,34 @@ import { rotuloDaPessoa } from "./equipe";
  * O rótulo é o mesmo da caixa ("Harison · Direção", "Cibele · Financeiro"), em
  * negrito do WhatsApp. Só para mensagem escrita por uma pessoa: o aviso
  * automático e a assistente de IA não levam nome de ninguém.
+ *
+ * O SETOR DA CONVERSA (14/10/2026, pedido do dono: "o financeiro transferiu…
+ * vai cair lá na produção, e assim vai"): quando quem responde é daquele
+ * setor, a assinatura diz o setor da fila em que a conversa está — o Leonardo
+ * (vendedor e operador) assina "Comercial" no comercial e "Produção" depois
+ * que a conversa passa para a produção, em vez de "Comercial/Produção" nas
+ * duas. Quem não é do setor da fila (a direção respondendo no comercial)
+ * continua com o rótulo do papel. A fila é a de QUANDO a pessoa escreveu: o
+ * aviso de transferência leva a fila de origem no payload.
  */
+export const PAPEIS_DA_FILA: Record<Setor, readonly string[]> = {
+  comercial: ["vendedor"],
+  producao: ["operador", "designer", "estoque", "instalador"],
+  financeiro: ["financeiro"],
+  administrativo: ["admin", "gestor"],
+};
+
 export function assinaturaDaPessoa(p: {
   nome: string | null | undefined;
   papeis: readonly string[] | null | undefined;
+  fila?: string | null;
 }): string | null {
   if (!p.nome?.trim()) return null;
-  return `*${rotuloDaPessoa({ nome: p.nome, papeis: p.papeis ? [...p.papeis] : null })}*`;
+  const papeis = p.papeis ? [...p.papeis] : [];
+  if (ehSetor(p.fila) && papeis.some((papel) => PAPEIS_DA_FILA[p.fila as Setor].includes(papel))) {
+    return `*${primeiroNome(p.nome)} · ${rotuloDoSetor(p.fila)}*`;
+  }
+  return `*${rotuloDaPessoa({ nome: p.nome, papeis })}*`;
 }
 
 /**
