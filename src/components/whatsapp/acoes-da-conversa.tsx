@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowRightLeft, Bot, CheckCheck, Loader2, UserRound } fr
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
@@ -28,6 +29,8 @@ import {
   type Setor,
 } from "@/domain/whatsapp/filas";
 import type { PessoaDaEquipe } from "@/components/whatsapp/usar-caixa-de-entrada";
+import { avisoParaFila, avisoParaPessoa } from "@/domain/whatsapp/aviso-de-transferencia";
+import { setorDaPessoa } from "@/domain/whatsapp/equipe";
 
 /**
  * Diálogos e faixa da conversa aberta (caixa v3): Transferir (pessoa ou fila,
@@ -47,6 +50,7 @@ export function DialogoTransferir({
   responsavelAtual,
   filaAtual,
   ocupado,
+  assinatura,
   onPessoa,
   onFila,
 }: {
@@ -56,27 +60,57 @@ export function DialogoTransferir({
   responsavelAtual: string | null;
   filaAtual: string | null | undefined;
   ocupado: boolean;
-  onPessoa: (para: string) => Promise<boolean>;
-  onFila: (fila: Setor, motivo: string) => Promise<boolean>;
+  /** "*Cibele · Financeiro*": o que o despachante põe no topo do aviso. */
+  assinatura: string | null;
+  onPessoa: (para: string, aviso: string | null) => Promise<boolean>;
+  onFila: (fila: Setor, motivo: string, aviso: string | null) => Promise<boolean>;
 }) {
   const [destino, setDestino] = useState<"pessoa" | "fila">("pessoa");
   const [pessoa, setPessoa] = useState("");
   const [fila, setFila] = useState<Setor | "">("");
   const [motivo, setMotivo] = useState("");
+  // Aviso ao cliente (14/10/2026): ligado por padrão, com a frase pronta e
+  // editável. Trocar o destino refaz a frase — a não ser que a pessoa já a
+  // tenha mudado à mão.
+  const [avisar, setAvisar] = useState(true);
+  const [aviso, setAviso] = useState("");
+  const [avisoEditado, setAvisoEditado] = useState(false);
 
   useEffect(() => {
     if (!aberto) return;
     setPessoa("");
     setFila("");
     setMotivo("");
+    setAvisar(true);
+    setAviso("");
+    setAvisoEditado(false);
   }, [aberto]);
 
   const pessoas = equipe.filter((p) => p.id !== responsavelAtual);
-  const pronto = destino === "pessoa" ? !!pessoa : !!fila && motivo.trim().length >= 3;
+  const escolhida = pessoas.find((p) => p.id === pessoa) ?? null;
+  const fraseSugerida =
+    destino === "pessoa"
+      ? escolhida
+        ? avisoParaPessoa(escolhida.nome, setorDaPessoa(escolhida.papeis))
+        : ""
+      : fila
+        ? avisoParaFila(fila)
+        : "";
+
+  useEffect(() => {
+    if (!avisoEditado) setAviso(fraseSugerida);
+  }, [fraseSugerida, avisoEditado]);
+
+  const textoDoAviso = avisar ? aviso.trim() : "";
+  const pronto =
+    (destino === "pessoa" ? !!pessoa : !!fila && motivo.trim().length >= 3) && (!avisar || textoDoAviso.length > 0);
 
   async function confirmar() {
+    const enviar = textoDoAviso || null;
     const ok =
-      destino === "pessoa" ? await onPessoa(pessoa) : await onFila(fila as Setor, motivo.trim());
+      destino === "pessoa"
+        ? await onPessoa(pessoa, enviar)
+        : await onFila(fila as Setor, motivo.trim(), enviar);
     if (ok) onAberto(false);
   }
 
@@ -169,6 +203,43 @@ export function DialogoTransferir({
               />
               <p className="text-[11px] text-muted-foreground">O motivo aparece na conversa para quem pegar.</p>
             </div>
+          </div>
+        )}
+        {(destino === "pessoa" ? !!pessoa : !!fila) && (
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="transferir-avisar" className="text-sm font-medium">
+                Avisar o cliente
+              </Label>
+              <Switch id="transferir-avisar" checked={avisar} onCheckedChange={setAvisar} />
+            </div>
+            {avisar ? (
+              <>
+                <Textarea
+                  aria-label="Mensagem ao cliente"
+                  rows={3}
+                  maxLength={1000}
+                  value={aviso}
+                  onChange={(e) => {
+                    setAviso(e.target.value);
+                    setAvisoEditado(true);
+                  }}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Sai pelo WhatsApp em seu nome
+                  {assinatura ? (
+                    <>
+                      , com <strong>{assinatura.replace(/^\*|\*$/g, "")}</strong> no topo
+                    </>
+                  ) : null}
+                  . A conversa fica esperando quem recebe.
+                </p>
+              </>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Só a equipe fica sabendo: o cliente não recebe nada.
+              </p>
+            )}
           </div>
         )}
         <DialogFooter>

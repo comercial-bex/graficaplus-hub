@@ -16,7 +16,12 @@ import {
   type ConversaDaCaixa,
   type Fila,
 } from "@/domain/whatsapp/caixa-de-entrada";
-import type { ContagemDaFila, PessoaDaEquipe } from "@/components/whatsapp/usar-caixa-de-entrada";
+import {
+  useFotosDosContatos,
+  type ContagemDaFila,
+  type PessoaDaEquipe,
+} from "@/components/whatsapp/usar-caixa-de-entrada";
+import { FotoDoContato } from "@/components/whatsapp/foto-do-contato";
 import {
   SETORES,
   corDaEspera,
@@ -117,6 +122,7 @@ export function ListaDeConversas({
 }) {
   const sentinela = useRef<HTMLDivElement>(null);
   const pessoas = new Map(equipe.map((p) => [p.id, p]));
+  const fotos = useFotosDosContatos(conversas.map((c) => c.foto_path));
 
   // "Carregar mais" ao rolar: quando o fim da lista aparece, busca a próxima página.
   useEffect(() => {
@@ -260,9 +266,12 @@ export function ListaDeConversas({
                     )}
                   >
                     <div className="flex items-start gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="text-xs">{iniciais(nome)}</AvatarFallback>
-                      </Avatar>
+                      <FotoDoContato
+                        nome={nome}
+                        url={c.foto_path ? fotos.data?.get(c.foto_path) : null}
+                        className="h-9 w-9"
+                        classeDasIniciais="text-xs"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex justify-between gap-2">
                           <span className={cn("truncate text-sm", naoLidas > 0 ? "font-bold" : "font-medium")}>

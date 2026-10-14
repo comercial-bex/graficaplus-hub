@@ -24,7 +24,6 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { useAuth } from "@/lib/auth-context";
@@ -37,7 +36,6 @@ import {
   desfechoDoEnvio,
   diaEHora,
   fraseDoEvento,
-  iniciais,
   nomeDaConversa,
   podeResponder,
   quandoFoi,
@@ -52,6 +50,7 @@ import {
   type MensagemDaCaixa,
 } from "@/domain/whatsapp/caixa-de-entrada";
 import { mapaDeRotulos, mapaDeSetores } from "@/domain/whatsapp/equipe";
+import { assinaturaDaPessoa } from "@/domain/whatsapp/assinatura";
 import {
   CHAVES,
   acionarEnvio,
@@ -63,11 +62,13 @@ import {
   useConfiguracoesWhatsapp,
   useEquipe,
   useEventosDaConversa,
+  useFotosDosContatos,
   useMensagensPaginadas,
   useRespostasRapidas,
   useTempoRealDaConversa,
   type InstanciaDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
+import { FotoDoContato } from "@/components/whatsapp/foto-do-contato";
 import {
   acaoNaConversa,
   enfileirarArquivo,
@@ -160,6 +161,11 @@ export function ConversaAberta({
         }
       : podeResponder(instancia, temPermissaoDeResponder);
   const nome = nomeDaConversa(conversa);
+  const fotos = useFotosDosContatos([conversa.foto_path]);
+  // A assinatura de quem está olhando, como o despachante vai montar (o aviso
+  // de transferência sai com ela).
+  const eu = (equipe.data ?? []).find((p) => p.id === user?.id) ?? null;
+  const minhaAssinatura = eu ? assinaturaDaPessoa({ nome: eu.nome, papeis: eu.papeis, fila: conversa.fila }) : null;
   // "assumida por Yvens · Gerência": quem está com a conversa e de que setor.
   const responsavel = conversa.responsavel_id
     ? (rotulos.get(conversa.responsavel_id) ?? "Equipe")
@@ -231,6 +237,34 @@ export function ConversaAberta({
     try {
       await acao({ data: dados });
       toast.success(sucesso);
+      recarregar();
+      void qc.invalidateQueries({ queryKey: CHAVES.atendimentos(conversa.id) });
+      return true;
+    } catch (e) {
+      toast.error(mensagemErro(e));
+      return false;
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  /**
+   * Transferência com aviso opcional ao cliente (14/10/2026). O banco faz as
+   * duas coisas numa transação; aqui só se aciona o envio na hora (o job de
+   * 2 min leva de qualquer jeito) e se diz o que aconteceu com o aviso.
+   */
+  async function transferir(dados: AcaoNaConversa, sucesso: string): Promise<boolean> {
+    setOcupado(true);
+    try {
+      const r = await acao({ data: dados });
+      if (r.aviso?.enfileirado) {
+        toast.success(`${sucesso} — o aviso ao cliente está saindo.`);
+        void acionarEnvio();
+      } else if (r.aviso) {
+        toast.warning(`${sucesso}, mas o aviso ao cliente não saiu: ${r.aviso.motivo ?? "motivo não informado"}.`);
+      } else {
+        toast.success(sucesso);
+      }
       recarregar();
       void qc.invalidateQueries({ queryKey: CHAVES.atendimentos(conversa.id) });
       return true;
@@ -396,9 +430,7 @@ export function ConversaAberta({
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <Avatar>
-            <AvatarFallback>{iniciais(nome)}</AvatarFallback>
-          </Avatar>
+          <FotoDoContato nome={nome} url={conversa.foto_path ? fotos.data?.get(conversa.foto_path) : null} />
           <div className="min-w-0 flex-1">
             {/* Sem `truncate`: a 375 px o nome ficava cortado atrás dos botões.
                 Quebra em até duas linhas e o cabeçalho se acomoda. */}
@@ -578,12 +610,16 @@ export function ConversaAberta({
             responsavelAtual={conversa.responsavel_id}
             filaAtual={conversa.fila}
             ocupado={ocupado}
-            onPessoa={(para) =>
-              executar({ acao: "transferir", conversaId: conversa.id, para }, "Conversa transferida")
+            assinatura={minhaAssinatura}
+            onPessoa={(para, aviso) =>
+              transferir(
+                { acao: "transferir", conversaId: conversa.id, para, aviso: aviso ?? undefined },
+                "Conversa transferida",
+              )
             }
-            onFila={(fila, motivo) =>
-              executar(
-                { acao: "transferir_fila", conversaId: conversa.id, fila, motivo },
+            onFila={(fila, motivo, aviso) =>
+              transferir(
+                { acao: "transferir_fila", conversaId: conversa.id, fila, motivo, aviso: aviso ?? undefined },
                 `Conversa passada para a fila ${infoDoSetor(fila).rotulo}`,
               )
             }

@@ -27,7 +27,13 @@ async function admin() {
 
 const acaoSchema = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("assumir"), conversaId: z.string().uuid() }),
-  z.object({ acao: z.literal("transferir"), conversaId: z.string().uuid(), para: z.string().uuid() }),
+  // `aviso`: a frase ao cliente na transferência (14/10/2026). Vazio = sem aviso.
+  z.object({
+    acao: z.literal("transferir"),
+    conversaId: z.string().uuid(),
+    para: z.string().uuid(),
+    aviso: z.string().trim().max(1000).optional(),
+  }),
   z.object({
     acao: z.literal("status"),
     conversaId: z.string().uuid(),
@@ -47,6 +53,7 @@ const acaoSchema = z.discriminatedUnion("acao", [
     conversaId: z.string().uuid(),
     fila: z.enum(["comercial", "producao", "financeiro", "administrativo"]),
     motivo: z.string().trim().min(3).max(300),
+    aviso: z.string().trim().max(1000).optional(),
   }),
   z.object({ acao: z.literal("devolver_ia"), conversaId: z.string().uuid() }),
 ]);
@@ -66,7 +73,12 @@ export const acaoNaConversa = createServerFn({ method: "POST" })
         r = await db.rpc("whatsapp_assumir", { p_conversa_id: data.conversaId, p_usuario: u });
         break;
       case "transferir":
-        r = await db.rpc("whatsapp_transferir", { p_conversa_id: data.conversaId, p_usuario: u, p_para: data.para });
+        r = await db.rpc("whatsapp_transferir", {
+          p_conversa_id: data.conversaId,
+          p_usuario: u,
+          p_para: data.para,
+          p_aviso: data.aviso || null,
+        });
         break;
       case "status":
         r = await db.rpc("whatsapp_mudar_status", { p_conversa_id: data.conversaId, p_usuario: u, p_status: data.status });
@@ -93,6 +105,7 @@ export const acaoNaConversa = createServerFn({ method: "POST" })
           p_usuario: u,
           p_fila: data.fila,
           p_motivo: data.motivo,
+          p_aviso: data.aviso || null,
         });
         break;
       case "devolver_ia":
@@ -100,8 +113,16 @@ export const acaoNaConversa = createServerFn({ method: "POST" })
         break;
     }
     if (r.error) throw new Error(r.error.message);
-    const d = (r.data ?? {}) as { cliente_herdado?: boolean };
-    return { ok: true, cliente_herdado: d.cliente_herdado === true };
+    const d = (r.data ?? {}) as {
+      cliente_herdado?: boolean;
+      aviso?: { enfileirado?: boolean; motivo?: string } | null;
+    };
+    return {
+      ok: true,
+      cliente_herdado: d.cliente_herdado === true,
+      // Transferência com aviso: se a frase foi para a fila de envio ou, se não, por quê.
+      aviso: d.aviso ? { enfileirado: d.aviso.enfileirado === true, motivo: d.aviso.motivo ?? null } : null,
+    };
   });
 
 export const enfileirarArquivo = createServerFn({ method: "POST" })

@@ -105,6 +105,7 @@ import { Route as ApiTvPainelRouteImport } from './routes/api.tv.painel'
 import { Route as ApiTvParearRouteImport } from './routes/api.tv.parear'
 import { Route as ApiTvPinRouteImport } from './routes/api.tv.pin'
 import { Route as ApiWhatsappAgenteRouteImport } from './routes/api.whatsapp.agente'
+import { Route as ApiWhatsappFotosRouteImport } from './routes/api.whatsapp.fotos'
 import { Route as ApiWhatsappDespacharRouteImport } from './routes/api.whatsapp.despachar'
 import { Route as ApiWhatsappEnviarRouteImport } from './routes/api.whatsapp.enviar'
 import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
@@ -623,6 +624,11 @@ const ApiWhatsappAgenteRoute = ApiWhatsappAgenteRouteImport.update({
   path: '/api/whatsapp/agente',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWhatsappFotosRoute = ApiWhatsappFotosRouteImport.update({
+  id: '/api/whatsapp/fotos',
+  path: '/api/whatsapp/fotos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWhatsappDespacharRoute = ApiWhatsappDespacharRouteImport.update({
   id: '/api/whatsapp/despachar',
   path: '/api/whatsapp/despachar',
@@ -741,6 +747,7 @@ export interface FileRoutesByFullPath {
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
+  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
@@ -842,6 +849,7 @@ export interface FileRoutesByTo {
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
+  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
@@ -946,6 +954,7 @@ export interface FileRoutesById {
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
+  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
@@ -1050,6 +1059,7 @@ export interface FileRouteTypes {
     | '/api/tv/parear'
     | '/api/tv/pin'
     | '/api/whatsapp/agente'
+    | '/api/whatsapp/fotos'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
@@ -1151,6 +1161,7 @@ export interface FileRouteTypes {
     | '/api/tv/parear'
     | '/api/tv/pin'
     | '/api/whatsapp/agente'
+    | '/api/whatsapp/fotos'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
@@ -1254,6 +1265,7 @@ export interface FileRouteTypes {
     | '/api/tv/parear'
     | '/api/tv/pin'
     | '/api/whatsapp/agente'
+    | '/api/whatsapp/fotos'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
     | '/api/whatsapp/webhook'
@@ -1291,6 +1303,7 @@ export interface RootRouteChildren {
   ApiTvParearRoute: typeof ApiTvParearRoute
   ApiTvPinRoute: typeof ApiTvPinRoute
   ApiWhatsappAgenteRoute: typeof ApiWhatsappAgenteRoute
+  ApiWhatsappFotosRoute: typeof ApiWhatsappFotosRoute
   ApiWhatsappDespacharRoute: typeof ApiWhatsappDespacharRoute
   ApiWhatsappEnviarRoute: typeof ApiWhatsappEnviarRoute
   ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
@@ -1970,6 +1983,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWhatsappAgenteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/whatsapp/fotos': {
+      id: '/api/whatsapp/fotos'
+      path: '/api/whatsapp/fotos'
+      fullPath: '/api/whatsapp/fotos'
+      preLoaderRoute: typeof ApiWhatsappFotosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/whatsapp/despachar': {
       id: '/api/whatsapp/despachar'
       path: '/api/whatsapp/despachar'
@@ -2200,6 +2220,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTvParearRoute: ApiTvParearRoute,
   ApiTvPinRoute: ApiTvPinRoute,
   ApiWhatsappAgenteRoute: ApiWhatsappAgenteRoute,
+  ApiWhatsappFotosRoute: ApiWhatsappFotosRoute,
   ApiWhatsappDespacharRoute: ApiWhatsappDespacharRoute,
   ApiWhatsappEnviarRoute: ApiWhatsappEnviarRoute,
   ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,

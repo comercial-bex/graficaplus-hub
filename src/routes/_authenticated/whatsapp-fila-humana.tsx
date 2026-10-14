@@ -32,9 +32,11 @@ import {
   mapaDeNomes,
   useEquipe,
   useFilaHumana,
+  useFotosDosContatos,
   useMinhasFilas,
   useTempoRealDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
+import { FotoDoContato } from "@/components/whatsapp/foto-do-contato";
 import { acaoNaConversa } from "@/lib/api/whatsapp-caixa.functions";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
@@ -64,6 +66,7 @@ function FilaHumanaPage() {
   const setores = setoresDoFiltro(setor, minhasFilas.isError ? null : minhasFilas.data);
   const fila = useFilaHumana(setores);
   const lista = ordenarPorEspera(fila.data ?? []);
+  const fotos = useFotosDosContatos(lista.map((c) => c.foto_path));
   const atrasadas = lista.filter((c) => (esperaDe(c.aguardando_desde)?.nivel ?? "ok") === "atrasada").length;
 
   async function assumir(conversaId: string) {
@@ -172,6 +175,12 @@ function FilaHumanaPage() {
                   <Clock className="h-4 w-4" aria-hidden />
                   {espera?.texto ?? "—"}
                 </div>
+                <FotoDoContato
+                  nome={nomeDaConversa(c)}
+                  url={c.foto_path ? fotos.data?.get(c.foto_path) : null}
+                  className="h-9 w-9 shrink-0"
+                  classeDasIniciais="text-xs"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="truncate font-medium">{nomeDaConversa(c)}</span>

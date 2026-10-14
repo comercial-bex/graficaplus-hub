@@ -87,7 +87,7 @@ export function useInstancias() {
 export const SELECT_CONVERSAS =
   "id, instancia_id, telefone, nome_contato, cliente_id, lead_id, os_id, status, etiquetas, " +
   "ultima_mensagem, ultima_mensagem_at, nao_lidas, responsavel_id, created_at, " +
-  "fila, modo, aguardando_desde, atendimento_ativo_id, " +
+  "fila, modo, aguardando_desde, atendimento_ativo_id, foto_path, " +
   "cliente:clientes!whatsapp_conversas_cliente_id_fkey(id, nome), " +
   "lead:leads!whatsapp_conversas_lead_id_fkey(id, nome, status)";
 
@@ -483,6 +483,30 @@ export function useEquipe() {
       const { data, error } = await (supabase.rpc as any)("whatsapp_equipe");
       if (error) throw error;
       return (data ?? []) as PessoaDaEquipe[];
+    },
+  });
+}
+
+/**
+ * Os links (1 h) das fotos dos contatos, num pedido só ao Storage. As fotos
+ * moram no bucket privado `whatsapp-midias` (a equipe lê; ninguém de fora).
+ * Falhou o pedido: a tela fica com as iniciais, como era antes.
+ */
+export function useFotosDosContatos(caminhos: readonly (string | null | undefined)[]) {
+  const lista = [...new Set(caminhos.filter((c): c is string => !!c))].sort();
+  return useQuery({
+    queryKey: ["wa-fotos-dos-contatos", lista.join(",")] as const,
+    enabled: lista.length > 0,
+    staleTime: 50 * 60_000,
+    queryFn: async (): Promise<Map<string, string>> => {
+      const { data, error } = await supabase.storage.from("whatsapp-midias").createSignedUrls(lista, 3600);
+      if (error) throw error;
+      const links = (data ?? []) as { error: string | null; path: string | null; signedUrl: string | null }[];
+      return new Map(
+        links
+          .filter((d) => !d.error && d.signedUrl && d.path)
+          .map((d): [string, string] => [d.path as string, d.signedUrl as string]),
+      );
     },
   });
 }
