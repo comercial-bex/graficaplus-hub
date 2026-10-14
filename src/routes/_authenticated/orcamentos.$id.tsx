@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { QuemTrouxeAVenda } from "@/components/os/quem-trouxe-a-venda";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -207,6 +207,7 @@ export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
 function OrcamentoDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   // canSeePrices/nivelDeVisao: preço de venda (vendedor vê). canSeeFinancials:
   // custo e margem (só financeiro/gestão). Nunca misturar os dois gates.
   const { canSeeFinancials, canSeePrices, nivelDeVisao, hasPermission } = useAuth();
@@ -788,15 +789,28 @@ function OrcamentoDetailPage() {
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }
 
+  // A resposta era "OS criada (787db567-840d-…)" e a tela ficava no
+  // orçamento: o código interno não diz nada, e a OS precisava ser procurada.
+  // Agora trava durante a chamada e leva direto à OS.
+  const [convertendo, setConvertendo] = useState(false);
   async function converterEmOS() {
-    const { data, error } = await (supabase.rpc as any)("converter_orcamento_em_os", {
-      p_orcamento_id: id,
-      p_opcoes: {},
-    });
-    if (error) return toast.error(mensagemErro(error));
-    const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
-    toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
-    qc.invalidateQueries({ queryKey: ["orcamento", id] });
+    if (convertendo) return;
+    setConvertendo(true);
+    try {
+      const { data, error } = await (supabase.rpc as any)("converter_orcamento_em_os", {
+        p_orcamento_id: id,
+        p_opcoes: {},
+      });
+      if (error) return toast.error(mensagemErro(error));
+      const osId = typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
+      qc.invalidateQueries({ queryKey: ["orcamento", id] });
+      qc.invalidateQueries({ queryKey: ["orcamentos"] });
+      qc.invalidateQueries({ queryKey: ["kanban-os"] });
+      toast.success("OS criada", { description: "Abrindo a ordem de serviço." });
+      if (osId) navigate({ to: "/os/$id", params: { id: osId } });
+    } finally {
+      setConvertendo(false);
+    }
   }
 
   if (isLoading) return <div className="p-6">Carregando...</div>;
@@ -861,7 +875,17 @@ function OrcamentoDetailPage() {
           {/* Converter exige `orcamentos.convert`, que só admin e gestor têm.
               Sem a permissão, no lugar do botão fica a explicação de quem
               converte e por onde essa pessoa é avisada. */}
-          {!fechado && (
+          {/* Só aprovado vira OS: em rascunho, enviado, rejeitado ou expirado o
+              banco recusa ("Orçamento sem versão aprovada") — o botão não
+              promete o que não entrega. Com OS, o lugar dele leva até ela. */}
+          {orc.os_id && (
+            <Button asChild variant="outline" className="shrink-0 h-11 md:h-10">
+              <Link to="/os/$id" params={{ id: orc.os_id }}>
+                Ver a OS <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </Button>
+          )}
+          {!fechado && orc.status === "aprovado" && (
             podeConverter ? (
               // Desconto que passou da alçada sem aprovação: o banco recusa a
               // conversão (converter_orcamento_em_os), então o botão já trava
@@ -869,11 +893,11 @@ function OrcamentoDetailPage() {
               <Dica texto={descontoPendente ? dicaCampo("/orcamentos", "desconto_pendente") : null}>
                 <Button
                   onClick={converterEmOS}
-                  disabled={descontoPendente}
+                  disabled={descontoPendente || convertendo}
                   className="shrink-0 h-11 md:h-10"
                 >
                   {descontoPendente ? <Lock className="h-4 w-4 mr-1" /> : null}
-                  Converter em OS <ArrowRight className="h-4 w-4 ml-1" />
+                  {convertendo ? "Criando a OS..." : "Converter em OS"} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Dica>
             ) : (

@@ -56,6 +56,7 @@ const ROTULO_AVISO: Record<string, string> = {
   os_arte_para_aprovar: "Arte pronta para aprovar",
   os_em_producao: "Entrou em produção",
   os_pronta_retirada: "Pronto para retirar",
+  os_pronta_entrega: "Pronto para entregar",
   os_saiu_entrega: "Saiu para entrega",
   os_concluida: "Serviço concluído",
 };

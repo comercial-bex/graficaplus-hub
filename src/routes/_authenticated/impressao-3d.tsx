@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BUCKET_DOS_ARQUIVOS_3D } from "@/domain/impressao3d/arquivos";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -51,6 +52,9 @@ function toneForStatus(status: string): "cyan" | "magenta" | "lime" | "muted" {
 function Impressao3DPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  // Converter exige impressao3d.quote.approve no banco (admin e gestor).
+  const { hasPermission } = useAuth();
+  const podeConverter = hasPermission("impressao3d.quote.approve");
 
   const converter = useMutation({
     mutationFn: async (orcamento3dId: string) => {
@@ -334,7 +338,7 @@ function Impressao3DPage() {
                             Ver OS
                           </Link>
                         </Button>
-                      ) : (
+                      ) : podeConverter ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -344,7 +348,7 @@ function Impressao3DPage() {
                         >
                           Converter em OS
                         </Button>
-                      )}
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))}

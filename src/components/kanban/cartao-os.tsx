@@ -50,7 +50,9 @@ export function CartaoOs({
   const prazo = prazoEmPalavras(os.prazo_entrega);
   const atrasada = prazo?.tom === "magenta";
   const producao = resumoDaProducao(os.itens);
-  const parada = paradaHa(os.updated_at);
+  // "Parada há" conta da última troca de etapa (os_status_historico), não do
+  // updated_at — que muda com qualquer edição da ficha.
+  const parada = paradaHa(os.ultimo_movimento?.mudou_em ?? os.updated_at);
   const responsaveis = [os.designer, os.operador].filter(Boolean);
   const pausada = os.status === "pausado";
   // Vem da máquina vinculada quando existe; do status quando ninguém escolheu
@@ -173,6 +175,16 @@ export function CartaoOs({
             </span>
           )}
         </div>
+
+        {/* Quem mexeu por último e quando — todos movem, e o registro fica à vista. */}
+        {os.ultimo_movimento?.rotulo && (
+          <div
+            className="truncate border-t border-border/60 pt-1.5 font-mono text-xs text-muted-foreground md:text-[10px]"
+            title={`Última mudança: ${os.ultimo_movimento.passo} — ${os.ultimo_movimento.rotulo}`}
+          >
+            {os.ultimo_movimento.verbo ?? "movida"} por {os.ultimo_movimento.rotulo}
+          </div>
+        )}
       </div>
     </Card>
   );

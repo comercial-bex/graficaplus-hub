@@ -413,8 +413,9 @@ function AReceberPage() {
             </DialogTitle>
             <DialogDescription>
               {baixa?.conta.cliente ?? "Cliente sem nome"}
-              {baixa?.conta.os_numero ? ` · OS #${baixa.conta.os_numero}` : ""} · vence{" "}
-              {dia(baixa?.parcela.vencimento)}. Confirmar o recebimento registra o pagamento e fecha
+              {baixa?.conta.os_numero ? ` · OS #${baixa.conta.os_numero}` : ""} ·{" "}
+              {baixa?.parcela.vencimento ? `vence ${dia(baixa.parcela.vencimento)}` : "vence na saída do pedido"}
+              . Confirmar o recebimento registra o pagamento e fecha
               a parcela — a conta se ajusta sozinha.
             </DialogDescription>
           </DialogHeader>
@@ -592,7 +593,9 @@ function ContaCard({
               >
                 <span className={paga ? "text-muted-foreground line-through" : ""}>
                   Parcela {p.numero} de {total} · <span className="font-mono">{brl(p.valor)}</span>{" "}
-                  · vence {dia(p.vencimento)}
+                  {/* Parcela única sem data no acordo vence quando o pedido sai
+                      (pronto, entregue ou concluído) — não no dia da conversão. */}
+                  · {p.vencimento ? `vence ${dia(p.vencimento)}` : "vence na saída do pedido"}
                 </span>
                 {paga && <StatusChip label="paga" tone="muted" />}
                 {!paga && p.atrasada && <StatusChip label="atrasada" tone="amber" />}

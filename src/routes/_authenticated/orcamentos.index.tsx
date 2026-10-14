@@ -131,8 +131,12 @@ function OrcamentosPage() {
 
   const kpis = useMemo(() => {
     const lista = orcamentos as any[];
+    // Virou OS é ter `os_id`, não o status: a conversão comum deixa o
+    // orçamento "aprovado" (o portal e o painel do parceiro contam por ele),
+    // e os 6 convertidos em 13/10 entravam em "em aberto".
+    const viraramOs = lista.filter((o) => o.status === "convertido" || !!o.os_id);
     const abertos = lista.filter(
-      (o) => !["convertido", "rejeitado", "expirado"].includes(o.status),
+      (o) => !o.os_id && !["convertido", "rejeitado", "expirado"].includes(o.status),
     );
     const soma = (l: any[]) => l.reduce((a, o) => a + Number(o.valor_total ?? 0), 0);
     // Antes "Aguardando aprovação" contava enviado E aprovado: os 7 aprovados
@@ -146,7 +150,7 @@ function OrcamentosPage() {
       valorComCliente: soma(comCliente),
       aprovadosSemOs: aprovadosSemOs.length,
       valorAprovadosSemOs: soma(aprovadosSemOs),
-      convertidos: lista.filter((o) => o.status === "convertido").length,
+      convertidos: viraramOs.length,
       valorEmAberto: soma(abertos),
     };
   }, [orcamentos]);
@@ -198,8 +202,11 @@ function OrcamentosPage() {
     if (error) return toast.error(mensagemErro(error));
     const osId =
       typeof data === "object" && data && "os_id" in data ? String((data as any).os_id) : "";
-    toast.success(`OS criada${osId ? ` (${osId})` : ""}`);
     qc.invalidateQueries({ queryKey: ["orcamentos"] });
+    qc.invalidateQueries({ queryKey: ["kanban-os"] });
+    // O código interno da OS não diz nada a ninguém: abre a OS criada.
+    toast.success(`OS criada para o orçamento #${orc.numero}`, { description: "Abrindo a ordem de serviço." });
+    if (osId) navigate({ to: "/os/$id", params: { id: osId } });
   }
 
   return (
@@ -434,6 +441,13 @@ function OrcamentosPage() {
                     {podeConverter && o.status === "aprovado" && !o.os_id && (
                       <Button size="sm" onClick={() => converterEmOS(o)}>
                         Converter em OS <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    )}
+                    {o.os_id && (
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to="/os/$id" params={{ id: o.os_id }}>
+                          Ver a OS <ArrowRight className="h-3 w-3 ml-1" />
+                        </Link>
                       </Button>
                     )}
                   </TableCell>

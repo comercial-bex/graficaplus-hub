@@ -9,6 +9,13 @@ import {
   type Etapa,
 } from "@/domain/os/etapas";
 import { atrasado, paradaHa } from "@/domain/os/prazo";
+import {
+  fraseDoAviso,
+  passoDoMovimento,
+  rotuloDoMovimento,
+  ultimoMovimentoPorOs,
+  type MovimentoDaOs,
+} from "@/domain/os/movimentos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
@@ -197,7 +204,7 @@ function KanbanPage() {
       // A leitura vem de uma VIEW, e view não tem FK declarada — logo o embed do
       // PostgREST não funciona e estas relações chegavam sempre undefined.
       // Buscar em paralelo e agrupar por os_id resolve sem abrir mão das views.
-      const [arquivos, tarefas, itens, maquinas, pessoas] = await Promise.all([
+      const [arquivos, tarefas, itens, maquinas, pessoas, movimentos] = await Promise.all([
         supabase.from("arquivos").select("os_id").in("os_id", ids),
         supabase.from("os_tarefas").select("os_id, status, prazo").in("os_id", ids),
         // Os itens são o que a OS manda produzir. Faltavam no cartão, que
@@ -219,6 +226,12 @@ function KanbanPage() {
         // caminho — view não tem FK, então o embed do PostgREST não existe.
         supabase.from("maquinas").select("id, nome, tipo"),
         supabase.from("usuarios").select("id, nome, avatar_url"),
+        // Quem moveu e quando (decisão do dono, 13/10/2026: todos movem, e o
+        // cartão mostra o registro). Toda troca de status grava aqui.
+        supabase
+          .from("os_status_historico")
+          .select("os_id, status_anterior, status_novo, mudou_em, mudou_por")
+          .in("os_id", ids),
       ]);
 
       const agrupar = <T extends { os_id?: string | null }>(linhas: T[] | null) => {
@@ -245,6 +258,10 @@ function KanbanPage() {
         new Map((linhas ?? []).map((l) => [l.id, l]));
       const mapaMaquinas = porId(maquinas.data as { id: string }[] | null);
       const mapaPessoas = porId(pessoas.data as { id: string }[] | null);
+      const nomes = new Map(
+        ((pessoas.data ?? []) as { id: string; nome: string | null }[]).map((p) => [p.id, p.nome ?? ""]),
+      );
+      const ultimos = ultimoMovimentoPorOs(movimentos.data as MovimentoDaOs[] | null);
 
       return ordens.map((o) => ({
         ...o,
@@ -255,6 +272,17 @@ function KanbanPage() {
         responsavel: o.responsavel_id ? (mapaPessoas.get(o.responsavel_id as string) ?? null) : null,
         designer: o.designer_id ? (mapaPessoas.get(o.designer_id as string) ?? null) : null,
         operador: o.operador_id ? (mapaPessoas.get(o.operador_id as string) ?? null) : null,
+        ultimo_movimento: (() => {
+          const m = ultimos.get(o.id as string);
+          return m
+            ? {
+                ...m,
+                rotulo: rotuloDoMovimento(m, nomes),
+                passo: passoDoMovimento(m),
+                verbo: m.status_anterior ? "movida" : "aberta",
+              }
+            : null;
+        })(),
       }));
     },
   });
@@ -342,6 +370,10 @@ function KanbanPage() {
           .map((o) => Number(o.ordem_kanban) || 0),
       ) + 1;
 
+    // A hora do banco, não a do aparelho: o aviso que esta mudança enfileirar
+    // nasce depois dela (folga de 5 s para relógio adiantado).
+    const antes = new Date(Date.now() - 5000).toISOString();
+
     // A assinatura real é avancar_os_status(os_id, novo_status) — sem prefixo p_.
     const { error } = await (supabase.rpc as any)("avancar_os_status", {
       os_id: osId,
@@ -368,7 +400,22 @@ function KanbanPage() {
 
     qc.invalidateQueries({ queryKey: ["kanban-os"] });
     qc.invalidateQueries({ queryKey: ["kanban-bloqueios"] });
-    toast.success("Status atualizado");
+
+    // O cliente foi avisado? Antes a resposta era "Status atualizado" em todo
+    // caso — com aviso, sem aviso, sem telefone ou com o aviso engolido.
+    const { data: avisos, error: erroAviso } = await supabase
+      .from("notificacoes_fila")
+      .select("evento")
+      .eq("entidade", "ordem_servico")
+      .eq("entidade_id", osId)
+      .gte("created_at", antes)
+      .limit(1);
+    if (erroAviso) {
+      toast.success("Etapa atualizada");
+      return;
+    }
+    const frase = fraseDoAviso(novoStatus, (avisos?.[0]?.evento as string | undefined) ?? null);
+    toast.success(frase.titulo, { description: frase.descricao });
   }
 
   function onDragStart(e: DragStartEvent) {
