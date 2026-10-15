@@ -50,6 +50,9 @@ function daPessoa(papeis: string[], matriz: Matriz) {
 const temCatalogo = (papeis: string[], matriz: Matriz) =>
   papeis.some((p) => (matriz[p] ?? []).includes("catalogo.read"));
 
+const decideReembolso = (papeis: string[], matriz: Matriz) =>
+  papeis.some((p) => (matriz[p] ?? []).some((k) => k === "reembolsos.pay" || k === "reembolsos.approve"));
+
 /** O resumo no mesmo formato do script da proposta (arvore-nova.mjs). */
 function resumo(areas: AreaVisivel[], podeAbrir: (url: string) => boolean) {
   return {
@@ -225,7 +228,7 @@ describe("cada pessoa vê o que o dono aprovou (cenário B, calculado pelo scrip
         abas,
         atalhos,
         arvore,
-      } = menuAprovado(nome, temCatalogo(papeis, reserva));
+      } = menuAprovado(nome, temCatalogo(papeis, reserva), decideReembolso(papeis, reserva));
       expect(resumo(areas, podeAbrir)).toEqual({ areas: a, rotina, itens, abas, atalhos, arvore });
     });
   }
@@ -241,7 +244,7 @@ describe("cada pessoa vê o que o dono aprovou (cenário B, calculado pelo scrip
         abas,
         atalhos,
         arvore,
-      } = menuAprovado(nome, temCatalogo(papeis, banco));
+      } = menuAprovado(nome, temCatalogo(papeis, banco), decideReembolso(papeis, banco));
       if (nome !== "Yvens (gestor)") {
         expect(meu, nome).toEqual({ areas: a, rotina, itens, abas, atalhos, arvore });
         continue;

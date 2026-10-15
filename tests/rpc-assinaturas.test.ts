@@ -246,6 +246,17 @@ const ASSINATURAS: Record<string, string[]> = {
   definir_excecao_permissao: ["p_usuario_id", "p_permissao", "p_concede", "p_expira_em", "p_motivo"],
   remover_excecao_permissao: ["p_usuario_id", "p_permissao", "p_motivo"],
   permissoes_uso_no_banco: [],
+  // Migração 20261015140000 (reembolso), ensaiada no Postgres em 15/10/2026.
+  // Chamadas por src/components/reembolsos/* e src/routes/_authenticated/meus-reembolsos.tsx.
+  reembolso_semaforo: ["p_os_id", "p_valor", "p_ignorar"],
+  reembolso_pedir: [
+    "p_valor", "p_descricao", "p_data_compra", "p_categoria", "p_destino", "p_comprovante_path",
+    "p_os_id", "p_os_item_id", "p_fornecedor",
+  ],
+  reembolso_decidir: ["p_id", "p_aprovar", "p_motivo"],
+  reembolso_cancelar: ["p_id"],
+  // Migração 20261015150000: o nome de quem é da equipe (src/lib/api/equipe.ts).
+  nomes_da_equipe: ["p_ids"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */

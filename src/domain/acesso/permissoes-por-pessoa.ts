@@ -320,6 +320,7 @@ export const NOME_DO_MODULO: Record<string, string> = {
   parceiros: "Parceiros revendedores",
   portal: "Portal do cliente",
   precos: "Preço de venda",
+  reembolsos: "Reembolsos",
   resultado: "Custos de produção",
   whatsapp: "WhatsApp e automações",
 };

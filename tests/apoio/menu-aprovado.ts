@@ -24,9 +24,10 @@ export const PESSOAS: Record<string, string[]> = {
  * que entrou depois dele — "Catálogo de brindes" (era "Catálogos de fornecedores") em Vendas › Orçamentos,
  * logo depois de Aprovações do cliente, para quem tem catalogo.read.
  */
-export function menuAprovado(nome: string, temCatalogo: boolean): ResumoDoMenu {
+export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso = false): ResumoDoMenu {
   const b = structuredClone((cenarioB as unknown as Record<string, ResumoDoMenu>)[nome]);
   somarAbasDoWhatsapp(b);
+  if (decideReembolso) somarReembolsos(b);
   if (!temCatalogo) return b;
   const vendas = b.arvore.find((a) => a.area === "Vendas");
   const orcamentos = vendas?.subs.find((s) => s.sub === "Orçamentos");
@@ -40,6 +41,21 @@ export function menuAprovado(nome: string, temCatalogo: boolean): ResumoDoMenu {
   // Uma linha a mais só quando Vendas abre sozinha (rotina em até duas áreas).
   if (vendas.rotina && b.rotina.length <= 2) b.linhas += 1;
   return b;
+}
+
+/**
+ * "Reembolsos" (15/10/2026, pedido do dono): a mesa de quem decide, em
+ * Financeiro › Pagar e caixa, depois de Despesas fixas e contratos — para quem
+ * tem reembolsos.pay ou reembolsos.approve. O pedido de cada pessoa ("Meus
+ * reembolsos") fica no rodapé, fora da árvore: o operador não ganha área nova.
+ */
+function somarReembolsos(b: ResumoDoMenu): void {
+  const pagar = b.arvore
+    .find((a) => a.area === "Financeiro")
+    ?.subs.find((s) => s.sub === "Pagar e caixa");
+  if (!pagar) return;
+  pagar.itens.splice(pagar.itens.indexOf("Despesas fixas e contratos") + 1, 0, "Reembolsos");
+  b.itens += 1;
 }
 
 /**

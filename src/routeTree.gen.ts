@@ -52,6 +52,7 @@ import { Route as AuthenticatedMateriaisRouteImport } from './routes/_authentica
 import { Route as AuthenticatedMatrizPermissoesRouteImport } from './routes/_authenticated/matriz-permissoes'
 import { Route as AuthenticatedMetaRouteImport } from './routes/_authenticated/meta'
 import { Route as AuthenticatedMetragemRouteImport } from './routes/_authenticated/metragem'
+import { Route as AuthenticatedMeusReembolsosRouteImport } from './routes/_authenticated/meus-reembolsos'
 import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authenticated/movimentacoes'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedOndeParaRouteImport } from './routes/_authenticated/onde-para'
@@ -65,13 +66,14 @@ import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authent
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedProdutividade3dRouteImport } from './routes/_authenticated/produtividade-3d'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedReembolsosRouteImport } from './routes/_authenticated/reembolsos'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_authenticated/respostas-rapidas'
 import { Route as AuthenticatedTelasRouteImport } from './routes/_authenticated/telas'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
-import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappFilaHumanaRouteImport } from './routes/_authenticated/whatsapp-fila-humana'
+import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappVisaoGeralRouteImport } from './routes/_authenticated/whatsapp-visao-geral'
 import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as CatalogoTokenRouteImport } from './routes/catalogo.$token'
@@ -105,9 +107,9 @@ import { Route as ApiTvPainelRouteImport } from './routes/api.tv.painel'
 import { Route as ApiTvParearRouteImport } from './routes/api.tv.parear'
 import { Route as ApiTvPinRouteImport } from './routes/api.tv.pin'
 import { Route as ApiWhatsappAgenteRouteImport } from './routes/api.whatsapp.agente'
-import { Route as ApiWhatsappFotosRouteImport } from './routes/api.whatsapp.fotos'
 import { Route as ApiWhatsappDespacharRouteImport } from './routes/api.whatsapp.despachar'
 import { Route as ApiWhatsappEnviarRouteImport } from './routes/api.whatsapp.enviar'
+import { Route as ApiWhatsappFotosRouteImport } from './routes/api.whatsapp.fotos'
 import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
 import { Route as ParceiroOrcamentosIndexRouteImport } from './routes/parceiro.orcamentos.index'
 import { Route as ParceiroOrcamentosIdRouteImport } from './routes/parceiro.orcamentos.$id'
@@ -340,6 +342,12 @@ const AuthenticatedMetragemRoute = AuthenticatedMetragemRouteImport.update({
   path: '/metragem',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMeusReembolsosRoute =
+  AuthenticatedMeusReembolsosRouteImport.update({
+    id: '/meus-reembolsos',
+    path: '/meus-reembolsos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMovimentacoesRoute =
   AuthenticatedMovimentacoesRouteImport.update({
     id: '/movimentacoes',
@@ -412,6 +420,11 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReembolsosRoute = AuthenticatedReembolsosRouteImport.update({
+  id: '/reembolsos',
+  path: '/reembolsos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
@@ -438,16 +451,16 @@ const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   path: '/whatsapp',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedWhatsappMonitorRoute =
-  AuthenticatedWhatsappMonitorRouteImport.update({
-    id: '/whatsapp-monitor',
-    path: '/whatsapp-monitor',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedWhatsappFilaHumanaRoute =
   AuthenticatedWhatsappFilaHumanaRouteImport.update({
     id: '/whatsapp-fila-humana',
     path: '/whatsapp-fila-humana',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWhatsappMonitorRoute =
+  AuthenticatedWhatsappMonitorRouteImport.update({
+    id: '/whatsapp-monitor',
+    path: '/whatsapp-monitor',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedWhatsappVisaoGeralRoute =
@@ -624,11 +637,6 @@ const ApiWhatsappAgenteRoute = ApiWhatsappAgenteRouteImport.update({
   path: '/api/whatsapp/agente',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiWhatsappFotosRoute = ApiWhatsappFotosRouteImport.update({
-  id: '/api/whatsapp/fotos',
-  path: '/api/whatsapp/fotos',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiWhatsappDespacharRoute = ApiWhatsappDespacharRouteImport.update({
   id: '/api/whatsapp/despachar',
   path: '/api/whatsapp/despachar',
@@ -637,6 +645,11 @@ const ApiWhatsappDespacharRoute = ApiWhatsappDespacharRouteImport.update({
 const ApiWhatsappEnviarRoute = ApiWhatsappEnviarRouteImport.update({
   id: '/api/whatsapp/enviar',
   path: '/api/whatsapp/enviar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWhatsappFotosRoute = ApiWhatsappFotosRouteImport.update({
+  id: '/api/whatsapp/fotos',
+  path: '/api/whatsapp/fotos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWhatsappWebhookRoute = ApiWhatsappWebhookRouteImport.update({
@@ -698,6 +711,7 @@ export interface FileRoutesByFullPath {
   '/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
   '/meta': typeof AuthenticatedMetaRoute
   '/metragem': typeof AuthenticatedMetragemRoute
+  '/meus-reembolsos': typeof AuthenticatedMeusReembolsosRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/onde-para': typeof AuthenticatedOndeParaRoute
@@ -711,13 +725,14 @@ export interface FileRoutesByFullPath {
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
+  '/reembolsos': typeof AuthenticatedReembolsosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
-  '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
+  '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
@@ -747,9 +762,9 @@ export interface FileRoutesByFullPath {
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
-  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
+  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/catalogos/': typeof AuthenticatedCatalogosIndexRoute
@@ -800,6 +815,7 @@ export interface FileRoutesByTo {
   '/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
   '/meta': typeof AuthenticatedMetaRoute
   '/metragem': typeof AuthenticatedMetragemRoute
+  '/meus-reembolsos': typeof AuthenticatedMeusReembolsosRoute
   '/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/onde-para': typeof AuthenticatedOndeParaRoute
@@ -813,13 +829,14 @@ export interface FileRoutesByTo {
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
+  '/reembolsos': typeof AuthenticatedReembolsosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
-  '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
+  '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
@@ -849,9 +866,9 @@ export interface FileRoutesByTo {
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
-  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
+  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/catalogos': typeof AuthenticatedCatalogosIndexRoute
@@ -905,6 +922,7 @@ export interface FileRoutesById {
   '/_authenticated/matriz-permissoes': typeof AuthenticatedMatrizPermissoesRoute
   '/_authenticated/meta': typeof AuthenticatedMetaRoute
   '/_authenticated/metragem': typeof AuthenticatedMetragemRoute
+  '/_authenticated/meus-reembolsos': typeof AuthenticatedMeusReembolsosRoute
   '/_authenticated/movimentacoes': typeof AuthenticatedMovimentacoesRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/onde-para': typeof AuthenticatedOndeParaRoute
@@ -918,13 +936,14 @@ export interface FileRoutesById {
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
   '/_authenticated/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
+  '/_authenticated/reembolsos': typeof AuthenticatedReembolsosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
   '/_authenticated/telas': typeof AuthenticatedTelasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
-  '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/_authenticated/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
+  '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/_authenticated/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
@@ -954,9 +973,9 @@ export interface FileRoutesById {
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
-  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
+  '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
   '/_authenticated/catalogos/': typeof AuthenticatedCatalogosIndexRoute
@@ -1010,6 +1029,7 @@ export interface FileRouteTypes {
     | '/matriz-permissoes'
     | '/meta'
     | '/metragem'
+    | '/meus-reembolsos'
     | '/movimentacoes'
     | '/ocorrencias'
     | '/onde-para'
@@ -1023,13 +1043,14 @@ export interface FileRouteTypes {
     | '/producao-3d'
     | '/produtividade-3d'
     | '/produtos'
+    | '/reembolsos'
     | '/relatorios'
     | '/respostas-rapidas'
     | '/telas'
     | '/usuarios'
     | '/whatsapp'
-    | '/whatsapp-monitor'
     | '/whatsapp-fila-humana'
+    | '/whatsapp-monitor'
     | '/whatsapp-visao-geral'
     | '/aprovar/$token'
     | '/catalogo/$token'
@@ -1059,9 +1080,9 @@ export interface FileRouteTypes {
     | '/api/tv/parear'
     | '/api/tv/pin'
     | '/api/whatsapp/agente'
-    | '/api/whatsapp/fotos'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
+    | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
     | '/catalogos/'
@@ -1112,6 +1133,7 @@ export interface FileRouteTypes {
     | '/matriz-permissoes'
     | '/meta'
     | '/metragem'
+    | '/meus-reembolsos'
     | '/movimentacoes'
     | '/ocorrencias'
     | '/onde-para'
@@ -1125,13 +1147,14 @@ export interface FileRouteTypes {
     | '/producao-3d'
     | '/produtividade-3d'
     | '/produtos'
+    | '/reembolsos'
     | '/relatorios'
     | '/respostas-rapidas'
     | '/telas'
     | '/usuarios'
     | '/whatsapp'
-    | '/whatsapp-monitor'
     | '/whatsapp-fila-humana'
+    | '/whatsapp-monitor'
     | '/whatsapp-visao-geral'
     | '/aprovar/$token'
     | '/catalogo/$token'
@@ -1161,9 +1184,9 @@ export interface FileRouteTypes {
     | '/api/tv/parear'
     | '/api/tv/pin'
     | '/api/whatsapp/agente'
-    | '/api/whatsapp/fotos'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
+    | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
     | '/catalogos'
@@ -1216,6 +1239,7 @@ export interface FileRouteTypes {
     | '/_authenticated/matriz-permissoes'
     | '/_authenticated/meta'
     | '/_authenticated/metragem'
+    | '/_authenticated/meus-reembolsos'
     | '/_authenticated/movimentacoes'
     | '/_authenticated/ocorrencias'
     | '/_authenticated/onde-para'
@@ -1229,13 +1253,14 @@ export interface FileRouteTypes {
     | '/_authenticated/producao-3d'
     | '/_authenticated/produtividade-3d'
     | '/_authenticated/produtos'
+    | '/_authenticated/reembolsos'
     | '/_authenticated/relatorios'
     | '/_authenticated/respostas-rapidas'
     | '/_authenticated/telas'
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
-    | '/_authenticated/whatsapp-monitor'
     | '/_authenticated/whatsapp-fila-humana'
+    | '/_authenticated/whatsapp-monitor'
     | '/_authenticated/whatsapp-visao-geral'
     | '/aprovar/$token'
     | '/catalogo/$token'
@@ -1265,9 +1290,9 @@ export interface FileRouteTypes {
     | '/api/tv/parear'
     | '/api/tv/pin'
     | '/api/whatsapp/agente'
-    | '/api/whatsapp/fotos'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
+    | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
     | '/_authenticated/catalogos/'
@@ -1303,9 +1328,9 @@ export interface RootRouteChildren {
   ApiTvParearRoute: typeof ApiTvParearRoute
   ApiTvPinRoute: typeof ApiTvPinRoute
   ApiWhatsappAgenteRoute: typeof ApiWhatsappAgenteRoute
-  ApiWhatsappFotosRoute: typeof ApiWhatsappFotosRoute
   ApiWhatsappDespacharRoute: typeof ApiWhatsappDespacharRoute
   ApiWhatsappEnviarRoute: typeof ApiWhatsappEnviarRoute
+  ApiWhatsappFotosRoute: typeof ApiWhatsappFotosRoute
   ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
 }
 
@@ -1612,6 +1637,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMetragemRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/meus-reembolsos': {
+      id: '/_authenticated/meus-reembolsos'
+      path: '/meus-reembolsos'
+      fullPath: '/meus-reembolsos'
+      preLoaderRoute: typeof AuthenticatedMeusReembolsosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/movimentacoes': {
       id: '/_authenticated/movimentacoes'
       path: '/movimentacoes'
@@ -1703,6 +1735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reembolsos': {
+      id: '/_authenticated/reembolsos'
+      path: '/reembolsos'
+      fullPath: '/reembolsos'
+      preLoaderRoute: typeof AuthenticatedReembolsosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/relatorios': {
       id: '/_authenticated/relatorios'
       path: '/relatorios'
@@ -1738,18 +1777,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/whatsapp-monitor': {
-      id: '/_authenticated/whatsapp-monitor'
-      path: '/whatsapp-monitor'
-      fullPath: '/whatsapp-monitor'
-      preLoaderRoute: typeof AuthenticatedWhatsappMonitorRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/whatsapp-fila-humana': {
       id: '/_authenticated/whatsapp-fila-humana'
       path: '/whatsapp-fila-humana'
       fullPath: '/whatsapp-fila-humana'
       preLoaderRoute: typeof AuthenticatedWhatsappFilaHumanaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp-monitor': {
+      id: '/_authenticated/whatsapp-monitor'
+      path: '/whatsapp-monitor'
+      fullPath: '/whatsapp-monitor'
+      preLoaderRoute: typeof AuthenticatedWhatsappMonitorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/whatsapp-visao-geral': {
@@ -1983,13 +2022,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWhatsappAgenteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/whatsapp/fotos': {
-      id: '/api/whatsapp/fotos'
-      path: '/api/whatsapp/fotos'
-      fullPath: '/api/whatsapp/fotos'
-      preLoaderRoute: typeof ApiWhatsappFotosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/whatsapp/despachar': {
       id: '/api/whatsapp/despachar'
       path: '/api/whatsapp/despachar'
@@ -2002,6 +2034,13 @@ declare module '@tanstack/react-router' {
       path: '/api/whatsapp/enviar'
       fullPath: '/api/whatsapp/enviar'
       preLoaderRoute: typeof ApiWhatsappEnviarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/whatsapp/fotos': {
+      id: '/api/whatsapp/fotos'
+      path: '/api/whatsapp/fotos'
+      fullPath: '/api/whatsapp/fotos'
+      preLoaderRoute: typeof ApiWhatsappFotosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/whatsapp/webhook': {
@@ -2065,6 +2104,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMatrizPermissoesRoute: typeof AuthenticatedMatrizPermissoesRoute
   AuthenticatedMetaRoute: typeof AuthenticatedMetaRoute
   AuthenticatedMetragemRoute: typeof AuthenticatedMetragemRoute
+  AuthenticatedMeusReembolsosRoute: typeof AuthenticatedMeusReembolsosRoute
   AuthenticatedMovimentacoesRoute: typeof AuthenticatedMovimentacoesRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedOndeParaRoute: typeof AuthenticatedOndeParaRoute
@@ -2078,13 +2118,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
   AuthenticatedProdutividade3dRoute: typeof AuthenticatedProdutividade3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
+  AuthenticatedReembolsosRoute: typeof AuthenticatedReembolsosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRespostasRapidasRoute: typeof AuthenticatedRespostasRapidasRoute
   AuthenticatedTelasRoute: typeof AuthenticatedTelasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
-  AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
   AuthenticatedWhatsappFilaHumanaRoute: typeof AuthenticatedWhatsappFilaHumanaRoute
+  AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
   AuthenticatedWhatsappVisaoGeralRoute: typeof AuthenticatedWhatsappVisaoGeralRoute
   AuthenticatedCatalogosIdRoute: typeof AuthenticatedCatalogosIdRoute
   AuthenticatedCatalogosGerenciarRoute: typeof AuthenticatedCatalogosGerenciarRoute
@@ -2137,6 +2178,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMatrizPermissoesRoute: AuthenticatedMatrizPermissoesRoute,
   AuthenticatedMetaRoute: AuthenticatedMetaRoute,
   AuthenticatedMetragemRoute: AuthenticatedMetragemRoute,
+  AuthenticatedMeusReembolsosRoute: AuthenticatedMeusReembolsosRoute,
   AuthenticatedMovimentacoesRoute: AuthenticatedMovimentacoesRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedOndeParaRoute: AuthenticatedOndeParaRoute,
@@ -2150,13 +2192,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
   AuthenticatedProdutividade3dRoute: AuthenticatedProdutividade3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
+  AuthenticatedReembolsosRoute: AuthenticatedReembolsosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRespostasRapidasRoute: AuthenticatedRespostasRapidasRoute,
   AuthenticatedTelasRoute: AuthenticatedTelasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
-  AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
   AuthenticatedWhatsappFilaHumanaRoute: AuthenticatedWhatsappFilaHumanaRoute,
+  AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
   AuthenticatedWhatsappVisaoGeralRoute: AuthenticatedWhatsappVisaoGeralRoute,
   AuthenticatedCatalogosIdRoute: AuthenticatedCatalogosIdRoute,
   AuthenticatedCatalogosGerenciarRoute: AuthenticatedCatalogosGerenciarRoute,
@@ -2220,9 +2263,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTvParearRoute: ApiTvParearRoute,
   ApiTvPinRoute: ApiTvPinRoute,
   ApiWhatsappAgenteRoute: ApiWhatsappAgenteRoute,
-  ApiWhatsappFotosRoute: ApiWhatsappFotosRoute,
   ApiWhatsappDespacharRoute: ApiWhatsappDespacharRoute,
   ApiWhatsappEnviarRoute: ApiWhatsappEnviarRoute,
+  ApiWhatsappFotosRoute: ApiWhatsappFotosRoute,
   ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport

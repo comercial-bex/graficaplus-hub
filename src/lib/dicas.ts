@@ -114,6 +114,14 @@ export const dicas = {
     menu: "Custos reais usados para formar preços, margens e previsões.",
     tela: "Edite os custos-base da gráfica em um só lugar. Alterações afetam os próximos cálculos de orçamento e simulação; trabalhos já fechados preservam os valores registrados neles.",
   },
+  "/reembolsos": {
+    menu: "Compras da equipe com o próprio dinheiro: aprovar, pagar na sexta e ver o que cada produto gasta por fora.",
+    tela: "Cada pedido vem com a foto do cupom e a OS para a qual foi a compra. O semáforo mostra a margem da OS antes e depois: verde o financeiro aprova; amarelo (abaixo de 20% ou OS sem custo) e vermelho (prejuízo) a gerência decide. O aprovado vira custo real da OS e entra na conta a pagar da sexta de cada pessoa; pagar a conta em Caixa e contas a pagar marca os reembolsos como pagos.",
+  },
+  "/meus-reembolsos": {
+    menu: "Comprou algo para a gráfica com o seu dinheiro? Peça o reembolso com a foto do cupom.",
+    tela: "Diga o que comprou, para qual OS (ou se foi despesa da empresa) e mande a foto do cupom ou da nota — sem foto não há reembolso. O aprovado é pago na sexta. Enquanto ninguém decidiu, você pode cancelar o pedido.",
+  },
   "/compromissos": {
     menu: "Contas e obrigações futuras que entram na previsão do caixa.",
     tela: "Registre pagamentos previstos, recorrências e vencimentos. Eles entram no saldo projetado; o saldo real só muda quando o pagamento é efetivamente lançado.",

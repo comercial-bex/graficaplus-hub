@@ -80,6 +80,9 @@ const aprovado = (nome: string, matriz: Matriz) =>
   menuAprovado(
     nome,
     PESSOAS[nome].some((p) => (matriz[p] ?? []).includes("catalogo.read")),
+    PESSOAS[nome].some((p) =>
+      (matriz[p] ?? []).some((k) => k === "reembolsos.pay" || k === "reembolsos.approve"),
+    ),
   );
 
 const ID_DA_AREA: Record<string, string> = {

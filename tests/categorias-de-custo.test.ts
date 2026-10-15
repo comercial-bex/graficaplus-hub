@@ -69,6 +69,21 @@ function categoriasCitadas(texto: string): { valor: string; contexto: string }[]
   return achados;
 }
 
+/**
+ * Categorias de OUTRAS tabelas que caem na janela de texto de
+ * `custos_operacionais_os` — conferidas uma a uma, com o motivo. Só vale para
+ * o arquivo e o trecho exatos: nada de liberar o arquivo inteiro.
+ */
+const DE_OUTRA_TABELA = new Set([
+  // Reembolso (15/10/2026): o pedido tem categorias próprias — "embalagem" vira
+  // "material" quando o aprovado entra como custo (CASE em reembolso_decidir) —,
+  // a despesa da empresa é `despesa_geral` e nunca vira custo de OS, e a conta
+  // da sexta é de contas_pagar (categoria 'reembolso').
+  "supabase/migrations/20261015140000_reembolsos.sql: categoria = 'despesa_geral'",
+  "supabase/migrations/20261015140000_reembolsos.sql: categoria IN ('material', 'embalagem', 'acabamento', 'logistica', 'terceiros', '",
+  "supabase/migrations/20261015140000_reembolsos.sql: categoria = 'reembolso'",
+]);
+
 describe("categorias de custo operacional", () => {
   it("a lista do código tem as categorias que o sistema usa", () => {
     // Se o banco ganhar uma categoria, esta lista precisa acompanhar — senão o
@@ -87,6 +102,7 @@ describe("categorias de custo operacional", () => {
           // A própria linha que DEFINE a trava lista os valores válidos; e o
           // comentário que explica o erro cita o nome errado de propósito.
           if (/check\s*\(|array\[|--/.test(contexto)) continue;
+          if (DE_OUTRA_TABELA.has(`${caminho}: ${contexto}`)) continue;
           invalidas.push(`${caminho}: ${contexto}`);
         }
       }
