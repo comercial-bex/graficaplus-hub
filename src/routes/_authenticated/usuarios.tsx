@@ -632,6 +632,7 @@ function UsuariosPage() {
               <div className="flex items-center gap-3 sm:col-span-2">
                 <Switch
                   checked={form.ativo}
+                  disabled={!!form.id && form.id === user?.id}
                   onCheckedChange={(v) => setForm({ ...form, ativo: v })}
                 />
                 <span className="text-sm text-muted-foreground">
