@@ -19,6 +19,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { nomesDaEquipe } from "@/lib/api/equipe";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -271,9 +272,21 @@ function KanbanPage() {
         new Map((linhas ?? []).map((l) => [l.id, l]));
       const mapaMaquinas = porId(maquinas.data as { id: string }[] | null);
       const mapaPessoas = porId(pessoas.data as { id: string }[] | null);
+      // O nome de quem moveu vem de nomes_da_equipe: `usuarios` só mostra a
+      // própria linha a quem não é admin nem gestor, e o cartão dizia "movida
+      // por Equipe" para o resto do time. Se a função falhar, fica o que
+      // `usuarios` deu — o cartão perde o nome, não o quadro.
       const nomes = new Map(
         ((pessoas.data ?? []) as { id: string; nome: string | null }[]).map((p) => [p.id, p.nome ?? ""]),
       );
+      try {
+        const daEquipe = await nomesDaEquipe(
+          ((movimentos.data ?? []) as { mudou_por: string | null }[]).map((m) => m.mudou_por),
+        );
+        for (const [id, nome] of daEquipe) nomes.set(id, nome);
+      } catch {
+        // segue com os nomes de `usuarios`
+      }
       const ultimos = ultimoMovimentoPorOs(movimentos.data as MovimentoDaOs[] | null);
 
       return ordens.map((o) => ({

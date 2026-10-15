@@ -490,11 +490,17 @@ describe("tela: os botões de lançar e dar baixa ficam atrás da chave", () => 
 describe("reserva estática do gestor = banco", () => {
   // perfil_permissoes em 06/10/2026: 71 chaves para o gestor (as 69 da Fase 0
   // + catalogo.read e catalogo.manage). A reserva só vale quando a matriz não
-  // carrega, mas não pode prometer o que o banco nega.
-  it("71 chaves, vê o financeiro e não tem nenhuma de pagamento", () => {
+  // carrega, mas não pode prometer o que o banco nega. Em 15/10/2026 a
+  // migração 20261015140000 deu ao gestor reembolsos.request e
+  // reembolsos.approve (a gerência decide o reembolso que aperta a margem): 73.
+  // Nenhuma das duas é chave de pagamento — pagar a conta da sexta segue com o
+  // financeiro.
+  it("73 chaves, vê o financeiro e não tem nenhuma de pagamento", () => {
     const gestor = rolePermissions.gestor as readonly string[];
-    expect(gestor).toHaveLength(71);
-    expect(new Set(gestor).size).toBe(71);
+    expect(gestor).toHaveLength(73);
+    expect(new Set(gestor).size).toBe(73);
+    expect(gestor).toContain("reembolsos.approve");
+    expect(gestor).not.toContain("reembolsos.pay");
     expect(gestor).toContain("financeiro.read");
     expect(gestor).toContain("financeiro.sensitive.read");
     expect(gestor).toContain("catalogo.read");

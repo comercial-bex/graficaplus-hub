@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Download, House, LogOut, Search, UserRound, X } from "lucide-react";
+import { Download, HandCoins, House, LogOut, Search, UserRound, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Sidebar, useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -107,6 +107,8 @@ export type PropsDoMenuLateral = {
   contagens: Partial<Record<ContagemDoMenu, ValorDaContagem>>;
   aoEscolherNaBusca: (url: string) => void;
   aoSair: () => void;
+  /** A pessoa pede reembolso (reembolsos.request): "Meus reembolsos" no rodapé. */
+  meusReembolsos?: boolean;
 };
 
 /**
@@ -133,6 +135,7 @@ export function MenuLateral({
   contagens,
   aoEscolherNaBusca,
   aoSair,
+  meusReembolsos = false,
 }: PropsDoMenuLateral) {
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const recolhido = state === "collapsed" && !isMobile;
@@ -510,6 +513,20 @@ export function MenuLateral({
                 <UserRound className="h-4 w-4" aria-hidden="true" />
                 <span>Meu perfil</span>
               </Link>
+              {/* Pedido de reembolso é de cada pessoa, como o perfil: no rodapé,
+                  e não numa área Financeiro que o operador não tem (15/10/2026). */}
+              {meusReembolsos && (
+                <Link
+                  to="/meus-reembolsos"
+                  onClick={fecharNoCelular}
+                  data-meus-reembolsos=""
+                  data-active={estaNaRota(pathname, "/meus-reembolsos")}
+                  className={cn(linhaDoRodape, "data-[active=true]:text-[var(--sidebar-marca)]")}
+                >
+                  <HandCoins className="h-4 w-4" aria-hidden="true" />
+                  <span>Meus reembolsos</span>
+                </Link>
+              )}
               {mostrarInstalar && (
                 <button
                   type="button"

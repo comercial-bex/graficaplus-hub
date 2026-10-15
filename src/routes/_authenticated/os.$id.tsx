@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal, CalendarClock } from "lucide-react";
+import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal, CalendarClock, HandCoins } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +53,8 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Clock, Package, Factory as FactoryIcon, DollarSign, AlertTriangle } from "lucide-react";
 import { mensagemErro } from "@/lib/erros";
+import { nomesDaEquipe } from "@/lib/api/equipe";
+import { ReembolsosDaOS } from "@/components/reembolsos/da-os";
 import { atrasado, formatarData } from "@/domain/os/prazo";
 import { passoDoMovimento, rotuloDoMovimento, type MovimentoDaOs } from "@/domain/os/movimentos";
 import {
@@ -92,6 +94,7 @@ function OSDetailPage() {
   // Quem não tem nem um nem outro não vê o botão — botão que só dá 42501 é
   // botão morto.
   const podeAgendar = hasPermission("kanban.move") || hasPermission("os.update");
+  const podePedirReembolso = hasPermission("reembolsos.request");
   const [agendando, setAgendando] = useState(false);
   const [agendamento, setAgendamento] = useState<ResultadoAgendamento | null>(null);
   // A RPC insere as reservas sem olhar o que já existe: clicar de novo agenda
@@ -287,6 +290,16 @@ function OSDetailPage() {
               <PackageMinus className="h-4 w-4 mr-1" />
               {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
             </Button>
+            {/* Comprou algo para esta OS com o próprio dinheiro: o pedido abre com a OS
+                escolhida (15/10/2026). Toda a equipe pede; quem decide é o financeiro
+                ou a gerência, pelo semáforo da margem. */}
+            {podePedirReembolso && (
+              <Button variant="outline" className="hidden md:inline-flex" asChild>
+                <Link to="/meus-reembolsos" search={{ os: id }}>
+                  <HandCoins className="h-4 w-4 mr-1" /> Pedir reembolso
+                </Link>
+              </Button>
+            )}
             {/* Celular: os secundários vão para o menu "Mais", com os MESMOS gates dos botões acima. */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -323,6 +336,13 @@ function OSDetailPage() {
                   <PackageMinus className="h-4 w-4 mr-2" />
                   {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
                 </DropdownMenuItem>
+                {podePedirReembolso && (
+                  <DropdownMenuItem className="py-3" asChild>
+                    <Link to="/meus-reembolsos" search={{ os: id }}>
+                      <HandCoins className="h-4 w-4 mr-2" /> Pedir reembolso
+                    </Link>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -1192,14 +1212,11 @@ function HistoricoTab({ osId }: { osId: string }) {
         .eq("os_id", osId)
         .order("mudou_em", { ascending: false });
       if (erroMov) throw erroMov;
-      const ids = [...new Set((movimentos ?? []).map((m) => m.mudou_por).filter(Boolean))] as string[];
-      const { data: pessoas, error: erroPessoas } = ids.length
-        ? await supabase.from("usuarios").select("id, nome").in("id", ids)
-        : { data: [], error: null };
-      if (erroPessoas) throw erroPessoas;
+      // nomes_da_equipe, não `usuarios`: a tabela só mostra a própria linha a
+      // quem não é admin nem gestor, e o histórico dizia "por Equipe".
       return {
         movimentos: (movimentos ?? []) as (MovimentoDaOs & { id: string })[],
-        nomes: new Map((pessoas ?? []).map((p) => [p.id, p.nome ?? ""])),
+        nomes: await nomesDaEquipe((movimentos ?? []).map((m) => m.mudou_por)),
       };
     },
   });
@@ -1485,6 +1502,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
         </CardContent>
         </Card>
       </div>
+      <ReembolsosDaOS osId={osId} />
     </div>
   );
 }

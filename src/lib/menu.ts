@@ -14,6 +14,7 @@ import {
   FileCheck2,
   FileText,
   Funnel,
+  HandCoins,
   Handshake,
   HeartHandshake,
   History,
@@ -323,6 +324,9 @@ export const AREAS: AreaDoMenu[] = [
           item("Despesas fixas e contratos", "/compromissos", Repeat, [], {
             antes: "Compromissos",
           }),
+          // 15/10/2026: a mesa de quem decide (financeiro e gerência). O pedido
+          // de cada pessoa é "Meus reembolsos", no rodapé — ver FORA_DO_MENU.
+          item("Reembolsos", "/reembolsos", HandCoins),
         ],
       },
       {
@@ -399,6 +403,11 @@ export const FORA_DO_MENU: Record<string, { titulo: string; motivo: string }> = 
   "/orcamento-3d": {
     titulo: "Orçamento 3D",
     motivo: "detalhe de orçamento 3D, aberto pela lista de Impressão 3D",
+  },
+  "/meus-reembolsos": {
+    titulo: "Meus reembolsos",
+    motivo:
+      "é de cada pessoa da equipe: fica no rodapé do menu, ao lado de Meu perfil, e no botão Pedir reembolso da OS — na árvore, daria ao operador uma área Financeiro inteira por um item",
   },
 };
 
@@ -662,6 +671,16 @@ export function paginasDaBusca(
       grupo: "Geral",
       onde: "Impressão 3D",
       palavras: ["Novo orçamento 3D", "Impressão 3D", "calculadora 3D", slug("/orcamento-3d-novo")],
+    });
+  }
+  if (podeAbrir("/meus-reembolsos")) {
+    paginas.push({
+      titulo: FORA_DO_MENU["/meus-reembolsos"].titulo,
+      url: "/meus-reembolsos",
+      icon: HandCoins,
+      grupo: "Geral",
+      onde: "",
+      palavras: ["Meus reembolsos", "reembolso", "comprei", "cupom", "nota", slug("/meus-reembolsos")],
     });
   }
   if (podeAbrir("/configuracoes")) {

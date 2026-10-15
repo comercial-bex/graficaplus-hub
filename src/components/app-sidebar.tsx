@@ -52,6 +52,7 @@ export function AppSidebar() {
       contagens={contagens}
       aoEscolherNaBusca={(url) => navigate({ to: url })}
       aoSair={() => signOut()}
+      meusReembolsos={podeAbrir("/meus-reembolsos")}
     />
   );
 }
