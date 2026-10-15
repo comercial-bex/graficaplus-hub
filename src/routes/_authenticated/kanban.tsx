@@ -28,6 +28,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -134,6 +145,8 @@ function KanbanPage() {
   // leitura segue o nível de visão, não o flag de financeiro.
   const { canSeePrices, canSeeFinancials, nivelDeVisao } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
+  const [cancelando, setCancelando] = useState<{ id: string; numero: number | null } | null>(null);
+  const [motivoDoCancelamento, setMotivoDoCancelamento] = useState("");
   const [fichaId, setFichaId] = useState<string | null>(null);
 
   // Mouse e toque têm regras diferentes de propósito. No mouse, 5px de
@@ -361,7 +374,7 @@ function KanbanPage() {
     [os, fichaId],
   );
 
-  async function mover(osId: string, novoStatus: string) {
+  async function mover(osId: string, novoStatus: string): Promise<boolean> {
     const novaOrdem =
       Math.max(
         -1,
@@ -388,7 +401,7 @@ function KanbanPage() {
         description: travas ?? undefined,
       });
       qc.invalidateQueries({ queryKey: ["kanban-os"] });
-      return;
+      return false;
     }
 
     // A própria RPC grava o log de auditoria. ordem_kanban não é tocada por ela.
@@ -412,10 +425,11 @@ function KanbanPage() {
       .limit(1);
     if (erroAviso) {
       toast.success("Etapa atualizada");
-      return;
+      return true;
     }
     const frase = fraseDoAviso(novoStatus, (avisos?.[0]?.evento as string | undefined) ?? null);
     toast.success(frase.titulo, { description: frase.descricao });
+    return true;
   }
 
   function onDragStart(e: DragStartEvent) {
@@ -663,8 +677,60 @@ function KanbanPage() {
         canSeePrices={canSeePrices}
         aberto={fichaId !== null}
         onFechar={() => setFichaId(null)}
-        onMudarStatus={(osId, novo) => mover(osId, novo)}
+        onMudarStatus={(osId, novo) => {
+          // Cancelar tira a OS do quadro: um toque no seletor não basta.
+          if (novo === "cancelado") {
+            const alvo = (os as any[]).find((o) => o.id === osId);
+            setCancelando({ id: osId, numero: alvo?.numero ?? null });
+            setMotivoDoCancelamento("");
+            return;
+          }
+          void mover(osId, novo);
+        }}
       />
+
+      <AlertDialog open={!!cancelando} onOpenChange={(aberto) => !aberto && setCancelando(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar a OS #{cancelando?.numero ?? ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A OS sai do quadro e o cliente não recebe aviso. A conta a receber dela continua aberta:
+              trate-a em Contas a receber.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            aria-label="Motivo do cancelamento"
+            placeholder="Motivo (ex.: cliente desistiu, pedido em duplicidade)"
+            value={motivoDoCancelamento}
+            onChange={(e) => setMotivoDoCancelamento(e.target.value)}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={motivoDoCancelamento.trim().length < 5}
+              onClick={async () => {
+                if (!cancelando) return;
+                const { id: alvoId } = cancelando;
+                const motivo = motivoDoCancelamento.trim();
+                setCancelando(null);
+                const cancelou = await mover(alvoId, "cancelado");
+                if (cancelou) {
+                  // O motivo fica no rastro da OS (quem e quando já estão no histórico de status).
+                  const { error: erroLog } = await supabase.from("logs_auditoria").insert({
+                    entidade: "ordens_servico",
+                    entidade_id: alvoId,
+                    acao: "cancelamento",
+                    detalhes: { motivo },
+                  });
+                  if (erroLog) toast.warning("OS cancelada, mas o motivo não foi registrado.");
+                }
+              }}
+            >
+              Cancelar a OS
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
