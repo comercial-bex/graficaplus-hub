@@ -60,6 +60,28 @@ async function assertAdmin(context: AdminContext) {
 type ClienteDeServico = Awaited<ReturnType<typeof assertAdmin>>;
 
 /**
+ * O login acompanha o cadastro: conta inativa fica banida no Auth, ativa fica
+ * liberada. Vale para o interruptor da lista (`definirAtivo`) e para o
+ * formulário de edição (`atualizarUsuario`) — pelo formulário, "inativo" sem
+ * banir deixava a pessoa entrar e, com o JWT dela, se reativar.
+ *
+ * Só depois de o cadastro mudar: banir antes e a RLS recusar em silêncio
+ * deixaria o login bloqueado com o cadastro dizendo "ativo".
+ */
+async function loginAcompanhaCadastro(admin: ClienteDeServico, id: string, ativo: boolean) {
+  const { error } = await admin.auth.admin.updateUserById(id, {
+    ban_duration: ativo ? "none" : "876000h",
+  } as never);
+  if (error) {
+    throw new Error(
+      ativo
+        ? `O cadastro foi reativado, mas o login continua bloqueado: ${error.message}. Tente de novo.`
+        : `O cadastro foi inativado, mas o login não foi bloqueado: ${error.message}. Tente de novo.`,
+    );
+  }
+}
+
+/**
  * Excluir a conta é pelo Auth: o banco apaga `usuarios` e `user_roles` em
  * cascata dentro da transação do Auth, onde não há JWT, e o gatilho grava essas
  * linhas com autor nulo. O JWT do admin não chega lá, então o autor é preenchido
@@ -221,10 +243,13 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const ctx = context as unknown as AdminContext;
     const admin = await assertAdmin(ctx);
+    if (data.id === ctx.userId && !data.ativo) {
+      throw new Error("Você não pode inativar a própria conta.");
+    }
 
     const { data: atual } = await ctx.supabase
       .from("usuarios")
-      .select("email")
+      .select("email, ativo")
       .eq("id", data.id)
       .single();
 
@@ -250,6 +275,8 @@ export const atualizarUsuario = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     // Com o JWT da pessoa, a RLS recusa em silêncio: zero linhas e nenhum erro.
     if (!alteradas?.length) throw new Error("O cadastro não foi alterado. Recarregue a lista.");
+    // Sem o estado anterior, alinha assim mesmo: o login fica igual ao cadastro.
+    if (atual?.ativo !== data.ativo) await loginAcompanhaCadastro(admin, data.id, data.ativo);
 
     return { ok: true };
   });
@@ -272,10 +299,7 @@ export const definirAtivo = createServerFn({ method: "POST" })
     // Zero linhas = a RLS recusou em silêncio. Banir assim mesmo deixaria o
     // login bloqueado com o cadastro dizendo "ativo".
     if (!alteradas?.length) throw new Error("A conta não foi alterada. Recarregue a lista.");
-    // Bloqueia/libera o login banindo temporariamente a conta.
-    await admin.auth.admin.updateUserById(data.id, {
-      ban_duration: data.ativo ? "none" : "876000h",
-    } as never);
+    await loginAcompanhaCadastro(admin, data.id, data.ativo);
     return { ok: true };
   });
 
