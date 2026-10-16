@@ -164,17 +164,16 @@ function arquivosFonte(dir: string, acc: string[] = []): string[] {
 
 describe("a tela", () => {
   const telaDaOS = readFileSync(join(RAIZ, "src/routes/_authenticated/os.$id.tsx"), "utf8");
+  const abaItens = readFileSync(join(RAIZ, "src/components/os/itens-da-os.tsx"), "utf8");
 
   it("a aba Itens da OS só mostra incluir/apagar a quem a regra deixa gravar", () => {
-    expect(telaDaOS).toContain(
-      'podeEditarItens={hasPermission("kanban.move") || hasPermission("orcamentos.create")}',
-    );
-    expect(telaDaOS).toMatch(/\{podeEditarItens && \(\s*<>\s*<div className="flex justify-end">\s*<ProdutoAutocomplete/);
-    expect(telaDaOS).toMatch(/\{podeEditarItens && \(\s*<Button variant="ghost" size="icon" onClick=\{\(\) => remove\(i\.id\)\}>/);
+    // Quais chaves abrem e o que some da tela estão provados, desenhando a aba
+    // de verdade, em itens-da-os-tela.test.ts; aqui, que a rota liga os dois.
+    expect(telaDaOS).toContain("podeEditarItens={podeEditarItensDaOS(hasPermission)}");
   });
 
   it("apagar item confere o erro e as linhas apagadas (a regra recusa em silêncio)", () => {
-    const remove = /async function remove\(id: string\) \{([\s\S]*?)\n  \}/.exec(telaDaOS)?.[1] ?? "";
+    const remove = /async function remove\(id: string\) \{([\s\S]*?)\n  \}/.exec(abaItens)?.[1] ?? "";
     expect(remove).toMatch(/\.from\("itens_os"\)\.delete\(\)\.eq\("id", id\)\.select\("id"\)/);
     expect(remove).toMatch(/if \(error\)/);
     expect(remove).toMatch(/data\.length === 0/);

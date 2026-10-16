@@ -3,7 +3,7 @@ import { STATUS, rotuloBloqueio, rotuloDe } from "@/domain/os/etapas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,14 +27,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal, CalendarClock, HandCoins } from "lucide-react";
+import { ArrowLeft, Upload, Plus, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal, CalendarClock, HandCoins } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
@@ -46,6 +45,8 @@ import { MateriaisPrevistosCard } from "@/components/materiais-previstos-card";
 import { TarefasDaOS } from "@/components/os/tarefas-card";
 import { ApontamentoDaOS } from "@/components/os/apontamento-card";
 import { QualidadeDaOS } from "@/components/os/qualidade-card";
+import { ItensDaOS } from "@/components/os/itens-da-os";
+import { podeEditarItensDaOS } from "@/domain/os/itens";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { QuemTrouxeAVenda } from "@/components/os/quem-trouxe-a-venda";
 import { dicaTela } from "@/lib/dicas";
@@ -406,7 +407,7 @@ function OSDetailPage() {
         </TabsList>
 
         <TabsContent value="resumo"><ResumoTab os={os} /></TabsContent>
-        <TabsContent value="itens"><ItensTab osId={id} canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} podeEditarItens={hasPermission("kanban.move") || hasPermission("orcamentos.create")} /></TabsContent>
+        <TabsContent value="itens"><ItensDaOS osId={id} canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} podeEditarItens={podeEditarItensDaOS(hasPermission)} /></TabsContent>
         <TabsContent value="arquivos"><ArquivosTab osId={id} userId={user?.id} /></TabsContent>
         <TabsContent value="tarefas"><TarefasTab osId={id} userId={user?.id} /></TabsContent>
         <TabsContent value="historico"><HistoricoTab osId={id} /></TabsContent>
@@ -630,199 +631,6 @@ function ResumoTab({ os }: { os: any }) {
             {new Date(os.created_at).toLocaleString("pt-BR")}
           </div>
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ItensTab({
-  osId,
-  canSeeFinancials,
-  canSeePrices,
-  nivelDeVisao,
-  podeEditarItens,
-}: {
-  osId: string;
-  canSeeFinancials: boolean;
-  canSeePrices: boolean;
-  nivelDeVisao: NivelDeVisao;
-  /**
-   * Incluir e apagar item é de quem mexe na venda: kanban.move ou
-   * orcamentos.create, a mesma regra do banco (migração 20261008043700).
-   * Os outros veem a lista — antes viam os botões e a regra recusava.
-   */
-  podeEditarItens: boolean;
-}) {
-  const qc = useQueryClient();
-  const [form, setForm] = useState({
-    descricao: "",
-    quantidade: "1",
-    unidade: "un",
-    valor_unitario: "0",
-    custo_unitario: "0",
-    produto_id: null as string | null,
-  });
-  const { data: itens = [] } = useQuery({
-    queryKey: ["itens-os", osId, nivelDeVisao],
-    queryFn: async () => {
-      // select("*"): comercial devolve valor_unitario/valor_total sem custo_unitario.
-      const { data } = await fromFinancialView("itens_os", nivelDeVisao)
-        .select("*")
-        .eq("os_id", osId)
-        .order("ordem");
-      return data ?? [];
-    },
-  });
-  async function add() {
-    if (!form.descricao) return toast.error("Descrição obrigatória");
-    const qtd = parseFloat(form.quantidade);
-    // Quem vê preço digita preço (vendedor inclusive); quem não vê grava 0.
-    const vu = canSeePrices ? parseFloat(form.valor_unitario) : 0;
-    const { error } = await supabase.from("itens_os").insert({
-      os_id: osId,
-      descricao: form.descricao,
-      quantidade: qtd,
-      unidade: form.unidade,
-      valor_unitario: vu,
-      custo_unitario: parseFloat(form.custo_unitario),
-      valor_total: qtd * vu,
-      ordem: itens.length,
-      produto_id: form.produto_id,
-    } as any);
-    if (error) return toast.error(mensagemErro(error));
-    setForm({
-      descricao: "",
-      quantidade: "1",
-      unidade: "un",
-      valor_unitario: "0",
-      custo_unitario: "0",
-      produto_id: null,
-    });
-    qc.invalidateQueries({ queryKey: ["itens-os", osId] });
-  }
-  async function remove(id: string) {
-    const { data, error } = await supabase.from("itens_os").delete().eq("id", id).select("id");
-    if (error) return toast.error(mensagemErro(error));
-    // apagar barrado pela regra devolve 0 linhas e nenhum erro
-    if (!data || data.length === 0) return toast.error("Seu perfil não pode apagar item desta OS.");
-    qc.invalidateQueries({ queryKey: ["itens-os", osId] });
-  }
-  return (
-    <Card>
-      <CardContent className="p-4 space-y-4">
-        {podeEditarItens && (
-          <>
-            <div className="flex justify-end">
-              <ProdutoAutocomplete
-                onSelect={(p) =>
-                  setForm({
-                    descricao: p.nome,
-                    quantidade: form.quantidade || "1",
-                    unidade: p.unidade,
-                    valor_unitario: String(p.preco_base ?? 0),
-                    custo_unitario: String(p.custo_medio ?? 0),
-                    produto_id: p.id,
-                  })
-                }
-              />
-            </div>
-            <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-5">
-                <Label>Descrição</Label>
-                <Input
-                  value={form.descricao}
-                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                />
-              </div>
-              <div className="col-span-1">
-                <Label>Qtd</Label>
-                <Input
-                  type="number"
-                  value={form.quantidade}
-                  onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
-                />
-              </div>
-              <div className="col-span-1">
-                <Label>Un</Label>
-                <Input
-                  value={form.unidade}
-                  onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-                />
-              </div>
-              {/* Valor un. é preço (vendedor vê); Custo un. é custo (só financeiro). */}
-              {canSeePrices && (
-                <div className="col-span-2">
-                  <Label>Valor un.</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.valor_unitario}
-                    onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
-                  />
-                </div>
-              )}
-              {canSeeFinancials && (
-                <div className="col-span-2">
-                  <Label>Custo un.</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.custo_unitario}
-                    onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
-                  />
-                </div>
-              )}
-              <Button className="col-span-1" onClick={add}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </>
-        )}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Qtd</TableHead>
-              {canSeePrices && (
-                <>
-                  <TableHead>Valor un.</TableHead>
-                  <TableHead>Total</TableHead>
-                </>
-              )}
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {itens.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  Sem itens
-                </TableCell>
-              </TableRow>
-            )}
-            {itens.map((i: any) => (
-              <TableRow key={i.id}>
-                <TableCell>{i.descricao}</TableCell>
-                <TableCell>
-                  {i.quantidade} {i.unidade}
-                </TableCell>
-                {canSeePrices && (
-                  <>
-                    <TableCell>R$ {Number(i.valor_unitario).toFixed(2)}</TableCell>
-                    <TableCell>R$ {Number(i.valor_total).toFixed(2)}</TableCell>
-                  </>
-                )}
-                <TableCell>
-                  {podeEditarItens && (
-                    <Button variant="ghost" size="icon" onClick={() => remove(i.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
       </CardContent>
     </Card>
   );
