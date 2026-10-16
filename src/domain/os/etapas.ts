@@ -294,7 +294,8 @@ export const ROTULO_BLOQUEIO: Record<string, string> = {
   materiais_baixados: "Materiais ainda não baixados",
   ocorrencias_tratadas: "Ocorrências abertas",
   logistica_concluida: "Entrega/instalação pendente",
-  custos_operacionais: "Sem custos operacionais registrados",
+  // A trava olha a SOMA (20261015170000): baixa + estorno total somam zero.
+  custos_operacionais: "Sem custo lançado (ou o custo todo foi estornado)",
   pagamentos_pendentes: "Pagamentos pendentes",
   sem_responsavel: "Sem responsável definido",
   sem_pagamento: "Nenhum pagamento registrado",

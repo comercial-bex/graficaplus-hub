@@ -178,12 +178,18 @@ function MateriaisPage() {
     },
   });
 
+  // Custo da perda é custo de material: `os_perdas` não entrega as colunas de
+  // custo a ninguém logado (20261015172000); quem vê financeiro lê pela view.
   const { data: perdas = [] } = useQuery({
-    queryKey: ["perdas-por-material"],
+    queryKey: ["perdas-por-material", canSeeFinancials],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("os_perdas")
-        .select("material_id, quantidade_perdida, custo_unitario, custo_total")
+      const { data, error } = await (supabase as any)
+        .from(canSeeFinancials ? "os_perdas_financeiro" : "os_perdas")
+        .select(
+          canSeeFinancials
+            ? "material_id, quantidade_perdida, custo_unitario, custo_total"
+            : "material_id, quantidade_perdida",
+        )
         .limit(2000);
       if (error) throw error;
       return data ?? [];
