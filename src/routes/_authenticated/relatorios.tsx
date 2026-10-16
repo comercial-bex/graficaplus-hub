@@ -27,7 +27,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
-import { coberturaDoCusto, mediaDoQueExiste, somaDoQueExiste } from "@/domain/os/resultado";
+import {
+  coberturaDoCusto,
+  custoParcial,
+  frasesDoParcial,
+  mediaDoQueExiste,
+  osEmAndamento,
+  somaDoQueExiste,
+} from "@/domain/os/resultado";
 import {
   Table,
   TableBody,
@@ -671,6 +678,10 @@ function RelatPage() {
                     ) : (
                       data.financeiro.previstoRealizado.map((row) => {
                         const estouro = asNumber(row.divergencia_custo);
+                        const parcial = custoParcial(
+                          { custo_lancado: row.custo_lancado, custo_previsto: row.custo_previsto, custo_realizado: row.custo_realizado },
+                          osEmAndamento(row.status),
+                        );
                         return (
                           <TableRow key={row.os_id}>
                             <TableCell className="font-medium">#{row.numero}</TableCell>
@@ -704,6 +715,16 @@ function RelatPage() {
                               >
                                 {formatPercent(row.margem_realizada)}
                               </span>
+                              {/* OS em andamento com só parte do custo lançado: a margem
+                                  real ainda vai cair (custoParcial). */}
+                              {parcial && (
+                                <span
+                                  className="block text-[11px] font-normal text-muted-foreground"
+                                  title={frasesDoParcial(parcial).aviso}
+                                >
+                                  parcial: {parcial.percentual}% do custo lançado
+                                </span>
+                              )}
                             </TableCell>
                           </TableRow>
                         );

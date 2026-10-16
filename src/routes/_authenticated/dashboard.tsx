@@ -34,7 +34,7 @@ import { PrecoDoCatalogo } from "@/components/painel/PrecoDoCatalogo";
 import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
-import { coberturaDoCusto, lucroComparavel } from "@/domain/os/resultado";
+import { coberturaDoCusto, lucroComparavel, osEmAndamento } from "@/domain/os/resultado";
 import { nomeDaConversa, resumoDaConversa } from "@/domain/whatsapp/caixa-de-entrada";
 import {
   AreaChart,
@@ -283,7 +283,7 @@ function PainelCompleto({
           canSeeFinancials
             ? (supabase as any)
                 .from("vw_resultado_os")
-                .select("os_id, custo_lancado, lucro_previsto, lucro_realizado")
+                .select("os_id, custo_lancado, custo_previsto, custo_realizado, lucro_previsto, lucro_realizado")
             : Promise.resolve({ data: [] }),
         ]);
       return {
@@ -333,8 +333,13 @@ function PainelCompleto({
     (dashboardData?.resultados ?? []).map((r: any) => [r.os_id, r]),
   );
   const lucroPrevistoRealMensal = janelaMeses.slice(-6).map(({ ano, mesIndice, rotulo }) => {
+    // OS em andamento com só parte do custo lançado fica fora da comparação
+    // (custoParcial): o lucro "real" dela ainda não pagou o custo que falta.
     const linhas = osDoMes(ano, mesIndice)
-      .map((o: any) => resultadoPorOs.get(o.id))
+      .map((o: any) => {
+        const r = resultadoPorOs.get(o.id);
+        return r ? { ...r, os_em_andamento: osEmAndamento(o.status) } : null;
+      })
       .filter(Boolean) as any[];
     const { previsto, real, osComparadas } = lucroComparavel(linhas);
     return { mes: rotulo, previsto, real, osComparadas };
@@ -621,10 +626,12 @@ function PainelCompleto({
         <BexCard title="Lucro · previsto vs real">
           {!haComparacao ? (
             <div className="flex h-[280px] flex-col items-center justify-center gap-1 px-6 text-center text-sm text-muted-foreground">
-              <span className="font-medium text-foreground/80">Nenhuma OS com custo lançado nos últimos 6 meses</span>
+              <span className="font-medium text-foreground/80">Nenhuma OS com custo lançado para comparar nos últimos 6 meses</span>
               <span className="text-xs">
                 O lucro real só existe depois que o custo é registrado — pela baixa de material ou
-                pelo apontamento de máquina. A comparação aparece quando a primeira OS tiver.
+                pelo apontamento de máquina. OS em andamento com só parte do custo lançado ficam de
+                fora: o lucro delas ainda não pagou o que falta. A comparação aparece quando a
+                primeira OS tiver o custo completo.
               </span>
             </div>
           ) : (

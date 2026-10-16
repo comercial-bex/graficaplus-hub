@@ -61,7 +61,9 @@ import { passoDoMovimento, rotuloDoMovimento, type MovimentoDaOs } from "@/domai
 import {
   dinheiro,
   divergencia,
+  frasesDoParcial,
   origemDoPrevisto,
+  osEmAndamento,
   porcentagem,
   realizados,
   type Campo,
@@ -1141,6 +1143,10 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
     .filter((p: any) => p.status === "pago")
     .reduce((s: number, p: any) => s + Number(p.valor), 0);
   const totalCustos = custos.reduce((s: number, c: any) => s + Number(c.total), 0);
+  // OS em produção com só parte do custo previsto lançado: o realizado é um
+  // pedaço, não o resultado (ver custoParcial em domain/os/resultado).
+  const real = realizados(resultado, { osEmAndamento: osEmAndamento(os?.status) });
+  const frasesParcial = real.parcial ? frasesDoParcial(real.parcial) : null;
 
   return (
     <div className="space-y-4">
@@ -1162,7 +1168,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
                   lançado, metade deste quadro é previsão e a outra metade não
                   existe. Antes desta correção a tela preenchia a metade que não
                   existe com 100% de margem. */}
-              {!realizados(resultado).custoLancado && (
+              {!real.custoLancado && (
                 <div className="mb-3 flex items-start gap-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2 text-xs text-[color:var(--bex-amber)]">
                   <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
                   <span>
@@ -1172,6 +1178,15 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
                   </span>
                 </div>
               )}
+              {frasesParcial && (
+                <div
+                  role="note"
+                  className="mb-3 flex items-start gap-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2 text-xs text-[color:var(--bex-amber)]"
+                >
+                  <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+                  <span>{frasesParcial.aviso}</span>
+                </div>
+              )}
               <div className="grid md:grid-cols-3 gap-3 text-sm">
                 <CelulaResultado rotulo="Receita líquida" campo={dinheiro(resultado.receita_liquida)} />
                 <CelulaResultado
@@ -1179,12 +1194,12 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
                   campo={dinheiro(resultado.custo_previsto)}
                   nota={origemDoPrevisto(resultado.custo_previsto_origem)}
                 />
-                <CelulaResultado rotulo="Custo realizado" campo={realizados(resultado).custo} />
+                <CelulaResultado rotulo="Custo realizado" campo={real.custo} nota={frasesParcial?.realizado} />
                 <CelulaResultado rotulo="Lucro previsto" campo={dinheiro(resultado.lucro_previsto)} />
-                <CelulaResultado rotulo="Lucro realizado" campo={realizados(resultado).lucro} />
+                <CelulaResultado rotulo="Lucro realizado" campo={real.lucro} nota={frasesParcial?.realizado} />
                 <CelulaResultado rotulo="Margem prevista" campo={porcentagem(resultado.margem_prevista)} />
-                <CelulaResultado rotulo="Margem realizada" campo={realizados(resultado).margem} />
-                <CelulaResultado rotulo="Divergência custo" campo={divergencia(resultado)} />
+                <CelulaResultado rotulo="Margem realizada" campo={real.margem} nota={frasesParcial?.realizado} />
+                <CelulaResultado rotulo="Divergência custo" campo={divergencia(resultado)} nota={frasesParcial?.divergencia} />
                 <div className="rounded border p-3">
                   <div className="text-muted-foreground">Status</div>
                   <div className="font-semibold">
