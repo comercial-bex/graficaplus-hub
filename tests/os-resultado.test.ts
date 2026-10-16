@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   coberturaDoCusto,
+  custoParcial,
   dinheiro,
   divergencia,
+  frasesDoParcial,
   lucroComparavel,
   mediaDoQueExiste,
   origemDoPrevisto,
+  osEmAndamento,
   porcentagem,
   realizados,
   somaDoQueExiste,
@@ -200,5 +203,87 @@ describe("previsto × real sobre as mesmas OS", () => {
 
   it("mês sem OS nenhuma também fica vazio", () => {
     expect(lucroComparavel([])).toEqual({ previsto: null, real: null, osComparadas: 0 });
+  });
+});
+
+/**
+ * O caso do meio (15/10/2026, ensaio do reembolso, OS #167): previsto R$ 534,95,
+ * lançado R$ 75,00 de reembolso, venda R$ 745. A view soma só o lançado e
+ * anunciava margem realizada de 89,93% contra 28,19% prevista, e divergência de
+ * −R$ 459,95 — com cara de economia, e é custo que ainda não entrou.
+ */
+const OS167 = {
+  receita_liquida: "745.00",
+  custo_previsto: "534.95",
+  custo_realizado: "75.00",
+  lucro_previsto: "210.05",
+  lucro_realizado: "670.00",
+  margem_prevista: "28.19",
+  margem_realizada: "89.93",
+  divergencia_custo: "-459.95",
+  custo_lancado: true,
+  custo_previsto_origem: "orcamento",
+};
+
+describe("custo parcial: OS em andamento com só parte do custo lançado", () => {
+  it("avisa que a margem realizada ainda vai cair — e diz quanto já entrou", () => {
+    const p = custoParcial(OS167, true);
+    expect(p).toEqual({ lancado: 75, previsto: 534.95, falta: 459.95, percentual: 14 });
+    const f = frasesDoParcial(p!);
+    expect(sp(f.aviso)).toContain("R$ 75,00 dos R$ 534,95");
+    expect(f.aviso).toContain("(14%)");
+    expect(f.aviso).toContain("use a margem prevista");
+    expect(f.realizado).toBe("parcial: 14% do custo previsto lançado");
+    expect(sp(f.divergencia)).toBe("não é economia: ainda faltam R$ 459,95 a lançar");
+  });
+
+  it("realizados() devolve o parcial só quando a OS está em andamento — e não muda o resto", () => {
+    expect(realizados(OS167, { osEmAndamento: true }).parcial?.percentual).toBe(14);
+    // Sem dizer o status, a tela fica como era (quem já chamava não muda).
+    expect(realizados(OS167).parcial).toBeNull();
+    expect(realizados(OS167, { osEmAndamento: false }).parcial).toBeNull();
+    // Os números continuam sendo os da view: o aviso acompanha, não esconde.
+    expect(realizados(OS167, { osEmAndamento: true }).margem.texto).toBe("89,93%");
+  });
+
+  it("OS concluída com custo menor que o previsto pode ser economia de verdade: sem aviso", () => {
+    expect(custoParcial(OS167, osEmAndamento("concluido"))).toBeNull();
+    expect(custoParcial(OS167, osEmAndamento("faturado"))).toBeNull();
+    expect(custoParcial(OS167, osEmAndamento("producao"))).not.toBeNull();
+  });
+
+  it("custo completo, estourado, ausente ou sem previsto não é parcial", () => {
+    const base = { custo_lancado: true, custo_previsto: 100 };
+    expect(custoParcial({ ...base, custo_realizado: 100 }, true)).toBeNull();
+    expect(custoParcial({ ...base, custo_realizado: 130 }, true)).toBeNull();
+    expect(custoParcial({ ...base, custo_realizado: 0 }, true)).toBeNull();
+    expect(custoParcial({ custo_lancado: true, custo_previsto: 0, custo_realizado: 40 }, true)).toBeNull();
+    expect(custoParcial({ custo_lancado: false, custo_previsto: 100, custo_realizado: 40 }, true)).toBeNull();
+    expect(custoParcial(null, true)).toBeNull();
+  });
+
+  it("parcial nunca se lê como 100%: arredonda para baixo", () => {
+    expect(custoParcial({ custo_lancado: true, custo_previsto: 1000, custo_realizado: 999.6 }, true)?.percentual).toBe(99);
+  });
+
+  it("status desconhecido não conta como em andamento", () => {
+    expect(osEmAndamento(null)).toBe(false);
+    expect(osEmAndamento(undefined)).toBe(false);
+    expect(osEmAndamento("entrada")).toBe(true);
+  });
+});
+
+describe("o gráfico previsto × real deixa a OS parcial de fora", () => {
+  it("o lucro 'real' da OS parcial não entra: ele ainda não pagou o custo que falta", () => {
+    const r = lucroComparavel([
+      { ...OS167, os_em_andamento: true, lucro_previsto: 210.05, lucro_realizado: 670 },
+      { custo_lancado: true, custo_previsto: 60, custo_realizado: 60, os_em_andamento: false, lucro_previsto: 60, lucro_realizado: 45 },
+    ]);
+    expect(r).toEqual({ previsto: 60, real: 45, osComparadas: 1 });
+  });
+
+  it("sem dizer que a OS está em andamento, a conta é a de antes", () => {
+    const r = lucroComparavel([{ ...OS167, lucro_previsto: 210.05, lucro_realizado: 670 }]);
+    expect(r.osComparadas).toBe(1);
   });
 });

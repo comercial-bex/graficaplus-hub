@@ -49,6 +49,68 @@ function num(v: number | string | null | undefined): number | null {
 const SEM_CUSTO =
   "Nenhum custo foi lançado nesta OS. Registre a baixa de material ou finalize um apontamento de máquina.";
 
+/**
+ * OS ainda em produção: o custo real está sendo lançado ao longo do trabalho.
+ * Concluída, faturada e cancelada já não recebem custo — o que está lançado é
+ * o que foi. Status desconhecido não conta como em andamento: sem saber, a
+ * tela fica como era.
+ */
+export function osEmAndamento(status: string | null | undefined): boolean {
+  return !!status && !["concluido", "faturado", "cancelado"].includes(status);
+}
+
+/** Quanto do custo previsto já foi lançado, numa OS que ainda não acabou. */
+export type CustoParcial = {
+  lancado: number;
+  previsto: number;
+  /** Quanto falta lançar para chegar ao previsto. */
+  falta: number;
+  /** Inteiro, arredondado para BAIXO: parcial nunca se lê como 100%. */
+  percentual: number;
+};
+
+/**
+ * Custo lançado MENOR que o previsto, com a OS ainda em andamento.
+ *
+ * É o caso do meio entre "nenhum custo lançado" (que a tela já diz) e "custo
+ * completo": a view soma só o que foi lançado, então uma OS que previu R$ 534,95
+ * e lançou R$ 75,00 anuncia margem realizada de 89,9% contra 28,2% prevista, e a
+ * divergência sai como −R$ 459,95 — com cara de economia, e é custo que ainda
+ * não entrou. Visto em 15/10/2026, no ensaio do reembolso, na OS #167.
+ *
+ * Não vale para OS concluída: ali o menor-que-o-previsto pode ser economia de
+ * verdade, e quem fechou a OS já decidiu que o custo está completo.
+ */
+export function custoParcial(
+  r: Pick<ResultadoOs, "custo_lancado" | "custo_previsto" | "custo_realizado"> | null | undefined,
+  emAndamento: boolean,
+): CustoParcial | null {
+  if (!emAndamento || !r || r.custo_lancado !== true) return null;
+  const lancado = num(r.custo_realizado);
+  const previsto = num(r.custo_previsto);
+  if (lancado == null || previsto == null || lancado <= 0 || previsto <= 0 || lancado >= previsto) {
+    return null;
+  }
+  return {
+    lancado,
+    previsto,
+    // Em centavos: 534,95 − 75 dá 459,9499… em ponto flutuante.
+    falta: Math.round((previsto - lancado) * 100) / 100,
+    percentual: Math.floor((lancado / previsto) * 100),
+  };
+}
+
+/** As frases que a tela mostra quando o custo é parcial. */
+export function frasesDoParcial(p: CustoParcial): { aviso: string; realizado: string; divergencia: string } {
+  return {
+    aviso:
+      `Só ${brl(p.lancado)} dos ${brl(p.previsto)} de custo previsto estão lançados (${p.percentual}%). ` +
+      "A OS está em andamento: lucro e margem realizados ainda vão cair. Para julgar o trabalho agora, use a margem prevista.",
+    realizado: `parcial: ${p.percentual}% do custo previsto lançado`,
+    divergencia: `não é economia: ainda faltam ${brl(p.falta)} a lançar`,
+  };
+}
+
 export function dinheiro(v: number | string | null | undefined): Campo {
   const n = num(v);
   return n == null
@@ -68,22 +130,28 @@ export function porcentagem(v: number | string | null | undefined): Campo {
  * Os três campos que dependem de custo lançado. Quando não há custo, eles não
  * viram zero nem travessão: viram a frase que diz o que falta fazer.
  */
-export function realizados(r: ResultadoOs | null | undefined): {
+export function realizados(
+  r: ResultadoOs | null | undefined,
+  opcoes: { osEmAndamento?: boolean } = {},
+): {
   custo: Campo;
   lucro: Campo;
   margem: Campo;
   custoLancado: boolean;
+  /** Preenchido quando a OS está em andamento e só parte do custo previsto foi lançada. */
+  parcial: CustoParcial | null;
 } {
   const lancado = r?.custo_lancado === true;
   if (!r || !lancado) {
     const ausente: Campo = { tipo: "ausente", texto: "não lançado", motivo: SEM_CUSTO };
-    return { custo: ausente, lucro: ausente, margem: ausente, custoLancado: false };
+    return { custo: ausente, lucro: ausente, margem: ausente, custoLancado: false, parcial: null };
   }
   return {
     custo: dinheiro(r.custo_realizado),
     lucro: dinheiro(r.lucro_realizado),
     margem: porcentagem(r.margem_realizada),
     custoLancado: true,
+    parcial: custoParcial(r, opcoes.osEmAndamento === true),
   };
 }
 
@@ -152,11 +220,19 @@ export function coberturaDoCusto(comCusto: number | null | undefined, total: num
 export function lucroComparavel(
   doMes: Array<{
     custo_lancado?: boolean | null;
+    custo_previsto?: number | string | null;
+    custo_realizado?: number | string | null;
+    /** A OS ainda está em produção (osEmAndamento do status). */
+    os_em_andamento?: boolean | null;
     lucro_previsto?: number | string | null;
     lucro_realizado?: number | string | null;
   }>,
 ): { previsto: number | null; real: number | null; osComparadas: number } {
-  const comCusto = doMes.filter((r) => r.custo_lancado === true);
+  // Custo parcial (OS em andamento com só parte do custo lançado) fica de fora:
+  // o "lucro real" dela é lucro que ainda não pagou o custo que falta.
+  const comCusto = doMes.filter(
+    (r) => r.custo_lancado === true && !custoParcial(r, r.os_em_andamento === true),
+  );
   if (comCusto.length === 0) return { previsto: null, real: null, osComparadas: 0 };
   return {
     previsto: somaDoQueExiste(comCusto.map((r) => r.lucro_previsto)),
