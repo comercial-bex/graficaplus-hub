@@ -225,7 +225,7 @@ describe("as travas de fechamento, em português", () => {
    */
   it("traduz a mensagem que o banco levanta", () => {
     expect(traduzirBloqueios("A OS nao pode fechar ainda: custos_operacionais; pagamentos_pendentes."))
-      .toBe("Sem custos operacionais registrados · Pagamentos pendentes");
+      .toBe("Sem custo lançado (ou o custo todo foi estornado) · Pagamentos pendentes");
   });
 
   it("aceita com acento e sem ponto final", () => {
