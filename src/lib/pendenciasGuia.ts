@@ -166,6 +166,31 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Com a ficha pronta, a OS passa a prever o material, reservar o estoque e fechar o custo real.',
     ],
   },
+  os_sem_custo_previsto: {
+    acao: 'Ver ordens sem custo',
+    passos: [
+      'Abra Produção › Ordens de serviço e entre na OS que a pendência cita.',
+      'Se o item foi digitado sem produto, abra a aba Itens e ligue o item ao produto que ele é.',
+      'Se o produto não tem custo, abra Financeiro › Produtos e serviços e preencha o custo (ou a ficha de materiais).',
+      'Com o custo no produto, a margem da OS e o semáforo do reembolso passam a ter referência.',
+    ],
+  },
+  reembolsos_para_a_gerencia: {
+    acao: 'Decidir reembolsos',
+    passos: [
+      'Abra Financeiro › Reembolsos e veja a aba "Para decidir".',
+      'Cada pedido mostra a foto do cupom e a margem da OS antes e depois da compra.',
+      'Aprove ou recuse: prejuízo e recusa pedem o motivo. O aprovado entra na conta a pagar da sexta.',
+    ],
+  },
+  reembolsos_para_o_financeiro: {
+    acao: 'Aprovar reembolsos',
+    passos: [
+      'Abra Financeiro › Reembolsos e veja a aba "Para decidir".',
+      'Confira a foto do cupom contra o valor e a OS pedidos.',
+      'Aprove: o valor entra no custo da OS e na conta a pagar da sexta de quem pediu.',
+    ],
+  },
   baixa_de_estoque_pendente: {
     acao: 'Ver ordens concluídas',
     passos: [
