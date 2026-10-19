@@ -39,7 +39,6 @@ import {
   nomeDaConversa,
   podeResponder,
   quandoFoi,
-  rotuloDoTipo,
   seloDoStatus,
   telefoneLegivel,
   validarAnexo,
@@ -55,7 +54,6 @@ import {
   CHAVES,
   acionarEnvio,
   enfileirarResposta,
-  linkDaMidia,
   mapaDeNomes,
   subirAnexo,
   useAtendimentos,
@@ -69,6 +67,7 @@ import {
   type InstanciaDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { FotoDoContato } from "@/components/whatsapp/foto-do-contato";
+import { MidiaDaMensagem } from "@/components/whatsapp/midia-da-mensagem";
 import {
   acaoNaConversa,
   enfileirarArquivo,
@@ -227,6 +226,13 @@ export function ConversaAberta({
     noFimRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }
 
+  // Foto, vídeo e áudio carregam depois de a bolha estar na tela e a fazem
+  // crescer: quem estava no fim da conversa continua no fim.
+  function manterNoFim() {
+    const el = rolagemRef.current;
+    if (el && noFimRef.current) el.scrollTop = el.scrollHeight;
+  }
+
   function carregarAnteriores() {
     alturaAntesRef.current = rolagemRef.current?.scrollHeight ?? null;
     void mensagens.fetchNextPage();
@@ -371,20 +377,6 @@ export function ConversaAberta({
       void qc.invalidateQueries({ queryKey: CHAVES.conversas });
     } finally {
       setTentando(false);
-    }
-  }
-
-  async function abrirMidia(m: MensagemDaCaixa) {
-    const janela = window.open("", "_blank");
-    try {
-      const url = await linkDaMidia(m.storage_bucket as string, m.storage_path as string);
-      if (janela) {
-        janela.opener = null;
-        janela.location.href = url;
-      }
-    } catch (e) {
-      janela?.close();
-      toast.error(`Não foi possível abrir o arquivo: ${mensagemErro(e)}`);
     }
   }
 
@@ -733,27 +725,15 @@ export function ConversaAberta({
                     >
                       {m.origem === "ia" ? semAssinatura(conteudoDaMensagem(m)) : conteudoDaMensagem(m)}
                     </div>
-                    {temMidia &&
-                      (m.storage_path && m.storage_bucket ? (
-                        <button
-                          type="button"
-                          onClick={() => abrirMidia(m)}
-                          className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2"
-                        >
-                          <Paperclip className="h-3 w-3" /> Abrir{" "}
-                          {rotuloDoTipo(m.tipo).toLowerCase()}
-                        </button>
-                      ) : m.media_url ? (
-                        <a
-                          href={m.media_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-2"
-                        >
-                          <Paperclip className="h-3 w-3" /> Abrir{" "}
-                          {rotuloDoTipo(m.tipo).toLowerCase()} (link do Z-API, vale 30 dias)
-                        </a>
-                      ) : null)}
+                    {temMidia && (
+                      <MidiaDaMensagem
+                        m={m}
+                        aoMudarAltura={manterNoFim}
+                        aoArquivar={() =>
+                          void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) })
+                        }
+                      />
+                    )}
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
                       <span>{diaEHora(quandoFoi(m))}</span>
                       {selo && (

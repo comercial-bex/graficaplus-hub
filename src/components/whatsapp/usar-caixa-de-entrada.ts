@@ -312,9 +312,21 @@ export async function lerSaudeDoDespachante(): Promise<{ ligado: boolean }> {
   return { ligado: corpo.ligado };
 }
 
-/** Link temporário para a mídia guardada no nosso armazenamento (bucket privado). */
-export async function linkDaMidia(bucket: string, caminho: string): Promise<string> {
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(caminho, 120);
+/**
+ * Link temporário para a mídia guardada no nosso armazenamento (bucket
+ * privado). `baixarComo` faz o link BAIXAR o arquivo com esse nome (o
+ * armazenamento manda Content-Disposition: attachment) — o atributo `download`
+ * de um <a> não vale para endereço de outro site. Sem ele, o arquivo abre.
+ */
+export async function linkDaMidia(
+  bucket: string,
+  caminho: string,
+  validadeEmSegundos = 120,
+  baixarComo?: string,
+): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(caminho, validadeEmSegundos, baixarComo ? { download: baixarComo } : undefined);
   if (error) throw error;
   return data.signedUrl;
 }
