@@ -1156,6 +1156,67 @@ export type Database = {
           },
         ]
       }
+      catalogo_cotacoes: {
+        Row: {
+          atendido_em: string | null
+          atendido_por: string | null
+          catalogo_id: string
+          criado_em: string
+          id: string
+          itens: Json
+          link_id: string
+          nome: string
+          origem_hash: string | null
+          telefone: string
+        }
+        Insert: {
+          atendido_em?: string | null
+          atendido_por?: string | null
+          catalogo_id: string
+          criado_em?: string
+          id?: string
+          itens: Json
+          link_id: string
+          nome: string
+          origem_hash?: string | null
+          telefone: string
+        }
+        Update: {
+          atendido_em?: string | null
+          atendido_por?: string | null
+          catalogo_id?: string
+          criado_em?: string
+          id?: string
+          itens?: Json
+          link_id?: string
+          nome?: string
+          origem_hash?: string | null
+          telefone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_cotacoes_atendido_por_fkey"
+            columns: ["atendido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_cotacoes_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedor_catalogos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_cotacoes_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogo_link_itens: {
         Row: {
           item_id: string
@@ -3882,6 +3943,7 @@ export type Database = {
       fornecedor_secoes: {
         Row: {
           catalogo_id: string
+          categoria: string | null
           created_at: string
           especificacao: string | null
           id: string
@@ -3893,6 +3955,7 @@ export type Database = {
         }
         Insert: {
           catalogo_id: string
+          categoria?: string | null
           created_at?: string
           especificacao?: string | null
           id?: string
@@ -3904,6 +3967,7 @@ export type Database = {
         }
         Update: {
           catalogo_id?: string
+          categoria?: string | null
           created_at?: string
           especificacao?: string | null
           id?: string
@@ -7453,6 +7517,7 @@ export type Database = {
           id: string
           infill_pct: number | null
           lead_id: string | null
+          material_descricao: string | null
           moeda: string
           nivel_precisao: string
           orcamento_id: string | null
@@ -7484,6 +7549,7 @@ export type Database = {
           id?: string
           infill_pct?: number | null
           lead_id?: string | null
+          material_descricao?: string | null
           moeda?: string
           nivel_precisao?: string
           orcamento_id?: string | null
@@ -7515,6 +7581,7 @@ export type Database = {
           id?: string
           infill_pct?: number | null
           lead_id?: string | null
+          material_descricao?: string | null
           moeda?: string
           nivel_precisao?: string
           orcamento_id?: string | null
@@ -12748,6 +12815,204 @@ export type Database = {
           },
         ]
       }
+      reembolsos: {
+        Row: {
+          categoria: string
+          comprovante_path: string
+          conta_pagar_id: string | null
+          cor: string
+          created_at: string
+          custo_os_id: string | null
+          data_compra: string
+          decidido_em: string | null
+          decidido_por: string | null
+          depois_do_fechamento: boolean
+          descricao: string
+          destino: string
+          fornecedor: string | null
+          id: string
+          motivo_decisao: string | null
+          numero: number
+          os_id: string | null
+          os_item_id: string | null
+          pago_em: string | null
+          solicitante_id: string
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          comprovante_path: string
+          conta_pagar_id?: string | null
+          cor: string
+          created_at?: string
+          custo_os_id?: string | null
+          data_compra: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          depois_do_fechamento?: boolean
+          descricao: string
+          destino: string
+          fornecedor?: string | null
+          id?: string
+          motivo_decisao?: string | null
+          numero?: number
+          os_id?: string | null
+          os_item_id?: string | null
+          pago_em?: string | null
+          solicitante_id: string
+          status?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          comprovante_path?: string
+          conta_pagar_id?: string | null
+          cor?: string
+          created_at?: string
+          custo_os_id?: string | null
+          data_compra?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
+          depois_do_fechamento?: boolean
+          descricao?: string
+          destino?: string
+          fornecedor?: string | null
+          id?: string
+          motivo_decisao?: string | null
+          numero?: number
+          os_id?: string | null
+          os_item_id?: string | null
+          pago_em?: string | null
+          solicitante_id?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reembolsos_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_custo_os_id_fkey"
+            columns: ["custo_os_id"]
+            isOneToOne: false
+            referencedRelation: "custos_operacionais_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_decidido_por_fkey"
+            columns: ["decidido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_previsto_realizado"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reembolsos_solicitante_id_fkey"
+            columns: ["solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relatorios: {
         Row: {
           created_at: string
@@ -13487,6 +13752,10 @@ export type Database = {
           created_at: string
           etiquetas: string[]
           fila: Database["public"]["Enums"]["whatsapp_fila"]
+          foto_atualizada_em: string | null
+          foto_chave: string | null
+          foto_path: string | null
+          foto_tentativa_em: string | null
           id: string
           instancia_id: string
           lead_id: string | null
@@ -13512,6 +13781,10 @@ export type Database = {
           created_at?: string
           etiquetas?: string[]
           fila?: Database["public"]["Enums"]["whatsapp_fila"]
+          foto_atualizada_em?: string | null
+          foto_chave?: string | null
+          foto_path?: string | null
+          foto_tentativa_em?: string | null
           id?: string
           instancia_id: string
           lead_id?: string | null
@@ -13537,6 +13810,10 @@ export type Database = {
           created_at?: string
           etiquetas?: string[]
           fila?: Database["public"]["Enums"]["whatsapp_fila"]
+          foto_atualizada_em?: string | null
+          foto_chave?: string | null
+          foto_path?: string | null
+          foto_tentativa_em?: string | null
           id?: string
           instancia_id?: string
           lead_id?: string | null
@@ -16133,6 +16410,211 @@ export type Database = {
           },
         ]
       }
+      os_perdas_financeiro: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custo_total: number | null
+          custo_unitario: number | null
+          id: string | null
+          maquina_id: string | null
+          material_id: string | null
+          motivo: Database["public"]["Enums"]["motivo_perda"] | null
+          observacoes: string | null
+          operador_id: string | null
+          os_id: string | null
+          os_item_id: string | null
+          quantidade_perdida: number | null
+          quantidade_planejada: number | null
+          quantidade_produzida: number | null
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_total?: number | null
+          custo_unitario?: number | null
+          id?: string | null
+          maquina_id?: string | null
+          material_id?: string | null
+          motivo?: Database["public"]["Enums"]["motivo_perda"] | null
+          observacoes?: string | null
+          operador_id?: string | null
+          os_id?: string | null
+          os_item_id?: string | null
+          quantidade_perdida?: number | null
+          quantidade_planejada?: number | null
+          quantidade_produzida?: number | null
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_total?: number | null
+          custo_unitario?: number | null
+          id?: string | null
+          maquina_id?: string | null
+          material_id?: string | null
+          motivo?: Database["public"]["Enums"]["motivo_perda"] | null
+          observacoes?: string | null
+          operador_id?: string | null
+          os_id?: string | null
+          os_item_id?: string | null
+          quantidade_perdida?: number | null
+          quantidade_planejada?: number | null
+          quantidade_produzida?: number | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_perdas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "os_perdas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "os_perdas_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_previsto_realizado"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_os_item_id_fkey"
+            columns: ["os_item_id"]
+            isOneToOne: false
+            referencedRelation: "itens_os_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_custo_cheio: {
         Row: {
           custo_cheio: number | null
@@ -17069,6 +17551,17 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_reembolsos_por_produto: {
+        Row: {
+          categoria: string | null
+          media: number | null
+          os: number | null
+          produto: string | null
+          reembolsos: number | null
+          total: number | null
+        }
+        Relationships: []
+      }
       vw_resultado_operacional_os: {
         Row: {
           custo_lancado: boolean | null
@@ -17478,6 +17971,15 @@ export type Database = {
     }
     Functions: {
       _apply_pending_migration: { Args: { p_sql: string }; Returns: undefined }
+      _dias: { Args: { p: number }; Returns: string }
+      _os_enfileirar_aviso: {
+        Args: {
+          p_evento: string
+          p_os: Database["public"]["Tables"]["ordens_servico"]["Row"]
+        }
+        Returns: string
+      }
+      _reais: { Args: { p: number }; Returns: string }
       _wa_abrir_atendimento: {
         Args: {
           p_conversa_id: string
@@ -17485,6 +17987,16 @@ export type Database = {
           p_usuario: string
         }
         Returns: string
+      }
+      _wa_enfileirar_mensagem_da_equipe: {
+        Args: {
+          p_conversa_id: string
+          p_fila: string
+          p_origem: string
+          p_texto: string
+          p_usuario: string
+        }
+        Returns: Json
       }
       _wa_exigir_resposta: { Args: { p_usuario: string }; Returns: undefined }
       abrir_aprovacao: { Args: { p_token: string }; Returns: Json }
@@ -17699,6 +18211,11 @@ export type Database = {
         Args: { p_foto_id: string; p_item_id: string }
         Returns: Json
       }
+      catalogo_cotacao_atender: {
+        Args: { p_atendida?: boolean; p_id: string }
+        Returns: Json
+      }
+      catalogo_cotacoes: { Args: never; Returns: Json }
       catalogo_gerar_link: {
         Args: {
           p_catalogo_id: string
@@ -17709,12 +18226,27 @@ export type Database = {
         }
         Returns: Json
       }
+      catalogo_gerar_orcamento: {
+        Args: { p_cliente_id?: string; p_itens: Json; p_titulo?: string }
+        Returns: Json
+      }
       catalogo_importar: {
         Args: { p_catalogo_id: string; p_plano: Json }
         Returns: Json
       }
       catalogo_link_abrir: { Args: { p_token_hash: string }; Returns: Json }
+      catalogo_link_pedir_cotacao: {
+        Args: {
+          p_itens: Json
+          p_nome: string
+          p_origem_hash?: string
+          p_telefone: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
       catalogo_links: { Args: { p_catalogo_id: string }; Returns: Json }
+      catalogo_painel_de_precos: { Args: never; Returns: Json }
       catalogo_precos: { Args: { p_catalogo_id: string }; Returns: Json }
       catalogo_previa_regras: {
         Args: { p_catalogo_id: string; p_regras: Json }
@@ -18163,6 +18695,8 @@ export type Database = {
         }
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      lembrete_orcamentos_aprovados_sem_os: { Args: never; Returns: Json }
+      lembretes_da_equipe: { Args: never; Returns: Json }
       logo_do_cliente: { Args: { _cliente_id: string }; Returns: string }
       mandar_para_acabamento: {
         Args: { p_os_id: string; p_quantidade?: number }
@@ -18198,6 +18732,13 @@ export type Database = {
       minhas_comissoes: { Args: never; Returns: Json }
       minhas_permissoes: { Args: never; Returns: string[] }
       nome_do_cliente: { Args: { _cliente_id: string }; Returns: string }
+      nomes_da_equipe: {
+        Args: { p_ids?: string[] }
+        Returns: {
+          id: string
+          nome: string
+        }[]
+      }
       normalize_document: { Args: { _doc: string }; Returns: string }
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
@@ -18228,6 +18769,10 @@ export type Database = {
       os_definir_quem_trouxe: {
         Args: { p_os_id: string; p_usuario_id: string }
         Returns: Json
+      }
+      os_e_impressao_3d: {
+        Args: { p_orcamento_id: string; p_os_id: string }
+        Returns: boolean
       }
       os_esta_encerrada: {
         Args: { p_status: Database["public"]["Enums"]["status_os"] }
@@ -18677,6 +19222,29 @@ export type Database = {
         Args: { p_itens: Json; p_nota?: string; p_pedido_id: string }
         Returns: Json
       }
+      reembolso_cancelar: { Args: { p_id: string }; Returns: Json }
+      reembolso_decidir: {
+        Args: { p_aprovar: boolean; p_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      reembolso_pedir: {
+        Args: {
+          p_categoria: string
+          p_comprovante_path: string
+          p_data_compra: string
+          p_descricao: string
+          p_destino: string
+          p_fornecedor?: string
+          p_os_id?: string
+          p_os_item_id?: string
+          p_valor: number
+        }
+        Returns: Json
+      }
+      reembolso_semaforo: {
+        Args: { p_ignorar?: string; p_os_id: string; p_valor: number }
+        Returns: Json
+      }
       registrar_aprovacao_interna: {
         Args: {
           p_arquivo_id: string
@@ -18977,6 +19545,7 @@ export type Database = {
         }
         Returns: string
       }
+      url_publica_do_sistema: { Args: never; Returns: string }
       usuario_desativado: { Args: { _user_id: string }; Returns: boolean }
       veredito_qualidade_os: { Args: { p_os_id: string }; Returns: string }
       vincular_cliente_do_contato: {
@@ -18995,6 +19564,7 @@ export type Database = {
         Args: {
           p_nome: string
           p_numero: string
+          p_trocar_segredo?: boolean
           p_webhook_secret_hash: string
           p_zapi_instance_id: string
         }
@@ -19008,9 +19578,23 @@ export type Database = {
           fila: Database["public"]["Enums"]["whatsapp_fila"]
         }[]
       }
+      whatsapp_conversa_do_telefone: {
+        Args: { p_instancia_id: string; p_telefone: string }
+        Returns: {
+          conversa_id: string
+          foto_atualizada_em: string
+          foto_chave: string
+          foto_path: string
+          telefone: string
+        }[]
+      }
       whatsapp_definir_filas_usuario: {
         Args: { p_admin: string; p_filas: string[]; p_usuario_alvo: string }
         Returns: Json
+      }
+      whatsapp_despachante_token_situacao: {
+        Args: { p_token?: string }
+        Returns: string
       }
       whatsapp_devolver_ia: {
         Args: { p_conversa_id: string; p_usuario: string }
@@ -19023,6 +19607,16 @@ export type Database = {
           filas: Database["public"]["Enums"]["whatsapp_fila"][]
           id: string
           nome: string
+          papeis: string[]
+        }[]
+      }
+      whatsapp_fotos_pendentes: {
+        Args: { p_limite?: number }
+        Returns: {
+          conversa_id: string
+          instancia_id: string
+          telefone: string
+          ultima_foto: string
         }[]
       }
       whatsapp_ia_classificar: {
@@ -19041,6 +19635,7 @@ export type Database = {
         Args: { p_conversa_id: string; p_usuario: string }
         Returns: Json
       }
+      whatsapp_medidas_de_entrada: { Args: never; Returns: Json }
       whatsapp_minhas_filas: {
         Args: never
         Returns: Database["public"]["Enums"]["whatsapp_fila"][]
@@ -19070,6 +19665,7 @@ export type Database = {
           p_media_url?: string
           p_momento?: string
           p_nome_contato?: string
+          p_origem?: string
           p_payload?: Json
           p_telefone: string
           p_texto?: string
@@ -19117,11 +19713,17 @@ export type Database = {
         Returns: Json
       }
       whatsapp_transferir: {
-        Args: { p_conversa_id: string; p_para: string; p_usuario: string }
+        Args: {
+          p_aviso?: string
+          p_conversa_id: string
+          p_para: string
+          p_usuario: string
+        }
         Returns: Json
       }
       whatsapp_transferir_fila: {
         Args: {
+          p_aviso?: string
           p_conversa_id: string
           p_fila: string
           p_motivo: string
@@ -19172,6 +19774,9 @@ export type Database = {
         | "margem_abaixo_minimo"
         | "os_atrasada"
         | "os_concluida"
+        | "orcamento_aprovado_sem_os"
+        | "lembrete_financeiro"
+        | "lembrete_operacao"
       canal_aprovacao:
         | "sistema"
         | "whatsapp"
@@ -19465,6 +20070,9 @@ export const Constants = {
         "margem_abaixo_minimo",
         "os_atrasada",
         "os_concluida",
+        "orcamento_aprovado_sem_os",
+        "lembrete_financeiro",
+        "lembrete_operacao",
       ],
       canal_aprovacao: [
         "sistema",
