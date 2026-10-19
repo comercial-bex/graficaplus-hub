@@ -32,7 +32,7 @@ import {
   tipoPelaChave,
   tipoPeloRotulo,
   type ChaveDoTipo,
-  type IconeDoTipo,
+  type IconeDoTipo as NomeDoIcone,
   type TipoDeProduto,
 } from "@/domain/orcamentos/tipos-de-produto";
 
@@ -75,7 +75,7 @@ export type AtalhoDeProdutos = {
   ids: string[];
 };
 
-const ICONES: Record<IconeDoTipo, LucideIcon> = {
+const ICONES: Record<NomeDoIcone, LucideIcon> = {
   Image,
   Sticker,
   PanelTop,
@@ -93,7 +93,7 @@ const ICONES_DOS_ATALHOS: Record<AtalhoDeProdutos["icone"], LucideIcon> = {
   Star,
 };
 
-export function IconeDoTipo({ icone, className }: { icone: IconeDoTipo; className?: string }) {
+export function IconeDoTipo({ icone, className }: { icone: NomeDoIcone; className?: string }) {
   const Icone = ICONES[icone] ?? Shapes;
   return <Icone className={className} aria-hidden="true" />;
 }
