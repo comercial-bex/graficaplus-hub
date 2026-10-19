@@ -512,6 +512,51 @@ async function guardarMidia(
 }
 
 /**
+ * Copia para o nosso armazenamento a mídia de UMA mensagem que ficou só com o
+ * link do Z-API (19/10/2026). A conversa pede isso na primeira vez que alguém a
+ * abre: duas fotos recebidas em 09/10 e 18/10 ficaram sem cópia e sem erro
+ * nenhum, e o link delas vence em 30 dias.
+ *
+ * Idempotente: reaproveita o que já está no bucket (ver `guardarMidia`). Não
+ * insiste em mensagem cuja cópia já falhou — a causa está em `erro` e o
+ * "Reprocessar mídia" do Monitor é de quem decide. O nome original do arquivo
+ * só existe no evento do webhook; aqui o nome vem do id da mensagem.
+ */
+export async function arquivarMidiaDaMensagem(
+  mensagemId: string,
+): Promise<{ ok: true; caminho: string; reaproveitada: boolean } | { ok: false; erro: string }> {
+  const { data: m, error } = await supabaseAdmin
+    .from("whatsapp_mensagens")
+    .select("id, instancia_id, conversa_id, cliente_id, os_id, media_url, storage_path, erro")
+    .eq("id", mensagemId)
+    .maybeSingle();
+  if (error) return { ok: false, erro: `falha ao ler a mensagem: ${error.message}` };
+  if (!m) return { ok: false, erro: "mensagem não encontrada" };
+  if (m.storage_path) return { ok: true, caminho: m.storage_path, reaproveitada: true };
+  if (!m.media_url) return { ok: false, erro: "a mensagem não tem mídia" };
+  if (m.erro) return { ok: false, erro: `a cópia já falhou antes: ${m.erro}` };
+  if (!m.instancia_id || !m.conversa_id) return { ok: false, erro: "mensagem sem conversa" };
+
+  const ctx: ContextoDaMidia = {
+    instanciaId: m.instancia_id,
+    mensagemId: m.id,
+    conversaId: m.conversa_id,
+    clienteId: m.cliente_id ?? null,
+    osId: m.os_id ?? null,
+  };
+  const midia: Midia = { url: m.media_url, mimeType: null, nomeArquivo: null };
+  try {
+    const copia = await guardarMidia(midia, ctx);
+    return { ok: true, ...copia };
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : String(e);
+    // Sem evento (eventoId vazio): o rastro vai para a mensagem e para o log.
+    await registrarFalhaDeMidia(motivo, { ...ctx, eventoId: "", midia });
+    return { ok: false, erro: motivo };
+  }
+}
+
+/**
  * O rastro da cópia que falhou: na mensagem (a conversa mostra o motivo), no
  * evento (o Monitor mostra "processado com falha") e em `whatsapp_logs`.
  * Nenhuma dessas gravações pode derrubar o webhook — a mensagem já entrou.
