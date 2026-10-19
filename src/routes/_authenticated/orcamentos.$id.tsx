@@ -837,6 +837,10 @@ function OrcamentoDetailPage() {
     Math.round((subtotalGravado - Number(orc.valor_total ?? 0)) * 100) / 100,
   );
   const semArte = (itens as any[]).filter((i) => !i.arquivo_id).length;
+  // Item em texto livre, sem produto: o banco não tem de onde tirar o custo, e a OS
+  // nasce sem custo previsto (19/10/2026: as OS #163 e #166). Com produto, o custo
+  // vem do cadastro mesmo quando quem monta o orçamento não vê custo.
+  const semProduto = (itens as any[]).filter((i) => !i.produto_id).length;
   const somaArea = somaAreaTotal(itens);
 
   return (
@@ -1466,6 +1470,11 @@ function OrcamentoDetailPage() {
                                   {i.especificacao}
                                 </p>
                               )}
+                              {!i.produto_id && (
+                                <p className="mt-0.5 text-xs text-amber-600" data-sem-produto="">
+                                  Sem produto ligado: o custo e a margem deste item não são calculados.
+                                </p>
+                              )}
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
                               {Number(i.quantidade).toLocaleString("pt-BR")} {i.unidade}
@@ -1567,6 +1576,11 @@ function OrcamentoDetailPage() {
                 {semArte > 0 && (
                   <div className="text-amber-500">
                     {semArte === 1 ? "1 item sem arte" : `${semArte} itens sem arte`}
+                  </div>
+                )}
+                {semProduto > 0 && (
+                  <div className="text-amber-500" title="Escolha o produto do catálogo para o custo entrar sozinho.">
+                    {semProduto === 1 ? "1 item sem produto" : `${semProduto} itens sem produto`}
                   </div>
                 )}
                 {somaArea > 0 && (
