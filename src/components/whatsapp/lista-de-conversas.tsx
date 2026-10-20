@@ -64,7 +64,9 @@ export type Contadores = {
 };
 
 function vazio(fila: Fila, status: AbaStatus, busca: string, setor: FiltroDeSetor): string {
-  if (busca.trim()) return "Nenhuma conversa com esse termo. Tente o telefone só com números.";
+  if (busca.trim()) {
+    return "Nenhuma conversa com esse termo. Tente o telefone só com números. Cliente cadastrado que ainda não escreveu? Abra a ficha dele em Clientes e toque em Conversar no WhatsApp.";
+  }
   if (setor !== "todas" && setor !== "minhas_filas" && status === "aberta") {
     return `Nenhuma conversa aberta em ${infoDoSetor(setor).rotulo}. Veja “Todas” para as outras filas.`;
   }

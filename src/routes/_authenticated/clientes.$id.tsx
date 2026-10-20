@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
 import { AcessoPortalCard } from "@/components/cliente/acesso-portal-card";
+import { abrirConversaDoCliente } from "@/lib/api/whatsapp-caixa.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -58,6 +60,7 @@ import {
   DollarSign,
   Package,
   Calendar,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -72,8 +75,28 @@ export const Route = createFileRoute("/_authenticated/clientes/$id")({
 
 function ClienteDetailPage() {
   const { id } = Route.useParams();
-  const { canSeeFinancials, canSeePrices, nivelDeVisao, hasAnyRole } = useAuth();
+  const { canSeeFinancials, canSeePrices, nivelDeVisao, hasAnyRole, hasPermission } = useAuth();
   const canDelete = hasAnyRole(["admin", "gestor"]);
+  // Conversar no WhatsApp (20/10/2026): a caixa de entrada só conhecia conversa que
+  // CHEGOU pelo Z-API; cliente cadastrado que ainda não escreveu não tinha como ser
+  // chamado. A função acha a conversa dele (e liga ao cliente) ou cria uma vazia.
+  const podeConversar = hasPermission("whatsapp.reply");
+  const [abrindoConversa, setAbrindoConversa] = useState(false);
+  // Pelo servidor, como toda escrita da caixa (AGENTS.md): a função SQL só
+  // aceita a chave de serviço.
+  const abrirConversa = useServerFn(abrirConversaDoCliente);
+  async function conversarNoWhatsApp() {
+    setAbrindoConversa(true);
+    try {
+      const r = await abrirConversa({ data: { clienteId: id } });
+      if (r.nova) toast.success("Conversa aberta. Escreva a primeira mensagem.");
+      navigate({ to: "/whatsapp", search: { conversa: r.id } });
+    } catch (e) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setAbrindoConversa(false);
+    }
+  }
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -151,6 +174,12 @@ function ClienteDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {podeConversar && cliente.ativo && (
+            <Button variant="outline" onClick={conversarNoWhatsApp} disabled={abrindoConversa} className="h-11 md:h-9">
+              <MessageCircle className="h-4 w-4 mr-1" />
+              {abrindoConversa ? "Abrindo…" : "Conversar no WhatsApp"}
+            </Button>
+          )}
           <div className="flex items-center gap-2 text-sm">
             <Switch checked={cliente.ativo} onCheckedChange={toggleAtivo} />
             <span className="text-muted-foreground">{cliente.ativo ? "Ativo" : "Inativo"}</span>

@@ -39,7 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Upload, Search } from "lucide-react";
 import { toast } from "sonner";
 import { CampoDocumento } from "@/components/campo-documento";
-import { formatarCEP, formatarTelefone, recebeWhatsApp } from "@/domain/documentos";
+import { chaveWhatsApp, formatarCEP, formatarTelefone, recebeWhatsApp } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { mensagemErro } from "@/lib/erros";
 
@@ -180,7 +180,32 @@ function ClientesPage() {
     }));
   }
 
+  // O mesmo WhatsApp já cadastrado, dito ANTES do clique (20/10/2026): a YRLEN
+  // entrou cinco vezes, quatro delas em 1,5 segundo, porque nada avisava e o
+  // botão não travava. Cliente duplicado quebra a ligação automática da conversa
+  // do WhatsApp (o webhook só liga quando o telefone bate com UM cliente).
+  const chaveDoWhatsApp = recebeWhatsApp(form.telefone) ? chaveWhatsApp(form.telefone) : null;
+  const jaCadastrado = useQuery({
+    queryKey: ["cliente-pelo-whatsapp", chaveDoWhatsApp],
+    enabled: open && !!chaveDoWhatsApp,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .eq("telefone_normalizado", chaveDoWhatsApp as string)
+        .eq("ativo", true)
+        // pai-arbitrario-ok: mira pelo telefone; o mais antigo é o mesmo que o gatilho do banco cita.
+        .order("created_at")
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [salvando, setSalvando] = useState(false);
+
   async function handleCreate() {
+    if (salvando) return;
     if (!form.nome.trim()) return toast.error("Nome é obrigatório");
     // O WhatsApp é por onde sai o orçamento em PDF e o acompanhamento da OS.
     // Cliente sem ele fica sem canal nenhum — e o banco recusa desde 28/09.
@@ -195,14 +220,25 @@ function ClientesPage() {
           "Precisa ser um celular com DDD e o 9 na frente. Telefone fixo não recebe; se o cliente tem dois números, guarde um aqui e o outro em Contatos.",
       });
     }
+    if (jaCadastrado.data) {
+      return toast.error(`Este WhatsApp já é de ${jaCadastrado.data.nome.trim()}`, {
+        description: "Abra o cadastro que já existe em vez de criar outro.",
+      });
+    }
     const payload: any = { ...form };
     if (!payload.vendedor_id) delete payload.vendedor_id;
-    const { error } = await supabase.from("clientes").insert(payload);
-    if (error) return toast.error(mensagemErro(error));
-    toast.success("Cliente cadastrado");
-    setOpen(false);
-    setForm(emptyForm);
-    qc.invalidateQueries({ queryKey: ["clientes"] });
+    setSalvando(true);
+    try {
+      // O banco confere de novo (gatilho ac_cliente_sem_duplicata_de_whatsapp).
+      const { error } = await supabase.from("clientes").insert(payload);
+      if (error) return toast.error(mensagemErro(error));
+      toast.success("Cliente cadastrado");
+      setOpen(false);
+      setForm(emptyForm);
+      qc.invalidateQueries({ queryKey: ["clientes"] });
+    } finally {
+      setSalvando(false);
+    }
   }
 
   const stats = useMemo(
@@ -342,11 +378,26 @@ function ClientesPage() {
                       onChange={(e) => setForm({ ...form, telefone: e.target.value })}
                       aria-invalid={!!form.telefone.trim() && !recebeWhatsApp(form.telefone)}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {form.telefone.trim() && !recebeWhatsApp(form.telefone)
-                        ? "Celular com DDD e o 9 na frente. Fixo não recebe."
-                        : "Por aqui sai o orçamento em PDF e o acompanhamento da OS."}
-                    </p>
+                    {jaCadastrado.data ? (
+                      <p className="text-xs text-amber-600" role="status" data-ja-cadastrado="">
+                        Este WhatsApp já é de <strong>{jaCadastrado.data.nome.trim()}</strong>.{" "}
+                        <Link
+                          to="/clientes/$id"
+                          params={{ id: jaCadastrado.data.id }}
+                          className="underline underline-offset-2"
+                          onClick={() => setOpen(false)}
+                        >
+                          Abrir o cadastro
+                        </Link>{" "}
+                        em vez de criar outro.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {form.telefone.trim() && !recebeWhatsApp(form.telefone)
+                          ? "Celular com DDD e o 9 na frente. Fixo não recebe."
+                          : "Por aqui sai o orçamento em PDF e o acompanhamento da OS."}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label>E-mail</Label>
@@ -414,7 +465,10 @@ function ClientesPage() {
                 <Button variant="ghost" onClick={() => setOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreate}>Cadastrar</Button>
+                {/* Travado enquanto salva: o segundo clique era o que duplicava. */}
+                <Button onClick={handleCreate} disabled={salvando || !!jaCadastrado.data}>
+                  {salvando ? "Cadastrando…" : "Cadastrar"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
