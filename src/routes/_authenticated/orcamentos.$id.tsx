@@ -66,6 +66,8 @@ import {
 } from "@/components/orcamento/escolha-de-produto";
 import { useProdutosParaEscolha } from "@/components/orcamento/use-produtos-para-escolha";
 import { MedidasDaPeca } from "@/components/orcamento/medidas-da-peca";
+import { DetalhesOpcionais } from "@/components/orcamento/detalhes-opcionais";
+import { UnidadeDoItem } from "@/components/orcamento/unidade-do-item";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
 import { ResumoDoItem } from "@/components/orcamento/resumo-do-item";
@@ -230,6 +232,10 @@ function OrcamentoDetailPage() {
   const [layoutsRascunho, setLayoutsRascunho] = useState<LayoutRascunho[]>([]);
   // Item em edição: o mesmo formulário, preenchido, com "Salvar alterações".
   const [editando, setEditando] = useState<{ id: string; numero: number } | null>(null);
+  // Os detalhes opcionais do item (tipo, especificações, artes): fechados até a
+  // pessoa abrir, e abertos sozinhos quando já há conteúdo ou o item está em edição.
+  // Uma vez aberta a seção, não fecha sozinha — ela sumiria debaixo do cursor.
+  const [detalhesManual, setDetalhesManual] = useState<boolean | null>(null);
   const [salvandoItem, setSalvandoItem] = useState(false);
   const [aRemover, setARemover] = useState<{ id: string; descricao: string; numero: number } | null>(null);
   const [artesDe, setArtesDe] = useState<{ id: string; descricao: string; numero: number } | null>(null);
@@ -412,6 +418,17 @@ function OrcamentoDetailPage() {
       : null;
   const areaFaturada = vendidoPorArea ? areaCobrada(dimensoesForm, form.area_minima) : 0;
 
+  // O que já está preenchido nos detalhes opcionais aparece no título, mesmo fechado.
+  const resumoDosDetalhes = [
+    form.especificacao.trim() ? "especificação" : null,
+    layoutsRascunho.length > 0 ? (layoutsRascunho.length === 1 ? "1 arte" : `${layoutsRascunho.length} artes`) : null,
+  ].filter((t): t is string => t !== null);
+  const detalhesPedemAbrir = !!editando || resumoDosDetalhes.length > 0;
+  const detalhesAbertos = detalhesManual ?? detalhesPedemAbrir;
+  useEffect(() => {
+    if (detalhesPedemAbrir) setDetalhesManual((atual) => atual ?? true);
+  }, [detalhesPedemAbrir]);
+
   // O que o formulário pergunta depende da unidade: m² pede medida; os outros,
   // só quantidade. Medida já preenchida (tamanho fixo do produto) aparece sempre.
   const camposDoItem = camposDaUnidade(form.unidade);
@@ -526,6 +543,7 @@ function OrcamentoDetailPage() {
     setTipoEscolhido(null);
     setItemLivre(false);
     setMedidasAbertas(false);
+    setDetalhesManual(null);
   }
 
   /**
@@ -1052,28 +1070,14 @@ function OrcamentoDetailPage() {
                     ]}
                   />
 
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-12 md:col-span-8">
-                      <Label htmlFor="item-descricao">Descrição</Label>
-                      <Input
-                        id="item-descricao"
-                        placeholder="Ex.: Adesivo vinil fosco"
-                        value={form.descricao}
-                        onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-12 md:col-span-4">
-                      <Label htmlFor="item-tipo" className="flex items-center gap-1">
-                        Tipo de produto
-                        <DicaIcone texto={dicaCampo("/orcamentos", "tipo_de_produto")} rotulo="Tipo de produto" className="h-5 w-5" />
-                      </Label>
-                      <Input
-                        id="item-tipo"
-                        placeholder="Adesivo, lona, placa…"
-                        value={form.tipo_produto}
-                        onChange={(e) => setForm({ ...form, tipo_produto: e.target.value })}
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="item-descricao">Descrição</Label>
+                    <Input
+                      id="item-descricao"
+                      placeholder="Ex.: Adesivo vinil fosco"
+                      value={form.descricao}
+                      onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                    />
                   </div>
 
                   {/* Passo 2 — a medida, desenhada, para o que vende por m²
@@ -1111,35 +1115,19 @@ function OrcamentoDetailPage() {
                         desabilitado={salvandoItem}
                       />
                     </div>
-                    <div className="col-span-4 md:col-span-2">
-                      <Label htmlFor="item-unidade">Unidade</Label>
-                      <Input
-                        id="item-unidade"
-                        className="h-11 sm:h-9"
-                        value={form.unidade}
-                        onChange={(e) => setForm({ ...form, unidade: e.target.value })}
+                    <div className="col-span-4 md:col-span-3">
+                      <UnidadeDoItem
+                        valor={form.unidade}
+                        onMudar={(unidade) => setForm({ ...form, unidade })}
+                        desabilitado={salvandoItem}
                       />
                     </div>
-                    <div className="col-span-12 md:col-span-6">
+                    <div className="col-span-12 md:col-span-5">
                       <AcabamentoDoItem
                         valor={form.acabamento}
                         opcoes={tipoDoItem?.acabamentos ?? []}
                         onMudar={(valor) => setForm({ ...form, acabamento: valor })}
                         desabilitado={salvandoItem}
-                      />
-                    </div>
-                    <div className="col-span-12">
-                      <Label htmlFor="item-especificacao" className="flex flex-wrap items-center gap-1">
-                        Especificações para a produção
-                        <span className="text-muted-foreground">(opcional — sai no PDF embaixo da descrição)</span>
-                        <DicaIcone texto={dicaCampo("/orcamentos", "especificacao")} rotulo="Especificações" className="h-5 w-5" />
-                      </Label>
-                      <Textarea
-                        id="item-especificacao"
-                        rows={2}
-                        placeholder="Material, cores, frente e verso, ilhós a cada 50 cm, bastão em cima…"
-                        value={form.especificacao}
-                        onChange={(e) => setForm({ ...form, especificacao: e.target.value })}
                       />
                     </div>
                   </div>
@@ -1174,7 +1162,9 @@ function OrcamentoDetailPage() {
                               step="0.01"
                               inputMode="decimal"
                               disabled={!vendidoPorArea}
-                              title={vendidoPorArea ? undefined : "Informe largura e altura para vender por m²"}
+                              // Dica no próprio campo: o "title" não aparece no celular, e um
+                              // texto embaixo desalinharia a linha de preços.
+                              placeholder={vendidoPorArea ? undefined : "informe a medida"}
                               value={form.preco_m2}
                               onChange={(e) => setForm({ ...form, preco_m2: e.target.value })}
                             />
@@ -1341,29 +1331,64 @@ function OrcamentoDetailPage() {
                     />
                   )}
 
-                  <div className="space-y-2">
-                    <Label>Layouts (artes a imprimir)</Label>
-                    {editando ? (
-                      <LayoutsDoItem
-                        itemId={editando.id}
-                        orcamentoId={id}
-                        clienteId={(orc as any)?.cliente_id ?? null}
-                        podeEditar={podeMexer}
+                  {/* O que é opcional fica recolhido (20/10/2026): o tipo vem do produto, e
+                      a maioria dos itens não tem especificação nem arte na hora de orçar.
+                      O resumo ao lado do título mostra o que já está preenchido. */}
+                  <DetalhesOpcionais
+                    aberto={detalhesAbertos}
+                    onMudar={setDetalhesManual}
+                    preenchido={resumoDosDetalhes}
+                  >
+                    <div>
+                      <Label htmlFor="item-tipo" className="flex items-center gap-1">
+                        Tipo de produto
+                        <DicaIcone texto={dicaCampo("/orcamentos", "tipo_de_produto")} rotulo="Tipo de produto" className="h-5 w-5" />
+                      </Label>
+                      <Input
+                        id="item-tipo"
+                        placeholder="Adesivo, lona, placa…"
+                        value={form.tipo_produto}
+                        onChange={(e) => setForm({ ...form, tipo_produto: e.target.value })}
                       />
-                    ) : (
-                      <LayoutsDoRascunho
-                        orcamentoId={id}
-                        clienteId={(orc as any)?.cliente_id ?? null}
-                        layouts={layoutsRascunho}
-                        setLayouts={setLayoutsRascunho}
-                        desabilitado={salvandoItem}
+                    </div>
+                    <div>
+                      <Label htmlFor="item-especificacao" className="flex flex-wrap items-center gap-1">
+                        Especificações para a produção
+                        <span className="text-muted-foreground">(sai no PDF embaixo da descrição)</span>
+                        <DicaIcone texto={dicaCampo("/orcamentos", "especificacao")} rotulo="Especificações" className="h-5 w-5" />
+                      </Label>
+                      <Textarea
+                        id="item-especificacao"
+                        rows={2}
+                        placeholder="Material, cores, frente e verso, ilhós a cada 50 cm, bastão em cima…"
+                        value={form.especificacao}
+                        onChange={(e) => setForm({ ...form, especificacao: e.target.value })}
                       />
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      A primeira arte é a capa: sai no bloco LAYOUT do PDF com o número do item. As
-                      outras vão juntas para a produção.
-                    </p>
-                  </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Layouts (artes a imprimir)</Label>
+                      {editando ? (
+                        <LayoutsDoItem
+                          itemId={editando.id}
+                          orcamentoId={id}
+                          clienteId={(orc as any)?.cliente_id ?? null}
+                          podeEditar={podeMexer}
+                        />
+                      ) : (
+                        <LayoutsDoRascunho
+                          orcamentoId={id}
+                          clienteId={(orc as any)?.cliente_id ?? null}
+                          layouts={layoutsRascunho}
+                          setLayouts={setLayoutsRascunho}
+                          desabilitado={salvandoItem}
+                        />
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        A primeira arte é a capa: sai no bloco LAYOUT do PDF com o número do item. As
+                        outras vão juntas para a produção.
+                      </p>
+                    </div>
+                  </DetalhesOpcionais>
 
                   {/* A conferência em uma frase, antes de gravar. */}
                   <ResumoDoItem
