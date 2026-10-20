@@ -159,6 +159,26 @@ export const enfileirarArquivo = createServerFn({ method: "POST" })
   });
 
 /**
+ * A conversa de um cliente cadastrado, pelo botão "Conversar no WhatsApp" da
+ * ficha do cliente (20/10/2026). A caixa só conhecia conversa que CHEGOU pelo
+ * Z-API: cliente que ainda não escreveu não tinha como ser chamado. Acha a
+ * conversa pelo telefone (e liga ao cliente) ou cria uma vazia; devolve o id.
+ */
+export const abrirConversaDoCliente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ clienteId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await exigir(context.supabase, context.userId, "whatsapp.reply");
+    const db = (await admin()) as any;
+    const { data: r, error } = await db.rpc("whatsapp_conversa_do_cliente", {
+      p_cliente_id: data.clienteId,
+      p_usuario: context.userId,
+    });
+    if (error) throw new Error(error.message);
+    return r as { id: string; nova: boolean; telefone: string };
+  });
+
+/**
  * Abrir a conversa marca como lida PARA ESTA PESSOA (whatsapp_conversa_leituras)
  * — e zera o contador global para quem pode responder, como antes. Só precisa
  * ler o WhatsApp: a leitura de cada um é dele.

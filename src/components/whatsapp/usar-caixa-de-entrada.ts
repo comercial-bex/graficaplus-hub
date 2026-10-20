@@ -352,7 +352,21 @@ export type FiltroDaLista = {
   setores?: Setor[] | null;
 };
 
-function filtrarConsulta(q: any, f: FiltroDaLista) {
+/**
+ * Os clientes cadastrados cujo nome casa com a busca. A conversa guarda o nome do
+ * CONTATO do WhatsApp ("Yrlen Silva", ou o que o aparelho dela diz); quem busca
+ * digita o nome do CADASTRO ("YRLEN"). Em 20/10/2026 a Jhessy buscou "YRLEN" e a
+ * caixa respondeu "nenhuma conversa" — a conversa, quando existe, é achada pelo
+ * cliente ligado a ela. Só letras: termo com dígitos é telefone.
+ */
+async function clientesComONome(termo: string): Promise<string[]> {
+  if (!termo || /\d/.test(termo)) return [];
+  const { data, error } = await supabase.from("clientes").select("id").ilike("nome", `%${termo}%`).limit(50);
+  if (error) return [];
+  return (data ?? []).map((c) => c.id);
+}
+
+function filtrarConsulta(q: any, f: FiltroDaLista, clientesDaBusca: string[] = []) {
   q = f.status === "resolvida" ? q.in("status", ["resolvida", "arquivada"]) : q.eq("status", f.status);
   if (f.fila === "minhas") q = q.eq("responsavel_id", f.userId ?? "00000000-0000-0000-0000-000000000000");
   if (f.fila === "nao_atribuidas") q = q.is("responsavel_id", null);
@@ -362,6 +376,7 @@ function filtrarConsulta(q: any, f: FiltroDaLista) {
     const digitos = termo.replace(/\D/g, "");
     const partes = [`nome_contato.ilike.%${termo}%`, `ultima_mensagem.ilike.%${termo}%`];
     if (digitos.length >= 3) partes.push(`telefone.ilike.%${digitos}%`);
+    if (clientesDaBusca.length) partes.push(`cliente_id.in.(${clientesDaBusca.join(",")})`);
     q = q.or(partes.join(","));
   }
   return q;
@@ -376,8 +391,9 @@ export function useConversasPaginadas(f: FiltroDaLista) {
     // de novo com o setor certo — 19 consultas em vez de 10 (medido 13/10/2026).
     enabled: f.pronto !== false,
     queryFn: async ({ pageParam }) => {
+      const clientesDaBusca = await clientesComONome(termoSeguro(f.busca));
       let q = (supabase as any).from("whatsapp_conversas").select(SELECT_CONVERSAS);
-      q = filtrarConsulta(q, f);
+      q = filtrarConsulta(q, f, clientesDaBusca);
       const { data, error } = await q
         .order("ultima_mensagem_at", { ascending: false, nullsFirst: false })
         .range(pageParam, pageParam + POR_PAGINA - 1);

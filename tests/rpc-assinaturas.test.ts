@@ -257,6 +257,9 @@ const ASSINATURAS: Record<string, string[]> = {
   reembolso_cancelar: ["p_id"],
   // Migração 20261015150000: o nome de quem é da equipe (src/lib/api/equipe.ts).
   nomes_da_equipe: ["p_ids"],
+  // Migração 20261020120000: a conversa do WhatsApp a partir do cadastro do cliente
+  // (abrirConversaDoCliente, só service_role). Exige whatsapp.reply de p_usuario.
+  whatsapp_conversa_do_cliente: ["p_cliente_id", "p_usuario"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */
