@@ -78,7 +78,7 @@ export function OrcamentoMaterialCheck({
                 </span>
               )}
               {estado === "ok" && (
-                <span className="flex items-center gap-1 text-accent whitespace-nowrap">
+                <span className="flex items-center gap-1 text-success whitespace-nowrap">
                   <Check className="h-3 w-3" /> suficiente
                 </span>
               )}

@@ -85,7 +85,7 @@ function AprovarArtePage() {
         <div className="text-center space-y-3 py-8">
           <div
             className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${
-              decisao === "aprovado" ? "bg-accent/15 text-accent" : "bg-amber-500/15 text-amber-600"
+              decisao === "aprovado" ? "bg-success/15 text-success" : "bg-amber-500/15 text-amber-600"
             }`}
           >
             {decisao === "aprovado" ? (
