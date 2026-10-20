@@ -791,7 +791,7 @@ function OSTab({ clienteId, nivelDeVisao }: { clienteId: string; nivelDeVisao: N
             {data.map((o: any) => (
               <TableRow key={o.id}>
                 <TableCell>
-                  <Link to="/os/$id" params={{ id: o.id }} className="text-accent hover:underline">
+                  <Link to="/os/$id" params={{ id: o.id }} className="text-link hover:underline">
                     #{o.numero}
                   </Link>
                 </TableCell>
@@ -855,7 +855,7 @@ function OrcamentosTab({
                   <Link
                     to="/orcamentos/$id"
                     params={{ id: o.id }}
-                    className="text-accent hover:underline"
+                    className="text-link hover:underline"
                   >
                     #{o.numero}
                   </Link>

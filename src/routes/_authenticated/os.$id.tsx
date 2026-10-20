@@ -1044,7 +1044,7 @@ function HistoricoTab({ osId }: { osId: string }) {
         ) : (
           <ol className="space-y-2">
             {data.movimentos.map((m) => (
-              <li key={m.id} className="text-sm border-l-2 border-accent pl-3 py-1">
+              <li key={m.id} className="text-sm border-l-2 border-primary pl-3 py-1">
                 <div className="font-medium">{passoDoMovimento(m)}</div>
                 <div className="text-xs text-muted-foreground">por {rotuloDoMovimento(m, data.nomes)}</div>
               </li>

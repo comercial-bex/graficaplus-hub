@@ -1254,7 +1254,7 @@ function OrcamentoDetailPage() {
                         </span>
                       )}
                       {faixaSeguinte && (
-                        <span className="text-accent">
+                        <span className="text-link">
                           {descreverFaixa(faixaSeguinte, form.unidade)} — vale sugerir ao cliente.
                         </span>
                       )}
@@ -1271,7 +1271,7 @@ function OrcamentoDetailPage() {
                             ? "text-destructive"
                             : margemMinimaItem !== null && margemItem < margemMinimaItem + 5
                               ? "text-amber-500"
-                              : "text-accent"
+                              : "text-success"
                         }
                       >
                         {margemItem.toFixed(1)}%
@@ -1653,7 +1653,7 @@ function OrcamentoDetailPage() {
                     {margem !== null && (
                       <div>
                         <span className="text-muted-foreground">Margem:</span>{" "}
-                        <strong className={margem < 20 ? "text-destructive" : "text-accent"}>
+                        <strong className={margem < 20 ? "text-destructive" : "text-success"}>
                           {margem.toFixed(1)}%
                         </strong>
                       </div>

@@ -268,7 +268,7 @@ function FilamentosPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                        <Boxes className="h-5 w-5 text-accent" />
+                        <Boxes className="h-5 w-5 text-link" />
                       </div>
                       <div>
                         <CardTitle className="text-base">{f.materiais?.nome ?? "—"}</CardTitle>

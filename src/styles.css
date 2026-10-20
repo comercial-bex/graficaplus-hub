@@ -23,6 +23,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-link: var(--link);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -88,6 +89,10 @@
 
   --accent: #e6f7fa;
   --accent-foreground: #096b7d;
+  /* Texto de link e dica clicável. `text-accent` é FUNDO (#e6f7fa) e sumia no
+     branco: os links de OS e orçamento na ficha do cliente, a margem boa do
+     item, o "aprovado" da página do cliente (20/10/2026). 6,1:1 no card. */
+  --link: #096b7d;
 
   --destructive: #d92d72;
   --destructive-foreground: #ffffff;
@@ -171,6 +176,7 @@
   --muted-foreground: #8b94a7;
   --accent: #f5d90a;
   --accent-foreground: #050506;
+  --link: #00d3f2;
   --destructive: #ff2d9b;
   --destructive-foreground: #050506;
   --success: #45d4a0;
