@@ -19578,6 +19578,10 @@ export type Database = {
           fila: Database["public"]["Enums"]["whatsapp_fila"]
         }[]
       }
+      whatsapp_conversa_do_cliente: {
+        Args: { p_cliente_id: string; p_usuario: string }
+        Returns: Json
+      }
       whatsapp_conversa_do_telefone: {
         Args: { p_instancia_id: string; p_telefone: string }
         Returns: {
