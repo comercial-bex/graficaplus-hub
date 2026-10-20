@@ -278,7 +278,7 @@ export function MenuLateral({
       </Dica>
     );
   const linhaDoRodape =
-    "flex h-11 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9";
+    "flex h-11 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9 md:[@media(max-height:800px)]:h-8";
 
   return (
     <>
@@ -361,7 +361,7 @@ export function MenuLateral({
             data-painel={ativo}
             className="flex min-w-0 flex-1 flex-col bg-sidebar group-data-[collapsible=icon]:hidden"
           >
-            <div className="relative flex flex-col items-center gap-2.5 border-b border-sidebar-border px-4 pb-4 pt-4">
+            <div className="relative flex flex-col items-center gap-2.5 border-b border-sidebar-border px-4 pb-4 pt-4 [@media(max-height:800px)]:gap-1 [@media(max-height:800px)]:pb-2 [@media(max-height:800px)]:pt-2">
               {/* O X do Sheet fica escondido pelo componente base; sem este botão a única
                   saída no celular é acertar a faixa estreita do overlay. */}
               {isMobile && (
@@ -380,15 +380,15 @@ export function MenuLateral({
                 width={1165}
                 height={532}
                 draggable={false}
-                className="h-auto w-36 max-w-[calc(100%-3rem)] select-none object-contain"
+                className="h-auto w-36 max-w-[calc(100%-3rem)] select-none object-contain [@media(max-height:800px)]:w-24"
               />
               <Link
                 to="/configuracoes"
                 onClick={fecharNoCelular}
                 title="Meu perfil"
-                className="relative mt-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                className="relative mt-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring [@media(max-height:800px)]:mt-0"
               >
-                <Avatar className="h-16 w-16 ring-[3px] ring-[var(--sidebar-marca)]/70 ring-offset-2 ring-offset-sidebar">
+                <Avatar className="h-16 w-16 ring-[3px] ring-[var(--sidebar-marca)]/70 ring-offset-2 ring-offset-sidebar [@media(max-height:800px)]:h-10 [@media(max-height:800px)]:w-10">
                   <AvatarImage
                     src={pessoa.foto ?? undefined}
                     alt={`Foto de ${nome}`}
@@ -414,7 +414,7 @@ export function MenuLateral({
                 </p>
                 {pessoa.email && (
                   <p
-                    className="truncate text-[11px] text-sidebar-foreground/60"
+                    className="truncate text-[11px] text-sidebar-foreground/60 [@media(max-height:800px)]:hidden"
                     title={pessoa.email}
                   >
                     {pessoa.email}
@@ -424,8 +424,8 @@ export function MenuLateral({
             </div>
 
             {moduloAtivo && (
-              <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--sidebar-marca)]/40 bg-[var(--sidebar-marca)]/10">
+              <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-3 [@media(max-height:800px)]:py-1.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--sidebar-marca)]/40 bg-[var(--sidebar-marca)]/10 [@media(max-height:800px)]:h-8 [@media(max-height:800px)]:w-8">
                   <moduloAtivo.icon
                     className="h-4 w-4 text-[var(--sidebar-marca)]"
                     aria-hidden="true"
@@ -502,7 +502,7 @@ export function MenuLateral({
               ))}
             </nav>
 
-            <div className="space-y-0.5 border-t border-sidebar-border p-3">
+            <div className="space-y-0.5 border-t border-sidebar-border p-3 [@media(max-height:800px)]:p-1.5">
               <Link
                 to="/configuracoes"
                 onClick={fecharNoCelular}
