@@ -1,6 +1,6 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DicaIcone } from "@/components/bex/Dica";
+import { CampoDeMedida, SeletorDeUnidade, useUnidadeDeMedida } from "@/components/orcamento/campo-de-medida";
+import { medidaLegivel, type UnidadeDeMedida } from "@/domain/orcamentos/unidade-de-medida";
 import { dicaCampo } from "@/lib/dicas";
 import { cn } from "@/lib/utils";
 import { areaCobrada, areaTotal, areaUnitaria, temDimensoes } from "@/domain/orcamentos/area";
@@ -9,7 +9,8 @@ import type { TamanhoComum } from "@/domain/orcamentos/tipos-de-produto";
 /**
  * As medidas da peça, desenhadas.
  *
- * Largura (X) e altura (Y) em metros, com a peça aparecendo na proporção
+ * Largura (X) e altura (Y) na unidade que a pessoa escolher (mm, cm ou m;
+ * guardados sempre em metros), com a peça aparecendo na proporção
  * certa enquanto o vendedor digita — um banner deitado fica deitado, uma
  * faixa de rua fica comprida. Embaixo, a área da peça, a do lote e a que
  * entra na conta (com o mínimo do produto, quando houver). Os tamanhos
@@ -41,13 +42,23 @@ function retangulo(largura: number, altura: number) {
   return { w: Math.max(MINIMO, w), h: Math.max(MINIMO, h), vazio: false };
 }
 
+/** A cota como se fala: em metros fica "0,80 m", como sempre foi; em mm e cm, "80 cm". */
+function cota(metrosDaMedida: number, unidade: UnidadeDeMedida) {
+  return unidade === "m" ? `${metros(metrosDaMedida)} m` : medidaLegivel(metrosDaMedida, unidade);
+}
+
 export function DesenhoDaPeca({
   largura,
   altura,
+  unidade = "m",
   className,
 }: {
+  /** metros */
   largura: number;
+  /** metros */
   altura: number;
+  /** Só muda como as cotas são escritas. */
+  unidade?: UnidadeDeMedida;
   className?: string;
 }) {
   const { w, h, vazio } = retangulo(largura, altura);
@@ -64,7 +75,7 @@ export function DesenhoDaPeca({
       aria-label={
         vazio
           ? "Desenho da peça: informe largura e altura"
-          : `Peça de ${metros(largura)} m de largura por ${metros(altura)} m de altura, ${m2(area)}`
+          : `Peça de ${cota(largura, unidade)} de largura por ${cota(altura, unidade)} de altura, ${m2(area)}`
       }
       className={cn("h-auto w-full max-w-[320px] text-muted-foreground", className)}
     >
@@ -104,7 +115,7 @@ export function DesenhoDaPeca({
         <line x1={x + w} y1={123} x2={x + w} y2={133} />
       </g>
       <text x={x + w / 2} y={146} textAnchor="middle" fontSize="11" fill="currentColor">
-        Largura (X){vazio ? "" : ` ${metros(largura)} m`}
+        Largura (X){vazio ? "" : ` ${cota(largura, unidade)}`}
       </text>
 
       {/* Cota vertical: Altura (Y) */}
@@ -121,7 +132,7 @@ export function DesenhoDaPeca({
         fill="currentColor"
         transform={`rotate(-90 246 ${y + h / 2})`}
       >
-        Altura (Y){vazio ? "" : ` ${metros(altura)} m`}
+        Altura (Y){vazio ? "" : ` ${cota(altura, unidade)}`}
       </text>
     </svg>
   );
@@ -149,6 +160,7 @@ export function MedidasDaPeca({
   onAplicarTamanho: (t: TamanhoComum) => void;
   desabilitado?: boolean;
 }) {
+  const [unidade, mudarUnidade] = useUnidadeDeMedida();
   const dims = { largura: paraNumero(largura), altura: paraNumero(altura), quantidade };
   const temMedida = temDimensoes(dims);
   const daPeca = areaUnitaria(dims);
@@ -159,60 +171,50 @@ export function MedidasDaPeca({
 
   return (
     <div className="space-y-3 rounded-lg border bg-muted/20 p-3" data-testid="medidas-da-peca">
-      <div className="flex items-center gap-1.5">
-        <h3 className="text-sm font-medium">Medidas da peça</h3>
-        <DicaIcone texto={dicaCampo("/orcamentos", "medidas")} rotulo="Medidas" className="h-5 w-5" />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-medium">Medidas da peça</h3>
+          <DicaIcone texto={dicaCampo("/orcamentos", "medidas")} rotulo="Medidas" className="h-5 w-5" />
+        </div>
+        {/* A unidade em que se digita: milímetros, centímetros ou metros. O sistema
+            guarda e calcula em metros; aqui só muda como a pessoa escreve. */}
+        <SeletorDeUnidade valor={unidade} onMudar={mudarUnidade} desabilitado={desabilitado} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-center">
-        <DesenhoDaPeca largura={dims.largura} altura={dims.altura} className="mx-auto" />
+        <DesenhoDaPeca largura={dims.largura} altura={dims.altura} unidade={unidade} className="mx-auto" />
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="item-largura">Largura (X)</Label>
-              <div className="relative">
-                <Input
-                  id="item-largura"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  className="h-11 pr-8 sm:h-9"
-                  value={largura}
-                  disabled={desabilitado}
-                  onChange={(e) => onMudar("largura", e.target.value)}
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                  m
-                </span>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="item-altura">Altura (Y)</Label>
-              <div className="relative">
-                <Input
-                  id="item-altura"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  className="h-11 pr-8 sm:h-9"
-                  value={altura}
-                  disabled={desabilitado}
-                  onChange={(e) => onMudar("altura", e.target.value)}
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                  m
-                </span>
-              </div>
-            </div>
+            <CampoDeMedida
+              id="item-largura"
+              rotulo="Largura (X)"
+              metros={largura}
+              unidade={unidade}
+              desabilitado={desabilitado}
+              onMudar={(m) => onMudar("largura", m)}
+            />
+            <CampoDeMedida
+              id="item-altura"
+              rotulo="Altura (Y)"
+              metros={altura}
+              unidade={unidade}
+              desabilitado={desabilitado}
+              onMudar={(m) => onMudar("altura", m)}
+            />
           </div>
 
           {/* A conta, viva: peça, lote e o que entra no preço. */}
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+            {/* Em mm ou cm, mostra a conversão: é o número que o sistema usa. */}
+            {unidade !== "m" && temMedida && (
+              <>
+                <dt className="text-muted-foreground">Em metros</dt>
+                <dd className="tabular-nums" data-testid="em-metros">
+                  {metros(dims.largura)} × {metros(dims.altura)} m
+                </dd>
+              </>
+            )}
             <dt className="text-muted-foreground">Área da peça</dt>
             <dd className="tabular-nums">{temMedida ? m2(daPeca) : "—"}</dd>
             {qtd > 1 && (
