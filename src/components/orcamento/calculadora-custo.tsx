@@ -33,6 +33,14 @@ import {
   type VelocidadePorMaterial,
 } from "@/domain/producao/tempo-de-maquina";
 import { BarraDeComposicao } from "./barra-de-composicao";
+import { BarraDePassos, PerguntaDoPasso } from "./passos-da-calculadora";
+import {
+  estadoDosPassos,
+  passoAnterior,
+  passoSeguinte,
+  rotuloDoBotaoPrincipal,
+  type PassoDaCalculadora,
+} from "@/domain/orcamentos/passos-da-calculadora";
 import {
   sincronizarDecapagem,
   type FuncaoMO,
@@ -85,7 +93,7 @@ const num = (t: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+const pct = (n: number) => `${(n * 100).toFixed(1).replace(".", ",")}%`;
 
 let contador = 0;
 const novaKey = () => `l${++contador}`;
@@ -122,6 +130,9 @@ export function CalculadoraCusto({
   const [markupPadrao, setMarkupPadrao] = useState("30");
   const [taxasVenda, setTaxasVenda] = useState("0");
   const [outrosCustos, setOutrosCustos] = useState("0");
+  // Em passos (20/10/2026): uma pergunta por vez. O que foi digitado fica
+  // guardado ao trocar de passo; só muda o que está à vista.
+  const [passo, setPasso] = useState<PassoDaCalculadora>(1);
 
   // Lê a lista FINANCEIRA dos materiais. A tabela crua só libera as colunas sem
   // custo (grant por coluna): pedir custo_medio/custo_unitario nela derruba a
@@ -411,6 +422,7 @@ export function CalculadoraCusto({
       setMateriais([]);
       setProcessos([]);
       setMaoDeObra([]);
+      setPasso(1);
     }
   }, [open]);
 
@@ -457,6 +469,17 @@ export function CalculadoraCusto({
 
   const temAlgumaLinha = materiais.length + processos.length + maoDeObra.length > 0;
   const temVetada = processos.some((p) => p.vetado);
+  const estados = estadoDosPassos({
+    materiais: materiais.length,
+    processos: processos.length,
+    maoDeObra: maoDeObra.length,
+    custoMateriais: resultado?.custoMateriais ?? 0,
+    custoProcessos: resultado?.custoProcessos ?? 0,
+    custoMaoDeObra: resultado?.custoMaoDeObra ?? 0,
+    custoTotal: resultado?.custoTotal ?? 0,
+    temVetada,
+  });
+  const podeAplicar = !!resultado && temAlgumaLinha && resultado.custoTotal > 0 && !temVetada;
 
   function addMaterial() {
     setMateriais((a) => [
@@ -528,15 +551,14 @@ export function CalculadoraCusto({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
             Calcular custo do item
           </DialogTitle>
           <DialogDescription>
-            Materiais, processos e mão de obra viram custo; o markup vira preço. Base de
-            consumo deste item:{" "}
+            Base de consumo deste item:{" "}
             <strong>
               {baseConsumo.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} {unidadeBase}
             </strong>
@@ -552,8 +574,12 @@ export function CalculadoraCusto({
             </Aviso>
           )}
 
+          <BarraDePassos atual={passo} estados={estados} onIr={setPasso} />
+
           {/* ------------------------------- MATERIAIS ------------------------------ */}
+          {passo === 1 && (
           <section className="space-y-2">
+            <PerguntaDoPasso passo={1} />
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">
                 Materiais
@@ -658,9 +684,12 @@ export function CalculadoraCusto({
               ))
             )}
           </section>
+          )}
 
           {/* ------------------------------- PROCESSOS ------------------------------ */}
+          {passo === 2 && (
           <section className="space-y-2">
+            <PerguntaDoPasso passo={2} />
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Processos (máquina)</h3>
               <Button
@@ -876,9 +905,12 @@ export function CalculadoraCusto({
               </div>
             ))}
           </section>
+          )}
 
           {/* ------------------------------ MÃO DE OBRA ----------------------------- */}
+          {passo === 3 && (
           <section className="space-y-2">
+            <PerguntaDoPasso passo={3} />
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Mão de obra</h3>
               <Button
@@ -983,9 +1015,19 @@ export function CalculadoraCusto({
               </div>
             ))}
           </section>
+          )}
 
           {/* -------------------------------- FECHAMENTO ---------------------------- */}
-          <section className="grid grid-cols-12 gap-2 items-end border-t pt-4">
+          {passo === 4 && (
+          <>
+          <PerguntaDoPasso passo={4} />
+          {!temAlgumaLinha && (
+            <p className="text-sm text-muted-foreground">
+              Ainda não há material, máquina nem mão de obra: volte aos passos anteriores e
+              preencha pelo menos um.
+            </p>
+          )}
+          <section className="grid grid-cols-12 gap-2 items-end">
             <div className="col-span-3">
               <Label className="text-xs">Outros custos (frete, terceiros)</Label>
               <Input
@@ -1034,7 +1076,8 @@ export function CalculadoraCusto({
                 <div className="text-xs text-muted-foreground">Margem líquida</div>
                 <div
                   className={`font-mono font-semibold ${
-                    resultado.margemPct < 0.2 ? "text-destructive" : "text-accent"
+                    // text-accent é #e6f7fa no tema claro: a margem boa sumia no branco.
+                    resultado.margemPct < 0.2 ? "text-destructive" : "text-success"
                   }`}
                 >
                   {pct(resultado.margemPct)}
@@ -1054,32 +1097,43 @@ export function CalculadoraCusto({
               />
             </section>
           )}
+          </>
+          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row sm:items-center gap-2">
           {/* Sair daqui com uma linha vetada seria vender um trabalho que a
               oficina não pode fazer. Trave, e diga qual linha. */}
-          {temVetada && (
+          {passo === 4 && temVetada && (
             <p className="text-xs text-destructive mr-auto">
-              Tire ou troque a linha em vermelho para aplicar: essa máquina não pode processar esse material.
+              Tire ou troque a linha em vermelho no passo Máquinas para aplicar: essa máquina não pode processar esse material.
             </p>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button
-            disabled={!resultado || !temAlgumaLinha || resultado.custoTotal <= 0 || temVetada}
-            onClick={() => {
-              if (!resultado) return;
-              onAplicar({
-                resultado,
-                parametros: { ...entrada, baseConsumo, unidadeBase },
-              });
-              onOpenChange(false);
-            }}
-          >
-            Aplicar ao item
-          </Button>
+          {passo > 1 && (
+            <Button variant="outline" onClick={() => setPasso(passoAnterior(passo))}>
+              Voltar
+            </Button>
+          )}
+          {passo < 4 ? (
+            <Button onClick={() => setPasso(passoSeguinte(passo))}>{rotuloDoBotaoPrincipal(passo)}</Button>
+          ) : (
+            <Button
+              disabled={!podeAplicar}
+              onClick={() => {
+                if (!resultado) return;
+                onAplicar({
+                  resultado,
+                  parametros: { ...entrada, baseConsumo, unidadeBase },
+                });
+                onOpenChange(false);
+              }}
+            >
+              {rotuloDoBotaoPrincipal(4)}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
