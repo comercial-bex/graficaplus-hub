@@ -212,7 +212,7 @@ export const dicas = {
       tipo_de_produto:
         "O tipo é o primeiro filtro: mostra só os produtos daquela família e já diz o que o item precisa. Lona, adesivo e placa pedem largura × altura e vendem por m²; papel e brinde pedem só a quantidade. O tipo entra sozinho no campo 'Tipo de produto' (Lona, Adesivo, Placa…), que sai na coluna 'Tipo Produto' do PDF — dá para trocar o texto à mão.",
       medidas:
-        "Largura (X) e altura (Y) da peça pronta, em metros: 3 metros = 3,00; 50 cm = 0,50. A área e o preço mudam enquanto você digita. Os tamanhos prontos evitam redigitar medida — e medida redigitada é onde nasce erro de produção.",
+        "Largura (X) e altura (Y) da peça pronta. Escolha a unidade (mm, cm ou m) e digite como o cliente falou: 50 cm é 50 no campo de cm. O sistema converte para metros e mostra a conta; a área e o preço mudam enquanto você digita. A unidade escolhida fica lembrada neste aparelho. Os tamanhos prontos evitam redigitar medida — e medida redigitada é onde nasce erro de produção.",
       area_cobrada:
         "Área real é largura × altura vezes a quantidade. Área cobrada é a que entra no preço: igual à real, a não ser que a peça seja menor que a área mínima do produto — aí cada peça paga o mínimo.",
       area_minima:

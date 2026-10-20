@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { DicaIcone } from "@/components/bex/Dica";
+import { CampoDeMedida, SeletorDeUnidade, useUnidadeDeMedida } from "@/components/orcamento/campo-de-medida";
 import { dicaCampo } from "@/lib/dicas";
 import { SeletorDeProduto } from "./seletor-de-produto";
 import { PedidoDialog } from "./pedido-dialog";
@@ -658,6 +659,7 @@ function ItemCard({
   const sugestao = produto ? precoSugerido(produto, item.quantidade) : null;
   const tamanhos = (produto?.tamanhos ?? []).filter((t) => t.largura && t.altura);
   const cobradoPorArea = vendidoPorArea(item, produto);
+  const [unidadeDeMedida, mudarUnidadeDeMedida] = useUnidadeDeMedida();
 
   return (
     <article className="space-y-3 rounded-2xl border border-border bg-card p-4">
@@ -706,32 +708,29 @@ function ItemCard({
 
         {porArea && (
           <div className="space-y-2 md:col-span-2">
+            {/* Largura e altura na unidade que a pessoa escolher; o pedido segue em metros. */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">Medidas da peça</span>
+              <SeletorDeUnidade valor={unidadeDeMedida} onMudar={mudarUnidadeDeMedida} desabilitado={somenteLeitura} />
+            </div>
             <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
-              <Campo rotulo="Largura (m)" id={`larg-${item.id}`}>
-                <Input
-                  id={`larg-${item.id}`}
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min={0}
-                  value={item.largura ?? ""}
-                  disabled={somenteLeitura}
-                  onChange={(e) => onMudar({ largura: numeroOuNulo(e.target.value) })}
-                />
-              </Campo>
+              <CampoDeMedida
+                id={`larg-${item.id}`}
+                rotulo="Largura"
+                metros={item.largura != null ? String(item.largura) : ""}
+                unidade={unidadeDeMedida}
+                desabilitado={somenteLeitura}
+                onMudar={(m) => onMudar({ largura: numeroOuNulo(m) })}
+              />
               <span className="pb-2.5 text-muted-foreground">×</span>
-              <Campo rotulo="Altura (m)" id={`alt-${item.id}`}>
-                <Input
-                  id={`alt-${item.id}`}
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min={0}
-                  value={item.altura ?? ""}
-                  disabled={somenteLeitura}
-                  onChange={(e) => onMudar({ altura: numeroOuNulo(e.target.value) })}
-                />
-              </Campo>
+              <CampoDeMedida
+                id={`alt-${item.id}`}
+                rotulo="Altura"
+                metros={item.altura != null ? String(item.altura) : ""}
+                unidade={unidadeDeMedida}
+                desabilitado={somenteLeitura}
+                onMudar={(m) => onMudar({ altura: numeroOuNulo(m) })}
+              />
             </div>
             {tamanhos.length > 0 && !somenteLeitura && (
               <div className="flex flex-wrap gap-1.5">
