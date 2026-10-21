@@ -80,6 +80,8 @@ function descontoDoBanco(subtotalCentavos: number, pctCentesimos: number): numbe
 }
 
 describe("a conta do desconto é a do banco (desconto_em_reais)", () => {
+  // Conta exaustiva: 30 s de folga. Com a máquina carregada (outras sessões,
+  // build), passava dos 5 s padrão e acusava falha que não existe (21/10/2026).
   it("percentual: igual ao Postgres em todo subtotal de R$ 0,01 a R$ 2.000,00 × 37 percentuais", () => {
     const percentuais = [
       1, 5, 33, 50, 99, 100, 250, 333, 499, 500, 501, 750, 999, 1000, 1001, 1234, 1250, 1500, 1666,
@@ -96,7 +98,7 @@ describe("a conta do desconto é a do banco (desconto_em_reais)", () => {
       }
     }
     expect(erros).toEqual([]);
-  });
+  }, 30_000);
 
   it("nunca passa do que sobra depois do crédito do parceiro, nem fica negativo", () => {
     expect(descontoEmCentavos(30_080, 4_512, "valor", 30_000)).toBe(25_568);
