@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { AlertTriangle } from "lucide-react";
+import { percentual } from "@/lib/percentual";
 
 export const Route = createFileRoute("/_authenticated/breakdown-3d")({
   head: () => ({ meta: [{ title: "Custo por peça 3D — BEX PRINT OS" }] }),
@@ -42,7 +43,7 @@ type Linha = {
 
 const brl = (n: number | null) =>
   n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const pct = (n: number) => `${(Number(n) * 100).toFixed(1)}%`;
+const pct = (n: number) => percentual(Number(n) * 100);
 
 const hoje = new Date().toISOString().slice(0, 10);
 const noventa = new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10);

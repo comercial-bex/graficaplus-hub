@@ -69,6 +69,7 @@ import {
   realizados,
   type Campo,
 } from "@/domain/os/resultado";
+import { formatBRL } from "@/lib/produtos-catalogo";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -395,7 +396,7 @@ function OSDetailPage() {
         {canSeePrices && (
           <KpiCard
             label="Valor total"
-            value={`R$ ${Number(os.valor_total ?? 0).toFixed(2)}`}
+            value={formatBRL(Number(os.valor_total ?? 0))}
             icon={DollarSign}
             tone="lime"
           />

@@ -15,12 +15,14 @@ import { useAuth } from "@/lib/auth-context";
 
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { percentual } from "@/lib/percentual";
+import { formatBRL } from "@/lib/produtos-catalogo";
 export const Route = createFileRoute("/_authenticated/orcamento-3d/$id")({
   head: () => ({ meta: [{ title: "Orçamento 3D — BEX PRINT OS" }] }),
   component: OrcamentoDetalhe,
 });
 
-const money = (v: any) => `R$ ${Number(v ?? 0).toFixed(2)}`;
+const money = (v: any) => formatBRL(Number(v ?? 0));
 
 /**
  * Quem não pode ver custo não vê custo — e não vê zero no lugar dele.
@@ -335,7 +337,7 @@ function OrcamentoDetalhe() {
                       {blocoDePreco}
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>Margem líquida</span>
-                        <span className="font-mono">{(Number(calc.margem ?? 0) * 100).toFixed(1)}%</span>
+                        <span className="font-mono">{percentual(Number(calc.margem ?? 0) * 100)}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>Lucro</span>

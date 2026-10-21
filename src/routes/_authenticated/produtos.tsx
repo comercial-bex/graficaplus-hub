@@ -89,6 +89,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
+import { percentual } from "@/lib/percentual";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -470,7 +471,7 @@ function ProdutosPage() {
             <CardContent className="p-4">
               <div className="text-xs text-muted-foreground">Margem média do catálogo</div>
               <div className="text-2xl font-bold">
-                {stats.mediaMargem.toFixed(1)}%
+                {percentual(stats.mediaMargem)}
               </div>
             </CardContent>
           </Card>
@@ -590,7 +591,10 @@ function ProdutosPage() {
                   return (
                     <TableRow key={p.id} className={!p.ativo ? "opacity-50" : ""}>
                       <TableCell>
-                        <div className="font-medium">{p.nome}</div>
+                        {/* Clicar no nome não fazia nada: só o ⋮, sem nome, abria a edição. */}
+                        <button type="button" className="text-left font-medium hover:underline" onClick={() => abrirEdicao(p)}>
+                          {p.nome}
+                        </button>
                         <div className="text-xs text-muted-foreground flex gap-2">
                           {p.sku && <span className="font-mono">{p.sku}</span>}
                           {p.tipo === "servico" && <Badge variant="outline" className="text-[10px] h-4">serviço</Badge>}
@@ -680,7 +684,13 @@ function ProdutosPage() {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <div className="font-medium leading-tight">{p.nome}</div>
+                      <button
+                        type="button"
+                        className="text-left font-medium leading-tight hover:underline"
+                        onClick={() => abrirEdicao(p)}
+                      >
+                        {p.nome}
+                      </button>
                       {p.sku && (
                         <div className="text-xs text-muted-foreground font-mono">
                           {p.sku}
@@ -779,7 +789,7 @@ function MargemBadge({
         : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
   return (
     <Badge variant="outline" className={`font-mono ${cls}`}>
-      {margem!.toFixed(1)}%
+      {percentual(margem!)}
     </Badge>
   );
 }
@@ -802,7 +812,7 @@ function RowActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Ações de ${produto.nome}`}>
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

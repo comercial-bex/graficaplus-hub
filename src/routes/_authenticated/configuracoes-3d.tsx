@@ -12,6 +12,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { formatBRL } from "@/lib/produtos-catalogo";
 export const Route = createFileRoute("/_authenticated/configuracoes-3d")({
   head: () => ({ meta: [{ title: "Configurações 3D — BEX PRINT OS" }] }),
   component: Configuracoes3D,
@@ -157,7 +158,7 @@ function Configuracoes3D() {
     }
     const custoHora = (salario * (1 + encargos)) / horas;
     set("mo_custo_hora_padrao", custoHora.toFixed(2));
-    toast.success(`Custo-hora da mão de obra: R$ ${custoHora.toFixed(2)}/h`);
+    toast.success(`Custo-hora da mão de obra: ${formatBRL(custoHora)}/h`);
   }
 
   const allIn = form && n(form.energia_total_fatura) > 0 && n(form.energia_consumo_kwh) > 0
