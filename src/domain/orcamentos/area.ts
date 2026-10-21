@@ -70,11 +70,58 @@ export function valorUnitarioPorM2(item: ItemDimensionado, precoM2: number): num
   return round(areaUnitaria(item) * numero(precoM2), 2);
 }
 
-/** Preço por m² embutido num valor unitário já definido — para conferência. */
-export function precoM2Implicito(item: ItemDimensionado, valorUnitario: number): number | null {
-  const area = areaUnitaria(item);
+/**
+ * Preço por m² embutido num valor unitário já definido — para conferência e
+ * para voltar um item gravado ao formulário.
+ *
+ * Divide pela área COBRADA da peça, com o mínimo (20/10/2026). Dividia pela
+ * área real: um adesivo de 0,045 m² com mínimo de 0,25 m² a R$ 250/m² (R$ 62,50)
+ * voltava como R$ 1.388,89/m², e o banco, ao salvar, cobrava 0,25 × 1.388,89 =
+ * R$ 347,22 — editar o item multiplicava o preço por 5,5.
+ */
+export function precoM2Implicito(
+  item: ItemDimensionado,
+  valorUnitario: number,
+  areaMinima?: number | null,
+): number | null {
+  const area = areaDaPeca(item, areaMinima);
   if (area <= 0) return null;
   return round(numero(valorUnitario) / area, 2);
+}
+
+/** Área de UMA peça que entra na conta: a real, ou o mínimo cobrado se for maior. */
+export function areaDaPeca(item: ItemDimensionado, areaMinima?: number | null): number {
+  if (!temDimensoes(item)) return 0;
+  return Math.max(areaUnitaria(item), numero(areaMinima));
+}
+
+/**
+ * Custo de UMA peça vendida por área (20/10/2026): custo/m² × a mesma área que
+ * o preço cobra. O formulário copiava o custo do produto (por m²) direto no
+ * custo da peça: uma placa de 0,30 × 0,15 a R$ 11,25 aparecia com custo de
+ * R$ 78,00 e margem de −593%, e o custo do orçamento subia junto.
+ */
+export function custoDaPecaPorArea(
+  item: ItemDimensionado,
+  custoM2: number,
+  areaMinima?: number | null,
+): number {
+  return round(areaDaPeca(item, areaMinima) * numero(custoM2), 2);
+}
+
+/**
+ * Custo por m² embutido no custo de uma peça — para voltar ao formulário um
+ * item gravado ou o resultado da calculadora. Quatro casas: a volta (× área,
+ * duas casas) tem de dar o mesmo custo da peça.
+ */
+export function custoM2Implicito(
+  item: ItemDimensionado,
+  custoDaPeca: number,
+  areaMinima?: number | null,
+): number | null {
+  const area = areaDaPeca(item, areaMinima);
+  if (area <= 0) return null;
+  return round(numero(custoDaPeca) / area, 4);
 }
 
 /**
