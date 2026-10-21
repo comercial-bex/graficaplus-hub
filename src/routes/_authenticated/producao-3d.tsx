@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,7 +103,24 @@ function Producao3DPage() {
     qc.invalidateQueries({ queryKey: ["producao-3d-jobs-full"] });
   }
 
+  // Trava contra o segundo toque (21/10/2026): o "Novo orçamento" sem trava gerou
+  // #93 e #94 com 0,08 s de diferença, e o "Novo cliente" a YRLEN ×5. Aqui
+  // seria o mesmo apontamento duas vezes. A ref barra o toque antes do botão redesenhar.
+  const gravandoRef = useRef(false);
+  const [gravando, setGravando] = useState(false);
   async function criarApontamento() {
+    if (gravandoRef.current) return;
+    gravandoRef.current = true;
+    setGravando(true);
+    try {
+      await criarApontamentoSemTrava();
+    } finally {
+      gravandoRef.current = false;
+      setGravando(false);
+    }
+  }
+
+  async function criarApontamentoSemTrava() {
     if (!selectedJob) return;
     const now = new Date().toISOString();
     const payload: any = {
@@ -284,7 +301,9 @@ function Producao3DPage() {
                     <Button variant="outline" onClick={() => setOpenApontamento(false)}>
                       Cancelar
                     </Button>
-                    <Button onClick={criarApontamento}>Registrar</Button>
+                    <Button onClick={criarApontamento} disabled={gravando}>
+                      {gravando ? "Registrando…" : "Registrar"}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>

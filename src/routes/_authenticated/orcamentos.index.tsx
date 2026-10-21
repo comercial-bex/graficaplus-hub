@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Button } from "@/components/ui/button";
@@ -156,36 +156,51 @@ function OrcamentosPage() {
     };
   }, [orcamentos]);
 
+  // Trava enquanto grava (21/10/2026): os orçamentos #93 e #94 "PLACA
+  // ACRILICA" nasceram com 0,08 s de diferença — dois toques no "Criar". O
+  // mesmo defeito do "Novo cliente" (YRLEN ×5); a ref barra o segundo toque
+  // antes mesmo do React redesenhar o botão desabilitado.
+  const criandoRef = useRef(false);
+  const [criando, setCriando] = useState(false);
+
   async function handleCreate() {
+    if (criandoRef.current) return;
     if (!form.titulo) return toast.error("Título é obrigatório");
     if (!form.cliente_id && !form.contato_nome.trim())
       return toast.error("Informe um cliente cadastrado ou o nome do contato");
-    const { data: criado, error } = await supabase
-      .from("orcamentos")
-      .insert({
-        cliente_id: form.cliente_id || null,
-        contato_nome: form.cliente_id ? null : form.contato_nome.trim(),
-        contato_telefone: form.cliente_id ? null : form.contato_telefone.trim() || null,
-        contato_email: form.cliente_id ? null : form.contato_email.trim() || null,
-        titulo: form.titulo,
-        valor_total: 0,
-        valor_subtotal: 0,
-      } as any)
-      .select("id")
-      .single();
-    if (error) return toast.error(mensagemErro(error));
-    toast.success("Orçamento criado — lance os produtos");
-    setOpen(false);
-    setForm({
-      cliente_id: "",
-      contato_nome: "",
-      contato_telefone: "",
-      contato_email: "",
-      titulo: "",
-    });
-    qc.invalidateQueries({ queryKey: ["orcamentos"] });
-    const novoId = (criado as { id: string } | null)?.id;
-    if (novoId) navigate({ to: "/orcamentos/$id", params: { id: novoId } });
+    criandoRef.current = true;
+    setCriando(true);
+    try {
+      const { data: criado, error } = await supabase
+        .from("orcamentos")
+        .insert({
+          cliente_id: form.cliente_id || null,
+          contato_nome: form.cliente_id ? null : form.contato_nome.trim(),
+          contato_telefone: form.cliente_id ? null : form.contato_telefone.trim() || null,
+          contato_email: form.cliente_id ? null : form.contato_email.trim() || null,
+          titulo: form.titulo,
+          valor_total: 0,
+          valor_subtotal: 0,
+        } as any)
+        .select("id")
+        .single();
+      if (error) return toast.error(mensagemErro(error));
+      toast.success("Orçamento criado — lance os produtos");
+      setOpen(false);
+      setForm({
+        cliente_id: "",
+        contato_nome: "",
+        contato_telefone: "",
+        contato_email: "",
+        titulo: "",
+      });
+      qc.invalidateQueries({ queryKey: ["orcamentos"] });
+      const novoId = (criado as { id: string } | null)?.id;
+      if (novoId) navigate({ to: "/orcamentos/$id", params: { id: novoId } });
+    } finally {
+      criandoRef.current = false;
+      setCriando(false);
+    }
   }
 
   async function converterEmOS(orc: any) {
@@ -316,7 +331,9 @@ function OrcamentosPage() {
                 <Button variant="ghost" onClick={() => setOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreate}>Criar</Button>
+                <Button onClick={handleCreate} disabled={criando}>
+                  {criando ? "Criando…" : "Criar"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
