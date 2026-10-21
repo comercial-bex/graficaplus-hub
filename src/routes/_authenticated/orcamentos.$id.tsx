@@ -116,6 +116,8 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import {
   areaCobrada,
   areaUnitaria,
+  custoDaPecaPorArea,
+  custoM2Implicito,
   descreverMetragem,
   ehUnidadeDeArea,
   precoM2Implicito,
@@ -148,6 +150,9 @@ const itemVazio = {
   preco_m2: "",
   valor_unitario: "0",
   custo_unitario: "0",
+  // Item com medida: o custo é digitado por m², como o preço, e o da peça sai
+  // da área cobrada. Vazio = o custo da peça vale como está (custo_unitario).
+  custo_m2: "",
   produto_id: null as string | null,
   area_minima: null as number | null,
   margem_minima: null as number | null,
@@ -455,7 +460,18 @@ function OrcamentoDetailPage() {
   // Preço unitário efetivo do item em edição, para conferir a margem na hora.
   const valorUnitarioEfetivo =
     valorUnitarioDerivado !== null ? valorUnitarioDerivado : paraNumero(form.valor_unitario);
-  const custoUnitarioForm = paraNumero(form.custo_unitario);
+  // Com medida, o custo da peça sai do custo/m² × a área cobrada (a mesma do
+  // preço). Era o custo/m² do produto comparado ao preço da PEÇA: placa de
+  // R$ 11,25 com "custo" de R$ 78,00 e margem de −593%.
+  const custoPorArea = vendidoPorArea;
+  const custoUnitarioForm =
+    custoPorArea && form.custo_m2.trim() !== ""
+      ? custoDaPecaPorArea(dimensoesForm, paraNumero(form.custo_m2), form.area_minima)
+      : paraNumero(form.custo_unitario);
+  const custoM2NoCampo =
+    form.custo_m2.trim() !== ""
+      ? form.custo_m2
+      : String(custoM2Implicito(dimensoesForm, paraNumero(form.custo_unitario), form.area_minima) ?? "");
   const margemItem =
     valorUnitarioEfetivo > 0
       ? ((valorUnitarioEfetivo - custoUnitarioForm) / valorUnitarioEfetivo) * 100
@@ -490,7 +506,10 @@ function OrcamentoDetailPage() {
       unidade: p.unidade,
       preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
       valor_unitario: String(p.preco_base ?? 0),
+      // Produto por área: o custo do cadastro é por m². Até a medida chegar, o
+      // custo un. fica por m² também — igual ao preço, a margem confere.
       custo_unitario: String(p.custo_medio ?? 0),
+      custo_m2: ehUnidadeDeArea(p.unidade) ? String(p.custo_medio ?? "") : "",
       produto_id: p.id,
       area_minima: p.area_minima_cobrada ?? null,
       margem_minima: Number(p.margem_minima ?? 0) || null,
@@ -520,6 +539,7 @@ function OrcamentoDetailPage() {
       preco_m2: atual.produto_id ? "" : atual.preco_m2,
       valor_unitario: atual.produto_id ? "0" : atual.valor_unitario,
       custo_unitario: atual.produto_id ? "0" : atual.custo_unitario,
+      custo_m2: atual.produto_id ? "" : atual.custo_m2,
     }));
   }
 
@@ -557,7 +577,11 @@ function OrcamentoDetailPage() {
   function editarItem(i: any, numero: number) {
     const dims = { largura: Number(i.largura ?? 0), altura: Number(i.altura ?? 0), quantidade: Number(i.quantidade ?? 1) };
     const porArea = temDimensoes(dims) && ehUnidadeDeArea(i.unidade);
-    const precoM2 = porArea ? precoM2Implicito(dims, Number(i.valor_unitario ?? 0)) : null;
+    const areaMinima = i.area_minima != null ? Number(i.area_minima) : null;
+    const precoM2 = porArea ? precoM2Implicito(dims, Number(i.valor_unitario ?? 0), areaMinima) : null;
+    // O custo gravado é da peça; com medida, volta como custo/m² para escalar
+    // com a medida, como o preço.
+    const custoM2 = temDimensoes(dims) ? custoM2Implicito(dims, Number(i.custo_unitario ?? 0), areaMinima) : null;
     for (const l of layoutsRascunho) if (l.previa) URL.revokeObjectURL(l.previa);
     setLayoutsRascunho([]);
     setForm({
@@ -573,8 +597,9 @@ function OrcamentoDetailPage() {
       preco_m2: precoM2 && precoM2 > 0 ? String(precoM2) : "",
       valor_unitario: String(i.valor_unitario ?? 0),
       custo_unitario: String(i.custo_unitario ?? 0),
+      custo_m2: custoM2 && custoM2 > 0 ? String(custoM2) : "",
       produto_id: (i.produto_id as string | null) ?? null,
-      area_minima: i.area_minima != null ? Number(i.area_minima) : null,
+      area_minima: areaMinima,
     });
     // A escolha visual abre encolhida, com o produto e o tipo do item.
     setTipoEscolhido(tipoDoItemGravado(i, catalogo.produtos));
@@ -1196,7 +1221,7 @@ function OrcamentoDetailPage() {
                       {canSeeFinancials && (
                         <div className="col-span-6 md:col-span-3">
                           <div className="flex items-center justify-between gap-1">
-                            <Label htmlFor="item-custo-un">Custo un.</Label>
+                            <Label htmlFor="item-custo-un">{custoPorArea ? "Custo/m²" : "Custo un."}</Label>
                             {/* Material, máquina e mão de obra viram custo com a conta à vista. */}
                             <button
                               type="button"
@@ -1211,10 +1236,14 @@ function OrcamentoDetailPage() {
                             type="number"
                             step="0.01"
                             inputMode="decimal"
-                            value={form.custo_unitario}
+                            value={custoPorArea ? custoM2NoCampo : form.custo_unitario}
                             onChange={(e) =>
                               // Digitou à mão: o custo deixa de ser "calculado".
-                              setForm({ ...form, custo_unitario: e.target.value, origem_calculo: "manual" })
+                              setForm(
+                                custoPorArea
+                                  ? { ...form, custo_m2: e.target.value, origem_calculo: "manual" }
+                                  : { ...form, custo_unitario: e.target.value, origem_calculo: "manual" },
+                              )
                             }
                           />
                         </div>
@@ -1281,6 +1310,12 @@ function OrcamentoDetailPage() {
                           (mínima do produto: {margemMinimaItem.toFixed(1)}%)
                         </span>
                       )}
+                      {/* Com medida, a conta da margem à vista: preço e custo da MESMA peça. */}
+                      {custoPorArea && (
+                        <span className="text-muted-foreground" data-custo-da-peca="">
+                          · peça: {brl(valorUnitarioEfetivo)} de preço, {brl(custoUnitarioForm)} de custo
+                        </span>
+                      )}
                       {margemAbaixoDoMinimo && (
                         <span className="flex items-center gap-1 text-destructive">
                           <TrendingDown className="h-3 w-3" /> abaixo do mínimo
@@ -1310,9 +1345,14 @@ function OrcamentoDetailPage() {
                       unidadeBase={vendidoPorArea ? "m²" : form.unidade || "un"}
                       onAplicar={({ resultado, parametros }) => {
                         const qtd = paraNumero(form.quantidade) || 1;
+                        const daPeca = resultado.custoTotal / qtd;
+                        // Com medida, o custo/m² acompanha o da peça (quatro casas: a
+                        // volta × área dá o mesmo valor de centavo).
+                        const m2DaPeca = custoPorArea ? custoM2Implicito(dimensoesForm, daPeca, form.area_minima) : null;
                         setForm((atual) => ({
                           ...atual,
-                          custo_unitario: (resultado.custoTotal / qtd).toFixed(2),
+                          custo_unitario: daPeca.toFixed(2),
+                          custo_m2: m2DaPeca !== null ? String(m2DaPeca) : "",
                           custo_previsto: resultado.custoTotal,
                           margem_prevista: resultado.margemPct,
                           parametros: parametros as unknown as Record<string, unknown>,
