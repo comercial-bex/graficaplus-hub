@@ -133,6 +133,8 @@ describe("importar .3mf de verdade (ZIP)", () => {
     expect(r.data.totalWeightG).toBeCloseTo(42.5, 2);
   });
 
+  // Conta exaustiva: 30 s de folga. Com a máquina carregada (outras sessões,
+  // build), passava dos 5 s padrão e acusava falha que não existe (21/10/2026).
   it("recusa zip bomb em vez de estourar a memória", () => {
     // 200 MB de zeros comprimem para poucos KB. O teto é 120 MB.
     const zip = montarZip([
@@ -140,7 +142,7 @@ describe("importar .3mf de verdade (ZIP)", () => {
       { nome: "Metadata/enorme.gcode", conteudo: Buffer.alloc(200 * 1024 * 1024) },
     ]);
     expect(() => parseSlicerImport(zip, "bomba.3mf", "model/3mf")).toThrow(/limite de expansão/i);
-  });
+  }, 30_000);
 
   it("recusa arquivo que não é ZIP nem G-code", () => {
     const lixo = Buffer.from("isso nao e um zip de jeito nenhum", "utf8");

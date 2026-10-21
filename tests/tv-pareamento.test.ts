@@ -134,6 +134,8 @@ describe("o código atravessa o roteador sem virar outro", () => {
     }
   });
 
+  // Conta exaustiva: 30 s de folga. Com a máquina carregada (outras sessões,
+  // build), passava dos 5 s padrão e acusava falha que não existe (21/10/2026).
   it("vale para o alfabeto inteiro: sorteios e a família de dígitos com E por extenso", () => {
     const confere = (codigo: string) => {
       const { validado, busca } = peloRoteador(codigo);
@@ -161,7 +163,7 @@ describe("o código atravessa o roteador sem virar outro", () => {
         confere(`${resto.slice(0, posicao)}E${resto.slice(posicao)}`);
       }
     }
-  });
+  }, 30_000);
 
   it("a busca devolve sempre a grafia da URL; o campo mostra com hífen", () => {
     expect(codigoNaUrl("k7mq2x")).toBe("K7M_Q2X");

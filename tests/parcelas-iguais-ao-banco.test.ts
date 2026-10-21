@@ -92,6 +92,8 @@ describe("as parcelas da tela são as do banco", () => {
     expect(erros).toEqual([]);
   });
 
+  // Conta exaustiva: 30 s de folga. Com a máquina carregada (outras sessões,
+  // build), passava dos 5 s padrão e acusava falha que não existe (21/10/2026).
   it("de R$ 0,01 a R$ 20.000,00 (passo de 37 centavos), 2 a 12 parcelas — e a conta antiga errava", () => {
     let combinacoes = 0;
     let antigasErradas = 0;
@@ -109,7 +111,7 @@ describe("as parcelas da tela são as do banco", () => {
     // O defeito era real: a conta antiga discordava em ~1 de cada 116.
     expect(antigasErradas).toBeGreaterThan(combinacoes / 200);
     expect(antigasErradas).toBeLessThan(combinacoes / 60);
-  });
+  }, 30_000);
 
   it("a tela (parcelasDoOrcamento) e o PDF (parcelasDoAcordo) dividem igual, com as mesmas datas", () => {
     for (const [total, n] of [
