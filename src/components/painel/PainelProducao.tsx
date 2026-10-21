@@ -33,6 +33,7 @@ import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { SeletorDeMaquina } from "./SeletorDeMaquina";
 import { PendenciasDoMeuPapel } from "./PendenciasDoMeuPapel";
 import { MinhasComissoes } from "./MinhasComissoes";
+import { MinhaMeta } from "@/components/metas/minha-meta";
 import { cn } from "@/lib/utils";
 import { Carregando } from "@/components/bex/Carregando";
 
@@ -646,6 +647,10 @@ export function PainelProducao() {
 
       <div className="order-6 md:order-2">
         <PendenciasDoMeuPapel />
+      </div>
+
+      <div className="order-2 md:order-1">
+        <MinhaMeta />
       </div>
 
       <div className="order-7 md:order-3">
