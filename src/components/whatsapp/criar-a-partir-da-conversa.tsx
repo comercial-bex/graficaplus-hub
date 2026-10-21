@@ -70,6 +70,11 @@ export function CriarOrcamentoDaConversa({
     contatoTelefone: "",
     pedido: "",
   });
+  // Rascunhos que esta conversa já abriu (21/10/2026). O botão criava SEMPRE um
+  // orçamento novo: a cliente luanaovilhena ganhou nove "Pedido pelo WhatsApp"
+  // em 19/10, das 11:24 às 16:43 — oito vazios, cada volta à conversa um novo.
+  // Agora a janela mostra o que já existe e continuar nele é o caminho principal.
+  const [rascunhos, setRascunhos] = useState<{ id: string; numero: number; created_at: string }[]>([]);
 
   function abrir() {
     // O rascunho nasce da conversa NA HORA de abrir: mensagens que chegaram
@@ -80,7 +85,25 @@ export function CriarOrcamentoDaConversa({
       contatoTelefone: telefoneLegivel(conversa.telefone),
       pedido: pedidoDaConversa(mensagens),
     });
+    setRascunhos([]);
     setAberto(true);
+    void (async () => {
+      const { data } = await (supabase as any)
+        .from("orcamentos")
+        .select("id, numero, created_at")
+        .eq("conversa_id", conversa.id)
+        .eq("status", "rascunho")
+        .is("os_id", null)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      // Falha aqui não impede criar: a lista é ajuda, não trava.
+      setRascunhos((data ?? []) as { id: string; numero: number; created_at: string }[]);
+    })();
+  }
+
+  function continuarNo(id: string) {
+    setAberto(false);
+    navigate({ to: "/orcamentos/$id", params: { id } });
   }
 
   async function criar() {
@@ -138,6 +161,31 @@ export function CriarOrcamentoDaConversa({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {rascunhos.length > 0 && (
+              <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3" data-rascunhos-da-conversa="">
+                <p className="text-sm font-medium">
+                  {rascunhos.length === 1
+                    ? "Esta conversa já tem um orçamento em rascunho."
+                    : `Esta conversa já tem ${rascunhos.length} orçamentos em rascunho.`}{" "}
+                  Continue nele em vez de abrir outro.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {rascunhos.map((r, i) => (
+                    <Button
+                      key={r.id}
+                      size="sm"
+                      variant={i === 0 ? "default" : "outline"}
+                      onClick={() => continuarNo(r.id)}
+                    >
+                      Continuar no #{r.numero}
+                      <span className="ml-1 text-xs font-normal opacity-80">
+                        · {new Date(r.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
             {conversa.cliente ? (
               <p className="text-sm">
                 Cliente: <span className="font-medium">{conversa.cliente.nome}</span>
@@ -192,8 +240,12 @@ export function CriarOrcamentoDaConversa({
             <Button variant="ghost" onClick={() => setAberto(false)} disabled={gravando}>
               Cancelar
             </Button>
-            <Button onClick={() => void criar()} disabled={gravando}>
-              Criar orçamento
+            <Button
+              variant={rascunhos.length > 0 ? "outline" : "default"}
+              onClick={() => void criar()}
+              disabled={gravando}
+            >
+              {gravando ? "Criando…" : rascunhos.length > 0 ? "Criar outro orçamento" : "Criar orçamento"}
             </Button>
           </DialogFooter>
         </DialogContent>
