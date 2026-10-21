@@ -255,6 +255,14 @@ const ASSINATURAS: Record<string, string[]> = {
   ],
   reembolso_decidir: ["p_id", "p_aprovar", "p_motivo"],
   reembolso_cancelar: ["p_id"],
+  // Migração 20261021120000 (meta de vendas, Ouro e Diamante), ensaiada no
+  // Postgres em 21/10/2026. Chamadas por src/components/metas/* e
+  // src/components/financeiro/metas-panel.tsx. `equipe_para_venda` já existia.
+  minha_meta: [],
+  meta_painel: ["p_mes"],
+  meta_comemorada: ["p_nivel"],
+  meta_definir: ["p_usuario_id", "p_mes", "p_meta", "p_pct_ouro", "p_pct_diamante", "p_diamante_em_pct"],
+  meta_fechar_mes: ["p_mes"],
   // Migração 20261015150000: o nome de quem é da equipe (src/lib/api/equipe.ts).
   nomes_da_equipe: ["p_ids"],
   // Migração 20261020120000: a conversa do WhatsApp a partir do cadastro do cliente

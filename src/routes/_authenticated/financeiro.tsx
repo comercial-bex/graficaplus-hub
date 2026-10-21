@@ -36,6 +36,7 @@ import { Plus, CheckCircle2 , Undo2} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { ComissoesPanel } from "@/components/financeiro/comissoes-panel";
+import { MetasPanel } from "@/components/financeiro/metas-panel";
 import { Textarea } from "@/components/ui/textarea";
 import { mensagemErro } from "@/lib/erros";
 
@@ -404,6 +405,7 @@ function FinanceiroPage() {
         </CardContent>
       </Card>
       {/* Comissões de quem trouxe cada venda — geradas quando a OS é paga. */}
+      <MetasPanel />
       <ComissoesPanel />
 
       <Dialog open={!!estorno} onOpenChange={(o) => !o && setEstorno(null)}>

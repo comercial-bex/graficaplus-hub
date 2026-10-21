@@ -129,6 +129,16 @@ export const dicas = {
   "/dashboard": {
     menu: "Visão geral do dia: vendas, produção e o que precisa de atenção.",
     tela: "Resumo do negócio em números reais do sistema. Os cartões mudam conforme os orçamentos, as ordens de serviço e os pagamentos registrados.",
+    campos: {
+      meta_vendido:
+        "Soma das OS do mês em que você é quem trouxe a venda, já aprovadas e sem as canceladas. É a parte clara da barra. Ainda não vale para o nível: só o que for pago.",
+      meta_pago:
+        "Parte das OS do mês que o cliente já pagou. É a parte cheia da barra e é ela que define seu nível: 100% da meta é Ouro, 150% é Diamante.",
+      meta_ritmo:
+        "Quanto vender por dia útil (segunda a sexta) até o fim do mês para chegar ao próximo nível, contando só o que já foi pago.",
+      meta_comissao:
+        "O que você ganha hoje no nível em que está, sobre as OS pagas do mês. O percentual do nível vale para todas elas, não só para as que passam da meta. É pago no fechamento do mês pelo financeiro.",
+    },
   },
   "/kanban": {
     menu: "Arraste as ordens de serviço entre as etapas da produção.",
@@ -461,6 +471,12 @@ export const dicas = {
     menu: "Contas a receber, a pagar e pagamentos.",
     tela: "Controle do dinheiro: o que já entrou, o que está pendente e o que venceu. Confirmar um pagamento lança no caixa e só sai de lá por estorno.",
     campos: {
+      meta_pct_ouro:
+        "Percentual do bruto de cada OS paga do mês que a pessoa ganha ao bater a meta. Vale para todas as OS do mês, não só as acima da meta.",
+      meta_pct_diamante:
+        "Percentual que substitui o do Ouro quando a pessoa chega ao Diamante. Não pode ser menor que o do Ouro.",
+      meta_diamante_em:
+        "Em quantos % da meta começa o Diamante. 150 significa vender uma vez e meia a meta (R$ 30 mil para uma meta de R$ 20 mil).",
       "comissões":
         "Geradas sozinhas quando a OS é paga, sobre o bruto da OS, com o % de quem trouxe a venda. Pague no fechamento e marque como paga; não gera lançamento em contas a pagar.",
     },
