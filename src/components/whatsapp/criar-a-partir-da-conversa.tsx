@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ClipboardList, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,11 +70,35 @@ export function CriarOrcamentoDaConversa({
     contatoTelefone: "",
     pedido: "",
   });
+  const gravandoRef = useRef(false);
   // Rascunhos que esta conversa já abriu (21/10/2026). O botão criava SEMPRE um
   // orçamento novo: a cliente luanaovilhena ganhou nove "Pedido pelo WhatsApp"
   // em 19/10, das 11:24 às 16:43 — oito vazios, cada volta à conversa um novo.
   // Agora a janela mostra o que já existe e continuar nele é o caminho principal.
-  const [rascunhos, setRascunhos] = useState<{ id: string; numero: number; created_at: string }[]>([]);
+  //
+  // A lista nasce com o painel, não com o clique (21/10, tarde): ela só vinha
+  // DEPOIS de a janela abrir, e um "Criar orçamento" rápido passava antes dela —
+  // a Aline Lima ganhou #102 e #103 vazios com 29 s de diferença. Enquanto a
+  // conferência roda, o botão de criar espera.
+  const rascunhosDaConversa = useQuery({
+    queryKey: [...CHAVES.conversas, "rascunhos-da-conversa", conversa.id] as const,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orcamentos")
+        .select("id, numero, created_at")
+        .eq("conversa_id", conversa.id)
+        .eq("status", "rascunho")
+        .is("os_id", null)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (error) throw error;
+      return (data ?? []) as { id: string; numero: number; created_at: string }[];
+    },
+  });
+  const rascunhos = rascunhosDaConversa.data ?? [];
+  // Falha aqui não impede criar: a lista é ajuda, não trava. Só a conferência
+  // EM ANDAMENTO segura o botão.
+  const conferindoRascunhos = rascunhosDaConversa.isFetching;
 
   function abrir() {
     // O rascunho nasce da conversa NA HORA de abrir: mensagens que chegaram
@@ -85,20 +109,9 @@ export function CriarOrcamentoDaConversa({
       contatoTelefone: telefoneLegivel(conversa.telefone),
       pedido: pedidoDaConversa(mensagens),
     });
-    setRascunhos([]);
     setAberto(true);
-    void (async () => {
-      const { data } = await (supabase as any)
-        .from("orcamentos")
-        .select("id, numero, created_at")
-        .eq("conversa_id", conversa.id)
-        .eq("status", "rascunho")
-        .is("os_id", null)
-        .order("created_at", { ascending: false })
-        .limit(3);
-      // Falha aqui não impede criar: a lista é ajuda, não trava.
-      setRascunhos((data ?? []) as { id: string; numero: number; created_at: string }[]);
-    })();
+    // Outra pessoa pode ter aberto um rascunho nesta conversa enquanto isso.
+    void rascunhosDaConversa.refetch();
   }
 
   function continuarNo(id: string) {
@@ -113,6 +126,8 @@ export function CriarOrcamentoDaConversa({
       return toast.error("Informe o nome do contato ou vincule a conversa a um cliente");
     }
     const pedido = form.pedido.trim() || null;
+    if (gravandoRef.current || conferindoRascunhos) return;
+    gravandoRef.current = true;
     setGravando(true);
     try {
       const { data, error } = await supabase
@@ -135,6 +150,8 @@ export function CriarOrcamentoDaConversa({
       toast.success("Orçamento criado com o pedido da conversa — lance os produtos");
       setAberto(false);
       void qc.invalidateQueries({ queryKey: ["orcamentos"] });
+      // Na volta à conversa, o rascunho novo já aparece como "Continuar no #N".
+      void qc.invalidateQueries({ queryKey: [...CHAVES.conversas, "rascunhos-da-conversa", conversa.id] });
       if (conversa.cliente_id)
         void qc.invalidateQueries({ queryKey: ["wa-caixa-historico", conversa.cliente_id] });
       const id = (data as { id: string } | null)?.id;
@@ -142,6 +159,7 @@ export function CriarOrcamentoDaConversa({
     } catch (e) {
       toast.error(mensagemErro(e));
     } finally {
+      gravandoRef.current = false;
       setGravando(false);
     }
   }
@@ -243,9 +261,15 @@ export function CriarOrcamentoDaConversa({
             <Button
               variant={rascunhos.length > 0 ? "outline" : "default"}
               onClick={() => void criar()}
-              disabled={gravando}
+              disabled={gravando || conferindoRascunhos}
             >
-              {gravando ? "Criando…" : rascunhos.length > 0 ? "Criar outro orçamento" : "Criar orçamento"}
+              {gravando
+                ? "Criando…"
+                : conferindoRascunhos
+                  ? "Conferindo rascunhos…"
+                  : rascunhos.length > 0
+                    ? "Criar outro orçamento"
+                    : "Criar orçamento"}
             </Button>
           </DialogFooter>
         </DialogContent>
