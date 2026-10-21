@@ -231,7 +231,10 @@ export const AREAS: AreaDoMenu[] = [
         ],
       },
       {
-        label: "Arte",
+        // "Arte" (um item só) e "Entrega e qualidade" viraram um subgrupo em
+        // 20/10/2026: seis títulos para nove itens era título demais para ler.
+        // A arte vem antes da máquina; a entrega e as perdas, depois dela.
+        label: "Arte, entrega e qualidade",
         itens: [
           item(
             "Artes para produzir",
@@ -240,11 +243,6 @@ export const AREAS: AreaDoMenu[] = [
             [aba("Todos os arquivos", "/arquivos", "Arquivos")],
             { badge: "artesAguardando", antes: "Design & Arte" },
           ),
-        ],
-      },
-      {
-        label: "Entrega e qualidade",
-        itens: [
           item("Entregas e instalações", "/entregas", Truck, [], {
             antes: "Entregas & Instalações",
           }),

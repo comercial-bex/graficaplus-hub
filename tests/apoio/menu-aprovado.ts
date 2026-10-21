@@ -27,6 +27,7 @@ export const PESSOAS: Record<string, string[]> = {
 export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso = false): ResumoDoMenu {
   const b = structuredClone((cenarioB as unknown as Record<string, ResumoDoMenu>)[nome]);
   somarAbasDoWhatsapp(b);
+  juntarArteComEntrega(b);
   if (decideReembolso) somarReembolsos(b);
   if (!temCatalogo) return b;
   const vendas = b.arvore.find((a) => a.area === "Vendas");
@@ -77,4 +78,22 @@ function somarAbasDoWhatsapp(b: ResumoDoMenu): void {
   const n = Number(/\(\+(\d+) abas?\)/.exec(atendimento.itens[i])?.[1] ?? 0) + ABAS_NOVAS_DO_WHATSAPP;
   atendimento.itens[i] = `WhatsApp (+${n} aba${n > 1 ? "s" : ""})`;
   b.abas += ABAS_NOVAS_DO_WHATSAPP;
+}
+
+/**
+ * Produção com cinco subgrupos em vez de seis (20/10/2026, ordem do diagnóstico
+ * de UX aprovada pelo dono): "Arte" (um item só) e "Entrega e qualidade" viram
+ * "Arte, entrega e qualidade", na posição da Arte, com os itens na mesma ordem.
+ * Ninguém ganha nem perde item; quem via só um dos dois vê o subgrupo novo.
+ */
+function juntarArteComEntrega(b: ResumoDoMenu): void {
+  const producao = b.arvore.find((a) => a.area === "Produção");
+  if (!producao) return;
+  const i = producao.subs.findIndex((s) => s.sub === "Arte" || s.sub === "Entrega e qualidade");
+  if (i < 0) return;
+  const itens = producao.subs
+    .filter((s) => s.sub === "Arte" || s.sub === "Entrega e qualidade")
+    .flatMap((s) => s.itens);
+  producao.subs = producao.subs.filter((s) => s.sub !== "Arte" && s.sub !== "Entrega e qualidade");
+  producao.subs.splice(i, 0, { sub: "Arte, entrega e qualidade", itens });
 }
