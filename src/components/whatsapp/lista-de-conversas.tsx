@@ -178,7 +178,6 @@ export function ListaDeConversas({
                 type="button"
                 aria-pressed={ativo}
                 onClick={() => onSetor(s.valor)}
-                title={n ? `${n.abertas} aberta(s), ${n.aguardando} esperando resposta` : undefined}
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors",
                   ativo ? cn(s.cor, "font-semibold") : "border-border text-muted-foreground hover:bg-muted",
@@ -186,7 +185,20 @@ export function ListaDeConversas({
               >
                 <span className={cn("h-1.5 w-1.5 rounded-full", s.ponto)} aria-hidden />
                 {s.rotulo}
-                {n && n.abertas > 0 && <span className="font-mono">{n.abertas}</span>}
+                {n && n.abertas > 0 && (
+                  <span className="font-mono">
+                    {n.abertas}
+                    <span className="sr-only"> aberta(s)</span>
+                  </span>
+                )}
+                {/* Quantos esperam resposta: só o title dizia, e só com o mouse parado. */}
+                {n && n.aguardando > 0 && (
+                  <span className="inline-flex items-center gap-0.5 font-mono font-semibold">
+                    <Clock className="h-2.5 w-2.5" aria-hidden />
+                    {n.aguardando}
+                    <span className="sr-only"> esperando resposta</span>
+                  </span>
+                )}
               </button>
             );
           })}
@@ -283,9 +295,9 @@ export function ListaDeConversas({
                             {espera && (
                               <span
                                 className={cn("inline-flex items-center gap-0.5 font-semibold", corDaEspera(espera.nivel))}
-                                title={`O cliente espera resposta há ${espera.texto}`}
                               >
                                 <Clock className="h-3 w-3" aria-hidden />
+                                <span className="sr-only">O cliente espera resposta há </span>
                                 {espera.texto}
                               </span>
                             )}
@@ -299,9 +311,9 @@ export function ListaDeConversas({
                           {setorDaConversa && setor !== c.fila && (
                             <span
                               className="inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground"
-                              title={`Fila ${setorDaConversa.rotulo}`}
                             >
                               <span className={cn("h-1.5 w-1.5 rounded-full", setorDaConversa.ponto)} aria-hidden />
+                              <span className="sr-only">Fila </span>
                               {setorDaConversa.rotulo}
                             </span>
                           )}
@@ -333,8 +345,8 @@ export function ListaDeConversas({
                             {resp && (
                               <span
                                 className="inline-flex max-w-[11rem] items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                                title={`Assumida por ${rotuloDaPessoa(resp)}`}
                               >
+                                <span className="sr-only">Assumida por </span>
                                 <Avatar className="h-4 w-4">
                                   {resp.avatar_url && <AvatarImage src={resp.avatar_url} alt="" />}
                                   <AvatarFallback className="text-[8px]">{iniciais(resp.nome)}</AvatarFallback>

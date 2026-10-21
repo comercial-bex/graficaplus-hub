@@ -21,6 +21,7 @@ import {
   Send,
   StickyNote,
 } from "lucide-react";
+import { Dica } from "@/components/bex/Dica";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -440,9 +441,9 @@ export function ConversaAberta({
               )}
               <span>· {responsavel ? `assumida por ${responsavel}` : "sem responsável"}</span>
               {setorAtual && (
-                <span className="inline-flex items-center gap-1" title={`Fila ${setorAtual.rotulo}`}>
+                <span className="inline-flex items-center gap-1">
                   · <span className={cn("h-1.5 w-1.5 rounded-full", setorAtual.ponto)} aria-hidden />
-                  {setorAtual.rotulo}
+                  Fila {setorAtual.rotulo}
                 </span>
               )}
               {atendimentoAtual && <span className="font-mono">· {atendimentoAtual.numero}</span>}
@@ -454,20 +455,20 @@ export function ConversaAberta({
               tone={conversa.status === "pendente" ? "amber" : "muted"}
             />
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden xl:inline-flex"
-            onClick={onAlternarPainel}
-            aria-label={painelAberto ? "Recolher painel lateral" : "Abrir painel lateral"}
-            title={painelAberto ? "Recolher painel" : "Abrir painel"}
-          >
-            {painelAberto ? (
-              <PanelRightClose className="h-4 w-4" />
-            ) : (
-              <PanelRightOpen className="h-4 w-4" />
-            )}
-          </Button>
+          <Dica texto={painelAberto ? "Recolher o painel do cliente" : "Abrir o painel do cliente"} className="hidden xl:inline-flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onAlternarPainel}
+              aria-label={painelAberto ? "Recolher painel lateral" : "Abrir painel lateral"}
+            >
+              {painelAberto ? (
+                <PanelRightClose className="h-4 w-4" />
+              ) : (
+                <PanelRightOpen className="h-4 w-4" />
+              )}
+            </Button>
+          </Dica>
           {acoes && (
             // No celular o painel da conversa (cliente, etiquetas, orçamento,
             // histórico) não cabe embaixo do chat: abre numa gaveta.
@@ -477,10 +478,9 @@ export function ConversaAberta({
                   size="sm"
                   variant="outline"
                   className="lg:hidden"
-                  aria-label="Ações da conversa"
                 >
-                  <PanelRightOpen className="h-4 w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Ações</span>
+                  <PanelRightOpen className="mr-1 h-4 w-4" aria-hidden />
+                  Ações
                 </Button>
               </SheetTrigger>
               <SheetContent
@@ -497,32 +497,37 @@ export function ConversaAberta({
         </div>
         {temPermissaoDeResponder && (
           <div className="flex flex-wrap items-center gap-1.5">
+            {/* O nome de cada ação à vista em todo tamanho: no celular era só o
+                ícone, e o nome morava no title, que o dedo não abre. A tecla de
+                atalho fica na dica — é coisa de teclado. */}
             {conversa.responsavel_id !== meuId && (
+              <Dica texto="Assumir a conversa (tecla R)">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  disabled={ocupado}
+                  onClick={assumir}
+                  aria-keyshortcuts="R"
+                >
+                  <Hand className="mr-1 h-3.5 w-3.5" aria-hidden />
+                  Assumir
+                </Button>
+              </Dica>
+            )}
+            <Dica texto="Transferir para uma pessoa ou outra fila (tecla T)">
               <Button
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs"
                 disabled={ocupado}
-                onClick={assumir}
-                title="Assumir (tecla R)"
-                aria-keyshortcuts="R"
+                onClick={() => setTransferirAberto(true)}
+                aria-keyshortcuts="T"
               >
-                <Hand className="h-3.5 w-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">Assumir</span>
+                <ArrowRightLeft className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Transferir
               </Button>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs"
-              disabled={ocupado}
-              onClick={() => setTransferirAberto(true)}
-              title="Transferir para uma pessoa ou outra fila (tecla T)"
-              aria-keyshortcuts="T"
-            >
-              <ArrowRightLeft className="h-3.5 w-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">Transferir</span>
-            </Button>
+            </Dica>
             <span className="ml-auto" />
             {conversa.status === "aberta" && (
               <Button
@@ -530,26 +535,26 @@ export function ConversaAberta({
                 variant="ghost"
                 className="h-7 text-xs"
                 disabled={ocupado}
-                aria-label="Marcar pendente"
                 onClick={() => acaoStatus("pendente", "Marcada como pendente")}
               >
-                <Clock className="h-3.5 w-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">Marcar pendente</span>
+                <Clock className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Marcar pendente
               </Button>
             )}
             {aberta && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                disabled={ocupado}
-                onClick={() => setResolverAberto(true)}
-                title="Resolver com o motivo (tecla E)"
-                aria-keyshortcuts="E"
-              >
-                <CheckCheck className="h-3.5 w-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">Resolver</span>
-              </Button>
+              <Dica texto="Resolver com o motivo (tecla E)">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  disabled={ocupado}
+                  onClick={() => setResolverAberto(true)}
+                  aria-keyshortcuts="E"
+                >
+                  <CheckCheck className="mr-1 h-3.5 w-3.5" aria-hidden />
+                  Resolver
+                </Button>
+              </Dica>
             )}
             {conversa.status !== "arquivada" && (
               <Button
@@ -557,11 +562,10 @@ export function ConversaAberta({
                 variant="ghost"
                 className="h-7 text-xs"
                 disabled={ocupado}
-                aria-label="Arquivar conversa"
                 onClick={() => acaoStatus("arquivada", "Conversa arquivada")}
               >
-                <Archive className="h-3.5 w-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">Arquivar</span>
+                <Archive className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Arquivar
               </Button>
             )}
             {conversa.status !== "aberta" && (
@@ -570,11 +574,10 @@ export function ConversaAberta({
                 variant="outline"
                 className="h-7 text-xs"
                 disabled={ocupado}
-                aria-label="Reabrir conversa"
                 onClick={() => acaoStatus("aberta", "Conversa reaberta")}
               >
-                <RotateCcw className="h-3.5 w-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">Reabrir</span>
+                <RotateCcw className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Reabrir
               </Button>
             )}
           </div>
@@ -751,8 +754,8 @@ export function ConversaAberta({
                         variant="secondary"
                         className="mt-2 h-7 text-xs"
                         onClick={() => tentarDeNovo(m)}
+                        // Bloqueado, o motivo já está à vista no rodapé da conversa.
                         disabled={tentando || !liberacao.liberado}
-                        title={liberacao.liberado ? undefined : liberacao.rotulo}
                       >
                         <RefreshCw className={cn("mr-1 h-3 w-3", tentando && "animate-spin")} />{" "}
                         Tentar de novo
@@ -849,17 +852,18 @@ export function ConversaAberta({
                   if (f) void anexar(f);
                 }}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                disabled={!liberacao.liberado || enviando}
-                onClick={() => anexoRef.current?.click()}
-                title="Anexar PDF ou imagem (até 10 MB) — o texto escrito vira legenda"
-                aria-label="Anexar arquivo"
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
+              <Dica texto="Anexar PDF ou imagem (até 10 MB). O texto escrito vira a legenda.">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={!liberacao.liberado || enviando}
+                  onClick={() => anexoRef.current?.click()}
+                  aria-label="Anexar PDF ou imagem, até 10 MB"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              </Dica>
             </>
           )}
           <Textarea

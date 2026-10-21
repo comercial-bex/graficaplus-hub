@@ -170,9 +170,9 @@ function FilaHumanaPage() {
                     "flex w-20 shrink-0 items-center gap-1 text-sm font-semibold",
                     espera ? corDaEspera(espera.nivel) : "text-muted-foreground",
                   )}
-                  title="Tempo que o cliente espera resposta"
                 >
                   <Clock className="h-4 w-4" aria-hidden />
+                  <span className="sr-only">Espera resposta há </span>
                   {espera?.texto ?? "—"}
                 </div>
                 <FotoDoContato

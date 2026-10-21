@@ -1,4 +1,5 @@
 import { Crosshair, Cuboid, Factory, Printer, Scissors, Sun, Zap } from "lucide-react";
+import { DicaIcone } from "@/components/bex/Dica";
 import type { IdentidadeMaquina } from "@/domain/producao/identidade-da-maquina";
 
 /**
@@ -35,13 +36,14 @@ export function SeloDaMaquina({ identidade }: { identidade: IdentidadeMaquina })
         borderColor: `${identidade.cor}55`,
         backgroundColor: `${identidade.cor}1a`,
       }}
-      title={
-        identidade.observacao ? `${identidade.curto} — ${identidade.observacao}` : identidade.curto
-      }
     >
       <IconeDaMaquina identidade={identidade} />
       {identidade.curto}
-      {identidade.observacao && <span aria-hidden>!</span>}
+      {/* A observação ("a casa tem dois lasers — o status não diz qual") ficava
+          num title atrás de um "!": agora é a dica, que abre no toque também. */}
+      {identidade.observacao && (
+        <DicaIcone texto={identidade.observacao} rotulo={identidade.curto} className="h-3 w-3" />
+      )}
     </span>
   );
 }
