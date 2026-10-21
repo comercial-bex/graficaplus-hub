@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -82,6 +82,8 @@ import {
   toCSV,
 } from "@/lib/produtos-catalogo";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { abasDoProduto, avisoDaFicha, sinalDoPreco, type AbaDoProduto } from "@/domain/catalogo/abas-do-produto";
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 import { mensagemErro } from "@/lib/erros";
 
@@ -879,6 +881,14 @@ function ProdutoFormDialog({
   const margem = calcMargem(custo, preco);
   const markup = calcMarkup(custo, preco);
   const status = margemStatus(margem, minima);
+  const sinal = canSeeFinancials ? sinalDoPreco(status) : null;
+
+  // Abre sempre em "Dados": cada abertura é um item, não a continuação do anterior.
+  const abas = abasDoProduto({ canSeeFinancials });
+  const [aba, setAba] = useState<AbaDoProduto>("dados");
+  useEffect(() => {
+    if (open) setAba("dados");
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -891,13 +901,24 @@ function ProdutoFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Identificação */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Identificação
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
+        <Tabs value={aba} onValueChange={(v) => setAba(v as AbaDoProduto)}>
+          <TabsList className={`grid h-auto w-full ${abas.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+            {abas.map((a) => (
+              <TabsTrigger key={a.id} value={a.id} className="min-h-11 gap-1.5 md:min-h-8">
+                {a.titulo}
+                {a.id === "preco" && sinal && (
+                  <span
+                    className={`h-2 w-2 rounded-full ${sinal === "ruim" ? "bg-destructive" : "bg-warning"}`}
+                    aria-label={sinal === "ruim" ? "margem abaixo do mínimo" : "margem perto do mínimo"}
+                  />
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {/* Dados: o que é o item. */}
+          <TabsContent value="dados" className="space-y-3 pt-2">
+            <div className="grid grid-cols-3 items-end gap-3">
               <div className="col-span-2 space-y-1.5">
                 <Label className="flex items-center gap-1.5">Nome *<DicaIcone texto={dicaCampo("/produtos", "Nome *")} rotulo="Nome *" /></Label>
                 <Input
@@ -916,7 +937,7 @@ function ProdutoFormDialog({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 items-end gap-3">
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/produtos", "Categoria")} rotulo="Categoria" /></Label>
                 <Select
@@ -983,15 +1004,16 @@ function ProdutoFormDialog({
                 rows={2}
               />
             </div>
-          </section>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
+              Item ativo no catálogo
+            </label>
+          </TabsContent>
 
-          {/* Comercial */}
+          {/* Preço: quanto custa e quanto cobrar. Só para quem vê o financeiro. */}
           {canSeeFinancials && (
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Comercial
-              </h3>
-              <div className="grid grid-cols-3 gap-3">
+            <TabsContent value="preco" className="space-y-3 pt-2">
+              <div className="grid grid-cols-3 items-end gap-3">
                 <div className="space-y-1.5">
                   <Label>Custo médio (R$/{form.unidade})</Label>
                   <Input
@@ -1050,59 +1072,6 @@ function ProdutoFormDialog({
                 </div>
               )}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="produto-maquina">Máquina padrão</Label>
-                  <Select
-                    value={form.maquina_padrao_id || "nenhuma"}
-                    onValueChange={(v) =>
-                      setForm({ ...form, maquina_padrao_id: v === "nenhuma" ? "" : v })
-                    }
-                  >
-                    <SelectTrigger id="produto-maquina">
-                      <SelectValue placeholder="Nenhuma" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="nenhuma">Nenhuma</SelectItem>
-                      {(maquinas as { id: string; nome: string }[]).map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Onde a peça é feita. É daqui que sai a largura da bobina no orçamento —
-                    sem isso, ela é digitada a cada item.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="produto-material">Material principal</Label>
-                  <Select
-                    value={form.material_principal_id || "nenhum"}
-                    onValueChange={(v) =>
-                      setForm({ ...form, material_principal_id: v === "nenhum" ? "" : v })
-                    }
-                  >
-                    <SelectTrigger id="produto-material">
-                      <SelectValue placeholder="Nenhum" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="nenhum">Nenhum</SelectItem>
-                      {(materiais as { id: string; nome: string; unidade: string }[]).map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.nome} ({m.unidade})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    O insumo que domina o custo. A ficha técnica continua valendo para o
-                    consumo exato.
-                  </p>
-                </div>
-              </div>
-
               {/* Calculadora ao vivo */}
               <div className="grid grid-cols-3 gap-3 rounded-lg border bg-muted/30 p-3">
                 <div>
@@ -1135,14 +1104,65 @@ function ProdutoFormDialog({
                   </div>
                 )}
               </div>
-            </section>
+            </TabsContent>
           )}
 
-          {/* Produção */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Produção
-            </h3>
+          {/* Produção e ficha: como se faz e o que consome. Máquina e material
+              estavam no bloco Comercial, escondidos de quem não vê o financeiro,
+              mas são da produção — e o salvar sempre os gravou para todos. */}
+          <TabsContent value="producao" className="space-y-3 pt-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="produto-maquina">Máquina padrão</Label>
+                <Select
+                  value={form.maquina_padrao_id || "nenhuma"}
+                  onValueChange={(v) =>
+                    setForm({ ...form, maquina_padrao_id: v === "nenhuma" ? "" : v })
+                  }
+                >
+                  <SelectTrigger id="produto-maquina">
+                    <SelectValue placeholder="Nenhuma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhuma">Nenhuma</SelectItem>
+                    {(maquinas as { id: string; nome: string }[]).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Onde a peça é feita. É daqui que sai a largura da bobina no orçamento —
+                  sem isso, ela é digitada a cada item.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="produto-material">Material principal</Label>
+                <Select
+                  value={form.material_principal_id || "nenhum"}
+                  onValueChange={(v) =>
+                    setForm({ ...form, material_principal_id: v === "nenhum" ? "" : v })
+                  }
+                >
+                  <SelectTrigger id="produto-material">
+                    <SelectValue placeholder="Nenhum" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Nenhum</SelectItem>
+                    {(materiais as { id: string; nome: string; unidade: string }[]).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.nome} ({m.unidade})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  O insumo que domina o custo. A ficha técnica continua valendo para o
+                  consumo exato.
+                </p>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Tempo estimado (min / {form.unidade})</Label>
@@ -1154,15 +1174,6 @@ function ProdutoFormDialog({
                   }
                   placeholder="ex.: 8"
                 />
-              </div>
-              <div className="space-y-1.5 flex items-end">
-                <label className="flex items-center gap-2 text-sm pb-2">
-                  <Switch
-                    checked={form.ativo}
-                    onCheckedChange={(v) => setForm({ ...form, ativo: v })}
-                  />
-                  Item ativo no catálogo
-                </label>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -1176,14 +1187,28 @@ function ProdutoFormDialog({
                 rows={2}
               />
             </div>
-          </section>
+            {/* A ficha é gravada pelo id: item novo salva antes; serviço não consome material. */}
+            {form.id && form.tipo === "produto" ? (
+              <ProdutoMateriaisEditor produtoId={form.id} produtoUnidade={form.unidade} />
+            ) : (
+              <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground" data-aviso-da-ficha="">
+                {avisoDaFicha({ temId: !!form.id, tipo: form.tipo })}
+              </p>
+            )}
+          </TabsContent>
+        </Tabs>
 
-          {/* Materiais consumidos — só faz sentido em itens existentes */}
-          {form.id && form.tipo === "produto" && (
-            <ProdutoMateriaisEditor produtoId={form.id} produtoUnidade={form.unidade} />
-          )}
-        </div>
-
+        {/* O nome está na aba Dados: de outra aba, o botão travado não dizia por quê.
+            Fora do rodapé: no celular o rodapé empilha ao contrário e o aviso ia
+            parar embaixo de tudo. */}
+        {!form.nome && aba !== "dados" && (
+          <p className="text-right text-xs text-muted-foreground" data-falta-nome="">
+            Falta o nome.{" "}
+            <button type="button" className="text-link underline underline-offset-2" onClick={() => setAba("dados")}>
+              Ir para Dados
+            </button>
+          </p>
+        )}
         <DialogFooter className="gap-2">
           <Button variant="outline" asChild>
             {/* O simulador abre já com este produto (ficha, máquina e tempo). */}
