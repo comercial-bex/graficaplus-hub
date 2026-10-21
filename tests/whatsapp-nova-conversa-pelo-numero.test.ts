@@ -122,6 +122,18 @@ describe("o atalho na caixa", () => {
     expect(TELA).toContain("focarResposta={focarRespostaEm === selecionada.id}");
   });
 
+  it("o cursor vai para a resposta só depois de o diálogo fechar (senão ele devolve o foco ao botão)", () => {
+    // Visto na tela publicada em 21/10: com autoFocus na montagem o foco caía no
+    // cabeçalho. O diálogo não devolve o foco quando abriu uma conversa, e o
+    // pedido de foco só nasce no fim do fechamento.
+    expect(DIALOGO).toContain("onCloseAutoFocus={(e) => {");
+    expect(DIALOGO).toContain("e.preventDefault();\n          onFechouNaConversa?.(id);");
+    expect(TELA).toContain("onFechouNaConversa={setFocarRespostaEm}");
+    const CONVERSA = readFileSync("src/components/whatsapp/conversa-aberta.tsx", "utf8");
+    expect(CONVERSA).toContain("if (focarResposta && temPermissaoDeResponder) respostaRef.current?.focus();");
+    expect(CONVERSA).not.toContain("autoFocus={focarResposta");
+  });
+
   it("a dica mora em dicas.ts", () => {
     expect(DIALOGO).toContain('dicaAcao("/whatsapp", "nova_conversa")');
     expect(readFileSync("src/lib/dicas.ts", "utf8")).toContain("nova_conversa:");
