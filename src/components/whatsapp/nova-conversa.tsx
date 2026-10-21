@@ -46,12 +46,19 @@ export function NovaConversa({
   onAberto,
   numeroInicial,
   onAberta,
+  onFechouNaConversa,
 }: {
   aberto: boolean;
   onAberto: (v: boolean) => void;
   /** O número que já veio da busca da caixa. */
   numeroInicial?: string;
   onAberta: (conversaId: string) => void;
+  /**
+   * O diálogo terminou de fechar depois de abrir a conversa: a hora de pôr o
+   * cursor na resposta. Antes disso o diálogo ainda prende o foco — e, ao
+   * fechar, o devolveria ao botão Nova (visto na tela publicada em 21/10).
+   */
+  onFechouNaConversa?: (conversaId: string) => void;
 }) {
   const qc = useQueryClient();
   const abrir = useServerFn(abrirConversaPeloNumero);
@@ -59,6 +66,7 @@ export function NovaConversa({
   const [nome, setNome] = useState("");
   const [abrindo, setAbrindo] = useState(false);
   const abrindoRef = useRef(false);
+  const abertaRef = useRef<string | null>(null);
   const nomeRef = useRef<HTMLInputElement>(null);
 
   // Cada vez que abre começa do zero — com o número da busca, se veio de lá.
@@ -115,6 +123,7 @@ export function NovaConversa({
       const quem = r.cliente?.trim() || nome.trim() || lido.legivel;
       toast.success(r.nova ? `Conversa com ${quem} criada. Escreva a primeira mensagem.` : `A conversa com ${quem} já existia — aberta para você continuar.`);
       void qc.invalidateQueries({ queryKey: CHAVES.conversas });
+      abertaRef.current = r.id;
       onAberto(false);
       onAberta(r.id);
     } catch (e) {
@@ -127,7 +136,16 @@ export function NovaConversa({
 
   return (
     <Dialog open={aberto} onOpenChange={onAberto}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onCloseAutoFocus={(e) => {
+          const id = abertaRef.current;
+          if (!id) return;
+          abertaRef.current = null;
+          e.preventDefault();
+          onFechouNaConversa?.(id);
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Nova conversa</DialogTitle>
           <DialogDescription>

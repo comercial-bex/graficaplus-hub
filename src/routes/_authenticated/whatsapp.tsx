@@ -235,7 +235,10 @@ function CaixaDeEntradaPage() {
             contadores={contadores.data}
             equipe={equipe.data ?? []}
             selecionadaId={selecionadaId}
-            onSelecionar={setSelecionadaId}
+            onSelecionar={(id) => {
+              setFocarRespostaEm(null);
+              setSelecionadaId(id);
+            }}
             busca={busca}
             onBusca={setBusca}
             fila={fila}
@@ -283,10 +286,8 @@ function CaixaDeEntradaPage() {
           aberto={novaAberta}
           onAberto={setNovaAberta}
           numeroInicial={numeroDaNova}
-          onAberta={(id) => {
-            setFocarRespostaEm(id);
-            setSelecionadaId(id);
-          }}
+          onAberta={setSelecionadaId}
+          onFechouNaConversa={setFocarRespostaEm}
         />
       )}
     </div>

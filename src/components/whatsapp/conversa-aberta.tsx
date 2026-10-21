@@ -150,6 +150,12 @@ export function ConversaAberta({
   const noFimRef = useRef(true);
   const alturaAntesRef = useRef<number | null>(null);
   const anexoRef = useRef<HTMLInputElement>(null);
+  // Aberta pela Nova conversa: o cursor vai para a resposta quando o diálogo
+  // já fechou (o `autoFocus` na montagem perdia para o foco preso do diálogo).
+  const respostaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (focarResposta && temPermissaoDeResponder) respostaRef.current?.focus();
+  }, [focarResposta, temPermissaoDeResponder]);
 
   const nomes = useMemo(() => mapaDeNomes(equipe.data), [equipe.data]);
   const rotulos = useMemo(() => mapaDeRotulos(equipe.data), [equipe.data]);
@@ -871,7 +877,7 @@ export function ConversaAberta({
           )}
           <Textarea
             rows={2}
-            autoFocus={focarResposta && temPermissaoDeResponder}
+            ref={respostaRef}
             className={cn(
               "min-h-[44px] flex-1 resize-none",
               modo === "nota" && "border-warning/50 bg-warning/5",
