@@ -18,6 +18,7 @@ import {
 import { AlertTriangle, ListChecks, Lock, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { SETORES } from "@/domain/producao/setores";
+import { Dica } from "@/components/bex/Dica";
 
 type Tarefa = {
   id: string;
@@ -338,26 +339,28 @@ export function TarefasDaOS({ osId }: { osId: string }) {
                     {t.status}
                   </Badge>
                   {concluida && podeReabrir && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Reabrir"
-                      aria-label={`Reabrir ${t.titulo}`}
-                      onClick={() => alternar.mutate(t)}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
+                    <Dica texto="Reabrir">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Reabrir ${t.titulo}`}
+                        onClick={() => alternar.mutate(t)}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </Dica>
                   )}
                   {!concluida && !cancelada && podeCriar && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Cancelar tarefa"
-                      aria-label={`Cancelar ${t.titulo}`}
-                      onClick={() => cancelar.mutate(t)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <Dica texto="Cancelar tarefa">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Cancelar ${t.titulo}`}
+                        onClick={() => cancelar.mutate(t)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </Dica>
                   )}
                 </div>
               );

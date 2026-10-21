@@ -320,7 +320,6 @@ function OndeParaPage() {
                   key={e.status}
                   className={corDoStatus(e.status)}
                   style={{ flexGrow: e.paradas, flexBasis: 0, minWidth: "0.5rem" }}
-                  title={`${rotuloDe(e.status)}: ${e.paradas} de ${totalParadas}`}
                 />
               ))}
             </div>

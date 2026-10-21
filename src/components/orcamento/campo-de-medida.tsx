@@ -60,7 +60,7 @@ export function SeletorDeUnidade({
             role="radio"
             aria-checked={ativa}
             disabled={desabilitado}
-            title={ROTULO_DA_UNIDADE[u]}
+            aria-label={`${u}, ${ROTULO_DA_UNIDADE[u]}`}
             onClick={() => onMudar(u)}
             className={cn(
               "min-h-11 min-w-11 rounded px-3 text-xs font-semibold transition-colors sm:min-h-7 sm:min-w-9 sm:px-2.5",

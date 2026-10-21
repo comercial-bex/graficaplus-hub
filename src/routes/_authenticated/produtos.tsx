@@ -598,19 +598,29 @@ function ProdutosPage() {
                             <Badge
                               variant="outline"
                               className="h-4 border-[color:var(--bex-amber)]/50 text-[10px] text-[color:var(--bex-amber)]"
-                              title="Sem receita de material: a OS deste produto nasce sem previsão, sem baixa de estoque e sem custo real."
                             >
                               sem receita
                             </Badge>
+                          )}
+                          {p.ativo && !comReceita.has(p.id) && (
+                            <DicaIcone
+                              texto="Sem receita de material: a OS deste produto nasce sem previsão, sem baixa de estoque e sem custo real."
+                              rotulo="Sem receita"
+                            />
                           )}
                           {p.ativo && faltaCusto.has(p.id) && (
                             <Badge
                               variant="outline"
                               className="h-4 border-[color:var(--bex-amber)]/50 text-[10px] text-[color:var(--bex-amber)]"
-                              title={`Material sem custo de compra na receita: ${faltaCusto.get(p.id)}. O custo deste produto não é recalculado enquanto isso — o valor ao lado é o digitado à mão, não a soma da ficha.`}
                             >
                               material sem custo
                             </Badge>
+                          )}
+                          {p.ativo && faltaCusto.has(p.id) && (
+                            <DicaIcone
+                              texto={`Material sem custo de compra na receita: ${faltaCusto.get(p.id)}. O custo deste produto não é recalculado enquanto isso — o valor ao lado é o digitado à mão, não a soma da ficha.`}
+                              rotulo="Material sem custo"
+                            />
                           )}
                         </div>
                       </TableCell>

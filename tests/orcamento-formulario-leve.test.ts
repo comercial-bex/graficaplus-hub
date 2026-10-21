@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { TooltipProvider } from "../src/components/ui/tooltip";
 import { camposDaUnidade } from "../src/domain/orcamentos/tipos-de-produto";
 import { UNIDADES_DO_ITEM, opcoesDaUnidade, unidadeDaLista } from "../src/domain/orcamentos/unidades-do-item";
 import { DetalhesOpcionais } from "../src/components/orcamento/detalhes-opcionais";
@@ -62,9 +63,13 @@ describe("a unidade do item é uma lista, e o que estava gravado continua valend
   });
 
   it("o seletor é um campo com nome (o texto escolhido o Radix só desenha no navegador: conferido lá)", () => {
-    const html = renderToStaticMarkup(createElement(UnidadeDoItem, { valor: "m²", onMudar: () => undefined }));
+    // A dica da unidade escolhida fica no rótulo (era o title de cada opção): pede o TooltipProvider.
+    const html = renderToStaticMarkup(
+      createElement(TooltipProvider, null, createElement(UnidadeDoItem, { valor: "m²", onMudar: () => undefined })),
+    );
     expect(html).toContain('id="item-unidade"');
     expect(html).toContain("Vendido por");
+    expect(html).toContain('aria-label="Ajuda: Vendido por"');
     expect(html).toContain('role="combobox"');
     expect(html).toContain("h-11 sm:h-9");
   });

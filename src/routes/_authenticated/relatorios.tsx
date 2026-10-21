@@ -718,11 +718,9 @@ function RelatPage() {
                               {/* OS em andamento com só parte do custo lançado: a margem
                                   real ainda vai cair (custoParcial). */}
                               {parcial && (
-                                <span
-                                  className="block text-[11px] font-normal text-muted-foreground"
-                                  title={frasesDoParcial(parcial).aviso}
-                                >
+                                <span className="flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
                                   parcial: {parcial.percentual}% do custo lançado
+                                  <DicaIcone texto={frasesDoParcial(parcial).aviso} rotulo="Custo parcial" />
                                 </span>
                               )}
                             </TableCell>

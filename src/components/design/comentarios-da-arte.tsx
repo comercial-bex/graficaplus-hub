@@ -80,7 +80,7 @@ export function ComentariosDaArte({
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" title="Ver e escrever comentários sobre esta arte">
+        <Button size="sm" variant="outline">
           <MessageSquare className="h-3.5 w-3.5 mr-1" />
           Comentar{total > 0 ? ` (${total})` : ""}
         </Button>
@@ -88,7 +88,7 @@ export function ComentariosDaArte({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Comentários da arte</DialogTitle>
-          <DialogDescription className="truncate" title={nome}>
+          <DialogDescription className="break-all">
             {nome} — comentar não aprova nem conclui a arte.
           </DialogDescription>
         </DialogHeader>

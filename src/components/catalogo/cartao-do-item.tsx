@@ -108,10 +108,12 @@ export function CartaoDoItem({
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="space-y-0.5">
           <h3 className="text-sm font-semibold leading-snug">{item.nome}</h3>
-          <p className="text-[11px] text-muted-foreground" title={item.descricao}>
+          <p className="text-[11px] text-muted-foreground">
             Fornecedor: <span className="font-mono">{item.codigo_fornecedor}</span>
             {secao ? ` · ${secao}` : ""}
           </p>
+          {/* A descrição ficava só no title da linha do fornecedor. */}
+          {item.descricao && <p className="line-clamp-2 text-[11px] text-muted-foreground">{item.descricao}</p>}
         </div>
 
         <div className="flex flex-wrap gap-1">

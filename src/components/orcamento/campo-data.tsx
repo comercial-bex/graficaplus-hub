@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { dataLocal } from "@/domain/os/prazo";
 import { isoLocal } from "@/domain/orcamentos/acordo";
+import { Dica } from "@/components/bex/Dica";
 
 /**
  * Campo de data que diz quando está VAZIO.
@@ -65,17 +66,18 @@ export function CampoData({
         </PopoverContent>
       </Popover>
       {data && !desabilitado && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 shrink-0"
-          aria-label="Tirar a data"
-          title="Tirar a data"
-          onClick={() => onMudar(null)}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <Dica texto="Tirar a data">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            aria-label="Tirar a data"
+            onClick={() => onMudar(null)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </Dica>
       )}
     </div>
   );

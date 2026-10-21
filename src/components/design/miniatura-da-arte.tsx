@@ -17,6 +17,7 @@ import {
   type ArquivoDaArte,
   type TipoDeArte,
 } from "./tipo-de-arquivo";
+import { Dica } from "@/components/bex/Dica";
 
 export type ArteParaMostrar = ArquivoDaArte & {
   id: string;
@@ -110,21 +111,22 @@ export function MiniaturaDaArte({
 
   if (comMiniatura && url.data && !imagemFalhou) {
     return (
-      <button
-        type="button"
-        onClick={() => void abrir()}
-        title="Abrir a arte em tamanho real"
-        className="block aspect-video w-full overflow-hidden border-b bg-muted/40"
-      >
-        <img
-          src={url.data}
-          alt={`Arte ${arte.nome}`}
-          loading="lazy"
-          className="h-full w-full object-contain"
-          onLoad={() => onVista?.(arte.id)}
-          onError={() => setImagemFalhou(true)}
-        />
-      </button>
+      <Dica texto="Abrir a arte em tamanho real" className="block w-full">
+        <button
+          type="button"
+          onClick={() => void abrir()}
+          className="block aspect-video w-full overflow-hidden border-b bg-muted/40"
+        >
+          <img
+            src={url.data}
+            alt={`Arte ${arte.nome}`}
+            loading="lazy"
+            className="h-full w-full object-contain"
+            onLoad={() => onVista?.(arte.id)}
+            onError={() => setImagemFalhou(true)}
+          />
+        </button>
+      </Dica>
     );
   }
 
@@ -143,7 +145,7 @@ export function MiniaturaDaArte({
         {extensao ? ` · .${extensao}` : ""}
         {tamanho ? ` · ${tamanho}` : ""}
       </Badge>
-      <p className="max-w-full truncate text-xs" title={arte.nome}>
+      <p className="line-clamp-2 max-w-full break-all text-xs">
         {arte.nome}
       </p>
       {comMiniatura && (url.isError || imagemFalhou) && (

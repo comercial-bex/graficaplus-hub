@@ -33,6 +33,7 @@ import {
   MOTOR_VERSION,
 } from "@/domain/impressao3d/cost-engine";
 import { mensagemErro } from "@/lib/erros";
+import { Dica } from "@/components/bex/Dica";
 
 export const Route = createFileRoute("/_authenticated/impressao-3d")({
   head: () => ({ meta: [{ title: "Impressão 3D — BEX PRINT OS" }] }),
@@ -339,15 +340,16 @@ function Impressao3DPage() {
                           </Link>
                         </Button>
                       ) : podeConverter ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={!o.cliente_id || converter.isPending}
-                          title={!o.cliente_id ? "Associe um cliente ao orçamento" : "Converter em OS"}
-                          onClick={() => converter.mutate(o.id)}
-                        >
-                          Converter em OS
-                        </Button>
+                        <Dica texto={!o.cliente_id ? "Associe um cliente ao orçamento antes de converter" : null}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!o.cliente_id || converter.isPending}
+                            onClick={() => converter.mutate(o.id)}
+                          >
+                            Converter em OS
+                          </Button>
+                        </Dica>
                       ) : null}
                     </TableCell>
                   </TableRow>

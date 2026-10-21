@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { mensagemErro } from "@/lib/erros";
+import { Dica } from "@/components/bex/Dica";
 
 /**
  * Os layouts (artes a imprimir) de cada item do orçamento.
@@ -232,63 +233,67 @@ function GradeDeLayouts({
                 </span>
               </div>
               <div className="space-y-1 p-1.5">
-                <p className="truncate text-xs" title={l.nome}>
+                <p className="line-clamp-2 break-all text-xs">
                   {l.nome}
                 </p>
                 <div className="flex items-center justify-between gap-1">
                   {i === 0 ? (
                     <span className="text-[11px] text-primary">sai no PDF</span>
                   ) : (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      disabled={bloqueado}
-                      title="Usar como capa (sai no PDF)"
-                      aria-label={`Usar ${l.nome} como capa`}
-                      onClick={() => onCapa(i)}
-                    >
-                      <Star className="h-3.5 w-3.5" />
-                    </Button>
+                    <Dica texto="Usar como capa (sai no PDF)">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        disabled={bloqueado}
+                        aria-label={`Usar ${l.nome} como capa`}
+                        onClick={() => onCapa(i)}
+                      >
+                        <Star className="h-3.5 w-3.5" />
+                      </Button>
+                    </Dica>
                   )}
                   <div className="flex">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      disabled={bloqueado || i === 0}
-                      title="Mover para antes"
-                      aria-label={`Mover ${l.nome} para antes`}
-                      onClick={() => onMover(i, -1)}
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      disabled={bloqueado || i === layouts.length - 1}
-                      title="Mover para depois"
-                      aria-label={`Mover ${l.nome} para depois`}
-                      onClick={() => onMover(i, 1)}
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive"
-                      disabled={bloqueado}
-                      title="Tirar esta arte do item"
-                      aria-label={`Tirar ${l.nome} do item`}
-                      onClick={() => onRemover(i)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <Dica texto="Mover para antes">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        disabled={bloqueado || i === 0}
+                        aria-label={`Mover ${l.nome} para antes`}
+                        onClick={() => onMover(i, -1)}
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                    </Dica>
+                    <Dica texto="Mover para depois">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        disabled={bloqueado || i === layouts.length - 1}
+                        aria-label={`Mover ${l.nome} para depois`}
+                        onClick={() => onMover(i, 1)}
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </Dica>
+                    <Dica texto="Tirar esta arte do item">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive"
+                        disabled={bloqueado}
+                        aria-label={`Tirar ${l.nome} do item`}
+                        onClick={() => onRemover(i)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </Dica>
                   </div>
                 </div>
               </div>
@@ -607,7 +612,7 @@ export function MiniaturaDoItem({ capa, onAbrir }: { capa: CapaDoItem | undefine
       type="button"
       onClick={onAbrir}
       className="group flex items-center gap-2 rounded-md text-left text-xs"
-      title={capa ? "Ver e mexer nas artes do item" : "Anexar arte ao item"}
+      aria-label={capa ? "Ver e mexer nas artes do item" : "Anexar arte ao item"}
     >
       <span
         className={cn(

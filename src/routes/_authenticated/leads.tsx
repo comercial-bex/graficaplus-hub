@@ -383,10 +383,15 @@ function LeadsPage() {
                             <Badge
                               variant="outline"
                               className="mt-1 font-normal text-[10px]"
-                              title="Aberto automaticamente por uma mensagem no WhatsApp da empresa. Qualifique na caixa de entrada ou feche como perdido."
                             >
                               veio do WhatsApp, ainda não qualificado
                             </Badge>
+                          )}
+                          {l.temporario && !l.cliente_id && (
+                            <DicaIcone
+                              texto="Aberto automaticamente por uma mensagem no WhatsApp da empresa. Qualifique na caixa de entrada ou feche como perdido."
+                              rotulo="Veio do WhatsApp"
+                            />
                           )}
                         </TableCell>
                         <TableCell className="text-sm">

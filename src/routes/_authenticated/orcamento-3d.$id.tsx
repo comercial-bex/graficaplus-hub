@@ -13,7 +13,7 @@ import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { mensagemErro } from "@/lib/erros";
 import { useAuth } from "@/lib/auth-context";
 
-import { DicaIcone } from "@/components/bex/Dica";
+import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/orcamento-3d/$id")({
   head: () => ({ meta: [{ title: "Orçamento 3D — BEX PRINT OS" }] }),
@@ -255,15 +255,16 @@ function OrcamentoDetalhe() {
             </Link>
           </Button>
         ) : podeConverter ? (
-          <Button
-            disabled={!orc.cliente_id || converter.isPending}
-            title={!orc.cliente_id ? "Associe um cliente antes de converter" : "Converter em OS"}
-            onClick={() => converter.mutate()}
-          >
-            {converter.isPending ? "Criando a OS..." : "Converter em OS"}
-          </Button>
+          <Dica texto={!orc.cliente_id ? "Associe um cliente antes de converter" : null}>
+            <Button
+              disabled={!orc.cliente_id || converter.isPending}
+              onClick={() => converter.mutate()}
+            >
+              {converter.isPending ? "Criando a OS..." : "Converter em OS"}
+            </Button>
+          </Dica>
         ) : (
-          <span className="text-xs text-muted-foreground" title="Converter em OS é da gerência ou do admin">
+          <span className="text-xs text-muted-foreground">
             <Lock className="inline h-3.5 w-3.5 mr-1" />
             Converter é da gerência
           </span>

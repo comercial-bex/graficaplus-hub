@@ -38,6 +38,7 @@ import {
 import { cn } from "@/lib/utils";
 import { mensagemErro } from "@/lib/erros";
 import { useAuth } from "@/lib/auth-context";
+import { DicaIcone } from "@/components/bex/Dica";
 
 export const Route = createFileRoute("/_authenticated/orcamento-3d-novo")({
   head: () => ({ meta: [{ title: "Novo orçamento 3D — BEX PRINT OS" }] }),
@@ -1080,19 +1081,24 @@ function NovoOrcamento3D() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div
                     className="rounded-lg border border-border px-2 py-1.5"
-                    title={`Preço de atacado: custo × ${vezes(calc.markupAtacado)} (markup de atacado das Configurações 3D)`}
                   >
-                    <div className="text-[10px] uppercase text-muted-foreground font-mono">
+                    <div className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground font-mono">
                       Atacado {vezes(calc.markupAtacado)}
+                      <DicaIcone
+                        texto={`Preço de atacado: custo × ${vezes(calc.markupAtacado)} (markup de atacado das Configurações 3D)`}
+                        rotulo="Atacado"
+                      />
                     </div>
                     <div className="font-mono font-semibold">{money(calc.atacado)}</div>
                     <div className="text-[10px] text-muted-foreground">preço para revenda</div>
                   </div>
                   <div
                     className="rounded-lg border border-border px-2 py-1.5"
-                    title="O menor preço que ainda deixa 10% de margem. Abaixo dele, a peça dá prejuízo."
                   >
-                    <div className="text-[10px] uppercase text-muted-foreground font-mono">Piso · 10% de margem</div>
+                    <div className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground font-mono">
+                      Piso · 10% de margem
+                      <DicaIcone texto="O menor preço que ainda deixa 10% de margem. Abaixo dele, a peça dá prejuízo." rotulo="Piso" />
+                    </div>
                     <div className="font-mono font-semibold">{money(calc.equilibrio)}</div>
                     <div className="text-[10px] text-muted-foreground">não vender abaixo</div>
                   </div>

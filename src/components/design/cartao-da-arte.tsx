@@ -33,6 +33,7 @@ import {
   ultimaDecisao,
   type DecisaoRegistrada,
 } from "./tipo-de-arquivo";
+import { Dica } from "@/components/bex/Dica";
 
 /** A linha de `arquivos` com o que a fila embute (ver a consulta em design.tsx). */
 export type ArteDaFila = {
@@ -109,7 +110,7 @@ export function CartaoDaArte({
                 OS {os.numero}
               </Link>
             ) : (
-              <span className="block truncate" title={arte.nome}>
+              <span className="line-clamp-2 break-all">
                 {arte.nome}
               </span>
             )}
@@ -130,7 +131,7 @@ export function CartaoDaArte({
       <CardContent className="space-y-3">
         <div className="space-y-0.5 text-xs text-muted-foreground">
           {os?.titulo && (
-            <div className="truncate" title={os.titulo}>
+            <div className="line-clamp-2">
               {os.titulo}
             </div>
           )}
@@ -247,15 +248,16 @@ function ConcluirArte({ arte }: { arte: ArteDaFila }) {
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={concluir.isPending}
-        title="Marcar como arquivo final de produção e tirar da fila do design"
-        onClick={() => (aprovada ? concluir.mutate() : setConfirmar(true))}
-      >
-        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Concluir
-      </Button>
+      <Dica texto="Marcar como arquivo final de produção e tirar da fila do design">
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={concluir.isPending}
+          onClick={() => (aprovada ? concluir.mutate() : setConfirmar(true))}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Concluir
+        </Button>
+      </Dica>
       <AlertDialog open={confirmar} onOpenChange={setConfirmar}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -14,6 +14,7 @@ import { AvisosEnviados } from "@/components/avisos/avisos-enviados";
 import { AlertTriangle, BellRing, Check, CheckCheck, Clock, Trash2, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { ehOrfao, resumoDaLimpeza, rotuloOrfao } from "@/domain/avisos/orfao";
+import { DicaIcone } from "@/components/bex/Dica";
 
 export const Route = createFileRoute("/_authenticated/avisos")({
   head: () => ({ meta: [{ title: "Avisos ao cliente — BEX PRINT OS" }] }),
@@ -186,9 +187,12 @@ function AvisosPage() {
                       {ROTULO[a.evento] ?? a.evento}
                     </Badge>
                     {orfao && (
-                      <Badge variant="secondary" className="gap-1" title={orfao.explicacao}>
+                      <Badge variant="secondary" className="gap-1">
                         <UserX className="h-3 w-3" /> {orfao.curto}
                       </Badge>
+                    )}
+                    {orfao && (
+                      <DicaIcone texto={orfao.explicacao} rotulo={orfao.curto} />
                     )}
                     {a.nunca_tentado && (
                       <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-500 hover:bg-amber-500/15">

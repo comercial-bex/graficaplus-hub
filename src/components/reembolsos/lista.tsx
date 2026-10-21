@@ -222,12 +222,13 @@ export function DecidirReembolso({ r, aoFechar }: { r: Reembolso | null; aoFecha
                   Não foi possível abrir a foto: {mensagemErro(foto.error)}
                 </p>
               ) : foto.data ? (
-                <a href={foto.data} target="_blank" rel="noreferrer" title="Abrir a foto inteira">
+                <a href={foto.data} target="_blank" rel="noreferrer">
                   <img
                     src={foto.data}
                     alt={`Cupom do reembolso nº ${r.numero}`}
                     className="max-h-72 w-full rounded-md border border-border object-contain"
                   />
+                  <span className="mt-1 block text-xs text-link underline underline-offset-2">Abrir a foto inteira</span>
                 </a>
               ) : (
                 <p className="text-muted-foreground">Carregando a foto do cupom…</p>

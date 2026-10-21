@@ -13,6 +13,7 @@ import {
   type TipoDocumento,
 } from "@/domain/documentos";
 import { consultarCNPJ, type DadosCNPJ } from "@/lib/api/cnpj.server";
+import { Dica } from "@/components/bex/Dica";
 
 type Props = {
   tipo: TipoDocumento;
@@ -141,21 +142,22 @@ export function CampoDocumento({
           onChange={(e) => alterarValor(e.target.value)}
         />
         {tipo === "cnpj" && (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label="Buscar dados do CNPJ na Receita Federal"
-            title="Buscar dados na Receita Federal"
-            disabled={disabled || consultando || !valido}
-            onClick={() => void buscar(digitos)}
-          >
-            {consultando ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </Button>
+          <Dica texto="Buscar dados na Receita Federal">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Buscar dados do CNPJ na Receita Federal"
+              disabled={disabled || consultando || !valido}
+              onClick={() => void buscar(digitos)}
+            >
+              {consultando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
+          </Dica>
         )}
       </div>
 
