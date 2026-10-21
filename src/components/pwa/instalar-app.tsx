@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Download, RefreshCw, Share, X } from "lucide-react";
+import { haVersaoNova } from "@/lib/versao-publicada";
 
 /**
  * Registra o service worker e oferece instalar o Bex Print como app.
@@ -125,6 +126,22 @@ export function InstalarApp() {
       navigator.serviceWorker.addEventListener("controllerchange", aoTrocarControlador);
     }
 
+    // Publicação nova com a aba aberta (21/10/2026): o sw.js não muda entre
+    // publicações, então o aviso acima quase nunca disparava. A cada 5 minutos
+    // e ao voltar para a aba, compara o script de entrada desta aba com o do
+    // HTML publicado agora (src/lib/versao-publicada.ts).
+    let ultimaConferencia = 0;
+    const conferirPublicacao = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - ultimaConferencia < 60_000) return;
+      ultimaConferencia = Date.now();
+      void haVersaoNova().then((nova) => {
+        if (nova) setNovaVersao(true);
+      });
+    };
+    const intervaloDaConferencia = setInterval(conferirPublicacao, 5 * 60_000);
+    document.addEventListener("visibilitychange", conferirPublicacao);
+
     const visitas = contarVisita();
     const liberado = !emStandalone() && !dispensadoRecentemente() && visitas >= 2;
     setAutoLiberado(liberado);
@@ -177,6 +194,8 @@ export function InstalarApp() {
     }
 
     return () => {
+      clearInterval(intervaloDaConferencia);
+      document.removeEventListener("visibilitychange", conferirPublicacao);
       window.removeEventListener("beforeinstallprompt", aoPoderInstalar);
       window.removeEventListener(EVENTO_INSTALAR, aoPedirInstalar);
       if ("serviceWorker" in navigator) {
