@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,7 +110,24 @@ function FinanceiroPage() {
     .filter((p: any) => p.status !== "pago" && p.data_vencimento && p.data_vencimento < today)
     .reduce((s: number, p: any) => s + Number(p.valor), 0);
 
+  // Trava contra o segundo toque (21/10/2026): o "Novo orçamento" sem trava gerou
+  // #93 e #94 com 0,08 s de diferença, e o "Novo cliente" a YRLEN ×5. Aqui
+  // seria o mesmo pagamento duas vezes. A ref barra o toque antes do botão redesenhar.
+  const gravandoRef = useRef(false);
+  const [gravando, setGravando] = useState(false);
   async function handleCreate() {
+    if (gravandoRef.current) return;
+    gravandoRef.current = true;
+    setGravando(true);
+    try {
+      await handleCreateSemTrava();
+    } finally {
+      gravandoRef.current = false;
+      setGravando(false);
+    }
+  }
+
+  async function handleCreateSemTrava() {
     if (!form.os_id || !form.valor) return toast.error("OS e valor são obrigatórios");
     const { error } = await supabase.from("pagamentos").insert({
       os_id: form.os_id,
@@ -275,7 +292,9 @@ function FinanceiroPage() {
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleCreate}>Registrar</Button>
+              <Button onClick={handleCreate} disabled={gravando}>
+                {gravando ? "Registrando…" : "Registrar"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

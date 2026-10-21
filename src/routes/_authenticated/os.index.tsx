@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { SectionHeader } from "@/components/bex/SectionHeader";
@@ -137,7 +137,24 @@ function OSPage() {
     };
   }, [os]);
 
+  // Trava contra o segundo toque (21/10/2026): o "Novo orçamento" sem trava gerou
+  // #93 e #94 com 0,08 s de diferença, e o "Novo cliente" a YRLEN ×5. Aqui
+  // seria a mesma OS duas vezes. A ref barra o toque antes do botão redesenhar.
+  const gravandoRef = useRef(false);
+  const [gravando, setGravando] = useState(false);
   async function handleCreate() {
+    if (gravandoRef.current) return;
+    gravandoRef.current = true;
+    setGravando(true);
+    try {
+      await handleCreateSemTrava();
+    } finally {
+      gravandoRef.current = false;
+      setGravando(false);
+    }
+  }
+
+  async function handleCreateSemTrava() {
     if (!form.cliente_id || !form.titulo) return toast.error("Cliente e título são obrigatórios");
     const { data, error } = await supabase
       .from("ordens_servico")
@@ -298,7 +315,9 @@ function OSPage() {
                 <Button variant="ghost" onClick={() => setOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreate}>Criar OS</Button>
+                <Button onClick={handleCreate} disabled={gravando}>
+                  {gravando ? "Criando…" : "Criar OS"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
