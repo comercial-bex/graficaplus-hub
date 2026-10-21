@@ -32,6 +32,7 @@ export type BloqueioOs = { codigo: string; titulo: string; resolver: string };
 // O cartão escrevia "R$ 340.00" — ponto decimal, formato de planilha em inglês.
 // O resto do sistema já usa o mesmo `brl`.
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const primeiroNome = (nome: string | null | undefined) => (nome ?? "").trim().split(/\s+/)[0] || "?";
 
 export function CartaoOs({
   os,
@@ -129,43 +130,46 @@ export function CartaoOs({
           )}
           {maquina && <SeloDaMaquina identidade={maquina} />}
           {parada && (
-            <span className="font-mono text-muted-foreground" title="Tempo desde a última mudança">
-              parada há {parada}
-            </span>
+            <span className="font-mono text-muted-foreground">parada há {parada}</span>
           )}
         </div>
 
         {/* O que impede de avançar — antes do arrasto, não depois do erro. */}
         {bloqueios.length > 0 && (
-          <div
-            className="flex items-center gap-1.5 rounded border border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10 px-2 py-1 text-xs text-[color:var(--bex-amber)] md:text-[10px]"
-            // A lista inteira no title: a coluna é estreita, e cortar a frase
-            // no meio é pior do que não caber. O detalhe com o "como resolver"
-            // fica na ficha.
-            title={bloqueios.map((b) => b.titulo).join(" · ")}
-          >
-            <Lock className="h-3 w-3 shrink-0" />
-            <span className="truncate">
-              {bloqueios.length === 1 ? bloqueios[0].titulo : `${bloqueios.length} pendências`}
-            </span>
+          <div className="flex items-center gap-1.5 rounded border border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10 px-2 py-1 text-xs text-[color:var(--bex-amber)] md:text-[10px]">
+            {/* A primeira pendência pelo nome, e quantas mais: "2 pendências"
+                escondia as duas no title, que não abre no celular nem na TV.
+                O "como resolver" de cada uma fica na ficha (o cartão abre). */}
+            <Lock className="h-3 w-3 shrink-0" aria-hidden />
+            <span className="truncate">{bloqueios[0].titulo}</span>
+            {bloqueios.length > 1 && <span className="shrink-0 font-semibold">+{bloqueios.length - 1}</span>}
+            <span className="sr-only">{bloqueios.map((b) => b.titulo).join(", ")}</span>
           </div>
         )}
 
         <div className="flex items-center justify-between gap-2 pt-0.5">
-          <div className="flex -space-x-1.5">
-            {responsaveis.map((r: any) => (
-              <Avatar key={r.id} className="h-5 w-5 border border-background" title={r.nome}>
-                <AvatarImage src={r.avatar_url ?? undefined} />
-                <AvatarFallback className="text-[9px]">{r.nome?.charAt(0)}</AvatarFallback>
-              </Avatar>
-            ))}
+          {/* Quem está na OS pelo nome: o rosto sozinho só dizia quem era no
+              title, que não abre no toque. */}
+          <div className="flex min-w-0 items-center gap-1.5">
+            {responsaveis.length > 0 && (
+              <div className="flex shrink-0 -space-x-1.5" aria-hidden>
+                {responsaveis.map((r: any) => (
+                  <Avatar key={r.id} className="h-5 w-5 border border-background">
+                    <AvatarImage src={r.avatar_url ?? undefined} />
+                    <AvatarFallback className="text-[9px]">{r.nome?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+            )}
+            {responsaveis.length > 0 && (
+              <span className="truncate text-xs text-muted-foreground md:text-[10px]">
+                {responsaveis.map((r: any) => primeiroNome(r.nome)).join(" · ")}
+              </span>
+            )}
             {responsaveis.length === 0 && (
-              <span
-                className="flex items-center gap-1 text-xs text-muted-foreground md:text-[10px]"
-                title="Sem designer nem operador definido"
-              >
-                <AlertTriangle className="h-3 w-3" />
-                sem equipe
+              <span className="flex items-center gap-1 text-xs text-muted-foreground md:text-[10px]">
+                <AlertTriangle className="h-3 w-3" aria-hidden />
+                sem designer nem operador
               </span>
             )}
           </div>
@@ -178,11 +182,11 @@ export function CartaoOs({
 
         {/* Quem mexeu por último e quando — todos movem, e o registro fica à vista. */}
         {os.ultimo_movimento?.rotulo && (
-          <div
-            className="truncate border-t border-border/60 pt-1.5 font-mono text-xs text-muted-foreground md:text-[10px]"
-            title={`Última mudança: ${os.ultimo_movimento.passo} — ${os.ultimo_movimento.rotulo}`}
-          >
+          // De onde veio fica à vista: "Produção → Arte" é retrabalho, e só o
+          // title dizia isso.
+          <div className="line-clamp-2 border-t border-border/60 pt-1.5 font-mono text-xs text-muted-foreground md:text-[10px]">
             {os.ultimo_movimento.verbo ?? "movida"} por {os.ultimo_movimento.rotulo}
+            {os.ultimo_movimento.passo && <> · {os.ultimo_movimento.passo}</>}
           </div>
         )}
       </div>

@@ -801,7 +801,6 @@ function Coluna({
                 key={m.chave}
                 className="flex items-center gap-0.5 text-[9px]"
                 style={{ color: m.cor }}
-                title={m.curto}
               >
                 <IconeDaMaquina identidade={m} className="h-2.5 w-2.5" />
                 {m.curto}

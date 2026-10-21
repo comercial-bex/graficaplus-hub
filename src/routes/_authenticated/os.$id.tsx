@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Upload, Plus, CheckCircle2, FileDown, PackageMinus, Receipt, MoreHorizontal, CalendarClock, HandCoins } from "lucide-react";
+import { Dica } from "@/components/bex/Dica";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -235,11 +236,13 @@ function OSDetailPage() {
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             {/* No celular o Voltar precisa de 44px de alvo; no desktop fica o ícone de 36px. */}
-            <Link to="/os">
-              <Button variant="ghost" size="icon" title="Voltar" className="h-11 w-11 md:h-9 md:w-9">
-                <ArrowLeft className="h-4 w-4" />
+            <Dica texto="Voltar para as ordens de serviço">
+              <Button asChild variant="ghost" size="icon" className="h-11 w-11 md:h-9 md:w-9">
+                <Link to="/os" aria-label="Voltar para as ordens de serviço">
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
               </Button>
-            </Link>
+            </Dica>
             <StatusChip label={rotuloDe(os.status)} tone="cyan" />
             {/* Status + trocar status ficam sempre visíveis: é a ação principal do detalhe. */}
             <Select value={os.status} onValueChange={updateStatus}>
@@ -272,17 +275,18 @@ function OSDetailPage() {
             )}
             {/* Agendar é ação de produção, não de dinheiro: gate por permissão de
                 mover produção, do mesmo jeito que a RPC faz no banco. */}
+            {/* Só no desktop: a dica abre ao passar o mouse, e o span da Dica faz
+                ela abrir mesmo com o botão desabilitado. */}
             {podeAgendar && (
-              <Button
-                variant="outline"
+              <Dica
+                texto={jaAgendada ? "Esta OS já está na agenda. Cancele as reservas antes de agendar de novo." : null}
                 className="hidden md:inline-flex"
-                disabled={agendando || jaAgendada}
-                title={jaAgendada ? "Esta OS já está na agenda. Cancele as reservas antes de agendar de novo." : undefined}
-                onClick={agendarNaMaquina}
               >
-                <CalendarClock className="h-4 w-4 mr-1" />
-                {agendando ? "Agendando…" : jaAgendada ? "Já está na agenda" : "Agendar na máquina"}
-              </Button>
+                <Button variant="outline" disabled={agendando || jaAgendada} onClick={agendarNaMaquina}>
+                  <CalendarClock className="h-4 w-4 mr-1" />
+                  {agendando ? "Agendando…" : jaAgendada ? "Já está na agenda" : "Agendar na máquina"}
+                </Button>
+              </Dica>
             )}
             <Button
               variant="outline"
@@ -867,13 +871,10 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
                     </Button>
                   )}
                   {!a.final_producao && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title="Marcar como arquivo final de produção"
-                      onClick={() => marcarFinal(a.id)}
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
+                    // Era só o ícone, e o que ele fazia estava no title.
+                    <Button size="sm" variant="ghost" onClick={() => marcarFinal(a.id)}>
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      Marcar como final
                     </Button>
                   )}
                 </TableCell>
@@ -1340,11 +1341,13 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
 function CelulaResultado({ rotulo, campo, nota }: { rotulo: string; campo: Campo; nota?: string }) {
   const ausente = campo.tipo === "ausente";
   return (
-    <div className="rounded border p-3" title={ausente ? campo.motivo : undefined}>
+    <div className="rounded border p-3">
       <div className="text-muted-foreground">{rotulo}</div>
       <div className={ausente ? "font-medium text-muted-foreground" : "font-semibold"}>
         {campo.texto}
       </div>
+      {/* O motivo da ausência à vista: no title, só aparecia com o mouse parado. */}
+      {ausente && campo.motivo && <div className="mt-0.5 text-[11px] text-muted-foreground">{campo.motivo}</div>}
       {nota && <div className="mt-0.5 text-[11px] text-muted-foreground">{nota}</div>}
     </div>
   );

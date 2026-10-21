@@ -1,0 +1,116 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { TooltipProvider } from "../src/components/ui/tooltip";
+import { CartaoOs } from "../src/components/kanban/cartao-os";
+
+/**
+ * `title=` vira texto à vista ou dica (20/10/2026), começando por Quadro, OS e
+ * WhatsApp — as três telas que a oficina e o atendimento usam o dia todo.
+ *
+ * O `title` só aparece com o mouse PARADO em cima, depois de um segundo; no
+ * celular e na TV nunca aparece, e o leitor de tela quase nunca o lê. Nessas
+ * telas ele guardava o que importava: as pendências além da primeira ("2
+ * pendências"), quem está na OS (só o rosto), de onde a OS veio ("Produção →
+ * Arte" é retrabalho), por que um valor está ausente, quantos clientes esperam
+ * resposta em cada fila, e o nome das ações da conversa no celular (era só o
+ * ícone).
+ *
+ * Regra: o que é informação fica à vista; o que é explicação longa vai para a
+ * Dica/DicaIcone (src/components/bex/Dica.tsx), que abre no teclado e no toque;
+ * o que só repetia o texto visível sai.
+ */
+
+const ARQUIVOS: Record<string, number> = {
+  // Quantos `title=` cada arquivo ainda pode ter — só a prop `title` de
+  // componente (o título da tela no SectionHeader), nunca atributo de elemento.
+  "src/components/kanban/cartao-os.tsx": 0,
+  "src/components/kanban/icone-da-maquina.tsx": 0,
+  "src/routes/_authenticated/kanban.tsx": 1,
+  "src/routes/_authenticated/os.$id.tsx": 1,
+  "src/components/whatsapp/conversa-aberta.tsx": 0,
+  "src/components/whatsapp/lista-de-conversas.tsx": 0,
+  "src/routes/_authenticated/whatsapp-fila-humana.tsx": 1,
+};
+
+describe("nenhum title= nas telas do dia a dia", () => {
+  it.each(Object.entries(ARQUIVOS))("%s", (caminho, permitidos) => {
+    const texto = readFileSync(caminho, "utf8");
+    const titles = [...texto.matchAll(/\stitle=\{|\stitle="/g)];
+    expect(titles.length, caminho).toBe(permitidos);
+    // Os que sobram são do SectionHeader (o título da tela), não de um elemento.
+    for (const m of titles) {
+      const antes = texto.slice(0, m.index);
+      const tag = antes.slice(antes.lastIndexOf("<"));
+      expect(tag, caminho).toMatch(/^<SectionHeader\b/);
+    }
+  });
+});
+
+describe("o cartão do Quadro diz à vista o que o title escondia", () => {
+  const os = {
+    numero: 44,
+    titulo: "Fachada em ACM",
+    status: "em_laser_cnc",
+    prioridade: 3,
+    itens: [],
+    designer: { id: "d", nome: "Ana Souza" },
+    operador: { id: "o", nome: "Leonardo Silva" },
+    ultimo_movimento: { rotulo: "Ana há 2 h", passo: "Produção → Arte", verbo: "movida", mudou_em: null },
+  };
+  const html = (extra: Record<string, unknown> = {}, bloqueios: { codigo: string; titulo: string; resolver: string }[] = []) =>
+    renderToStaticMarkup(
+      createElement(TooltipProvider, null, createElement(CartaoOs, { os: { ...os, ...extra }, bloqueios })),
+    );
+
+  it("as pendências: a primeira pelo nome e quantas mais, com a lista inteira para o leitor de tela", () => {
+    const h = html({}, [
+      { codigo: "a", titulo: "Falta a arte aprovada", resolver: "" },
+      { codigo: "b", titulo: "Falta o sinal", resolver: "" },
+    ]);
+    expect(h).toContain("Falta a arte aprovada");
+    expect(h).toContain("+1");
+    expect(h).toContain('<span class="sr-only">Falta a arte aprovada, Falta o sinal</span>');
+    expect(h).not.toContain("2 pendências");
+  });
+
+  it("quem está na OS pelo primeiro nome; sem ninguém, diz o que falta", () => {
+    expect(html()).toContain("Ana · Leonardo");
+    expect(html({ designer: null, operador: null })).toContain("sem designer nem operador");
+  });
+
+  it("de onde a OS veio fica à vista (Produção → Arte é retrabalho)", () => {
+    expect(html()).toContain("movida por Ana há 2 h · Produção → Arte");
+  });
+
+  it("a observação do laser é dica, não um ! com title", () => {
+    const h = html();
+    expect(h).toContain('aria-label="Ajuda: Laser"');
+    expect(h).not.toContain("title=");
+  });
+});
+
+describe("OS e WhatsApp", () => {
+  const OS = readFileSync("src/routes/_authenticated/os.$id.tsx", "utf8");
+  const CONVERSA = readFileSync("src/components/whatsapp/conversa-aberta.tsx", "utf8");
+  const LISTA = readFileSync("src/components/whatsapp/lista-de-conversas.tsx", "utf8");
+
+  it("OS: o motivo do valor ausente à vista; 'Marcar como final' com nome; o Voltar é um link com rótulo", () => {
+    expect(OS).toContain("{ausente && campo.motivo && <div");
+    expect(OS).toContain("Marcar como final");
+    expect(OS).toContain('<Link to="/os" aria-label="Voltar para as ordens de serviço">');
+  });
+
+  it("conversa: as ações mostram o nome em todo tamanho; a tecla de atalho vai para a dica", () => {
+    expect(CONVERSA).not.toContain('className="hidden sm:inline"');
+    for (const [nome, tecla] of [["Assumir", "R"], ["Transferir", "T"], ["Resolver", "E"]]) {
+      expect(CONVERSA, nome).toMatch(new RegExp(`<Dica texto="[^"]*\\(tecla ${tecla}\\)">`));
+    }
+  });
+
+  it("lista: cada fila diz quantos esperam resposta, à vista", () => {
+    expect(LISTA).toContain('<span className="sr-only"> esperando resposta</span>');
+    expect(LISTA).toContain("{n && n.aguardando > 0 && (");
+  });
+});
