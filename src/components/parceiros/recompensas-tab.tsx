@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mensagemErro } from "@/lib/erros";
 import { conquistasPendentes, entregarConquista } from "@/lib/parceiro-api";
+import { Carregando } from "@/components/bex/Carregando";
 
 /**
  * Prêmios de meta que dependem da equipe (produto, brinde). Crédito não passa por
@@ -34,7 +35,7 @@ export function RecompensasTab({ podeEditar }: { podeEditar: boolean }) {
     }
   }
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  if (isLoading) return <Carregando />;
   if (pendentes.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-8 text-center">

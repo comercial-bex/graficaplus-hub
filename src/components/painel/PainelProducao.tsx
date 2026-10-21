@@ -34,6 +34,7 @@ import { SeletorDeMaquina } from "./SeletorDeMaquina";
 import { PendenciasDoMeuPapel } from "./PendenciasDoMeuPapel";
 import { MinhasComissoes } from "./MinhasComissoes";
 import { cn } from "@/lib/utils";
+import { Carregando } from "@/components/bex/Carregando";
 
 /**
  * Painel de quem imprime, acaba e entrega.
@@ -697,7 +698,7 @@ export function PainelProducao() {
         </CardHeader>
         <CardContent className="space-y-2">
           {oficina.isLoading ? (
-            <p className="text-sm text-muted-foreground">Carregando...</p>
+            <Carregando />
           ) : oficina.isError ? (
             <FalhaAoCarregar
               oQue="a fila da oficina"

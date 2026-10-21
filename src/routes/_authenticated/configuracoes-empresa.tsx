@@ -16,6 +16,7 @@ import { dicaTela } from "@/lib/dicas";
 import { CampoDocumento } from "@/components/campo-documento";
 import { formatarCEP, formatarTelefone, type TipoDocumento } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/configuracoes-empresa")({
   head: () => ({ meta: [{ title: "Dados da empresa — BEX PRINT OS" }] }),
@@ -227,7 +228,7 @@ function ConfiguracoesEmpresaPage() {
     </div>
   );
 
-  if (isLoading) return <div className="p-6">Carregando…</div>;
+  if (isLoading) return <Carregando tela />;
 
   const faltando = [
     !form.razao_social.trim() && "razão social",

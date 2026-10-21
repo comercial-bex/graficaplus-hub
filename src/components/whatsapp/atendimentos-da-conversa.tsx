@@ -10,6 +10,7 @@ import {
   type AtendimentoResumo,
 } from "@/domain/whatsapp/filas";
 import { mapaDeNomes, useAtendimentos, useEquipe } from "@/components/whatsapp/usar-caixa-de-entrada";
+import { Carregando } from "@/components/bex/Carregando";
 
 const ROTULO_ORIGEM: Record<string, string> = {
   mensagem_recebida: "aberto pela mensagem do cliente",
@@ -47,7 +48,7 @@ export function AtendimentosDaConversa({
           Não foi possível carregar os atendimentos: {mensagemErro(atendimentos.error)}
         </p>
       ) : atendimentos.isPending ? (
-        <p className="text-xs text-muted-foreground">Carregando…</p>
+        <Carregando />
       ) : lista.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           {semMensagemDoCliente

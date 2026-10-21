@@ -35,6 +35,7 @@ import {
 } from "@/components/whatsapp/assistente-monitor";
 import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { desfechoDoEnvio } from "@/domain/whatsapp/caixa-de-entrada";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/whatsapp-monitor")({
   head: () => ({ meta: [{ title: "Monitor WhatsApp — BEX PRINT OS" }] }),
@@ -327,7 +328,7 @@ function WhatsappMonitorPage() {
                   onTentarDeNovo={() => void avisos.refetch()}
                 />
               ) : avisos.isPending ? (
-                <p className="text-center py-6 text-muted-foreground text-sm">Carregando...</p>
+                <Carregando />
               ) : (avisos.data ?? []).length === 0 ? (
                 <p className="text-center py-8 text-muted-foreground text-sm">
                   Nenhum aviso automático foi gerado para esta OS
@@ -387,7 +388,7 @@ function WhatsappMonitorPage() {
                   onTentarDeNovo={() => void mensagens.refetch()}
                 />
               ) : mensagens.isPending ? (
-                <p className="text-center py-6 text-muted-foreground text-sm">Carregando...</p>
+                <Carregando />
               ) : lista.length === 0 ? (
                 <p className="text-center py-8 text-muted-foreground text-sm">
                   Nenhuma mensagem de conversa está ligada a esta OS. Isto não quer dizer que nada

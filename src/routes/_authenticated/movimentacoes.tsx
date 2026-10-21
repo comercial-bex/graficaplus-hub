@@ -36,6 +36,7 @@ import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
 import { FolhaDeContagem } from "@/components/estoque/folha-de-contagem";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/movimentacoes")({
   head: () => ({ meta: [{ title: "Movimentações de estoque — BEX PRINT OS" }] }),
@@ -269,8 +270,8 @@ function MovimentacoesPage() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    Carregando…
+                  <TableCell colSpan={7} className="py-2">
+                    <Carregando />
                   </TableCell>
                 </TableRow>
               )}

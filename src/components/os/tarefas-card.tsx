@@ -19,6 +19,7 @@ import { AlertTriangle, ListChecks, Lock, Plus, RotateCcw, Trash2 } from "lucide
 import { toast } from "sonner";
 import { SETORES } from "@/domain/producao/setores";
 import { Dica } from "@/components/bex/Dica";
+import { Carregando } from "@/components/bex/Carregando";
 
 type Tarefa = {
   id: string;
@@ -286,7 +287,7 @@ export function TarefasDaOS({ osId }: { osId: string }) {
         )}
 
         {isLoading ? (
-          <div className="text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : tarefas.length === 0 ? (
           <div className="text-sm text-muted-foreground">
             Nenhuma tarefa nesta OS.{" "}

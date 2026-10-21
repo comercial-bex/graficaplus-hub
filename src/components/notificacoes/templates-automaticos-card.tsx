@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
+import { Carregando } from "@/components/bex/Carregando";
 
 type Template = {
   evento: string;
@@ -91,7 +92,7 @@ export function TemplatesAutomaticosCard() {
         </p>
 
         {isLoading ? (
-          <div className="text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : (
           templates.map((t) => {
             const rascunho = rascunhos[t.evento];

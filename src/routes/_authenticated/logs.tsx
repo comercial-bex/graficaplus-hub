@@ -10,6 +10,7 @@ import { ShieldCheck } from "lucide-react";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/logs")({
   head: () => ({ meta: [{ title: "Logs & Auditoria — BEX PRINT OS" }] }),
   component: LogsPage,
@@ -129,7 +130,7 @@ function LogsPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="px-6 pb-6 text-sm text-muted-foreground">Carregando…</div>
+            <Carregando />
           ) : linhas.length === 0 ? (
             <div className="px-6 pb-6 text-sm text-muted-foreground">
               Nenhuma ação registrada ainda. O rastro começa a partir de agora: mudanças de

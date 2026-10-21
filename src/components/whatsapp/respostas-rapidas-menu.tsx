@@ -18,6 +18,7 @@ import {
   useRespostasRapidas,
   type RespostaRapida,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
+import { Carregando } from "@/components/bex/Carregando";
 
 /**
  * As respostas rápidas, finalmente usadas por alguém.
@@ -65,7 +66,7 @@ export function RespostasRapidasMenu({
             Não foi possível carregar as respostas rápidas: {mensagemErro(respostas.error)}
           </div>
         ) : respostas.isPending ? (
-          <div className="p-3 text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : (respostas.data ?? []).length === 0 ? (
           <div className="space-y-2 p-3 text-sm">
             <p className="text-muted-foreground">Nenhuma resposta rápida ativa cadastrada.</p>

@@ -34,6 +34,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/perdas")({
   head: () => ({
     meta: [
@@ -300,7 +301,7 @@ function PerdasPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 text-muted-foreground">Carregando...</div>
+            <Carregando />
           ) : perdas.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
               Nenhuma perda registrada ainda

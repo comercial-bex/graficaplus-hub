@@ -60,6 +60,7 @@ import {
   totalPresumido,
   type Compromisso,
 } from "@/domain/financeiro/compromissos";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/compromissos")({
   head: () => ({ meta: [{ title: "Compromissos e despesas fixas — BEX PRINT OS" }] }),
@@ -573,7 +574,7 @@ function CompromissosPage() {
 
       {isLoading ? (
         <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">Carregando…</CardContent>
+          <CardContent className="p-4"><Carregando /></CardContent>
         </Card>
       ) : compromissos.length === 0 ? (
         <Card>

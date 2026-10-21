@@ -13,6 +13,7 @@ import { mensagemErro } from "@/lib/erros";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { formatBRL } from "@/lib/produtos-catalogo";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/configuracoes-3d")({
   head: () => ({ meta: [{ title: "Configurações 3D — BEX PRINT OS" }] }),
   component: Configuracoes3D,
@@ -165,7 +166,7 @@ function Configuracoes3D() {
     ? n(form.energia_total_fatura) / n(form.energia_consumo_kwh)
     : null;
 
-  if (isLoading || !form) return <div className="text-muted-foreground">Carregando...</div>;
+  if (isLoading || !form) return <Carregando tela />;
 
   return (
     <div className="space-y-6 max-w-3xl">

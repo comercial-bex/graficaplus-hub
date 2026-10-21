@@ -27,6 +27,7 @@ import {
 import { Plus, Trash2, Boxes } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
+import { Carregando } from "@/components/bex/Carregando";
 
 type ProdutoMaterial = {
   id: string;
@@ -191,7 +192,7 @@ export function ProdutoMateriaisEditor({
 
       <div className="border rounded-md">
         {isLoading ? (
-          <div className="px-3 py-4 text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : mapeamentos.length === 0 ? (
           <div className="px-3 py-4 text-sm text-muted-foreground">
             Nenhum material vinculado. Sem materiais cadastrados a baixa

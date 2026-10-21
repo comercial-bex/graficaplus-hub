@@ -70,6 +70,7 @@ import {
   type Campo,
 } from "@/domain/os/resultado";
 import { formatBRL } from "@/lib/produtos-catalogo";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -224,7 +225,7 @@ function OSDetailPage() {
   }
 
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>;
+  if (isLoading) return <Carregando tela />;
   if (!os) return <div className="p-6">OS não encontrada</div>;
 
   return (

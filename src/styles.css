@@ -230,7 +230,19 @@
   }
 }
 
+/* Troca de tela (View Transitions, defaultViewTransition no roteador): um
+   esmaecer curto. O padrão do navegador é 250 ms; aqui 160 ms. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
   *, *::before, *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;

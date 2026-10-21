@@ -15,6 +15,7 @@ import { History, Receipt } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { gerarESalvarPDF } from "@/lib/pdf/generate";
+import { Carregando } from "@/components/bex/Carregando";
 
 type Movimento = {
   id: string;
@@ -94,7 +95,7 @@ export function HistoricoEstoqueCard({ osId }: { osId: string }) {
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
-          <div className="px-4 py-6 text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : movimentos.length === 0 ? (
           <div className="px-4 py-6 text-sm text-muted-foreground">
             Nenhuma movimentação de estoque registrada para esta OS.

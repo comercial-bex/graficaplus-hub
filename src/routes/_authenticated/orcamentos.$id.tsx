@@ -138,6 +138,7 @@ import { cn } from "@/lib/utils";
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
 import { percentual } from "@/lib/percentual";
+import { Carregando } from "@/components/bex/Carregando";
 
 const itemVazio = {
   descricao: "",
@@ -857,7 +858,7 @@ function OrcamentoDetailPage() {
     }
   }
 
-  if (isLoading) return <div className="p-6">Carregando...</div>;
+  if (isLoading) return <Carregando tela />;
   if (!orc) return <div className="p-6">Orçamento não encontrado</div>;
 
   const margem =

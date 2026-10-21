@@ -50,6 +50,7 @@ import {
 } from "@/domain/os/etapas";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/os/")({
   head: () => ({ meta: [{ title: "Ordens de Serviço — BEX PRINT OS" }] }),
   component: OSPage,
@@ -381,8 +382,8 @@ function OSPage() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  Carregando...
+                <TableCell colSpan={6} className="py-2">
+                  <Carregando />
                 </TableCell>
               </TableRow>
             )}

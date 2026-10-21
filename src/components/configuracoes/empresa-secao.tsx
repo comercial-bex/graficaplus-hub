@@ -7,6 +7,7 @@ import { formatarDocumento, formatarTelefone } from "@/domain/documentos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ParametrosDaCasa } from "@/components/custos/parametros-da-casa";
+import { Carregando } from "@/components/bex/Carregando";
 
 type ResumoDaEmpresa = {
   nome: string | null;
@@ -86,7 +87,7 @@ export function EmpresaSecao() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           {empresa.isLoading ? (
-            <p className="text-muted-foreground">Carregando…</p>
+            <Carregando />
           ) : empresa.isError ? (
             <div role="alert" className="space-y-2">
               <p>Não deu para carregar os dados da empresa: {mensagemErro(empresa.error)}</p>

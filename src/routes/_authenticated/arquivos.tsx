@@ -17,6 +17,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/arquivos")({
   head: () => ({ meta: [{ title: "Arquivos — BEX PRINT OS" }] }),
   component: ArquivosPage,
@@ -148,7 +149,7 @@ function ArquivosPage() {
                 {isFetching ? "Tentando..." : "Tentar de novo"}
               </Button>
             </div>
-          ) : isLoading ? <div className="p-6 text-muted-foreground">Carregando...</div> : (
+          ) : isLoading ? <Carregando /> : (
             <Table>
               <TableHeader>
                 <TableRow>

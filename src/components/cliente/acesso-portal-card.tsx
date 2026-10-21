@@ -49,6 +49,7 @@ import {
   type LinkDoPortal,
 } from "@/domain/portal/link-do-portal";
 import { Dica } from "@/components/bex/Dica";
+import { Carregando } from "@/components/bex/Carregando";
 
 type Acesso = {
   id: string;
@@ -235,7 +236,7 @@ function GerenciarAcessos({ clienteId }: { clienteId: string }) {
         )}
 
         {isLoading ? (
-          <div className="text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : acessos.length === 0 ? (
           <div className="text-sm text-muted-foreground">
             Ninguém deste cliente acessa o portal ainda.
@@ -364,7 +365,7 @@ function SolicitacoesDoPortal({ clienteId }: { clienteId: string }) {
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
-          <div className="px-6 pb-6 text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : solicitacoes.length === 0 ? (
           <div className="px-6 pb-6 text-sm text-muted-foreground">
             Nenhuma mensagem enviada por este cliente pelo portal.
@@ -791,7 +792,7 @@ function ComprovantesDoPortal({ clienteId }: { clienteId: string }) {
             <AlertDescription>{mensagemErro(lista.error)}</AlertDescription>
           </Alert>
         ) : lista.isPending ? (
-          <div className="text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : (lista.data ?? []).length === 0 ? (
           <div className="text-sm text-muted-foreground">
             Nenhum comprovante enviado por este cliente pelo portal.

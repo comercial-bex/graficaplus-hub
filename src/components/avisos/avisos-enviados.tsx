@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import { Carregando } from "@/components/bex/Carregando";
 
 const ROTULO: Record<string, string> = {
   os_arte_para_aprovar: "Arte pronta para aprovar",
@@ -70,7 +71,7 @@ export function AvisosEnviados() {
   if (enviados.isPending) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">Carregando…</CardContent>
+        <CardContent className="p-4"><Carregando /></CardContent>
       </Card>
     );
   }

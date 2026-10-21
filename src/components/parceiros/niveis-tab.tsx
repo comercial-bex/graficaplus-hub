@@ -14,6 +14,7 @@ import { mensagemErro } from "@/lib/erros";
 import { simularNiveis } from "@/lib/parceiro-api";
 import { brl } from "@/domain/parceiros/preco";
 import { useNiveis, type Nivel } from "./dados";
+import { Carregando } from "@/components/bex/Carregando";
 
 /**
  * A régua de níveis, com o efeito de cada desconto nos produtos reais.
@@ -74,7 +75,7 @@ export function NiveisTab({ podeEditar }: { podeEditar: boolean }) {
     qc.invalidateQueries({ queryKey: ["parceiros-resumo"] });
   }
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  if (isLoading) return <Carregando />;
 
   const semCusto = simulacao[0]?.produtos_sem_custo ?? 0;
 

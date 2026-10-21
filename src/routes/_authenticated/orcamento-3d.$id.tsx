@@ -17,6 +17,7 @@ import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { percentual } from "@/lib/percentual";
 import { formatBRL } from "@/lib/produtos-catalogo";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/orcamento-3d/$id")({
   head: () => ({ meta: [{ title: "Orçamento 3D — BEX PRINT OS" }] }),
   component: OrcamentoDetalhe,
@@ -174,7 +175,7 @@ function OrcamentoDetalhe() {
     onError: (e: any) => toast.error(mensagemErro(e)),
   });
 
-  if (isLoading) return <div className="text-muted-foreground">Carregando...</div>;
+  if (isLoading) return <Carregando tela />;
   if (orcamentoComErro) {
     return (
       <Alert variant="destructive">

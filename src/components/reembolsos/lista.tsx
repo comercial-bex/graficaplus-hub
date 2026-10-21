@@ -36,6 +36,7 @@ import {
   linkDoComprovante,
   type Reembolso,
 } from "@/components/reembolsos/dados";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const brl = (n: number | null | undefined) =>
   n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -317,7 +318,7 @@ export function EstadoDaLista({
   textoVazio: string;
   children: ReactNode;
 }) {
-  if (carregando) return <p className="py-6 text-center text-sm text-muted-foreground">Carregando…</p>;
+  if (carregando) return <Carregando />;
   if (erro)
     return (
       <p role="alert" className="py-6 text-center text-sm text-destructive">

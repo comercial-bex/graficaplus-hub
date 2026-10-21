@@ -68,6 +68,7 @@ import {
   normalizarUnidade,
   type ConferenciaIa,
 } from "@/domain/materiais/parecidos";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/materiais")({
   head: () => ({
@@ -531,7 +532,7 @@ function MateriaisPage() {
         }
       >
         {isLoading ? (
-          <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
+          <Carregando />
         ) : filtrados.length === 0 ? (
           <div className="p-12 text-center text-sm text-muted-foreground">
             {materiais.length === 0

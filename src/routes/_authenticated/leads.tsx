@@ -41,6 +41,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({ meta: [{ title: "Leads — BEX PRINT OS" }] }),
   component: LeadsPage,
@@ -347,7 +348,7 @@ function LeadsPage() {
         </CardHeader>
         <CardContent className="p-0 sm:p-6 sm:pt-0">
           {isLoading ? (
-            <div className="p-6 text-muted-foreground">Carregando...</div>
+            <Carregando />
           ) : leads.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
               Nenhum lead cadastrado ainda.
