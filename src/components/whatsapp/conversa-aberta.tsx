@@ -108,6 +108,7 @@ export function ConversaAberta({
   onVoltar,
   painelAberto,
   onAlternarPainel,
+  focarResposta = false,
   acoes,
   className,
 }: {
@@ -118,6 +119,8 @@ export function ConversaAberta({
   onVoltar: () => void;
   painelAberto: boolean;
   onAlternarPainel: () => void;
+  /** Aberta pela Nova conversa: o cursor já vai para a resposta. */
+  focarResposta?: boolean;
   /** O painel da conversa (cliente, etiquetas, orçamento): no celular abre numa gaveta. */
   acoes?: React.ReactNode;
   className?: string;
@@ -868,6 +871,7 @@ export function ConversaAberta({
           )}
           <Textarea
             rows={2}
+            autoFocus={focarResposta && temPermissaoDeResponder}
             className={cn(
               "min-h-[44px] flex-1 resize-none",
               modo === "nota" && "border-warning/50 bg-warning/5",

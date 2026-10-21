@@ -32,6 +32,7 @@ import { ListaDeConversas } from "@/components/whatsapp/lista-de-conversas";
 import { ConversaAberta } from "@/components/whatsapp/conversa-aberta";
 import { PainelDaConversa } from "@/components/whatsapp/painel-da-conversa";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import { NovaConversa, useAtalhoNovaConversa } from "@/components/whatsapp/nova-conversa";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -84,6 +85,17 @@ function CaixaDeEntradaPage() {
   const [status, setStatus] = useState<AbaStatus>("aberta");
   const [selecionadaId, setSelecionadaId] = useState<string | null>(daUrl.conversa ?? null);
   const [painelAberto, setPainelAberto] = useState(true);
+  // Nova conversa pelo número (21/10/2026): o botão Nova, a tecla N e o
+  // "Chamar" da busca vazia. A conversa aberta por ela já vem com o cursor na
+  // resposta.
+  const [novaAberta, setNovaAberta] = useState(false);
+  const [numeroDaNova, setNumeroDaNova] = useState<string | undefined>(undefined);
+  const [focarRespostaEm, setFocarRespostaEm] = useState<string | null>(null);
+  const abrirNova = (numero?: string) => {
+    setNumeroDaNova(numero);
+    setNovaAberta(true);
+  };
+  useAtalhoNovaConversa(temPermissaoDeResponder, () => abrirNova());
 
   useEffect(() => {
     const t = setTimeout(() => setBuscaAtiva(busca), 300);
@@ -234,6 +246,7 @@ function CaixaDeEntradaPage() {
             onSetor={setSetor}
             contagemPorFila={contagemPorFila.data}
             naoLidasPorMim={naoLidasPorMim.data}
+            onNovaConversa={temPermissaoDeResponder ? abrirNova : undefined}
           />
           {selecionada ? (
             <>
@@ -247,6 +260,7 @@ function CaixaDeEntradaPage() {
                 onVoltar={() => setSelecionadaId(null)}
                 painelAberto={painelAberto}
                 onAlternarPainel={() => setPainelAberto((v) => !v)}
+                focarResposta={focarRespostaEm === selecionada.id}
                 acoes={<PainelDaConversa conversa={selecionada} className="border-0 shadow-none" />}
               />
               {painelAberto && (
@@ -262,6 +276,18 @@ function CaixaDeEntradaPage() {
             </Card>
           )}
         </div>
+      )}
+
+      {temPermissaoDeResponder && (
+        <NovaConversa
+          aberto={novaAberta}
+          onAberto={setNovaAberta}
+          numeroInicial={numeroDaNova}
+          onAberta={(id) => {
+            setFocarRespostaEm(id);
+            setSelecionadaId(id);
+          }}
+        />
       )}
     </div>
   );

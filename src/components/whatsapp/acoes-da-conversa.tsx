@@ -428,7 +428,7 @@ export function FaixaDoModo({
 /* ------------------------------------------------------------------ */
 
 /** Foco num campo de texto: o atalho não pode roubar a letra que se digita. */
-function digitando(alvo: EventTarget | null): boolean {
+export function digitando(alvo: EventTarget | null): boolean {
   const el = alvo as HTMLElement | null;
   if (!el) return false;
   const tag = el.tagName;

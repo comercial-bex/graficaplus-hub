@@ -179,6 +179,34 @@ export const abrirConversaDoCliente = createServerFn({ method: "POST" })
   });
 
 /**
+ * Nova conversa pelo número colado (21/10/2026): o número que chegou por fora
+ * (cartão, print, "me chama nesse") sem ter de cadastrar o cliente antes. Acha a
+ * conversa desse WhatsApp ou cria uma vazia com o nome do contato, e liga ao
+ * cliente quando o número é de um só. Não envia mensagem nenhuma.
+ */
+export const abrirConversaPeloNumero = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        telefone: z.string().trim().min(8).max(40),
+        nome: z.string().trim().max(120).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await exigir(context.supabase, context.userId, "whatsapp.reply");
+    const db = (await admin()) as any;
+    const { data: r, error } = await db.rpc("whatsapp_conversa_do_numero", {
+      p_telefone: data.telefone,
+      p_nome: data.nome || null,
+      p_usuario: context.userId,
+    });
+    if (error) throw new Error(error.message);
+    return r as { id: string; nova: boolean; telefone: string; cliente: string | null };
+  });
+
+/**
  * Abrir a conversa marca como lida PARA ESTA PESSOA (whatsapp_conversa_leituras)
  * — e zera o contador global para quem pode responder, como antes. Só precisa
  * ler o WhatsApp: a leitura de cada um é dele.

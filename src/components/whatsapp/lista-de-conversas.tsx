@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Bot, Clock, Loader2, Search, Tag } from "lucide-react";
+import { Bot, Clock, Loader2, MessageSquarePlus, Search, Tag } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,6 +23,8 @@ import {
   type PessoaDaEquipe,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { FotoDoContato } from "@/components/whatsapp/foto-do-contato";
+import { BotaoNovaConversa } from "@/components/whatsapp/nova-conversa";
+import { lerNumeroColado } from "@/domain/whatsapp/numero-colado";
 import {
   SETORES,
   corDaEspera,
@@ -65,7 +68,7 @@ export type Contadores = {
 
 function vazio(fila: Fila, status: AbaStatus, busca: string, setor: FiltroDeSetor): string {
   if (busca.trim()) {
-    return "Nenhuma conversa com esse termo. Tente o telefone só com números. Cliente cadastrado que ainda não escreveu? Abra a ficha dele em Clientes e toque em Conversar no WhatsApp.";
+    return "Nenhuma conversa com esse termo. Tente o telefone só com números. Número novo? Toque em Nova e cole o número. Cliente cadastrado que ainda não escreveu? Abra a ficha dele em Clientes e toque em Conversar no WhatsApp.";
   }
   if (setor !== "todas" && setor !== "minhas_filas" && status === "aberta") {
     return `Nenhuma conversa aberta em ${infoDoSetor(setor).rotulo}. Veja “Todas” para as outras filas.`;
@@ -98,8 +101,11 @@ export function ListaDeConversas({
   onSetor,
   contagemPorFila,
   naoLidasPorMim,
+  onNovaConversa,
   className,
 }: {
+  /** Nova conversa pelo número; com o número já lido quando veio da busca. Só para quem responde. */
+  onNovaConversa?: (numero?: string) => void;
   /** Caixa v3: o setor filtrado, a contagem de cada um e as não lidas de quem olha. */
   setor: FiltroDeSetor;
   onSetor: (s: FiltroDeSetor) => void;
@@ -123,6 +129,7 @@ export function ListaDeConversas({
   className?: string;
 }) {
   const sentinela = useRef<HTMLDivElement>(null);
+  const numeroDaBusca = lerNumeroColado(busca);
   const pessoas = new Map(equipe.map((p) => [p.id, p]));
   const fotos = useFotosDosContatos(conversas.map((c) => c.foto_path));
 
@@ -140,15 +147,18 @@ export function ListaDeConversas({
   return (
     <Card className={cn("flex flex-col overflow-hidden", className)}>
       <div className="space-y-2 border-b p-3">
-        <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            className="pl-8"
-            placeholder="Nome, telefone ou mensagem…"
-            value={busca}
-            onChange={(e) => onBusca(e.target.value)}
-            aria-label="Buscar conversa"
-          />
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-8"
+              placeholder="Nome, telefone ou mensagem…"
+              value={busca}
+              onChange={(e) => onBusca(e.target.value)}
+              aria-label="Buscar conversa"
+            />
+          </div>
+          {onNovaConversa && <BotaoNovaConversa onClick={() => onNovaConversa()} />}
         </div>
         {/* Setores: as filas da pessoa (padrão), todas, ou uma. O número é
             de conversas abertas ou pendentes naquela fila. */}
@@ -252,7 +262,18 @@ export function ListaDeConversas({
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
           </div>
         ) : conversas.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted-foreground">{vazio(fila, status, busca, setor)}</p>
+          numeroDaBusca.ok && onNovaConversa ? (
+            // Colou um número que ainda não tem conversa: chamar é um toque.
+            <div className="space-y-3 p-6 text-center text-sm text-muted-foreground">
+              <p>Nenhuma conversa com {numeroDaBusca.legivel}.</p>
+              <Button type="button" size="sm" onClick={() => onNovaConversa(numeroDaBusca.chave)}>
+                <MessageSquarePlus className="mr-1 h-4 w-4" />
+                Chamar {numeroDaBusca.legivel}
+              </Button>
+            </div>
+          ) : (
+            <p className="p-6 text-center text-sm text-muted-foreground">{vazio(fila, status, busca, setor)}</p>
+          )
         ) : (
           agruparPorDia(conversas).map(({ grupo, itens }) => (
             <div key={grupo}>
