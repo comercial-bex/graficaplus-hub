@@ -395,7 +395,6 @@ export function AutomacaoDialog({
                   <button
                     key={v.chave}
                     type="button"
-                    title={v.rotulo}
                     onClick={() => inserirVariavel(v.chave)}
                     className={cn(
                       badgeVariants({ variant: "outline" }),
@@ -403,6 +402,7 @@ export function AutomacaoDialog({
                     )}
                   >
                     {`{{${v.chave}}}`}
+                    <span className="ml-1 font-sans text-muted-foreground">{v.rotulo}</span>
                   </button>
                 ))}
               </div>

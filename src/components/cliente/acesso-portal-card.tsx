@@ -48,6 +48,7 @@ import {
   validadeEmDias,
   type LinkDoPortal,
 } from "@/domain/portal/link-do-portal";
+import { Dica } from "@/components/bex/Dica";
 
 type Acesso = {
   id: string;
@@ -267,26 +268,28 @@ function GerenciarAcessos({ clienteId }: { clienteId: string }) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title={a.ativo ? "Desativar acesso" : "Reativar acesso"}
-                      aria-label={a.ativo ? "Desativar acesso" : "Reativar acesso"}
-                      disabled={alternar.isPending}
-                      onClick={() => alternar.mutate(a)}
-                    >
-                      <Power className={`h-4 w-4 ${a.ativo ? "" : "text-muted-foreground"}`} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Remover acesso"
-                      aria-label="Remover acesso"
-                      disabled={remover.isPending}
-                      onClick={() => remover.mutate(a.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <Dica texto={a.ativo ? "Desativar acesso" : "Reativar acesso"}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={a.ativo ? "Desativar acesso" : "Reativar acesso"}
+                        disabled={alternar.isPending}
+                        onClick={() => alternar.mutate(a)}
+                      >
+                        <Power className={`h-4 w-4 ${a.ativo ? "" : "text-muted-foreground"}`} />
+                      </Button>
+                    </Dica>
+                    <Dica texto="Remover acesso">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Remover acesso"
+                        disabled={remover.isPending}
+                        onClick={() => remover.mutate(a.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </Dica>
                   </TableCell>
                 </TableRow>
               ))}

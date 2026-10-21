@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatusChip } from "@/components/bex/StatusChip";
-import { DicaIcone } from "@/components/bex/Dica";
+import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { CampoDeMedida, SeletorDeUnidade, useUnidadeDeMedida } from "@/components/orcamento/campo-de-medida";
 import { dicaCampo } from "@/lib/dicas";
 import { SeletorDeProduto } from "./seletor-de-produto";
@@ -675,9 +675,11 @@ function ItemCard({
           />
         </div>
         {!somenteLeitura && (
-          <Button variant="ghost" size="icon" onClick={onRemover} aria-label={`Remover item ${indice + 1}`} title="Remover item">
-            <Trash2 className="h-4 w-4 text-muted-foreground" />
-          </Button>
+          <Dica texto="Remover item">
+            <Button variant="ghost" size="icon" onClick={onRemover} aria-label={`Remover item ${indice + 1}`}>
+              <Trash2 className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          </Dica>
         )}
       </div>
 

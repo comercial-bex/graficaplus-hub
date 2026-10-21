@@ -336,7 +336,6 @@ export function EscolhaDeProduto({
                   data-cartao
                   tabIndex={marcado || (!tipoAtual && indice === 0) ? 0 : -1}
                   disabled={desabilitado}
-                  title={t.descricao}
                   onClick={() => {
                     setBusca("");
                     setTipoExplorado(t.chave);
@@ -351,6 +350,11 @@ export function EscolhaDeProduto({
                 >
                   <Icone className={cn("h-6 w-6", marcado ? "text-primary" : "")} aria-hidden="true" />
                   <span className="text-xs font-medium leading-tight">{t.rotulo}</span>
+                  {t.descricao && (
+                    <span className="hidden line-clamp-2 text-[10px] leading-tight text-muted-foreground sm:block">
+                      {t.descricao}
+                    </span>
+                  )}
                   <span className="text-[10px] leading-none text-muted-foreground">
                     {lista.length === 1 ? "1 produto" : `${lista.length} produtos`}
                   </span>
@@ -476,7 +480,6 @@ export function EscolhaDeProduto({
                 data-cartao
                 tabIndex={-1}
                 disabled={desabilitado}
-                title={dicaCampo("/orcamentos", "item_fora_do_catalogo")}
                 onClick={() => {
                   onItemLivre(grupoAtual!.tipo);
                   setTrocando(false);

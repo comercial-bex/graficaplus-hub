@@ -511,7 +511,6 @@ function MateriaisPage() {
             className="h-7 rounded-full px-3 text-xs"
             aria-pressed={filtroUnidade === c.unidade}
             disabled={c.total === 0}
-            title={c.total === 0 ? `Nenhum material em ${c.unidade}` : undefined}
             onClick={() => setFiltroUnidade(filtroUnidade === c.unidade ? null : c.unidade)}
           >
             {c.unidade} · {c.total}
@@ -582,11 +581,12 @@ function MateriaisPage() {
                         {custo ? (
                           brl(custo)
                         ) : (usoEmReceita.get(m.id) ?? 0) > 0 ? (
-                          <span
-                            className="cursor-help text-[color:var(--bex-amber)]"
-                            title={`Sem custo de compra, e este material está na receita de ${usoEmReceita.get(m.id)} produto(s). Enquanto ficar assim, o custo desses produtos não é recalculado — vale o valor digitado à mão.`}
-                          >
+                          <span className="inline-flex items-center gap-1 text-[color:var(--bex-amber)]">
                             sem custo
+                            <DicaIcone
+                              texto={`Sem custo de compra, e este material está na receita de ${usoEmReceita.get(m.id)} produto(s). Enquanto ficar assim, o custo desses produtos não é recalculado — vale o valor digitado à mão.`}
+                              rotulo="Sem custo"
+                            />
                           </span>
                         ) : (
                           "—"

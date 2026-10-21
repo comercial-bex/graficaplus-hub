@@ -318,7 +318,6 @@ function BlocoEquilibrio({
             {temMeta && ritmoCalendario > 0 && ritmoCalendario < 100 && (
               <span
                 aria-hidden
-                title="Onde o mês já está"
                 className="absolute top-0 h-full w-px bg-foreground/50"
                 style={{ left: `${ritmoCalendario}%` }}
               />
@@ -326,6 +325,12 @@ function BlocoEquilibrio({
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {/* A linha fina da barra só se explicava no title. */}
+            {temMeta && ritmoCalendario > 0 && ritmoCalendario < 100 && (
+              <span>
+                <span className="inline-block h-3 w-px bg-foreground/50 align-middle" /> onde o mês já está
+              </span>
+            )}
             <span>
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle" />{" "}
               Faturado {brl(dados.realizado)}

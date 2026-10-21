@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useAuth, type AppRole } from "@/lib/auth-context";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 import { lerMatrizDosPapeis } from "@/lib/api/permissoes-por-pessoa";
+import { Dica } from "@/components/bex/Dica";
 
 export const Route = createFileRoute("/_authenticated/matriz-permissoes")({
   head: () => ({
@@ -231,33 +232,26 @@ function MatrizPermissoesPage() {
                         const fixo = r === "admin" || !podeEditar;
                         return (
                           <td key={r} className="px-2 py-2 text-center">
-                            <button
-                              type="button"
-                              disabled={fixo || salvando === `${r}:${p}`}
-                              onClick={() => alternar(r, p)}
-                              title={
-                                !podeEditar
-                                  ? "Só o administrador muda permissões"
-                                  : r === "admin"
-                                  ? "O perfil admin mantém todas as permissões"
-                                  : marcado
-                                    ? `Remover ${p} de ${r}`
-                                    : `Conceder ${p} a ${r}`
-                              }
-                              aria-label={`${marcado ? "Remover" : "Conceder"} ${p} ${marcado ? "de" : "a"} ${r}`}
-                              aria-pressed={marcado}
-                              className={`mx-auto flex h-6 w-6 items-center justify-center rounded transition-colors ${
-                                fixo
-                                  ? "cursor-not-allowed opacity-60"
-                                  : "hover:bg-[color:var(--surface-hover)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                              }`}
-                            >
-                              {marcado ? (
-                                <Check className="h-4 w-4 text-[color:var(--bex-lime)]" />
-                              ) : (
-                                <Minus className="h-3.5 w-3.5 text-muted-foreground/30" />
-                              )}
-                            </button>
+                            <Dica texto={r === "admin" ? "O perfil admin mantém todas as permissões" : null}>
+                              <button
+                                type="button"
+                                disabled={fixo || salvando === `${r}:${p}`}
+                                onClick={() => alternar(r, p)}
+                                aria-label={`${marcado ? "Remover" : "Conceder"} ${p} ${marcado ? "de" : "a"} ${r}`}
+                                aria-pressed={marcado}
+                                className={`mx-auto flex h-6 w-6 items-center justify-center rounded transition-colors ${
+                                  fixo
+                                    ? "cursor-not-allowed opacity-60"
+                                    : "hover:bg-[color:var(--surface-hover)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                }`}
+                              >
+                                {marcado ? (
+                                  <Check className="h-4 w-4 text-[color:var(--bex-lime)]" />
+                                ) : (
+                                  <Minus className="h-3.5 w-3.5 text-muted-foreground/30" />
+                                )}
+                              </button>
+                            </Dica>
                           </td>
                         );
                       })}

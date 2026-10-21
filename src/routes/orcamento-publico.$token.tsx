@@ -155,7 +155,6 @@ function OrcamentoPublicoPage() {
                         target="_blank"
                         rel="noreferrer"
                         className="block w-28 rounded-md border overflow-hidden"
-                        title={a.nome}
                       >
                         <img
                           src={a.url}
@@ -163,6 +162,7 @@ function OrcamentoPublicoPage() {
                           className="h-20 w-full object-contain bg-muted"
                           loading="lazy"
                         />
+                        <span className="line-clamp-2 break-all px-1 py-0.5 text-[10px] text-muted-foreground">{a.nome}</span>
                       </a>
                     ))}
                   </div>

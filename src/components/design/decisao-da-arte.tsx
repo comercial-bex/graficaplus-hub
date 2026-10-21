@@ -25,6 +25,7 @@ import {
 import { mensagemErro } from "@/lib/erros";
 import { rotuloDe } from "@/domain/os/etapas";
 import { decisaoRecuaAOs } from "./tipo-de-arquivo";
+import { Dica } from "@/components/bex/Dica";
 
 type Decisao = "aprovado" | "ajuste";
 
@@ -108,19 +109,20 @@ export function DecisaoDaArte({ arte, vista }: { arte: ArteParaDecidir; vista: b
   return (
     <>
       {arte.status !== "aprovado" && (
-        <Button
-          size="sm"
-          className="flex-1"
-          disabled={!vista}
-          title={
+        <Dica texto={
             vista
               ? "Registrar a aprovação desta arte"
               : "Abra a arte antes de aprovar — este arquivo não tem miniatura"
-          }
-          onClick={() => setDecisao("aprovado")}
-        >
-          <Check className="h-3.5 w-3.5 mr-1" /> Aprovar
-        </Button>
+          } className="flex-1">
+          <Button
+            size="sm"
+            className="w-full"
+            disabled={!vista}
+            onClick={() => setDecisao("aprovado")}
+          >
+            <Check className="h-3.5 w-3.5 mr-1" /> Aprovar
+          </Button>
+        </Dica>
       )}
       <Button size="sm" variant="outline" onClick={() => setDecisao("ajuste")}>
         <PencilLine className="h-3.5 w-3.5 mr-1" /> Pedir ajuste

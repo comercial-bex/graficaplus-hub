@@ -137,7 +137,7 @@ function Modos({ maquinaId }: { maquinaId: string }) {
     >
       {modos.map((mo) => (
         <div key={mo.id} className="grid grid-cols-12 gap-1.5 items-center text-xs">
-          <div className="col-span-4 truncate" title={mo.nome}>
+          <div className="col-span-4 break-words">
             {mo.nome}
           </div>
           <Input
@@ -295,9 +295,11 @@ function Velocidades({ maquinaId }: { maquinaId: string }) {
 
       {medidas.map((l) => (
         <div key={l.id} className="grid grid-cols-12 gap-1.5 items-center text-xs">
-          <div className="col-span-4 truncate" title={`${l.material} — ${l.fonte ?? ""}`}>
+          <div className="col-span-4 break-words">
             {l.material}
             {l.operacao !== "corte" && <span className="text-muted-foreground"> ({l.operacao})</span>}
+            {/* De onde veio o número (medido na oficina, estimativa…) ficava só no title. */}
+            {l.fonte && <span className="block text-[10px] text-muted-foreground">{l.fonte}</span>}
           </div>
           <div className="col-span-2 font-mono text-[11px] text-muted-foreground">
             {Number(l.espessura_mm) > 0 ? `${Number(l.espessura_mm)} mm` : "—"}

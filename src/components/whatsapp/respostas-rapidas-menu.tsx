@@ -54,7 +54,6 @@ export function RespostasRapidasMenu({
           variant="outline"
           size="icon"
           disabled={desabilitado}
-          title="Respostas rápidas"
           aria-label="Respostas rápidas"
         >
           <ListChecks className="h-4 w-4" />

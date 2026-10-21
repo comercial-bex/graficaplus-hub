@@ -61,14 +61,15 @@ function SeloDaContagem({ tipo, valor }: { tipo?: ContagemDoMenu; valor?: ValorD
   if (!tipo || valor === undefined) return null;
   if (valor === "erro") {
     return (
-      <span
-        title={dicasDoMenu.contagemFalhou}
-        data-selo="erro"
-        className="ml-auto inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-sidebar-border px-1 text-[11px] font-bold leading-none text-sidebar-foreground/60 group-data-[active=true]/item:border-sidebar group-data-[active=true]/item:text-sidebar"
-      >
-        <span aria-hidden="true">?</span>
-        <span className="sr-only">{dicasDoMenu.contagemFalhou}</span>
-      </span>
+      <Dica texto={dicasDoMenu.contagemFalhou} className="ml-auto">
+        <span
+          data-selo="erro"
+          className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-sidebar-border px-1 text-[11px] font-bold leading-none text-sidebar-foreground/60 group-data-[active=true]/item:border-sidebar group-data-[active=true]/item:text-sidebar"
+        >
+          <span aria-hidden="true">?</span>
+          <span className="sr-only">{dicasDoMenu.contagemFalhou}</span>
+        </span>
+      </Dica>
     );
   }
   if (valor <= 0) return null;
@@ -382,40 +383,40 @@ export function MenuLateral({
                 draggable={false}
                 className="h-auto w-36 max-w-[calc(100%-3rem)] select-none object-contain [@media(max-height:800px)]:w-24"
               />
-              <Link
-                to="/configuracoes"
-                onClick={fecharNoCelular}
-                title="Meu perfil"
-                className="relative mt-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring [@media(max-height:800px)]:mt-0"
-              >
-                <Avatar className="h-16 w-16 ring-[3px] ring-[var(--sidebar-marca)]/70 ring-offset-2 ring-offset-sidebar [@media(max-height:800px)]:h-10 [@media(max-height:800px)]:w-10">
-                  <AvatarImage
-                    src={pessoa.foto ?? undefined}
-                    alt={`Foto de ${nome}`}
-                    className="object-cover"
+              <Dica texto="Meu perfil" lado="right">
+                <Link
+                  to="/configuracoes"
+                  onClick={fecharNoCelular}
+                  aria-label="Meu perfil"
+                  className="relative mt-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring [@media(max-height:800px)]:mt-0"
+                >
+                  <Avatar className="h-16 w-16 ring-[3px] ring-[var(--sidebar-marca)]/70 ring-offset-2 ring-offset-sidebar [@media(max-height:800px)]:h-10 [@media(max-height:800px)]:w-10">
+                    <AvatarImage
+                      src={pessoa.foto ?? undefined}
+                      alt={`Foto de ${nome}`}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="bg-sidebar-accent text-base font-bold text-[var(--sidebar-marca)]">
+                      {iniciais(pessoa.nome, pessoa.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span
+                    aria-label="Conectado"
+                    role="img"
+                    className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[var(--sidebar-online)] ring-2 ring-sidebar"
                   />
-                  <AvatarFallback className="bg-sidebar-accent text-base font-bold text-[var(--sidebar-marca)]">
-                    {iniciais(pessoa.nome, pessoa.email)}
-                  </AvatarFallback>
-                </Avatar>
-                <span
-                  aria-label="Conectado"
-                  role="img"
-                  className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[var(--sidebar-online)] ring-2 ring-sidebar"
-                />
-              </Link>
+                </Link>
+              </Dica>
               <div className="w-full min-w-0 text-center">
                 <p
                   data-ola=""
                   className="truncate text-sm font-semibold text-sidebar-foreground"
-                  title={pessoa.nome ?? undefined}
                 >
                   Olá{nome ? "," : ""} <span className="text-[var(--sidebar-marca)]">{nome}</span>
                 </p>
                 {pessoa.email && (
                   <p
-                    className="truncate text-[11px] text-sidebar-foreground/60 [@media(max-height:800px)]:hidden"
-                    title={pessoa.email}
+                    className="break-all text-[11px] text-sidebar-foreground/60 [@media(max-height:800px)]:hidden"
                   >
                     {pessoa.email}
                   </p>

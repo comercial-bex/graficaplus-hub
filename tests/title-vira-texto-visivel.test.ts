@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TooltipProvider } from "../src/components/ui/tooltip";
@@ -45,6 +47,45 @@ describe("nenhum title= nas telas do dia a dia", () => {
       const tag = antes.slice(antes.lastIndexOf("<"));
       expect(tag, caminho).toMatch(/^<SectionHeader\b/);
     }
+  });
+});
+
+/**
+ * O sistema inteiro (21/10/2026): os outros 58 `title=` de elemento saíram —
+ * explicação longa virou DicaIcone (abre no toque), botão só de ícone ganhou a
+ * Dica e o aria-label, nome cortado passou a quebrar em duas linhas, e o que
+ * só repetia o texto à vista saiu. Sobra a prop `title` dos componentes que a
+ * desenham como texto, e o `title` do iframe — que é o nome acessível dele.
+ */
+const PODE_TER_TITLE = new Set(["SectionHeader", "BexCard", "SummaryCard", "Document", "iframe"]);
+
+function arquivosTsx(dir: string): string[] {
+  return readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n);
+    if (statSync(p).isDirectory()) return arquivosTsx(p);
+    return p.endsWith(".tsx") ? [p] : [];
+  });
+}
+
+describe("nenhum elemento do sistema esconde informação no title", () => {
+  it("só os componentes que desenham o título como texto (e o iframe) recebem title=", () => {
+    const achados: string[] = [];
+    for (const f of arquivosTsx("src")) {
+      const texto = readFileSync(f, "utf8");
+      if (!texto.includes("title=")) continue;
+      const sf = ts.createSourceFile(f, texto, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+      const visitar = (n: ts.Node) => {
+        if (ts.isJsxAttribute(n) && n.name.getText(sf) === "title") {
+          const tag = (n.parent.parent as ts.JsxOpeningLikeElement).tagName.getText(sf);
+          if (!PODE_TER_TITLE.has(tag)) {
+            achados.push(`${f}:${sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1} <${tag}>`);
+          }
+        }
+        ts.forEachChild(n, visitar);
+      };
+      visitar(sf);
+    }
+    expect(achados, "use texto à vista, DicaIcone (explicação) ou Dica + aria-label (botão só de ícone)").toEqual([]);
   });
 });
 

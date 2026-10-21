@@ -892,11 +892,13 @@ function OrcamentoDetailPage() {
         {/* Linha 1 — identificação */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-start gap-3 min-w-0">
-            <Button asChild variant="ghost" size="icon" className="mt-1 shrink-0" title="Voltar para orçamentos">
-              <Link to="/orcamentos">
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
+            <Dica texto="Voltar para orçamentos">
+              <Button asChild variant="ghost" size="icon" className="mt-1 shrink-0">
+                <Link to="/orcamentos" aria-label="Voltar para orçamentos">
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
+            </Dica>
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
                 <span>Orçamento #{orc.numero}</span>
@@ -1195,18 +1197,18 @@ function OrcamentoDetailPage() {
                             />
                           </div>
                           <div className="col-span-6 md:col-span-3">
-                            <Label htmlFor="item-valor-un">Valor un.</Label>
+                            <Label htmlFor="item-valor-un" className="flex items-center gap-1">
+                              Valor un.
+                              {valorUnitarioDerivado !== null && (
+                                <DicaIcone texto="Calculado a partir da área e do preço/m²" rotulo="Valor un." />
+                              )}
+                            </Label>
                             <Input
                               id="item-valor-un"
                               type="number"
                               step="0.01"
                               inputMode="decimal"
                               readOnly={valorUnitarioDerivado !== null}
-                              title={
-                                valorUnitarioDerivado !== null
-                                  ? "Calculado a partir da área e do preço/m²"
-                                  : undefined
-                              }
                               className={valorUnitarioDerivado !== null ? "bg-muted/40" : undefined}
                               value={
                                 valorUnitarioDerivado !== null
@@ -1576,53 +1578,58 @@ function OrcamentoDetailPage() {
                             <TableCell className="whitespace-nowrap text-right">
                               {podeMexer && (
                                 <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title="Subir na lista"
-                                    aria-label={`Subir o item ${numero}`}
-                                    disabled={indice === 0}
-                                    onClick={() => void moverItem(indice, -1)}
-                                  >
-                                    <ArrowUp className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title="Descer na lista"
-                                    aria-label={`Descer o item ${numero}`}
-                                    disabled={indice === itens.length - 1}
-                                    onClick={() => void moverItem(indice, 1)}
-                                  >
-                                    <ArrowDown className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title="Editar item"
-                                    aria-label={`Editar o item ${numero}`}
-                                    onClick={() => editarItem(i, numero)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title="Duplicar item"
-                                    aria-label={`Duplicar o item ${numero}`}
-                                    onClick={() => void duplicarItem(i)}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title="Tirar o item"
-                                    aria-label={`Tirar o item ${numero}`}
-                                    onClick={() => setARemover({ id: i.id, descricao: i.descricao, numero })}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
+                                  <Dica texto="Subir na lista">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={`Subir o item ${numero}`}
+                                      disabled={indice === 0}
+                                      onClick={() => void moverItem(indice, -1)}
+                                    >
+                                      <ArrowUp className="h-4 w-4" />
+                                    </Button>
+                                  </Dica>
+                                  <Dica texto="Descer na lista">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={`Descer o item ${numero}`}
+                                      disabled={indice === itens.length - 1}
+                                      onClick={() => void moverItem(indice, 1)}
+                                    >
+                                      <ArrowDown className="h-4 w-4" />
+                                    </Button>
+                                  </Dica>
+                                  <Dica texto="Editar item">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={`Editar o item ${numero}`}
+                                      onClick={() => editarItem(i, numero)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </Dica>
+                                  <Dica texto="Duplicar item">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={`Duplicar o item ${numero}`}
+                                      onClick={() => void duplicarItem(i)}
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                  </Dica>
+                                  <Dica texto="Tirar o item">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={`Tirar o item ${numero}`}
+                                      onClick={() => setARemover({ id: i.id, descricao: i.descricao, numero })}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </Dica>
                                 </>
                               )}
                             </TableCell>
@@ -1644,8 +1651,9 @@ function OrcamentoDetailPage() {
                   </div>
                 )}
                 {semProduto > 0 && (
-                  <div className="text-amber-500" title="Escolha o produto do catálogo para o custo entrar sozinho.">
+                  <div className="flex items-center gap-1 text-amber-500">
                     {semProduto === 1 ? "1 item sem produto" : `${semProduto} itens sem produto`}
+                    <DicaIcone texto="Escolha o produto do catálogo para o custo entrar sozinho." rotulo="Item sem produto" />
                   </div>
                 )}
                 {somaArea > 0 && (

@@ -73,7 +73,6 @@ export function BarraDeComposicao({
             key={f.chave}
             className={`${COR[f.chave]} flex items-center justify-center overflow-hidden`}
             style={{ width: `${Math.max(f.fracao * 100, 0)}%` }}
-            title={`${f.rotulo}: ${brl(f.valor)} (${pct(f.fracao)})`}
           >
             {f.fracao > 0.11 && (
               <span className="px-1 text-[10px] font-medium text-white whitespace-nowrap">

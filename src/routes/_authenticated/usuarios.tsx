@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { ComissaoCell } from "@/components/usuarios/comissao-cell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -404,11 +404,13 @@ function UsuariosPage() {
                           <span className="text-xs text-muted-foreground">Sem perfil</span>
                         )}
                         {u.roles.map((r) => (
-                          <Badge
+                          // Era um selo clicável: remover o perfil só se descobria pelo title, e
+                          // sem teclado. Agora é botão, com o nome da ação para o leitor de tela.
+                          <button
                             key={r}
-                            variant="secondary"
-                            className="cursor-pointer"
-                            title="Remover perfil"
+                            type="button"
+                            aria-label={`Remover o perfil ${r}`}
+                            className={`${badgeVariants({ variant: "secondary" })} cursor-pointer`}
                             onClick={() =>
                               run(
                                 () => delRole({ data: { id: u.id, role: r as AppRole } }),
@@ -417,7 +419,7 @@ function UsuariosPage() {
                             }
                           >
                             {r} ×
-                          </Badge>
+                          </button>
                         ))}
                         <div className="flex items-center gap-1">
                           <Select

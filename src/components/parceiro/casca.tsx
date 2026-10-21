@@ -7,6 +7,7 @@ import type { PainelDoParceiro } from "@/domain/parceiros/painel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { OfertaAviso } from "./oferta-aviso";
+import { Dica } from "@/components/bex/Dica";
 
 /**
  * A moldura do painel do parceiro: marca dele no topo, crédito à vista e a
@@ -71,9 +72,11 @@ export function Casca({
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Seu crédito</p>
             <p className="text-sm font-semibold tabular-nums">{brl(painel.saldo_credito)}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onSair} aria-label="Sair" title="Sair">
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <Dica texto="Sair">
+            <Button variant="ghost" size="icon" onClick={onSair} aria-label="Sair">
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </Dica>
         </div>
         <nav className="mx-auto hidden max-w-5xl gap-1 px-4 md:flex" aria-label="Painel do parceiro">
           {NAVEGACAO.map((item) => (

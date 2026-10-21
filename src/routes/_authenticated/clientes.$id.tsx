@@ -66,7 +66,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 
-import { DicaIcone } from "@/components/bex/Dica";
+import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 export const Route = createFileRoute("/_authenticated/clientes/$id")({
   head: () => ({ meta: [{ title: "Cliente — BEX PRINT OS" }] }),
@@ -721,17 +721,19 @@ function ContatosTab({ clienteId }: { clienteId: string }) {
             {data.map((c: any) => (
               <TableRow key={c.id}>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => togglePrincipal(c)}
-                    title="Marcar como principal"
-                  >
-                    <Star
-                      className={`h-4 w-4 ${c.principal ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
-                    />
-                  </Button>
+                  <Dica texto={c.principal ? "Contato principal" : "Marcar como contato principal"}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => togglePrincipal(c)}
+                      aria-label={c.principal ? "Contato principal" : "Marcar como contato principal"}
+                    >
+                      <Star
+                        className={`h-4 w-4 ${c.principal ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
+                      />
+                    </Button>
+                  </Dica>
                 </TableCell>
                 <TableCell className="font-medium">{c.nome}</TableCell>
                 <TableCell>{c.cargo || "—"}</TableCell>

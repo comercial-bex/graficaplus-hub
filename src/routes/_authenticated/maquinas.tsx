@@ -23,6 +23,7 @@ import { KpiCard } from "@/components/bex/KpiCard";
 import { useAuth } from "@/lib/auth-context";
 import { ParametrosDeMaquina } from "@/components/maquinas/parametros-de-maquina";
 import { mensagemErro } from "@/lib/erros";
+import { Dica } from "@/components/bex/Dica";
 
 export const Route = createFileRoute("/_authenticated/maquinas")({
   head: () => ({
@@ -343,34 +344,36 @@ function MaquinasPage() {
               <CardContent className="p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <label
-                      className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden cursor-pointer relative group"
-                      title="Trocar a foto"
-                    >
-                      {m.imagem_url ? (
-                        <img
-                          src={m.imagem_url}
-                          alt={m.nome}
-                          className="h-full w-full object-contain"
-                          loading="lazy"
+                    <Dica texto="Trocar a foto">
+                      <label
+                        className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden cursor-pointer relative group"
+                      >
+                        <span className="sr-only">Trocar a foto</span>
+                        {m.imagem_url ? (
+                          <img
+                            src={m.imagem_url}
+                            alt={m.nome}
+                            className="h-full w-full object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <Factory className="h-5 w-5 text-[color:var(--bex-cyan)]" />
+                        )}
+                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-background/80 text-[10px] font-medium">
+                          {enviandoFoto === m.id ? "..." : "trocar"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) enviarFoto(m.id, f);
+                            e.target.value = "";
+                          }}
                         />
-                      ) : (
-                        <Factory className="h-5 w-5 text-[color:var(--bex-cyan)]" />
-                      )}
-                      <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-background/80 text-[10px] font-medium">
-                        {enviandoFoto === m.id ? "..." : "trocar"}
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) enviarFoto(m.id, f);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
+                      </label>
+                    </Dica>
                     <div className="min-w-0">
                       <div className="font-bold truncate">{m.nome}</div>
                       <div className="text-xs text-muted-foreground truncate">

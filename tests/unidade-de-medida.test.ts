@@ -210,7 +210,9 @@ describe("a tela", () => {
     expect(html).toContain('role="radiogroup"');
     expect(html).toContain('aria-label="Unidade das medidas"');
     for (const u of ["mm", "cm", "m"]) expect(html).toMatch(new RegExp(`role="radio"[^>]*>${u}<`));
-    expect(html).toMatch(/aria-checked="true"[^>]*title="metros"/);
+    // O nome por extenso ia no title (só com o mouse parado); agora vai no aria-label.
+    expect(html).toMatch(/aria-checked="true"[^>]*aria-label="m, metros"/);
+    expect(html).not.toContain("title=");
     expect(html).toContain('id="item-largura"');
     expect(html).toContain('id="item-altura"');
   });
