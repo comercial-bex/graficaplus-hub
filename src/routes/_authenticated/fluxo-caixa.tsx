@@ -49,6 +49,7 @@ import { useAuth } from "@/lib/auth-context";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
   head: () => ({
     meta: [
@@ -459,7 +460,7 @@ function FluxoCaixaPage() {
           <Card>
             <CardContent className="p-0">
               {isLoading ? (
-                <div className="p-6 text-muted-foreground">Carregando...</div>
+                <Carregando />
               ) : contas.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground">
                   Nenhuma conta a pagar lançada

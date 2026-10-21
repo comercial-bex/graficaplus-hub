@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { AlertTriangle, Gauge } from "lucide-react";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/produtividade-3d")({
   head: () => ({ meta: [{ title: "Produtividade 3D — BEX PRINT OS" }] }),
@@ -115,7 +116,7 @@ function ProdutividadePage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 text-sm text-muted-foreground">Carregando…</div>
+            <Carregando />
           ) : linhas.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
               Nenhuma impressora 3D configurada.

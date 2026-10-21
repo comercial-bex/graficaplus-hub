@@ -32,6 +32,7 @@ import {
 import { mensagemErro } from "@/lib/erros";
 import { useAuth } from "@/lib/auth-context";
 import { percentual } from "@/lib/percentual";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/custos-producao")({
   head: () => ({
@@ -279,7 +280,7 @@ function CustosProducaoPage() {
       )}
 
       {isLoading ? (
-        <div className="text-muted-foreground">Carregando...</div>
+        <Carregando />
       ) : funcoes.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">

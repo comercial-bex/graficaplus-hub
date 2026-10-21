@@ -45,6 +45,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/clientes/")({
   head: () => ({ meta: [{ title: "Clientes — BEX PRINT OS" }] }),
   component: ClientesPage,
@@ -544,8 +545,8 @@ function ClientesPage() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  Carregando...
+                <TableCell colSpan={7} className="py-2">
+                  <Carregando />
                 </TableCell>
               </TableRow>
             )}

@@ -26,6 +26,7 @@ import {
 } from "@/domain/financeiro/reembolsos";
 import { supabase } from "@/integrations/supabase/client";
 import { mensagemErro } from "@/lib/erros";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/reembolsos")({
   head: () => ({ meta: [{ title: "Reembolsos — BEX PRINT OS" }] }),
@@ -234,7 +235,7 @@ function ReembolsosPage() {
             aqui, o custo dele está faltando na ficha técnica — e o preço não cobre.
           </p>
           {porProduto.isPending ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Carregando…</p>
+            <Carregando />
           ) : porProduto.isError ? (
             <p role="alert" className="py-6 text-center text-sm text-destructive">
               Não foi possível ler o resumo por produto: {mensagemErro(porProduto.error)}

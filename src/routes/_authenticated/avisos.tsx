@@ -15,6 +15,7 @@ import { AlertTriangle, BellRing, Check, CheckCheck, Clock, Trash2, UserX } from
 import { toast } from "sonner";
 import { ehOrfao, resumoDaLimpeza, rotuloOrfao } from "@/domain/avisos/orfao";
 import { DicaIcone } from "@/components/bex/Dica";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/avisos")({
   head: () => ({ meta: [{ title: "Avisos ao cliente — BEX PRINT OS" }] }),
@@ -165,7 +166,7 @@ function AvisosPage() {
 
       {pendentes.isError ? null : isLoading ? (
         <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">Carregando…</CardContent>
+          <CardContent className="p-4"><Carregando /></CardContent>
         </Card>
       ) : avisos.length === 0 ? (
         <Card>

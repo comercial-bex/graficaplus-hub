@@ -22,7 +22,19 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    // Desempenho (21/10/2026): o código da próxima tela começa a baixar quando
+    // o mouse passa ou o dedo encosta no link — o clique já encontra a tela
+    // pronta. Os dados continuam com o React Query (staleTime 0 no preload).
+    defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
+    // Troca de TELA com a transição nativa do navegador (View Transitions): um
+    // esmaecer de 160 ms, sem mudar o layout. Só quando o caminho muda: abrir
+    // uma conversa (?conversa=…) ou filtrar uma lista mexe só na busca do
+    // endereço, e esmaecer a tela inteira a cada clique ou tecla pesaria.
+    // Navegador sem suporte troca na hora.
+    defaultViewTransition: {
+      types: ({ pathChanged }) => (pathChanged ? ["troca-de-tela"] : false),
+    },
   });
 
   return router;

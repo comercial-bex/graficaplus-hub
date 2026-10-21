@@ -42,6 +42,7 @@ import { mensagemErro } from "@/lib/erros";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
 import { formatBRL } from "@/lib/produtos-catalogo";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/financeiro")({
   head: () => ({ meta: [{ title: "Financeiro — BEX PRINT OS" }] }),
   component: FinanceiroPage,
@@ -324,8 +325,8 @@ function FinanceiroPage() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    Carregando...
+                  <TableCell colSpan={7} className="py-2">
+                    <Carregando />
                   </TableCell>
                 </TableRow>
               )}

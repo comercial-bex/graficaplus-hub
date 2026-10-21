@@ -17,6 +17,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { DataPanel } from "@/components/bex/DataPanel";
 import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/aprovacoes")({
   head: () => ({
@@ -223,8 +224,8 @@ function AprovacoesPage() {
           <TableBody>
             {consulta.isLoading && (
               <TableRow>
-                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                  Carregando...
+                <TableCell colSpan={8} className="py-2">
+                  <Carregando />
                 </TableCell>
               </TableRow>
             )}

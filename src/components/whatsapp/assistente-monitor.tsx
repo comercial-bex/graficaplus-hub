@@ -30,6 +30,7 @@ import {
   salvarConfiguracoesWhatsapp,
 } from "@/lib/api/whatsapp-caixa.functions";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import { Carregando } from "@/components/bex/Carregando";
 
 /**
  * O Monitor do WhatsApp, parte da caixa v3: a assistente de IA (liga/desliga,
@@ -292,7 +293,7 @@ export function DecisoesDoAssistente() {
             onTentarDeNovo={() => void decisoes.refetch()}
           />
         ) : decisoes.isPending ? (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
+          <Carregando />
         ) : lista.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Nenhuma decisão nas últimas 24 h. Com a assistente ligada, cada mensagem nova de cliente sem

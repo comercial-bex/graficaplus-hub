@@ -34,6 +34,7 @@ import {
 import type { ItemDoCatalogo, PrecosDoCatalogo, SecaoDoCatalogo } from "@/domain/catalogo/itens";
 import { importarPlanilha, lerImportacoes } from "@/components/catalogo/consultas";
 import { dataCurta } from "@/domain/portal/link-do-portal";
+import { Carregando } from "@/components/bex/Carregando";
 
 type Leitura =
   | { estado: "vazio" }
@@ -262,7 +263,7 @@ export function SincronizarPlanilha({
         </CardHeader>
         <CardContent>
           {historico.isPending ? (
-            <p className="text-sm text-muted-foreground">Carregando…</p>
+            <Carregando />
           ) : historico.isError ? (
             <FalhaDeConsulta
               titulo="Não deu para carregar o histórico"

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { AlertTriangle } from "lucide-react";
 import { percentual } from "@/lib/percentual";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/breakdown-3d")({
   head: () => ({ meta: [{ title: "Custo por peça 3D — BEX PRINT OS" }] }),
@@ -115,7 +116,7 @@ function BreakdownPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 text-sm text-muted-foreground">Carregando…</div>
+            <Carregando />
           ) : linhas.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
               Nenhum orçamento 3D no período.

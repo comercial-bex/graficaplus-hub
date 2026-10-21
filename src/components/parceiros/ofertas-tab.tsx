@@ -24,6 +24,7 @@ import { dicaCampo } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
 import { brl, unidadeLegivel } from "@/domain/parceiros/preco";
 import { useNiveis, useProdutosAtivos, type OfertaDaGestao } from "./dados";
+import { Carregando } from "@/components/bex/Carregando";
 
 type Formulario = {
   id?: string;
@@ -138,7 +139,7 @@ export function OfertasTab({ podeEditar }: { podeEditar: boolean }) {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+        <Carregando />
       ) : ofertas.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
           Nenhuma oferta ainda.

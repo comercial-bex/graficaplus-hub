@@ -21,6 +21,7 @@ import {
   type VinculoResumo,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { acaoNaConversa, enfileirarArquivo } from "@/lib/api/whatsapp-caixa.functions";
+import { Carregando } from "@/components/bex/Carregando";
 
 const brl = (v: number | null) =>
   v == null ? "" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -94,7 +95,7 @@ export function VinculosDaConversa({ conversa, podeEditar }: { conversa: Convers
     <section className="space-y-2 border-b p-4">
       <div className="text-xs uppercase tracking-wider text-muted-foreground">Ligados a esta conversa</div>
       {vinculos.isPending ? (
-        <p className="text-xs text-muted-foreground">Carregando…</p>
+        <Carregando />
       ) : vinculos.isError ? (
         <p className="text-xs text-destructive">{mensagemErro(vinculos.error)}</p>
       ) : orcs.length === 0 && !os ? (

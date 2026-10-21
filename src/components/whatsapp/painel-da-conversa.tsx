@@ -33,6 +33,7 @@ import {
   CriarOrcamentoDaConversa,
   CriarOsDaConversa,
 } from "@/components/whatsapp/criar-a-partir-da-conversa";
+import { Carregando } from "@/components/bex/Carregando";
 
 const ROTULO_ORCAMENTO: Record<string, string> = {
   rascunho: "Rascunho",
@@ -178,7 +179,7 @@ export function PainelDaConversa({
             Não foi possível carregar o histórico: {mensagemErro(historico.error)}
           </p>
         ) : historico.isPending ? (
-          <p className="text-xs text-muted-foreground">Carregando…</p>
+          <Carregando />
         ) : (
           <div className="space-y-3 text-sm">
             <div className="space-y-1">

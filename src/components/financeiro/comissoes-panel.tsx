@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dica } from "@/components/bex/Dica";
 import { brl } from "@/domain/parceiros/preco";
+import { Carregando } from "@/components/bex/Carregando";
 
 /**
  * Comissões de venda — o que a gráfica deve a quem trouxe cada trabalho.
@@ -102,7 +103,7 @@ export function ComissoesPanel() {
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
-          <p className="p-4 text-sm text-muted-foreground">Carregando...</p>
+          <Carregando />
         ) : linhas.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">
             Nenhuma comissão ainda. Ela aparece aqui quando uma OS trazida por alguém com comissão configurada for paga.

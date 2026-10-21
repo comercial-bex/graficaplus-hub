@@ -24,6 +24,7 @@ import { useAuth } from "@/lib/auth-context";
 import { ParametrosDeMaquina } from "@/components/maquinas/parametros-de-maquina";
 import { mensagemErro } from "@/lib/erros";
 import { Dica } from "@/components/bex/Dica";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/maquinas")({
   head: () => ({
@@ -330,7 +331,7 @@ function MaquinasPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground">Carregando...</div>
+        <Carregando />
       ) : maquinas.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">

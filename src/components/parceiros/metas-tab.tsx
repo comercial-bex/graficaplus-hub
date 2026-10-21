@@ -25,6 +25,7 @@ import { mensagemErro } from "@/lib/erros";
 import { formatarData } from "@/domain/os/prazo";
 import { quantidadeDaMetrica, textoDaRecompensa } from "@/domain/parceiros/painel";
 import { hojeIso, ROTULO_DA_METRICA, useNiveis, type CampanhaDaGestao } from "./dados";
+import { Carregando } from "@/components/bex/Carregando";
 
 const NOVA: Omit<CampanhaDaGestao, "id"> = {
   titulo: "",
@@ -121,7 +122,7 @@ export function MetasTab({ podeEditar }: { podeEditar: boolean }) {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
+        <Carregando />
       ) : campanhas.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
           Nenhuma meta ainda. Uma boa primeira: “compre R$ 3.000 em 60 dias e ganhe R$ 150 em crédito”.

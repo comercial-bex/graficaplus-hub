@@ -36,6 +36,7 @@ import { mensagemErro } from "@/lib/erros";
 import { Dica } from "@/components/bex/Dica";
 import { percentual } from "@/lib/percentual";
 import { formatBRL } from "@/lib/produtos-catalogo";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/impressao-3d")({
   head: () => ({ meta: [{ title: "Impressão 3D — BEX PRINT OS" }] }),
@@ -264,7 +265,7 @@ function Impressao3DPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-sm text-muted-foreground text-center py-6">Carregando...</p>
+            <Carregando />
           ) : orcamentos.length === 0 ? (
             <div className="py-10 text-center space-y-2">
               <Cuboid className="h-10 w-10 mx-auto text-muted-foreground" />

@@ -203,7 +203,8 @@ export function EntregaEPrazos({ acordo, podeEditar }: { acordo: AcordoDoOrcamen
               Produção com datas próprias
             </button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3 space-y-3">
+          {/* -mx-1 px-1: a animação de abrir corta o que passa da borda, e o contorno de foco dos campos passa. */}
+          <CollapsibleContent className="-mx-1 mt-3 space-y-3 px-1 pb-1">
             <div className="space-y-1.5">
               <Label htmlFor="prazo-producao" className="text-xs">
                 Produção termina em (prazo da OS)

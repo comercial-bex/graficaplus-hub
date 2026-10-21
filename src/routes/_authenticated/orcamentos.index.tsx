@@ -40,6 +40,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/orcamentos/")({
   head: () => ({ meta: [{ title: "Orçamentos — BEX PRINT OS" }] }),
@@ -383,8 +384,8 @@ function OrcamentosPage() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  Carregando...
+                <TableCell colSpan={7} className="py-2">
+                  <Carregando />
                 </TableCell>
               </TableRow>
             )}

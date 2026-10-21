@@ -28,6 +28,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/filamentos-3d")({
   head: () => ({ meta: [{ title: "Filamentos 3D — BEX PRINT OS" }] }),
   component: FilamentosPage,
@@ -250,7 +251,7 @@ function FilamentosPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground">Carregando...</div>
+        <Carregando />
       ) : filamentos.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">

@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/a-receber")({
   head: () => ({ meta: [{ title: "Contas a receber — BEX PRINT OS" }] }),
@@ -353,7 +354,7 @@ function AReceberPage() {
           a receber no momento" com uma conta vencida no banco. */}
       {isLoading || (!resumo && !error) ? (
         <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">Carregando…</CardContent>
+          <CardContent className="p-4"><Carregando /></CardContent>
         </Card>
       ) : error ? null : contas.length === 0 ? (
         /* Consulta que falhou não é lista vazia: sem esta saída a tela dizia

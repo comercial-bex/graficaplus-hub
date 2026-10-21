@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatDateTime } from "@/lib/module-data";
 import { mensagemErro } from "@/lib/erros";
+import { Carregando } from "@/components/bex/Carregando";
 
 type Comentario = { id: string; autor_nome: string | null; comentario: string; created_at: string };
 
@@ -99,7 +100,7 @@ export function ComentariosDaArte({
               Não foi possível carregar os comentários: {mensagemErro(lista.error)}
             </p>
           ) : lista.isPending ? (
-            <p className="text-sm text-muted-foreground">Carregando…</p>
+            <Carregando />
           ) : lista.data.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum comentário ainda.</p>
           ) : (

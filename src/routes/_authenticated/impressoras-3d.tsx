@@ -28,6 +28,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/impressoras-3d")({
   head: () => ({ meta: [{ title: "Impressoras 3D — BEX PRINT OS" }] }),
   component: ImpressorasPage,
@@ -318,7 +319,7 @@ function ImpressorasPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground">Carregando...</div>
+        <Carregando />
       ) : impressoras.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">

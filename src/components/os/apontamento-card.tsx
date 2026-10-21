@@ -26,6 +26,7 @@ import {
   type ComecouNaMaquina,
   type TerminouSoEstaMaquina,
 } from "@/domain/os/comecar-na-maquina";
+import { Carregando } from "@/components/bex/Carregando";
 
 type Apontamento = {
   id: string;
@@ -408,7 +409,7 @@ export function ApontamentoDaOS({ osId }: { osId: string }) {
           ))}
 
         {isLoading ? (
-          <div className="text-sm text-muted-foreground">Carregando…</div>
+          <Carregando />
         ) : isError ? (
           // Falha não é "nenhuma produção apontada".
           <div role="alert" className="text-sm text-destructive">

@@ -69,6 +69,7 @@ import { mensagemErro } from "@/lib/erros";
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { formatBRL } from "@/lib/produtos-catalogo";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/clientes/$id")({
   head: () => ({ meta: [{ title: "Cliente — BEX PRINT OS" }] }),
   component: ClienteDetailPage,
@@ -139,7 +140,7 @@ function ClienteDetailPage() {
     navigate({ to: "/clientes" });
   }
 
-  if (isLoading) return <div className="p-6">Carregando...</div>;
+  if (isLoading) return <Carregando tela />;
   if (!cliente) return <div className="p-6">Cliente não encontrado</div>;
 
   return (

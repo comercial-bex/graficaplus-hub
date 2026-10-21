@@ -22,6 +22,7 @@ import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
 import { etapaDe, rotuloDe, setorDe, type Etapa } from "@/domain/os/etapas";
 import { formatarData } from "@/domain/os/prazo";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/onde-para")({
   head: () => ({
@@ -207,7 +208,7 @@ function OndeParaPage() {
       />
 
       {isLoading ? (
-        <div className="text-muted-foreground">Carregando...</div>
+        <Carregando />
       ) : etapas.length === 0 ? (
         /* Vazio de verdade: nenhuma OS viva. Dizer POR QUE está vazio, senão a
            tela parece quebrada — é exatamente o caso em que "0" mente. */

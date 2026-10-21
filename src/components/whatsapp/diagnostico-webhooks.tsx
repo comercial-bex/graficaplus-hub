@@ -46,6 +46,7 @@ import {
   type ResultadoVerificacao,
 } from "@/lib/api/whatsapp-verificar.functions";
 import { reprocessarMidiaDoEvento } from "@/lib/api/whatsapp-midia.functions";
+import { Carregando } from "@/components/bex/Carregando";
 
 const fmt = (d: string) => new Date(d).toLocaleString("pt-BR");
 const TOM: Record<SituacaoEvento, "lime" | "magenta" | "cyan" | "amber"> = {
@@ -295,7 +296,7 @@ export function DiagnosticoWebhooks() {
               onTentarDeNovo={() => void consulta.refetch()}
             />
           ) : isLoading ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Carregando…</p>
+            <Carregando />
           ) : filtrados.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Nenhum evento recebido{eventos.length ? " com esse filtro" : " até agora"}.

@@ -90,6 +90,7 @@ import { mensagemErro } from "@/lib/erros";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
 import { percentual } from "@/lib/percentual";
+import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -551,7 +552,7 @@ function ProdutosPage() {
       {/* Lista */}
       {isLoading ? (
         <Card>
-          <CardContent className="p-6 text-muted-foreground">Carregando…</CardContent>
+          <CardContent className="p-4"><Carregando /></CardContent>
         </Card>
       ) : filtrados.length === 0 ? (
         <Card>
