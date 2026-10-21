@@ -127,7 +127,7 @@ describe("operador e vendedor (sem impressao3d.cost.read)", () => {
     // O que a consulta recusada deixava para a tela antiga: nada.
     cliente.setQueryData(["orcamento-3d-calc", ID], null);
     const html = renderizar();
-    expect(html).toContain("R$ 121.15");
+    expect(html).toContain("R$ 121,15");
     expect(html).toContain("visíveis só para quem tem permissão de ver custo");
     for (const proibido of ["Detalhamento de custo", "Custo operacional", "Margem líquida", "Lucro", "R$ 0.00"]) {
       expect(html, proibido).not.toContain(proibido);
@@ -137,7 +137,7 @@ describe("operador e vendedor (sem impressao3d.cost.read)", () => {
   it("mesmo com o cálculo no cache, a tela não o mostra", () => {
     cliente.setQueryData(["orcamento-3d-calc", ID], CALCULO);
     const html = renderizar();
-    expect(html).not.toContain("R$ 60.58");
+    expect(html).not.toContain("R$ 60,58");
     expect(html).not.toContain("Margem líquida");
     expect(html).not.toContain("Bambu Lab A1");
   });
@@ -152,8 +152,8 @@ describe("admin, gestor e financeiro (com impressao3d.cost.read)", () => {
     cliente.setQueryData(["orcamento-3d-calc", ID], CALCULO);
     const html = renderizar();
     expect(html).toContain("Detalhamento de custo");
-    expect(html).toContain("R$ 60.58");
-    expect(html).toContain("50.0%");
+    expect(html).toContain("R$ 60,58");
+    expect(html).toContain("50,0%");
     expect(html).toContain("Bambu Lab A1");
   });
 

@@ -137,6 +137,7 @@ import { cn } from "@/lib/utils";
 
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
+import { percentual } from "@/lib/percentual";
 
 const itemVazio = {
   descricao: "",
@@ -1305,11 +1306,11 @@ function OrcamentoDetailPage() {
                               : "text-success"
                         }
                       >
-                        {margemItem.toFixed(1)}%
+                        {percentual(margemItem)}
                       </strong>
                       {margemMinimaItem !== null && (
                         <span className="text-muted-foreground">
-                          (mínima do produto: {margemMinimaItem.toFixed(1)}%)
+                          (mínima do produto: {percentual(margemMinimaItem)})
                         </span>
                       )}
                       {/* Com medida, a conta da margem à vista: preço e custo da MESMA peça. */}
@@ -1367,7 +1368,7 @@ function OrcamentoDetailPage() {
                               : resultado.precoUnitario.toFixed(2),
                         }));
                         toast.success(
-                          `Custo calculado: ${brl(resultado.custoTotal)} · margem ${(resultado.margemPct * 100).toFixed(1)}%`,
+                          `Custo calculado: ${brl(resultado.custoTotal)} · margem ${percentual(resultado.margemPct * 100)}`,
                         );
                       }}
                     />
@@ -1544,7 +1545,10 @@ function OrcamentoDetailPage() {
                               )}
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
-                              {Number(i.quantidade).toLocaleString("pt-BR")} {i.unidade}
+                              {/* Item com medida conta PEÇAS: "25 m2" lia-se como 25 m² quando eram
+                                  25 placas de 0,30 × 0,15 (a metragem está na coluna ao lado). */}
+                              {Number(i.quantidade).toLocaleString("pt-BR")}{" "}
+                              {temDimensoes(i) ? (Number(i.quantidade) === 1 ? "peça" : "peças") : i.unidade}
                             </TableCell>
                             <TableCell className="text-xs">
                               {descreverMetragem(i) ?? <span className="text-muted-foreground">—</span>}
@@ -1702,7 +1706,7 @@ function OrcamentoDetailPage() {
                       <div>
                         <span className="text-muted-foreground">Margem:</span>{" "}
                         <strong className={margem < 20 ? "text-destructive" : "text-success"}>
-                          {margem.toFixed(1)}%
+                          {percentual(margem)}
                         </strong>
                       </div>
                     )}

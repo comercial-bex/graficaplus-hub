@@ -34,6 +34,8 @@ import {
 } from "@/domain/impressao3d/cost-engine";
 import { mensagemErro } from "@/lib/erros";
 import { Dica } from "@/components/bex/Dica";
+import { percentual } from "@/lib/percentual";
+import { formatBRL } from "@/lib/produtos-catalogo";
 
 export const Route = createFileRoute("/_authenticated/impressao-3d")({
   head: () => ({ meta: [{ title: "Impressão 3D — BEX PRINT OS" }] }),
@@ -245,7 +247,7 @@ function Impressao3DPage() {
           <div className="rounded border p-3">
             <div className="text-muted-foreground text-xs">Margem líquida</div>
             <div className="font-mono font-semibold">
-              {(precoRef.margemLiquida.toNumber() * 100).toFixed(2)}%
+              {percentual(precoRef.margemLiquida.toNumber() * 100, 2)}
             </div>
           </div>
           <div className="rounded border p-3">
@@ -329,7 +331,7 @@ function Impressao3DPage() {
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {o.preco_comercial != null
-                        ? `R$ ${Number(o.preco_comercial).toFixed(2)}`
+                        ? formatBRL(Number(o.preco_comercial))
                         : "—"}
                     </TableCell>
                     <TableCell className="text-right">

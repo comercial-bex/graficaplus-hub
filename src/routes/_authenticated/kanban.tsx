@@ -74,6 +74,7 @@ import { CartaoOs, type BloqueioOs } from "@/components/kanban/cartao-os";
 import { FichaDaOs } from "@/components/kanban/ficha-da-os";
 import { IconeDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { legendaDeMaquinas } from "@/domain/producao/identidade-da-maquina";
+import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Quadro de produção — BEX PRINT OS" }] }),
@@ -202,7 +203,16 @@ function KanbanPage() {
   const [fPrio, setFPrio] = useState("todos");
   const [soAtrasadas, setSoAtrasadas] = useState(false);
 
-  const { data: os = [] } = useQuery({
+  // Carregando e falha não podem se ler como quadro vazio: o quadro dizia
+  // "0/0 OS" e "— vazio —" nas colunas enquanto a consulta ainda corria
+  // (visto ao vivo em 21/10/2026, ~1,5 s), e diria o mesmo se ela falhasse.
+  const {
+    data: os = [],
+    isLoading: carregandoOs,
+    isError: osFalhou,
+    error: erroDasOs,
+    refetch: recarregarOs,
+  } = useQuery({
     queryKey: ["kanban-os", nivelDeVisao],
     queryFn: async () => {
       const { data, error } = await fromFinancialView("ordens_servico", nivelDeVisao)
@@ -532,11 +542,18 @@ function KanbanPage() {
         description="Kanban: uma coluna por etapa. Arraste para mudar de etapa; clique no cartão para ver a ficha e escolher o passo exato."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <StatusChip label={`${filtered.length}/${os.length} OS`} tone="cyan" />
+            <StatusChip label={carregandoOs ? "carregando…" : `${filtered.length}/${os.length} OS`} tone="cyan" />
             {atrasadasCount > 0 && <StatusChip label={`${atrasadasCount} atrasada(s)`} tone="magenta" />}
           </div>
         }
       />
+      {osFalhou && (
+        <FalhaDeConsulta
+          titulo="Não foi possível carregar as OS do quadro"
+          erro={erroDasOs}
+          onTentarDeNovo={() => void recarregarOs()}
+        />
+      )}
 
       {/* No celular a barra tinha 4–5 linhas antes do quadro: o quadro
           começava abaixo da dobra. Agora: busca em linha cheia, e embaixo
@@ -638,6 +655,7 @@ function KanbanPage() {
               key={etapa}
               etapa={etapa}
               itens={noQuadro.filter((o: any) => etapaDe(o.status) === etapa)}
+              carregando={carregandoOs}
               bloqueios={bloqueios}
               canSeePrices={canSeePrices}
               onAbrir={setFichaId}
@@ -755,9 +773,12 @@ function Coluna({
   canSeePrices,
   onAbrir,
   containerRef,
+  carregando = false,
 }: {
   etapa: Etapa;
   itens: any[];
+  /** A consulta ainda corre: mostra o esqueleto, não "vazio". */
+  carregando?: boolean;
   bloqueios: Map<string, BloqueioOs[]>;
   canSeePrices?: boolean;
   onAbrir: (id: string) => void;
@@ -831,7 +852,13 @@ function Coluna({
             onAbrir={() => onAbrir(o.id)}
           />
         ))}
-        {itens.length === 0 && (
+        {itens.length === 0 && carregando && (
+          <div className="space-y-2" aria-hidden data-carregando="">
+            <div className="h-24 animate-pulse rounded-lg bg-muted/60" />
+            <div className="h-16 animate-pulse rounded-lg bg-muted/40" />
+          </div>
+        )}
+        {itens.length === 0 && !carregando && (
           <div className="py-6 text-center font-mono text-xs text-muted-foreground/60 md:text-[11px]">
             — vazio —
           </div>

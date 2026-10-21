@@ -41,6 +41,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
+import { formatBRL } from "@/lib/produtos-catalogo";
 export const Route = createFileRoute("/_authenticated/financeiro")({
   head: () => ({ meta: [{ title: "Financeiro — BEX PRINT OS" }] }),
   component: FinanceiroPage,
@@ -391,7 +392,7 @@ function FinanceiroPage() {
             <DialogTitle>Estornar pagamento</DialogTitle>
             <DialogDescription>
               {estorno
-                ? `R$ ${Number(estorno.valor).toFixed(2)} da OS #${estorno.ordens_servico?.numero ?? "—"}. O valor volta a constar como pendente.`
+                ? `${formatBRL(Number(estorno.valor))} da OS #${estorno.ordens_servico?.numero ?? "—"}. O valor volta a constar como pendente.`
                 : ""}
             </DialogDescription>
           </DialogHeader>

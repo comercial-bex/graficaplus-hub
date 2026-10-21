@@ -31,6 +31,7 @@ import {
 } from "@/domain/financeiro/encargos";
 import { mensagemErro } from "@/lib/erros";
 import { useAuth } from "@/lib/auth-context";
+import { percentual } from "@/lib/percentual";
 
 export const Route = createFileRoute("/_authenticated/custos-producao")({
   head: () => ({
@@ -163,7 +164,7 @@ function CustosProducaoPage() {
     },
     onSuccess: ({ quantas, pct }) => {
       toast.success(
-        `Encargo de ${(pct * 100).toFixed(1)}% aplicado em ${quantas} ${quantas === 1 ? "função" : "funções"}`,
+        `Encargo de ${percentual(pct * 100)} aplicado em ${quantas} ${quantas === 1 ? "função" : "funções"}`,
         { description: "O custo das peças foi recomposto: confira em Meta do mês." },
       );
       qc.invalidateQueries({ queryKey: ["custos-mao-de-obra"] });
@@ -253,7 +254,7 @@ function CustosProducaoPage() {
                     disabled={aplicarEncargos.isPending}
                     onClick={() => aplicarEncargos.mutate("simples")}
                   >
-                    Simples Nacional ({(somarEncargos(parcelasDoRegime("simples")) * 100).toFixed(1)}%)
+                    Simples Nacional ({percentual(somarEncargos(parcelasDoRegime("simples")) * 100)})
                   </Button>
                   <Button
                     size="sm"
@@ -263,7 +264,7 @@ function CustosProducaoPage() {
                     onClick={() => aplicarEncargos.mutate("fora_do_simples")}
                   >
                     Fora do Simples (
-                    {(somarEncargos(parcelasDoRegime("fora_do_simples")) * 100).toFixed(1)}%)
+                    {percentual(somarEncargos(parcelasDoRegime("fora_do_simples")) * 100)})
                   </Button>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">

@@ -53,6 +53,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { percentual } from "@/lib/percentual";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — BEX PRINT OS" }] }),
@@ -526,7 +527,7 @@ function PainelCompleto({
             <KpiCard
               label="Lucro"
               value={dashViews?.financeiro?.lucro != null ? `R$ ${Number(dashViews.financeiro.lucro).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}
-              delta={dashViews?.financeiro?.margem != null ? `${Number(dashViews.financeiro.margem).toFixed(1)}%` : undefined}
+              delta={dashViews?.financeiro?.margem != null ? percentual(Number(dashViews.financeiro.margem)) : undefined}
               icon={TrendingUp}
               tone="lime"
               // A margem vem só das OS com custo lançado. Sem dizer a base, a

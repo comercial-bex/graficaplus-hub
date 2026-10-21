@@ -68,6 +68,7 @@ import { mensagemErro } from "@/lib/erros";
 
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
+import { formatBRL } from "@/lib/produtos-catalogo";
 export const Route = createFileRoute("/_authenticated/clientes/$id")({
   head: () => ({ meta: [{ title: "Cliente — BEX PRINT OS" }] }),
   component: ClienteDetailPage,
@@ -318,14 +319,14 @@ function StatsCard({
         <StatTile
           icon={<DollarSign className="h-4 w-4" />}
           label="Faturamento"
-          value={`R$ ${data.faturamento.toFixed(2)}`}
+          value={formatBRL(data.faturamento)}
         />
       )}
       {canSeePrices && (
         <StatTile
           icon={<DollarSign className="h-4 w-4" />}
           label="Ticket médio"
-          value={`R$ ${data.ticket.toFixed(2)}`}
+          value={formatBRL(data.ticket)}
         />
       )}
       {!canSeeFinancials && (

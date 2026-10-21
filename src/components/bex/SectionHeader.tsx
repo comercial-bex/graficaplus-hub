@@ -21,13 +21,15 @@ export function SectionHeader({
   return (
     <header
       className={cn(
-        // No celular as ações descem para baixo do título: lado a lado em 375px
-        // o botão "Nova OS" espremia o título em duas letras.
-        "grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border pb-5 mb-6",
+        // As ações descem para baixo do título quando falta lugar: lado a lado, o
+        // título ficava com o que sobrava — "Nova OS" espremia o título em duas
+        // letras no celular, e com o menu aberto numa tela média o WhatsApp
+        // virava "What…" (visto ao vivo em 21/10/2026). O título guarda 16rem.
+        "flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5 mb-6",
         className,
       )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1 basis-64">
         {breadcrumb && (
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             {breadcrumb}
@@ -42,7 +44,7 @@ export function SectionHeader({
         )}
       </div>
       {actions && (
-        <div className="flex flex-wrap items-center justify-start md:justify-end gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {actions}
         </div>
       )}
