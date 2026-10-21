@@ -307,7 +307,11 @@ export const dicas = {
   },
   "/whatsapp": {
     menu: "Conversas com clientes pelo WhatsApp.",
-    tela: "Caixa de entrada do WhatsApp da empresa. Responda o cliente (com respostas rápidas), ligue a conversa ao cliente e abra o orçamento já com o pedido.",
+    tela: "Caixa de entrada do WhatsApp da empresa. Responda o cliente (com respostas rápidas), ligue a conversa ao cliente e abra o orçamento já com o pedido. Para chamar um número que ainda não escreveu, use Nova (tecla N) e cole o número.",
+    acoes: {
+      nova_conversa:
+        "Chamar um número que ainda não escreveu: cole o número (com ou sem +55, ou o link wa.me), dê um nome ao contato e a conversa abre pronta para escrever (tecla N).",
+    },
   },
   "/whatsapp-visao-geral": {
     menu: "Os números do atendimento: quem espera, quanto chegou, quem respondeu.",
