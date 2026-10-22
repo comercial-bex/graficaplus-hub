@@ -360,7 +360,7 @@ export function CalculadoraCusto({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produto_materiais" as any)
-        .select("material_id, quantidade_por_unidade")
+        .select("material_id, quantidade_por_unidade, por_peca")
         .eq("produto_id", produtoId);
       if (error) throw error;
       return (data ?? []) as any[];
@@ -409,13 +409,14 @@ export function CalculadoraCusto({
           material_id: f.material_id,
           descricao: mat?.nome ?? "Material",
           unidade: mat?.unidade ?? "un",
-          quantidade: String(Number(f.quantidade_por_unidade) * baseConsumo),
+          // Linha "por peça" (o kit de bastão do banner) conta as peças, não os m².
+          quantidade: String(Number(f.quantidade_por_unidade) * (f.por_peca ? Math.max(quantidade, 1) : baseConsumo)),
           custoUnitario: String(mat?.custo ?? 0),
           perdaPct: "0",
         };
       });
     });
-  }, [open, ficha, catalogoMateriais, baseConsumo]);
+  }, [open, ficha, catalogoMateriais, baseConsumo, quantidade]);
 
   useEffect(() => {
     if (!open) {

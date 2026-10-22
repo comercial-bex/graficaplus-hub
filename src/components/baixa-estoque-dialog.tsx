@@ -152,7 +152,7 @@ export function BaixaEstoqueDialog({
                           {l.origens
                             .map(
                               (o) =>
-                                `${o.produto_nome}: ${o.qtd_item} × ${o.consumo_por_unidade}`,
+                                `${o.produto_nome}: ${o.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${l.unidade}`,
                             )
                             .join(" · ")}
                         </div>
