@@ -67,7 +67,10 @@ export type ProdutoDaEscolha = Pick<
       | "area_minima_cobrada"
       | "tempo_producao_min"
     >
-  >;
+  > & {
+    /** Preço de parceiro (terceirizado); nulo = o produto não tem. */
+    preco_parceiro?: number | null;
+  };
 
 export type AtalhoDeProdutos = {
   titulo: string;
