@@ -443,6 +443,15 @@ function OrcamentoDetailPage() {
   const produtoDoForm: ProdutoDaEscolha | null = form.produto_id
     ? (catalogo.produtos.find((p) => p.id === form.produto_id) ?? null)
     : null;
+  // Item livre com o nome de um produto do catálogo (22/10/2026): 8 dos 16
+  // itens livres dos orçamentos enviados e aprovados eram "Banner com bastão e
+  // corda" digitado à mão — sem ficha, entram com custo zero e não baixam
+  // estoque. O aviso oferece o produto; a escolha continua de quem orça.
+  const nomeNormalizado = (t: string) => t.trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+  const produtoComOMesmoNome: ProdutoDaEscolha | null =
+    !form.produto_id && form.descricao.trim()
+      ? (catalogo.produtos.find((p) => nomeNormalizado(p.nome) === nomeNormalizado(form.descricao)) ?? null)
+      : null;
   const tipoDoItem: TipoDeProduto | null = tipoEscolhido
     ? tipoPelaChave(tipoEscolhido)
     : produtoDoForm
@@ -1107,6 +1116,23 @@ function OrcamentoDetailPage() {
                       value={form.descricao}
                       onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                     />
+                    {produtoComOMesmoNome && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-xs">
+                        <span className="min-w-0 flex-1">
+                          “{produtoComOMesmoNome.nome}” é um produto do catálogo. Como item livre ele entra sem ficha:
+                          sem custo e sem baixa de estoque.
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7"
+                          onClick={() => aplicarProduto(produtoComOMesmoNome)}
+                        >
+                          Usar o produto
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Passo 2 — a medida, desenhada, para o que vende por m²
@@ -1175,7 +1201,7 @@ function OrcamentoDetailPage() {
                     />
                   )}
 
-                  <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} />
+                  <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} pecas={quantidadeForm} />
 
                   {/* Preço de venda: o vendedor digita. Custo fica atrás de canSeeFinancials. */}
                   {(canSeePrices || canSeeFinancials) && (

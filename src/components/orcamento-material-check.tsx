@@ -8,6 +8,8 @@ type LinhaMaterial = {
   unidade: string;
   estoque: number;
   necessario: number;
+  /** Conta pela quantidade de peças, não pelos m² (o kit de bastão do banner). */
+  porPeca: boolean;
 };
 
 /**
@@ -19,10 +21,13 @@ type LinhaMaterial = {
 export function OrcamentoMaterialCheck({
   produtoId,
   baseDeConsumo,
+  pecas,
 }: {
   produtoId: string | null;
   /** quantidade que multiplica o consumo por unidade (peças ou m² cobrados) */
   baseDeConsumo: number;
+  /** quantas peças: a base das linhas da ficha marcadas "por peça" */
+  pecas: number;
 }) {
   const { data: linhas = [] } = useQuery({
     queryKey: ["produto-materiais-check", produtoId],
@@ -30,7 +35,7 @@ export function OrcamentoMaterialCheck({
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("produto_materiais")
-        .select("quantidade_por_unidade, materiais(id, nome, unidade, estoque)")
+        .select("quantidade_por_unidade, por_peca, materiais(id, nome, unidade, estoque)")
         .eq("produto_id", produtoId);
       if (error) throw error;
       return ((data ?? []) as any[])
@@ -41,6 +46,7 @@ export function OrcamentoMaterialCheck({
           unidade: l.materiais.unidade,
           estoque: Number(l.materiais.estoque ?? 0),
           necessario: Number(l.quantidade_por_unidade ?? 0),
+          porPeca: l.por_peca === true,
         })) as LinhaMaterial[];
     },
   });
@@ -57,7 +63,8 @@ export function OrcamentoMaterialCheck({
       </div>
       <div className="space-y-1">
         {linhas.map((m) => {
-          const precisa = m.necessario * (baseDeConsumo > 0 ? baseDeConsumo : 0);
+          const base = m.porPeca ? Math.max(pecas, 1) : baseDeConsumo;
+          const precisa = m.necessario * (base > 0 ? base : 0);
           const sobra = m.estoque - precisa;
           const estado =
             precisa <= 0 ? "neutro" : sobra < 0 ? "falta" : sobra <= m.estoque * 0.1 ? "apertado" : "ok";

@@ -28,12 +28,15 @@ import { Plus, Trash2, Boxes } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 import { Carregando } from "@/components/bex/Carregando";
+import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 
 type ProdutoMaterial = {
   id: string;
   produto_id: string;
   material_id: string;
   quantidade_por_unidade: number;
+  /** Conta pela quantidade de peças mesmo em produto por m² (o kit do banner). */
+  por_peca?: boolean;
   observacao: string | null;
 };
 
@@ -55,6 +58,10 @@ export function ProdutoMateriaisEditor({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [qtdNova, setQtdNova] = useState("1");
   const [selectedMat, setSelectedMat] = useState<Material | null>(null);
+  // Produto por m²: cada linha conta por m² (lona) ou por peça (bastão e corda).
+  // Fora do m² a base já é a peça, e a escolha não muda nada — não aparece.
+  const porArea = ehUnidadeDeArea(produtoUnidade);
+  const [porPecaNova, setPorPecaNova] = useState(false);
 
   const { data: mapeamentos = [], isLoading } = useQuery({
     queryKey: ["produto-materiais", produtoId],
@@ -92,10 +99,12 @@ export function ProdutoMateriaisEditor({
       produto_id: produtoId,
       material_id: selectedMat.id,
       quantidade_por_unidade: qtd,
+      por_peca: porArea && porPecaNova,
     });
     if (error) return toast.error(mensagemErro(error));
     setSelectedMat(null);
     setQtdNova("1");
+    setPorPecaNova(false);
     qc.invalidateQueries({ queryKey: ["produto-materiais", produtoId] });
   }
 
@@ -105,6 +114,15 @@ export function ProdutoMateriaisEditor({
     const { error } = await supabase
       .from("produto_materiais" as any)
       .update({ quantidade_por_unidade: qtd })
+      .eq("id", id);
+    if (error) return toast.error(mensagemErro(error));
+    qc.invalidateQueries({ queryKey: ["produto-materiais", produtoId] });
+  }
+
+  async function alternarPorPeca(id: string, porPeca: boolean) {
+    const { error } = await supabase
+      .from("produto_materiais" as any)
+      .update({ por_peca: porPeca })
       .eq("id", id);
     if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["produto-materiais", produtoId] });
@@ -127,7 +145,7 @@ export function ProdutoMateriaisEditor({
           Materiais consumidos
         </h3>
         <span className="text-xs text-muted-foreground">
-          por {produtoUnidade} de produto
+          {porArea ? "por m² ou por peça" : `por ${produtoUnidade} de produto`}
         </span>
       </div>
 
@@ -185,6 +203,7 @@ export function ProdutoMateriaisEditor({
         <div className="text-xs text-muted-foreground w-16 pb-2">
           {selectedMat ? selectedMat.unidade : "un"}
         </div>
+        {porArea && <ContaPor porPeca={porPecaNova} onAlternar={() => setPorPecaNova((v) => !v)} />}
         <Button type="button" onClick={adicionar} disabled={!selectedMat}>
           <Plus className="h-4 w-4" />
         </Button>
@@ -205,6 +224,7 @@ export function ProdutoMateriaisEditor({
                 <TableHead>Material</TableHead>
                 <TableHead className="text-right w-[140px]">Qtd / un</TableHead>
                 <TableHead className="w-[80px]">Un</TableHead>
+                {porArea && <TableHead className="w-[110px]">Conta</TableHead>}
                 <TableHead className="w-[40px]" />
               </TableRow>
             </TableHeader>
@@ -230,6 +250,11 @@ export function ProdutoMateriaisEditor({
                     <TableCell className="text-xs text-muted-foreground">
                       {m?.unidade ?? ""}
                     </TableCell>
+                    {porArea && (
+                      <TableCell>
+                        <ContaPor porPeca={!!pm.por_peca} onAlternar={() => alternarPorPeca(pm.id, !pm.por_peca)} />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Button
                         variant="ghost"
@@ -248,5 +273,26 @@ export function ProdutoMateriaisEditor({
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * Por m² ou por peça (22/10/2026). O banner gasta lona pelo tamanho e um kit de
+ * bastão e corda por peça: com a ficha toda multiplicada pelos m², um banner de
+ * 2×1 m reservava dois kits. Um toque troca; o texto diz o estado.
+ */
+function ContaPor({ porPeca, onAlternar }: { porPeca: boolean; onAlternar: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-8 whitespace-nowrap"
+      aria-pressed={porPeca}
+      aria-label={porPeca ? "Conta por peça. Trocar para por m²" : "Conta por m². Trocar para por peça"}
+      onClick={onAlternar}
+    >
+      {porPeca ? "por peça" : "por m²"}
+    </Button>
   );
 }

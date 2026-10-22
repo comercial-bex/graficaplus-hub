@@ -7,8 +7,8 @@ export type LinhaConsumo = {
   unidade: string;
   estoque_atual: number;
   quantidade_prevista: number;
-  // Detalhamento de onde veio (para tooltip/explicação)
-  origens: { produto_nome: string; qtd_item: number; consumo_por_unidade: number }[];
+  // De que item veio e quanto (a previsão da OS já conta área e peças)
+  origens: { produto_nome: string; quantidade: number }[];
 };
 
 export type PlanoBaixa = {
@@ -20,8 +20,8 @@ export type PlanoBaixa = {
 };
 
 /**
- * Calcula o consumo de materiais previsto para uma OS, sem aplicar nenhuma
- * alteração. Usado para preview e edição antes do "Baixar estoque".
+ * O consumo de materiais previsto para uma OS, sem aplicar nenhuma alteração.
+ * Usado para preview e edição antes do "Baixar estoque".
  */
 export async function calcularConsumoPrevisto(osId: string): Promise<PlanoBaixa> {
   const { data: os } = await fromFinancialView("ordens_servico", false)
@@ -38,63 +38,49 @@ export async function calcularConsumoPrevisto(osId: string): Promise<PlanoBaixa>
       linhas: [],
     };
 
-  const { data: itens } = await fromFinancialView("itens_os", false)
-    .select("id, produto_id, quantidade, descricao")
+  // A sugestão sai da PREVISÃO da OS (22/10/2026), a mesma que reservou o
+  // estoque. Antes ela era refeita aqui como "peças × ficha", sem a área: a OS
+  // #164 (banner 1,15 × 1,70 m) tinha 1,955 m² de lona previstos e reservados, a
+  // janela sugeriu 1,0, a baixa levou 1,0 — e 0,955 m² ficaram reservados para
+  // sempre, porque a OS não aceita uma segunda baixa. A previsão já conta a área
+  // e a linha da ficha "por peça" (gerar_materiais_previstos_os).
+  const { data: previstos, error: erroPrevistos } = await (supabase as any)
+    .from("os_materiais_previstos")
+    .select("material_id, os_item_id, quantidade")
     .eq("os_id", osId);
-  const comProduto = (itens ?? []).filter((i: any) => i.produto_id);
-  if (comProduto.length === 0)
+  if (erroPrevistos)
+    return {
+      ok: false,
+      motivo: `Não foi possível ler o material previsto desta OS: ${erroPrevistos.message}`,
+      os_numero: os.numero,
+      linhas: [],
+    };
+  if (!previstos || previstos.length === 0)
     return {
       ok: false,
       motivo:
-        "Nenhum item desta OS está vinculado a um produto do catálogo. Adicione itens pelo botão 'Catálogo' para habilitar a baixa.",
+        "Esta OS não tem material previsto. A previsão nasce da ficha técnica do produto quando o item entra na OS: confira se os itens estão ligados a produtos com ficha. (A previsão só aparece para quem vê custo de estoque.)",
       os_numero: os.numero,
       linhas: [],
     };
 
-  const produtoIds: string[] = [
-    ...new Set((comProduto as any[]).map((i: any) => String(i.produto_id))),
+  const itemIds = [
+    ...new Set((previstos as any[]).map((p) => p.os_item_id).filter(Boolean).map(String)),
   ];
-  const [{ data: produtos }, { data: mapeamentos }] = await Promise.all([
-    supabase.from("produtos").select("id, nome").in("id", produtoIds),
-    supabase
-      .from("produto_materiais" as any)
-      .select("produto_id, material_id, quantidade_por_unidade")
-      .in("produto_id", produtoIds),
-  ]);
+  const { data: itens } =
+    itemIds.length > 0
+      ? await fromFinancialView("itens_os", false).select("id, descricao").in("id", itemIds)
+      : { data: [] as any[] };
+  const nomeDoItem = new Map(((itens ?? []) as any[]).map((i) => [String(i.id), String(i.descricao ?? "—")]));
 
-  if (!mapeamentos || mapeamentos.length === 0)
-    return {
-      ok: false,
-      motivo:
-        "Os produtos desta OS não têm materiais cadastrados. Edite o produto e adicione os materiais consumidos.",
-      os_numero: os.numero,
-      linhas: [],
-    };
-
-  // Agrupar consumo por material com proveniência
-  const acumulador = new Map<
-    string,
-    { quantidade: number; origens: LinhaConsumo["origens"] }
-  >();
-  for (const item of comProduto) {
-    const qtdItem = Number(item.quantidade);
-    const produtoNome =
-      (produtos ?? []).find((p: any) => p.id === item.produto_id)?.nome ??
-      (item as any).descricao ??
-      "—";
-    const maps = (mapeamentos as any[]).filter((m) => m.produto_id === item.produto_id);
-    for (const m of maps) {
-      const consumoPorUn = Number(m.quantidade_por_unidade);
-      const total = qtdItem * consumoPorUn;
-      const prev = acumulador.get(m.material_id) ?? { quantidade: 0, origens: [] };
-      prev.quantidade += total;
-      prev.origens.push({
-        produto_nome: produtoNome,
-        qtd_item: qtdItem,
-        consumo_por_unidade: consumoPorUn,
-      });
-      acumulador.set(m.material_id, prev);
-    }
+  // Agrupar por material, com a proveniência de cada item
+  const acumulador = new Map<string, { quantidade: number; origens: LinhaConsumo["origens"] }>();
+  for (const p of previstos as any[]) {
+    const quantidade = Number(p.quantidade ?? 0);
+    const prev = acumulador.get(p.material_id) ?? { quantidade: 0, origens: [] };
+    prev.quantidade += quantidade;
+    prev.origens.push({ produto_nome: nomeDoItem.get(String(p.os_item_id)) ?? "—", quantidade });
+    acumulador.set(p.material_id, prev);
   }
 
   const materialIds = [...acumulador.keys()];
