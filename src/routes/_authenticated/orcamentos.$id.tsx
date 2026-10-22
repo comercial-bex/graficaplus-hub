@@ -90,6 +90,7 @@ import {
   useContextoDeBobina,
 } from "@/components/orcamento/aproveitamento-card";
 import { OrcamentoMaterialCheck } from "@/components/orcamento-material-check";
+import { PrecoDoOrcamento } from "@/components/orcamento/preco-do-orcamento";
 import {
   DialogoDeLayouts,
   LayoutsDoItem,
@@ -291,6 +292,21 @@ function OrcamentoDetailPage() {
         .maybeSingle();
       if (error) throw error;
       return data as AcordoDoOrcamento | null;
+    },
+  });
+
+  // Cliente revendedor: o seletor de preço avisa quando o orçamento ainda está
+  // no preço de tabela.
+  const { data: clienteRevendedor = false } = useQuery({
+    queryKey: ["cliente-revendedor", (orc as any)?.cliente_id ?? null],
+    enabled: !!(orc as any)?.cliente_id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("clientes")
+        .select("revendedor")
+        .eq("id", (orc as any).cliente_id)
+        .maybeSingle();
+      return data?.revendedor === true;
     },
   });
 
@@ -504,6 +520,14 @@ function OrcamentoDetailPage() {
    */
   function aplicarProduto(p: ProdutoDaEscolha) {
     const tipo = tipoDoProduto(p);
+    // No modo parceiro o item entra com o preço de parceiro do produto; sem ele,
+    // entra o de tabela e a pessoa é avisada (22/10/2026).
+    const emParceiro = acordo.data?.preco_modo === "parceiro";
+    const precoDoProduto =
+      emParceiro && p.preco_parceiro != null ? Number(p.preco_parceiro) : Number(p.preco_base ?? 0);
+    if (emParceiro && p.preco_parceiro == null && canSeePrices) {
+      toast.warning(`“${p.nome}” não tem preço de parceiro: entrou com o preço de tabela.`);
+    }
     setTipoEscolhido(tipo.chave);
     setItemLivre(false);
     setMedidasAbertas(false);
@@ -515,8 +539,8 @@ function OrcamentoDetailPage() {
       especificacao: editando ? form.especificacao : "",
       tipo_produto: tipo.rotuloCurto,
       unidade: p.unidade,
-      preco_m2: ehUnidadeDeArea(p.unidade) ? String(p.preco_base ?? "") : "",
-      valor_unitario: String(p.preco_base ?? 0),
+      preco_m2: ehUnidadeDeArea(p.unidade) ? String(precoDoProduto || "") : "",
+      valor_unitario: String(precoDoProduto),
       // Produto por área: o custo do cadastro é por m². Até a medida chegar, o
       // custo un. fica por m² também — igual ao preço, a margem confere.
       custo_unitario: String(p.custo_medio ?? 0),
@@ -991,7 +1015,21 @@ function OrcamentoDetailPage() {
           )}
         </div>
 
-        {/* Linha 2 — ações secundárias */}
+        {/* Linha 2 — para quem é o preço: cliente final ou parceiro (com senha) */}
+        {canSeePrices && (
+          <div className="md:pl-12">
+            <PrecoDoOrcamento
+              orcamentoId={id}
+              modo={acordo.data?.preco_modo ?? "cliente_final"}
+              confirmadoPor={acordo.data?.preco_parceiro_confirmado_por ?? null}
+              confirmadoEm={acordo.data?.preco_parceiro_confirmado_em ?? null}
+              clienteRevendedor={clienteRevendedor}
+              podeEditar={podeEditarItens}
+            />
+          </div>
+        )}
+
+        {/* Linha 3 — ações secundárias */}
         <div className="flex items-center gap-2 flex-wrap md:pl-12">
           <Select value={orc.status} onValueChange={setStatus} disabled={fechado}>
             <SelectTrigger className="w-48 h-9" aria-label="Status do orçamento">
