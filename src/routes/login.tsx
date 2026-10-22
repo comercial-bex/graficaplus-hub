@@ -20,8 +20,11 @@ export const Route = createFileRoute("/login")({
   // `destino` é a tela que a pessoa tentou abrir sem estar logada (o QR da TV,
   // um link de aviso). Só caminho deste site passa; a chave vai sempre, mesmo
   // vazia, porque o roteador junta o valor cru da URL com o validado.
-  validateSearch: (busca: Record<string, unknown>): { destino?: string } => ({
+  // `como=parceiro` abre a aba do parceiro/terceirizado (a página /seja-parceiro
+  // leva para cá). Qualquer outro valor é a equipe.
+  validateSearch: (busca: Record<string, unknown>): { destino?: string; como?: "parceiro" } => ({
     destino: destinoInterno(busca.destino) ?? undefined,
+    como: busca.como === "parceiro" ? "parceiro" : undefined,
   }),
   component: LoginPage,
 });
@@ -39,7 +42,12 @@ function LoginPage() {
   const navigate = useNavigate();
   const router = useRouter();
   // Conferido de novo na hora de usar: é para cá que a senha certa leva.
-  const destino = destinoInterno(Route.useSearch().destino);
+  const busca = Route.useSearch();
+  const destino = destinoInterno(busca.destino);
+  // Quem entra: a equipe da gráfica ou um parceiro/terceirizado (22/10/2026).
+  // A senha e a conta são as mesmas; muda o texto, o link de cadastro e o lugar
+  // aonde se chega — o painel de parceiro mora em /parceiro, fora do sistema.
+  const [como, setComo] = useState<"equipe" | "parceiro">(busca.como === "parceiro" ? "parceiro" : "equipe");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -74,6 +82,7 @@ function LoginPage() {
     // QR se perdia no Início. `history.push` porque o destino já é um endereço
     // pronto, com a busca dentro.
     if (destino) router.history.push(destino);
+    else if (como === "parceiro") navigate({ to: "/parceiro" });
     else navigate({ to: "/dashboard" });
   }
 
@@ -110,8 +119,39 @@ function LoginPage() {
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12 sm:px-8 lg:py-16">
           <header className="mb-8">
             <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Use o e-mail e a senha da sua conta na Bex Print.
+            <div
+              role="group"
+              aria-label="Como você acessa"
+              className="mt-4 grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1 text-sm"
+            >
+              {(
+                [
+                  ["equipe", "Sou da equipe"],
+                  ["parceiro", "Sou parceiro ou terceirizado"],
+                ] as const
+              ).map(([valor, rotulo]) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={como === valor}
+                  onClick={() => {
+                    setComo(valor);
+                    setErros({});
+                  }}
+                  className={
+                    como === valor
+                      ? "rounded-md bg-background px-3 py-2 font-medium text-foreground shadow-sm"
+                      : "rounded-md px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
+                  }
+                >
+                  {rotulo}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {como === "parceiro"
+                ? "Entre com o e-mail e a senha do seu cadastro de parceiro. Você cai direto no seu painel."
+                : "Use o e-mail e a senha da sua conta na Bex Print."}
             </p>
           </header>
 
@@ -210,12 +250,12 @@ function LoginPage() {
           </form>
 
           <p className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">
-            Não tem uma conta?{" "}
+            {como === "parceiro" ? "Ainda não é parceiro?" : "Não tem uma conta?"}{" "}
             <Link
-              to="/signup"
+              to={como === "parceiro" ? "/seja-parceiro" : "/signup"}
               className="rounded-sm font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-bex-cyan"
             >
-              Solicitar registro
+              {como === "parceiro" ? "Conheça a parceria" : "Solicitar registro"}
             </Link>
           </p>
         </div>

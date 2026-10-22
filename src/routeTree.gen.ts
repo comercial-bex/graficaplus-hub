@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ParceiroRouteImport } from './routes/parceiro'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SejaParceiroRouteImport } from './routes/seja-parceiro'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as Tv2RouteImport } from './routes/tv2'
 import { Route as AuthenticatedAReceberRouteImport } from './routes/_authenticated/a-receber'
@@ -136,6 +137,11 @@ const ParceiroRoute = ParceiroRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SejaParceiroRoute = SejaParceiroRouteImport.update({
+  id: '/seja-parceiro',
+  path: '/seja-parceiro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -673,6 +679,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/parceiro': typeof ParceiroRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
@@ -777,6 +784,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
@@ -884,6 +892,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/parceiro': typeof ParceiroRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/_authenticated/a-receber': typeof AuthenticatedAReceberRoute
@@ -991,6 +1000,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/parceiro'
     | '/reset-password'
+    | '/seja-parceiro'
     | '/signup'
     | '/tv2'
     | '/a-receber'
@@ -1095,6 +1105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reset-password'
+    | '/seja-parceiro'
     | '/signup'
     | '/tv2'
     | '/a-receber'
@@ -1201,6 +1212,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/parceiro'
     | '/reset-password'
+    | '/seja-parceiro'
     | '/signup'
     | '/tv2'
     | '/_authenticated/a-receber'
@@ -1308,6 +1320,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ParceiroRoute: typeof ParceiroRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SejaParceiroRoute: typeof SejaParceiroRoute
   SignupRoute: typeof SignupRoute
   Tv2Route: typeof Tv2Route
   AprovarTokenRoute: typeof AprovarTokenRoute
@@ -1369,6 +1382,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seja-parceiro': {
+      id: '/seja-parceiro'
+      path: '/seja-parceiro'
+      fullPath: '/seja-parceiro'
+      preLoaderRoute: typeof SejaParceiroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -2243,6 +2263,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ParceiroRoute: ParceiroRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  SejaParceiroRoute: SejaParceiroRoute,
   SignupRoute: SignupRoute,
   Tv2Route: Tv2Route,
   AprovarTokenRoute: AprovarTokenRoute,
