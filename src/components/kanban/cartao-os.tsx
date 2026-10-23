@@ -1,38 +1,41 @@
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 import { StatusChip } from "@/components/bex/StatusChip";
-import { rotuloDe } from "@/domain/os/etapas";
 import { areaEmTexto, resumoDaProducao } from "@/domain/os/o-que-produzir";
 import { paradaHa, prazoEmPalavras } from "@/domain/os/prazo";
-import { AlertTriangle, Layers, Lock } from "lucide-react";
+import { semCapa } from "@/domain/os/arquivos-da-os";
+import { AlertTriangle, FileImage, Layers, Lock } from "lucide-react";
 import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
-import { identidadeDaMaquina, statusIndicaMaquina } from "@/domain/producao/identidade-da-maquina";
+import { TrilhaDaOs } from "@/components/kanban/trilha-da-os";
+import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
 
 /**
  * O cartão do quadro.
  *
- * O que ele mostrava antes: "Produto não definido", "Máquina não definida",
- * "0 anexo(s)", "Arte: Pendente", "Fin.: Não lançado", "Última mov.: 07/09,
- * 00:03". Seis linhas, e cinco delas falavam de campo vazio. O que a OS de fato
- * manda produzir — os itens, com medida — não aparecia.
+ * Redesenhado em 23/10/2026 a pedido do dono. O cartão responde, nesta ordem:
  *
- * Agora o cartão responde três perguntas, nesta ordem: o que é, em que pé está,
- * e o que impede de andar. Campo vazio não vira linha: silêncio ocupa menos
- * espaço do que "não definido" e diz a mesma coisa.
+ *   1. O QUE É — a capa: a imagem do arquivo que vai ser impresso (o final de
+ *      produção quando há, senão a arte mais recente). Sem imagem, o tipo do
+ *      arquivo ("PDF", "CDR") ou "Sem arte" — dizer que falta arte é informação.
+ *   2. ONDE ESTÁ — a trilha das seis etapas (entrada, arte, fila, produção,
+ *      acabamento, saída), as mesmas do quadro e, agrupadas, da TV da oficina.
+ *   3. O QUE FALTA — as pendências, numa linha só: o nome da primeira e quantas
+ *      mais. Antes era uma faixa amarela com a pendência por extenso em todo
+ *      cartão, o tempo todo; o "como resolver" de cada uma está na ficha.
  *
- * E ele ABRE. Antes o corpo inteiro era alça de arrasto e só o `#44` levava a
- * algum lugar — um alvo de dez pixels. Agora clicar em qualquer lugar abre a
- * ficha; o arrasto continua funcionando porque o sensor só ativa depois de 5px
- * de movimento (mouse) ou de 250 ms segurando (toque), e clique parado nunca
- * vira arrasto.
+ * E ele ABRE: clicar em qualquer lugar abre a ficha; o arrasto continua porque
+ * o sensor só ativa depois de 5px (mouse) ou 250 ms (toque).
+ *
+ * Histórico: antes mostrava "Produto não definido", "Máquina não definida", "0
+ * anexo(s)", "Arte: Pendente" — seis linhas, cinco delas de campo vazio. Campo
+ * vazio não vira linha.
  */
 
 export type BloqueioOs = { codigo: string; titulo: string; resolver: string };
 
-// O cartão escrevia "R$ 340.00" — ponto decimal, formato de planilha em inglês.
-// O resto do sistema já usa o mesmo `brl`.
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const primeiroNome = (nome: string | null | undefined) => (nome ?? "").trim().split(/\s+/)[0] || "?";
 
@@ -58,96 +61,82 @@ export function CartaoOs({
   const parada = paradaHa(os.ultimo_movimento?.mudou_em ?? os.updated_at);
   const responsaveis = [os.designer, os.operador].filter(Boolean);
   const pausada = os.status === "pausado";
-  // Vem da máquina vinculada quando existe; do status quando ninguém escolheu
-  // ainda. Ver domain/producao/identidade-da-maquina.
   const maquina = identidadeDaMaquina(os);
+  const interna = os.finalidade && os.finalidade !== "venda";
 
   return (
     <Card
       onClick={onAbrir}
-      className={`relative cursor-pointer overflow-hidden bg-card p-3 transition-colors hover:border-[color:var(--bex-cyan)]/50 ${
+      className={`relative cursor-pointer overflow-hidden bg-card transition-colors hover:border-[color:var(--bex-cyan)]/50 ${
         dragging ? "rotate-1 shadow-[0_0_24px_-6px_rgba(0,212,255,0.5)]" : ""
       } ${atrasada ? "border-[color:var(--bex-magenta)]/60" : ""}`}
     >
-      <div
-        className={`absolute bottom-0 left-0 top-0 w-1 ${PRIO_COR[os.prioridade] ?? "bg-muted"}`}
-      />
+      <Capa os={os}>
+        <span className="absolute left-2 top-2 rounded-md bg-background/85 px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground backdrop-blur md:text-[11px]">
+          #{os.numero}
+        </span>
+        <div className="absolute right-2 top-2 flex flex-wrap justify-end gap-1">
+          {pausada && <StatusChip label="Pausada" tone="muted" />}
+          {prazo && prazo.tom !== "muted" && (
+            <StatusChip label={prazo.texto} tone={prazo.tom === "magenta" ? "magenta" : "amber"} />
+          )}
+        </div>
+        <div className={`absolute inset-x-0 bottom-0 h-1 ${PRIO_COR[os.prioridade] ?? "bg-muted"}`} aria-hidden />
+      </Capa>
 
-      <div className="space-y-2 pl-1.5">
-        <div className="flex items-start justify-between gap-2">
-          {/* text-xs no celular, 10px no desktop: o cartão é lido a um braço
-              de distância na oficina; abaixo de 12px não se lê. */}
-          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground md:text-[10px]">
-            #{os.numero}
-          </span>
-          <div className="flex flex-wrap justify-end gap-1">
-            {pausada && <StatusChip label="Pausada" tone="muted" />}
-            {prazo && prazo.tom !== "muted" && (
-              <StatusChip label={prazo.texto} tone={prazo.tom === "magenta" ? "magenta" : "amber"} />
-            )}
-          </div>
+      <div className="space-y-2 p-3">
+        <div>
+          <div className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">{os.titulo}</div>
+          {interna ? (
+            // OS interna: o "cliente" é a casa — o que importa é para que é.
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <Badge variant="outline">{ROTULO_DA_FINALIDADE[os.finalidade as FinalidadeDaOS] ?? os.finalidade}</Badge>
+              {os.local_mostruario && <span className="truncate">{os.local_mostruario}</span>}
+            </div>
+          ) : (
+            os.cliente_nome && (
+              <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                {os.cliente_logo_url && (
+                  <Avatar className="h-4 w-4">
+                    <AvatarImage src={os.cliente_logo_url} />
+                    <AvatarFallback className="text-[8px]">{os.cliente_nome.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                )}
+                <span className="truncate">{os.cliente_nome}</span>
+              </div>
+            )
+          )}
         </div>
 
-        <div className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
-          {os.titulo}
-        </div>
-
-        {os.finalidade && os.finalidade !== "venda" ? (
-          // OS interna: o "cliente" é a casa — o que importa é para que é.
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            <Badge variant="outline">{ROTULO_DA_FINALIDADE[os.finalidade as FinalidadeDaOS] ?? os.finalidade}</Badge>
-            {os.local_mostruario && <span className="truncate">{os.local_mostruario}</span>}
-          </div>
-        ) : os.cliente_nome && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {os.cliente_logo_url && (
-              <Avatar className="h-4 w-4">
-                <AvatarImage src={os.cliente_logo_url} />
-                <AvatarFallback className="text-[8px]">{os.cliente_nome.charAt(0)}</AvatarFallback>
-              </Avatar>
-            )}
-            <span className="truncate">{os.cliente_nome}</span>
-          </div>
-        )}
-
-        {/* O que vai ser produzido — a linha que faltava. */}
+        {/* O que vai ser produzido. */}
         {producao && (
-          <div className="rounded border border-border/60 bg-muted/40 px-2 py-1.5">
-            <div className="flex items-start gap-1.5 text-xs leading-snug text-foreground/85 md:text-[11px]">
-              <Layers className="mt-px h-3 w-3 shrink-0 text-muted-foreground" />
-              <span className="line-clamp-2">{producao.linha}</span>
-            </div>
-            <div className="mt-0.5 flex gap-2 pl-[18px] font-mono text-xs text-muted-foreground md:text-[10px]">
-              {producao.extras > 0 && <span>+{producao.extras} item(ns)</span>}
-              {areaEmTexto(producao.areaTotal) && <span>{areaEmTexto(producao.areaTotal)}</span>}
-            </div>
+          <div className="flex items-start gap-1.5 text-xs leading-snug text-foreground/85 md:text-[11px]">
+            <Layers className="mt-px h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="line-clamp-2">
+              {producao.linha}
+              {producao.extras > 0 && <span className="text-muted-foreground"> · +{producao.extras} item(ns)</span>}
+              {areaEmTexto(producao.areaTotal) && (
+                <span className="font-mono text-muted-foreground"> · {areaEmTexto(producao.areaTotal)}</span>
+              )}
+            </span>
           </div>
         )}
 
-        {/* O status exato dentro da etapa: a coluna diz o estágio, o cartão diz
-            o passo. É o que substituiu vinte e cinco colunas. E o selo da
-            máquina diz o caminho, sem custar coluna nenhuma. */}
-        <div className="flex flex-wrap items-center gap-1.5 text-xs md:text-[10px]">
-          {/* Com o selo ao lado, "Laser / CNC · Laser CO2" é a mesma coisa dita
-              duas vezes — e o selo é o mais específico. Já "Em produção ·
-              Fiber" soma: estágio genérico mais a máquina. */}
-          {!(maquina && statusIndicaMaquina(os.status)) && (
-            <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5 font-medium text-foreground/80">
-              {rotuloDe(os.status)}
-            </span>
-          )}
-          {maquina && <SeloDaMaquina identidade={maquina} />}
-          {parada && (
-            <span className="font-mono text-muted-foreground">parada há {parada}</span>
-          )}
-        </div>
+        {/* Onde está: a trilha das seis etapas, e o passo exato dentro da etapa. */}
+        <TrilhaDaOs status={os.status} compacta />
 
-        {/* O que impede de avançar — antes do arrasto, não depois do erro. */}
+        {(maquina || parada) && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs md:text-[10px]">
+            {/* O selo diz o caminho (qual máquina); a trilha acima já diz o passo. */}
+            {maquina && <SeloDaMaquina identidade={maquina} />}
+            {parada && <span className="font-mono text-muted-foreground">parada há {parada}</span>}
+          </div>
+        )}
+
+        {/* O que impede de avançar, numa linha: o nome da primeira e quantas mais.
+            O "como resolver" de cada uma está na ficha. */}
         {bloqueios.length > 0 && (
-          <div className="flex items-center gap-1.5 rounded border border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10 px-2 py-1 text-xs text-[color:var(--bex-amber)] md:text-[10px]">
-            {/* A primeira pendência pelo nome, e quantas mais: "2 pendências"
-                escondia as duas no title, que não abre no celular nem na TV.
-                O "como resolver" de cada uma fica na ficha (o cartão abre). */}
+          <div className="flex items-center gap-1.5 text-xs text-[color:var(--bex-amber)] md:text-[10px]">
             <Lock className="h-3 w-3 shrink-0" aria-hidden />
             <span className="truncate">{bloqueios[0].titulo}</span>
             {bloqueios.length > 1 && <span className="shrink-0 font-semibold">+{bloqueios.length - 1}</span>}
@@ -155,9 +144,7 @@ export function CartaoOs({
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-2 pt-0.5">
-          {/* Quem está na OS pelo nome: o rosto sozinho só dizia quem era no
-              title, que não abre no toque. */}
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2">
           <div className="flex min-w-0 items-center gap-1.5">
             {responsaveis.length > 0 && (
               <div className="flex shrink-0 -space-x-1.5" aria-hidden>
@@ -169,12 +156,11 @@ export function CartaoOs({
                 ))}
               </div>
             )}
-            {responsaveis.length > 0 && (
+            {responsaveis.length > 0 ? (
               <span className="truncate text-xs text-muted-foreground md:text-[10px]">
                 {responsaveis.map((r: any) => primeiroNome(r.nome)).join(" · ")}
               </span>
-            )}
-            {responsaveis.length === 0 && (
+            ) : (
               <span className="flex items-center gap-1 text-xs text-muted-foreground md:text-[10px]">
                 <AlertTriangle className="h-3 w-3" aria-hidden />
                 sem designer nem operador
@@ -182,23 +168,52 @@ export function CartaoOs({
             )}
           </div>
           {canSeePrices && Number(os.valor_total) > 0 && (
-            <span className="font-mono text-xs text-[color:var(--bex-lime)]">
-              {brl(Number(os.valor_total))}
-            </span>
+            <span className="font-mono text-xs text-[color:var(--bex-lime)]">{brl(Number(os.valor_total))}</span>
           )}
         </div>
 
-        {/* Quem mexeu por último e quando — todos movem, e o registro fica à vista. */}
+        {/* Quem mexeu por último e quando — todos movem, e o registro fica à vista.
+            De onde veio também: "Produção → Arte" é retrabalho. */}
         {os.ultimo_movimento?.rotulo && (
-          // De onde veio fica à vista: "Produção → Arte" é retrabalho, e só o
-          // title dizia isso.
-          <div className="line-clamp-2 border-t border-border/60 pt-1.5 font-mono text-xs text-muted-foreground md:text-[10px]">
+          <div className="line-clamp-2 font-mono text-xs text-muted-foreground md:text-[10px]">
             {os.ultimo_movimento.verbo ?? "movida"} por {os.ultimo_movimento.rotulo}
             {os.ultimo_movimento.passo && <> · {os.ultimo_movimento.passo}</>}
           </div>
         )}
       </div>
     </Card>
+  );
+}
+
+/**
+ * A capa: a imagem da arte, ou — sem imagem que o navegador desenhe — o tipo do
+ * arquivo ou "Sem arte". `loading="lazy"` e proporção fixa: o quadro tem dezenas
+ * de cartões e a imagem não pode empurrar o cartão quando chega.
+ */
+function Capa({ os, children }: { os: any; children?: React.ReactNode }) {
+  const [quebrou, setQuebrou] = useState(false);
+  const url: string | null = os.capa_url ?? null;
+  const falta = semCapa(os.arquivos);
+  return (
+    <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted/60">
+      {url && !quebrou ? (
+        <img
+          src={url}
+          alt={`Arte da OS ${os.numero}: ${os.titulo}`}
+          loading="lazy"
+          draggable={false}
+          onError={() => setQuebrou(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+          <FileImage className="h-6 w-6 opacity-60" aria-hidden />
+          <span className="text-xs font-semibold uppercase tracking-wider">{quebrou ? "Imagem indisponível" : falta.rotulo}</span>
+          {falta.detalhe && <span className="max-w-[90%] truncate text-[10px]">{falta.detalhe}</span>}
+        </div>
+      )}
+      {children}
+    </div>
   );
 }
 

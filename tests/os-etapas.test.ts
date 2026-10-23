@@ -91,12 +91,15 @@ describe("as cinco etapas do fluxo", () => {
   });
 });
 
-describe("o quadro tem cinco colunas, não vinte e cinco", () => {
+describe("o quadro tem seis colunas, não vinte e cinco", () => {
   it("a coluna é a etapa, e pausado/cancelado não são coluna", () => {
     // Vinte e cinco colunas não é quadro, é lista deitada. E OS pausada não é
     // estágio da produção: é exceção, vira selo no cartão.
-    expect(ETAPAS_QUADRO).toEqual(["entrada", "pre_impressao", "producao", "acabamento", "saida"]);
-    expect(ETAPAS_QUADRO.length).toBeLessThanOrEqual(5);
+    // Seis desde 23/10/2026: a fila de produção ganhou coluna própria, como o dono
+    // pediu (entrada → arte → fila → produção → acabamento → saída), e é o que
+    // faz o quadro e a TV falarem da mesma OS no mesmo lugar.
+    expect(ETAPAS_QUADRO).toEqual(["entrada", "pre_impressao", "fila_producao", "producao", "acabamento", "saida"]);
+    expect(ETAPAS_QUADRO.length).toBeLessThanOrEqual(6);
   });
 
   it("todo status do banco cai em alguma coluna, ou no fora do fluxo", () => {
@@ -137,10 +140,11 @@ describe("soltar o cartão numa coluna", () => {
 
 describe("progresso do fluxo", () => {
   it("avança etapa por etapa até 100%", () => {
-    expect(progressoDaEtapa("entrada")).toBeCloseTo(1 / 5, 3);
-    expect(progressoDaEtapa("design")).toBeCloseTo(2 / 5, 3);
-    expect(progressoDaEtapa("em_impressao")).toBeCloseTo(3 / 5, 3);
-    expect(progressoDaEtapa("em_acabamento")).toBeCloseTo(4 / 5, 3);
+    expect(progressoDaEtapa("entrada")).toBeCloseTo(1 / 6, 3);
+    expect(progressoDaEtapa("design")).toBeCloseTo(2 / 6, 3);
+    expect(progressoDaEtapa("aguardando_producao")).toBeCloseTo(3 / 6, 3);
+    expect(progressoDaEtapa("em_impressao")).toBeCloseTo(4 / 6, 3);
+    expect(progressoDaEtapa("em_acabamento")).toBeCloseTo(5 / 6, 3);
     expect(progressoDaEtapa("concluido")).toBe(1);
   });
 

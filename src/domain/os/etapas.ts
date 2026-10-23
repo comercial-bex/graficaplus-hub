@@ -45,6 +45,7 @@
 export const ETAPAS = [
   "entrada",
   "pre_impressao",
+  "fila_producao",
   "producao",
   "acabamento",
   "saida",
@@ -56,6 +57,7 @@ export type Etapa = (typeof ETAPAS)[number];
 export const ROTULO_ETAPA: Record<Etapa, string> = {
   entrada: "Entrada",
   pre_impressao: "Pré-impressão",
+  fila_producao: "Fila de produção",
   producao: "Produção",
   acabamento: "Acabamento e qualidade",
   saida: "Saída",
@@ -64,7 +66,8 @@ export const ROTULO_ETAPA: Record<Etapa, string> = {
 
 export const DESCRICAO_ETAPA: Record<Etapa, string> = {
   entrada: "Pedido recebido, briefing e arquivos do cliente conferidos.",
-  pre_impressao: "Arte fechada e aprovada. Aqui a peça vira arquivo de produção.",
+  pre_impressao: "Criação e revisão da arte, até o cliente aprovar. Aqui a peça vira arquivo de produção.",
+  fila_producao: "Arte aprovada e arquivo fechado: esperando a vez na máquina.",
   producao: "A máquina que a peça usa. São caminhos PARALELOS — cada peça passa por um.",
   acabamento: "Corte, dobra, laminação, e a conferência antes de liberar.",
   saida: "Conferido, embalado e entregue ou instalado.",
@@ -95,7 +98,7 @@ export const STATUS: StatusOs[] = [
   { status: "aguardando_aprovacao_arte", rotulo: "Aprovação de arte", etapa: "pre_impressao", setor: "Design" },
   { status: "arte_aprovada", rotulo: "Arte aprovada", etapa: "pre_impressao", setor: "Design" },
   { status: "arte_rejeitada", rotulo: "Arte rejeitada", etapa: "pre_impressao", setor: "Design" },
-  { status: "aguardando_producao", rotulo: "Fila de produção", etapa: "pre_impressao", setor: "PCP" },
+  { status: "aguardando_producao", rotulo: "Fila de produção", etapa: "fila_producao", setor: "PCP" },
 
   // Os cinco caminhos de máquina. Paralelos: a peça entra em um.
   { status: "em_impressao", rotulo: "Impressão", etapa: "producao", setor: "Produção", paralela: true },
@@ -206,6 +209,8 @@ export function statusPadraoDaEtapa(
       return "entrada";
     case "pre_impressao":
       return "design";
+    case "fila_producao":
+      return "aguardando_producao";
     case "producao":
       return "em_producao";
     case "acabamento":
