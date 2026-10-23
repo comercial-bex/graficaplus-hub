@@ -15,16 +15,29 @@ import { mensagemErro } from "@/lib/erros";
  * manda para quem quiser; quem entra por ali fica ligado a quem convidou, e
  * esse vínculo é o que permite pagar o bônus de indicação depois.
  *
- * Três coisas que esta tela NÃO faz, de propósito:
+ * Duas coisas que esta tela NÃO faz, de propósito:
  *
- * - não libera acesso: o cadastro nasce `pendente` e sem papel nenhum. Quem
- *   entra por um link não pode ver preço de revenda — que é 15% a 30% abaixo
- *   do balcão e revela a estrutura de custo da gráfica — antes de alguém da
- *   Bex Print olhar quem é. A liberação é na tela de Parceiros.
+ * - não pede aprovação: desde 23/10/2026 o cadastro já nasce `ativo` e com o
+ *   papel de parceiro (decisão do dono: quem se inscreve entra e pede na hora).
+ *   O controle é depois: a equipe suspende quem não deve ficar, na aba
+ *   "Parceiros e terceirizados" de Equipe e acessos.
  * - não mostra preço, catálogo ou dado de outro parceiro.
  * - não diz se o código existe antes de ser digitado por inteiro, e nunca
  *   devolve id de ninguém — só o nome de quem convidou.
  */
+
+/** Erro do cadastro em português claro: o da biblioteca vem em inglês e não diz o que fazer. */
+function erroDoCadastro(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("already registered")) return "Este e-mail já tem cadastro. Entre pela tela de login (aba parceiro).";
+  if (m.includes("password") && (m.includes("weak") || m.includes("pwned") || m.includes("least")))
+    return "Escolha uma senha mais forte: 8 ou mais caracteres, misturando letras e números.";
+  if (m.includes("rate limit") || m.includes("too many")) return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
+  if (m.includes("invalid") && m.includes("email")) return "Confira o e-mail digitado.";
+  if (m.includes("signups not allowed") || m.includes("signup is disabled"))
+    return "O cadastro está indisponível agora. Fale com a Bex Print pelo WhatsApp.";
+  return msg;
+}
 
 export const Route = createFileRoute("/convite/$codigo")({
   head: () => ({ meta: [{ title: "Convite de parceiro — BEX PRINT" }] }),
@@ -89,7 +102,11 @@ function ConvitePage() {
           data: { nome: empresa.trim(), telefone: telefone.trim() },
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(erroDoCadastro(error.message));
+      // E-mail já cadastrado: o Supabase não erra, devolve um usuário sem identidades.
+      if (data.user && (data.user.identities ?? []).length === 0) {
+        throw new Error("Este e-mail já tem cadastro. Entre pela aba \"Sou parceiro ou terceirizado\" na tela de login (ou use \"esqueci a senha\").");
+      }
       const usuarioId = data.user?.id;
       if (!usuarioId) throw new Error("O cadastro não retornou a conta criada.");
 
@@ -140,9 +157,10 @@ function ConvitePage() {
           </p>
           <Link
             to="/login"
+            search={{ como: "parceiro" }}
             className="inline-block pt-2 font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-[color:var(--bex-cyan)]"
           >
-            Ir para o login
+            Entrar no meu painel
           </Link>
         </div>
       </Moldura>
@@ -153,21 +171,22 @@ function ConvitePage() {
     return (
       <Moldura>
         <div className="space-y-3 text-center">
-          <h1 className="text-xl font-semibold text-foreground">Cadastro enviado</h1>
+          <h1 className="text-xl font-semibold text-foreground">Cadastro feito — acesso liberado</h1>
           <p className="text-sm text-muted-foreground">
             Bem-vindo, <strong className="text-foreground">{empresa.trim()}</strong>. Seu cadastro
-            de revendedor chegou à Bex Print e está aguardando liberação — normalmente é rápido.
+            de revendedor está pronto e o seu painel já está liberado.
           </p>
           <p className="text-sm text-muted-foreground">
-            Assim que for liberado, você entra com o e-mail e a senha que acabou de escolher, e já
-            recebe o <strong className="text-foreground">seu próprio link de convite</strong> para
+            Entre com o e-mail e a senha que acabou de escolher (se pedirmos a confirmação do
+            e-mail, confirme primeiro). Lá você já recebe o <strong className="text-foreground">seu próprio link de convite</strong> para
             indicar outros revendedores.
           </p>
           <Link
             to="/login"
+            search={{ como: "parceiro" }}
             className="inline-block pt-2 font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-[color:var(--bex-cyan)]"
           >
-            Ir para o login
+            Entrar no meu painel
           </Link>
         </div>
       </Moldura>
@@ -185,7 +204,7 @@ function ConvitePage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           Preço de revendedor, orçamento com a sua marca e crédito a cada compra. Cadastre sua
-          empresa abaixo — a Bex Print libera o acesso depois de conferir.
+          empresa abaixo — o acesso ao painel é liberado na hora.
         </p>
       </div>
 

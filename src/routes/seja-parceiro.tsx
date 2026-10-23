@@ -54,7 +54,7 @@ const pct = (v: number) => `${Number(v).toLocaleString("pt-BR", { maximumFractio
 
 const PASSOS = [
   { icone: Send, titulo: "Peça o seu cadastro", texto: "Preencha o formulário com os dados da sua empresa. Leva alguns minutos." },
-  { icone: ShieldCheck, titulo: "A Bex Print confere", texto: "O cadastro fica em análise até a gráfica liberar. Você recebe o aviso e passa a entrar no seu painel." },
+  { icone: ShieldCheck, titulo: "Entre na hora", texto: "Terminou o cadastro, o painel já está liberado: é só entrar com o seu e-mail e a senha." },
   { icone: FileText, titulo: "Oriente na frente do cliente", texto: "No painel você monta o orçamento com a sua marca, com o preço de parceiro, e manda em PDF." },
   { icone: HandCoins, titulo: "Peça, acompanhe e ganhe", texto: "Envie o pedido à gráfica, acompanhe a produção e acumule crédito a cada pedido pago." },
 ];
@@ -196,7 +196,7 @@ function SejaParceiroPage() {
             Pronto para começar?
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-            O cadastro não dá acesso na hora: a Bex Print confere os dados e libera o seu painel.
+            O cadastro libera o seu painel na hora: é só entrar com o e-mail e a senha que você escolheu.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
