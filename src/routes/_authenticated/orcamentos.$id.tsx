@@ -310,6 +310,27 @@ function OrcamentoDetailPage() {
     },
   });
 
+  // O que o cliente recebeu e aprovou (22/10/2026): a versão congelada pelo
+  // banco ao enviar e ao aprovar, comparada com o orçamento de hoje.
+  const { data: versao } = useQuery({
+    queryKey: ["orcamento", id, "versao", nivelDeVisao],
+    enabled: canSeePrices,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("orcamento_diferenca_da_versao", { p_orcamento: id });
+      if (error) throw error;
+      return data as {
+        tem_versao: boolean;
+        numero?: number;
+        status?: string;
+        retroativa?: boolean;
+        valor_da_versao?: number;
+        valor_atual?: number;
+        mudou?: boolean;
+        valor_mudou?: boolean;
+      };
+    },
+  });
+
   // Falha na lista não pode virar "Sem itens": o vendedor adicionaria de novo.
   const consultaItens = useQuery({
     queryKey: ["orc-itens", id, nivelDeVisao],
@@ -914,6 +935,8 @@ function OrcamentoDetailPage() {
     0,
     Math.round((subtotalGravado - Number(orc.valor_total ?? 0)) * 100) / 100,
   );
+  const brlVersao = (v?: number | null) =>
+    Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const semArte = (itens as any[]).filter((i) => !i.arquivo_id).length;
   // Item em texto livre, sem produto: o banco não tem de onde tirar o custo, e a OS
   // nasce sem custo previsto (19/10/2026: as OS #163 e #166). Com produto, o custo
@@ -1071,6 +1094,21 @@ function OrcamentoDetailPage() {
             </>
           )}
         </div>
+        {versao?.tem_versao && versao.mudou && (
+          <p
+            role="status"
+            className="md:pl-12 text-xs text-warning"
+          >
+            Mudou depois de {versao.status === "aprovada" ? "aprovado" : "enviado"}: a versão {versao.numero}
+            {versao.retroativa ? " (retrato de 22/10, quando o controle começou)" : ""} tinha{" "}
+            {brlVersao(versao.valor_da_versao)}
+            {versao.valor_mudou ? <>, hoje está {brlVersao(versao.valor_atual)}</> : ", e os itens mudaram sem mudar o total"}.
+            {" "}
+            {versao.status === "aprovada"
+              ? "Para converter em OS o valor precisa voltar ao aprovado, ou o cliente aprovar de novo."
+              : "Envie de novo para registrar a nova versão."}
+          </p>
+        )}
         {!fechado && pendencias.length > 0 && (
           <p className="md:pl-12 text-xs text-amber-500">
             Antes de enviar ao cliente, falta:{" "}
