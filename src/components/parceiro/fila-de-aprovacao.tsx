@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
+import { useAuth } from "@/lib/auth-context";
 
 /**
- * Quem se cadastrou pelo link de convite e está esperando a gráfica liberar.
+ * Quem se cadastrou pelo link de convite e ainda não tem ninguém da gráfica.
  *
- * Existe porque o cadastro por convite nasce `pendente` e sem papel nenhum: é
- * o que impede um estranho com o link de enxergar preço de revenda, que é 15%
- * a 30% abaixo do balcão. Sem esta fila, o cadastro seria um buraco — a pessoa
- * se cadastra e some, e a gráfica não fica sabendo.
+ * Desde 23/10/2026 o cadastro nasce `ativo` (entra na hora); esta fila deixou de
+ * ser de aprovação e virou de BOAS-VINDAS: sem ela ninguém na gráfica saberia
+ * que o parceiro novo entrou, e ele ficaria sem atendente. Quem assume sai da
+ * fila. `pendente` ainda aparece (cadastros antigos) com o botão Liberar.
  *
  * Some quando não há ninguém esperando.
  */
@@ -26,12 +27,14 @@ interface Pendente {
   cidade: string | null;
   estado: string | null;
   convidado_por: string;
+  status: string;
   criado_em: string;
   tem_login: boolean;
 }
 
 export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   const { data: pendentes = [] } = useQuery({
     queryKey: ["parceiros-pendentes"],
@@ -55,6 +58,24 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
     onError: (e) => toast.error(mensagemErro(e)),
   });
 
+  const assumir = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await (supabase as any)
+        .from("parceiros")
+        .update({ responsavel_id: user?.id })
+        .eq("id", id)
+        .select("id");
+      if (error) throw error;
+      if (!data?.length) throw new Error("Seu perfil não tem permissão para alterar parceiros.");
+    },
+    onSuccess: () => {
+      toast.success("Você é o atendente deste parceiro. Chame no WhatsApp e apresente o painel.");
+      qc.invalidateQueries({ queryKey: ["parceiros-pendentes"] });
+      qc.invalidateQueries({ queryKey: ["parceiros-resumo"] });
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+
   if (pendentes.length === 0) return null;
 
   return (
@@ -63,13 +84,13 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
         <UserPlus className="h-4 w-4 text-[color:var(--bex-cyan)]" />
         <h2 className="font-semibold">
           {pendentes.length === 1
-            ? "1 revendedor esperando liberação"
-            : `${pendentes.length} revendedores esperando liberação`}
+            ? "1 parceiro novo sem atendente"
+            : `${pendentes.length} parceiros novos sem atendente`}
         </h2>
       </div>
       <p className="mt-0.5 text-sm text-muted-foreground">
-        Cadastraram-se pelo link de convite. Enquanto não forem liberados, não veem preço de
-        revenda nem conseguem orçar.
+        Cadastraram-se pelo link de convite e já entram no painel. Falta alguém da gráfica
+        acolher: assuma e chame no WhatsApp.
       </p>
 
       <div className="mt-3 space-y-2">
@@ -102,14 +123,16 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
               </p>
             </div>
 
-            {podeAprovar && (
-              <Button
-                size="sm"
-                onClick={() => aprovar.mutate(p.id)}
-                disabled={aprovar.isPending}
-              >
+            {podeAprovar && p.status === "pendente" && (
+              <Button size="sm" onClick={() => aprovar.mutate(p.id)} disabled={aprovar.isPending}>
                 <Check className="mr-1 h-3.5 w-3.5" />
                 Liberar
+              </Button>
+            )}
+            {podeAprovar && p.status !== "pendente" && (
+              <Button size="sm" onClick={() => assumir.mutate(p.id)} disabled={assumir.isPending || !user}>
+                <UserPlus className="mr-1 h-3.5 w-3.5" />
+                Assumir
               </Button>
             )}
           </div>
