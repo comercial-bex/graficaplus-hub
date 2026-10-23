@@ -33,6 +33,9 @@ export function PrecoDoOrcamento({
   confirmadoPor,
   confirmadoEm,
   clienteRevendedor,
+  parceiroCadastrado = false,
+  nivelDoParceiro = null,
+  descontoDoParceiro = null,
   podeEditar,
 }: {
   orcamentoId: string;
@@ -40,6 +43,10 @@ export function PrecoDoOrcamento({
   confirmadoPor: string | null;
   confirmadoEm: string | null;
   clienteRevendedor: boolean;
+  /** O cliente tem cadastro de parceiro ativo: o preço é do programa e entra sem senha. */
+  parceiroCadastrado?: boolean;
+  nivelDoParceiro?: string | null;
+  descontoDoParceiro?: number | null;
   podeEditar: boolean;
 }) {
   const qc = useQueryClient();
@@ -95,7 +102,8 @@ export function PrecoDoOrcamento({
       disabled={!podeEditar || trabalhando}
       onClick={() => {
         if (modo === valor) return;
-        if (valor === "parceiro") {
+        if (valor === "parceiro" && parceiroCadastrado) void aplicar("parceiro");
+        else if (valor === "parceiro") {
           setSenha("");
           setErro(null);
           setPedindoSenha(true);
@@ -118,7 +126,15 @@ export function PrecoDoOrcamento({
         <span className="w-px bg-border" aria-hidden />
         {botao("parceiro", "Parceiro (terceirizado)", Building2)}
       </div>
-      {modo === "parceiro" && (
+      {modo === "parceiro" && parceiroCadastrado && (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
+          Tabela de parceiro{nivelDoParceiro ? ` · ${nivelDoParceiro}` : ""}
+          {descontoDoParceiro != null ? ` · ${Number(descontoDoParceiro).toLocaleString("pt-BR")}% abaixo do balcão` : ""}
+          {" "}(automático)
+        </span>
+      )}
+      {modo === "parceiro" && !parceiroCadastrado && (
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
           Confirmado{quem.data ? ` por ${quem.data.split(" ")[0]}` : ""}
@@ -128,7 +144,11 @@ export function PrecoDoOrcamento({
         </span>
       )}
       {modo === "cliente_final" && clienteRevendedor && podeEditar && (
-        <span className="text-xs text-warning">Este cliente é parceiro: confira se o preço é o de parceiro.</span>
+        <span className="text-xs text-warning">
+          {parceiroCadastrado
+            ? "Este cliente é parceiro: use o preço de parceiro."
+            : "Este cliente está marcado como revendedor, mas não tem cadastro de parceiro: a tabela por nível não se aplica. Cadastre em Parceiros."}
+        </span>
       )}
 
       <Dialog open={pedindoSenha} onOpenChange={(v) => !trabalhando && setPedindoSenha(v)}>

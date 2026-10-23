@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 const h = vi.hoisted(() => ({
   entrar: vi.fn(),
   rpc: vi.fn(),
+  parceiroAtivo: false,
   claims: { email: "jhessy@bexprint.com.br" } as Record<string, unknown>,
 }));
 
@@ -46,7 +47,12 @@ describe("confirmar o preço de parceiro exige a senha de quem pediu", () => {
   beforeEach(() => {
     h.entrar.mockReset();
     h.rpc.mockReset();
-    h.rpc.mockResolvedValue({ data: { modo: "parceiro", itens_repreciados: 1, itens_sem_preco: 0 }, error: null });
+    h.parceiroAtivo = false;
+    h.rpc.mockImplementation(async (nome: string) =>
+      nome === "orcamento_de_parceiro_ativo"
+        ? { data: h.parceiroAtivo, error: null }
+        : { data: { modo: "parceiro", itens_repreciados: 1, itens_sem_preco: 0 }, error: null },
+    );
     process.env.SUPABASE_URL = "https://x.supabase.co";
     process.env.SUPABASE_PUBLISHABLE_KEY = "chave";
     h.claims.email = "jhessy@bexprint.com.br";
@@ -60,22 +66,29 @@ describe("confirmar o preço de parceiro exige a senha de quem pediu", () => {
     expect(r.itens_repreciados).toBe(1);
   });
 
+  it("cliente com cadastro de parceiro ativo: preço do programa entra sem senha", async () => {
+    h.parceiroAtivo = true;
+    const r = await (confirmarPrecoDoOrcamento as any)({ data: { orcamentoId: ORC, modo: "parceiro" } });
+    expect(h.entrar).not.toHaveBeenCalled();
+    expect(r.itens_repreciados).toBe(1);
+  });
+
   it("senha errada: nada é gravado", async () => {
     h.entrar.mockResolvedValue({ data: { user: null }, error: { message: "Invalid login credentials" } });
     await expect((confirmarPrecoDoOrcamento as any)({ data: { orcamentoId: ORC, modo: "parceiro", senha: "errada" } })).rejects.toThrow("Senha incorreta.");
-    expect(h.rpc).not.toHaveBeenCalled();
+    expect(h.rpc).not.toHaveBeenCalledWith("orcamento_aplicar_preco", expect.anything());
   });
 
   it("a senha de OUTRA pessoa não vale (a sessão confirmada precisa ser a de quem pediu)", async () => {
     h.entrar.mockResolvedValue({ data: { user: { id: "outra" } }, error: null });
     await expect((confirmarPrecoDoOrcamento as any)({ data: { orcamentoId: ORC, modo: "parceiro", senha: "x" } })).rejects.toThrow("Senha incorreta.");
-    expect(h.rpc).not.toHaveBeenCalled();
+    expect(h.rpc).not.toHaveBeenCalledWith("orcamento_aplicar_preco", expect.anything());
   });
 
   it("parceiro sem senha: barrado antes de qualquer consulta", async () => {
     await expect((confirmarPrecoDoOrcamento as any)({ data: { orcamentoId: ORC, modo: "parceiro" } })).rejects.toThrow("Digite a sua senha");
     expect(h.entrar).not.toHaveBeenCalled();
-    expect(h.rpc).not.toHaveBeenCalled();
+    expect(h.rpc).not.toHaveBeenCalledWith("orcamento_aplicar_preco", expect.anything());
   });
 
   it("voltar ao cliente final não pede senha (o preço sobe, não desce)", async () => {

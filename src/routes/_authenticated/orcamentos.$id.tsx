@@ -310,6 +310,31 @@ function OrcamentoDetailPage() {
     },
   });
 
+  // Tabela de parceiro do cliente deste orçamento (23/10/2026): preço do produto,
+  // nível e faixas. Só existe quando o cliente tem cadastro de parceiro ativo —
+  // e então o orçamento já nasce no modo parceiro, sem senha.
+  const { data: tabelaDoParceiro } = useQuery({
+    queryKey: ["orcamento", id, "precos-parceiro", (orc as any)?.cliente_id ?? null],
+    enabled: !!(orc as any)?.cliente_id && canSeePrices,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("orcamento_precos_parceiro", { p_orcamento: id });
+      if (error) throw error;
+      const linhas = (data ?? []) as Array<{
+        produto_id: string;
+        preco_referencia: number | null;
+        preco_parceiro: number | null;
+        faixas: Array<{ quantidade_minima: number; preco_parceiro: number }> | null;
+        nivel_nome: string | null;
+        desconto_pct: number | null;
+      }>;
+      return {
+        porProduto: new Map(linhas.map((l) => [l.produto_id, l])),
+        nivel: linhas[0]?.nivel_nome ?? null,
+        descontoPct: linhas[0]?.desconto_pct ?? null,
+      };
+    },
+  });
+
   // O que o cliente recebeu e aprovou (22/10/2026): a versão congelada pelo
   // banco ao enviar e ao aprovar, comparada com o orçamento de hoje.
   const { data: versao } = useQuery({
@@ -544,9 +569,17 @@ function OrcamentoDetailPage() {
     // No modo parceiro o item entra com o preço de parceiro do produto; sem ele,
     // entra o de tabela e a pessoa é avisada (22/10/2026).
     const emParceiro = acordo.data?.preco_modo === "parceiro";
+    // Cliente parceiro cadastrado: vale a tabela do programa (nível, faixa, oferta);
+    // senão, a coluna "preço de parceiro" do produto, se preenchida.
+    const daTabela = tabelaDoParceiro?.porProduto.get(p.id);
+    const qtd = Math.max(1, Math.ceil(Number(form.quantidade) || 1));
+    const faixa = daTabela?.faixas
+      ? [...daTabela.faixas].sort((a, b) => b.quantidade_minima - a.quantidade_minima).find((f) => f.quantidade_minima <= qtd)
+      : null;
+    const parceiroDoProduto = faixa?.preco_parceiro ?? daTabela?.preco_parceiro ?? p.preco_parceiro ?? null;
     const precoDoProduto =
-      emParceiro && p.preco_parceiro != null ? Number(p.preco_parceiro) : Number(p.preco_base ?? 0);
-    if (emParceiro && p.preco_parceiro == null && canSeePrices) {
+      emParceiro && parceiroDoProduto != null ? Number(parceiroDoProduto) : Number(p.preco_base ?? 0);
+    if (emParceiro && parceiroDoProduto == null && canSeePrices) {
       toast.warning(`“${p.nome}” não tem preço de parceiro: entrou com o preço de tabela.`);
     }
     setTipoEscolhido(tipo.chave);
@@ -1047,6 +1080,9 @@ function OrcamentoDetailPage() {
               confirmadoPor={acordo.data?.preco_parceiro_confirmado_por ?? null}
               confirmadoEm={acordo.data?.preco_parceiro_confirmado_em ?? null}
               clienteRevendedor={clienteRevendedor}
+              parceiroCadastrado={!!tabelaDoParceiro && tabelaDoParceiro.nivel != null}
+              nivelDoParceiro={tabelaDoParceiro?.nivel ?? null}
+              descontoDoParceiro={tabelaDoParceiro?.descontoPct ?? null}
               podeEditar={podeEditarItens}
             />
           </div>
