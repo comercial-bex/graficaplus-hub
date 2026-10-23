@@ -51,7 +51,8 @@ import {
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { Carregando } from "@/components/bex/Carregando";
-import { NovaOsInterna, ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/components/os/nova-os-interna";
+import { NovaOsInterna } from "@/components/os/nova-os-interna";
+import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 export const Route = createFileRoute("/_authenticated/os/")({
   head: () => ({ meta: [{ title: "Ordens de Serviço — BEX PRINT OS" }] }),
   component: OSPage,

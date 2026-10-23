@@ -228,8 +228,15 @@ function KanbanPage() {
       // A leitura vem de uma VIEW, e view não tem FK declarada — logo o embed do
       // PostgREST não funciona e estas relações chegavam sempre undefined.
       // Buscar em paralelo e agrupar por os_id resolve sem abrir mão das views.
-      const [arquivos, tarefas, itens, maquinas, pessoas, movimentos] = await Promise.all([
+      const [arquivos, internas, tarefas, itens, maquinas, pessoas, movimentos] = await Promise.all([
         supabase.from("arquivos").select("os_id").in("os_id", ids),
+        // OS interna (mostruário, uso interno, reposição): vem de uma view pequena.
+        // Se falhar, o cartão aparece como venda — o quadro não cai por causa do selo.
+        (supabase as any)
+          .from("os_finalidade_v")
+          .select("id, finalidade, local_mostruario")
+          .in("id", ids)
+          .neq("finalidade", "venda"),
         supabase.from("os_tarefas").select("os_id, status, prazo").in("os_id", ids),
         // Os itens são o que a OS manda produzir. Faltavam no cartão, que
         // preferia anunciar "Produto não definido".
@@ -299,8 +306,14 @@ function KanbanPage() {
       }
       const ultimos = ultimoMovimentoPorOs(movimentos.data as MovimentoDaOs[] | null);
 
+      const finalidades = new Map<string, { finalidade: string; local_mostruario: string | null }>(
+        ((internas?.data ?? []) as { id: string; finalidade: string; local_mostruario: string | null }[]).map((r) => [r.id, r]),
+      );
+
       return ordens.map((o) => ({
         ...o,
+        finalidade: finalidades.get(o.id as string)?.finalidade ?? "venda",
+        local_mostruario: finalidades.get(o.id as string)?.local_mostruario ?? null,
         arquivos: porOs.arquivos.get(o.id as string) ?? [],
         tarefas: porOs.tarefas.get(o.id as string) ?? [],
         itens: porOs.itens.get(o.id as string) ?? [],

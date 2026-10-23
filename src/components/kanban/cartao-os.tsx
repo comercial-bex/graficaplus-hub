@@ -1,5 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { rotuloDe } from "@/domain/os/etapas";
 import { areaEmTexto, resumoDaProducao } from "@/domain/os/o-que-produzir";
@@ -90,7 +92,13 @@ export function CartaoOs({
           {os.titulo}
         </div>
 
-        {os.cliente_nome && (
+        {os.finalidade && os.finalidade !== "venda" ? (
+          // OS interna: o "cliente" é a casa — o que importa é para que é.
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <Badge variant="outline">{ROTULO_DA_FINALIDADE[os.finalidade as FinalidadeDaOS] ?? os.finalidade}</Badge>
+            {os.local_mostruario && <span className="truncate">{os.local_mostruario}</span>}
+          </div>
+        ) : os.cliente_nome && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {os.cliente_logo_url && (
               <Avatar className="h-4 w-4">
