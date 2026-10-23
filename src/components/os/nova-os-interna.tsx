@@ -8,6 +8,7 @@ import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
+import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,15 +23,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-export type FinalidadeDaOS = "venda" | "mostruario" | "uso_interno" | "reposicao";
-
-export const ROTULO_DA_FINALIDADE: Record<FinalidadeDaOS, string> = {
-  venda: "Venda",
-  mostruario: "Mostruário",
-  uso_interno: "Uso interno",
-  reposicao: "Reposição",
-};
 
 const EXPLICA: Record<Exclude<FinalidadeDaOS, "venda">, string> = {
   mostruario: "Amostra, vitrine ou mostruário para vendas futuras (um banner de amostra, um brinquedo 3D, um copo gravado).",

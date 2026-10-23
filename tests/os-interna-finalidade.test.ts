@@ -71,3 +71,36 @@ describe("a tela", () => {
     expect(LISTA).toContain("ROTULO_DA_FINALIDADE[finalidades.get(o.id)!.finalidade]");
   });
 });
+
+describe("o quadro de produção não prende a OS interna (23/10/2026)", () => {
+  const QUADRO = readFileSync("supabase/migrations/20261023120000_quadro_nao_exige_pagamento_da_os_interna.sql", "utf8");
+  const KANBAN = readFileSync("src/routes/_authenticated/kanban.tsx", "utf8");
+  const CARTAO = readFileSync("src/components/kanban/cartao-os.tsx", "utf8");
+
+  // Ensaio com rollback: a OS interna ficava barrada por sem_pagamento e
+  // arte_nao_aprovada para entrar em impressão; depois, só sem_arquivo_final (o
+  // layout, a regra do dono). A venda #161 continuou barrada como antes.
+  it("pagamento, aprovação de arte do cliente e margem mínima só valem para venda", () => {
+    expect(QUADRO).toContain("IF v_total_pago <= 0 AND v_os.finalidade = ''venda'' THEN");
+    expect(QUADRO).toContain("IF v_os.finalidade = ''venda'' AND NOT public.arte_aprovada_da_os");
+    expect(QUADRO).toContain("IF v_os.finalidade = ''venda'' AND v_margem IS NOT NULL");
+    expect(QUADRO.match(/âncora % vezes/g)).toHaveLength(3);
+  });
+
+  it("o layout continua exigido: a trava de arquivo final não foi tocada", () => {
+    expect(QUADRO).not.toContain("sem_arquivo_final'");
+    expect(QUADRO).not.toContain("final_producao");
+  });
+
+  it("o cartão mostra o selo e onde está, no lugar do cliente da casa", () => {
+    expect(KANBAN).toContain('.from("os_finalidade_v")');
+    expect(KANBAN).toContain('finalidade: finalidades.get(o.id as string)?.finalidade ?? "venda"');
+    expect(CARTAO).toContain('os.finalidade && os.finalidade !== "venda"');
+    expect(CARTAO).toContain("ROTULO_DA_FINALIDADE");
+  });
+
+  it("a consulta do selo não derruba o quadro se falhar", () => {
+    expect(KANBAN).toContain("Se falhar, o cartão aparece como venda");
+    expect(KANBAN).toContain("internas?.data");
+  });
+});
