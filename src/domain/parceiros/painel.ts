@@ -289,6 +289,8 @@ export function situacaoDoPedido(p: Pick<PedidoDoParceiro, "pedido_status" | "os
       return p.os_status === "aguardando_aprovacao_arte"
         ? { rotulo: "Arte esperando aprovação", passo: 1, tom: "amber" }
         : { rotulo: "Preparando a arte", passo: 1, tom: "cyan" };
+    case "fila_producao":
+      return { rotulo: "Na fila de produção", passo: 1, tom: "cyan" };
     case "producao":
       return { rotulo: "Em produção", passo: 2, tom: "magenta" };
     case "acabamento":

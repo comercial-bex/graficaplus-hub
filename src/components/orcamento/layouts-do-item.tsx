@@ -14,6 +14,7 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ehImagemVisivel, ehPdf, extensao } from "@/domain/os/arquivos-da-os";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -62,20 +63,6 @@ export type LayoutRascunho = {
   /** URL local (objectURL) para a miniatura antes de existir o item */
   previa: string | null;
 };
-
-function extensao(nome: string): string {
-  return (nome.split(".").pop() ?? "").toLowerCase();
-}
-
-function ehPdf(nome: string, mime?: string | null): boolean {
-  return mime === "application/pdf" || extensao(nome) === "pdf";
-}
-
-/** O navegador desenha? (CDR, AI, PSD e EPS não: viram ficha com o nome) */
-function ehImagemVisivel(nome: string, mime?: string | null): boolean {
-  if (mime) return mime.startsWith("image/") && !/photoshop|postscript|illustrator/.test(mime);
-  return ["png", "jpg", "jpeg", "webp", "gif", "svg", "avif", "bmp"].includes(extensao(nome));
-}
 
 /** Sobe a arte e registra em `arquivos` como tipo 'arte'. Erro sobe, nunca some. */
 export async function enviarLayout(

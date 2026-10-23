@@ -271,7 +271,7 @@ function LinhaOS({
   const travada = bloqueios.length > 0;
   const rodando = ondeEstaRodando(abertos);
   const emProducao = etapaDe(os.status) === "producao";
-  const naFila = etapaDe(os.status) === "pre_impressao";
+  const naFila = etapaDe(os.status) === "pre_impressao" || etapaDe(os.status) === "fila_producao";
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:gap-3">

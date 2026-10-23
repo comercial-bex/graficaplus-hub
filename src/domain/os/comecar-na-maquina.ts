@@ -278,7 +278,9 @@ export function passosDaOs(
   const nada: PassosDaOs = { principal: null, secundario: null, impedimento: null };
 
   switch (etapaDe(os.status)) {
+    // A arte e a fila levam ao mesmo passo: pôr a peça na máquina.
     case "pre_impressao":
+    case "fila_producao":
       return {
         ...nada,
         principal: quem.podeApontar

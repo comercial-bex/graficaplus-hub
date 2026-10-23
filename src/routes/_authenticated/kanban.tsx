@@ -72,6 +72,8 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { mensagemErro } from "@/lib/erros";
 import { CartaoOs, type BloqueioOs } from "@/components/kanban/cartao-os";
 import { FichaDaOs } from "@/components/kanban/ficha-da-os";
+import { escolherCapa, type ArquivoDaOs } from "@/domain/os/arquivos-da-os";
+import { urlsAssinadas } from "@/lib/urls-dos-arquivos";
 import { IconeDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { legendaDeMaquinas } from "@/domain/producao/identidade-da-maquina";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
@@ -229,7 +231,12 @@ function KanbanPage() {
       // PostgREST não funciona e estas relações chegavam sempre undefined.
       // Buscar em paralelo e agrupar por os_id resolve sem abrir mão das views.
       const [arquivos, internas, tarefas, itens, maquinas, pessoas, movimentos] = await Promise.all([
-        supabase.from("arquivos").select("os_id").in("os_id", ids),
+        // Os arquivos de cada OS: o cartão mostra a capa (a imagem do que vai ser
+        // impresso) e a ficha lista todos. Só colunas, nunca o conteúdo.
+        supabase
+          .from("arquivos")
+          .select("id, os_id, nome, caminho, mime_type, final_producao, created_at, tipo, status, ativo, substituido_por, os_item_id")
+          .in("os_id", ids),
         // OS interna (mostruário, uso interno, reposição): vem de uma view pequena.
         // Se falhar, o cartão aparece como venda — o quadro não cai por causa do selo.
         (supabase as any)
@@ -306,6 +313,16 @@ function KanbanPage() {
       }
       const ultimos = ultimoMovimentoPorOs(movimentos.data as MovimentoDaOs[] | null);
 
+      // A capa de cada OS (a regra está em domain/os/arquivos-da-os) e a URL
+      // assinada dela, de uma vez só. Sem URL a capa vira ficha com o nome.
+      const arquivosPorOs = porOs.arquivos as Map<string, ArquivoDaOs[]>;
+      const capas = new Map<string, ArquivoDaOs>();
+      for (const [osId, lista] of arquivosPorOs) {
+        const capa = escolherCapa(lista);
+        if (capa) capas.set(osId, capa);
+      }
+      const urlsDasCapas = await urlsAssinadas([...capas.values()].map((c) => c.caminho));
+
       const finalidades = new Map<string, { finalidade: string; local_mostruario: string | null }>(
         ((internas?.data ?? []) as { id: string; finalidade: string; local_mostruario: string | null }[]).map((r) => [r.id, r]),
       );
@@ -315,6 +332,7 @@ function KanbanPage() {
         finalidade: finalidades.get(o.id as string)?.finalidade ?? "venda",
         local_mostruario: finalidades.get(o.id as string)?.local_mostruario ?? null,
         arquivos: porOs.arquivos.get(o.id as string) ?? [],
+        capa_url: capas.has(o.id as string) ? (urlsDasCapas.get(capas.get(o.id as string)!.caminho) ?? null) : null,
         tarefas: porOs.tarefas.get(o.id as string) ?? [],
         itens: porOs.itens.get(o.id as string) ?? [],
         maquinas: o.maquina_id ? (mapaMaquinas.get(o.maquina_id as string) ?? null) : null,

@@ -179,8 +179,8 @@ describe("o teste lê alguma coisa — não pode passar por não achar nada", ()
     expect(etapasDoSql().size).toBe(26);
     expect(encerradasDoSql().length).toBe(3);
     const { excecoes, porEtapa } = regrasDoBloco();
-    expect(excecoes.length).toBe(3);
-    expect(porEtapa.size).toBe(5);
+    expect(excecoes.length).toBe(2);
+    expect(porEtapa.size).toBe(6);
     expect(tiposDoSql().length).toBe(5);
   });
 
@@ -239,10 +239,11 @@ describe("bloco_da_tv: cada status em exatamente um bloco", () => {
     expect(Object.values(contagem).reduce((a, b) => a + b, 0)).toBe(ENUM_STATUS_OS.length);
   });
 
-  it("as três exceções, escritas uma vez", () => {
-    // A fila de produção é pré-impressão no Kanban, mas na parede já é da
-    // oficina: é o impressor quem olha para ela.
-    expect(etapaDe("aguardando_producao")).toBe("pre_impressao");
+  it("as exceções, escritas uma vez", () => {
+    // A fila de produção é etapa própria no quadro (23/10/2026) e, na parede,
+    // fica na oficina: é o impressor quem olha para ela. Não é exceção — é a
+    // regra da etapa fila_producao.
+    expect(etapaDe("aguardando_producao")).toBe("fila_producao");
     expect(blocoPeloSql("aguardando_producao")).toBe("oficina");
     // Pausada não é bloco de destino: a TV devolve a OS ao bloco de onde veio.
     expect(blocoPeloSql("pausado")).toBe("pausada");
@@ -256,11 +257,12 @@ describe("bloco_da_tv: cada status em exatamente um bloco", () => {
     const esperado: Record<string, string> = {
       entrada: "entrada_arte",
       pre_impressao: "entrada_arte",
+      fila_producao: "oficina",
       producao: "oficina",
       acabamento: "acabamento",
       saida: "saida",
     };
-    const excecoes = new Set(["aguardando_producao", "pausado", "concluido", "faturado", "cancelado"]);
+    const excecoes = new Set(["pausado", "concluido", "faturado", "cancelado"]);
     for (const s of ENUM_STATUS_OS) {
       if (excecoes.has(s)) continue;
       expect(blocoPeloSql(s), `${s} (etapa ${etapaDe(s)})`).toBe(esperado[etapaDe(s) as string]);

@@ -94,12 +94,13 @@ type Resposta = {
  * A cor da faixa vem da ETAPA do fluxo, não do status.
  *
  * A RPC agrupa por status (são 26), e 26 cores não é legenda, é confete. As
- * etapas são cinco e já existem em `domain/os/etapas`: quem olha a faixa vê
+ * etapas são seis e já existem em `domain/os/etapas`: quem olha a faixa vê
  * "o trabalho está todo na entrada", que é a leitura que interessa.
  */
 const COR_DA_ETAPA: Record<Etapa, string> = {
   entrada: "bg-[color:var(--bex-cyan)]",
   pre_impressao: "bg-[color:var(--bex-magenta)]",
+  fila_producao: "bg-[color:var(--bex-magenta)]/60",
   producao: "bg-[color:var(--bex-amber)]",
   acabamento: "bg-[color:var(--bex-cyan)]/50",
   saida: "bg-[color:var(--bex-magenta)]/50",
