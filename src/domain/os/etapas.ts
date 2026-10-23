@@ -307,6 +307,9 @@ export const ROTULO_BLOQUEIO: Record<string, string> = {
   // `fechar_os` recusa enquanto alguma máquina ainda conta tempo para a OS —
   // fechar com o apontamento aberto congelaria o custo pela metade.
   apontamento_aberto: "Máquina ainda rodando esta OS",
+  // A prova mínima do dono (22/10/2026): o que foi feito, e de que tamanho.
+  sem_layout: "Sem o layout final (anexe o arquivo do que foi produzido e marque como final)",
+  sem_medidas: "Item sem medidas (informe largura × altura do que foi impresso ou confeccionado)",
 };
 
 export function rotuloBloqueio(codigo: string): string {
