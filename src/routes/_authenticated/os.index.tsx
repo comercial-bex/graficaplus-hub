@@ -51,6 +51,7 @@ import {
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { Carregando } from "@/components/bex/Carregando";
+import { NovaOsInterna, ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/components/os/nova-os-interna";
 export const Route = createFileRoute("/_authenticated/os/")({
   head: () => ({ meta: [{ title: "Ordens de Serviço — BEX PRINT OS" }] }),
   component: OSPage,
@@ -108,20 +109,46 @@ function OSPage() {
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-select"],
     queryFn: async () => {
-      const { data } = await supabase.from("clientes").select("id, nome").order("nome");
-      return data ?? [];
+      // Sem o cliente da casa (23/10/2026): venda para ele não existe; o trabalho
+      // interno tem o seu botão ("OS interna").
+      // `interno` é coluna nova que o tipo gerado ainda não conhece.
+      const { data } = await (supabase as any).from("clientes").select("id, nome").eq("interno", false).order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
     },
   });
 
+  // A finalidade de cada OS (venda, mostruário, uso interno, reposição) vem de uma
+  // view pequena, para não mexer nas três views grandes de OS.
+  const { data: finalidades = new Map<string, { finalidade: FinalidadeDaOS; local: string | null }>() } = useQuery({
+    queryKey: ["os-finalidades"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("os_finalidade_v")
+        .select("id, finalidade, local_mostruario")
+        .neq("finalidade", "venda");
+      if (error) throw error;
+      return new Map<string, { finalidade: FinalidadeDaOS; local: string | null }>(
+        ((data ?? []) as { id: string; finalidade: FinalidadeDaOS; local_mostruario: string | null }[]).map((r) => [
+          r.id,
+          { finalidade: r.finalidade, local: r.local_mostruario },
+        ]),
+      );
+    },
+  });
+  const [mostrar, setMostrar] = useState<"todas" | "vendas" | "internas">("todas");
+
   const osFiltradas = useMemo(() => {
     const termo = buscaOS.trim().toLowerCase();
-    if (!termo) return os as any[];
-    return (os as any[]).filter((o) =>
-      [o.numero, o.titulo, o.cliente_nome]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(termo)),
-    );
-  }, [os, buscaOS]);
+    return (os as any[])
+      .filter((o) => (mostrar === "todas" ? true : mostrar === "internas" ? finalidades.has(o.id) : !finalidades.has(o.id)))
+      .filter(
+        (o) =>
+          !termo ||
+          [o.numero, o.titulo, o.cliente_nome]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(termo)),
+      );
+  }, [os, buscaOS, mostrar, finalidades]);
 
   const kpisOS = useMemo(() => {
     const lista = os as any[];
@@ -193,6 +220,8 @@ function OSPage() {
         title="Ordens de Serviço"
         description="Acompanhe todas as OS da produção."
         actions={
+          <>
+          <NovaOsInterna />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               {/* Alvo de 44px no celular (equivale ao size="lg"); no desktop fica o padrão. */}
@@ -321,6 +350,7 @@ function OSPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </>
         }
       />
 
@@ -338,6 +368,32 @@ function OSPage() {
           className={canSeePrices ? "col-span-2 md:col-span-1" : undefined}
         />
       </div>
+
+      {finalidades.size > 0 && (
+        <div role="group" aria-label="Que OS mostrar" className="flex gap-1 text-xs">
+          {(
+            [
+              ["todas", "Todas"],
+              ["vendas", "Vendas"],
+              ["internas", `Internas (${finalidades.size})`],
+            ] as const
+          ).map(([valor, rotulo]) => (
+            <button
+              key={valor}
+              type="button"
+              aria-pressed={mostrar === valor}
+              onClick={() => setMostrar(valor)}
+              className={
+                mostrar === valor
+                  ? "rounded-full border border-foreground/30 bg-foreground/10 px-3 py-1 font-semibold"
+                  : "rounded-full border border-border px-3 py-1 text-muted-foreground hover:bg-muted"
+              }
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+      )}
 
       <DataPanel
         busca={buscaOS}
@@ -374,6 +430,9 @@ function OSPage() {
                   <p className="truncate text-xs text-muted-foreground">{o.cliente_nome}</p>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <StatusChip label={rotuloDe(o.status)} tone={toneOS(o.status)} />
+                    {finalidades.get(o.id) && (
+                      <Badge variant="outline">{ROTULO_DA_FINALIDADE[finalidades.get(o.id)!.finalidade]}</Badge>
+                    )}
                     <span>Prazo {formatarData(o.prazo_entrega)}</span>
                   </div>
                 </div>
@@ -433,7 +492,16 @@ function OSPage() {
                     {o.titulo}
                   </Link>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{o.cliente_nome}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {finalidades.get(o.id) ? (
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline">{ROTULO_DA_FINALIDADE[finalidades.get(o.id)!.finalidade]}</Badge>
+                      {finalidades.get(o.id)!.local && <span className="text-xs">{finalidades.get(o.id)!.local}</span>}
+                    </span>
+                  ) : (
+                    o.cliente_nome
+                  )}
+                </TableCell>
                 <TableCell>
                   {/* Trocar "_" por espaço mostrava "aguardando aprovacao
                       arte" — o valor do enum com um retoque, não o nome que a
