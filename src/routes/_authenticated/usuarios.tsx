@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -73,6 +74,8 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { useAuth, type AppRole } from "@/lib/auth-context";
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ParceirosAcesso } from "@/components/usuarios/parceiros-acesso";
 import { PermissoesDaPessoaSheet } from "@/components/usuarios/permissoes-da-pessoa";
 import {
   atribuirPerfil,
@@ -150,7 +153,7 @@ const emptyForm: FormState = {
   role: "",
 };
 
-function UsuariosPage() {
+function EquipePage() {
   const qc = useQueryClient();
   const { user, hasRole } = useAuth();
   // O painel de permissões é só do administrador: espelha o has_role(admin)
@@ -180,13 +183,27 @@ function UsuariosPage() {
   const [novoRole, setNovoRole] = useState<Record<string, AppRole>>({});
 
   const {
-    data: users = [],
+    data: todos = [],
     isLoading,
     error,
   } = useQuery({
     queryKey: ["usuarios-admin"],
     queryFn: () => listar({ data: undefined }),
   });
+  // Parceiro/terceirizado não é equipe: tem aba própria. Se a consulta falhar,
+  // a lista segue inteira (melhor mostrar de mais do que esconder alguém).
+  const { data: idsDeParceiros } = useQuery({
+    queryKey: ["parceiros-usuario-ids"],
+    queryFn: async () => {
+      const { data, error: erro } = await (supabase as any).from("parceiros").select("usuario_id").not("usuario_id", "is", null);
+      if (erro) throw erro;
+      return new Set<string>((data ?? []).map((r: { usuario_id: string }) => r.usuario_id));
+    },
+  });
+  const users = useMemo(
+    () => todos.filter((u) => !idsDeParceiros?.has(u.id)),
+    [todos, idsDeParceiros],
+  );
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
 
@@ -717,5 +734,23 @@ function UsuariosPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function UsuariosPage() {
+  const { hasPermission, hasRole } = useAuth();
+  return (
+    <Tabs defaultValue="equipe" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="equipe">Equipe</TabsTrigger>
+        <TabsTrigger value="parceiros">Parceiros e terceirizados</TabsTrigger>
+      </TabsList>
+      <TabsContent value="equipe">
+        <EquipePage />
+      </TabsContent>
+      <TabsContent value="parceiros">
+        <ParceirosAcesso podeEditar={hasRole("admin") || hasPermission("parceiros.manage")} />
+      </TabsContent>
+    </Tabs>
   );
 }

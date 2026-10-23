@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
  * 0 parceiros e o convite só existia a partir de um parceiro ativo: ninguém
  * entrava pela primeira vez. Ensaio com rollback: o convite da casa cadastrou o
  * Max Lima NO cadastro dele (sem duplicar) e um telefone novo como cliente novo
- * revendedor; os dois nasceram `pendente`, sem padrinho; código errado barrado.
+ * revendedor; os dois nasceram `pendente` (até 23/10; hoje `ativo`), sem padrinho; código errado barrado.
  */
 
 const SQL = readFileSync("supabase/migrations/20261022170000_parceiro_porta_da_casa_e_programa_publico.sql", "utf8");
@@ -19,9 +19,8 @@ describe("o convite da casa", () => {
     expect(SQL).toContain("v_casa boolean := upper(btrim(p_codigo)) = 'BEXPRINT';");
   });
 
-  it("nasce pendente e sem papel: quem libera é a gráfica", () => {
+  it("(histórico) nasceu pendente e sem papel; a regra mudou em 23/10 — ver parceiro-cadastro-libera-na-hora", () => {
     expect(SQL).toContain("'pendente'");
-    expect(SQL).not.toMatch(/user_roles|'ativo',\s*v_nome/);
   });
 
   it("sem padrinho: não há bônus de indicação nem boas-vindas para a casa", () => {
@@ -71,8 +70,9 @@ describe("a página /seja-parceiro", () => {
     expect(PAGINA).toContain('search={{ como: "parceiro" }}');
   });
 
-  it("diz que o cadastro não dá acesso na hora", () => {
-    expect(PAGINA).toContain("O cadastro não dá acesso na hora");
+  it("diz que o cadastro libera o painel na hora", () => {
+    expect(PAGINA).toContain("O cadastro libera o seu painel na hora");
+    expect(PAGINA).not.toContain("não dá acesso na hora");
   });
 });
 
