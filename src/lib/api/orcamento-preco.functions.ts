@@ -23,7 +23,14 @@ export const confirmarPrecoDoOrcamento = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    // Cliente com cadastro de parceiro ativo: o preço é do programa (regra), não exceção — sem senha.
+    let ehParceiroAtivo = false;
     if (data.modo === "parceiro") {
+      const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+      const { data: sim } = await (admin as any).rpc("orcamento_de_parceiro_ativo", { p_orcamento: data.orcamentoId });
+      ehParceiroAtivo = sim === true;
+    }
+    if (data.modo === "parceiro" && !ehParceiroAtivo) {
       if (!data.senha) throw new Error("Digite a sua senha para confirmar o preço de parceiro.");
       const email = typeof context.claims.email === "string" ? context.claims.email : null;
       const url = process.env.SUPABASE_URL;
