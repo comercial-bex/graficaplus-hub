@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Copy,
   Download,
   Lock,
@@ -34,6 +35,7 @@ import { CampoDeMedida, SeletorDeUnidade, useUnidadeDeMedida } from "@/component
 import { dicaCampo } from "@/lib/dicas";
 import { SeletorDeProduto } from "./seletor-de-produto";
 import { PedidoDialog } from "./pedido-dialog";
+import { BarraDePassosDoOrcamento, PerguntaDoPasso } from "./barra-de-passos";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 import { baixarArquivo, renderPDFBlob } from "@/lib/pdf/generate";
@@ -62,6 +64,15 @@ import {
   type StatusDoOrcamento,
 } from "@/domain/parceiros/painel";
 import { nomeDoArquivo, propsDoOrcamentoDoParceiro } from "@/domain/parceiros/pdf";
+import {
+  ehUltimo,
+  estadoDosPassos,
+  passoAnterior,
+  passoInicial,
+  passoSeguinte,
+  rotuloDoAvancar,
+  type PassoDoOrcamento,
+} from "@/domain/parceiros/passos-do-orcamento";
 
 /**
  * O orçamento do parceiro para o cliente dele: itens, preço, ganho, PDF e pedido.
@@ -184,6 +195,8 @@ export function EditorDeOrcamento({ id }: { id: string }) {
   const [salvando, setSalvando] = useState(false);
   const [gerandoPdf, setGerandoPdf] = useState(false);
   const [pedidoAberto, setPedidoAberto] = useState(false);
+  // Nulo até a pessoa escolher: aí vale o passo inicial, que depende do que já existe.
+  const [passoEscolhido, setPassoEscolhido] = useState<PassoDoOrcamento | null>(null);
 
   const retrato = cab ? JSON.stringify({ c: cab, i: itens }) : "";
   const sujo = !!cab && retrato !== salvoComo;
@@ -197,6 +210,17 @@ export function EditorDeOrcamento({ id }: { id: string }) {
     setCab(c);
     setItens(dados.itens);
     setSalvoComo(JSON.stringify({ c, i: dados.itens }));
+    // O passo inicial vale só na primeira carga: depois de salvar o primeiro item o
+    // banco devolve itens e a tela não pode pular de passo sozinha.
+    setPassoEscolhido(
+      (atual) =>
+        atual ??
+        passoInicial({
+          itens: dados.itens.length,
+          somenteLeitura: dados.orcamento.status === "pedido_feito",
+          clientePreenchido: c.cliente_nome.trim() !== "" && c.titulo.trim() !== "",
+        }),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [servidor.data]);
 
@@ -238,6 +262,22 @@ export function EditorDeOrcamento({ id }: { id: string }) {
   const pedido = painel.pedidos.find((p) => p.orcamento_parceiro_id === id);
   const status = STATUS_DO_ORCAMENTO[cab.status] ?? STATUS_DO_ORCAMENTO.rascunho;
   const validade = validadeDoOrcamento(registro.created_at, cab.validade_dias);
+  const passo: PassoDoOrcamento = passoEscolhido ?? 2;
+  const estados = estadoDosPassos({
+    clienteNome: cab.cliente_nome,
+    titulo: cab.titulo,
+    itens: itens.length,
+    itensSemDescricao: itens.filter((i) => !i.descricao.trim()).length,
+    pendencias: resumo.pendencias.length,
+    vendaTotal: resumo.venda,
+    validadeDias: cab.validade_dias,
+    observacoes: cab.observacoes,
+  });
+  const irParaPasso = (p: PassoDoOrcamento) => {
+    setPassoEscolhido(p);
+    // Quem troca de passo no celular volta ao topo do passo, não ao meio da página.
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const mudarCab = (parcial: Partial<Cabecalho>) => setCab((atual) => (atual ? { ...atual, ...parcial } : atual));
   const mudarItem = (itemId: string, parcial: Partial<ItemEditavel>) =>
@@ -466,25 +506,110 @@ export function EditorDeOrcamento({ id }: { id: string }) {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-4 md:p-5">
-            <h2 className="font-semibold">Cliente e orçamento</h2>
-            <div className="grid gap-3 md:grid-cols-2">
-              <Campo rotulo="Nome do cliente" id="cli-nome">
-                <Input id="cli-nome" value={cab.cliente_nome} disabled={somenteLeitura} onChange={(e) => mudarCab({ cliente_nome: e.target.value })} />
-              </Campo>
-              <Campo rotulo="Do que se trata" id="orc-titulo">
-                <Input id="orc-titulo" value={cab.titulo} disabled={somenteLeitura} onChange={(e) => mudarCab({ titulo: e.target.value })} />
-              </Campo>
-              <Campo rotulo="Telefone do cliente" id="cli-tel">
-                <Input id="cli-tel" inputMode="tel" value={cab.cliente_telefone} disabled={somenteLeitura} onChange={(e) => mudarCab({ cliente_telefone: e.target.value })} />
-              </Campo>
-              <Campo rotulo="E-mail do cliente" id="cli-email">
-                <Input id="cli-email" type="email" value={cab.cliente_email} disabled={somenteLeitura} onChange={(e) => mudarCab({ cliente_email: e.target.value })} />
-              </Campo>
-              <Campo rotulo="CPF ou CNPJ do cliente" id="cli-doc">
-                <Input id="cli-doc" inputMode="numeric" value={cab.cliente_documento} disabled={somenteLeitura} onChange={(e) => mudarCab({ cliente_documento: e.target.value })} />
-              </Campo>
-              <Campo rotulo="Validade (dias)" id="orc-validade" ajuda={dicaCampo("/parceiro", "validade")}>
+          <BarraDePassosDoOrcamento atual={passo} estados={estados} onIr={irParaPasso} />
+
+          {passo === 1 && (
+            <section className="space-y-4 rounded-2xl border border-border bg-card p-4 md:p-5">
+              <PerguntaDoPasso passo={1} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Campo rotulo="Nome do cliente" id="cli-nome">
+                  <Input
+                    id="cli-nome"
+                    value={cab.cliente_nome}
+                    disabled={somenteLeitura}
+                    onChange={(e) => mudarCab({ cliente_nome: e.target.value })}
+                  />
+                </Campo>
+                <Campo rotulo="Do que se trata" id="orc-titulo">
+                  <Input
+                    id="orc-titulo"
+                    value={cab.titulo}
+                    disabled={somenteLeitura}
+                    onChange={(e) => mudarCab({ titulo: e.target.value })}
+                  />
+                </Campo>
+                <Campo rotulo="Telefone do cliente" id="cli-tel">
+                  <Input
+                    id="cli-tel"
+                    inputMode="tel"
+                    value={cab.cliente_telefone}
+                    disabled={somenteLeitura}
+                    onChange={(e) => mudarCab({ cliente_telefone: e.target.value })}
+                  />
+                </Campo>
+                <Campo rotulo="E-mail do cliente" id="cli-email">
+                  <Input
+                    id="cli-email"
+                    type="email"
+                    value={cab.cliente_email}
+                    disabled={somenteLeitura}
+                    onChange={(e) => mudarCab({ cliente_email: e.target.value })}
+                  />
+                </Campo>
+                <Campo rotulo="CPF ou CNPJ do cliente" id="cli-doc">
+                  <Input
+                    id="cli-doc"
+                    inputMode="numeric"
+                    value={cab.cliente_documento}
+                    disabled={somenteLeitura}
+                    onChange={(e) => mudarCab({ cliente_documento: e.target.value })}
+                  />
+                </Campo>
+              </div>
+            </section>
+          )}
+
+          {passo === 2 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <PerguntaDoPasso passo={2} />
+                <span className="shrink-0 text-sm text-muted-foreground">
+                  {itens.length} {itens.length === 1 ? "item" : "itens"}
+                  {resumo.area > 0 ? ` · ${resumo.area.toLocaleString("pt-BR")} m²` : ""}
+                </span>
+              </div>
+
+              {itens.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  Adicione o primeiro item. Escolha da sua tabela para ver quanto você paga e quanto
+                  ganha.
+                </div>
+              )}
+
+              {itens.map((item, indice) => (
+                <ItemCard
+                  key={item.id}
+                  indice={indice}
+                  item={item}
+                  produto={item.produto_id ? porProduto.get(item.produto_id) : undefined}
+                  catalogo={catalogo}
+                  somenteLeitura={somenteLeitura}
+                  onMudar={(parcial) => mudarItem(item.id, parcial)}
+                  onEscolherProduto={(p) => escolherProduto(item, p)}
+                  onRemover={() => setItens((lista) => lista.filter((i) => i.id !== item.id))}
+                />
+              ))}
+
+              {!somenteLeitura && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setItens((lista) => [...lista, itemVazio()])}
+                >
+                  <Plus className="mr-1 h-4 w-4" /> Adicionar item
+                </Button>
+              )}
+            </section>
+          )}
+
+          {passo === 3 && (
+            <section className="space-y-4 rounded-2xl border border-border bg-card p-4 md:p-5">
+              <PerguntaDoPasso passo={3} />
+              <Campo
+                rotulo="Validade (dias)"
+                id="orc-validade"
+                ajuda={dicaCampo("/parceiro", "validade")}
+              >
                 <Input
                   id="orc-validade"
                   type="number"
@@ -492,57 +617,49 @@ export function EditorDeOrcamento({ id }: { id: string }) {
                   max={90}
                   value={cab.validade_dias}
                   disabled={somenteLeitura}
+                  className="max-w-32"
                   onChange={(e) => mudarCab({ validade_dias: Number(e.target.value) })}
                 />
               </Campo>
-            </div>
-            <Campo rotulo="Observações para o cliente" id="orc-obs">
-              <Textarea
-                id="orc-obs"
-                rows={3}
-                value={cab.observacoes}
-                disabled={somenteLeitura}
-                placeholder="Prazo, forma de pagamento, o que está incluso… Sai no PDF."
-                onChange={(e) => mudarCab({ observacoes: e.target.value })}
-              />
-            </Campo>
-          </section>
+              <Campo rotulo="Observações para o cliente" id="orc-obs">
+                <Textarea
+                  id="orc-obs"
+                  rows={4}
+                  value={cab.observacoes}
+                  disabled={somenteLeitura}
+                  placeholder="Prazo, forma de pagamento, o que está incluso… Sai no PDF."
+                  onChange={(e) => mudarCab({ observacoes: e.target.value })}
+                />
+              </Campo>
+            </section>
+          )}
 
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold">Itens</h2>
-              <span className="text-sm text-muted-foreground">
-                {itens.length} {itens.length === 1 ? "item" : "itens"}
-                {resumo.area > 0 ? ` · ${resumo.area.toLocaleString("pt-BR")} m²` : ""}
-              </span>
-            </div>
+          {passo === 4 && (
+            <RevisaoDoOrcamento
+              cab={cab}
+              itens={itens}
+              porProduto={porProduto}
+              pendencias={resumo.pendencias}
+              validade={validade}
+              onEditar={irParaPasso}
+              somenteLeitura={somenteLeitura}
+            />
+          )}
 
-            {itens.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                Adicione o primeiro item. Escolha da sua tabela para ver quanto você paga e quanto ganha.
-              </div>
-            )}
-
-            {itens.map((item, indice) => (
-              <ItemCard
-                key={item.id}
-                indice={indice}
-                item={item}
-                produto={item.produto_id ? porProduto.get(item.produto_id) : undefined}
-                catalogo={catalogo}
-                somenteLeitura={somenteLeitura}
-                onMudar={(parcial) => mudarItem(item.id, parcial)}
-                onEscolherProduto={(p) => escolherProduto(item, p)}
-                onRemover={() => setItens((lista) => lista.filter((i) => i.id !== item.id))}
-              />
-            ))}
-
-            {!somenteLeitura && (
-              <Button variant="outline" className="w-full" onClick={() => setItens((lista) => [...lista, itemVazio()])}>
-                <Plus className="mr-1 h-4 w-4" /> Adicionar item
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => irParaPasso(passoAnterior(passo))}
+              disabled={passo === 1}
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+            </Button>
+            {!ehUltimo(passo) && (
+              <Button onClick={() => irParaPasso(passoSeguinte(passo))}>
+                {rotuloDoAvancar(passo)} <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             )}
-          </section>
+          </div>
         </div>
 
         <aside className="h-fit space-y-3 lg:sticky lg:top-28">
@@ -629,6 +746,130 @@ export function EditorDeOrcamento({ id }: { id: string }) {
         painel={painel}
       />
     </div>
+  );
+}
+
+function RevisaoDoOrcamento({
+  cab,
+  itens,
+  porProduto,
+  pendencias,
+  validade,
+  onEditar,
+  somenteLeitura,
+}: {
+  cab: Cabecalho;
+  itens: ItemEditavel[];
+  porProduto: Map<string, ItemDoCatalogo>;
+  pendencias: { indice: number; descricao: string; motivo: string }[];
+  validade: Date | null;
+  onEditar: (p: PassoDoOrcamento) => void;
+  somenteLeitura: boolean;
+}) {
+  const semDescricao = itens
+    .map((i, indice) => ({ i, indice }))
+    .filter(({ i }) => !i.descricao.trim());
+  const editar = (p: PassoDoOrcamento, rotulo: string) =>
+    somenteLeitura ? null : (
+      <Button variant="ghost" size="sm" onClick={() => onEditar(p)} aria-label={`Editar ${rotulo}`}>
+        <PenLine className="mr-1 h-3.5 w-3.5" /> Editar
+      </Button>
+    );
+
+  return (
+    <section className="space-y-4" data-testid="revisao-do-orcamento">
+      <PerguntaDoPasso passo={4} />
+
+      {(pendencias.length > 0 || semDescricao.length > 0) && (
+        <ul className="space-y-1 rounded-2xl border border-border bg-card p-4 text-sm text-[color:var(--bex-amber)]">
+          {semDescricao.map(({ indice }) => (
+            <li key={`sd-${indice}`} className="flex gap-1.5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> Item {indice + 1}: falta a
+              descrição.
+            </li>
+          ))}
+          {pendencias.map((p) => (
+            <li key={p.indice} className="flex gap-1.5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> Item {p.indice + 1}: {p.motivo}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold">Cliente</h3>
+          {editar(1, "o cliente")}
+        </div>
+        <p className="mt-1 font-medium">{cab.cliente_nome || "—"}</p>
+        <p className="text-sm text-muted-foreground">{cab.titulo || "Sem assunto"}</p>
+        <p className="text-sm text-muted-foreground">
+          {[cab.cliente_telefone, cab.cliente_email, cab.cliente_documento]
+            .filter((x) => x.trim())
+            .join(" · ") || "Sem telefone, e-mail ou documento"}
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold">Itens</h3>
+          {editar(2, "os itens")}
+        </div>
+        {itens.length === 0 ? (
+          <p className="mt-1 text-sm text-muted-foreground">Nenhum item ainda.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-border">
+            {itens.map((item, indice) => {
+              const venda = vendaDoItem(
+                item,
+                item.produto_id ? porProduto.get(item.produto_id) : undefined,
+              );
+              const medida =
+                item.largura && item.altura ? ` · ${item.largura} × ${item.altura} m` : "";
+              return (
+                <li key={item.id} className="flex items-start justify-between gap-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {indice + 1}. {item.descricao || "(sem descrição)"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.quantidade} {unidadeLegivel(item.unidade)}
+                      {medida}
+                      {item.acabamento ? ` · ${item.acabamento}` : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 tabular-nums">{brl(venda.total)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold">Condições</h3>
+          {editar(3, "as condições")}
+        </div>
+        <p className="mt-1 text-sm">
+          Vale {cab.validade_dias} {cab.validade_dias === 1 ? "dia" : "dias"}
+          {validade ? ` (até ${validade.toLocaleDateString("pt-BR")})` : ""}.
+        </p>
+        {cab.observacoes.trim() ? (
+          <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+            {cab.observacoes}
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">Sem observações para o cliente.</p>
+        )}
+      </div>
+
+      {!somenteLeitura && (
+        <p className="text-sm text-muted-foreground">
+          Tudo certo? Baixe o PDF para o cliente ou faça o pedido à gráfica nos botões do resumo.
+        </p>
+      )}
+    </section>
   );
 }
 
