@@ -1,98 +1,86 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Search, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, GitCompareArrows, LayoutGrid, Rows3, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { mensagemErro } from "@/lib/erros";
-import { dicaCampo, dicaTela } from "@/lib/dicas";
-import { Dica, DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
+import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { Carregando } from "@/components/bex/Carregando";
+import { Dica } from "@/components/bex/Dica";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { categoriaLabel } from "@/lib/produtos-catalogo";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CATEGORIAS, categoriaLabel } from "@/lib/produtos-catalogo";
+import { cn } from "@/lib/utils";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  lucroPorUnidade,
+  agruparPorCategoria,
+  composicaoMaisRecente,
+  custoCheio,
   margemSobreVenda,
-  MAX_CONCORRENTES,
-  posicaoNoMercado,
   precoDoParceiro,
-  sugestoesDePreco,
-  type Sugestao,
+  type Composicao,
 } from "@/domain/precos/tabela-de-precos";
+import { CartaoDoProduto, fichaDaLinha, PilulaDeMargem } from "@/components/precos/cartao-do-produto";
+import { FichaDoProduto, marcadoresDaLinha, pisoDaMargem, SeloDaFicha } from "@/components/precos/ficha-do-produto";
+import { BarraDeComparacao, LegendaDaBarra } from "@/components/precos/barra-de-comparacao";
+import { IconeDaCategoria, IconeDoProduto } from "@/components/precos/icone-do-produto";
+import { brl, pct, type Concorrente, type Linha, type LinhaDaReceita, type Produto } from "@/components/precos/tipos";
 
 export const Route = createFileRoute("/_authenticated/tabela-de-precos")({
   head: () => ({ meta: [{ title: "Tabela de preços — BEX PRINT OS" }] }),
   component: TabelaDePrecosPage,
 });
 
-type Produto = {
-  id: string;
-  nome: string;
-  categoria: string | null;
-  unidade: string;
-  custo_medio: number | null;
-  preco_base: number | null;
-  preco_parceiro: number | null;
-  ativo: boolean;
-  margem_minima: number | null;
-};
-type TipoDePreco = "final" | "parceiro";
-type Concorrente = {
-  id: string;
-  produto_id: string;
-  concorrente: string;
-  preco: number;
-  tipo_preco: TipoDePreco;
-  fonte: string | null;
-  coletado_em: string;
-};
-const ROTULO_DO_TIPO: Record<TipoDePreco, string> = { final: "venda final", parceiro: "terceirizado" };
+const MAX_COMPARAR = 4;
+type Base = "cadastro" | "cheio";
+type Ordem = "categoria" | "margem" | "preco" | "nome";
+type Atalho = "todos" | "abaixo" | "ficha" | "sem_concorrente" | "sem_foto";
 
-const brl = (n: number | null | undefined) =>
-  n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
-const sinal = (n: number) => `${n > 0 ? "+" : ""}${n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+const num = (v: unknown) => (v != null ? Number(v) : null);
 
 function TabelaDePrecosPage() {
+  const { hasRole } = useAuth();
+  const podeEditarFoto = hasRole("admin") || hasRole("gestor");
   const [busca, setBusca] = useState("");
-  const [editando, setEditando] = useState<Produto | null>(null);
   const [categoria, setCategoria] = useState("todas");
-  const [soSemConcorrente, setSoSemConcorrente] = useState(false);
-  const [soAbaixoDoMinimo, setSoAbaixoDoMinimo] = useState(false);
+  const [atalho, setAtalho] = useState<Atalho>("todos");
+  const [base, setBase] = useState<Base>("cadastro");
+  const [ordem, setOrdem] = useState<Ordem>("categoria");
+  const [vista, setVista] = useState<"cartoes" | "tabela">("cartoes");
+  const [recolhidas, setRecolhidas] = useState<Set<string>>(new Set());
+  const [aberto, setAberto] = useState<string | null>(null);
+  const [comparar, setComparar] = useState<string[]>([]);
+  const [comparando, setComparando] = useState(false);
 
   const produtos = useQuery({
     queryKey: ["tabela-precos", "produtos"],
     queryFn: async (): Promise<Produto[]> => {
       const { data, error } = await fromFinancialView("produtos", "financeiro")
-        .select("id, nome, categoria, unidade, ativo, custo_medio, margem_minima, preco_base, preco_parceiro")
+        .select("id, nome, categoria, tipo, unidade, ativo, custo_medio, margem_minima, preco_base, preco_parceiro, imagem_url, tempo_producao_min, maquina_padrao_id")
         .order("ativo", { ascending: false })
         .order("categoria")
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as Produto[];
+      return ((data ?? []) as any[]).map((p) => ({
+        ...p,
+        custo_medio: num(p.custo_medio),
+        preco_base: num(p.preco_base),
+        preco_parceiro: num(p.preco_parceiro),
+        margem_minima: num(p.margem_minima),
+        tempo_producao_min: num(p.tempo_producao_min),
+      })) as Produto[];
     },
   });
   const niveis = useQuery({
     queryKey: ["tabela-precos", "nivel-de-entrada"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("parceiro_niveis")
-        .select("nome, desconto_pct, ordem")
-        .order("ordem");
+      const { data, error } = await (supabase as any).from("parceiro_niveis").select("nome, desconto_pct, ordem").order("ordem");
       if (error) throw error;
       // O nível de entrada é o de menor ordem (são 4 linhas; não precisa de limit).
       return ((data ?? [])[0] ?? null) as { nome: string; desconto_pct: number } | null;
@@ -132,68 +120,223 @@ function TabelaDePrecosPage() {
       return (data ?? []).map((c: Concorrente) => ({ ...c, preco: Number(c.preco) }));
     },
   });
-
-  const porProduto = useMemo(() => {
-    const mapa = new Map<string, Concorrente[]>();
-    for (const c of concorrentes.data ?? []) mapa.set(c.produto_id, [...(mapa.get(c.produto_id) ?? []), c]);
-    return mapa;
-  }, [concorrentes.data]);
+  // Composição do custo (matéria-prima + máquina + mão de obra + indireto), mantida pelo banco.
+  const composicoes = useQuery({
+    queryKey: ["tabela-precos", "composicao"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_precificacao")
+        .select("produto_id, custo_material, custo_maquina, custo_mao_obra, custo_indireto, updated_at");
+      if (error) throw error;
+      const recentes = composicaoMaisRecente((data ?? []) as Array<{ produto_id: string; updated_at: string } & Record<string, unknown>>);
+      const mapa = new Map<string, Composicao>();
+      for (const [id, l] of recentes) {
+        mapa.set(id, {
+          material: Number(l.custo_material ?? 0),
+          maquina: Number(l.custo_maquina ?? 0),
+          maoDeObra: Number(l.custo_mao_obra ?? 0),
+          indireto: Number(l.custo_indireto ?? 0),
+        });
+      }
+      return mapa;
+    },
+  });
+  // Receita (matéria-prima por unidade vendida) de cada produto.
+  const receitas = useQuery({
+    queryKey: ["tabela-precos", "receitas"],
+    queryFn: async () => {
+      const [pm, mt] = await Promise.all([
+        (supabase as any).from("produto_materiais").select("produto_id, material_id, quantidade_por_unidade"),
+        fromFinancialView("materiais", "financeiro").select("id, nome, unidade, custo_medio, custo_unitario"),
+      ]);
+      if (pm.error) throw pm.error;
+      if (mt.error) throw mt.error;
+      const materiais = new Map<string, { nome: string; unidade: string; custo: number }>();
+      for (const m of (mt.data ?? []) as any[]) {
+        materiais.set(m.id, { nome: m.nome, unidade: m.unidade, custo: Number(m.custo_medio ?? m.custo_unitario ?? 0) });
+      }
+      const mapa = new Map<string, LinhaDaReceita[]>();
+      for (const r of pm.data ?? []) {
+        const m = materiais.get(r.material_id);
+        if (!m) continue;
+        const item: LinhaDaReceita = { material: m.nome, unidade: m.unidade, quantidade: Number(r.quantidade_por_unidade), custoUnitario: m.custo };
+        mapa.set(r.produto_id, [...(mapa.get(r.produto_id) ?? []), item]);
+      }
+      return mapa;
+    },
+  });
 
   const descontoDoNivel = niveis.data ? Number(niveis.data.desconto_pct) : null;
+
+  const todas = useMemo<Linha[]>(() => {
+    const porProduto = new Map<string, Concorrente[]>();
+    for (const c of concorrentes.data ?? []) porProduto.set(c.produto_id, [...(porProduto.get(c.produto_id) ?? []), c]);
+    return (produtos.data ?? []).map((p) => {
+      const composicao = composicoes.data?.get(p.id) ?? null;
+      const cheio = custoCheio(composicao);
+      const custo = p.custo_medio;
+      return {
+        produto: p,
+        custo,
+        cheio,
+        composicao,
+        custoBase: base === "cheio" ? (cheio ?? custo) : custo,
+        receita: receitas.data?.get(p.id) ?? [],
+        venda: p.preco_base,
+        parceiro: precoDoParceiro({ precoParceiro: p.preco_parceiro, precoBase: p.preco_base, descontoDoNivelPct: descontoDoNivel }),
+        promocao: ofertas.data?.get(p.id) ?? null,
+        concorrentes: porProduto.get(p.id) ?? [],
+      };
+    });
+  }, [produtos.data, composicoes.data, receitas.data, concorrentes.data, ofertas.data, descontoDoNivel, base]);
+
+  const abaixoDoMinimo = (l: Linha) => {
+    const min = l.produto.margem_minima;
+    if (min == null) return false;
+    return [margemSobreVenda(l.venda, l.custoBase), margemSobreVenda(l.parceiro?.valor ?? null, l.custoBase)].some((m) => m != null && m < min);
+  };
+
+  const resumo = useMemo(
+    () => ({
+      total: todas.length,
+      abaixo: todas.filter(abaixoDoMinimo).length,
+      ficha: todas.filter((l) => fichaDaLinha(l).nivel !== "completa").length,
+      semConcorrente: todas.filter((l) => l.concorrentes.length === 0).length,
+      semFoto: todas.filter((l) => !l.produto.imagem_url).length,
+    }),
+    [todas], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const contagemPorCategoria = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of todas) m.set(l.produto.categoria ?? "outros", (m.get(l.produto.categoria ?? "outros") ?? 0) + 1);
+    return m;
+  }, [todas]);
+
   const termo = busca.trim().toLowerCase();
-  const categorias = [...new Set((produtos.data ?? []).map((p) => p.categoria).filter((c): c is string => !!c))].sort();
-  const linhas = (produtos.data ?? []).filter((p) => {
-    if (termo && !`${p.nome} ${p.categoria ?? ""}`.toLowerCase().includes(termo)) return false;
-    if (categoria !== "todas" && p.categoria !== categoria) return false;
-    const lista = porProduto.get(p.id) ?? [];
-    if (soSemConcorrente && lista.length > 0) return false;
-    if (soAbaixoDoMinimo) {
-      const custo = p.custo_medio != null ? Number(p.custo_medio) : null;
-      const minimo = p.margem_minima != null ? Number(p.margem_minima) : null;
-      const venda = p.preco_base != null ? Number(p.preco_base) : null;
-      const parc = precoDoParceiro({
-        precoParceiro: p.preco_parceiro != null ? Number(p.preco_parceiro) : null,
-        precoBase: venda,
-        descontoDoNivelPct: descontoDoNivel,
-      });
-      const m = [margemSobreVenda(venda, custo), margemSobreVenda(parc?.valor ?? null, custo)].filter((x): x is number => x != null);
-      if (minimo == null || !m.some((x) => x < minimo)) return false;
-    }
+  const linhas = todas.filter((l) => {
+    const p = l.produto;
+    if (termo && !`${p.nome} ${p.categoria ?? ""} ${p.categoria ? categoriaLabel(p.categoria) : ""}`.toLowerCase().includes(termo)) return false;
+    if (categoria !== "todas" && (p.categoria ?? "outros") !== categoria) return false;
+    if (atalho === "abaixo" && !abaixoDoMinimo(l)) return false;
+    if (atalho === "ficha" && fichaDaLinha(l).nivel === "completa") return false;
+    if (atalho === "sem_concorrente" && l.concorrentes.length > 0) return false;
+    if (atalho === "sem_foto" && p.imagem_url) return false;
     return true;
   });
-  const erro = produtos.error ?? niveis.error ?? concorrentes.error ?? ofertas.error;
+
+  const ordenadas = useMemo(() => {
+    if (ordem === "categoria") return linhas;
+    const margem = (l: Linha) => margemSobreVenda(l.venda, l.custoBase) ?? Number.POSITIVE_INFINITY;
+    const copia = [...linhas];
+    if (ordem === "margem") copia.sort((a, b) => margem(a) - margem(b));
+    if (ordem === "preco") copia.sort((a, b) => (b.venda ?? 0) - (a.venda ?? 0));
+    if (ordem === "nome") copia.sort((a, b) => a.produto.nome.localeCompare(b.produto.nome, "pt-BR"));
+    return copia;
+  }, [linhas, ordem]);
+
+  const grupos = ordem === "categoria"
+    ? agruparPorCategoria(ordenadas.map((l) => ({ ...l, categoria: l.produto.categoria })), CATEGORIAS.map((c) => c.value))
+    : [{ categoria: "", itens: ordenadas.map((l) => ({ ...l, categoria: l.produto.categoria })) }];
+
+  const erro = produtos.error ?? niveis.error ?? concorrentes.error ?? ofertas.error ?? composicoes.error ?? receitas.error;
+  const carregando = produtos.isLoading;
+  const linhaAberta = aberto ? todas.find((l) => l.produto.id === aberto) ?? null : null;
+  const selecionadas = comparar.map((id) => todas.find((l) => l.produto.id === id)).filter((l): l is Linha => !!l);
+
+  const alternar = (id: string, v: boolean) => setComparar((atual) => (v ? [...atual, id].slice(0, MAX_COMPARAR) : atual.filter((x) => x !== id)));
+  const alternarGrupo = (c: string) =>
+    setRecolhidas((s) => {
+      const n = new Set(s);
+      n.has(c) ? n.delete(c) : n.add(c);
+      return n;
+    });
+
+  const Atalhos: Array<{ id: Atalho; rotulo: string; n: number; alerta?: boolean }> = [
+    { id: "todos", rotulo: "Todos os produtos", n: resumo.total },
+    { id: "abaixo", rotulo: "Margem abaixo do mínimo", n: resumo.abaixo, alerta: true },
+    { id: "ficha", rotulo: "Ficha técnica incompleta", n: resumo.ficha, alerta: true },
+    { id: "sem_concorrente", rotulo: "Sem concorrente anotado", n: resumo.semConcorrente },
+    { id: "sem_foto", rotulo: "Sem foto", n: resumo.semFoto },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-5", comparar.length > 0 && "pb-24")}>
       <SectionHeader
         ajuda={dicaTela("/tabela-de-precos")}
         breadcrumb="Preço e custo"
         title="Tabela de preços"
-        description="Custo, venda final, venda para parceiro, lucro e o preço de 2 a 3 concorrentes, produto a produto. Tudo por unidade de venda (m², unidade…)."
+        description="Cada produto com custo, venda final, preço de parceiro, margem e a posição frente aos concorrentes — numa régua só."
       />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-56 max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto ou categoria" className="pl-9" />
-        </div>
-        <Select value={categoria} onValueChange={setCategoria}>
-          <SelectTrigger className="w-52" aria-label="Categoria">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as categorias</SelectItem>
-            {categorias.map((c) => (
-              <SelectItem key={c} value={c}>{categoriaLabel(c)}</SelectItem>
+      {/* resumo que também filtra */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+        {Atalhos.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            aria-pressed={atalho === a.id}
+            onClick={() => setAtalho(a.id)}
+            className={cn(
+              "rounded-xl border bg-card p-3 text-left transition-colors hover:bg-muted/50",
+              atalho === a.id ? "border-primary ring-1 ring-primary" : "border-border",
+            )}
+          >
+            <div className={cn("text-2xl font-semibold tabular-nums", a.alerta && a.n > 0 && "text-destructive")}>{carregando ? "…" : a.n}</div>
+            <div className="text-xs text-muted-foreground">{a.rotulo}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* barra de ferramentas */}
+      <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-56 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto ou categoria" className="pl-9" aria-label="Buscar produto" />
+          </div>
+          <Select value={ordem} onValueChange={(v) => setOrdem(v as Ordem)}>
+            <SelectTrigger className="w-48" aria-label="Ordenar por">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="categoria">Agrupar por categoria</SelectItem>
+              <SelectItem value="margem">Menor margem primeiro</SelectItem>
+              <SelectItem value="preco">Maior preço primeiro</SelectItem>
+              <SelectItem value="nome">Nome (A–Z)</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label="Base do custo">
+            {(["cadastro", "cheio"] as const).map((b) => (
+              <Dica key={b} texto={b === "cheio" ? "Matéria-prima + máquina + mão de obra + indireto." : "O custo digitado no cadastro do produto (o que o orçamento usa)."}>
+                <button
+                  type="button"
+                  aria-pressed={base === b}
+                  onClick={() => setBase(b)}
+                  className={cn("px-3 py-2 text-xs", base === b ? "bg-primary/15 font-semibold" : "text-muted-foreground hover:bg-muted")}
+                >
+                  Custo {b === "cheio" ? "cheio" : "do cadastro"}
+                </button>
+              </Dica>
             ))}
-          </SelectContent>
-        </Select>
-        <Button size="sm" variant={soSemConcorrente ? "default" : "outline"} aria-pressed={soSemConcorrente} onClick={() => setSoSemConcorrente((v) => !v)}>
-          Sem concorrente anotado
-        </Button>
-        <Button size="sm" variant={soAbaixoDoMinimo ? "default" : "outline"} aria-pressed={soAbaixoDoMinimo} onClick={() => setSoAbaixoDoMinimo((v) => !v)}>
-          Margem abaixo do mínimo
-        </Button>
+          </div>
+          <div className="inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label="Forma de exibição">
+            <button type="button" aria-pressed={vista === "cartoes"} aria-label="Cartões" onClick={() => setVista("cartoes")} className={cn("px-2.5 py-2", vista === "cartoes" ? "bg-primary/15" : "text-muted-foreground hover:bg-muted")}>
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button type="button" aria-pressed={vista === "tabela"} aria-label="Tabela" onClick={() => setVista("tabela")} className={cn("px-2.5 py-2", vista === "tabela" ? "bg-primary/15" : "text-muted-foreground hover:bg-muted")}>
+              <Rows3 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="group" aria-label="Categorias">
+          <ChipDeCategoria ativo={categoria === "todas"} onClick={() => setCategoria("todas")} rotulo="Todas" n={todas.length} />
+          {CATEGORIAS.filter((c) => contagemPorCategoria.has(c.value)).map((c) => (
+            <ChipDeCategoria key={c.value} ativo={categoria === c.value} onClick={() => setCategoria(c.value)} rotulo={c.label} n={contagemPorCategoria.get(c.value) ?? 0} categoria={c.value} />
+          ))}
+        </div>
+        <LegendaDaBarra />
       </div>
 
       {erro && (
@@ -201,311 +344,198 @@ function TabelaDePrecosPage() {
           Não consegui carregar a tabela: {mensagemErro(erro)}
         </p>
       )}
+      {carregando && <Carregando linhas={6} />}
+      {!carregando && !erro && ordenadas.length === 0 && (
+        <p className="rounded-xl border border-dashed border-border py-10 text-center text-muted-foreground">Nenhum produto encontrado com esses filtros.</p>
+      )}
 
-      <Card>
-        <CardContent className="overflow-x-auto p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Produto</TableHead>
-                <Cab campo="custo" className="text-right">Custo</Cab>
-                <Cab campo="venda_final" className="text-right">Venda final</Cab>
-                <Cab campo="lucro" className="text-right">Lucro (final)</Cab>
-                <Cab campo="venda_parceiro" className="text-right">
-                  Venda parceiro{niveis.data ? ` (${niveis.data.nome})` : ""}
-                </Cab>
-                <Cab campo="lucro" className="text-right">Lucro (parceiro)</Cab>
-                <Cab campo="concorrentes">Concorrentes</Cab>
-                <Cab campo="nos_x_mercado" className="text-right">Nós × mercado</Cab>
-                <Cab campo="sugestao">Sugestão</Cab>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {produtos.isLoading && (
-                <TableRow><TableCell colSpan={9} className="py-10 text-center text-muted-foreground">Carregando…</TableCell></TableRow>
-              )}
-              {!produtos.isLoading && !erro && linhas.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="py-10 text-center text-muted-foreground">Nenhum produto encontrado.</TableCell></TableRow>
-              )}
-              {linhas.map((p) => {
-                const custo = p.custo_medio != null ? Number(p.custo_medio) : null;
-                const venda = p.preco_base != null ? Number(p.preco_base) : null;
-                const parceiro = precoDoParceiro({
-                  precoParceiro: p.preco_parceiro != null ? Number(p.preco_parceiro) : null,
-                  precoBase: venda,
-                  descontoDoNivelPct: descontoDoNivel,
-                });
-                const lucroF = lucroPorUnidade(venda, custo);
-                const lucroP = lucroPorUnidade(parceiro?.valor ?? null, custo);
-                const margemF = margemSobreVenda(venda, custo);
-                const margemP = margemSobreVenda(parceiro?.valor ?? null, custo);
-                const lista = porProduto.get(p.id) ?? [];
-                // Compara só o que é do mesmo tipo: terceirizado deles × parceiro nosso; final × final.
-                const mercadoFinal = posicaoNoMercado(venda, lista.filter((c) => c.tipo_preco === "final").map((c) => c.preco));
-                const mercadoParceiro = posicaoNoMercado(
-                  parceiro?.valor ?? null,
-                  lista.filter((c) => c.tipo_preco === "parceiro").map((c) => c.preco),
-                );
-                const margemMinima = p.margem_minima != null ? Number(p.margem_minima) : null;
-                const menorDoTipo = (t: TipoDePreco) => {
-                  const v = lista.filter((c) => c.tipo_preco === t).map((c) => c.preco);
-                  return v.length ? Math.min(...v) : null;
-                };
-                const sugParceiro = sugestoesDePreco({ custo, margemMinimaPct: margemMinima, menorConcorrente: menorDoTipo("parceiro") });
-                const sugFinal = menorDoTipo("final") != null
-                  ? sugestoesDePreco({ custo, margemMinimaPct: margemMinima, menorConcorrente: menorDoTipo("final") })
-                  : [];
-                return (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      <div className="font-medium">{p.nome}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {p.categoria ?? "sem categoria"} · por {p.unidade}
-                        {!p.ativo && <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">só comparação</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">{brl(custo)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {venda != null ? brl(venda) : <span className="text-xs text-muted-foreground">por faixa</span>}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      <Lucro valor={lucroF} margem={margemF} />
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {ofertas.data?.get(p.id) && (
-                        <Badge className="mb-1 h-4 px-1 text-[10px]">
-                          Promoção {brl(ofertas.data.get(p.id)!.preco)}
-                        </Badge>
-                      )}
-                      {parceiro ? (
-                        <>
-                          {brl(parceiro.valor)}
-                          {parceiro.origem === "nivel" && <div className="text-[10px] text-muted-foreground">pelo nível</div>}
-                        </>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      <Lucro valor={lucroP} margem={margemP} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {lista.map((c) => (
-                          <Badge key={c.id} variant="outline" className="font-normal">
-                            {c.concorrente} ({ROTULO_DO_TIPO[c.tipo_preco]}): <span className="ml-1 font-mono">{brl(c.preco)}</span>
-                          </Badge>
-                        ))}
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditando(p)}>
-                          <Pencil className="mr-1 h-3 w-3" aria-hidden />
-                          {lista.length ? "Editar" : "Anotar"}
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right text-xs">
-                      {!mercadoFinal && !mercadoParceiro && <span className="text-muted-foreground">sem concorrente</span>}
-                      {mercadoParceiro && (
-                        <div>
-                          <span className="text-muted-foreground">parceiro: </span>
-                          <strong>{sinal(mercadoParceiro.contraOMenorPct)}</strong>
-                          <span className="text-muted-foreground"> vs menor · {sinal(mercadoParceiro.contraAMediaPct)} vs média</span>
-                        </div>
-                      )}
-                      {mercadoFinal && (
-                        <div>
-                          <span className="text-muted-foreground">final: </span>
-                          <strong>{sinal(mercadoFinal.contraOMenorPct)}</strong>
-                          <span className="text-muted-foreground"> vs menor · {sinal(mercadoFinal.contraAMediaPct)} vs média</span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="min-w-44 text-xs">
-                      <Sugestoes titulo="parceiro" itens={sugParceiro} />
-                      <Sugestoes titulo="final" itens={sugFinal} />
-                      {sugParceiro.length === 0 && sugFinal.length === 0 && <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {grupos.map((g) => {
+        const fechado = g.categoria !== "" && recolhidas.has(g.categoria);
+        return (
+          <section key={g.categoria || "todos"} className="space-y-2">
+            {g.categoria !== "" && (
+              <button
+                type="button"
+                aria-expanded={!fechado}
+                onClick={() => alternarGrupo(g.categoria)}
+                className="flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left hover:bg-muted/50"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <IconeDaCategoria categoria={g.categoria} className="h-4 w-4" />
+                </span>
+                <h2 className="text-base font-semibold">{categoriaLabel(g.categoria)}</h2>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{g.itens.length}</span>
+                <ChevronDown className={cn("ml-auto h-4 w-4 text-muted-foreground transition-transform", fechado && "-rotate-90")} aria-hidden />
+              </button>
+            )}
+            {!fechado &&
+              (vista === "cartoes" ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {g.itens.map((l) => (
+                    <CartaoDoProduto
+                      key={l.produto.id}
+                      linha={l}
+                      selecionado={comparar.includes(l.produto.id)}
+                      podeSelecionar={comparar.length < MAX_COMPARAR}
+                      aoSelecionar={(v) => alternar(l.produto.id, v)}
+                      aoAbrir={() => setAberto(l.produto.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <TabelaCompacta linhas={g.itens} aoAbrir={setAberto} />
+              ))}
+          </section>
+        );
+      })}
 
       <p className="text-xs text-muted-foreground">
-        Cada preço de concorrente é marcado como "venda final" ou "terceirizado" e só se compara com o nosso do mesmo tipo (a tabela do Concorrente 1 é de terceirizados). Margem é sobre a venda (lucro ÷ preço). Venda parceiro é o preço do cadastro do produto; sem ele, o do nível de
-        entrada do programa. Promoção do programa de parceiros em vigor aparece na coluna de parceiro. Produto vendido por faixa de quantidade mostra "por faixa" — o preço de cada faixa está em
-        Produtos.
+        Margem é sobre a venda (lucro ÷ preço). "Custo do cadastro" é o que o orçamento usa; "custo cheio" soma matéria-prima da receita, máquina, mão de obra e rateio indireto — é a margem de verdade.
+        Concorrente de venda final só se compara com a nossa venda final; terceirizado com o nosso preço de parceiro. Produto vendido por faixa mostra "por faixa": o preço de cada faixa está em Produtos.
       </p>
 
-      <ConcorrentesDialog produto={editando} atuais={editando ? porProduto.get(editando.id) ?? [] : []} onClose={() => setEditando(null)} />
-    </div>
-  );
-}
-
-function Cab({ campo, className, children }: { campo: string; className?: string; children: React.ReactNode }) {
-  return (
-    <TableHead className={className}>
-      <span className="inline-flex items-center gap-1">
-        {children}
-        <DicaIcone texto={dicaCampo("/tabela-de-precos", campo)} rotulo={campo.replace(/_/g, " ")} className="h-4 w-4" />
-      </span>
-    </TableHead>
-  );
-}
-
-/** Os caminhos de preço, cada um com a conta na dica; vermelho quando fura a margem mínima. */
-function Sugestoes({ titulo, itens }: { titulo: string; itens: Sugestao[] }) {
-  if (itens.length === 0) return null;
-  return (
-    <div className="mb-1.5 last:mb-0">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{titulo}</div>
-      <ul className="space-y-0.5">
-        {itens.map((s) => (
-          <li key={s.chave}>
-            <Dica texto={s.conta + (s.abaixoDoMinimo ? " ATENÇÃO: abaixo da margem mínima do produto." : "")} lado="left">
-              <span className={s.abaixoDoMinimo ? "text-destructive" : undefined}>
-                {s.rotulo}: <strong className="font-mono">{brl(s.preco)}</strong>{" "}
-                <span className="text-muted-foreground">({pct(s.margem)})</span>
-              </span>
-            </Dica>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Lucro({ valor, margem }: { valor: number | null; margem: number | null }) {
-  if (valor == null) return <>—</>;
-  const ruim = valor < 0;
-  return (
-    <span className={ruim ? "text-destructive" : undefined}>
-      {brl(valor)}
-      <div className="text-[10px] text-muted-foreground">{pct(margem)}</div>
-    </span>
-  );
-}
-
-function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | null; atuais: Concorrente[]; onClose: () => void }) {
-  const qc = useQueryClient();
-  const [nome, setNome] = useState("");
-  const [preco, setPreco] = useState("");
-  const [fonte, setFonte] = useState("");
-  const [tipo, setTipo] = useState<TipoDePreco>("parceiro");
-
-  const invalidar = () => qc.invalidateQueries({ queryKey: ["tabela-precos", "concorrentes"] });
-
-  const adicionar = useMutation({
-    mutationFn: async () => {
-      if (!produto) return;
-      const valor = Number(preco.replace(",", "."));
-      if (!nome.trim()) throw new Error("Diga o nome do concorrente.");
-      if (!Number.isFinite(valor) || valor <= 0) throw new Error("Informe o preço do concorrente.");
-      const { error } = await (supabase as any).from("produto_concorrentes").insert({
-        produto_id: produto.id,
-        concorrente: nome.trim(),
-        preco: valor,
-        tipo_preco: tipo,
-        fonte: fonte.trim() || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setNome("");
-      setPreco("");
-      setFonte("");
-      void invalidar();
-      toast.success("Concorrente anotado");
-    },
-    onError: (e) => toast.error(/duplicate|unique/i.test(String((e as Error).message)) ? "Esse concorrente já está anotado neste produto." : mensagemErro(e)),
-  });
-
-  const remover = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("produto_concorrentes").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      void invalidar();
-      toast.success("Removido");
-    },
-    onError: (e) => toast.error(mensagemErro(e)),
-  });
-
-  const cheio = atuais.filter((c) => c.tipo_preco === tipo).length >= MAX_CONCORRENTES;
-
-  return (
-    <Dialog open={!!produto} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Concorrentes — {produto?.nome}</DialogTitle>
-          <DialogDescription>
-            Preço praticado por unidade ({produto?.unidade}). Até {MAX_CONCORRENTES} de cada tipo (venda final ou terceirizado). Anote onde viu (site,
-            orçamento, loja) para saber a data e a origem depois.
-          </DialogDescription>
-        </DialogHeader>
-
-        <ul className="space-y-1.5">
-          {atuais.length === 0 && <li className="text-sm text-muted-foreground">Nenhum concorrente anotado.</li>}
-          {atuais.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
-              <div className="min-w-0">
-                <strong>{c.concorrente}</strong> <span className="font-mono">{brl(c.preco)}</span>{" "}
-                <span className="text-xs text-muted-foreground">({ROTULO_DO_TIPO[c.tipo_preco]})</span>
-                <div className="truncate text-xs text-muted-foreground">
-                  {[c.fonte, new Date(c.coletado_em + "T12:00:00").toLocaleDateString("pt-BR")].filter(Boolean).join(" · ")}
-                </div>
-              </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label={`Remover ${c.concorrente}`}
-                onClick={() => remover.mutate(c.id)}
-                disabled={remover.isPending}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-
-        {cheio ? (
-          <p className="text-xs text-muted-foreground">Já são {MAX_CONCORRENTES} de {ROTULO_DO_TIPO[tipo]}. Remova um para anotar outro.</p>
-        ) : (
-          <form
-            className="grid grid-cols-2 gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              adicionar.mutate();
-            }}
-          >
-            <div className="col-span-2 inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label="Tipo do preço">
-              {(["parceiro", "final"] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  aria-pressed={tipo === t}
-                  onClick={() => setTipo(t)}
-                  className={`flex-1 px-3 py-1.5 text-xs ${tipo === t ? "bg-primary/15 font-semibold" : "text-muted-foreground hover:bg-muted"}`}
-                >
-                  Preço de {ROTULO_DO_TIPO[t]}
-                </button>
+      {comparar.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 p-3 shadow-lg backdrop-blur md:left-[var(--sidebar-width,0px)]">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">{comparar.length} de {MAX_COMPARAR} para comparar</span>
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+              {selecionadas.map((l) => (
+                <span key={l.produto.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs">
+                  {l.produto.nome}
+                  <button type="button" aria-label={`Tirar ${l.produto.nome}`} onClick={() => alternar(l.produto.id, false)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
               ))}
             </div>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Concorrente" aria-label="Nome do concorrente" />
-            <Input value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="Preço (R$)" inputMode="decimal" aria-label="Preço do concorrente" />
-            <Input className="col-span-2" value={fonte} onChange={(e) => setFonte(e.target.value)} placeholder="Onde viu (opcional)" aria-label="Fonte do preço" />
-            <Button type="submit" className="col-span-2" disabled={adicionar.isPending}>
-              Anotar concorrente
+            <Button size="sm" variant="ghost" onClick={() => setComparar([])}>Limpar</Button>
+            <Button size="sm" disabled={comparar.length < 2} onClick={() => setComparando(true)}>
+              <GitCompareArrows className="mr-1.5 h-4 w-4" /> Comparar
             </Button>
-          </form>
-        )}
+          </div>
+        </div>
+      )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Fechar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <Dialog open={comparando} onOpenChange={setComparando}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Comparar produtos</DialogTitle>
+            <DialogDescription>Lado a lado, com o custo {base === "cheio" ? "cheio" : "do cadastro"}. A régua usa a mesma escala dentro de cada produto.</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-36" />
+                  {selecionadas.map((l) => (
+                    <TableHead key={l.produto.id} className="min-w-44 align-top">
+                      <div className="flex items-center gap-2">
+                        <IconeDoProduto imagem={l.produto.imagem_url} categoria={l.produto.categoria} nome={l.produto.nome} tamanho="sm" />
+                        <span className="line-clamp-2 text-foreground">{l.produto.nome}</span>
+                      </div>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(
+                  [
+                    ["Unidade", (l: Linha) => l.produto.unidade],
+                    ["Custo", (l: Linha) => brl(l.custoBase)],
+                    ["Venda final", (l: Linha) => (l.venda != null ? brl(l.venda) : "por faixa")],
+                    ["Margem final", (l: Linha) => <PilulaDeMargem margem={margemSobreVenda(l.venda, l.custoBase)} minimo={l.produto.margem_minima} rotulo="" />],
+                    ["Parceiro", (l: Linha) => brl(l.parceiro?.valor ?? null)],
+                    ["Margem parceiro", (l: Linha) => <PilulaDeMargem margem={margemSobreVenda(l.parceiro?.valor ?? null, l.custoBase)} minimo={l.produto.margem_minima} rotulo="" />],
+                    ["Margem mínima", (l: Linha) => pct(l.produto.margem_minima)],
+                    ["Menor concorrente", (l: Linha) => (l.concorrentes.length ? brl(Math.min(...l.concorrentes.map((c) => c.preco))) : "—")],
+                    ["Ficha técnica", (l: Linha) => <SeloDaFicha nivel={fichaDaLinha(l).nivel} />],
+                  ] as Array<[string, (l: Linha) => React.ReactNode]>
+                ).map(([titulo, f]) => (
+                  <TableRow key={titulo}>
+                    <TableCell className="font-medium text-muted-foreground">{titulo}</TableCell>
+                    {selecionadas.map((l) => (
+                      <TableCell key={l.produto.id} className="font-mono text-sm">{f(l)}</TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                <TableRow>
+                  <TableCell className="font-medium text-muted-foreground">Régua</TableCell>
+                  {selecionadas.map((l) => (
+                    <TableCell key={l.produto.id}>
+                      <BarraDeComparacao marcadores={marcadoresDaLinha(l, pisoDaMargem(l.custoBase, l.produto.margem_minima))} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <FichaDoProduto linha={linhaAberta} nomeDoNivel={niveis.data?.nome ?? null} podeEditarFoto={podeEditarFoto} aoFechar={() => setAberto(null)} />
+    </div>
+  );
+}
+
+function ChipDeCategoria({ ativo, onClick, rotulo, n, categoria }: { ativo: boolean; onClick: () => void; rotulo: string; n: number; categoria?: string }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={ativo}
+      onClick={onClick}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors",
+        ativo ? "border-primary bg-primary/15 font-semibold" : "border-border text-muted-foreground hover:bg-muted",
+      )}
+    >
+      {categoria && <IconeDaCategoria categoria={categoria} className="h-3.5 w-3.5" />}
+      {rotulo}
+      <span className="rounded-full bg-background/70 px-1.5 text-[10px]">{n}</span>
+    </button>
+  );
+}
+
+function TabelaCompacta({ linhas, aoAbrir }: { linhas: Linha[]; aoAbrir: (id: string) => void }) {
+  return (
+    <Card>
+      <CardContent className="overflow-x-auto p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Produto</TableHead>
+              <TableHead className="text-right">Custo</TableHead>
+              <TableHead className="text-right">Venda final</TableHead>
+              <TableHead>Margem final</TableHead>
+              <TableHead className="text-right">Parceiro</TableHead>
+              <TableHead>Margem parceiro</TableHead>
+              <TableHead className="min-w-52">Régua</TableHead>
+              <TableHead>Ficha</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {linhas.map((l) => (
+              <TableRow key={l.produto.id} className="cursor-pointer" onClick={() => aoAbrir(l.produto.id)}>
+                <TableCell>
+                  <div className="flex items-center gap-2.5">
+                    <IconeDoProduto imagem={l.produto.imagem_url} categoria={l.produto.categoria} nome={l.produto.nome} tamanho="sm" />
+                    <div className="min-w-0">
+                      <div className="font-medium">{l.produto.nome}</div>
+                      <div className="text-xs text-muted-foreground">por {l.produto.unidade}</div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-mono text-sm">{brl(l.custoBase)}</TableCell>
+                <TableCell className="text-right font-mono text-sm">{l.venda != null ? brl(l.venda) : <span className="text-xs text-muted-foreground">por faixa</span>}</TableCell>
+                <TableCell><PilulaDeMargem margem={margemSobreVenda(l.venda, l.custoBase)} minimo={l.produto.margem_minima} rotulo="" /></TableCell>
+                <TableCell className="text-right font-mono text-sm">{brl(l.parceiro?.valor ?? null)}</TableCell>
+                <TableCell><PilulaDeMargem margem={margemSobreVenda(l.parceiro?.valor ?? null, l.custoBase)} minimo={l.produto.margem_minima} rotulo="" /></TableCell>
+                <TableCell><BarraDeComparacao marcadores={marcadoresDaLinha(l, pisoDaMargem(l.custoBase, l.produto.margem_minima))} /></TableCell>
+                <TableCell><SeloDaFicha nivel={fichaDaLinha(l).nivel} /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

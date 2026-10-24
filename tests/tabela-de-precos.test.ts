@@ -23,7 +23,9 @@ describe("tabela de preços", () => {
 
 import { readFileSync } from "node:fs";
 describe("concorrente por tipo de preço", () => {
-  const TELA = readFileSync("src/routes/_authenticated/tabela-de-precos.tsx", "utf8");
+  const TELA = ["src/routes/_authenticated/tabela-de-precos.tsx", "src/components/precos/ficha-do-produto.tsx", "src/components/precos/cartao-do-produto.tsx"]
+    .map((f) => readFileSync(f, "utf8"))
+    .join("\n");
   it("compara terceirizado deles com parceiro nosso, e final com final", () => {
     expect(TELA).toContain('c.tipo_preco === "parceiro"');
     expect(TELA).toContain("parceiro?.valor ?? null");
