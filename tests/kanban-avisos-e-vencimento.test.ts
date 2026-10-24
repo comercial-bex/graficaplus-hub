@@ -22,12 +22,13 @@ const SQL = readFileSync("supabase/migrations/20261013230000_kanban_avisos_e_ven
 
 describe("o aviso de cada etapa é o mesmo no banco e na tela", () => {
   // Saída de public.marco_notificavel_os para os 26 status, lida no banco vivo
-  // em 14/10/2026 depois da migração.
+  // em 14/10/2026; em 24/10/2026 ganhou Criação (design) e Acabamento — o dono
+  // pediu que o cliente seja avisado a cada área por onde o pedido passa.
   const NO_BANCO: Record<string, string | null> = {
-    entrada: null, aguardando_briefing: null, briefing_ok: null, design: null,
+    entrada: null, aguardando_briefing: null, briefing_ok: null, design: "os_em_criacao",
     aguardando_aprovacao_arte: "os_arte_para_aprovar", arte_aprovada: null, arte_rejeitada: null,
     aguardando_producao: null, producao: "os_em_producao", em_producao: "os_em_producao",
-    em_impressao: "os_em_producao", em_corte: "os_em_producao", em_acabamento: null,
+    em_impressao: "os_em_producao", em_corte: "os_em_producao", em_acabamento: "os_em_acabamento",
     em_uv: "os_em_producao", em_laser_cnc: "os_em_producao", em_3d: "os_em_producao",
     controle_qualidade: null, aguardando_retirada: "os_pronta_retirada",
     aguardando_entrega: "os_pronta_entrega", em_entrega: "os_saiu_entrega", em_instalacao: null,
@@ -55,7 +56,7 @@ describe("depois de mover, a tela diz se o cliente foi avisado", () => {
     expect(fraseDoAviso("em_impressao", null).titulo).toBe("Etapa atualizada · sem aviso ao cliente");
   });
   it("etapa que não avisa", () => {
-    expect(fraseDoAviso("design", null)).toEqual({
+    expect(fraseDoAviso("arte_aprovada", null)).toEqual({
       titulo: "Etapa atualizada",
       descricao: "Esta etapa não avisa o cliente.",
     });

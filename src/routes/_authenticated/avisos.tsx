@@ -25,7 +25,9 @@ export const Route = createFileRoute("/_authenticated/avisos")({
 const dia = (d: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
 
 const ROTULO: Record<string, string> = {
+  os_em_criacao: "Entrou em criação",
   os_arte_para_aprovar: "Arte pronta para aprovar",
+  os_em_acabamento: "Entrou em acabamento",
   os_em_producao: "Entrou em produção",
   os_pronta_retirada: "Pronto para retirar",
   os_pronta_entrega: "Pronto para entregar",

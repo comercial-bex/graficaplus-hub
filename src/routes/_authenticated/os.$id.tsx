@@ -55,6 +55,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Clock, Package, Factory as FactoryIcon, DollarSign, AlertTriangle } from "lucide-react";
 import { mensagemErro } from "@/lib/erros";
+import { FinalizarOsDialog } from "@/components/os/finalizar-os-dialog";
 import { invalidarPainelDoCaixa } from "@/lib/invalidar-caixa";
 import { nomesDaEquipe } from "@/lib/api/equipe";
 import { ReembolsosDaOS } from "@/components/reembolsos/da-os";
@@ -170,6 +171,7 @@ function OSDetailPage() {
     }
   }
   const [baixaOpen, setBaixaOpen] = useState(false);
+  const [finalizarOpen, setFinalizarOpen] = useState(false);
 
   const { data: os, isLoading } = useQuery({
     queryKey: ["os", id, nivelDeVisao],
@@ -231,6 +233,13 @@ function OSDetailPage() {
 
   return (
     <div className="space-y-6">
+      <FinalizarOsDialog
+        osId={id}
+        numero={os.numero}
+        valorTotal={canSeePrices ? Number(os.valor_total ?? 0) : null}
+        aberto={finalizarOpen}
+        onFechar={() => setFinalizarOpen(false)}
+      />
       <SectionHeader
         ajuda={dicaTela("/os")}
         breadcrumb={`Ordem de Serviço · #${os.numero}`}
@@ -260,6 +269,12 @@ function OSDetailPage() {
                 ))}
               </SelectContent>
             </Select>
+            {/* Finalizar guiado: o que falta, o dinheiro e o aviso ao cliente (24/10/2026). */}
+            {!["concluido", "faturado", "cancelado"].includes(os.status) && (
+              <Button onClick={() => setFinalizarOpen(true)} className="h-11 md:h-9">
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Finalizar pedido
+              </Button>
+            )}
             {/* PDF Cliente é preço de venda: o vendedor precisa gerar. */}
             {canSeePrices && (
               <Button variant="outline" className="hidden md:inline-flex" onClick={() => setPreviewOpen("cliente")}>

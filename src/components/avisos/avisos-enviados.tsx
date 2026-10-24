@@ -8,7 +8,9 @@ import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 import { Carregando } from "@/components/bex/Carregando";
 
 const ROTULO: Record<string, string> = {
+  os_em_criacao: "Entrou em criação",
   os_arte_para_aprovar: "Arte pronta para aprovar",
+  os_em_acabamento: "Entrou em acabamento",
   os_em_producao: "Entrou em produção",
   os_pronta_retirada: "Pronto para retirar",
   os_pronta_entrega: "Pronto para entregar",
