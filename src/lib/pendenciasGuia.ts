@@ -57,6 +57,55 @@ export interface GuiaPendencia {
 }
 
 export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
+  os_prazo_vencido: {
+    acao: 'Abrir o quadro',
+    passos: [
+      'Abra o Quadro de produção e ache a OS com o prazo vencido.',
+      'Fale com o cliente e combine um novo prazo (ou explique o atraso).',
+      'Atualize o prazo na OS e leve o cartão para a próxima etapa: o cliente é avisado sozinho.',
+    ],
+  },
+  arte_aprovada_sem_aceite: {
+    acao: 'Abrir as OS',
+    passos: [
+      'Abra a OS marcada como "arte aprovada".',
+      'Na aba Arquivos, anexe o arquivo fechado e marque como final de produção.',
+      'Gere o link de aprovação e envie ao cliente; registre o aceite quando ele responder.',
+      'Só então mova para a fila de produção.',
+    ],
+  },
+  catalogo_cotacao_sem_atendimento: {
+    acao: 'Ver pedidos do catálogo',
+    passos: [
+      'Abra Catálogos e entre em Pedidos.',
+      'Veja os itens que o cliente escolheu e fale com ele no WhatsApp.',
+      'Marque o pedido como atendido para sair desta lista.',
+    ],
+  },
+  parceiro_sem_atendente: {
+    acao: 'Abrir Parceiros',
+    passos: [
+      'Abra Parceiros e veja "parceiros novos sem atendente".',
+      'Toque em "Assumir" no parceiro.',
+      'Chame no WhatsApp, apresente a tabela e o orçamento com a marca dele.',
+    ],
+  },
+  apontamento_aberto_esquecido: {
+    acao: 'Abrir as OS',
+    passos: [
+      'Abra a OS que está rodando na máquina e vá ao apontamento aberto.',
+      'Finalize o apontamento com a quantidade produzida.',
+      'Se a peça já saiu, mova a OS para a etapa seguinte.',
+    ],
+  },
+  parcela_sem_vencimento: {
+    acao: 'Abrir Contas a receber',
+    passos: [
+      'Abra Contas a receber e filtre as parcelas em aberto.',
+      'Defina a data de vencimento de cada parcela sem data.',
+      'Elas passam a entrar no cartão "Vencido" e no lembrete diário.',
+    ],
+  },
   orcamento_sem_item: {
     acao: 'Abrir orçamentos',
     passos: [

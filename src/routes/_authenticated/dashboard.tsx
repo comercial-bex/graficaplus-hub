@@ -236,6 +236,21 @@ function PainelCompleto({
     },
   });
 
+  // Perdas de material registradas (24/10/2026): o painel só olhava ocorrências
+  // com retrabalho, e a perda que existe no sistema (os_perdas) não aparecia.
+  const perdas = useQuery({
+    queryKey: ["dash-perdas", canSeeFinancials],
+    refetchInterval: 120_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from(canSeeFinancials ? "os_perdas_financeiro" : "os_perdas")
+        .select(canSeeFinancials ? "id, custo_total" : "id");
+      if (error) throw error;
+      const linhas = (data ?? []) as { id: string; custo_total?: number | null }[];
+      return { n: linhas.length, custo: linhas.reduce((t, l) => t + Number(l.custo_total ?? 0), 0) };
+    },
+  });
+
   const { data: dashViews } = useQuery({
     queryKey: ["vw-dashboards", canSeeFinancials],
     refetchInterval: 120_000,
@@ -303,7 +318,7 @@ function PainelCompleto({
                 "lead:leads!whatsapp_conversas_lead_id_fkey(id, nome, status)",
             )
             .order("ultima_mensagem_at", { ascending: false, nullsFirst: false }),
-          supabase.from("materiais").select("id, nome, unidade, estoque"),
+          supabase.from("materiais").select("id, nome, unidade, estoque, estoque_minimo"),
           // valor_total do item é preço de venda (ordena "Produtos · mais
           // vendidos"): o vendedor vê pela view comercial, que tem valor_total
           // mas não custo_unitario. Operacional segue sem coluna de dinheiro.
@@ -423,7 +438,14 @@ function PainelCompleto({
         {},
       ),
   ).map(([setor, qtd]) => ({ setor, qtd }));
-  const criticos = materiais.filter((m: any) => Number(m.estoque ?? 0) <= 0).length;
+  // Zerado e "no mínimo ou abaixo, com saldo" são dois problemas (nunca carregado
+  // × repor) e o lembrete diário já os separa; o painel dizia 18 "abaixo do mínimo"
+  // contando só os zerados e escondia os 6 que ainda têm saldo.
+  const semEstoque = materiais.filter((m: any) => Number(m.estoque ?? 0) <= 0).length;
+  const noMinimo = materiais.filter(
+    (m: any) => Number(m.estoque ?? 0) > 0 && Number(m.estoque ?? 0) <= Number(m.estoque_minimo ?? 0),
+  ).length;
+  const criticos = semEstoque + noMinimo;
   const wppNaoLidas = conversas.reduce((s: number, c: any) => s + Number(c.nao_lidas ?? 0), 0);
 
   return (
@@ -536,7 +558,7 @@ function PainelCompleto({
             value={criticos}
             icon={Package}
             tone={criticos > 0 ? "magenta" : "muted"}
-            hint="itens abaixo do mínimo"
+            hint={`${semEstoque} zerado(s) · ${noMinimo} no mínimo, com saldo`}
           />
           <KpiCard label="WhatsApp não lidas" value={wppNaoLidas} icon={MessageCircle} tone="lime" />
         </div>
@@ -841,21 +863,53 @@ function PainelCompleto({
 
       {/* Row 4 */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <BexCard title="Retrabalho · setor">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={retrabalhoPorSetor}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="setor" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-              <Tooltip {...chartTooltipStyle} />
-              <Bar dataKey="qtd" fill={CMYK.magenta} radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-          {retrabalhoPorSetor.length === 0 && (
-            <div className="mt-2">
-              <StatusChip label="Sem retrabalho" tone="lime" />
-            </div>
-          )}
+        <BexCard title="Retrabalho e perdas">
+          {(() => {
+            const nOcorrenciasRetrabalho = (dashboardData?.ocorrencias ?? []).filter((o: any) => o.retrabalho).length;
+            const nOsRetrabalho = os.filter((o: any) => o.status === "retrabalho").length;
+            const nPerdas = perdas.data?.n ?? 0;
+            const semNada = nOcorrenciasRetrabalho === 0 && nOsRetrabalho === 0 && nPerdas === 0;
+            return (
+              <>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-md border border-border bg-muted/40 p-2">
+                    <div className="font-mono text-xl font-bold tabular-nums">{nOcorrenciasRetrabalho}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">retrabalhos</div>
+                  </div>
+                  <div className="rounded-md border border-border bg-muted/40 p-2">
+                    <div className="font-mono text-xl font-bold tabular-nums">{nOsRetrabalho}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">OS em retrabalho</div>
+                  </div>
+                  <div className="rounded-md border border-border bg-muted/40 p-2">
+                    <div className="font-mono text-xl font-bold tabular-nums">{nPerdas}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      perdas{canSeeFinancials && perdas.data ? ` · R$ ${perdas.data.custo.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : ""}
+                    </div>
+                  </div>
+                </div>
+                {retrabalhoPorSetor.length > 0 && (
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={retrabalhoPorSetor}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="setor" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                      <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} allowDecimals={false} />
+                      <Tooltip {...chartTooltipStyle} />
+                      <Bar dataKey="qtd" fill={CMYK.magenta} radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+                {semNada ? (
+                  // Zero honesto: o sistema não tem nenhuma ocorrência lançada, então
+                  // "sem retrabalho" (em verde) era afirmar o que ninguém registrou.
+                  <p className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs leading-relaxed">
+                    Nada registrado: retrabalho e perda só aparecem aqui quando alguém lança. Refez uma peça? Lance em{" "}
+                    <Link to="/ocorrencias" className="font-semibold underline underline-offset-2">Ocorrências</Link>. Perdeu material? Registre em{" "}
+                    <Link to="/perdas" className="font-semibold underline underline-offset-2">Perdas</Link>.
+                  </p>
+                ) : null}
+              </>
+            );
+          })()}
         </BexCard>
 
         <BexCard title="WhatsApp · conversas recentes">
