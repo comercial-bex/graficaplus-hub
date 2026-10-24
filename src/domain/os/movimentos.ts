@@ -63,6 +63,8 @@ function primeiroNome(nome: string | null | undefined) {
 /* -------------------------------------------------------------------------- */
 
 export const ROTULO_DO_AVISO: Record<string, string> = {
+  os_em_criacao: "Entrou em criação",
+  os_em_acabamento: "Entrou em acabamento",
   os_arte_para_aprovar: "Arte para aprovar",
   os_em_producao: "Entrou em produção",
   os_pronta_retirada: "Pronto para retirar",
@@ -78,6 +80,8 @@ export const ROTULO_DO_AVISO: Record<string, string> = {
  */
 export function avisoDoStatus(status: string | null | undefined): string | null {
   if (!status) return null;
+  if (status === "design") return "os_em_criacao";
+  if (status === "em_acabamento") return "os_em_acabamento";
   if (status === "aguardando_aprovacao_arte") return "os_arte_para_aprovar";
   if (etapaDe(status) === "producao") return "os_em_producao";
   if (status === "aguardando_retirada") return "os_pronta_retirada";
