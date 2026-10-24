@@ -146,6 +146,9 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   // der `logs.read` a outro papel, a tela abre e diz que só admin ou gestor
   // aprova TV: o banco recusaria de qualquer jeito.
   { path: "/telas", permissions: ["logs.read"] },
+  // Importar a fila do Flexi grava jobs impressos: quem encerra produção ou dá saída de estoque
+  // (a função SQL importar_flexi_jobs confere as mesmas duas).
+  { path: "/importar-flexi", permissions: ["producao.finish", "estoque.exit"] },
   { path: "/perdas", permissions: ["os.read"] },
   { path: "/planilha-custos", permissions: ["custos.read"] },
   { path: "/precificacao", permissions: ["financeiro.read"] },
