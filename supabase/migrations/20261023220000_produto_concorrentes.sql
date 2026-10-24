@@ -26,3 +26,11 @@ CREATE POLICY produto_concorrentes_financeiro ON public.produto_concorrentes
   WITH CHECK (public.can_see_financials(auth.uid()));
 REVOKE ALL ON public.produto_concorrentes FROM PUBLIC, anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.produto_concorrentes TO authenticated;
+
+-- 24/10/2026: o preço anotado pode ser de venda FINAL ou de TERCEIRIZADO/parceiro
+-- (a primeira tabela anotada, do "Concorrente 1", é de terceirizados). Comparar
+-- preço de parceiro deles com a venda final nossa enganava; cada preço agora
+-- diz o que é e só se compara com o nosso do mesmo tipo.
+ALTER TABLE public.produto_concorrentes ADD COLUMN IF NOT EXISTS tipo_preco text NOT NULL DEFAULT 'final' CHECK (tipo_preco IN ('final','parceiro'));
+DROP INDEX IF EXISTS public.produto_concorrentes_unico;
+CREATE UNIQUE INDEX produto_concorrentes_unico ON public.produto_concorrentes (produto_id, lower(btrim(concorrente)), tipo_preco);

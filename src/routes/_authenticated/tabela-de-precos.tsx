@@ -42,8 +42,19 @@ type Produto = {
   custo_medio: number | null;
   preco_base: number | null;
   preco_parceiro: number | null;
+  ativo: boolean;
 };
-type Concorrente = { id: string; produto_id: string; concorrente: string; preco: number; fonte: string | null; coletado_em: string };
+type TipoDePreco = "final" | "parceiro";
+type Concorrente = {
+  id: string;
+  produto_id: string;
+  concorrente: string;
+  preco: number;
+  tipo_preco: TipoDePreco;
+  fonte: string | null;
+  coletado_em: string;
+};
+const ROTULO_DO_TIPO: Record<TipoDePreco, string> = { final: "venda final", parceiro: "terceirizado" };
 
 const brl = (n: number | null | undefined) =>
   n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -58,8 +69,8 @@ function TabelaDePrecosPage() {
     queryKey: ["tabela-precos", "produtos"],
     queryFn: async (): Promise<Produto[]> => {
       const { data, error } = await fromFinancialView("produtos", "financeiro")
-        .select("id, nome, categoria, unidade, custo_medio, preco_base, preco_parceiro")
-        .eq("ativo", true)
+        .select("id, nome, categoria, unidade, ativo, custo_medio, preco_base, preco_parceiro")
+        .order("ativo", { ascending: false })
         .order("categoria")
         .order("nome");
       if (error) throw error;
@@ -83,7 +94,7 @@ function TabelaDePrecosPage() {
     queryFn: async (): Promise<Concorrente[]> => {
       const { data, error } = await (supabase as any)
         .from("produto_concorrentes")
-        .select("id, produto_id, concorrente, preco, fonte, coletado_em")
+        .select("id, produto_id, concorrente, preco, tipo_preco, fonte, coletado_em")
         .order("concorrente");
       if (error) throw error;
       return (data ?? []).map((c: Concorrente) => ({ ...c, preco: Number(c.preco) }));
@@ -158,12 +169,20 @@ function TabelaDePrecosPage() {
                 const margemF = margemSobreVenda(venda, custo);
                 const margemP = margemSobreVenda(parceiro?.valor ?? null, custo);
                 const lista = porProduto.get(p.id) ?? [];
-                const mercado = posicaoNoMercado(venda, lista.map((c) => c.preco));
+                // Compara só o que é do mesmo tipo: terceirizado deles × parceiro nosso; final × final.
+                const mercadoFinal = posicaoNoMercado(venda, lista.filter((c) => c.tipo_preco === "final").map((c) => c.preco));
+                const mercadoParceiro = posicaoNoMercado(
+                  parceiro?.valor ?? null,
+                  lista.filter((c) => c.tipo_preco === "parceiro").map((c) => c.preco),
+                );
                 return (
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="font-medium">{p.nome}</div>
-                      <div className="text-xs text-muted-foreground">{p.categoria ?? "sem categoria"} · por {p.unidade}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {p.categoria ?? "sem categoria"} · por {p.unidade}
+                        {!p.ativo && <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">só comparação</Badge>}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">{brl(custo)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">
@@ -189,7 +208,7 @@ function TabelaDePrecosPage() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         {lista.map((c) => (
                           <Badge key={c.id} variant="outline" className="font-normal">
-                            {c.concorrente}: <span className="ml-1 font-mono">{brl(c.preco)}</span>
+                            {c.concorrente} ({ROTULO_DO_TIPO[c.tipo_preco]}): <span className="ml-1 font-mono">{brl(c.preco)}</span>
                           </Badge>
                         ))}
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditando(p)}>
@@ -199,13 +218,20 @@ function TabelaDePrecosPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right text-xs">
-                      {mercado ? (
-                        <>
-                          <div>vs menor: <strong>{sinal(mercado.contraOMenorPct)}</strong></div>
-                          <div className="text-muted-foreground">vs média: {sinal(mercado.contraAMediaPct)}</div>
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">sem concorrente</span>
+                      {!mercadoFinal && !mercadoParceiro && <span className="text-muted-foreground">sem concorrente</span>}
+                      {mercadoParceiro && (
+                        <div>
+                          <span className="text-muted-foreground">parceiro: </span>
+                          <strong>{sinal(mercadoParceiro.contraOMenorPct)}</strong>
+                          <span className="text-muted-foreground"> vs menor · {sinal(mercadoParceiro.contraAMediaPct)} vs média</span>
+                        </div>
+                      )}
+                      {mercadoFinal && (
+                        <div>
+                          <span className="text-muted-foreground">final: </span>
+                          <strong>{sinal(mercadoFinal.contraOMenorPct)}</strong>
+                          <span className="text-muted-foreground"> vs menor · {sinal(mercadoFinal.contraAMediaPct)} vs média</span>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
@@ -217,7 +243,7 @@ function TabelaDePrecosPage() {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Margem é sobre a venda (lucro ÷ preço). Venda parceiro é o preço do cadastro do produto; sem ele, o do nível de
+        Cada preço de concorrente é marcado como "venda final" ou "terceirizado" e só se compara com o nosso do mesmo tipo (a tabela do Concorrente 1 é de terceirizados). Margem é sobre a venda (lucro ÷ preço). Venda parceiro é o preço do cadastro do produto; sem ele, o do nível de
         entrada do programa. Produto vendido por faixa de quantidade mostra "por faixa" — o preço de cada faixa está em
         Produtos.
       </p>
@@ -243,6 +269,7 @@ function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | n
   const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
   const [fonte, setFonte] = useState("");
+  const [tipo, setTipo] = useState<TipoDePreco>("parceiro");
 
   const invalidar = () => qc.invalidateQueries({ queryKey: ["tabela-precos", "concorrentes"] });
 
@@ -256,6 +283,7 @@ function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | n
         produto_id: produto.id,
         concorrente: nome.trim(),
         preco: valor,
+        tipo_preco: tipo,
         fonte: fonte.trim() || null,
       });
       if (error) throw error;
@@ -282,7 +310,7 @@ function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | n
     onError: (e) => toast.error(mensagemErro(e)),
   });
 
-  const cheio = atuais.length >= MAX_CONCORRENTES;
+  const cheio = atuais.filter((c) => c.tipo_preco === tipo).length >= MAX_CONCORRENTES;
 
   return (
     <Dialog open={!!produto} onOpenChange={(v) => !v && onClose()}>
@@ -290,7 +318,7 @@ function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | n
         <DialogHeader>
           <DialogTitle>Concorrentes — {produto?.nome}</DialogTitle>
           <DialogDescription>
-            Preço praticado por unidade ({produto?.unidade}). Até {MAX_CONCORRENTES} por produto. Anote onde viu (site,
+            Preço praticado por unidade ({produto?.unidade}). Até {MAX_CONCORRENTES} de cada tipo (venda final ou terceirizado). Anote onde viu (site,
             orçamento, loja) para saber a data e a origem depois.
           </DialogDescription>
         </DialogHeader>
@@ -300,7 +328,8 @@ function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | n
           {atuais.map((c) => (
             <li key={c.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
               <div className="min-w-0">
-                <strong>{c.concorrente}</strong> <span className="font-mono">{brl(c.preco)}</span>
+                <strong>{c.concorrente}</strong> <span className="font-mono">{brl(c.preco)}</span>{" "}
+                <span className="text-xs text-muted-foreground">({ROTULO_DO_TIPO[c.tipo_preco]})</span>
                 <div className="truncate text-xs text-muted-foreground">
                   {[c.fonte, new Date(c.coletado_em + "T12:00:00").toLocaleDateString("pt-BR")].filter(Boolean).join(" · ")}
                 </div>
@@ -319,7 +348,7 @@ function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | n
         </ul>
 
         {cheio ? (
-          <p className="text-xs text-muted-foreground">Já são {MAX_CONCORRENTES}. Remova um para anotar outro.</p>
+          <p className="text-xs text-muted-foreground">Já são {MAX_CONCORRENTES} de {ROTULO_DO_TIPO[tipo]}. Remova um para anotar outro.</p>
         ) : (
           <form
             className="grid grid-cols-2 gap-2"
@@ -328,6 +357,19 @@ function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | n
               adicionar.mutate();
             }}
           >
+            <div className="col-span-2 inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label="Tipo do preço">
+              {(["parceiro", "final"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={tipo === t}
+                  onClick={() => setTipo(t)}
+                  className={`flex-1 px-3 py-1.5 text-xs ${tipo === t ? "bg-primary/15 font-semibold" : "text-muted-foreground hover:bg-muted"}`}
+                >
+                  Preço de {ROTULO_DO_TIPO[t]}
+                </button>
+              ))}
+            </div>
             <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Concorrente" aria-label="Nome do concorrente" />
             <Input value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="Preço (R$)" inputMode="decimal" aria-label="Preço do concorrente" />
             <Input className="col-span-2" value={fonte} onChange={(e) => setFonte(e.target.value)} placeholder="Onde viu (opcional)" aria-label="Fonte do preço" />
