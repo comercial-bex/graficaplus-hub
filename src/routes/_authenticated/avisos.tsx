@@ -26,6 +26,9 @@ const dia = (d: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") :
 
 const ROTULO: Record<string, string> = {
   os_em_criacao: "Entrou em criação",
+  parceiro_boas_vindas: "Boas-vindas ao parceiro",
+  usuario_boas_vindas: "Boas-vindas à equipe",
+  alerta_equipe: "Aviso à equipe",
   os_arte_para_aprovar: "Arte pronta para aprovar",
   os_em_acabamento: "Entrou em acabamento",
   os_em_producao: "Entrou em produção",

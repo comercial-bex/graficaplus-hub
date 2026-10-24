@@ -22,6 +22,9 @@ const variaveisPorEvento: Record<string, string[]> = {
   orcamento_aprovado: ["cliente", "orcamento_numero", "valor_total"],
   // `como_aprovar` traz o link de aprovação quando o designer gerou um (13/10/2026).
   os_arte_para_aprovar: ["cliente", "os_numero", "os_titulo", "prazo", "como_aprovar", "link"],
+  parceiro_boas_vindas: ["cliente", "link"],
+  usuario_boas_vindas: ["nome", "link"],
+  alerta_equipe: ["texto"],
   os_em_criacao: ["cliente", "os_numero", "os_titulo", "prazo"],
   os_em_acabamento: ["cliente", "os_numero", "os_titulo", "prazo"],
   os_em_producao: ["cliente", "os_numero", "os_titulo", "prazo"],
