@@ -225,6 +225,27 @@ export const criarUsuario = createServerFn({ method: "POST" })
       throw e;
     }
 
+    // Boas-vindas por WhatsApp à pessoa nova (24/10/2026): só o link de entrada —
+    // NUNCA a senha. Acessório: se não tiver telefone ou a fila recusar, o acesso
+    // já foi criado e o erro não desfaz nada.
+    if (data.telefone?.trim()) {
+      try {
+        await (admin as any).rpc("enfileirar_notificacao", {
+          p_canal: "whatsapp",
+          p_destinatario: data.telefone,
+          p_cliente_id: null,
+          p_evento: "usuario_boas_vindas",
+          p_entidade: "usuario",
+          p_entidade_id: userId,
+          p_template: "usuario_boas_vindas",
+          p_variaveis: { nome: data.nome.split(/\s+/)[0], link: "https://bexprint.com.br/login" },
+          p_idempotency_key: `usuario:${userId}:boas_vindas`,
+        });
+      } catch {
+        /* a boas-vindas é um extra; o acesso está criado */
+      }
+    }
+
     return { id: userId };
   });
 
