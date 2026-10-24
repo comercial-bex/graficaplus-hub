@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from "@/integrations/supabase/client";
+import type { ExtrasDoProduto } from "@/domain/parceiros/vitrine";
 import { normalizarCatalogo, type ItemDoCatalogo } from "@/domain/parceiros/preco";
 import type { MarcaDoParceiro, PainelDoParceiro } from "@/domain/parceiros/painel";
 
@@ -17,6 +18,7 @@ export const BUCKET_MARCAS = "parceiros-marcas";
 /** Chaves de cache compartilhadas entre o layout e as telas do parceiro. */
 export const CHAVE_PAINEL = ["parceiro-painel"] as const;
 export const CHAVE_CATALOGO = ["parceiro-catalogo"] as const;
+export const CHAVE_EXTRAS = ["parceiro-catalogo-extras"] as const;
 export const chaveDoLogo = (caminho: string | null | undefined) => ["parceiro-logo", caminho ?? ""] as const;
 
 /** O banco responde 42501 quando o usuário não é parceiro ativo. */
@@ -37,6 +39,13 @@ export async function carregarCatalogo(): Promise<ItemDoCatalogo[]> {
   const { data, error } = await (supabase.rpc as any)("parceiro_catalogo");
   if (error) throw error;
   return normalizarCatalogo((data ?? []) as unknown[]);
+}
+
+/** Foto, tipo e descrição dos produtos. Falhar aqui não derruba a tabela: sem foto, entra o ícone da categoria. */
+export async function carregarExtrasDoCatalogo(): Promise<ExtrasDoProduto[]> {
+  const { data, error } = await (supabase.rpc as any)("parceiro_catalogo_extras");
+  if (error) throw error;
+  return (data ?? []) as ExtrasDoProduto[];
 }
 
 export async function marcarOfertaVista(ofertaId: string): Promise<void> {
