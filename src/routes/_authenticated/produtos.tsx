@@ -81,6 +81,7 @@ import {
   parseCSV,
   toCSV,
 } from "@/lib/produtos-catalogo";
+import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { abasDoProduto, avisoDaFicha, sinalDoPreco, type AbaDoProduto } from "@/domain/catalogo/abas-do-produto";
@@ -112,6 +113,7 @@ type FormState = {
   maquina_padrao_id: string;
   material_principal_id: string;
   observacoes_internas: string;
+  imagem_url: string;
   ativo: boolean;
 };
 
@@ -130,6 +132,7 @@ const emptyForm: FormState = {
   maquina_padrao_id: "",
   material_principal_id: "",
   observacoes_internas: "",
+  imagem_url: "",
   ativo: true,
 };
 
@@ -279,6 +282,7 @@ function ProdutosPage() {
         maquina_padrao_id: f.maquina_padrao_id || null,
         material_principal_id: f.material_principal_id || null,
         observacoes_internas: f.observacoes_internas.trim() || null,
+        imagem_url: f.imagem_url.trim() || null,
         ativo: f.ativo,
       };
       // Strip undefined so we don't overwrite preço/custo/margem when vendedor edits
@@ -363,6 +367,7 @@ function ProdutosPage() {
       material_principal_id: p.material_principal_id ?? "",
       tempo_producao_min: p.tempo_producao_min ? String(p.tempo_producao_min) : "",
       observacoes_internas: p.observacoes_internas ?? "",
+      imagem_url: p.imagem_url ?? "",
       ativo: p.ativo,
     });
     setOpen(true);
@@ -383,6 +388,7 @@ function ProdutosPage() {
       material_principal_id: p.material_principal_id ?? "",
       tempo_producao_min: p.tempo_producao_min ? String(p.tempo_producao_min) : "",
       observacoes_internas: p.observacoes_internas ?? "",
+      imagem_url: p.imagem_url ?? "",
       ativo: true,
     });
     setOpen(true);
@@ -1015,6 +1021,10 @@ function ProdutoFormDialog({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Foto</Label>
+              <FotoDoProduto valor={form.imagem_url} onChange={(url) => setForm({ ...form, imagem_url: url })} />
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">Descrição<DicaIcone texto={dicaCampo("/produtos", "Descrição")} rotulo="Descrição" /></Label>
