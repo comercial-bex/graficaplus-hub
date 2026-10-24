@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { categoriaLabel } from "@/lib/produtos-catalogo";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
@@ -68,6 +70,9 @@ const sinal = (n: number) => `${n > 0 ? "+" : ""}${n.toLocaleString("pt-BR", { m
 function TabelaDePrecosPage() {
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<Produto | null>(null);
+  const [categoria, setCategoria] = useState("todas");
+  const [soSemConcorrente, setSoSemConcorrente] = useState(false);
+  const [soAbaixoDoMinimo, setSoAbaixoDoMinimo] = useState(false);
 
   const produtos = useQuery({
     queryKey: ["tabela-precos", "produtos"],
@@ -93,6 +98,29 @@ function TabelaDePrecosPage() {
       return ((data ?? [])[0] ?? null) as { nome: string; desconto_pct: number } | null;
     },
   });
+  // Promoções do programa de parceiros em vigor: o preço de oferta passa na frente do nosso preço de parceiro.
+  const ofertas = useQuery({
+    queryKey: ["tabela-precos", "ofertas"],
+    queryFn: async () => {
+      const agora = new Date().toISOString();
+      const { data, error } = await (supabase as any)
+        .from("parceiro_ofertas")
+        .select("produto_id, titulo, preco_oferta")
+        .eq("ativa", true)
+        .not("produto_id", "is", null)
+        .lte("inicio", agora)
+        .gt("fim", agora);
+      if (error) throw error;
+      const mapa = new Map<string, { titulo: string; preco: number }>();
+      for (const o of data ?? []) {
+        const atual = mapa.get(o.produto_id);
+        if (o.preco_oferta != null && (!atual || Number(o.preco_oferta) < atual.preco)) {
+          mapa.set(o.produto_id, { titulo: o.titulo, preco: Number(o.preco_oferta) });
+        }
+      }
+      return mapa;
+    },
+  });
   const concorrentes = useQuery({
     queryKey: ["tabela-precos", "concorrentes"],
     queryFn: async (): Promise<Concorrente[]> => {
@@ -113,8 +141,27 @@ function TabelaDePrecosPage() {
 
   const descontoDoNivel = niveis.data ? Number(niveis.data.desconto_pct) : null;
   const termo = busca.trim().toLowerCase();
-  const linhas = (produtos.data ?? []).filter((p) => !termo || `${p.nome} ${p.categoria ?? ""}`.toLowerCase().includes(termo));
-  const erro = produtos.error ?? niveis.error ?? concorrentes.error;
+  const categorias = [...new Set((produtos.data ?? []).map((p) => p.categoria).filter((c): c is string => !!c))].sort();
+  const linhas = (produtos.data ?? []).filter((p) => {
+    if (termo && !`${p.nome} ${p.categoria ?? ""}`.toLowerCase().includes(termo)) return false;
+    if (categoria !== "todas" && p.categoria !== categoria) return false;
+    const lista = porProduto.get(p.id) ?? [];
+    if (soSemConcorrente && lista.length > 0) return false;
+    if (soAbaixoDoMinimo) {
+      const custo = p.custo_medio != null ? Number(p.custo_medio) : null;
+      const minimo = p.margem_minima != null ? Number(p.margem_minima) : null;
+      const venda = p.preco_base != null ? Number(p.preco_base) : null;
+      const parc = precoDoParceiro({
+        precoParceiro: p.preco_parceiro != null ? Number(p.preco_parceiro) : null,
+        precoBase: venda,
+        descontoDoNivelPct: descontoDoNivel,
+      });
+      const m = [margemSobreVenda(venda, custo), margemSobreVenda(parc?.valor ?? null, custo)].filter((x): x is number => x != null);
+      if (minimo == null || !m.some((x) => x < minimo)) return false;
+    }
+    return true;
+  });
+  const erro = produtos.error ?? niveis.error ?? concorrentes.error ?? ofertas.error;
 
   return (
     <div className="space-y-6">
@@ -125,9 +172,28 @@ function TabelaDePrecosPage() {
         description="Custo, venda final, venda para parceiro, lucro e o preço de 2 a 3 concorrentes, produto a produto. Tudo por unidade de venda (m², unidade…)."
       />
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto ou categoria" className="pl-9" />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-56 max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto ou categoria" className="pl-9" />
+        </div>
+        <Select value={categoria} onValueChange={setCategoria}>
+          <SelectTrigger className="w-52" aria-label="Categoria">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as categorias</SelectItem>
+            {categorias.map((c) => (
+              <SelectItem key={c} value={c}>{categoriaLabel(c)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button size="sm" variant={soSemConcorrente ? "default" : "outline"} aria-pressed={soSemConcorrente} onClick={() => setSoSemConcorrente((v) => !v)}>
+          Sem concorrente anotado
+        </Button>
+        <Button size="sm" variant={soAbaixoDoMinimo ? "default" : "outline"} aria-pressed={soAbaixoDoMinimo} onClick={() => setSoAbaixoDoMinimo((v) => !v)}>
+          Margem abaixo do mínimo
+        </Button>
       </div>
 
       {erro && (
@@ -206,6 +272,11 @@ function TabelaDePrecosPage() {
                       <Lucro valor={lucroF} margem={margemF} />
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
+                      {ofertas.data?.get(p.id) && (
+                        <Badge className="mb-1 h-4 px-1 text-[10px]">
+                          Promoção {brl(ofertas.data.get(p.id)!.preco)}
+                        </Badge>
+                      )}
                       {parceiro ? (
                         <>
                           {brl(parceiro.valor)}
@@ -263,7 +334,7 @@ function TabelaDePrecosPage() {
 
       <p className="text-xs text-muted-foreground">
         Cada preço de concorrente é marcado como "venda final" ou "terceirizado" e só se compara com o nosso do mesmo tipo (a tabela do Concorrente 1 é de terceirizados). Margem é sobre a venda (lucro ÷ preço). Venda parceiro é o preço do cadastro do produto; sem ele, o do nível de
-        entrada do programa. Produto vendido por faixa de quantidade mostra "por faixa" — o preço de cada faixa está em
+        entrada do programa. Promoção do programa de parceiros em vigor aparece na coluna de parceiro. Produto vendido por faixa de quantidade mostra "por faixa" — o preço de cada faixa está em
         Produtos.
       </p>
 
