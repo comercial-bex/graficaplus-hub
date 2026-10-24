@@ -39,6 +39,7 @@ import { ComissoesPanel } from "@/components/financeiro/comissoes-panel";
 import { MetasPanel } from "@/components/financeiro/metas-panel";
 import { Textarea } from "@/components/ui/textarea";
 import { mensagemErro } from "@/lib/erros";
+import { invalidarPainelDoCaixa } from "@/lib/invalidar-caixa";
 
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
@@ -151,6 +152,7 @@ function FinanceiroPage() {
       total_parcelas: "1",
     });
     qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    invalidarPainelDoCaixa(qc);
   }
 
   /**
@@ -175,6 +177,7 @@ function FinanceiroPage() {
     setEstorno(null);
     setMotivoEstorno("");
     qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    invalidarPainelDoCaixa(qc);
     qc.invalidateQueries({ queryKey: ["fluxo-caixa"] });
   }
 
@@ -187,6 +190,7 @@ function FinanceiroPage() {
     if (error) return toast.error(mensagemErro(error));
     toast.success("Pagamento confirmado");
     qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    invalidarPainelDoCaixa(qc);
   }
 
   return (

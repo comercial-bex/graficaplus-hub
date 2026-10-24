@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
+import { invalidarPainelDoCaixa } from "@/lib/invalidar-caixa";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -229,6 +230,7 @@ function AReceberPage() {
       qc.invalidateQueries({ queryKey: ["pendencias"] });
       qc.invalidateQueries({ queryKey: ["pendencias-do-sistema"] });
       qc.invalidateQueries({ queryKey: ["ponto-de-equilibrio"] });
+      invalidarPainelDoCaixa(qc);
       setBaixa(null);
     },
     onError: (e: unknown) => toast.error(mensagemErro(e)),

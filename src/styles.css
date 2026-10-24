@@ -79,13 +79,13 @@
   --popover-foreground: #20242d;
 
   --primary: #00a9c6;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #04141a;
 
   --secondary: #edf1f5;
   --secondary-foreground: #20242d;
 
   --muted: #edf1f5;
-  --muted-foreground: #687386;
+  --muted-foreground: #5d6779;
 
   --accent: #e6f7fa;
   --accent-foreground: #096b7d;
@@ -162,17 +162,17 @@
      o vão entre barras e a ordem fixa (recebidas à esquerda) completam. */
   --wa-recebidas: #0a9cb5;
   --wa-enviadas: #e32686;
-  --background: #050506;
+  --background: #0a0b10;
   --foreground: #e2e8f0;
-  --card: #12131a;
+  --card: #171925;
   --card-foreground: #e2e8f0;
-  --popover: #12131a;
+  --popover: #171925;
   --popover-foreground: #e2e8f0;
   --primary: #00d3f2;
   --primary-foreground: #050506;
-  --secondary: #1a1c25;
+  --secondary: #1f2230;
   --secondary-foreground: #e2e8f0;
-  --muted: #1a1c25;
+  --muted: #1f2230;
   --muted-foreground: #8b94a7;
   --accent: #f5d90a;
   --accent-foreground: #050506;
@@ -187,11 +187,11 @@
   --info-foreground: #050506;
   --positive: #45d4a0;
   --positive-foreground: #050506;
-  --border: #23252f;
-  --input: #1a1c25;
+  --border: #313547;
+  --input: #1f2230;
   --ring: #00d3f2;
-  --surface-raised: #171820;
-  --surface-subtle: #0d0e12;
+  --surface-raised: #1d2030;
+  --surface-subtle: #0e1016;
   --status-cyan: #00d3f2;
   --status-magenta: #ff5aae;
   --status-amber: #f5d90a;

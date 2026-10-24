@@ -75,7 +75,7 @@ describe("a situação da OS na língua do cliente", () => {
   it("a etapa (as cinco do quadro) é o título enquanto anda", () => {
     expect(situacaoParaOCliente("em_corte").titulo).toBe("Produção");
     expect(situacaoParaOCliente("em_corte").detalhe).toContain("recorte");
-    expect(situacaoParaOCliente("design").titulo).toBe("Pré-impressão");
+    expect(situacaoParaOCliente("design").titulo).toBe("Criação");
     expect(situacaoParaOCliente("controle_qualidade").titulo).toBe("Acabamento e qualidade");
   });
 

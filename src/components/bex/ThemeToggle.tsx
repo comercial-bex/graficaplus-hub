@@ -16,7 +16,7 @@ function aplicarTema(tema: Tema) {
   const raiz = document.documentElement;
   raiz.classList.toggle("dark", tema === "dark");
   raiz.style.colorScheme = tema;
-  const cor = tema === "dark" ? "#050506" : "#F7F9FC";
+  const cor = tema === "dark" ? "#0a0b10" : "#F7F9FC";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", cor);
   window.localStorage.setItem(CHAVE_TEMA, tema);
 }
