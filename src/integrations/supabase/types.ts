@@ -19167,6 +19167,7 @@ export type Database = {
           titulo: string
         }[]
       }
+      dashboard_caixa: { Args: never; Returns: Json }
       decidir_arte_por_token: {
         Args: {
           p_canal: string
@@ -19616,6 +19617,15 @@ export type Database = {
           produto_id: string
           tamanhos: Json
           unidade: string
+        }[]
+      }
+      parceiro_catalogo_extras: {
+        Args: never
+        Returns: {
+          descricao: string
+          imagem_url: string
+          produto_id: string
+          tipo: string
         }[]
       }
       parceiro_compras: {
