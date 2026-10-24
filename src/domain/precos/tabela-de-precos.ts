@@ -133,3 +133,116 @@ export function sugestoesDePreco(args: {
   }
   return saida;
 }
+
+// ------------------------------------------------------------------ composição
+/**
+ * Regra do negócio (a mesma de `custo_cheio_do_produto` no banco): o custo de
+ * uma peça é MATÉRIA-PRIMA (a receita: lona, vinil, acrílico, tinta…) + MÁQUINA
+ * (tempo × custo da hora) + MÃO DE OBRA (tempo × hora da função) + INDIRETO
+ * (rateio administrativo por hora). O `custo_medio` do cadastro, na maioria
+ * dos produtos, é só o material: a tabela mostra os dois lado a lado para a
+ * margem não parecer maior do que é.
+ */
+export type Composicao = { material: number; maquina: number; maoDeObra: number; indireto: number };
+
+export const PARTES_DO_CUSTO = [
+  { chave: "material", rotulo: "Matéria-prima", ajuda: "O que a receita do produto consome: lona, vinil, acrílico, tinta… × custo de compra." },
+  { chave: "maquina", rotulo: "Máquina", ajuda: "Tempo de produção × custo da hora da máquina padrão (energia, depreciação, manutenção)." },
+  { chave: "maoDeObra", rotulo: "Mão de obra", ajuda: "Tempo de produção × hora da função do setor, com encargos." },
+  { chave: "indireto", rotulo: "Indireto", ajuda: "Rateio administrativo por hora produtiva (aluguel, internet, contador…)." },
+] as const satisfies ReadonlyArray<{ chave: keyof Composicao; rotulo: string; ajuda: string }>;
+
+export function custoCheio(c: Composicao | null): number | null {
+  if (!c) return null;
+  const total = c.material + c.maquina + c.maoDeObra + c.indireto;
+  return total > 0 ? centavos(total) : null;
+}
+
+/** Cada parte em % do custo cheio, para a barra empilhada. Soma 100 (o resto vai na maior). */
+export function fatiasDoCusto(c: Composicao | null): Array<{ chave: keyof Composicao; valor: number; pct: number }> {
+  const total = custoCheio(c);
+  if (!c || total == null) return [];
+  return PARTES_DO_CUSTO.map(({ chave }) => ({ chave, valor: centavos(c[chave]), pct: Math.round((c[chave] / total) * 1000) / 10 })).filter((f) => f.valor > 0);
+}
+
+export type NivelDaFicha = "completa" | "parcial" | "sem_ficha";
+export type FichaDoProduto = { nivel: NivelDaFicha; faltas: string[] };
+
+/**
+ * A ficha técnica do produto está de pé? Produto físico precisa de matéria-prima
+ * na receita; todo item que se produz precisa de tempo e (se tem máquina) da
+ * máquina padrão; serviço vive de tempo/mão de obra. Brinde de revenda
+ * (comprado pronto) não tem receita nem máquina: a falta de receita ali é
+ * dito como "custo digitado", não como erro.
+ */
+export function fichaDoProduto(a: {
+  tipo: string | null;
+  categoria: string | null;
+  temReceita: boolean;
+  minutos: number | null;
+  temMaquina: boolean;
+  composicao: Composicao | null;
+}): FichaDoProduto {
+  const faltas: string[] = [];
+  const servico = a.tipo === "servico";
+  const revenda = a.categoria === "brindes" || a.categoria === "outros";
+  if (!servico && !a.temReceita) faltas.push(revenda ? "custo digitado à mão (sem matéria-prima na receita)" : "sem matéria-prima na receita");
+  if (!(a.minutos && a.minutos > 0)) faltas.push("sem tempo de produção");
+  if (!servico && !revenda && !a.temMaquina) faltas.push("sem máquina padrão");
+  if (a.composicao && a.composicao.maoDeObra <= 0 && a.minutos && a.minutos > 0) faltas.push("sem custo de mão de obra");
+  const nivel: NivelDaFicha = faltas.length === 0 ? "completa" : a.temReceita || (a.minutos ?? 0) > 0 ? "parcial" : "sem_ficha";
+  return { nivel, faltas };
+}
+
+// ----------------------------------------------------------- barra de comparação
+export type Marcador = {
+  chave: string;
+  rotulo: string;
+  valor: number;
+  tipo: "custo" | "piso" | "nos" | "parceiro" | "concorrente";
+};
+
+export type MarcadorPosicionado = Marcador & { posPct: number };
+
+/**
+ * Posiciona marcadores numa mesma régua (0–100%), do menor ao maior valor com
+ * folga de 8% dos dois lados. Valores iguais ficam no mesmo ponto — a tela
+ * empilha os rótulos. Sem pelo menos dois valores distintos não há régua.
+ */
+export function escalaDePrecos(marcadores: Marcador[]): { marcadores: MarcadorPosicionado[]; minimo: number; maximo: number } | null {
+  const validos = marcadores.filter((m) => Number.isFinite(m.valor) && m.valor > 0);
+  if (validos.length < 2) return null;
+  const valores = validos.map((m) => m.valor);
+  const menor = Math.min(...valores);
+  const maior = Math.max(...valores);
+  if (maior === menor) return null;
+  const folga = (maior - menor) * 0.08;
+  const de = menor - folga;
+  const ate = maior + folga;
+  return {
+    minimo: menor,
+    maximo: maior,
+    marcadores: validos.map((m) => ({ ...m, posPct: Math.round(((m.valor - de) / (ate - de)) * 1000) / 10 })),
+  };
+}
+
+/** Ordem em que as categorias aparecem na tela (a do cadastro); desconhecida vai no fim. */
+export function agruparPorCategoria<T extends { categoria: string | null }>(itens: T[], ordem: readonly string[]): Array<{ categoria: string; itens: T[] }> {
+  const mapa = new Map<string, T[]>();
+  for (const i of itens) {
+    const c = i.categoria ?? "outros";
+    mapa.set(c, [...(mapa.get(c) ?? []), i]);
+  }
+  const pos = (c: string) => (ordem.indexOf(c) === -1 ? ordem.length : ordem.indexOf(c));
+  return [...mapa.entries()].sort((a, b) => pos(a[0]) - pos(b[0]) || a[0].localeCompare(b[0])).map(([categoria, lista]) => ({ categoria, itens: lista }));
+}
+
+/** O banco guarda mais de uma linha de composição por produto em alguns casos: vale a mais recente. */
+export function composicaoMaisRecente<T extends { produto_id: string; updated_at: string }>(linhas: T[]): Map<string, T> {
+  const mapa = new Map<string, T>();
+  for (const l of linhas) {
+    const atual = mapa.get(l.produto_id);
+    if (!atual || l.updated_at > atual.updated_at) mapa.set(l.produto_id, l);
+  }
+  return mapa;
+}

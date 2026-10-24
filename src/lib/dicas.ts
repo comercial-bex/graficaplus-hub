@@ -439,12 +439,12 @@ export const dicas = {
     tela: "Parte dos parâmetros da casa e de um produto ou material real (ficha, máquina e tempo) e mostra custo, preço sugerido pelo markup e margem, comparando com o preço de tabela. Mudar um número aqui não grava nada; só o administrador grava um parâmetro na casa, e fica no histórico.",
   },
   "/tabela-de-precos": {
-    menu: "Custo, venda final, venda para parceiro, lucro e preço dos concorrentes, produto a produto.",
-    tela: "Para cada produto: o custo, o preço de venda final, o preço para parceiro, o lucro de cada um e até 3 concorrentes de cada tipo que você anota. 'Nós × mercado' compara o nosso preço com o mais barato e com a média, sempre do mesmo tipo (terceirizado deles × parceiro nosso; final × final). 'Sugestão' mostra caminhos de preço com a conta. Só administrador, gerência e financeiro veem.",
+    menu: "Custo, venda final, venda para parceiro, margem e preço dos concorrentes, produto a produto.",
+    tela: "Cada produto vira um cartão, separado por categoria, com foto (ou o ícone da categoria), custo, venda final, preço de parceiro, margem e uma régua que põe tudo na mesma escala: custo, piso da margem, nosso preço e os concorrentes. Clique no cartão para ver a ficha: do que o produto é feito (matéria-prima, máquina, mão de obra e indireto), preços, sugestões e concorrentes, e para trocar a foto. Marque até 4 cartões para comparar lado a lado. Só administrador, gerência e financeiro veem.",
     campos: {
-      custo: "Custo médio por unidade de venda (m², unidade…), do cadastro do produto. Vem da planilha de custos.",
+      custo: "Por padrão, o custo digitado no cadastro do produto (o que o orçamento usa). Com 'Custo cheio', soma matéria-prima da receita + máquina + mão de obra + rateio indireto.",
       venda_final: "Preço de tabela para o cliente final, por unidade de venda. Produto vendido por faixa de quantidade não tem um preço só.",
-      lucro: "Preço − custo, por unidade. Embaixo, a margem: lucro ÷ preço (margem sobre a venda, a mesma do semáforo do orçamento).",
+      lucro: "Preço − custo, por unidade. A margem é o lucro ÷ preço (margem sobre a venda, a mesma do semáforo do orçamento).",
       venda_parceiro: "Preço para parceiro/terceirizado: o preço de parceiro do cadastro do produto; sem ele, o desconto do nível de entrada do programa (Bronze). É o mesmo preço que o parceiro vê no painel e que entra no orçamento dele.",
       concorrentes: "Preços que a equipe anotou, de até 3 concorrentes por tipo. 'Terceirizado' é a tabela que eles dão a parceiros; 'venda final' é a que dão ao cliente. Não se misturam.",
       nos_x_mercado: "Quanto o nosso preço está acima (+) ou abaixo (−) do concorrente mais barato e da média. Terceirizado deles compara com o nosso preço de parceiro; venda final compara com a nossa venda final.",
