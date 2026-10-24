@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   caminhoDaFoto,
@@ -209,6 +209,14 @@ describe("o webhook guarda a foto", () => {
 });
 
 describe("as pendentes (job do pg_cron)", () => {
+  // O link de exemplo vence em 24/10/2026 11:08 UTC. Sem relógio fixo o teste
+  // quebrava sozinho quando a data passou (24/10/2026): "link ainda vale" mudava.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it("usa a foto que o webhook viu se o link ainda vale; senão pergunta ao Z-API", async () => {
     process.env.ZAPI_TOKEN = "tk";
     process.env.ZAPI_CLIENT_TOKEN = "ct";

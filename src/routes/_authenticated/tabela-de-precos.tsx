@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { mensagemErro } from "@/lib/erros";
-import { dicaTela } from "@/lib/dicas";
+import { dicaCampo, dicaTela } from "@/lib/dicas";
+import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +28,8 @@ import {
   MAX_CONCORRENTES,
   posicaoNoMercado,
   precoDoParceiro,
+  sugestoesDePreco,
+  type Sugestao,
 } from "@/domain/precos/tabela-de-precos";
 
 export const Route = createFileRoute("/_authenticated/tabela-de-precos")({
@@ -43,6 +46,7 @@ type Produto = {
   preco_base: number | null;
   preco_parceiro: number | null;
   ativo: boolean;
+  margem_minima: number | null;
 };
 type TipoDePreco = "final" | "parceiro";
 type Concorrente = {
@@ -69,7 +73,7 @@ function TabelaDePrecosPage() {
     queryKey: ["tabela-precos", "produtos"],
     queryFn: async (): Promise<Produto[]> => {
       const { data, error } = await fromFinancialView("produtos", "financeiro")
-        .select("id, nome, categoria, unidade, ativo, custo_medio, preco_base, preco_parceiro")
+        .select("id, nome, categoria, unidade, ativo, custo_medio, margem_minima, preco_base, preco_parceiro")
         .order("ativo", { ascending: false })
         .order("categoria")
         .order("nome");
@@ -138,23 +142,24 @@ function TabelaDePrecosPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Produto</TableHead>
-                <TableHead className="text-right">Custo</TableHead>
-                <TableHead className="text-right">Venda final</TableHead>
-                <TableHead className="text-right">Lucro (final)</TableHead>
-                <TableHead className="text-right">
+                <Cab campo="custo" className="text-right">Custo</Cab>
+                <Cab campo="venda_final" className="text-right">Venda final</Cab>
+                <Cab campo="lucro" className="text-right">Lucro (final)</Cab>
+                <Cab campo="venda_parceiro" className="text-right">
                   Venda parceiro{niveis.data ? ` (${niveis.data.nome})` : ""}
-                </TableHead>
-                <TableHead className="text-right">Lucro (parceiro)</TableHead>
-                <TableHead>Concorrentes</TableHead>
-                <TableHead className="text-right">Nós × mercado</TableHead>
+                </Cab>
+                <Cab campo="lucro" className="text-right">Lucro (parceiro)</Cab>
+                <Cab campo="concorrentes">Concorrentes</Cab>
+                <Cab campo="nos_x_mercado" className="text-right">Nós × mercado</Cab>
+                <Cab campo="sugestao">Sugestão</Cab>
               </TableRow>
             </TableHeader>
             <TableBody>
               {produtos.isLoading && (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">Carregando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-10 text-center text-muted-foreground">Carregando…</TableCell></TableRow>
               )}
               {!produtos.isLoading && !erro && linhas.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">Nenhum produto encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-10 text-center text-muted-foreground">Nenhum produto encontrado.</TableCell></TableRow>
               )}
               {linhas.map((p) => {
                 const custo = p.custo_medio != null ? Number(p.custo_medio) : null;
@@ -175,6 +180,15 @@ function TabelaDePrecosPage() {
                   parceiro?.valor ?? null,
                   lista.filter((c) => c.tipo_preco === "parceiro").map((c) => c.preco),
                 );
+                const margemMinima = p.margem_minima != null ? Number(p.margem_minima) : null;
+                const menorDoTipo = (t: TipoDePreco) => {
+                  const v = lista.filter((c) => c.tipo_preco === t).map((c) => c.preco);
+                  return v.length ? Math.min(...v) : null;
+                };
+                const sugParceiro = sugestoesDePreco({ custo, margemMinimaPct: margemMinima, menorConcorrente: menorDoTipo("parceiro") });
+                const sugFinal = menorDoTipo("final") != null
+                  ? sugestoesDePreco({ custo, margemMinimaPct: margemMinima, menorConcorrente: menorDoTipo("final") })
+                  : [];
                 return (
                   <TableRow key={p.id}>
                     <TableCell>
@@ -234,6 +248,11 @@ function TabelaDePrecosPage() {
                         </div>
                       )}
                     </TableCell>
+                    <TableCell className="min-w-44 text-xs">
+                      <Sugestoes titulo="parceiro" itens={sugParceiro} />
+                      <Sugestoes titulo="final" itens={sugFinal} />
+                      {sugParceiro.length === 0 && sugFinal.length === 0 && <span className="text-muted-foreground">—</span>}
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -249,6 +268,39 @@ function TabelaDePrecosPage() {
       </p>
 
       <ConcorrentesDialog produto={editando} atuais={editando ? porProduto.get(editando.id) ?? [] : []} onClose={() => setEditando(null)} />
+    </div>
+  );
+}
+
+function Cab({ campo, className, children }: { campo: string; className?: string; children: React.ReactNode }) {
+  return (
+    <TableHead className={className}>
+      <span className="inline-flex items-center gap-1">
+        {children}
+        <DicaIcone texto={dicaCampo("/tabela-de-precos", campo)} rotulo={campo.replace(/_/g, " ")} className="h-4 w-4" />
+      </span>
+    </TableHead>
+  );
+}
+
+/** Os caminhos de preço, cada um com a conta na dica; vermelho quando fura a margem mínima. */
+function Sugestoes({ titulo, itens }: { titulo: string; itens: Sugestao[] }) {
+  if (itens.length === 0) return null;
+  return (
+    <div className="mb-1.5 last:mb-0">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{titulo}</div>
+      <ul className="space-y-0.5">
+        {itens.map((s) => (
+          <li key={s.chave}>
+            <Dica texto={s.conta + (s.abaixoDoMinimo ? " ATENÇÃO: abaixo da margem mínima do produto." : "")} lado="left">
+              <span className={s.abaixoDoMinimo ? "text-destructive" : undefined}>
+                {s.rotulo}: <strong className="font-mono">{brl(s.preco)}</strong>{" "}
+                <span className="text-muted-foreground">({pct(s.margem)})</span>
+              </span>
+            </Dica>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

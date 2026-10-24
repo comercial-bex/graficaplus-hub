@@ -440,7 +440,16 @@ export const dicas = {
   },
   "/tabela-de-precos": {
     menu: "Custo, venda final, venda para parceiro, lucro e preço dos concorrentes, produto a produto.",
-    tela: "Para cada produto: o custo, o preço de venda final, o preço para parceiro, o lucro de cada um e até 3 concorrentes que você anota. A coluna 'Nós × mercado' compara o nosso preço com o mais barato e com a média dos concorrentes. Só administrador, gerência e financeiro veem.",
+    tela: "Para cada produto: o custo, o preço de venda final, o preço para parceiro, o lucro de cada um e até 3 concorrentes de cada tipo que você anota. 'Nós × mercado' compara o nosso preço com o mais barato e com a média, sempre do mesmo tipo (terceirizado deles × parceiro nosso; final × final). 'Sugestão' mostra caminhos de preço com a conta. Só administrador, gerência e financeiro veem.",
+    campos: {
+      custo: "Custo médio por unidade de venda (m², unidade…), do cadastro do produto. Vem da planilha de custos.",
+      venda_final: "Preço de tabela para o cliente final, por unidade de venda. Produto vendido por faixa de quantidade não tem um preço só.",
+      lucro: "Preço − custo, por unidade. Embaixo, a margem: lucro ÷ preço (margem sobre a venda, a mesma do semáforo do orçamento).",
+      venda_parceiro: "Preço para parceiro/terceirizado: o preço de parceiro do cadastro do produto; sem ele, o desconto do nível de entrada do programa (Bronze). É o mesmo preço que o parceiro vê no painel e que entra no orçamento dele.",
+      concorrentes: "Preços que a equipe anotou, de até 3 concorrentes por tipo. 'Terceirizado' é a tabela que eles dão a parceiros; 'venda final' é a que dão ao cliente. Não se misturam.",
+      nos_x_mercado: "Quanto o nosso preço está acima (+) ou abaixo (−) do concorrente mais barato e da média. Terceirizado deles compara com o nosso preço de parceiro; venda final compara com a nossa venda final.",
+      sugestao: "Três caminhos, cada um com a conta: Bater = concorrente mais barato − R$ 1,50; Igualar = o mesmo preço; Piso = custo ÷ (1 − margem mínima do produto), o menor preço que ainda respeita a margem mínima. Em vermelho, quando a margem fica abaixo do mínimo do produto. Nada é gravado: é uma sugestão.",
+    },
   },
   "/aprovacoes": {
     menu: "O que o cliente aprovou, o que pediu ajuste e o que já foi entregue.",

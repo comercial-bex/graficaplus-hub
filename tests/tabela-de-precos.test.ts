@@ -30,3 +30,32 @@ describe("concorrente por tipo de preço", () => {
     expect(TELA).toContain('c.tipo_preco === "final"');
   });
 });
+
+import { sugestoesDePreco } from "../src/domain/precos/tabela-de-precos";
+describe("sugestões de preço", () => {
+  it("bater = concorrente − R$ 1,50, e avisa quando a margem fica abaixo do mínimo", () => {
+    const s = sugestoesDePreco({ custo: 22, margemMinimaPct: 40, menorConcorrente: 30 });
+    const bater = s.find((x) => x.chave === "bater")!;
+    expect(bater.preco).toBe(28.5);
+    expect(bater.margem).toBe(22.8);
+    expect(bater.abaixoDoMinimo).toBe(true);
+    expect(s.find((x) => x.chave === "piso")!.preco).toBe(36.67);
+    expect(s.find((x) => x.chave === "igualar")!.preco).toBe(30);
+  });
+  it("margem acima do mínimo: sem alerta", () => {
+    const s = sugestoesDePreco({ custo: 26, margemMinimaPct: 40, menorConcorrente: 45 });
+    expect(s.find((x) => x.chave === "bater")!.abaixoDoMinimo).toBe(false);
+  });
+  it("sem concorrente só sobra o piso; sem custo nem mínimo, nada", () => {
+    expect(sugestoesDePreco({ custo: 10, margemMinimaPct: 50, menorConcorrente: null }).map((x) => x.chave)).toEqual(["piso"]);
+    expect(sugestoesDePreco({ custo: null, margemMinimaPct: null, menorConcorrente: null })).toEqual([]);
+  });
+});
+
+describe("preço fixo de parceiro vale no painel", () => {
+  const M = readFileSync("supabase/migrations/20261024100000_preco_fixo_de_parceiro_vale.sql", "utf8");
+  it("a função do painel usa produtos.preco_parceiro antes do desconto do nível", () => {
+    expect(M).toContain("COALESCE(b.preco_fixo, ");
+    expect(M).toContain("p.preco_parceiro AS preco_fixo");
+  });
+});
