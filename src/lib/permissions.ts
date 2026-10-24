@@ -149,6 +149,8 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/perdas", permissions: ["os.read"] },
   { path: "/planilha-custos", permissions: ["custos.read"] },
   { path: "/precificacao", permissions: ["financeiro.read"] },
+  // Custo ao lado do preço de venda, de parceiro e do concorrente: só quem vê financeiro.
+  { path: "/tabela-de-precos", permissions: ["financeiro.read"] },
   { path: "/custos-producao", permissions: ["custos.read"] },
   // Contas a receber chama `contas_a_receber()`, que exige can_see_financials —
   // e no front canSeeFinancials É hasPermission("financeiro.read"). Pedir a

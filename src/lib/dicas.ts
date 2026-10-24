@@ -438,6 +438,10 @@ export const dicas = {
     menu: "Simule custo, preço e margem de uma peça real com os números da casa.",
     tela: "Parte dos parâmetros da casa e de um produto ou material real (ficha, máquina e tempo) e mostra custo, preço sugerido pelo markup e margem, comparando com o preço de tabela. Mudar um número aqui não grava nada; só o administrador grava um parâmetro na casa, e fica no histórico.",
   },
+  "/tabela-de-precos": {
+    menu: "Custo, venda final, venda para parceiro, lucro e preço dos concorrentes, produto a produto.",
+    tela: "Para cada produto: o custo, o preço de venda final, o preço para parceiro, o lucro de cada um e até 3 concorrentes que você anota. A coluna 'Nós × mercado' compara o nosso preço com o mais barato e com a média dos concorrentes. Só administrador, gerência e financeiro veem.",
+  },
   "/aprovacoes": {
     menu: "O que o cliente aprovou, o que pediu ajuste e o que já foi entregue.",
     tela: "Situação de cada orçamento na visão do cliente. Junta três coisas que costumam ficar separadas: o status do orçamento, a resposta do cliente em cada arte e os pedidos de ajuste abertos no portal. Se aparecer 'Pediu ajuste', não mande produzir.",

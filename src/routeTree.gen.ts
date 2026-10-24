@@ -70,6 +70,7 @@ import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedReembolsosRouteImport } from './routes/_authenticated/reembolsos'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_authenticated/respostas-rapidas'
+import { Route as AuthenticatedTabelaDePrecosRouteImport } from './routes/_authenticated/tabela-de-precos'
 import { Route as AuthenticatedTelasRouteImport } from './routes/_authenticated/telas'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
@@ -442,6 +443,12 @@ const AuthenticatedRespostasRapidasRoute =
     path: '/respostas-rapidas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTabelaDePrecosRoute =
+  AuthenticatedTabelaDePrecosRouteImport.update({
+    id: '/tabela-de-precos',
+    path: '/tabela-de-precos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTelasRoute = AuthenticatedTelasRouteImport.update({
   id: '/telas',
   path: '/telas',
@@ -735,6 +742,7 @@ export interface FileRoutesByFullPath {
   '/reembolsos': typeof AuthenticatedReembolsosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
+  '/tabela-de-precos': typeof AuthenticatedTabelaDePrecosRoute
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
@@ -840,6 +848,7 @@ export interface FileRoutesByTo {
   '/reembolsos': typeof AuthenticatedReembolsosRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
+  '/tabela-de-precos': typeof AuthenticatedTabelaDePrecosRoute
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
@@ -948,6 +957,7 @@ export interface FileRoutesById {
   '/_authenticated/reembolsos': typeof AuthenticatedReembolsosRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/respostas-rapidas': typeof AuthenticatedRespostasRapidasRoute
+  '/_authenticated/tabela-de-precos': typeof AuthenticatedTabelaDePrecosRoute
   '/_authenticated/telas': typeof AuthenticatedTelasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
@@ -1056,6 +1066,7 @@ export interface FileRouteTypes {
     | '/reembolsos'
     | '/relatorios'
     | '/respostas-rapidas'
+    | '/tabela-de-precos'
     | '/telas'
     | '/usuarios'
     | '/whatsapp'
@@ -1161,6 +1172,7 @@ export interface FileRouteTypes {
     | '/reembolsos'
     | '/relatorios'
     | '/respostas-rapidas'
+    | '/tabela-de-precos'
     | '/telas'
     | '/usuarios'
     | '/whatsapp'
@@ -1268,6 +1280,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reembolsos'
     | '/_authenticated/relatorios'
     | '/_authenticated/respostas-rapidas'
+    | '/_authenticated/tabela-de-precos'
     | '/_authenticated/telas'
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
@@ -1776,6 +1789,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRespostasRapidasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tabela-de-precos': {
+      id: '/_authenticated/tabela-de-precos'
+      path: '/tabela-de-precos'
+      fullPath: '/tabela-de-precos'
+      preLoaderRoute: typeof AuthenticatedTabelaDePrecosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/telas': {
       id: '/_authenticated/telas'
       path: '/telas'
@@ -2141,6 +2161,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReembolsosRoute: typeof AuthenticatedReembolsosRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRespostasRapidasRoute: typeof AuthenticatedRespostasRapidasRoute
+  AuthenticatedTabelaDePrecosRoute: typeof AuthenticatedTabelaDePrecosRoute
   AuthenticatedTelasRoute: typeof AuthenticatedTelasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
@@ -2215,6 +2236,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReembolsosRoute: AuthenticatedReembolsosRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRespostasRapidasRoute: AuthenticatedRespostasRapidasRoute,
+  AuthenticatedTabelaDePrecosRoute: AuthenticatedTabelaDePrecosRoute,
   AuthenticatedTelasRoute: AuthenticatedTelasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
