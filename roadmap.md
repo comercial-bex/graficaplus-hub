@@ -27,5 +27,5 @@
 - [x] 12 funções SECURITY DEFINER que gravam fechadas para `anon` (migração 20261008040000, aplicada e conferida) (08/10)
 - [x] Índice das ferramentas guardadas (ferramentas/aiox-core) criado em `docs/indice-aiox-core.md` — o que é, o que pode ajudar no Bex Print e pré-requisitos; nada ativado (24/10)
 - [x] Selecionar três ferramentas no índice e propor ordem, pré-requisitos e riscos — PM/PO → data-engineer → QA/qa-loop; somente documentação (24/10)
-- [ ] Detalhar plano PM/PO com entregáveis, critérios de aceite e integração completa isolada do AIOX — aprovação antes de executar (24/10)
-- [ ] Integrar aiox-core (guardado em ferramentas/aiox-core) — seleção proposta no índice; aguardando autorização de adoção, sem ativação ou integração
+- [x] Detalhar plano PM/PO aprovado e produzir inventário, escopo, épico, quatro histórias, matriz de aceite, decisões e avaliação em `docs/planejamento-aiox/` (24/10); referência isolada verificada e 96 testes locais aprovados
+- [ ] Instalar e pilotar aiox-core em ambiente isolado — plano aprovado; bloqueado por acesso não confirmado ao anfitrião, operador e ambiente durável a definir; nenhuma instalação/ativação feita (24/10)
