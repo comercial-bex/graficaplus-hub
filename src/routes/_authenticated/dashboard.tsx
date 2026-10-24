@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { mensagemErro } from "@/lib/erros";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/module-data";
@@ -80,6 +81,9 @@ function useCount(table: any, filter?: (q: any) => any) {
     },
   });
 }
+
+const brlInteiro = (n: number | string | null | undefined) =>
+  `R$ ${Number(n ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
 
 const chartTooltipStyle = {
   contentStyle: {
@@ -207,8 +211,34 @@ function PainelCompleto({
     },
   });
 
+  // Dinheiro que ENTROU (24/10/2026). O "Faturamento" abaixo é o valor das OS
+  // vendidas; dar baixa numa parcela não mexia em nada do painel. Reage às
+  // baixas (invalidarPainelDoCaixa) e se relê sozinho a cada minuto.
+  const caixa = useQuery({
+    queryKey: ["dash-caixa"],
+    enabled: canSeeFinancials,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("dashboard_caixa");
+      if (error) throw error;
+      return data as {
+        recebido_hoje: number;
+        recebido_7_dias: number;
+        recebido_mes: number;
+        recebido_mes_anterior: number;
+        recebimentos_mes: number;
+        ultimo_recebimento_em: string | null;
+        em_aberto: number;
+        parcelas_em_aberto: number;
+        atrasado: number;
+        parcelas_sem_vencimento: number;
+      };
+    },
+  });
+
   const { data: dashViews } = useQuery({
     queryKey: ["vw-dashboards", canSeeFinancials],
+    refetchInterval: 120_000,
     queryFn: async () => {
       const client = supabase as any;
       const [comercial, financeiro, prazos, qualidade, impressao3d] = await Promise.all([
@@ -512,6 +542,69 @@ function PainelCompleto({
         </div>
       </section>
 
+      {canSeeFinancials && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            <span>Caixa · dinheiro que entrou</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          {caixa.error ? (
+            <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
+              Não consegui ler o caixa agora: {mensagemErro(caixa.error)}
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <KpiCard
+                label="Recebido hoje"
+                value={caixa.data ? brlInteiro(caixa.data.recebido_hoje) : "—"}
+                icon={Wallet}
+                tone="lime"
+                hint={
+                  caixa.data?.ultimo_recebimento_em
+                    ? `último recebimento ${new Date(caixa.data.ultimo_recebimento_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`
+                    : "nenhum recebimento ainda"
+                }
+              />
+              <KpiCard
+                label="Recebido no mês"
+                value={caixa.data ? brlInteiro(caixa.data.recebido_mes) : "—"}
+                icon={DollarSign}
+                tone="lime"
+                hint={
+                  caixa.data
+                    ? `${caixa.data.recebimentos_mes} recebimento(s) · mês passado ${brlInteiro(caixa.data.recebido_mes_anterior)}`
+                    : undefined
+                }
+              />
+              <KpiCard
+                label="A receber"
+                value={caixa.data ? brlInteiro(caixa.data.em_aberto) : "—"}
+                icon={Receipt}
+                tone="cyan"
+                hint={
+                  caixa.data
+                    ? `${caixa.data.parcelas_em_aberto} parcela(s)` +
+                      (caixa.data.parcelas_sem_vencimento > 0 ? ` · ${caixa.data.parcelas_sem_vencimento} sem vencimento` : "")
+                    : undefined
+                }
+              />
+              <KpiCard
+                label="Atrasado"
+                value={caixa.data ? brlInteiro(caixa.data.atrasado) : "—"}
+                icon={AlertTriangle}
+                tone={caixa.data && caixa.data.atrasado > 0 ? "magenta" : "muted"}
+                hint={
+                  caixa.data && caixa.data.parcelas_sem_vencimento > 0
+                    ? "parcela sem vencimento nunca aparece aqui"
+                    : "vencido e ainda não recebido"
+                }
+              />
+            </div>
+          )}
+        </section>
+      )}
+
       {/* KPIs financeiros — conectados às vw_dashboard_* */}
       {canSeeFinancials && (
         <section className="space-y-3">
@@ -526,7 +619,7 @@ function PainelCompleto({
               value={dashViews?.financeiro?.faturamento != null ? `R$ ${Number(dashViews.financeiro.faturamento).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}
               icon={DollarSign}
               tone="lime"
-              hint="vw_dashboard_financeiro"
+              hint="valor das OS vendidas — não é dinheiro recebido"
             />
             <KpiCard
               label="Lucro"

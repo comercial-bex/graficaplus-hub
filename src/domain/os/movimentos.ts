@@ -48,7 +48,7 @@ export function rotuloDoMovimento(m: Pick<MovimentoDaOs, "mudou_em" | "mudou_por
   return `${quem} · ${quandoCurto(m.mudou_em)}`;
 }
 
-/** "Entrada → Pré-impressão" (o primeiro registro é a OS nascendo: "Abriu em Entrada"). */
+/** "Atendimento → Criação" (o primeiro registro é a OS nascendo: "Abriu em Atendimento"). */
 export function passoDoMovimento(m: Pick<MovimentoDaOs, "status_anterior" | "status_novo">) {
   if (!m.status_anterior) return `Abriu em ${rotuloDe(m.status_novo)}`;
   return `${rotuloDe(m.status_anterior)} → ${rotuloDe(m.status_novo)}`;

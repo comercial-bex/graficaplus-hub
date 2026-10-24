@@ -55,6 +55,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { Clock, Package, Factory as FactoryIcon, DollarSign, AlertTriangle } from "lucide-react";
 import { mensagemErro } from "@/lib/erros";
+import { invalidarPainelDoCaixa } from "@/lib/invalidar-caixa";
 import { nomesDaEquipe } from "@/lib/api/equipe";
 import { ReembolsosDaOS } from "@/components/reembolsos/da-os";
 import { atrasado, formatarData } from "@/domain/os/prazo";
@@ -1140,6 +1141,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
     });
     if (error) return toast.error(mensagemErro(error));
     qc.invalidateQueries({ queryKey: ["pag-os", osId] });
+    invalidarPainelDoCaixa(qc);
   }
 
   const totalRecebido = pagamentos

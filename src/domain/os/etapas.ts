@@ -54,13 +54,20 @@ export const ETAPAS = [
 
 export type Etapa = (typeof ETAPAS)[number];
 
+/**
+ * Os nomes das colunas no vocabulário do dono (24/10/2026): Atendimento →
+ * Criação → Produção → Entrega e finalizado. Só o NOME mudou; as etapas, o
+ * banco (`etapa_da_os`) e a TV seguem iguais. O cliente vê estes mesmos nomes
+ * no portal. A estrutura final (quantas colunas, o fluxo próprio da gráfica)
+ * espera o dono descrever o workflow dele.
+ */
 export const ROTULO_ETAPA: Record<Etapa, string> = {
-  entrada: "Entrada",
-  pre_impressao: "Pré-impressão",
+  entrada: "Atendimento",
+  pre_impressao: "Criação",
   fila_producao: "Fila de produção",
   producao: "Produção",
   acabamento: "Acabamento e qualidade",
-  saida: "Saída",
+  saida: "Entrega e finalizado",
   fora_do_fluxo: "Fora do fluxo",
 };
 

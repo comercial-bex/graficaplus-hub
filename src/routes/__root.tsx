@@ -157,7 +157,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  const temaInicial = `(function(){try{var t=localStorage.getItem('bexprint:tema');var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d?'#050506':'#F7F9FC'}catch(e){document.documentElement.classList.add('dark')}})()`;
+  const temaInicial = `(function(){try{var t=localStorage.getItem('bexprint:tema');var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d?'#0a0b10':'#F7F9FC'}catch(e){document.documentElement.classList.add('dark')}})()`;
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
