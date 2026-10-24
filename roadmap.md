@@ -25,3 +25,4 @@
 - [x] Os 3 leads de propaganda (Claro, Renova Be, Kwai) fechados como perdidos e as conversas resolvidas como spam, a pedido do dono (08/10). "Gratidão" segue aberto
 - [x] Despachante do servidor ligado (job `whatsapp-despachar`, a cada 2 min, token no Vault; testado com 200) (08/10)
 - [x] 12 funções SECURITY DEFINER que gravam fechadas para `anon` (migração 20261008040000, aplicada e conferida) (08/10)
+- [ ] Integrar aiox-core (guardado em ferramentas/aiox-core) — aguardando definição de uso

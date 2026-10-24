@@ -1,0 +1,37 @@
+{
+  "name": "@aiox-squads/aiox-pro-cli",
+  "version": "0.2.2",
+  "description": "CLI for AIOX Pro — install, activate and manage your license",
+  "bin": {
+    "aiox-pro": "bin/aiox-pro.js"
+  },
+  "files": [
+    "bin/",
+    "src/"
+  ],
+  "dependencies": {
+    "@aiox-squads/installer": "^3.3.2",
+    "open": "^10.0.0"
+  },
+  "keywords": [
+    "aiox",
+    "pro",
+    "license",
+    "cli",
+    "synkra"
+  ],
+  "author": "SynkraAI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SynkraAI/aiox-core.git",
+    "directory": "packages/aiox-pro-cli"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
+}
