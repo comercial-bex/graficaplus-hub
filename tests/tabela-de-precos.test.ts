@@ -20,3 +20,13 @@ describe("tabela de preços", () => {
     expect(posicaoNoMercado(70, [])).toBeNull();
   });
 });
+
+import { readFileSync } from "node:fs";
+describe("concorrente por tipo de preço", () => {
+  const TELA = readFileSync("src/routes/_authenticated/tabela-de-precos.tsx", "utf8");
+  it("compara terceirizado deles com parceiro nosso, e final com final", () => {
+    expect(TELA).toContain('c.tipo_preco === "parceiro"');
+    expect(TELA).toContain("parceiro?.valor ?? null");
+    expect(TELA).toContain('c.tipo_preco === "final"');
+  });
+});
