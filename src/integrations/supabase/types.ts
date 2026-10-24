@@ -13603,6 +13603,171 @@ export type Database = {
         }
         Relationships: []
       }
+      rip_importacoes: {
+        Row: {
+          created_at: string
+          fonte: string
+          id: string
+          linhas_atualizadas: number
+          linhas_iguais: number
+          linhas_lidas: number
+          linhas_novas: number
+          maquina_id: string
+          origem: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          fonte?: string
+          id?: string
+          linhas_atualizadas?: number
+          linhas_iguais?: number
+          linhas_lidas?: number
+          linhas_novas?: number
+          maquina_id: string
+          origem: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          fonte?: string
+          id?: string
+          linhas_atualizadas?: number
+          linhas_iguais?: number
+          linhas_lidas?: number
+          linhas_novas?: number
+          maquina_id?: string
+          origem?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rip_importacoes_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rip_importacoes_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "rip_importacoes_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rip_jobs: {
+        Row: {
+          altura_cm: number
+          aninhado: boolean
+          apos_saida: string | null
+          area_m2: number
+          autor: string | null
+          chave_externa: string
+          copias: number
+          cores: string | null
+          created_at: string
+          fonte: string
+          id: string
+          importacao_id: string | null
+          impresso_em: string
+          largura_cm: number
+          maquina_id: string
+          nome_job: string
+          pai_chave: string | null
+          perfil_icc: string | null
+          status_flexi: string
+          tamanho_kb: number | null
+          tipo_arquivo: string | null
+          updated_at: string
+        }
+        Insert: {
+          altura_cm: number
+          aninhado?: boolean
+          apos_saida?: string | null
+          area_m2: number
+          autor?: string | null
+          chave_externa: string
+          copias: number
+          cores?: string | null
+          created_at?: string
+          fonte?: string
+          id?: string
+          importacao_id?: string | null
+          impresso_em: string
+          largura_cm: number
+          maquina_id: string
+          nome_job: string
+          pai_chave?: string | null
+          perfil_icc?: string | null
+          status_flexi: string
+          tamanho_kb?: number | null
+          tipo_arquivo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          altura_cm?: number
+          aninhado?: boolean
+          apos_saida?: string | null
+          area_m2?: number
+          autor?: string | null
+          chave_externa?: string
+          copias?: number
+          cores?: string | null
+          created_at?: string
+          fonte?: string
+          id?: string
+          importacao_id?: string | null
+          impresso_em?: string
+          largura_cm?: number
+          maquina_id?: string
+          nome_job?: string
+          pai_chave?: string | null
+          perfil_icc?: string | null
+          status_flexi?: string
+          tamanho_kb?: number | null
+          tipo_arquivo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rip_jobs_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "rip_importacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rip_jobs_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rip_jobs_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "rip_jobs_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       slicer_imports: {
         Row: {
           arquivo_id: string | null
@@ -19414,6 +19579,15 @@ export type Database = {
       identificacao_legal_os: { Args: { p_os_id: string }; Returns: string }
       importar_extrato: {
         Args: { p_conta_id: string; p_linhas: Json }
+        Returns: Json
+      }
+      importar_flexi_jobs: {
+        Args: {
+          p_linhas: Json
+          p_maquina_id: string
+          p_origem: string
+          p_usuario: string
+        }
         Returns: Json
       }
       iniciar_apontamento: {
