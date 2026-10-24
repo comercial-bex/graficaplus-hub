@@ -404,6 +404,11 @@ export const FORA_DO_MENU: Record<string, { titulo: string; motivo: string }> = 
     titulo: "Orçamento 3D",
     motivo: "detalhe de orçamento 3D, aberto pela lista de Impressão 3D",
   },
+  "/importar-flexi": {
+    titulo: "Jobs do Flexi",
+    motivo:
+      "fase 1 do plano do Flexi (24/10/2026): a árvore aprovada não muda sem o dono. Abre pelo endereço até ele decidir o lugar; a proposta é uma aba de Máquinas e manutenção",
+  },
   "/meus-reembolsos": {
     titulo: "Meus reembolsos",
     motivo:
