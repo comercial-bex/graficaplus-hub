@@ -60,6 +60,36 @@
 - Os caminhos padrão dele (`docs/prd`, `docs/stories`, `.ai/`) assumem a estrutura de projeto dele; rodar solto pode escrever nos lugares errados.
 - Integrações de IDE (`.cursor/`, `.gemini/`, `.grok/`…) sobrescreveriam regras locais de ferramenta se copiadas para a raiz.
 
+## Seleção prioritária para as pendências atuais — 24/10/2026
+
+**Proposta apenas: nenhuma ferramenta será ativada, instalada ou integrada.** A referência de situação atual é o `roadmap.md`: a caixa WhatsApp v3 está marcada como concluída; o assistente permanece **desligado por decisão do dono**; a adoção do AIOX ainda aguarda decisão. Não tratar as lacunas de diagnósticos antigos como problemas atuais sem reconferência. A importação do extrato real foi mencionada anteriormente como dependente do envio do arquivo, mas não está confirmada como pendência no roadmap atual.
+
+### 1. Agente `pm`/`po` + modelo de PRD/épico — definir o próximo trabalho
+
+- **Por que primeiro:** a pendência imediata do AIOX é escolher seu uso, não instalar o pacote. Este item ajuda a transformar pedidos e registros antigos em uma lista curta de trabalho confirmado, separando concluído, aguardando dados e aguardando autorização.
+- **Adoção proposta:** usar o material apenas como referência para uma revisão do escopo; produzir uma lista priorizada com critérios de aceite e responsáveis. Manter a ativação do assistente fora do escopo enquanto não houver nova autorização do dono.
+- **Pré-requisitos:** roadmap atual, confirmação dos responsáveis sobre pendências antigas e objetivo de uma primeira revisão. Nenhuma dependência, chave ou licença Pro para consultar os modelos.
+- **Riscos:** burocratizar tarefas pequenas, reabrir trabalho já concluído ou transformar sugestão em autorização. Limitar a proposta a um módulo e não adotar os caminhos ou regras do pacote.
+- **Critério para avançar:** escopo confirmado, resultado esperado verificável e autorização específica para a próxima etapa — não autorização genérica para integrar o AIOX.
+
+### 2. Agente `data-engineer` — revisar a segurança das mudanças propostas
+
+- **Por que segundo:** futuras alterações no WhatsApp ou preparação do assistente dependem de permissões, dados reais e histórico íntegro. É onde uma adoção indiscriminada traz maior risco.
+- **Adoção proposta:** consultar o agente como roteiro de revisão somente-leitura de uma mudança já definida; conferir permissões, funções de escrita, integridade dos atendimentos e estratégia de reversão antes de propor qualquer alteração.
+- **Pré-requisitos:** escopo da etapa 1, esquema e migrações atuais, matriz de permissões e regras locais do Bex Print. A consulta ao texto não exige instalação; uma revisão dos dados reais depende de acesso autorizado, sem copiar segredos para relatórios.
+- **Riscos:** aplicar recomendações genéricas incompatíveis com o Bex Print, ampliar acessos, expor dados de clientes ou alterar a idempotência do webhook. As regras locais prevalecem; nenhuma migração, RPC ou comando do pacote faz parte desta proposta.
+- **Critério para avançar:** parecer com evidências, riscos e plano de reversão; mudanças de acesso ou estrutura ficam sujeitas a aprovação própria.
+
+### 3. Agente `qa` + fluxo `qa-loop` — verificar o resultado antes de liberar
+
+- **Por que terceiro:** depois de delimitar o escopo e revisar os riscos, este item ajuda a comprovar o que funciona, evitando confundir uma marca de concluído com uma verificação atual de ponta a ponta.
+- **Adoção proposta:** adaptar o ciclo revisar → corrigir → rever como lista de verificação, usando os testes e ferramentas existentes do projeto. Começar pelas regras sensíveis do WhatsApp: resolução com última mensagem de entrada, reabertura sem responsável, bloqueio da IA com responsável e controle de respostas repetidas.
+- **Pré-requisitos:** critérios de aceite da etapa 1, parecer da etapa 2, testes existentes e conta autorizada para verificações de uso real. Testes de envio exigem destinatário de teste autorizado; testes de IA exigem autorização separada, configuração real e avaliação de custos — não ligar a IA para cumprir esta proposta.
+- **Riscos:** dar aprovação com base apenas em testes isolados, usar dados reais indevidamente ou enviar mensagens a clientes durante a verificação. Registrar limites do que foi verificado e manter testes sem efeitos externos por padrão.
+- **Critério para concluir:** evidências por regra e resultado explícito: aprovado, aprovado com ressalvas ou não aprovado, incluindo o que depende de dados ou autorização.
+
+**Ordem de adoção sugerida:** definir escopo (`pm`/`po`) → revisar dados e segurança (`data-engineer`) → validar (`qa`/`qa-loop`). Os três podem começar como referências textuais, sem instalar CLIs, dependências, adaptações de IDE ou módulos Pro. A seleção não remove os bloqueios do roadmap nem autoriza ativar o assistente.
+
 ## Como usar (quando decidirmos)
 
 1. Escolher 1–3 itens da tabela acima (sugestão natural: checklists + data-engineer + qa-loop primeiro, pois não exigem nada instalado).
