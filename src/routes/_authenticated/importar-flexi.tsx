@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ImagePlus, Trash2, Upload } from "lucide-react";
+import { ImagePlus, Search, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +24,10 @@ import {
   lerPrintDoFlexi,
   type LeituraDoPrint,
 } from "@/lib/api/flexi-importar.functions";
+import { sugerirVinculos } from "@/lib/api/flexi-vinculos.functions";
 import { areaM2, resumoDosJobs, type JobFlexi, type LinhaRejeitada } from "@/domain/flexi/jobs";
+import { ConferirJobDialog } from "@/components/flexi/conferir-job";
+import { rotuloDoVinculo, type JobParaConferir, type VinculoDoJob } from "@/domain/flexi/rotulos";
 
 export const Route = createFileRoute("/_authenticated/importar-flexi")({
   head: () => ({
@@ -76,7 +79,20 @@ type JobGravado = {
   area_m2: number;
   impresso_em: string;
   aninhado: boolean;
+  // Um job tem no máximo um vínculo; o PostgREST devolve objeto ou lista de um.
+  rip_job_vinculos: VinculoDoJob | VinculoDoJob[] | null;
 };
+
+const TOM_DO_VINCULO = {
+  ok: "text-foreground font-medium",
+  atencao: "text-foreground underline decoration-dotted underline-offset-4",
+  neutro: "text-muted-foreground",
+} as const;
+
+function vinculoDe(j: JobGravado): VinculoDoJob | null {
+  const v = Array.isArray(j.rip_job_vinculos) ? j.rip_job_vinculos[0] : j.rip_job_vinculos;
+  return v ?? null;
+}
 
 function ImportarFlexiPage() {
   const queryClient = useQueryClient();
@@ -89,6 +105,9 @@ function ImportarFlexiPage() {
   const [jobs, setJobs] = useState<JobFlexi[]>([]);
   const [rejeitadas, setRejeitadas] = useState<LinhaRejeitada[]>([]);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [conferindo, setConferindo] = useState<JobParaConferir | null>(null);
+  const [soPendentes, setSoPendentes] = useState(false);
+  const procurarOrcamentos = useServerFn(sugerirVinculos);
 
   const maquinas = useQuery({
     queryKey: ["maquinas-plotter"],
@@ -117,13 +136,26 @@ function ImportarFlexiPage() {
       const { data, error } = await (supabase as any)
         .from("rip_jobs")
         .select(
-          "id, nome_job, status_flexi, largura_cm, altura_cm, copias, area_m2, impresso_em, aninhado",
+          "id, nome_job, status_flexi, largura_cm, altura_cm, copias, area_m2, impresso_em, aninhado, rip_job_vinculos(estado, origem, orcamento_numero, orcamento_titulo, item_descricao, confianca, motivos, candidatos, motivo_sem_orcamento)",
         )
         .order("impresso_em", { ascending: false })
         .limit(60);
       if (error) throw error;
       return (data ?? []) as JobGravado[];
     },
+  });
+
+  const procurar = useMutation({
+    mutationFn: async () => procurarOrcamentos(),
+    onSuccess: (r) => {
+      toast.success(
+        r.analisados === 0
+          ? "Nenhum job esperando orçamento."
+          : `${r.analisados} job(s) olhados: ${r.sugeridos} com sugestão, ${r.revisar} para escolher, ${r.semCandidato} sem candidato.`,
+      );
+      void queryClient.invalidateQueries({ queryKey: ["rip-jobs-recentes"] });
+    },
+    onError: (e) => toast.error(mensagemErro(e, "Não foi possível procurar os orçamentos.")),
   });
 
   async function receberArquivo(arquivo: File | null | undefined) {
@@ -198,6 +230,8 @@ function ImportarFlexiPage() {
       setRejeitadas([]);
       setImagem(null);
       void queryClient.invalidateQueries({ queryKey: ["rip-jobs-recentes"] });
+      // Já procura o orçamento dos jobs novos: é só sugestão, a pessoa confirma depois.
+      procurar.mutate();
     },
     onError: (e) => toast.error(mensagemErro(e, "Não foi possível gravar os jobs.")),
   });
@@ -212,6 +246,23 @@ function ImportarFlexiPage() {
     );
   }
 
+  const gravados = recentes.data ?? [];
+  const contagem = {
+    confirmados: gravados.filter((j) => vinculoDe(j)?.estado === "confirmado").length,
+    sugeridos: gravados.filter((j) => vinculoDe(j)?.estado === "sugerido").length,
+    revisar: gravados.filter((j) => vinculoDe(j)?.estado === "revisar").length,
+    // Pai de aninhamento ("Otimizar Distribuição") nunca tem orçamento: não conta como pendente.
+    sem: gravados.filter((j) => {
+      const e = vinculoDe(j)?.estado;
+      return !e && !/^otimizar/i.test(j.nome_job);
+    }).length,
+  };
+  const listados = soPendentes
+    ? gravados.filter((j) => {
+        const e = vinculoDe(j)?.estado;
+        return (!e && !/^otimizar/i.test(j.nome_job)) || e === "sugerido" || e === "revisar";
+      })
+    : gravados;
   const resumo = resumoDosJobs(jobs);
   const podeGravar =
     jobs.length > 0 && !!maquinaId && jobs.every((j) => j.copias >= 1 && j.nome.trim() !== "");
@@ -389,8 +440,8 @@ function ImportarFlexiPage() {
                 {salvar.isPending ? "Gravando…" : `Gravar ${jobs.length} job(s)`}
               </Button>
               <span className="text-sm text-muted-foreground">
-                Grava só o fato da impressão. A ligação com orçamento e OS e a baixa de bobina vêm
-                depois.
+                Grava só o fato da impressão e já procura o orçamento de cada job. Quem confirma é
+                você, mais abaixo; a baixa de bobina vem depois.
               </span>
             </div>
           </CardContent>
@@ -399,7 +450,35 @@ function ImportarFlexiPage() {
 
       <Card className="mt-6">
         <CardContent className="p-4 sm:p-6">
-          <h2 className="mb-3 text-lg font-semibold">Últimos jobs importados</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Últimos jobs importados</h2>
+              <p className="text-sm text-muted-foreground">
+                {contagem.confirmados} com orçamento confirmado · {contagem.sugeridos} sugerido(s) ·{" "}
+                {contagem.revisar} para escolher · {contagem.sem} sem orçamento ligado. Confirmar
+                não baixa estoque.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={soPendentes}
+                  onChange={(e) => setSoPendentes(e.target.checked)}
+                />
+                Só os que faltam conferir
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => procurar.mutate()}
+                disabled={procurar.isPending}
+              >
+                <Search className="mr-2 h-4 w-4" aria-hidden />
+                {procurar.isPending ? "Procurando…" : "Procurar orçamentos"}
+              </Button>
+            </div>
+          </div>
           {recentes.isLoading ? (
             <Carregando />
           ) : recentes.error ? (
@@ -418,11 +497,12 @@ function ImportarFlexiPage() {
                     <th className="py-2 pr-3 font-medium">Status</th>
                     <th className="py-2 pr-3 font-medium">Medida (cm)</th>
                     <th className="py-2 pr-3 text-right font-medium">Cópias</th>
-                    <th className="py-2 text-right font-medium">m²</th>
+                    <th className="py-2 pr-3 text-right font-medium">m²</th>
+                    <th className="py-2 font-medium">Orçamento</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(recentes.data ?? []).map((j) => (
+                  {listados.map((j) => (
                     <tr key={j.id} className="border-b border-border/60">
                       <td className="py-2 pr-3 whitespace-nowrap">
                         {formatoData.format(new Date(j.impresso_em))}
@@ -437,7 +517,17 @@ function ImportarFlexiPage() {
                         {Number(j.altura_cm).toLocaleString("pt-BR")}
                       </td>
                       <td className="py-2 pr-3 text-right tabular-nums">{j.copias}</td>
-                      <td className="py-2 text-right tabular-nums">{m2(Number(j.area_m2))}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{m2(Number(j.area_m2))}</td>
+                      <td className="py-2">
+                        <button
+                          type="button"
+                          className={`text-left ${TOM_DO_VINCULO[rotuloDoVinculo(vinculoDe(j)).tom]}`}
+                          onClick={() => setConferindo({ ...j, vinculo: vinculoDe(j) })}
+                          aria-label={`Conferir o orçamento do job ${j.nome_job}`}
+                        >
+                          {rotuloDoVinculo(vinculoDe(j)).texto}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -446,6 +536,8 @@ function ImportarFlexiPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConferirJobDialog job={conferindo} onFechar={() => setConferindo(null)} />
     </div>
   );
 }
