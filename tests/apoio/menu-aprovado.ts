@@ -28,6 +28,7 @@ export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso
   const b = structuredClone((cenarioB as unknown as Record<string, ResumoDoMenu>)[nome]);
   somarAbasDoWhatsapp(b);
   juntarArteComEntrega(b);
+  somarTabelaDePrecos(b);
   if (decideReembolso) somarReembolsos(b);
   if (!temCatalogo) return b;
   const vendas = b.arvore.find((a) => a.area === "Vendas");
@@ -96,4 +97,19 @@ function juntarArteComEntrega(b: ResumoDoMenu): void {
     .flatMap((s) => s.itens);
   producao.subs = producao.subs.filter((s) => s.sub !== "Arte" && s.sub !== "Entrega e qualidade");
   producao.subs.splice(i, 0, { sub: "Arte, entrega e qualidade", itens });
+}
+
+/**
+ * "Tabela de preços" (23/10/2026, pedido do dono): custo, venda final, venda
+ * parceiro, lucro e concorrentes, em Preço e custo, logo antes do Simulador de
+ * preço. Abre com financeiro.read, a mesma porta do Simulador: quem via o
+ * Simulador ganha o item (administrador, gerência e financeiro).
+ */
+function somarTabelaDePrecos(b: ResumoDoMenu): void {
+  for (const area of b.arvore) {
+    const sub = area.subs.find((s) => s.itens.includes("Simulador de preço"));
+    if (!sub) continue;
+    sub.itens.splice(sub.itens.indexOf("Simulador de preço"), 0, "Tabela de preços");
+    b.itens += 1;
+  }
 }

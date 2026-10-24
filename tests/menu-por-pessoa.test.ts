@@ -315,7 +315,8 @@ describe("o cabeçalho do painel", () => {
 
   it("o cartão do módulo conta as entradas do painel", () => {
     const html = desenhar(["financeiro"], banco, "/a-receber");
-    expect(html).toMatch(/>9 itens</);
+    // 10 desde 23/10/2026: "Tabela de preços" entrou em Preço e custo.
+    expect(html).toMatch(/>10 itens</);
     const inicio = desenhar(["operador"], banco);
     expect(inicio).toMatch(/>4 itens</); // Início + 3 atalhos
   });

@@ -1,0 +1,346 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Pencil, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { mensagemErro } from "@/lib/erros";
+import { dicaTela } from "@/lib/dicas";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  lucroPorUnidade,
+  margemSobreVenda,
+  MAX_CONCORRENTES,
+  posicaoNoMercado,
+  precoDoParceiro,
+} from "@/domain/precos/tabela-de-precos";
+
+export const Route = createFileRoute("/_authenticated/tabela-de-precos")({
+  head: () => ({ meta: [{ title: "Tabela de preços — BEX PRINT OS" }] }),
+  component: TabelaDePrecosPage,
+});
+
+type Produto = {
+  id: string;
+  nome: string;
+  categoria: string | null;
+  unidade: string;
+  custo_medio: number | null;
+  preco_base: number | null;
+  preco_parceiro: number | null;
+};
+type Concorrente = { id: string; produto_id: string; concorrente: string; preco: number; fonte: string | null; coletado_em: string };
+
+const brl = (n: number | null | undefined) =>
+  n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`);
+const sinal = (n: number) => `${n > 0 ? "+" : ""}${n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+
+function TabelaDePrecosPage() {
+  const [busca, setBusca] = useState("");
+  const [editando, setEditando] = useState<Produto | null>(null);
+
+  const produtos = useQuery({
+    queryKey: ["tabela-precos", "produtos"],
+    queryFn: async (): Promise<Produto[]> => {
+      const { data, error } = await fromFinancialView("produtos", "financeiro")
+        .select("id, nome, categoria, unidade, custo_medio, preco_base, preco_parceiro")
+        .eq("ativo", true)
+        .order("categoria")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as Produto[];
+    },
+  });
+  const niveis = useQuery({
+    queryKey: ["tabela-precos", "nivel-de-entrada"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("parceiro_niveis")
+        .select("nome, desconto_pct, ordem")
+        .order("ordem");
+      if (error) throw error;
+      // O nível de entrada é o de menor ordem (são 4 linhas; não precisa de limit).
+      return ((data ?? [])[0] ?? null) as { nome: string; desconto_pct: number } | null;
+    },
+  });
+  const concorrentes = useQuery({
+    queryKey: ["tabela-precos", "concorrentes"],
+    queryFn: async (): Promise<Concorrente[]> => {
+      const { data, error } = await (supabase as any)
+        .from("produto_concorrentes")
+        .select("id, produto_id, concorrente, preco, fonte, coletado_em")
+        .order("concorrente");
+      if (error) throw error;
+      return (data ?? []).map((c: Concorrente) => ({ ...c, preco: Number(c.preco) }));
+    },
+  });
+
+  const porProduto = useMemo(() => {
+    const mapa = new Map<string, Concorrente[]>();
+    for (const c of concorrentes.data ?? []) mapa.set(c.produto_id, [...(mapa.get(c.produto_id) ?? []), c]);
+    return mapa;
+  }, [concorrentes.data]);
+
+  const descontoDoNivel = niveis.data ? Number(niveis.data.desconto_pct) : null;
+  const termo = busca.trim().toLowerCase();
+  const linhas = (produtos.data ?? []).filter((p) => !termo || `${p.nome} ${p.categoria ?? ""}`.toLowerCase().includes(termo));
+  const erro = produtos.error ?? niveis.error ?? concorrentes.error;
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        ajuda={dicaTela("/tabela-de-precos")}
+        breadcrumb="Preço e custo"
+        title="Tabela de preços"
+        description="Custo, venda final, venda para parceiro, lucro e o preço de 2 a 3 concorrentes, produto a produto. Tudo por unidade de venda (m², unidade…)."
+      />
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto ou categoria" className="pl-9" />
+      </div>
+
+      {erro && (
+        <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
+          Não consegui carregar a tabela: {mensagemErro(erro)}
+        </p>
+      )}
+
+      <Card>
+        <CardContent className="overflow-x-auto p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Produto</TableHead>
+                <TableHead className="text-right">Custo</TableHead>
+                <TableHead className="text-right">Venda final</TableHead>
+                <TableHead className="text-right">Lucro (final)</TableHead>
+                <TableHead className="text-right">
+                  Venda parceiro{niveis.data ? ` (${niveis.data.nome})` : ""}
+                </TableHead>
+                <TableHead className="text-right">Lucro (parceiro)</TableHead>
+                <TableHead>Concorrentes</TableHead>
+                <TableHead className="text-right">Nós × mercado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {produtos.isLoading && (
+                <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">Carregando…</TableCell></TableRow>
+              )}
+              {!produtos.isLoading && !erro && linhas.length === 0 && (
+                <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">Nenhum produto encontrado.</TableCell></TableRow>
+              )}
+              {linhas.map((p) => {
+                const custo = p.custo_medio != null ? Number(p.custo_medio) : null;
+                const venda = p.preco_base != null ? Number(p.preco_base) : null;
+                const parceiro = precoDoParceiro({
+                  precoParceiro: p.preco_parceiro != null ? Number(p.preco_parceiro) : null,
+                  precoBase: venda,
+                  descontoDoNivelPct: descontoDoNivel,
+                });
+                const lucroF = lucroPorUnidade(venda, custo);
+                const lucroP = lucroPorUnidade(parceiro?.valor ?? null, custo);
+                const margemF = margemSobreVenda(venda, custo);
+                const margemP = margemSobreVenda(parceiro?.valor ?? null, custo);
+                const lista = porProduto.get(p.id) ?? [];
+                const mercado = posicaoNoMercado(venda, lista.map((c) => c.preco));
+                return (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <div className="font-medium">{p.nome}</div>
+                      <div className="text-xs text-muted-foreground">{p.categoria ?? "sem categoria"} · por {p.unidade}</div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">{brl(custo)}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {venda != null ? brl(venda) : <span className="text-xs text-muted-foreground">por faixa</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      <Lucro valor={lucroF} margem={margemF} />
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {parceiro ? (
+                        <>
+                          {brl(parceiro.valor)}
+                          {parceiro.origem === "nivel" && <div className="text-[10px] text-muted-foreground">pelo nível</div>}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      <Lucro valor={lucroP} margem={margemP} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {lista.map((c) => (
+                          <Badge key={c.id} variant="outline" className="font-normal">
+                            {c.concorrente}: <span className="ml-1 font-mono">{brl(c.preco)}</span>
+                          </Badge>
+                        ))}
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditando(p)}>
+                          <Pencil className="mr-1 h-3 w-3" aria-hidden />
+                          {lista.length ? "Editar" : "Anotar"}
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right text-xs">
+                      {mercado ? (
+                        <>
+                          <div>vs menor: <strong>{sinal(mercado.contraOMenorPct)}</strong></div>
+                          <div className="text-muted-foreground">vs média: {sinal(mercado.contraAMediaPct)}</div>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">sem concorrente</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <p className="text-xs text-muted-foreground">
+        Margem é sobre a venda (lucro ÷ preço). Venda parceiro é o preço do cadastro do produto; sem ele, o do nível de
+        entrada do programa. Produto vendido por faixa de quantidade mostra "por faixa" — o preço de cada faixa está em
+        Produtos.
+      </p>
+
+      <ConcorrentesDialog produto={editando} atuais={editando ? porProduto.get(editando.id) ?? [] : []} onClose={() => setEditando(null)} />
+    </div>
+  );
+}
+
+function Lucro({ valor, margem }: { valor: number | null; margem: number | null }) {
+  if (valor == null) return <>—</>;
+  const ruim = valor < 0;
+  return (
+    <span className={ruim ? "text-destructive" : undefined}>
+      {brl(valor)}
+      <div className="text-[10px] text-muted-foreground">{pct(margem)}</div>
+    </span>
+  );
+}
+
+function ConcorrentesDialog({ produto, atuais, onClose }: { produto: Produto | null; atuais: Concorrente[]; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [nome, setNome] = useState("");
+  const [preco, setPreco] = useState("");
+  const [fonte, setFonte] = useState("");
+
+  const invalidar = () => qc.invalidateQueries({ queryKey: ["tabela-precos", "concorrentes"] });
+
+  const adicionar = useMutation({
+    mutationFn: async () => {
+      if (!produto) return;
+      const valor = Number(preco.replace(",", "."));
+      if (!nome.trim()) throw new Error("Diga o nome do concorrente.");
+      if (!Number.isFinite(valor) || valor <= 0) throw new Error("Informe o preço do concorrente.");
+      const { error } = await (supabase as any).from("produto_concorrentes").insert({
+        produto_id: produto.id,
+        concorrente: nome.trim(),
+        preco: valor,
+        fonte: fonte.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setNome("");
+      setPreco("");
+      setFonte("");
+      void invalidar();
+      toast.success("Concorrente anotado");
+    },
+    onError: (e) => toast.error(/duplicate|unique/i.test(String((e as Error).message)) ? "Esse concorrente já está anotado neste produto." : mensagemErro(e)),
+  });
+
+  const remover = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("produto_concorrentes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void invalidar();
+      toast.success("Removido");
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+
+  const cheio = atuais.length >= MAX_CONCORRENTES;
+
+  return (
+    <Dialog open={!!produto} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Concorrentes — {produto?.nome}</DialogTitle>
+          <DialogDescription>
+            Preço praticado por unidade ({produto?.unidade}). Até {MAX_CONCORRENTES} por produto. Anote onde viu (site,
+            orçamento, loja) para saber a data e a origem depois.
+          </DialogDescription>
+        </DialogHeader>
+
+        <ul className="space-y-1.5">
+          {atuais.length === 0 && <li className="text-sm text-muted-foreground">Nenhum concorrente anotado.</li>}
+          {atuais.map((c) => (
+            <li key={c.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+              <div className="min-w-0">
+                <strong>{c.concorrente}</strong> <span className="font-mono">{brl(c.preco)}</span>
+                <div className="truncate text-xs text-muted-foreground">
+                  {[c.fonte, new Date(c.coletado_em + "T12:00:00").toLocaleDateString("pt-BR")].filter(Boolean).join(" · ")}
+                </div>
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Remover ${c.concorrente}`}
+                onClick={() => remover.mutate(c.id)}
+                disabled={remover.isPending}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+
+        {cheio ? (
+          <p className="text-xs text-muted-foreground">Já são {MAX_CONCORRENTES}. Remova um para anotar outro.</p>
+        ) : (
+          <form
+            className="grid grid-cols-2 gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              adicionar.mutate();
+            }}
+          >
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Concorrente" aria-label="Nome do concorrente" />
+            <Input value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="Preço (R$)" inputMode="decimal" aria-label="Preço do concorrente" />
+            <Input className="col-span-2" value={fonte} onChange={(e) => setFonte(e.target.value)} placeholder="Onde viu (opcional)" aria-label="Fonte do preço" />
+            <Button type="submit" className="col-span-2" disabled={adicionar.isPending}>
+              Anotar concorrente
+            </Button>
+          </form>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

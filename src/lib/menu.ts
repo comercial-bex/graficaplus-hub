@@ -33,6 +33,7 @@ import {
   Sheet,
   ShoppingCart,
   SlidersHorizontal,
+  Table2,
   SquareKanban,
   Store,
   Target,
@@ -334,6 +335,7 @@ export const AREAS: AreaDoMenu[] = [
           item("Planilha de custos", "/planilha-custos", Sheet, [
             aba("Mão de obra e encargos", "/custos-producao", "Custos de mão de obra"),
           ]),
+          item("Tabela de preços", "/tabela-de-precos", Table2),
           item("Simulador de preço", "/precificacao", SlidersHorizontal),
         ],
       },
