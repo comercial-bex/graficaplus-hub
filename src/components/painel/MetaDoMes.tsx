@@ -48,6 +48,13 @@ type PontoDeEquilibrio = {
   atingido_pct: number;
   dias_no_mes: number;
   dias_corridos: number;
+  /** Orçamentos aprovados no mês + OS do mês que não vieram de orçamento. */
+  vendido?: number;
+  orcamentos_aprovados_n?: number;
+  /** Dinheiro que entrou no mês (pagamentos pagos, sem estorno). */
+  recebido?: number;
+  os_concluidas_n?: number;
+  os_abertas_n?: number;
 };
 
 const num = (v: unknown): number => Number(v ?? 0);
@@ -147,27 +154,32 @@ export function MetaDoMes({ className }: { className?: string }) {
   }
 
   const meta = data.meta_faturamento == null ? null : num(data.meta_faturamento);
-  const realizado = num(data.realizado);
-  const emProducao = num(data.em_producao);
+  // 24/10/2026: a barra media só o que foi CONCLUÍDO (R$ 121 em outubro), com R$ 5,4 mil
+  // de orçamentos aprovados e R$ 3,1 mil recebidos no mesmo mês. Agora são três
+  // medidas lado a lado: vendido (o que o cliente aprovou), recebido (o que
+  // entrou no caixa, que é o que paga a conta) e concluído (a OS entregue e
+  // fechada). A principal é o vendido; as outras explicam o resto.
+  const concluido = num(data.realizado);
+  const vendido = num(data.vendido ?? data.realizado);
+  const recebido = num(data.recebido);
   const custoFixo = num(data.custo_fixo);
   const diasNoMes = num(data.dias_no_mes);
   const diasCorridos = num(data.dias_corridos);
-  const atingido = num(data.atingido_pct);
 
   const temMeta = meta != null && meta > 0;
-  const falta = temMeta ? Math.max(meta - realizado, 0) : null;
-  const bateu = temMeta && falta === 0;
+  const pctDaMeta = (v: number) => (temMeta ? Math.round((1000 * v) / meta) / 10 : 0);
+  const atingido = pctDaMeta(vendido);
+  const faltaVender = temMeta ? Math.max(meta - vendido, 0) : null;
+  const faltaReceber = temMeta ? Math.max(meta - recebido, 0) : null;
+  const bateu = temMeta && faltaVender === 0;
 
-  // Ritmo: o mês já andou X% dos dias, o faturamento devia ter andado o mesmo.
+  // Ritmo: o mês já andou X% dos dias, a venda devia ter andado o mesmo.
   const esperado = diasNoMes > 0 ? (100 * diasCorridos) / diasNoMes : 0;
   const atrasado = atingido < esperado;
 
-  // Barra em duas fatias: o que já fechou e o que ainda está na oficina. O
-  // segundo não conta como realizado — só mostra o que pode virar.
-  const fatiaRealizado = temMeta ? Math.min((100 * realizado) / meta, 100) : 0;
-  const fatiaEmProducao = temMeta
-    ? Math.min((100 * emProducao) / meta, 100 - fatiaRealizado)
-    : 0;
+  // Barra: o vendido por inteiro (ciano claro) e, por cima, o que já entrou no caixa.
+  const fatiaRecebido = temMeta ? Math.min((100 * Math.min(recebido, vendido)) / meta, 100) : 0;
+  const fatiaVendido = temMeta ? Math.min((100 * vendido) / meta, 100) - fatiaRecebido : 0;
 
   return (
     <Card className={cn("border-l-4 border-l-[color:var(--bex-cyan)]", className)}>
@@ -187,7 +199,7 @@ export function MetaDoMes({ className }: { className?: string }) {
           </Link>
         </div>
         <p className="text-sm text-muted-foreground">
-          {mesPorExtenso(data.mes)} · precisa faturar{" "}
+          {mesPorExtenso(data.mes)} · precisa vender{" "}
           <strong className="text-foreground">{temMeta ? brl(meta) : "—"}</strong> para pagar{" "}
           {brl(custoFixo)} de custo fixo com {pct(num(data.margem_contribuicao_pct))} de margem.
         </p>
@@ -213,7 +225,8 @@ export function MetaDoMes({ className }: { className?: string }) {
             <div className="space-y-2">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <span className="font-mono text-3xl font-bold tabular-nums text-foreground">
-                  {brl(realizado)}
+                  {brl(vendido)}
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">vendido no mês</span>
                 </span>
                 <span className="font-mono text-sm tabular-nums text-muted-foreground">
                   {pct(atingido)} de {brl(meta)}
@@ -225,42 +238,65 @@ export function MetaDoMes({ className }: { className?: string }) {
               <div
                 className="flex h-3 w-full overflow-hidden rounded-full bg-muted"
                 role="img"
-                aria-label={`${pct(atingido)} da meta do mês`}
+                aria-label={`${pct(atingido)} da meta vendidos; ${pct(pctDaMeta(recebido))} recebidos`}
               >
                 <div
                   className={cn("h-full", bateu ? "bg-emerald-500" : "bg-[color:var(--bex-lime)]")}
-                  style={{ width: `${fatiaRealizado}%` }}
+                  style={{ width: `${fatiaRecebido}%` }}
                 />
                 <div
-                  className="h-full bg-[color:var(--bex-cyan)]/35"
-                  style={{ width: `${fatiaEmProducao}%` }}
+                  className="h-full bg-[color:var(--bex-cyan)]/45"
+                  style={{ width: `${fatiaVendido}%` }}
                 />
               </div>
-
-              {emProducao > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[color:var(--bex-cyan)]/35 align-middle" />
-                  {brl(emProducao)} em produção — entra na conta quando a OS for concluída ou
-                  faturada.
-                </p>
-              )}
             </div>
+
+            {/* As três medidas, cada uma com a sua régua contra a meta. */}
+            <dl className="grid gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-[color:var(--bex-cyan)]/60" /> Vendido
+                </dt>
+                <dd className="font-mono text-lg font-bold tabular-nums">{brl(vendido)}</dd>
+                <dd className="text-xs text-muted-foreground">
+                  {num(data.orcamentos_aprovados_n)} orçamento(s) aprovado(s) · {pct(pctDaMeta(vendido))} da meta
+                </dd>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-[color:var(--bex-lime)]" /> Recebido
+                </dt>
+                <dd className="font-mono text-lg font-bold tabular-nums">{brl(recebido)}</dd>
+                <dd className="text-xs text-muted-foreground">entrou no caixa · {pct(pctDaMeta(recebido))} da meta</dd>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-muted-foreground/60" /> Concluído
+                </dt>
+                <dd className="font-mono text-lg font-bold tabular-nums">{brl(concluido)}</dd>
+                <dd className="text-xs text-muted-foreground">
+                  {num(data.os_concluidas_n)} OS fechada(s) · {num(data.os_abertas_n)} aberta(s)
+                </dd>
+              </div>
+            </dl>
 
             {/* O número em destaque: o que falta para empatar. */}
             {bateu ? (
               <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
                 <p className="text-sm font-semibold text-foreground">
-                  Meta batida. Daqui para a frente o mês é lucro.
+                  Meta de vendas batida. Falta receber {brl(faltaReceber)} para o caixa pagar as contas do mês.
                 </p>
               </div>
             ) : (
-              <div className="rounded-lg border border-border bg-muted/40 p-3">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                  Faltam para empatar
-                </p>
-                <p className="font-mono text-2xl font-bold tabular-nums text-amber-500">
-                  {brl(falta)}
-                </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-lg border border-border bg-muted/40 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam vender para empatar</p>
+                  <p className="font-mono text-2xl font-bold tabular-nums text-amber-500">{brl(faltaVender)}</p>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/40 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam receber para pagar as contas</p>
+                  <p className="font-mono text-2xl font-bold tabular-nums text-amber-500">{brl(faltaReceber)}</p>
+                </div>
               </div>
             )}
 
@@ -293,11 +329,11 @@ export function MetaDoMes({ className }: { className?: string }) {
               </div>
             )}
 
-            {/* Zero honesto: realizado R$ 0 com custo fixo cadastrado quase
-                sempre é OS que ninguém fechou, não mês sem trabalho. */}
-            {realizado === 0 && (
+            {/* Concluído muito abaixo do vendido quase sempre é OS que ninguém
+                fechou no sistema, não mês sem trabalho. */}
+            {vendido > 0 && concluido < vendido / 2 && (
               <PorQueZero
-                texto="Nenhuma OS foi concluída ou faturada neste mês, por isso o realizado está em R$ 0. O que já foi entregue só entra na conta depois de fechar a OS."
+                texto={`Só ${brl(concluido)} estão concluídos porque ${num(data.os_concluidas_n)} de ${num(data.os_concluidas_n) + num(data.os_abertas_n)} OS foram fechadas no sistema. O resto está vendido mas parado no quadro: mover a OS e fechar no fim é o que leva o valor para "Concluído" e avisa o cliente.`}
                 para="/os"
                 acao="Ver as ordens de serviço"
               />
