@@ -29,7 +29,7 @@ Uma tarefa que tem mais de uns 5 campos, ou escolhas que dependem umas das outra
 | `PreviaDaPeca` | idem | Desenho na proporção da medida |
 | `EscolhaDeMaterial` | `src/components/orcamento/escolha-de-material.tsx` | Variações do mesmo produto (lona 280 g ou 440 g) |
 | `CobrancaDoAcabamento` | `src/components/orcamento/cobranca-do-acabamento.tsx` | Acabamento cobrado à parte, com os lados da bainha e o valor de cada um |
-| `AssistenteEmPassos` | `src/components/bex/assistente-em-passos.tsx` | **A casca dos assistentes**: diálogo, barra de passos, pendência, Voltar, Avançar e criar. Os assistentes de cliente, máquina e usuário usam; o de produto e o de insumo ainda têm a casca própria |
+| `AssistenteEmPassos` | `src/components/bex/assistente-em-passos.tsx` | **A casca dos assistentes**: diálogo, barra de passos, pendência, Voltar, Avançar e criar. Os cinco assistentes (produto, material, cliente, máquina, usuário) usam; a casca também mede o uso (abriu, passo, fechou) com o nome da tela |
 | `NovoProdutoEmPassos` | `src/components/produtos/novo-produto-em-passos.tsx` | Exemplo completo de assistente de seis passos |
 | `PendenciasDoMeuPapel` | `src/components/painel/PendenciasDoMeuPapel.tsx` | O que falta de cada papel, com o caminho passo a passo |
 
@@ -142,3 +142,12 @@ Para acrescentar uma: uma linha em `pendencias_de_preenchimento()` (banco), o gu
 - **Preço de venda** do recorte eletrônico, do laser e do acabamento manual.
 - **Convenção da bainha**: o sistema sugere o contorno todo (lona) e os dois lados menores (banner); a equipe muda no cartão. Se a regra da casa for outra, é uma linha em `ladosSugeridos`.
 - **Margens abaixo do mínimo cadastrado** com a tabela de terceirizados (adesivo TOP, lona PROMO, recorte acima de 6 m²): a tabela foi mantida como está.
+
+## 7. Medir se os passos ajudam
+
+O administrador vê em Dados da empresa, em "Uso dos assistentes em passos": por assistente, aberturas, concluídas e a taxa, o tempo típico de quem concluiu e o passo em que mais gente desiste. Só guarda a tela, o evento e o passo, nunca o que foi digitado. Um assistente novo usa a casca com `tela="nome"` e chama `registrarUso("nome", "concluiu")` quando o cadastro dá certo. Passo em que muita gente desiste é passo que pede coisa demais ou que a pessoa não tem na mão: é o primeiro candidato a mudar.
+
+## 8. "Seu dia"
+
+O topo do painel mostra até quatro números por papel (`src/domain/painel/resumo-do-dia.ts`), tirados das mesmas pendências que o painel já conta no banco. Para mudar o que um papel vê de manhã, é só trocar a lista do papel nesse arquivo; o teste confere que cada chave existe no banco.
+

@@ -40,13 +40,23 @@ describe("o registro na tela", () => {
     expect(LIB).toContain("if (!sessao) return;");
     expect(LIB).toContain("() => undefined");
   });
-  it("a casca comum e os dois assistentes de casca própria registram abriu, passo e fechou", () => {
+  it("a casca comum registra abriu, passo e fechou, e os cinco assistentes usam a casca com o nome da tela", () => {
     expect(CASCA).toContain("useUsoDoAssistente(tela, aberto, atual)");
-    for (const f of ["produtos/novo-produto-em-passos", "materiais/novo-insumo-em-passos"]) {
-      expect(readFileSync(`src/components/${f}.tsx`, "utf8")).toContain("useUsoDoAssistente(");
+    const telas = [
+      ["cliente/novo-cliente-em-passos", "novo-cliente"],
+      ["maquinas/nova-maquina-em-passos", "nova-maquina"],
+      ["usuarios/novo-usuario-em-passos", "novo-usuario"],
+      ["produtos/novo-produto-em-passos", "novo-produto"],
+      ["materiais/novo-insumo-em-passos", "novo-material"],
+    ];
+    for (const [f, tela] of telas) {
+      const fonte = readFileSync(`src/components/${f}.tsx`, "utf8");
+      expect(fonte, f).toContain("<AssistenteEmPassos");
+      expect(fonte, f).toContain(`tela="${tela}"`);
+      expect(fonte, f).not.toContain("useUsoDoAssistente(");
     }
   });
-  it("os seis assistentes anotam a conclusão", () => {
+  it("os cinco assistentes anotam a conclusão", () => {
     const arquivos = [
       ["cliente/novo-cliente-em-passos", "novo-cliente"],
       ["maquinas/nova-maquina-em-passos", "nova-maquina"],
