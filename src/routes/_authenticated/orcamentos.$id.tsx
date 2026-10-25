@@ -245,8 +245,9 @@ function OrcamentoDetailPage() {
   // canSeePrices/nivelDeVisao: preço de venda (vendedor vê). canSeeFinancials:
   // custo e margem (só financeiro/gestão). Nunca misturar os dois gates.
   const { canSeeFinancials, canSeePrices, nivelDeVisao, hasPermission } = useAuth();
-  // Converter em OS é `orcamentos.convert` (só admin e gestor). Editar o
-  // orçamento é `orcamentos.update` (o vendedor também tem).
+  // Converter em OS é `orcamentos.convert`: admin, gestor e o atendimento (vendedor, desde
+  // 25/10/2026: quem fecha com o cliente também solta a OS para a produção). Editar o
+  // orçamento é `orcamentos.update`.
   const podeConverter = hasPermission("orcamentos.convert");
   const podeEditar = hasPermission("orcamentos.update");
   // Mandar ao cliente (link e WhatsApp) é `orcamentos.send`: o banco recusa a

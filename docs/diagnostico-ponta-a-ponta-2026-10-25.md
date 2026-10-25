@@ -27,7 +27,7 @@ Os cinco elos que mais pesam, em ordem:
 
 1. **Aprovado não vira OS sozinho.** 8 orçamentos aprovados (R$ 619,51) esperam alguém converter. Enquanto isso o cliente acha que está em produção. [Medido]
 2. **Dinheiro entra antes da produção começar.** 7 OS de venda abertas já foram pagas (R$ 2.738,74); a #161 recebeu R$ 1.200 e continua em "entrada". [Medido]
-3. **Cascas de orçamento sujam todo número do funil.** 39 de 65 orçamentos (60%) não têm item nem versão. 23 deles são "rejeitados" vazios: a "taxa de rejeição" de 38% é, na verdade, 2 rejeições de verdade. [Medido]
+3. **Sobras de orçamento vazio poluem a lista.** 39 de 65 orçamentos (60%) não têm item nem versão; 26 são "rejeitados"/"expirados" antigos e sem valor, restos do botão que criava um orçamento por clique (corrigido em 21/10). Os cartões da lista já deixam esses status fora do "em aberto"; o que sujava era a lista e qualquer conta que eu fizesse sobre o total: a "taxa de rejeição" de 38% não vale, as rejeições de verdade são 2. [Medido]
 4. **Entrega, portal e pós-venda existem e estão vazios.** `entregas_instalacoes` 0, `portal_cliente_acessos` 0, `aprovacoes` 0, `ocorrencias` 0, `pos_venda_tickets` 0. A OS é "concluída" sem comprovante de entrega. [Medido]
 5. **Origem do cliente se perde.** 14 leads, 0 viraram cliente no cadastro; 22 de 28 clientes sem origem; 15 de 27 conversas de WhatsApp sem cliente. Não dá para saber qual canal traz dinheiro. [Medido]
 
@@ -47,7 +47,7 @@ Fotografia de 22/10 (documento anterior) × hoje × alvo. Cada linha usa o ID do
 | R4 | Aprovado → convertido | 9 com OS ainda "aprovado" | 1 corrigido hoje (#106); **8 aprovados sem OS** continuam 🟡 | conversão automática com confirmação |
 | R5 | Rastro do lead | 12 leads, 0 com cliente | 14 leads, **0** com cliente; 14 conversas com lead 🔴 | lead → cliente → orçamento com origem |
 | R6/R7 | Custo e item livre | 16 de 41 itens livres | 18 de 49 itens livres 🟡; custo cheio corrigido (§4.3) | item livre exige custo ou vira produto |
-| R8 | Responsável, prazo, máquina | 11/11 sem máquina | **16 de 16 OS de venda sem máquina; 13 sem prazo** 🔴 | obrigatórios na conversão |
+| R8 | Responsável, prazo, máquina | 11/11 sem máquina | das 14 OS de venda abertas: **10 sem horário na agenda de máquina e 12 sem prazo** (o campo "máquina" da OS não vale: a máquina é a do produto) 🔴 | prazo na conversão; agenda automática |
 | R9 | Entrega | `entregas_instalacoes` 0 | **0** 🔴 | nasce na conversão quando precisa entrega |
 | R10 | Portal e NPS | 0 acessos | **0** acessos, 1 pesquisa 🔴 | disparado na aprovação e no fechamento |
 | R11 | Parceiros | em andamento | 8 parceiros (6 contas), painel próprio, preço de tabela com faixa por área 🟢 | atendente para os 4 novos |
@@ -78,7 +78,7 @@ Fotografia de 22/10 (documento anterior) × hoje × alvo. Cada linha usa o ID do
 - **O que existe:** produto com preço por m² e faixas, versões congeladas, desconto com alçada, tela em quatro passos, acabamento cobrado, tabela de terceirizados.
 - **Uso [Medido]:** 65 orçamentos: 9 rascunho, 5 enviado, 9 aprovado, 14 convertido, 25 rejeitado, 3 expirado. **39 sem item nem versão** (23 rejeitados vazios, 8 rascunhos vazios, 5 convertidos só com valor digitado, 3 expirados). R$ convertido: 6.007,65; aprovado sem OS: 619,51; enviado: 1.011,80.
 - **O que entrega:** valor e itens à OS; preço de parceiro automático.
-- **Furo:** a casca de orçamento (criar só para abrir a tela) infla "rejeitado" e "parado" e confunde a conversão. O custo do item ainda sai do `custo_medio` do cadastro (só material), não do custo cheio: a margem do orçamento fica maior que a real.
+- **Furo:** as sobras de orçamento vazio (26, rejeitados/expirados sem valor) enchiam a lista e confundiam qualquer conta de conversão feita sobre o total. O custo do item ainda sai do `custo_medio` do cadastro (só material), não do custo cheio: a margem do orçamento fica maior que a real.
 - **Deve ficar:** orçamento só existe depois do primeiro item; o painel de conversão ignora cascas; decisão do dono sobre custo cheio no orçamento.
 
 ### 3.3 Envio 🟢
@@ -96,7 +96,7 @@ Fotografia de 22/10 (documento anterior) × hoje × alvo. Cada linha usa o ID do
 ### 3.5 Conversão em OS 🟡
 - **O que existe:** `converter_orcamento_em_os` completa: confere valor aprovado, alçada de desconto, item sem custo, cria itens, conta a receber, parcelas, reserva de material e agenda a máquina.
 - **Uso:** 14 convertidos. 29 OS: 10 entrada, 2 design, 1 arte aprovada, 1 aguardando aprovação de arte, 14 concluídas (13 delas são as OS internas de auditoria do RIP), 1 cancelada.
-- **Furo:** a OS nasce sem máquina (16/16), sem prazo (13) e sem tarefas padrão (`os_tarefas` = 1). A agenda e a capacidade ficam cegas.
+- **Furo:** das 14 OS de venda abertas, 10 não estão na agenda de máquina e 12 não têm prazo; `os_tarefas` tem 1 linha (sem tarefas padrão). A agenda e a capacidade ficam cegas. (A máquina é a do produto: `produtos.maquina_padrao_id` está preenchida em todo produto físico das OS abertas.)
 - **Deve ficar:** prazo e máquina obrigatórios na conversão (já há o prazo e o expresso do orçamento em passos), tarefas padrão por tipo de produto.
 
 ### 3.6 Arte e produção 🟡
@@ -150,7 +150,7 @@ Cadastro libera na hora, painel com cartões, preço automático no orçamento, 
 |---|---|---|
 | Dashboard / caixa | recebido hoje, 7 dias, mês (R$ 3.121,49), em aberto (R$ 3.180,40), atrasado | atrasado = 0 por falta de vencimento; recebido do mês não confere com o saldo por OS (diferença R$ 300 da OS #168) |
 | Meta do mês | meta R$ 11.373,04; **vendido 5.428,89**; **recebido 3.121,49**; **realizado 121,15**; backlog 5.919,14 | três números para "quanto vendi": o "atingido" (1,1%) usa o realizado (OS fechadas) e esconde que 48% da meta foi vendida |
-| Funil | lead → cliente → orçado → fechado → produção → entregue | começa em lead, e lead nunca vira cliente; cascas de orçamento sujam o "orçado" |
+| Funil | lead → cliente → orçado → fechado → produção → entregue | começa em lead, e lead nunca vira cliente (0 de 14) |
 | Pendências do sistema | 14 tipos hoje (+2 novos de pagamento) | boa; falta quem-resolve visível para pagamento |
 | Pendências de preenchimento | custo provisório (10), acabamento provisório (3), mão de obra estimada (6), rolos sem estoque cheio (6) | nova, cobra o valor real |
 | Tabela de preços | 52 cartões, margem por produto | custo "do cadastro" × "cheio" precisam de uma decisão (§7) |
@@ -178,7 +178,7 @@ Regra proposta: **cada número do painel diz uma coisa só, com o nome do que me
 | Envio → Aprovação | resposta do cliente | status | 🔴 manual |
 | Aprovação → OS | conversão | OS, conta, reserva, agenda | 🟡 8 esperando |
 | OS → Estoque | material previsto | reserva e baixa | 🟡 8 sem material previsto |
-| OS → Máquina/agenda | máquina, prazo | capacidade | 🔴 16 sem máquina |
+| OS → Máquina/agenda | máquina, prazo | capacidade | 🔴 10 de 14 sem horário na agenda; 12 sem prazo |
 | OS → Entrega | endereço, instalação | comprovante | 🔴 0 |
 | OS → Financeiro | valor, parcelas | caixa | 🟡 sinal não liga produção; 1 OS recebeu o dobro |
 | Financeiro → Dashboard | recebimentos | caixa e meta | 🟡 vencimento ausente |
@@ -218,3 +218,20 @@ Trocar os valores com tag: salário real, plotter de recorte, tinta, os 7 custos
 
 ## 10. Valores provisórios em uso (todos com tag)
 Mão de obra R$ 10,65/h + 32,19% · fator 1,5 de mão de obra sobre o tempo de máquina · plotter de recorte R$ 3,00/h · depuração 3 min/m · preços do laser (R$ 1,00/min), manual (R$ 0,75/min) e recorte (R$ 2,20/m) · custo dos 7 produtos da tabela de terceirizados · taxa do expresso 12%.
+
+---
+
+## 11. Andamento: Fase 1 e começo da Fase 2 (25/10/2026, noite)
+
+Feito, aplicado no banco e coberto por teste:
+
+- **O atendimento autoriza e converte.** O vendedor ganhou `orcamentos.approve` e `orcamentos.convert` (a Jhesselem já converte). Continua sem pagamento, fechar OS, forçar status nem financeiro; desconto fora da alçada segue com quem tem "Aprovar desconto".
+- **Forma de pagamento em minúsculas**, por gatilho (havia "PIX" e "pix").
+- **Orçamentos vazios** rejeitados/expirados saem da lista (botão "Mostrar" traz de volta).
+- **A entrega nasce com a OS** quando o orçamento pede entrega ou instalação (ensaiado sobre os 8 aprovados: 7 converteram; o #54 parou na trava de desconto, como deve).
+- **Cinco alertas novos no painel:** pagamento sem parcela (2), OS que recebeu mais que a conta (1), **OS já paga parada em "entrada" (3)**, OS sem prazo (12), OS sem horário na máquina (10).
+- **Orçamento #106** passou a "convertido".
+
+**Segurado de propósito (precisa de gente):** os 8 aprovados sem OS são pedidos de setembro que já foram impressos (ver `auditoria-rip`); converter agora cria cobrança, reserva e agenda de trabalho feito. Cada um precisa de uma decisão de quem fechou com o cliente. O extrato da OS #168 também.
+
+**Próximo (Fase 2, o que sobra):** prazo e agenda automáticos na conversão, tarefas padrão por tipo de produto, status derivados de fatos, sinal que libera a produção (decisão do dono).
