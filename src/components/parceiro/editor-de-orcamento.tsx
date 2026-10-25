@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -42,8 +43,10 @@ import { cn } from "@/lib/utils";
 import { baixarArquivo, renderPDFBlob } from "@/lib/pdf/generate";
 import {
   carregarCatalogo,
+  carregarPrazos,
   carregarPainel,
   CHAVE_CATALOGO,
+  CHAVE_PRAZOS,
   CHAVE_PAINEL,
   urlDoLogo,
 } from "@/lib/parceiro-api";
@@ -66,6 +69,13 @@ import {
 } from "@/domain/parceiros/painel";
 import { nomeDoArquivo, propsDoOrcamentoDoParceiro } from "@/domain/parceiros/pdf";
 import { degrausDoProduto } from "@/domain/parceiros/degraus";
+import {
+  PRAZO_NORMAL,
+  aplicarTaxaDePrazo,
+  prazoEscolhido,
+  rotuloDaPorcentagem,
+  taxaDoPrazo,
+} from "@/domain/parceiros/prazo";
 import {
   ehUltimo,
   estadoDosPassos,
@@ -93,6 +103,7 @@ type Registro = {
   cliente_documento: string | null;
   observacoes: string | null;
   validade_dias: number;
+  prazo: string | null;
   status: StatusDoOrcamento;
   pedido_orcamento_id: string | null;
   created_at: string;
@@ -106,6 +117,7 @@ type Cabecalho = {
   cliente_documento: string;
   observacoes: string;
   validade_dias: number;
+  prazo: string;
   status: StatusDoOrcamento;
 };
 
@@ -126,6 +138,7 @@ function cabecalhoDe(o: Registro): Cabecalho {
     cliente_documento: o.cliente_documento ?? "",
     observacoes: o.observacoes ?? "",
     validade_dias: Number(o.validade_dias) || 7,
+    prazo: o.prazo || PRAZO_NORMAL,
     status: o.status,
   };
 }
@@ -162,6 +175,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
 
   const { data: painel } = useQuery({ queryKey: CHAVE_PAINEL, queryFn: carregarPainel, staleTime: 60_000 });
   const { data: catalogo = [] } = useQuery({ queryKey: CHAVE_CATALOGO, queryFn: carregarCatalogo, staleTime: 5 * 60_000 });
+  const { data: prazos = [] } = useQuery({ queryKey: CHAVE_PRAZOS, queryFn: carregarPrazos, staleTime: 5 * 60_000 });
   const servidor = useQuery({
     queryKey: ["parceiro-orcamento", id],
     refetchOnWindowFocus: false,
@@ -170,7 +184,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
         (supabase as any)
           .from("parceiro_orcamentos")
           .select(
-            "id, numero, titulo, cliente_nome, cliente_telefone, cliente_email, cliente_documento, observacoes, validade_dias, status, pedido_orcamento_id, created_at",
+            "id, numero, titulo, cliente_nome, cliente_telefone, cliente_email, cliente_documento, observacoes, validade_dias, prazo, status, pedido_orcamento_id, created_at",
           )
           .eq("id", id)
           .maybeSingle(),
@@ -237,7 +251,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
   }, [sujo]);
 
   const porProduto = useMemo(() => new Map(catalogo.map((p) => [p.produto_id, p])), [catalogo]);
-  const resumo = useMemo(() => resumoDoOrcamento(itens, porProduto), [itens, porProduto]);
+  const resumoBase = useMemo(() => resumoDoOrcamento(itens, porProduto), [itens, porProduto]);
 
   if (servidor.isLoading || !painel) {
     return (
@@ -264,6 +278,10 @@ export function EditorDeOrcamento({ id }: { id: string }) {
   const pedido = painel.pedidos.find((p) => p.orcamento_parceiro_id === id);
   const status = STATUS_DO_ORCAMENTO[cab.status] ?? STATUS_DO_ORCAMENTO.rascunho;
   const validade = validadeDoOrcamento(registro.created_at, cab.validade_dias);
+  // A taxa do prazo é o que o parceiro paga À GRÁFICA: sobe o custo e desce o ganho; a venda não muda.
+  const prazoAtual = prazoEscolhido(prazos, cab.prazo);
+  const taxaDoPrazoReais = taxaDoPrazo(resumoBase.custo, prazoAtual?.taxa_percentual ?? 0);
+  const resumo = aplicarTaxaDePrazo(resumoBase, taxaDoPrazoReais);
   const passo: PassoDoOrcamento = passoEscolhido ?? 2;
   const estados = estadoDosPassos({
     clienteNome: cab.cliente_nome,
@@ -274,6 +292,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
     vendaTotal: resumo.venda,
     validadeDias: cab.validade_dias,
     observacoes: cab.observacoes,
+    prazoNome: prazoAtual && prazoAtual.taxa_percentual > 0 ? prazoAtual.nome.toLowerCase() : null,
   });
   const irParaPasso = (p: PassoDoOrcamento) => {
     setPassoEscolhido(p);
@@ -309,6 +328,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
           cliente_documento: vazioParaNulo(c.cliente_documento),
           observacoes: vazioParaNulo(c.observacoes),
           validade_dias: Math.min(Math.max(Math.round(Number(c.validade_dias) || 7), 1), 90),
+          prazo: c.prazo || PRAZO_NORMAL,
           status: c.status,
         })
         .eq("id", id)
@@ -416,6 +436,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
         cliente_documento: vazioParaNulo(cab.cliente_documento),
         observacoes: vazioParaNulo(cab.observacoes),
         validade_dias: cab.validade_dias,
+        prazo: cab.prazo || PRAZO_NORMAL,
       })
       .select("id")
       .single();
@@ -623,6 +644,52 @@ export function EditorDeOrcamento({ id }: { id: string }) {
                   onChange={(e) => mudarCab({ validade_dias: Number(e.target.value) })}
                 />
               </Campo>
+              {prazos.length > 1 && (
+                <fieldset className="space-y-2" data-testid="escolha-do-prazo">
+                  <legend className="text-sm font-medium">Prazo de produção</legend>
+                  <RadioGroup
+                    value={prazoAtual ? cab.prazo : PRAZO_NORMAL}
+                    onValueChange={(v) => mudarCab({ prazo: v })}
+                    disabled={somenteLeitura}
+                    className="grid gap-2"
+                  >
+                    {prazos.map((pz) => {
+                      const valor = taxaDoPrazo(resumoBase.custo, pz.taxa_percentual);
+                      return (
+                        <label
+                          key={pz.chave}
+                          htmlFor={`prazo-${pz.chave}`}
+                          className={cn(
+                            "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
+                            (prazoAtual?.chave ?? PRAZO_NORMAL) === pz.chave
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:bg-muted",
+                          )}
+                        >
+                          <RadioGroupItem id={`prazo-${pz.chave}`} value={pz.chave} className="mt-1" />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+                              <span className="font-medium">{pz.nome}</span>
+                              <span className="text-sm tabular-nums">
+                                {pz.taxa_percentual > 0
+                                  ? `+${rotuloDaPorcentagem(pz.taxa_percentual)} sobre os produtos${valor > 0 ? ` · ${brl(valor)}` : ""}`
+                                  : "sem taxa"}
+                              </span>
+                            </span>
+                            {pz.descricao && (
+                              <span className="block text-xs text-muted-foreground">{pz.descricao}</span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </RadioGroup>
+                  <p className="text-xs text-muted-foreground">
+                    A taxa é o que você paga à gráfica, calculada sobre o valor dos produtos. O preço
+                    que você cobra do seu cliente continua sendo seu.
+                  </p>
+                </fieldset>
+              )}
               <Campo rotulo="Observações para o cliente" id="orc-obs">
                 <Textarea
                   id="orc-obs"
@@ -643,6 +710,11 @@ export function EditorDeOrcamento({ id }: { id: string }) {
               porProduto={porProduto}
               pendencias={resumo.pendencias}
               validade={validade}
+              prazoTexto={
+                prazoAtual && prazoAtual.taxa_percentual > 0
+                  ? `${prazoAtual.nome}: +${rotuloDaPorcentagem(prazoAtual.taxa_percentual)} sobre os produtos (${brl(taxaDoPrazoReais)}), pagos à gráfica`
+                  : null
+              }
               onEditar={irParaPasso}
               somenteLeitura={somenteLeitura}
             />
@@ -671,6 +743,12 @@ export function EditorDeOrcamento({ id }: { id: string }) {
             <dl className="mt-3 space-y-2 text-sm">
               <Linha rotulo="Cliente paga" valor={brl(resumo.venda)} forte />
               <Linha rotulo="Você paga à gráfica" valor={brl(resumo.custo)} />
+              {taxaDoPrazoReais > 0 && prazoAtual && (
+                <Linha
+                  rotulo={`Inclui ${prazoAtual.nome.toLowerCase()} (+${rotuloDaPorcentagem(prazoAtual.taxa_percentual)})`}
+                  valor={brl(taxaDoPrazoReais)}
+                />
+              )}
               <div className="border-t border-border pt-2">
                 <Linha
                   rotulo={resumo.lucroParcial ? "Seu ganho (parcial)" : "Seu ganho"}
@@ -788,6 +866,7 @@ function RevisaoDoOrcamento({
   porProduto,
   pendencias,
   validade,
+  prazoTexto,
   onEditar,
   somenteLeitura,
 }: {
@@ -796,6 +875,7 @@ function RevisaoDoOrcamento({
   porProduto: Map<string, ItemDoCatalogo>;
   pendencias: { indice: number; descricao: string; motivo: string }[];
   validade: Date | null;
+  prazoTexto: string | null;
   onEditar: (p: PassoDoOrcamento) => void;
   somenteLeitura: boolean;
 }) {
@@ -888,6 +968,7 @@ function RevisaoDoOrcamento({
           Vale {cab.validade_dias} {cab.validade_dias === 1 ? "dia" : "dias"}
           {validade ? ` (até ${validade.toLocaleDateString("pt-BR")})` : ""}.
         </p>
+        {prazoTexto && <p className="mt-1 text-sm font-medium">{prazoTexto}.</p>}
         {cab.observacoes.trim() ? (
           <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
             {cab.observacoes}

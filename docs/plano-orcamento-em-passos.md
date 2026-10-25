@@ -10,6 +10,13 @@ Pedido do dono, em resumo:
 4. O **expresso** é uma taxa, em porcentagem sobre o produto.
 5. Entrega ou retirada, forma de pagamento, anexo da imagem do produto, tudo simples e bonito, como uma pequena loja.
 
+## Atualização de 25/10/2026
+
+- **Passos do parceiro, degraus de quantidade, tamanhos em botões e resumo fixo no celular:** feitos (PRs #194 e #195).
+- **Expresso, decisão do dono:** é **taxa em porcentagem sobre o valor dos produtos**, nunca valor fixo, porque o mesmo valor em reais pesa diferente num produto de R$ 50 e num de R$ 100. Para começar vale **12%** (provisório, "depois a gente vê"). A porcentagem fica na tabela `prazos_de_entrega`, e mudar o número não exige migração.
+- **Feito no pedido do parceiro:** o parceiro escolhe Normal ou Expresso no passo "Condições"; o banco soma ao pedido uma linha "Taxa de expresso (12% sobre os produtos)" calculada sobre os produtos já recalculados pela tabela de parceiro. A taxa é o que o parceiro paga à gráfica; o preço de venda ao cliente dele continua sendo dele.
+- **Falta:** o mesmo prazo na tela da equipe, entrega ou retirada, forma de pagamento obrigatória, opções por produto, anexo da arte e estado de material.
+
 ## 1. Como está hoje (24/10/2026)
 
 | Tela | O que existe | O que falta |

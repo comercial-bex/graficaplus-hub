@@ -48,6 +48,8 @@ export type EntradaDosPassos = {
   vendaTotal: number;
   validadeDias: number;
   observacoes: string;
+  /** O prazo com taxa escolhido ("expresso"); nulo no prazo normal. */
+  prazoNome?: string | null;
 };
 
 export function estadoDosPassos(a: EntradaDosPassos): EstadoDoPasso[] {
@@ -77,11 +79,12 @@ export function estadoDosPassos(a: EntradaDosPassos): EstadoDoPasso[] {
   };
 
   const temObservacao = a.observacoes.trim() !== "";
+  const prazoComTaxa = (a.prazoNome ?? "").trim();
   const passo3: EstadoDoPasso = {
     n: 3,
     titulo: "Condições",
-    resumo: `vale ${a.validadeDias} ${a.validadeDias === 1 ? "dia" : "dias"}${temObservacao ? " · com observações" : ""}`,
-    situacao: temObservacao ? "preenchido" : "vazio",
+    resumo: `vale ${a.validadeDias} ${a.validadeDias === 1 ? "dia" : "dias"}${prazoComTaxa ? ` · ${prazoComTaxa}` : ""}${temObservacao ? " · com observações" : ""}`,
+    situacao: temObservacao || prazoComTaxa ? "preenchido" : "vazio",
   };
 
   const tudoCerto = clienteOk && itensOk;
