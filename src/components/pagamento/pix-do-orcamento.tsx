@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { brCodePix, linkDoWhatsapp, mensagemDoPix, TIPOS_DE_CHAVE_PIX, type TipoDeChavePix } from "@/domain/pagamento/pix";
 import { IconePix } from "./marcas";
+import { QrCodeDoPix } from "./qr-code-do-pix";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (iso: string) => iso.split("-").reverse().join("/");
@@ -117,16 +118,23 @@ export function PixDoOrcamento({
           </div>
 
           {copiaECola ? (
-            <div className="space-y-1">
-              <Label className="text-xs">Pix copia e cola (já com o valor)</Label>
-              <textarea
-                readOnly
-                rows={3}
-                value={copiaECola}
-                aria-label="Pix copia e cola"
-                className="w-full resize-none rounded-md border border-input bg-background p-2 font-mono text-[11px] leading-snug"
-                onFocus={(e) => e.currentTarget.select()}
-              />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <QrCodeDoPix texto={copiaECola} />
+              <div className="min-w-0 flex-1 space-y-1">
+                <Label className="text-xs">Pix copia e cola (já com o valor)</Label>
+                <textarea
+                  readOnly
+                  rows={4}
+                  value={copiaECola}
+                  aria-label="Pix copia e cola"
+                  className="w-full resize-none rounded-md border border-input bg-background p-2 font-mono text-[11px] leading-snug"
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Ao pagar, o app do banco tem de mostrar o recebedor <strong>{String(cfg?.razao_social ?? cfg?.nome ?? "da empresa")}</strong> e o valor{" "}
+                  <strong>{brl(valor)}</strong>. Se aparecer outro nome ou valor, não envie.
+                </p>
+              </div>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Informe um valor maior que zero para gerar o copia e cola.</p>
