@@ -404,9 +404,7 @@ function divergenciasComOSistema(
  * um pedido de 6,02 m² sai mais barato que um de 6,00 m². Devolve, para cada produto com
  * essa faixa, quanto o pedido mais barato custa a menos que o pedido logo abaixo do limiar.
  */
-export function degrauDePreco(
-  p: ProdutoDaTabela,
-): {
+export function degrauDePreco(p: ProdutoDaTabela): {
   deArea: number;
   paraArea: number;
   valorAntes: number;
