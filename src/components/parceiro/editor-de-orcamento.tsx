@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { EscolhaDeMaterial } from "@/components/orcamento/escolha-de-material";
 import {
   CartaoDeEscolha,
   GradeDeCartoes,
@@ -59,6 +60,7 @@ import {
 import {
   brl,
   custoDoItem,
+  precoDaGrafica,
   precoSugerido,
   resumoDoOrcamento,
   unidadeLegivel,
@@ -1007,6 +1009,20 @@ function ItemCard({
       </div>
 
       <div className="grid gap-3 pl-8 md:grid-cols-2">
+        <div className="md:col-span-2 empty:hidden">
+          <EscolhaDeMaterial
+            nomeAtual={produto?.nome}
+            catalogo={catalogo}
+            desabilitado={somenteLeitura}
+            preco={(p) => {
+              const g = precoDaGrafica(p, item.quantidade);
+              return g.tipo === "ok"
+                ? `${brl(g.preco)}/${p.por_area ? "m²" : unidadeLegivel(p.unidade)}`
+                : undefined;
+            }}
+            onEscolher={onEscolherProduto}
+          />
+        </div>
         <Campo rotulo="Descrição no PDF" id={`desc-${item.id}`} className="md:col-span-2">
           <Input
             id={`desc-${item.id}`}
