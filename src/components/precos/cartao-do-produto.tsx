@@ -75,7 +75,7 @@ export function CartaoDoProduto({
         <button type="button" onClick={aoAbrir} className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug">{p.nome}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {p.categoria ? categoriaLabel(p.categoria) : "sem categoria"} · por {p.unidade}
+            {linha.familia ?? (p.categoria ? categoriaLabel(p.categoria) : "sem categoria")} · por {p.unidade}
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
             <SeloDaFicha nivel={ficha.nivel} />

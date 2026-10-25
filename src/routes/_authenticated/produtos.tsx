@@ -70,6 +70,7 @@ import { useAuth } from "@/lib/auth-context";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import {
   CATEGORIAS,
+  FAMILIAS,
   UNIDADES,
   TIPOS,
   type Produto,
@@ -100,6 +101,7 @@ export const Route = createFileRoute("/_authenticated/produtos")({
 type FormState = {
   id?: string;
   sku: string;
+  familia: string;
   nome: string;
   descricao: string;
   categoria: string;
@@ -119,6 +121,7 @@ type FormState = {
 
 const emptyForm: FormState = {
   sku: "",
+  familia: "",
   nome: "",
   descricao: "",
   categoria: "outros",
@@ -168,6 +171,18 @@ function ProdutosPage() {
       return (data ?? []) as unknown as Produto[];
     },
   });
+
+  // A família mora na tabela; as views produtos_* não a trazem (recriá-las descartaria o
+  // security_invoker). Staff lê a tabela por RLS; falha aqui só deixa o campo vazio.
+  const familias = useQuery({
+    queryKey: ["produtos", "familias"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("produtos").select("id, familia");
+      if (error) throw error;
+      return new Map<string, string>(((data ?? []) as Array<{ id: string; familia: string | null }>).filter((r) => r.familia).map((r) => [r.id, r.familia as string]));
+    },
+  });
+  const familiaDe = familias.data ?? new Map<string, string>();
 
   /**
    * Quais produtos têm receita de material.
@@ -236,10 +251,11 @@ function ProdutosPage() {
       return (
         p.nome.toLowerCase().includes(q) ||
         (p.sku ?? "").toLowerCase().includes(q) ||
+        (familiaDe.get(p.id) ?? "").toLowerCase().includes(q) ||
         (p.descricao ?? "").toLowerCase().includes(q)
       );
     });
-  }, [produtos, busca, filtroCategoria, filtroTipo, mostrarInativos]);
+  }, [produtos, busca, filtroCategoria, filtroTipo, mostrarInativos, familiaDe]);
 
   const stats = useMemo(() => {
     const total = produtos.length;
@@ -257,6 +273,7 @@ function ProdutosPage() {
     mutationFn: async (f: FormState) => {
       const payload = {
         sku: f.sku.trim() || null,
+        familia: f.familia.trim() || null,
         nome: f.nome.trim(),
         descricao: f.descricao.trim() || null,
         categoria: f.categoria,
@@ -354,6 +371,7 @@ function ProdutosPage() {
     setForm({
       id: p.id,
       sku: p.sku ?? "",
+      familia: familiaDe.get(p.id) ?? "",
       nome: p.nome,
       descricao: p.descricao ?? "",
       categoria: p.categoria,
@@ -375,6 +393,7 @@ function ProdutosPage() {
   function duplicar(p: Produto) {
     setForm({
       sku: p.sku ? `${p.sku}-COPY` : "",
+      familia: familiaDe.get(p.id) ?? "",
       nome: `${p.nome} (cópia)`,
       descricao: p.descricao ?? "",
       categoria: p.categoria,
@@ -740,6 +759,7 @@ function ProdutosPage() {
         form={form}
         setForm={setForm}
         canSeeFinancials={canSeeFinancials}
+        familiasEmUso={[...familiaDe.values()]}
         onSubmit={() => upsert.mutate(form)}
         saving={upsert.isPending}
       />
@@ -858,6 +878,7 @@ function ProdutoFormDialog({
   form,
   setForm,
   canSeeFinancials,
+  familiasEmUso,
   onSubmit,
   saving,
 }: {
@@ -866,6 +887,7 @@ function ProdutoFormDialog({
   form: FormState;
   setForm: (f: FormState) => void;
   canSeeFinancials: boolean;
+  familiasEmUso: string[];
   onSubmit: () => void;
   saving: boolean;
 }) {
@@ -963,6 +985,21 @@ function ProdutoFormDialog({
                   className="font-mono"
                 />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">Família</Label>
+              <Input
+                value={form.familia}
+                onChange={(e) => setForm({ ...form, familia: e.target.value })}
+                placeholder="Lonas frontlight"
+                list="familias-do-catalogo"
+              />
+              <datalist id="familias-do-catalogo">
+                {[...new Set([...FAMILIAS, ...familiasEmUso])].map((f) => (
+                  <option key={f} value={f} />
+                ))}
+              </datalist>
+              <p className="text-xs text-muted-foreground">Agrupa produtos parecidos dentro da categoria (ex.: Lonas frontlight, Adesivos perfurados).</p>
             </div>
             <div className="grid grid-cols-3 items-end gap-3">
               <div className="space-y-1.5">
