@@ -271,6 +271,9 @@ export function GerenciadorDeAcabamentos({ aberto, aoFechar }: { aberto: boolean
                           <span>{rotuloDaBase(a.base)}</span>
                           <span>· {vinculosDe(a.id).length} produto(s)</span>
                           {!a.ativo && <Badge variant="outline">inativo</Badge>}
+                          {a.observacao?.startsWith("PROVISÓRIO") && (
+                            <Badge variant="outline" className="border-warning/50 bg-warning/15 text-foreground">Provisório: trocar pelo real</Badge>
+                          )}
                         </div>
                       </div>
                       {podeEditar && (

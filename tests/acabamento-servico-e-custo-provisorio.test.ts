@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-const SQL = readFileSync("supabase/migrations/20261025700000_acabamento_produto_servico_e_custo_provisorio_pelo_cheio.sql", "utf8");
+const SQL = readFileSync("supabase/migrations/20261025750000_acabamento_produto_servico_e_custo_provisorio_pelo_cheio.sql", "utf8");
 
 describe("acabamento → produto de serviço e custo provisório pelo cheio", () => {
   it("liga por coluna os dois acabamentos que já se cobram", () => {
