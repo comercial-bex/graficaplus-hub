@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { custoProvisorio } from "@/domain/precos/tabela-de-precos";
 
-const SQL = readFileSync("supabase/migrations/20261025800000_valores_provisorios_com_tag.sql", "utf8");
+const SQL = readFileSync("supabase/migrations/20261025900000_valores_provisorios_com_tag.sql", "utf8");
 
 describe("valores simbólicos com tag", () => {
   it("todo valor inventado leva PROVISÓRIO na observação, para o aviso achar", () => {
