@@ -138,6 +138,10 @@ export const FORMAS_DE_PAGAMENTO = [
 
 export type CondicaoDePagamento = {
   forma?: string | null;
+  /** bandeira do cartão, opcional: visa, mastercard, elo, amex, hipercard */
+  bandeira?: string | null;
+  /** Pix que a pessoa marcou como recebido ao combinar o pagamento; vira baixa na conversão em OS */
+  pix_recebido?: { valor: number; em: string; lancado?: boolean } | null;
   parcelas?: number | null;
   intervalo_dias?: number | null;
   primeiro_vencimento?: string | null;

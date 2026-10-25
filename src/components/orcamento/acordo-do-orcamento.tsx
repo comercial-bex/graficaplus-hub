@@ -49,6 +49,8 @@ import {
   type ModoDeEntrega,
 } from "@/domain/orcamentos/acordo";
 import { CampoData } from "./campo-data";
+import { BandeiraDoCartao, FormaDePagamento, OUTRA_FORMA } from "@/components/pagamento/forma-de-pagamento";
+import { PixDoOrcamento } from "@/components/pagamento/pix-do-orcamento";
 
 /**
  * O combinado com o cliente, no quadro lateral do orçamento: quando e como
@@ -360,7 +362,13 @@ export function Pagamento({
   previa = false,
   condicao: cru,
   podeEditar,
+  numero = null,
+  clienteNome = null,
+  clienteTelefone = null,
 }: {
+  numero?: number | null;
+  clienteNome?: string | null;
+  clienteTelefone?: string | null;
   orcamentoId: string;
   total: number;
   /** o total vem de um desconto digitado e ainda não aplicado */
@@ -403,35 +411,22 @@ export function Pagamento({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="forma-pagamento" className="text-xs">
-            Forma
-          </Label>
-          <Select
-            value={valorDaSelecao}
-            disabled={!podeEditar || gravar.isPending}
-            onValueChange={(v) => {
-              if (v === OUTRA) {
+        <div className="space-y-2">
+          <Label className="text-xs">Forma</Label>
+          <FormaDePagamento
+            valor={valorDaSelecao}
+            desabilitado={!podeEditar || gravar.isPending}
+            onEscolher={(v) => {
+              if (v === OUTRA_FORMA) {
                 setUsandoOutra(true);
                 return;
               }
               setUsandoOutra(false);
               setOutra("");
-              salvar({ forma: v });
+              // Débito é à vista; trocar de cartão não deve deixar parcelas de um crédito anterior.
+              salvar(v === "Cartão de débito" ? { forma: v, parcelas: 1 } : { forma: v });
             }}
-          >
-            <SelectTrigger id="forma-pagamento" className="h-10">
-              <SelectValue placeholder="Escolher a forma" />
-            </SelectTrigger>
-            <SelectContent>
-              {FORMAS_DE_PAGAMENTO.map((f) => (
-                <SelectItem key={f} value={f}>
-                  {f}
-                </SelectItem>
-              ))}
-              <SelectItem value={OUTRA}>Outra…</SelectItem>
-            </SelectContent>
-          </Select>
+          />
           {usandoOutra && (
             <Input
               aria-label="Outra forma de pagamento"
@@ -443,6 +438,25 @@ export function Pagamento({
                 const texto = outra.trim();
                 if (texto && texto !== formaGravada) salvar({ forma: texto });
               }}
+            />
+          )}
+          {(formaGravada === "Cartão de crédito" || formaGravada === "Cartão de débito") && (
+            <BandeiraDoCartao
+              valor={typeof condicao.bandeira === "string" ? condicao.bandeira : null}
+              desabilitado={!podeEditar || gravar.isPending}
+              onEscolher={(bandeira) => salvar({ bandeira }, bandeira ? "Bandeira salva" : "Bandeira removida")}
+            />
+          )}
+          {formaGravada === "PIX" && (
+            <PixDoOrcamento
+              numero={numero}
+              clienteNome={clienteNome}
+              clienteTelefone={clienteTelefone}
+              valorSugerido={lista[0]?.valor ?? total}
+              recebido={condicao.pix_recebido ?? null}
+              podeEditar={podeEditar}
+              gravando={gravar.isPending}
+              onMarcar={(marca) => salvar({ pix_recebido: marca }, marca ? "Pix marcado como recebido" : "Marca do Pix removida")}
             />
           )}
         </div>
@@ -458,7 +472,7 @@ export function Pagamento({
               min="1"
               step="1"
               inputMode="numeric"
-              disabled={!podeEditar}
+              disabled={!podeEditar || formaGravada === "Cartão de débito"}
               value={parcelas}
               onChange={(e) => setParcelas(e.target.value)}
               onBlur={() => {

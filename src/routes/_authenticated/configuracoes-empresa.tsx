@@ -18,6 +18,7 @@ import { formatarCEP, formatarTelefone, type TipoDocumento } from "@/domain/docu
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { Carregando } from "@/components/bex/Carregando";
 import { TaxaDoPrazo } from "@/components/configuracoes/taxa-do-prazo";
+import { ChavePixDaEmpresa } from "@/components/configuracoes/chave-pix-da-empresa";
 import { DecisoesDoDono } from "@/components/configuracoes/decisoes-do-dono";
 import { UsoDosAssistentes } from "@/components/configuracoes/uso-dos-assistentes";
 
@@ -427,6 +428,7 @@ function ConfiguracoesEmpresaPage() {
         </CardContent>
       </Card>
 
+      <ChavePixDaEmpresa />
       <TaxaDoPrazo podeEditar={podeEditar} />
 
       {(hasRole("admin") || hasRole("gestor") || hasRole("financeiro")) && <DecisoesDoDono />}
