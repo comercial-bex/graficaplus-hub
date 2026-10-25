@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from "@/integrations/supabase/client";
 import type { ExtrasDoProduto } from "@/domain/parceiros/vitrine";
-import { normalizarCatalogo, type ItemDoCatalogo } from "@/domain/parceiros/preco";
+import {
+  aplicarFaixasPorArea,
+  normalizarCatalogo,
+  type ItemDoCatalogo,
+} from "@/domain/parceiros/preco";
 import type { MarcaDoParceiro, PainelDoParceiro } from "@/domain/parceiros/painel";
 import { normalizarPrazos, type PrazoDeEntrega } from "@/domain/parceiros/prazo";
 
@@ -40,7 +44,10 @@ export async function carregarPainel(): Promise<PainelDoParceiro> {
 export async function carregarCatalogo(): Promise<ItemDoCatalogo[]> {
   const { data, error } = await (supabase.rpc as any)("parceiro_catalogo");
   if (error) throw error;
-  return normalizarCatalogo((data ?? []) as unknown[]);
+  const catalogo = normalizarCatalogo((data ?? []) as unknown[]);
+  // A faixa por área é um acréscimo: se falhar, o catálogo segue sem ela (a tela só antecipa; o banco decide).
+  const { data: faixas } = await (supabase.rpc as any)("parceiro_faixas_por_area");
+  return aplicarFaixasPorArea(catalogo, (faixas ?? []) as unknown[]);
 }
 
 /** Foto, tipo e descrição dos produtos. Falhar aqui não derruba a tabela: sem foto, entra o ícone da categoria. */

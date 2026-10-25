@@ -1086,6 +1086,12 @@ function ItemCard({
                 {Number(produto.area_minima).toLocaleString("pt-BR")} m².
               </p>
             ) : null}
+            {produto?.faixa_por_area && cobradoPorArea ? (
+              <p className="text-xs text-muted-foreground">
+                Do que passar de {produto.faixa_por_area.acimaDeM2.toLocaleString("pt-BR")} m² na
+                linha, o m² sai por {brl(produto.faixa_por_area.precoAcima)}.
+              </p>
+            ) : null}
           </div>
         )}
 

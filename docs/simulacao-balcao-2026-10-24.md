@@ -40,20 +40,20 @@ A coluna "Material" é o consumo simulado em m² de superfície, já com o aprov
 | S06 | D e C — os mesmos itens, em outra ordem | 5,16 m² | R$ 162,56 | R$ 19,51 | 22 min | 43 min | 44 min | máquina | lona 280 8,325 | cabe (folga 316 min) |
 | S07 | Y e Z — backlight e perfurado | 4 m² | R$ 219,60 | R$ 26,35 | 17 min | 29 min | 32 min | máquina | lona backlight 3,52; vinil perfurado 2,335 | cabe (folga 328 min) |
 | S08a | Limiar: B com exatamente 6,00 m² | 6 m² | R$ 179,40 | R$ 21,53 | 26 min | 11 min | 31 min | máquina | vinil branco 6,784 | cabe (folga 329 min) |
-| S08b | Limiar: B com 6,02 m² | 6,02 m² | R$ 167,96 | R$ 20,16 | 26 min | 11 min | 31 min | máquina | vinil branco 6,805 | cabe (folga 329 min) |
-| S09a | B em duas linhas de 4 m², limiar POR LINHA | 8 m² | R$ 239,20 | R$ 28,70 | 34 min | 15 min | 42 min | máquina | vinil branco 9,328 | cabe (folga 318 min) |
-| S09b | B em duas linhas de 4 m², limiar POR PRODUTO | 8 m² | R$ 223,20 | R$ 26,78 | 34 min | 15 min | 42 min | máquina | vinil branco 9,328 | cabe (folga 318 min) |
+| S08b | Limiar: B com 6,02 m² | 6,02 m² | R$ 179,96 | R$ 21,60 | 26 min | 11 min | 31 min | máquina | vinil branco 6,805 | cabe (folga 329 min) |
+| S09a | B em duas linhas de 4 m² | 8 m² | R$ 239,20 | R$ 28,70 | 34 min | 15 min | 42 min | máquina | vinil branco 9,328 | cabe (folga 318 min) |
+| S09b | B em uma linha de 8 m² | 8 m² | R$ 235,20 | R$ 28,22 | 34 min | 12 min | 40 min | máquina | vinil branco 8,904 | cabe (folga 320 min) |
 | S10 | Adesivo + recorte simples — 2×0,5 m | 1 m² | R$ 44,90 | R$ 5,39 | 4 min | 13 min | 11 min | mão de obra | vinil branco 2,332 | cabe (folga 349 min) |
 | S11 | Adesivo + recorte detalhado — 500 etiquetas de 4×4 cm | 0,8 m² | R$ 35,92 | R$ 4,31 | 5 min | 210 min | 110 min | mão de obra | vinil branco 1,256 | NÃO — o que manda no tempo é mão de obra, e mão de obra não se acelera |
-| S12 | Lona TOP de fachada — 8×1,5 m (12 m²) | 12 m² | R$ 358,80 | R$ 43,06 | 51 min | 65 min | 84 min | máquina | lona 440 13,12 | cabe (folga 276 min) |
-| S13 | Lona TOP gigante — 12×3 m (36 m²) | 36 m² | R$ 1.076,40 | R$ 129,17 | 154 min | 146 min | 227 min | máquina | lona 440 39,04 | cabe (folga 133 min) |
+| S12 | Lona TOP de fachada — 8×1,5 m (12 m²) | 12 m² | R$ 388,80 | R$ 46,66 | 51 min | 65 min | 84 min | máquina | lona 440 13,12 | cabe (folga 276 min) |
+| S13 | Lona TOP gigante — 12×3 m (36 m²) | 36 m² | R$ 1.106,40 | R$ 132,77 | 154 min | 146 min | 227 min | máquina | lona 440 39,04 | cabe (folga 133 min) |
 | S14a | B de 1,2×0,9 m — cabe girado no rolo de 1,06 m? | 1,08 m² | R$ 32,29 | R$ 3,87 | 5 min | 8 min | 9 min | máquina | vinil branco 1,484 | cabe (folga 351 min) |
 | S14b | B de 1,5×1,5 m — passa da largura do rolo? | 2,25 m² | R$ 67,27 | R$ 8,07 | 10 min | 10 min | 14 min | máquina | vinil branco 3,604 | cabe (folga 346 min) |
 | S15 | Banner pequeno — 0,3×0,4 m | 1 m² | R$ 37,90 | R$ 4,55 | 1 min | 12 min | 7 min | mão de obra | lona 280 0,8 | cabe (folga 353 min) |
 | S16 | Pedido com 10 linhas diferentes de adesivo e lona | 6,51 m² | R$ 194,25 | R$ 23,31 | 28 min | 57 min | 56 min | mão de obra | vinil branco 3,975; lona 280 5,12; vinil transparente 1,063; vinil fosco 1,063 | cabe (folga 304 min) |
 | S17 | 500 adesivos A de 10×10 cm | 5 m² | R$ 119,50 | R$ 14,34 | 21 min | 8 min | 25 min | máquina | vinil branco 5,668 | cabe (folga 335 min) |
 | S18 | A + B + C em EXPRESSO | 6,3 m² | R$ 164,37 | R$ 19,72 | 27 min | 38 min | 46 min | máquina | vinil branco 3,935; lona 280 5,12 | cabe (folga 314 min) |
-| S19 | Lona TOP de 40 m² em EXPRESSO | 40 m² | R$ 1.196,00 | R$ 143,52 | 171 min | 220 min | 281 min | máquina | lona 440 64,64 | cabe (folga 79 min) |
+| S19 | Lona TOP de 40 m² em EXPRESSO | 40 m² | R$ 1.226,00 | R$ 147,12 | 171 min | 220 min | 281 min | máquina | lona 440 64,64 | cabe (folga 79 min) |
 | S20 | Pedido pequeno em EXPRESSO com 5 h 40 min de fila | 2 m² | R$ 69,80 | R$ 8,38 | 9 min | 26 min | 362 min | mão de obra | lona 440 3,52 | NÃO — pede 362 min e a janela do expresso é de 360 min (há 340 min de fila) |
 | S21 | Lona TOP + adesivo com recorte, em EXPRESSO | 4 m² | R$ 149,60 | R$ 17,95 | 17 min | 45 min | 40 min | mão de obra | lona 440 5,12; vinil branco 1,272 | cabe (folga 320 min) |
 | S22 | Lona fosca e backlight em EXPRESSO | 3 m² | R$ 124,70 | R$ 14,96 | 13 min | 41 min | 33 min | mão de obra | lona fosca 3,52; lona backlight 1,92 | cabe (folga 327 min) |
@@ -74,31 +74,30 @@ Um dia típico de balcão (S01 a S05, S07, S10, S12, S15, S17, S21, uma vez cada
 
 Isso é ordem de grandeza para um dia inventado. O número de verdade vem do consumo real: os jobs do Flexi importados já dizem quantos m² saíram de cada material por dia.
 
-## Problemas encontrados
+## Problemas encontrados e o que foi decidido
 
-1. **Degrau de 6 m² faz o pedido maior sair mais barato.** Adesivo TOP: 6,00 m² custa R$ 179,40; 6,02 m² custa R$ 167,96 (S08a/S08b), R$ 11,44 a menos por 0,02 m² a mais. O cliente aprende a "esticar" o pedido e a loja perde margem. Alternativa sem degrau (`valorProgressivo`): os primeiros 6 m² a R$ 29,90 e só o que passa a R$ 27,90; 6,02 m² passa a custar R$ 179,96. Teste garante que o progressivo nunca deixa o maior custar menos.
-2. **A regra dos 6 m² é ambígua** e muda o valor: duas linhas de 4 m² de adesivo TOP custam R$ 239,20 se a regra vale por linha e R$ 223,20 se soma por produto (S09a/S09b). O sistema não tem a faixa.
-3. **A tabela do WhatsApp e o preço do parceiro no sistema não batem.** Adesivo branco: R$ 29,90 no WhatsApp e R$ 46,75 no sistema. Lona PROMO: R$ 26,90 e R$ 38,25. No sentido contrário, banner (R$ 37,90 e R$ 36,50) e lona TOP até 6 m² (R$ 34,90 e R$ 33,50).
-4. **Produtos e materiais da tabela sem cadastro.** Sem produto: Adesivo PROMO, transparente, fosco, blackout, Lona fosca e Backlight. Sem material: vinil transparente, vinil fosco, vinil blackout, lona fosca e backlight. A simulação trata como se existissem (rolo comum da família), mas no sistema o pedido não reserva material.
-5. **Rolo de vinil de 1,06 m.** Adesivo de 3×2 m do limiar vira dois painéis e 3 m de emenda (S08); peça de 1,5 m de lado também (S14b). Rolo mais largo some com isso.
-6. **Mão de obra manda no tempo de pedido com muita peça pequena.** 500 etiquetas 4×4 cm com recorte detalhado: 5 min de máquina e 210 min de mão de obra (S11), fora do expresso. Pedido de 10 linhas diferentes também pesa (S16).
-7. **Fila na frente come a janela.** Pedido de 26 min de trabalho com 5 h 40 min de fila pede 362 min contra 360 de janela (S20). O sistema hoje não sabe quanto de fila existe quando promete expresso.
-8. **Pedido gigante em expresso.** 40 m² de lona TOP ocupa 281 min dos 360 (S19): cabe, mas com folga de 79 min, e só um pedido assim por janela.
-9. **Banner "a partir de R$ 37,90".** O sistema precisa de preço fechado. O cadastro cobra mínimo de 1 m² por peça e a tabela não fala em mínimo: banner de 0,3×0,4 m custa R$ 37,90 (S15).
-10. **Ordem não importa e soma bate.** C e D = D e C (S05/S06); A+B+C custa a soma dos três (S04). Coberto por teste.
+As regras decididas estão em [regras-de-preco-do-balcao.md](regras-de-preco-do-balcao.md). Resumo:
 
-## Perguntas para o dono
+1. **Degrau de 6 m² (resolvido).** Desconto sobre a linha inteira fazia 6,02 m² de adesivo TOP custar R$ 11,44 a menos que 6,00 m². Decisão: faixa **progressiva por linha**. O banco, a tela do parceiro e o simulador usam a mesma conta; 6,02 m² agora custa R$ 179,96.
+2. **Regra dos 6 m² ambígua (resolvido).** Vale **por linha**. Uma linha de 8 m² custa R$ 235,20; duas linhas de 4 m² custam R$ 239,20 (S09a/S09b).
+3. **Tabela do WhatsApp contra o sistema (resolvido nos seis produtos que existem).** O sistema passa a cobrar o preço da tabela.
+4. **Margem abaixo do mínimo cadastrado (aberto, decisão do dono).** Com os preços da tabela, o adesivo TOP (margem de 26% até 6 m² e 21% acima) e a lona PROMO (33%) ficam abaixo da margem mínima cadastrada (40% e 35%); o recortado acima de 6 m² (38%) também. Ou os custos cadastrados estão desatualizados, ou a tabela perde dinheiro nesses itens.
+5. **Produtos sem cadastro (aberto, falta o custo).** Adesivo PROMO, perfurado promocional, transparente, fosco, blackout, lona fosca e backlight existem como "(comparação)", inativos de propósito até haver custo e preço. Preço eu tenho (tabela); falta o custo real de cada um.
+6. **Rolo de vinil de 1,06 m.** Adesivo de 3×2 m vira dois painéis e 3 m de emenda (S08); peça de 1,5 m de lado também (S14b). Rolo mais largo some com isso.
+7. **Mão de obra manda no tempo de pedido com muita peça pequena.** 500 etiquetas 4×4 cm com recorte detalhado: 5 min de máquina e 210 min de mão de obra (S11), fora do expresso.
+8. **Fila na frente come a janela.** Pedido de 26 min de trabalho com 5 h 40 min de fila pede 362 min contra 360 de janela (S20). O sistema ainda não sabe quanto de fila existe quando promete expresso.
+9. **Pedido gigante em expresso.** 40 m² de lona TOP ocupa 281 min dos 360 (S19): cabe, mas só um pedido assim por janela.
+10. **Banner "a partir de R$ 37,90" (decidido).** Preço fechado de R$ 37,90/m², mantida a área mínima de 1 m² do cadastro: banner de 0,3×0,4 m custa R$ 37,90 (S15).
 
-1. A regra "acima de 6 m²" vale **por linha**, **por produto** ou **pelo pedido todo**?
-2. Aceita trocar o degrau por faixa progressiva (só o que passa de 6 m² ganha o preço menor)?
-3. Qual é o preço certo do parceiro: o do sistema ou o da tabela do WhatsApp?
-4. Cadastrar os produtos e materiais que faltam (PROMO, transparente, fosco, blackout, lona fosca, backlight)?
-5. Banner: qual é o preço fechado? Mantém o mínimo de 1 m²?
-6. Existe rolo de vinil mais largo que 1,06 m?
-7. Quanto tempo leva de verdade uma lona com bainha e ilhós, e a decapagem de um adesivo com recorte? Os números de mão de obra são chute.
-8. Qual o prazo de reposição de cada rolo (logística)? E o aviso de compra fica mesmo em 15%?
-9. A fila de produção entra na promessa do expresso, ou promete-se por ordem de chegada?
-10. O próximo produto a simular é a letra caixa em acrílico? Preciso do preço, da espessura e da máquina de corte.
+## Perguntas que continuam abertas
+
+1. Os preços da tabela de adesivo TOP, lona PROMO e recortado acima de 6 m² ficam abaixo da margem mínima cadastrada. Mantém assim ou revisa o custo (ou a tabela)?
+2. Qual é o custo por m² de cada um dos sete produtos sem cadastro? Com isso eles entram ativos.
+3. Existe rolo de vinil mais largo que 1,06 m?
+4. Quanto leva de verdade uma lona com bainha e ilhós, e a decapagem de um adesivo com recorte? Os números de mão de obra são chute.
+5. Qual o prazo de reposição de cada rolo? O aviso de compra fica mesmo em 15%?
+6. A fila de produção entra na promessa do expresso?
+7. O próximo produto a simular é a letra caixa em acrílico? Preciso do preço, da espessura e da máquina de corte.
 
 ## O que esta simulação não fez
 

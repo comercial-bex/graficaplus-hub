@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/produtos-catalogo";
 import { planejarBobina } from "@/domain/producao/aproveitamento-bobina";
 import {
   DECAPAGEM_MIN_POR_M2,
@@ -52,6 +53,8 @@ export type OpcoesDoPedido = {
   filaMin?: number;
   /** a regra "acima de 6 m²" vale por linha (padrão) ou somando as linhas do MESMO produto */
   limiarPor?: "linha" | "produto";
+  /** "progressiva" (padrão, regra decidida) ou "degrau" (desconto sobre a linha toda, só para comparar) */
+  faixa?: "progressiva" | "degrau";
   taxaExpressoPct?: number;
   /**
    * "abastecido" (padrão) = a simulação não esbarra no estoque: o consumo sai no resultado e
@@ -159,13 +162,19 @@ export function simularPedido(
         opcoes.limiarPor === "produto"
           ? (areaDoProduto.get(produto.chave) ?? areaLinhaM2)
           : areaLinhaM2;
-      const precoM2 = precoDoM2(produto, areaParaFaixa);
-      const valor = arred(areaLinhaM2 * precoM2);
+      // Regra decidida: faixa progressiva por linha (a mesma do banco). "degrau" mostra a regra antiga.
+      const degrau = opcoes.faixa === "degrau";
+      const precoM2 = degrau
+        ? precoDoM2(produto, areaParaFaixa)
+        : areaLinhaM2 > 0
+          ? valorProgressivo(produto, areaLinhaM2) / areaLinhaM2
+          : produto.precoM2;
+      const valor = degrau ? arred(areaLinhaM2 * precoM2) : valorProgressivo(produto, areaLinhaM2);
 
       if (produto.aPartirDe) {
         avisos.push({
           codigo: "preco_a_partir_de",
-          mensagem: `${produto.nome}: a tabela diz "a partir de R$ ${produto.precoM2.toFixed(2)}/m²"; sem o preço fechado o orçamento sai pelo piso.`,
+          mensagem: `${produto.nome}: a tabela diz "a partir de ${formatBRL(produto.precoM2)}/m²"; sem o preço fechado o orçamento sai pelo piso.`,
           item: indice,
         });
       }
@@ -381,17 +390,10 @@ function divergenciasComOSistema(
       continue;
     }
     const noSistema = PRECO_DO_PARCEIRO_NO_SISTEMA[l.produto.noCatalogo];
-    if (noSistema !== undefined && Math.abs(noSistema - l.precoM2) >= 0.01) {
+    if (noSistema !== undefined && Math.abs(noSistema - l.produto.precoM2) >= 0.01) {
       avisos.push({
         codigo: "preco_diferente_do_sistema",
-        mensagem: `${l.produto.nome}: a tabela diz R$ ${l.precoM2.toFixed(2)}/m² e o sistema cobra do parceiro R$ ${noSistema.toFixed(2)}/m² (${l.produto.noCatalogo}).`,
-        item: l.indice,
-      });
-    }
-    if (l.produto.precoM2Acima !== undefined && l.areaCobradaM2 > LIMIAR_DO_DESCONTO_M2) {
-      avisos.push({
-        codigo: "faixa_de_6m2_fora_do_sistema",
-        mensagem: `${l.produto.nome}: a tabela dá R$ ${l.precoM2.toFixed(2)}/m² acima de ${LIMIAR_DO_DESCONTO_M2} m², e o sistema não tem essa faixa.`,
+        mensagem: `${l.produto.nome}: a tabela diz ${formatBRL(l.produto.precoM2)}/m² e o sistema cobra do parceiro ${formatBRL(noSistema)}/m² (${l.produto.noCatalogo}).`,
         item: l.indice,
       });
     }

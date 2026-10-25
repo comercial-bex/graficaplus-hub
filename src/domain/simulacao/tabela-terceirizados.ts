@@ -181,10 +181,11 @@ export function precoDoM2(p: ProdutoDaTabela, areaM2: number): number {
  * não tem a regra "acima de 6 m²".
  */
 export const PRECO_DO_PARCEIRO_NO_SISTEMA: Record<string, number> = {
-  "Adesivo vinil branco impresso": 46.75,
-  "Adesivo vinil recortado": 43.5,
-  "Adesivo perfurado (one way)": 53.5,
-  "Banner com bastão e corda": 36.5,
-  "Lona 280g impressa": 38.25,
-  "Lona 440g reforçada impressa": 33.5,
+  // Desde a migração 20261025200000 o sistema cobra o preço da tabela (e a faixa acima de 6 m²).
+  "Adesivo vinil branco impresso": 29.9,
+  "Adesivo vinil recortado": 44.9,
+  "Adesivo perfurado (one way)": 54.9,
+  "Banner com bastão e corda": 37.9,
+  "Lona 280g impressa": 26.9,
+  "Lona 440g reforçada impressa": 34.9,
 };

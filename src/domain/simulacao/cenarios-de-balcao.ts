@@ -91,28 +91,23 @@ export const CENARIOS: Cenario[] = [
   {
     id: "S08b",
     titulo: "Limiar: B com 6,02 m²",
-    procura: "o degrau de preço no centavo depois do limiar",
+    procura: "sem degrau: 6,02 m² nunca custa menos que 6,00 m²",
     itens: [{ produto: B, larguraM: 3.01, alturaM: 2, quantidade: 1 }],
   },
   {
     id: "S09a",
-    titulo: "B em duas linhas de 4 m², limiar POR LINHA",
-    procura: "o mesmo pedido muda de preço conforme a regra dos 6 m²",
+    titulo: "B em duas linhas de 4 m²",
+    procura: "faixa por linha: duas linhas de 4 m² não ganham a faixa",
     itens: [
       { produto: B, larguraM: 2, alturaM: 2, quantidade: 1 },
       { produto: B, larguraM: 2, alturaM: 2, quantidade: 1 },
     ],
-    opcoes: { limiarPor: "linha" },
   },
   {
     id: "S09b",
-    titulo: "B em duas linhas de 4 m², limiar POR PRODUTO",
-    procura: "mesma coisa, somando as linhas do mesmo produto (8 m²)",
-    itens: [
-      { produto: B, larguraM: 2, alturaM: 2, quantidade: 1 },
-      { produto: B, larguraM: 2, alturaM: 2, quantidade: 1 },
-    ],
-    opcoes: { limiarPor: "produto" },
+    titulo: "B em uma linha de 8 m²",
+    procura: "o mesmo pedido em uma linha só ganha a faixa nos 2 m² que passam de 6",
+    itens: [{ produto: B, larguraM: 4, alturaM: 2, quantidade: 1 }],
   },
   {
     id: "S10",
