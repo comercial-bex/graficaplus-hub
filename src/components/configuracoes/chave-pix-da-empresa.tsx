@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IconePix } from "@/components/pagamento/marcas";
+import { QrCodeDoPix } from "@/components/pagamento/qr-code-do-pix";
+import { brCodePix, linkDoWhatsapp } from "@/domain/pagamento/pix";
+import { Copy, Send } from "lucide-react";
 import { normalizarChavePix, problemaNaChavePix, TIPOS_DE_CHAVE_PIX, type TipoDeChavePix } from "@/domain/pagamento/pix";
 
 /** A chave Pix da empresa: é com ela que o orçamento monta o "Pix copia e cola". */
@@ -86,7 +89,49 @@ export function ChavePixDaEmpresa() {
         ) : (
           <p className="text-xs text-muted-foreground">Só quem gerencia as configurações altera a chave.</p>
         )}
+
+        {/* Teste de R$ 0,01: o jeito de ver, no app do banco, o nome do recebedor e o valor, antes de mandar a um cliente. */}
+        {typeof config.data?.pix_chave === "string" && config.data.pix_chave && (
+          <TesteDeUmCentavo
+            chave={config.data.pix_chave}
+            nome={String(config.data.nome ?? config.data.razao_social ?? "Bex Print")}
+            cidade={String(config.data.cidade ?? "Macapa")}
+            razao={String(config.data.razao_social ?? config.data.nome ?? "")}
+          />
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+function TesteDeUmCentavo({ chave, nome, cidade, razao }: { chave: string; nome: string; cidade: string; razao: string }) {
+  const codigo = brCodePix({ chave, valor: 0.01, nome, cidade, identificador: "TESTE" });
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(codigo);
+      toast.success("Código de teste copiado");
+    } catch {
+      toast.error("Não consegui copiar. Selecione o texto e copie à mão.");
+    }
+  }
+  return (
+    <div className="space-y-2 rounded-xl border border-dashed border-border p-3">
+      <p className="text-sm font-semibold">Teste de R$ 0,01</p>
+      <p className="text-xs text-muted-foreground">
+        Pague este código no app do banco e confira o recebedor (<strong>{razao}</strong>), o banco e o valor de R$ 0,01 antes de mandar um Pix a cliente. Depois confira o centavo no extrato.
+      </p>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <QrCodeDoPix texto={codigo} tamanho={152} />
+        <div className="min-w-0 flex-1 space-y-2">
+          <textarea readOnly rows={4} value={codigo} aria-label="Pix copia e cola de teste" className="w-full resize-none rounded-md border border-input bg-background p-2 font-mono text-[11px] leading-snug" onFocus={(e) => e.currentTarget.select()} />
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => void copiar()}><Copy className="mr-1.5 h-4 w-4" /> Copiar</Button>
+            <Button type="button" size="sm" onClick={() => window.open(linkDoWhatsapp(null, `Pix de teste de R$ 0,01 da ${nome}:\n${codigo}`), "_blank", "noopener,noreferrer")}>
+              <Send className="mr-1.5 h-4 w-4" /> Mandar para um WhatsApp
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
