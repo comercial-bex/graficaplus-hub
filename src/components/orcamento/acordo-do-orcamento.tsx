@@ -83,11 +83,13 @@ export type AcordoDoOrcamento = {
   preco_modo: "cliente_final" | "parceiro" | null;
   preco_parceiro_confirmado_por: string | null;
   preco_parceiro_confirmado_em: string | null;
+  /** "normal" ou "expresso": a taxa do expresso é uma linha dos itens, mantida pelo banco */
+  prazo_tipo: string | null;
 };
 
 /** As colunas que o quadro lê da tabela — lista fechada, nunca `*`. */
 export const COLUNAS_DO_ACORDO =
-  "id, status, created_at, cliente_id, data_inicio, prazo, data_entrega_prometida, validade_dias, condicao_pagamento, precisa_entrega, precisa_instalacao, endereco_entrega, observacao_cliente, observacao_interna, preco_modo, preco_parceiro_confirmado_por, preco_parceiro_confirmado_em";
+  "id, status, created_at, cliente_id, data_inicio, prazo, data_entrega_prometida, validade_dias, condicao_pagamento, precisa_entrega, precisa_instalacao, endereco_entrega, observacao_cliente, observacao_interna, preco_modo, preco_parceiro_confirmado_por, preco_parceiro_confirmado_em, prazo_tipo";
 
 function useGravarOrcamento(orcamentoId: string) {
   const qc = useQueryClient();
