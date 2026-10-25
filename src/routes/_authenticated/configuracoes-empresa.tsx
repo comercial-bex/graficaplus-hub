@@ -17,6 +17,7 @@ import { CampoDocumento } from "@/components/campo-documento";
 import { formatarCEP, formatarTelefone, type TipoDocumento } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { Carregando } from "@/components/bex/Carregando";
+import { TaxaDoPrazo } from "@/components/configuracoes/taxa-do-prazo";
 
 export const Route = createFileRoute("/_authenticated/configuracoes-empresa")({
   head: () => ({ meta: [{ title: "Dados da empresa — BEX PRINT OS" }] }),
@@ -423,6 +424,8 @@ function ConfiguracoesEmpresaPage() {
           </p>
         </CardContent>
       </Card>
+
+      <TaxaDoPrazo podeEditar={podeEditar} />
     </div>
   );
 }

@@ -81,3 +81,14 @@ export function aplicarTaxaDePrazo(resumo: ResumoDoOrcamento, taxa: number): Res
     margemPct: lucro !== null && vendaComCusto > 0 ? arred((lucro / vendaComCusto) * 100, 1) : null,
   };
 }
+
+/**
+ * Lê a taxa digitada ("12", "11,5", "12.25"): número entre 0 e 100 com até 2 casas, ou nulo se
+ * não for isso. Vazio não vale: apagar a taxa por engano não pode virar "sem taxa".
+ */
+export function lerTaxaDigitada(texto: string): number | null {
+  const limpo = texto.trim().replace("%", "").replace(",", ".");
+  if (limpo === "" || !/^\d+(\.\d{1,2})?$/.test(limpo)) return null;
+  const n = Number(limpo);
+  return n >= 0 && n <= 100 ? n : null;
+}
