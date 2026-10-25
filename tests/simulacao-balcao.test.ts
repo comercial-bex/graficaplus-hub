@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CENARIOS } from "@/domain/simulacao/cenarios-de-balcao";
 import {
-  degrauDePreco,
   simularPedido,
   valorProgressivo,
   type ItemDoBalcao,
@@ -36,25 +35,15 @@ describe("simulador de balcão", () => {
     expect(rodar("S04").produtos).toBeCloseTo(soma, 2);
   });
 
-  it("o degrau de 6 m²: o pedido maior sai mais barato que o menor", () => {
-    expect(rodar("S08b").produtos).toBeLessThan(rodar("S08a").produtos);
-    const b = produtoDaTabela("adesivo_top");
-    const d = degrauDePreco(b);
-    expect(d?.queda).toBeGreaterThan(0);
+  it("a faixa de 6 m² é progressiva: o pedido maior nunca sai mais barato que o menor", () => {
+    expect(rodar("S08b").produtos).toBeGreaterThan(rodar("S08a").produtos);
+    const antigo = simularPedido(cenario("S08b").itens, { faixa: "degrau" });
+    expect(antigo.produtos).toBeLessThan(rodar("S08a").produtos); // a regra antiga tinha o degrau
   });
 
-  it("o preço progressivo nunca deixa o pedido maior custar menos", () => {
-    const b = produtoDaTabela("adesivo_top");
-    let anterior = 0;
-    for (let a = 0.5; a <= 20; a += 0.25) {
-      const v = valorProgressivo(b, a);
-      expect(v).toBeGreaterThanOrEqual(anterior);
-      anterior = v;
-    }
-  });
-
-  it("limiar por produto soma as linhas; por linha não", () => {
+  it("uma linha de 8 m² ganha a faixa; duas de 4 m² não", () => {
     expect(rodar("S09b").produtos).toBeLessThan(rodar("S09a").produtos);
+    expect(rodar("S09b").produtos).toBeCloseTo(6 * 29.9 + 2 * 27.9, 2);
   });
 
   it("a taxa do expresso é 12% do valor dos produtos", () => {

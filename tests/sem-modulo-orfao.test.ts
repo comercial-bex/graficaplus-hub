@@ -39,6 +39,11 @@ const INFRAESTRUTURA = new Set(["routeTree.gen", "types", "styles", "router", "s
  * quebra o teste — que é exatamente o ponto.
  */
 const CONHECIDOS: Record<string, string> = {
+  // Simulação de balcão (24/10/2026): ferramenta de análise, sem tela. Roda por
+  // `npx tsx scripts/simular-balcao.ts --estoque` e pelos testes.
+  "src/domain/simulacao/planejamento-de-estoque.ts":
+    "usado só por scripts/simular-balcao.ts; vira tela quando houver consumo real do Flexi",
+
   // Desligados pela fusão de 08/09, quando a tela de orçamento foi refeita.
   //   calculadora   → RELIGADA: é diálogo, coube sem mexer no layout.
   //   faixa-de-preco → APAGADA: `domain/orcamentos/faixas.ts` dele faz o mesmo.

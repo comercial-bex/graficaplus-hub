@@ -23,6 +23,7 @@
  */
 
 import { areaUnitaria, ehUnidadeDeArea, temDimensoes } from "@/domain/orcamentos/area";
+import { valorDaLinhaPorArea, type FaixaPorArea } from "@/domain/orcamentos/faixa-por-area";
 
 export type FaixaDoParceiro = {
   quantidade_minima: number;
@@ -57,6 +58,8 @@ export type ItemDoCatalogo = {
   oferta_titulo: string | null;
   faixas: FaixaDoParceiro[] | null;
   tamanhos: TamanhoDoProduto[];
+  /** "acima de 6 m² sai por…": preço menor para o que passa do limite da linha */
+  faixa_por_area?: FaixaPorArea | null;
 };
 
 /** Item do orçamento do parceiro, como está na tabela `parceiro_orcamento_itens`. */
@@ -123,6 +126,22 @@ export function normalizarCatalogo(linhas: unknown[]): ItemDoCatalogo[] {
         : [],
     };
   });
+}
+
+/** Junta ao catálogo a faixa "acima de N m²" de cada produto (resposta de `parceiro_faixas_por_area`). */
+export function aplicarFaixasPorArea(
+  catalogo: ItemDoCatalogo[],
+  linhas: unknown[],
+): ItemDoCatalogo[] {
+  const porProduto = new Map<string, FaixaPorArea>();
+  for (const l of linhas as Record<string, unknown>[]) {
+    const limite = Number(l.acima_de_m2);
+    const preco = Number(l.preco_acima);
+    if (typeof l.produto_id === "string" && limite > 0 && preco >= 0) {
+      porProduto.set(l.produto_id, { acimaDeM2: limite, precoAcima: preco });
+    }
+  }
+  return catalogo.map((p) => ({ ...p, faixa_por_area: porProduto.get(p.produto_id) ?? null }));
 }
 
 export type PrecoDaGrafica =
@@ -217,16 +236,29 @@ export function custoDoItem(item: ItemDoOrcamento, produto: ItemDoCatalogo | und
   if (preco.tipo === "sem_preco") return { tipo: "pendente", motivo: "Produto sem preço na tabela" };
 
   const precoUnidade = arred(preco.preco, 2);
-  const unitario = produto.por_area
-    ? arred((areaDaPeca(item, produto.area_minima) ?? 0) * precoUnidade, 2)
-    : precoUnidade;
+  const qtd = quantidadeDaConta(item.quantidade);
+  const areaPeca = produto.por_area ? (areaDaPeca(item, produto.area_minima) ?? 0) : 0;
+  // A faixa por área vale só sobre o preço da tabela (sem faixa de quantidade nem oferta).
+  const porAreaComFaixa = produto.por_area && !preco.faixa && produto.faixa_por_area;
+  if (porAreaComFaixa) {
+    const total = valorDaLinhaPorArea(areaPeca * qtd, precoUnidade, produto.faixa_por_area);
+    return {
+      tipo: "ok",
+      precoUnidade,
+      faixa: preco.faixa,
+      proxima: preco.proxima,
+      unitario: arred(total / qtd, 2),
+      total,
+    };
+  }
+  const unitario = produto.por_area ? arred(areaPeca * precoUnidade, 2) : precoUnidade;
   return {
     tipo: "ok",
     precoUnidade,
     faixa: preco.faixa,
     proxima: preco.proxima,
     unitario,
-    total: arred(unitario * quantidadeDaConta(item.quantidade), 2),
+    total: arred(unitario * qtd, 2),
   };
 }
 
