@@ -122,6 +122,30 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Só feche o caixa do mês depois disso: o "recebido" está acima do que a conta autoriza.',
     ],
   },
+  os_paga_sem_producao: {
+    acao: 'Abrir as OS em entrada',
+    passos: [
+      'Abra Produção › Ordens de serviço e filtre as que estão em "entrada".',
+      'Nas que já têm pagamento, confira a arte e o material; se estiver tudo certo, avance a etapa.',
+      'Se algo trava (arte, material, prazo), avise o cliente: ele já pagou e espera.',
+    ],
+  },
+  os_sem_prazo: {
+    acao: 'Abrir as OS sem prazo',
+    passos: [
+      'Abra a OS e defina a data de entrega combinada com o cliente.',
+      'Sem prazo ela nunca aparece como atrasada, nem na TV, nem no aviso ao cliente.',
+      'Na próxima conversão, preencha o prazo já no orçamento: a OS herda.',
+    ],
+  },
+  os_sem_agenda: {
+    acao: 'Abrir a agenda de máquinas',
+    passos: [
+      'Abra Produção › Agenda das máquinas e agende a OS na máquina do produto.',
+      'Se a OS é só de arte ou de serviço sem máquina, ignore: o aviso some quando houver horário.',
+      'Com a OS na agenda, a capacidade e o prazo prometido passam a ter base.',
+    ],
+  },
   orcamento_sem_item: {
     acao: 'Abrir orçamentos',
     passos: [

@@ -72,11 +72,14 @@ function OrcamentosPage() {
   // valor_total do orçamento é preço de venda: o vendedor precisa ver.
   // Custo/margem não aparecem nesta tela, então canSeeFinancials não entra aqui.
   const { canSeePrices, nivelDeVisao, hasPermission } = useAuth();
-  // Converter em OS é `orcamentos.convert` (gerente e admin), e o banco só
-  // aceita orçamento aprovado. O botão aparece só onde a conversão é possível.
+  // Converter em OS é `orcamentos.convert` (gerente, admin e o atendimento/vendedor, desde
+  // 25/10/2026), e o banco só aceita orçamento aprovado. O botão aparece só onde a conversão é possível.
   const podeConverter = hasPermission("orcamentos.convert");
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
+  // Cascas (25/10/2026): 26 orçamentos antigos, rejeitados ou expirados, sem nenhum valor — sobras
+  // do botão que criava um orçamento por clique. Ficam escondidos; o botão abaixo mostra de novo.
+  const [mostrarCascas, setMostrarCascas] = useState(false);
 
   const [form, setForm] = useState({
     cliente_id: "",
@@ -120,15 +123,19 @@ function OrcamentosPage() {
     },
   });
 
+  // Só para quem vê preço: sem valor na view, "sem valor" seria chute.
+  const ehCasca = (o: any) => canSeePrices && ["rejeitado", "expirado"].includes(o.status) && !(Number(o.valor_total ?? 0) > 0) && !o.os_id;
+  const qtdCascas = useMemo(() => (orcamentos as any[]).filter(ehCasca).length, [orcamentos]);
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    if (!termo) return orcamentos as any[];
-    return (orcamentos as any[]).filter((o) =>
+    const base = mostrarCascas ? (orcamentos as any[]) : (orcamentos as any[]).filter((o) => !ehCasca(o));
+    if (!termo) return base;
+    return base.filter((o) =>
       [o.numero, o.titulo, o.cliente_nome, o.contato_nome]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(termo)),
     );
-  }, [orcamentos, busca]);
+  }, [orcamentos, busca, mostrarCascas]);
 
   const kpis = useMemo(() => {
     const lista = orcamentos as any[];
@@ -383,6 +390,16 @@ function OrcamentosPage() {
             <span>
               Mostrando {filtrados.length} de {orcamentos.length} orçamentos
             </span>
+            {qtdCascas > 0 && (
+              <button
+                type="button"
+                className="ml-3 underline underline-offset-2 hover:text-foreground"
+                aria-pressed={mostrarCascas}
+                onClick={() => setMostrarCascas((v) => !v)}
+              >
+                {mostrarCascas ? "Esconder" : "Mostrar"} {qtdCascas} rejeitados/expirados sem valor
+              </button>
+            )}
           </>
         }
       >
