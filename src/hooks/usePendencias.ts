@@ -51,7 +51,13 @@ export function usePendencias(opcoes: { enabled?: boolean; refetchInterval?: num
       // Pendências de preenchimento (custo e preço provisórios, rolos sem estoque cheio…): outra
       // função, mesma forma. Se ela falhar, o painel segue com as de sempre.
       const { data: preencher } = await chamar("pendencias_de_preenchimento");
-      return [...((data ?? []) as Pendencia[]), ...((preencher ?? []) as Pendencia[])];
+      // Decisões que dependem do dono: outra função, só para administrador, gestor e financeiro.
+      const { data: decisoes } = await chamar("pendencias_de_decisoes");
+      return [
+        ...((data ?? []) as Pendencia[]),
+        ...((preencher ?? []) as Pendencia[]),
+        ...((decisoes ?? []) as Pendencia[]),
+      ];
     },
   });
 }

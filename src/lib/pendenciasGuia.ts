@@ -378,6 +378,14 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'O estoque mínimo, que dispara o aviso de compra, passa a ser 15% desse valor.',
     ],
   },
+  decisoes_do_dono: {
+    acao: 'Abrir as decisões',
+    passos: [
+      'Abra Administração › Dados da empresa e desça até Decisões do dono.',
+      'Leia cada decisão, escreva a resposta (por exemplo o valor do acréscimo de frente e verso).',
+      'Toque em Marcar como decidido: a resposta fica guardada com o seu nome e a data, e o aviso some quando todas estiverem respondidas.',
+    ],
+  },
 };
 
 /**
