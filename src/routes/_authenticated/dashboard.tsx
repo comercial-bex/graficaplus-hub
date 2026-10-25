@@ -28,6 +28,7 @@ import { getRoutePermissions, type Permission } from "@/lib/permissions";
 import { podeAbrirRota } from "@/lib/menu";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { PendenciasDoMeuPapel } from "@/components/painel/PendenciasDoMeuPapel";
+import { ResumoDoDia } from "@/components/painel/ResumoDoDia";
 import { MinhasComissoes } from "@/components/painel/MinhasComissoes";
 import { MinhaMeta } from "@/components/metas/minha-meta";
 import { PainelProducao } from "@/components/painel/PainelProducao";
@@ -484,6 +485,8 @@ function PainelCompleto({
 
       {/* O que o sistema espera de QUEM está logado. Cada papel vê só o que é
           dele; o bloco some quando não há nada pendente. */}
+      <ResumoDoDia />
+
       <PendenciasDoMeuPapel />
 
       {/* A barra da meta do mês: só aparece para quem tem meta. */}
