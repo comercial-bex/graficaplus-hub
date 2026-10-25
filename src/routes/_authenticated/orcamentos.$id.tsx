@@ -132,13 +132,25 @@ import {
   proximaFaixa,
   type FaixaPreco,
 } from "@/domain/orcamentos/faixas";
-import { brl, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
+import { brl, dataBR, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
 import { percentual } from "@/lib/percentual";
+import { BarraDePassosDoOrcamento } from "@/components/parceiro/barra-de-passos";
+import {
+  PASSOS_DA_EQUIPE,
+  ehUltimo,
+  estadoDosPassosDaEquipe,
+  passoAnterior,
+  passoDaPendencia,
+  passoInicialDaEquipe,
+  passoSeguinte,
+  rotuloDoAvancar,
+} from "@/domain/orcamentos/passos-da-equipe";
+import type { PassoDoOrcamento } from "@/domain/parceiros/passos-do-orcamento";
 import { Carregando } from "@/components/bex/Carregando";
 
 const itemVazio = {
@@ -261,6 +273,10 @@ function OrcamentoDetailPage() {
   // Total com o desconto DIGITADO e ainda não aplicado: o Pagamento mostra as
   // parcelas com ele enquanto a pessoa negocia. Nulo = vale o total gravado.
   const [totalPrevisto, setTotalPrevisto] = useState<number | null>(null);
+  // Os quatro passos do orçamento (os mesmos do parceiro). Nulo até a pessoa
+  // escolher: aí vale o passo inicial, calculado UMA vez quando a tela carrega.
+  const [passoEscolhido, setPassoEscolhido] = useState<PassoDoOrcamento | null>(null);
+  const passoInicialRef = useRef<PassoDoOrcamento | null>(null);
   // Desconto é preço: quem não vê preço nem pergunta (o banco recusaria).
   const desconto = useDescontoDoOrcamento(id, canSeePrices);
   const descontoPendente = desconto.data?.pendente === true;
@@ -977,8 +993,45 @@ function OrcamentoDetailPage() {
   const semProduto = (itens as any[]).filter((i) => !i.produto_id).length;
   const somaArea = somaAreaTotal(itens);
 
+  const estados = estadoDosPassosDaEquipe({
+    clienteNome: orc.cliente_nome ?? null,
+    itens: itens.length,
+    total: canSeePrices ? Number(orc.valor_total ?? 0) : null,
+    pendencias,
+    fechado,
+  });
+  // O passo inicial espera o que o calcula (itens, acordo e desconto): decidir antes
+  // abriria sempre nos itens, porque `pendencias` ainda diria que falta tudo.
+  const dadosProntos = !consultaItens.isPending && !acordo.isPending && !(canSeePrices && desconto.isPending);
+  if (passoInicialRef.current === null && dadosProntos) {
+    passoInicialRef.current = passoInicialDaEquipe({ fechado, itens: itens.length, pendencias });
+  }
+  const passo: PassoDoOrcamento = passoEscolhido ?? passoInicialRef.current ?? 2;
+  const irParaPasso = (p: PassoDoOrcamento, alvo?: string) => {
+    setPassoEscolhido(p);
+    if (typeof window === "undefined") return;
+    // O alvo só existe depois que o passo aparece: espera o próximo quadro.
+    window.setTimeout(() => {
+      if (alvo) document.getElementById(alvo)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      else window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 60);
+  };
+  const aprovadoParaConverter = !fechado && orc.status === "aprovado" && podeConverter;
+  // Colunas da tabela base que a view financeira não tipa; lidas aqui sem `any`.
+  const extra = orc as typeof orc & {
+    cliente_id?: string | null;
+    contato_nome?: string | null;
+    contato_telefone?: string | null;
+    contato_email?: string | null;
+    vendedor_id?: string | null;
+  };
+  const condicao = (dadosDoAcordo?.condicao_pagamento ?? null) as {
+    forma?: string | null;
+    parcelas?: number | null;
+  } | null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28 lg:pb-0">
       <header className="sticky top-0 z-20 -mx-2 px-2 pt-2 space-y-3 border-b border-border pb-4 mb-2 bg-background/95 backdrop-blur">
         {/* Linha 1 — identificação */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1006,9 +1059,6 @@ function OrcamentoDetailPage() {
                   "Sem cliente vinculado"
                 )}
               </p>
-              <div className="mt-2">
-                <QuemTrouxeAVenda alvo="orcamento" id={id} vendedorId={(orc as any).vendedor_id ?? null} invalidar={[["orcamento", id]]} compacto />
-              </div>
             </div>
           </div>
 
@@ -1071,23 +1121,6 @@ function OrcamentoDetailPage() {
           )}
         </div>
 
-        {/* Linha 2 — para quem é o preço: cliente final ou parceiro (com senha) */}
-        {canSeePrices && (
-          <div className="md:pl-12">
-            <PrecoDoOrcamento
-              orcamentoId={id}
-              modo={acordo.data?.preco_modo ?? "cliente_final"}
-              confirmadoPor={acordo.data?.preco_parceiro_confirmado_por ?? null}
-              confirmadoEm={acordo.data?.preco_parceiro_confirmado_em ?? null}
-              clienteRevendedor={clienteRevendedor}
-              parceiroCadastrado={!!tabelaDoParceiro && tabelaDoParceiro.nivel != null}
-              nivelDoParceiro={tabelaDoParceiro?.nivel ?? null}
-              descontoDoParceiro={tabelaDoParceiro?.descontoPct ?? null}
-              podeEditar={podeEditarItens}
-            />
-          </div>
-        )}
-
         {/* Linha 3 — ações secundárias */}
         <div className="flex items-center gap-2 flex-wrap md:pl-12">
           <Select value={orc.status} onValueChange={setStatus} disabled={fechado}>
@@ -1107,28 +1140,6 @@ function OrcamentoDetailPage() {
               )}
             </SelectContent>
           </Select>
-          <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
-          <Dica texto={dicaAcao("/orcamentos", "pdf")}><Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
-            <FileDown className="h-4 w-4 mr-1" /> PDF
-          </Button></Dica>
-          <Dica texto={dicaAcao("/orcamentos", "producao")}><Button variant="outline" size="sm" onClick={() => setPreviewProducaoOpen(true)}>
-            <Printer className="h-4 w-4 mr-1" /> Via de produção
-          </Button></Dica>
-          {podeMandar && (
-            <>
-              <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" size="sm" onClick={copiarLinkCliente} disabled={gerandoLink}>
-                {gerandoLink ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <LinkIcon className="h-4 w-4 mr-1" />
-                )}
-                Link do cliente
-              </Button></Dica>
-              <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
-                <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
-              </Button></Dica>
-            </>
-          )}
         </div>
         {versao?.tem_versao && versao.mudou && (
           <p
@@ -1157,7 +1168,7 @@ function OrcamentoDetailPage() {
                     <button
                       type="button"
                       className="underline underline-offset-2 hover:text-amber-400"
-                      onClick={() => document.getElementById(alvo)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                      onClick={() => irParaPasso(passoDaPendencia(p), alvo)}
                     >
                       {p}
                     </button>
@@ -1172,736 +1183,987 @@ function OrcamentoDetailPage() {
         )}
       </header>
 
+      <BarraDePassosDoOrcamento atual={passo} estados={estados} onIr={(p) => irParaPasso(p)} />
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-6">
-          <Card id="itens-do-orcamento" className="scroll-mt-48">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium">
-                <span>{editando ? `Editando o item ${editando.numero}` : "Itens do orçamento"}</span>
-                {editando && (
-                  <Button variant="ghost" size="sm" onClick={limparFormulario}>
-                    <X className="mr-1 h-4 w-4" /> Cancelar edição
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {podeMexer ? (
-                <div ref={formulario} className="scroll-mt-48 space-y-4 rounded-lg border border-dashed p-3 sm:p-4">
-                  {/* Passo 1 — o tipo e o produto, em cartões. Escolher do
-                      catálogo traz medida, preço, custo e material certos; o
-                      item fora do catálogo continua liberado. Na edição abre
-                      encolhido, com o produto do item, e "Trocar" reabre. */}
-                  <EscolhaDeProduto
-                    produtos={catalogo.produtos}
-                    carregando={catalogo.carregando}
-                    erro={catalogo.erro}
-                    onTentarDeNovo={catalogo.tentarDeNovo}
-                    verPreco={canSeePrices}
-                    produtoId={form.produto_id}
-                    itemLivre={itemLivre}
-                    tipo={tipoEscolhido}
-                    descricaoAtual={form.descricao}
-                    onEscolherProduto={aplicarProduto}
-                    onItemLivre={aplicarItemLivre}
-                    desabilitado={salvandoItem}
-                    atalhos={[
-                      {
-                        titulo: "Neste orçamento",
-                        icone: "Repeat",
-                        ids: [
-                          ...new Set(
-                            (itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[],
-                          ),
-                        ],
-                      },
-                      { titulo: "Este cliente já comprou", icone: "History", ids: catalogo.doCliente },
-                      { titulo: "Mais vendidos", icone: "Star", ids: catalogo.maisUsados },
-                    ]}
-                  />
-
-                  <div>
-                    <Label htmlFor="item-descricao">Descrição</Label>
-                    <Input
-                      id="item-descricao"
-                      placeholder="Ex.: Adesivo vinil fosco"
-                      value={form.descricao}
-                      onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                    />
-                    {produtoComOMesmoNome && (
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-xs">
-                        <span className="min-w-0 flex-1">
-                          “{produtoComOMesmoNome.nome}” é um produto do catálogo. Como item livre ele entra sem ficha:
-                          sem custo e sem baixa de estoque.
-                        </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-7"
-                          onClick={() => aplicarProduto(produtoComOMesmoNome)}
-                        >
-                          Usar o produto
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Passo 2 — a medida, desenhada, para o que vende por m²
-                      (ou já tem medida). Preencher as duas liga a venda por m². */}
-                  {mostrarMedidas ? (
-                    <MedidasDaPeca
-                      largura={form.largura}
-                      altura={form.altura}
-                      quantidade={paraNumero(form.quantidade)}
-                      areaMinima={form.area_minima}
-                      tamanhos={tamanhosParaOferecer}
-                      origemDosTamanhos={tamanhos.length > 0 ? "produto" : "tipo"}
-                      onMudar={(campo, valor) => setForm({ ...form, [campo]: valor })}
-                      onAplicarTamanho={(t) =>
-                        setForm((atual) => ({ ...atual, largura: String(t.largura), altura: String(t.altura) }))
-                      }
-                      desabilitado={salvandoItem}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      className="text-xs text-primary underline-offset-2 hover:underline"
-                      onClick={() => setMedidasAbertas(true)}
+          {passo === 1 && (
+            <Card id="passo-cliente" className="scroll-mt-48">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">{PASSOS_DA_EQUIPE[0].pergunta}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Cliente</p>
+                  {extra.cliente_id && orc.cliente_nome ? (
+                    <Link
+                      to="/clientes/$id"
+                      params={{ id: extra.cliente_id }}
+                      className="text-base font-medium underline-offset-4 hover:underline"
                     >
-                      Este item tem medida? Informar largura × altura
-                    </button>
+                      {orc.cliente_nome}
+                    </Link>
+                  ) : (
+                    <p className="text-base font-medium">{orc.cliente_nome || "Sem cliente vinculado"}</p>
                   )}
-
-                  <div className="grid grid-cols-12 gap-2 items-start">
-                    <div className="col-span-8 md:col-span-4">
-                      <QuantidadeDoItem
-                        valor={form.quantidade}
-                        campos={camposDoItem}
-                        onMudar={(valor) => setForm({ ...form, quantidade: valor })}
-                        desabilitado={salvandoItem}
-                      />
-                    </div>
-                    <div className="col-span-4 md:col-span-3">
-                      <UnidadeDoItem
-                        valor={form.unidade}
-                        onMudar={(unidade) => setForm({ ...form, unidade })}
-                        desabilitado={salvandoItem}
-                      />
-                    </div>
-                    <div className="col-span-12 md:col-span-5">
-                      <AcabamentoDoItem
-                        valor={form.acabamento}
-                        opcoes={tipoDoItem?.acabamentos ?? []}
-                        onMudar={(valor) => setForm({ ...form, acabamento: valor })}
-                        desabilitado={salvandoItem}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Conferência de material e estoque, só aviso. */}
-                  {form.produto_id && <RestricaoDoProduto restricao={restricao} />}
-
-                  {/* Some sozinho para produto que não sai de bobina. */}
-                  {form.produto_id && (
-                    <AproveitamentoDeBobina
-                      contexto={bobina.data}
-                      erro={bobina.error}
-                      largura={dimensoesForm.largura || restricao?.largura || 0}
-                      altura={dimensoesForm.altura || restricao?.altura || 0}
-                      quantidade={paraNumero(form.quantidade)}
+                  {[extra.contato_nome, extra.contato_telefone, extra.contato_email].some(Boolean) && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {[extra.contato_nome, extra.contato_telefone, extra.contato_email]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p className="mb-1 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                    Quem trouxe a venda
+                  </p>
+                  <QuemTrouxeAVenda alvo="orcamento" id={id} vendedorId={extra.vendedor_id ?? null} invalidar={[["orcamento", id]]} compacto />
+                </div>
+                {canSeePrices && (
+                  <div>
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                      Preço para
+                    </p>
+                    <PrecoDoOrcamento
+                      orcamentoId={id}
+                      modo={acordo.data?.preco_modo ?? "cliente_final"}
+                      confirmadoPor={acordo.data?.preco_parceiro_confirmado_por ?? null}
+                      confirmadoEm={acordo.data?.preco_parceiro_confirmado_em ?? null}
+                      clienteRevendedor={clienteRevendedor}
+                      parceiroCadastrado={!!tabelaDoParceiro && tabelaDoParceiro.nivel != null}
+                      nivelDoParceiro={tabelaDoParceiro?.nivel ?? null}
+                      descontoDoParceiro={tabelaDoParceiro?.descontoPct ?? null}
+                      podeEditar={podeEditarItens}
                     />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {passo === 2 && (
+            <Card id="itens-do-orcamento" className="scroll-mt-48">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium">
+                  <span>{editando ? `Editando o item ${editando.numero}` : "Itens do orçamento"}</span>
+                  {editando && (
+                    <Button variant="ghost" size="sm" onClick={limparFormulario}>
+                      <X className="mr-1 h-4 w-4" /> Cancelar edição
+                    </Button>
                   )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {podeMexer ? (
+                  <div ref={formulario} className="scroll-mt-48 space-y-4 rounded-lg border border-dashed p-3 sm:p-4">
+                    {/* Passo 1 — o tipo e o produto, em cartões. Escolher do
+                        catálogo traz medida, preço, custo e material certos; o
+                        item fora do catálogo continua liberado. Na edição abre
+                        encolhido, com o produto do item, e "Trocar" reabre. */}
+                    <EscolhaDeProduto
+                      produtos={catalogo.produtos}
+                      carregando={catalogo.carregando}
+                      erro={catalogo.erro}
+                      onTentarDeNovo={catalogo.tentarDeNovo}
+                      verPreco={canSeePrices}
+                      produtoId={form.produto_id}
+                      itemLivre={itemLivre}
+                      tipo={tipoEscolhido}
+                      descricaoAtual={form.descricao}
+                      onEscolherProduto={aplicarProduto}
+                      onItemLivre={aplicarItemLivre}
+                      desabilitado={salvandoItem}
+                      atalhos={[
+                        {
+                          titulo: "Neste orçamento",
+                          icone: "Repeat",
+                          ids: [
+                            ...new Set(
+                              (itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[],
+                            ),
+                          ],
+                        },
+                        { titulo: "Este cliente já comprou", icone: "History", ids: catalogo.doCliente },
+                        { titulo: "Mais vendidos", icone: "Star", ids: catalogo.maisUsados },
+                      ]}
+                    />
 
-                  <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} pecas={quantidadeForm} />
-
-                  {/* Preço de venda: o vendedor digita. Custo fica atrás de canSeeFinancials. */}
-                  {(canSeePrices || canSeeFinancials) && (
-                    <div className="grid grid-cols-12 gap-2 items-end">
-                      {canSeePrices && (
-                        <>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label htmlFor="item-preco-m2">Preço/m²</Label>
-                            <Input
-                              id="item-preco-m2"
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              inputMode="decimal"
-                              disabled={!vendidoPorArea}
-                              // Dica no próprio campo: o "title" não aparece no celular, e um
-                              // texto embaixo desalinharia a linha de preços.
-                              placeholder={vendidoPorArea ? undefined : "informe a medida"}
-                              value={form.preco_m2}
-                              onChange={(e) => setForm({ ...form, preco_m2: e.target.value })}
-                            />
-                          </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label htmlFor="item-valor-un" className="flex items-center gap-1">
-                              Valor un.
-                              {valorUnitarioDerivado !== null && (
-                                <DicaIcone texto="Calculado a partir da área e do preço/m²" rotulo="Valor un." />
-                              )}
-                            </Label>
-                            <Input
-                              id="item-valor-un"
-                              type="number"
-                              step="0.01"
-                              inputMode="decimal"
-                              readOnly={valorUnitarioDerivado !== null}
-                              className={valorUnitarioDerivado !== null ? "bg-muted/40" : undefined}
-                              value={
-                                valorUnitarioDerivado !== null
-                                  ? valorUnitarioDerivado.toFixed(2)
-                                  : form.valor_unitario
-                              }
-                              onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
-                            />
-                          </div>
-                        </>
-                      )}
-                      {canSeeFinancials && (
-                        <div className="col-span-6 md:col-span-3">
-                          <div className="flex items-center justify-between gap-1">
-                            <Label htmlFor="item-custo-un">{custoPorArea ? "Custo/m²" : "Custo un."}</Label>
-                            {/* Material, máquina e mão de obra viram custo com a conta à vista. */}
-                            <button
-                              type="button"
-                              className="text-[11px] text-primary hover:underline"
-                              onClick={() => setCalculadoraAberta(true)}
-                            >
-                              calcular
-                            </button>
-                          </div>
-                          <Input
-                            id="item-custo-un"
-                            type="number"
-                            step="0.01"
-                            inputMode="decimal"
-                            value={custoPorArea ? custoM2NoCampo : form.custo_unitario}
-                            onChange={(e) =>
-                              // Digitou à mão: o custo deixa de ser "calculado".
-                              setForm(
-                                custoPorArea
-                                  ? { ...form, custo_m2: e.target.value, origem_calculo: "manual" }
-                                  : { ...form, custo_unitario: e.target.value, origem_calculo: "manual" },
-                              )
-                            }
-                          />
-                        </div>
-                      )}
-                      {canSeePrices && (
-                        <div className="col-span-6 md:col-span-3">
-                          <Label>Total do item</Label>
-                          <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm font-medium tabular-nums">
-                            {brl(valorUnitarioEfetivo * quantidadeForm)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Preço por quantidade: mostra o degrau atingido e o próximo. */}
-                  {canSeePrices && faixas.length > 0 && (
-                    <div className="flex items-center gap-3 flex-wrap text-xs">
-                      {faixaAtual ? (
-                        <>
-                          <span className="text-muted-foreground">
-                            Faixa aplicada: <strong className="text-foreground">{descreverFaixa(faixaAtual, form.unidade)}</strong>
+                    <div>
+                      <Label htmlFor="item-descricao">Descrição</Label>
+                      <Input
+                        id="item-descricao"
+                        placeholder="Ex.: Adesivo vinil fosco"
+                        value={form.descricao}
+                        onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                      />
+                      {produtoComOMesmoNome && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-xs">
+                          <span className="min-w-0 flex-1">
+                            “{produtoComOMesmoNome.nome}” é um produto do catálogo. Como item livre ele entra sem ficha:
+                            sem custo e sem baixa de estoque.
                           </span>
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="h-7 text-xs font-normal"
-                            onClick={() => aplicarFaixa(faixaAtual)}
+                            className="h-7"
+                            onClick={() => aplicarProduto(produtoComOMesmoNome)}
                           >
-                            Usar este preço
+                            Usar o produto
                           </Button>
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          Quantidade abaixo da primeira faixa de preço.
-                        </span>
-                      )}
-                      {faixaSeguinte && (
-                        <span className="text-link">
-                          {descreverFaixa(faixaSeguinte, form.unidade)} — vale sugerir ao cliente.
-                        </span>
+                        </div>
                       )}
                     </div>
-                  )}
 
-                  {/* Margem do item comparada à mínima do produto. */}
-                  {canSeeFinancials && margemItem !== null && (
-                    <div className="flex items-center gap-2 text-xs flex-wrap">
-                      <span className="text-muted-foreground">Margem do item:</span>
-                      <strong
-                        className={
-                          margemAbaixoDoMinimo
-                            ? "text-destructive"
-                            : margemMinimaItem !== null && margemItem < margemMinimaItem + 5
-                              ? "text-amber-500"
-                              : "text-success"
+                    {/* Passo 2 — a medida, desenhada, para o que vende por m²
+                        (ou já tem medida). Preencher as duas liga a venda por m². */}
+                    {mostrarMedidas ? (
+                      <MedidasDaPeca
+                        largura={form.largura}
+                        altura={form.altura}
+                        quantidade={paraNumero(form.quantidade)}
+                        areaMinima={form.area_minima}
+                        tamanhos={tamanhosParaOferecer}
+                        origemDosTamanhos={tamanhos.length > 0 ? "produto" : "tipo"}
+                        onMudar={(campo, valor) => setForm({ ...form, [campo]: valor })}
+                        onAplicarTamanho={(t) =>
+                          setForm((atual) => ({ ...atual, largura: String(t.largura), altura: String(t.altura) }))
                         }
+                        desabilitado={salvandoItem}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-xs text-primary underline-offset-2 hover:underline"
+                        onClick={() => setMedidasAbertas(true)}
                       >
-                        {percentual(margemItem)}
-                      </strong>
-                      {margemMinimaItem !== null && (
-                        <span className="text-muted-foreground">
-                          (mínima do produto: {percentual(margemMinimaItem)})
-                        </span>
-                      )}
-                      {/* Com medida, a conta da margem à vista: preço e custo da MESMA peça. */}
-                      {custoPorArea && (
-                        <span className="text-muted-foreground" data-custo-da-peca="">
-                          · peça: {brl(valorUnitarioEfetivo)} de preço, {brl(custoUnitarioForm)} de custo
-                        </span>
-                      )}
-                      {margemAbaixoDoMinimo && (
-                        <span className="flex items-center gap-1 text-destructive">
-                          <TrendingDown className="h-3 w-3" /> abaixo do mínimo
-                        </span>
-                      )}
-                      {form.origem_calculo === "motor" && form.margem_prevista != null && (
-                        <span className="text-muted-foreground">· custo calculado</span>
-                      )}
-                      {form.tempo_producao_min && (
-                        <span className="text-muted-foreground">
-                          · produção estimada: {Math.round((form.tempo_producao_min * quantidadeForm) / 60 * 10) / 10}h
-                        </span>
-                      )}
-                    </div>
-                  )}
+                        Este item tem medida? Informar largura × altura
+                      </button>
+                    )}
 
-                  {/* A calculadora é diálogo: não ocupa espaço até ser aberta. */}
-                  {canSeeFinancials && (
-                    <CalculadoraCusto
-                      open={calculadoraAberta}
-                      onOpenChange={setCalculadoraAberta}
-                      produtoId={form.produto_id}
-                      quantidade={paraNumero(form.quantidade) || 1}
-                      // A ficha técnica dá consumo por unidade de venda: em produto
-                      // medido em m², a base é a metragem cobrada, não o nº de peças.
-                      baseConsumo={baseConsumo}
-                      unidadeBase={vendidoPorArea ? "m²" : form.unidade || "un"}
-                      onAplicar={({ resultado, parametros }) => {
-                        const qtd = paraNumero(form.quantidade) || 1;
-                        const daPeca = resultado.custoTotal / qtd;
-                        // Com medida, o custo/m² acompanha o da peça (quatro casas: a
-                        // volta × área dá o mesmo valor de centavo).
-                        const m2DaPeca = custoPorArea ? custoM2Implicito(dimensoesForm, daPeca, form.area_minima) : null;
-                        setForm((atual) => ({
-                          ...atual,
-                          custo_unitario: daPeca.toFixed(2),
-                          custo_m2: m2DaPeca !== null ? String(m2DaPeca) : "",
-                          custo_previsto: resultado.custoTotal,
-                          margem_prevista: resultado.margemPct,
-                          parametros: parametros as unknown as Record<string, unknown>,
-                          origem_calculo: "motor",
-                          // Só sugere preço em campo ainda no zero: sobrescrever preço
-                          // já negociado com o cliente é pior que não sugerir nada.
-                          valor_unitario:
-                            paraNumero(atual.valor_unitario) > 0
-                              ? atual.valor_unitario
-                              : resultado.precoUnitario.toFixed(2),
-                        }));
-                        toast.success(
-                          `Custo calculado: ${brl(resultado.custoTotal)} · margem ${percentual(resultado.margemPct * 100)}`,
-                        );
-                      }}
-                    />
-                  )}
-
-                  {/* O que é opcional fica recolhido (20/10/2026): o tipo vem do produto, e
-                      a maioria dos itens não tem especificação nem arte na hora de orçar.
-                      O resumo ao lado do título mostra o que já está preenchido. */}
-                  <DetalhesOpcionais
-                    aberto={detalhesAbertos}
-                    onMudar={setDetalhesManual}
-                    preenchido={resumoDosDetalhes}
-                  >
-                    <div>
-                      <Label htmlFor="item-tipo" className="flex items-center gap-1">
-                        Tipo de produto
-                        <DicaIcone texto={dicaCampo("/orcamentos", "tipo_de_produto")} rotulo="Tipo de produto" className="h-5 w-5" />
-                      </Label>
-                      <Input
-                        id="item-tipo"
-                        placeholder="Adesivo, lona, placa…"
-                        value={form.tipo_produto}
-                        onChange={(e) => setForm({ ...form, tipo_produto: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="item-especificacao" className="flex flex-wrap items-center gap-1">
-                        Especificações para a produção
-                        <span className="text-muted-foreground">(sai no PDF embaixo da descrição)</span>
-                        <DicaIcone texto={dicaCampo("/orcamentos", "especificacao")} rotulo="Especificações" className="h-5 w-5" />
-                      </Label>
-                      <Textarea
-                        id="item-especificacao"
-                        rows={2}
-                        placeholder="Material, cores, frente e verso, ilhós a cada 50 cm, bastão em cima…"
-                        value={form.especificacao}
-                        onChange={(e) => setForm({ ...form, especificacao: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Layouts (artes a imprimir)</Label>
-                      {editando ? (
-                        <LayoutsDoItem
-                          itemId={editando.id}
-                          orcamentoId={id}
-                          clienteId={(orc as any)?.cliente_id ?? null}
-                          podeEditar={podeMexer}
-                        />
-                      ) : (
-                        <LayoutsDoRascunho
-                          orcamentoId={id}
-                          clienteId={(orc as any)?.cliente_id ?? null}
-                          layouts={layoutsRascunho}
-                          setLayouts={setLayoutsRascunho}
+                    <div className="grid grid-cols-12 gap-2 items-start">
+                      <div className="col-span-8 md:col-span-4">
+                        <QuantidadeDoItem
+                          valor={form.quantidade}
+                          campos={camposDoItem}
+                          onMudar={(valor) => setForm({ ...form, quantidade: valor })}
                           desabilitado={salvandoItem}
                         />
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        A primeira arte é a capa: sai no bloco LAYOUT do PDF com o número do item. As
-                        outras vão juntas para a produção.
-                      </p>
+                      </div>
+                      <div className="col-span-4 md:col-span-3">
+                        <UnidadeDoItem
+                          valor={form.unidade}
+                          onMudar={(unidade) => setForm({ ...form, unidade })}
+                          desabilitado={salvandoItem}
+                        />
+                      </div>
+                      <div className="col-span-12 md:col-span-5">
+                        <AcabamentoDoItem
+                          valor={form.acabamento}
+                          opcoes={tipoDoItem?.acabamentos ?? []}
+                          onMudar={(valor) => setForm({ ...form, acabamento: valor })}
+                          desabilitado={salvandoItem}
+                        />
+                      </div>
                     </div>
-                  </DetalhesOpcionais>
 
-                  {/* A conferência em uma frase, antes de gravar. */}
-                  <ResumoDoItem
-                    descricao={form.descricao}
-                    quantidade={quantidadeForm}
-                    unidade={form.unidade}
-                    largura={vendidoPorArea ? dimensoesForm.largura : null}
-                    altura={vendidoPorArea ? dimensoesForm.altura : null}
-                    areaMinima={form.area_minima}
-                    valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}
-                  />
+                    {/* Conferência de material e estoque, só aviso. */}
+                    {form.produto_id && <RestricaoDoProduto restricao={restricao} />}
 
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    {editando && (
-                      <Button variant="outline" onClick={limparFormulario} disabled={salvandoItem}>
-                        Cancelar
-                      </Button>
+                    {/* Some sozinho para produto que não sai de bobina. */}
+                    {form.produto_id && (
+                      <AproveitamentoDeBobina
+                        contexto={bobina.data}
+                        erro={bobina.error}
+                        largura={dimensoesForm.largura || restricao?.largura || 0}
+                        altura={dimensoesForm.altura || restricao?.altura || 0}
+                        quantidade={paraNumero(form.quantidade)}
+                      />
                     )}
-                    <Button onClick={() => void salvarItem()} disabled={salvandoItem}>
-                      {salvandoItem ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : editando ? (
-                        <Save className="h-4 w-4 mr-1" />
-                      ) : (
-                        <Plus className="h-4 w-4 mr-1" />
-                      )}
-                      {editando ? "Salvar alterações" : "Adicionar item"}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {fechado
-                    ? "Este orçamento já virou OS: os itens ficam como foram vendidos."
-                    : "Seu perfil vê o orçamento, mas não altera os itens."}
-                </p>
-              )}
 
-              {consultaItens.isError ? (
+                    <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} pecas={quantidadeForm} />
+
+                    {/* Preço de venda: o vendedor digita. Custo fica atrás de canSeeFinancials. */}
+                    {(canSeePrices || canSeeFinancials) && (
+                      <div className="grid grid-cols-12 gap-2 items-end">
+                        {canSeePrices && (
+                          <>
+                            <div className="col-span-6 md:col-span-3">
+                              <Label htmlFor="item-preco-m2">Preço/m²</Label>
+                              <Input
+                                id="item-preco-m2"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                inputMode="decimal"
+                                disabled={!vendidoPorArea}
+                                // Dica no próprio campo: o "title" não aparece no celular, e um
+                                // texto embaixo desalinharia a linha de preços.
+                                placeholder={vendidoPorArea ? undefined : "informe a medida"}
+                                value={form.preco_m2}
+                                onChange={(e) => setForm({ ...form, preco_m2: e.target.value })}
+                              />
+                            </div>
+                            <div className="col-span-6 md:col-span-3">
+                              <Label htmlFor="item-valor-un" className="flex items-center gap-1">
+                                Valor un.
+                                {valorUnitarioDerivado !== null && (
+                                  <DicaIcone texto="Calculado a partir da área e do preço/m²" rotulo="Valor un." />
+                                )}
+                              </Label>
+                              <Input
+                                id="item-valor-un"
+                                type="number"
+                                step="0.01"
+                                inputMode="decimal"
+                                readOnly={valorUnitarioDerivado !== null}
+                                className={valorUnitarioDerivado !== null ? "bg-muted/40" : undefined}
+                                value={
+                                  valorUnitarioDerivado !== null
+                                    ? valorUnitarioDerivado.toFixed(2)
+                                    : form.valor_unitario
+                                }
+                                onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
+                              />
+                            </div>
+                          </>
+                        )}
+                        {canSeeFinancials && (
+                          <div className="col-span-6 md:col-span-3">
+                            <div className="flex items-center justify-between gap-1">
+                              <Label htmlFor="item-custo-un">{custoPorArea ? "Custo/m²" : "Custo un."}</Label>
+                              {/* Material, máquina e mão de obra viram custo com a conta à vista. */}
+                              <button
+                                type="button"
+                                className="text-[11px] text-primary hover:underline"
+                                onClick={() => setCalculadoraAberta(true)}
+                              >
+                                calcular
+                              </button>
+                            </div>
+                            <Input
+                              id="item-custo-un"
+                              type="number"
+                              step="0.01"
+                              inputMode="decimal"
+                              value={custoPorArea ? custoM2NoCampo : form.custo_unitario}
+                              onChange={(e) =>
+                                // Digitou à mão: o custo deixa de ser "calculado".
+                                setForm(
+                                  custoPorArea
+                                    ? { ...form, custo_m2: e.target.value, origem_calculo: "manual" }
+                                    : { ...form, custo_unitario: e.target.value, origem_calculo: "manual" },
+                                )
+                              }
+                            />
+                          </div>
+                        )}
+                        {canSeePrices && (
+                          <div className="col-span-6 md:col-span-3">
+                            <Label>Total do item</Label>
+                            <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm font-medium tabular-nums">
+                              {brl(valorUnitarioEfetivo * quantidadeForm)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Preço por quantidade: mostra o degrau atingido e o próximo. */}
+                    {canSeePrices && faixas.length > 0 && (
+                      <div className="flex items-center gap-3 flex-wrap text-xs">
+                        {faixaAtual ? (
+                          <>
+                            <span className="text-muted-foreground">
+                              Faixa aplicada: <strong className="text-foreground">{descreverFaixa(faixaAtual, form.unidade)}</strong>
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs font-normal"
+                              onClick={() => aplicarFaixa(faixaAtual)}
+                            >
+                              Usar este preço
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Quantidade abaixo da primeira faixa de preço.
+                          </span>
+                        )}
+                        {faixaSeguinte && (
+                          <span className="text-link">
+                            {descreverFaixa(faixaSeguinte, form.unidade)} — vale sugerir ao cliente.
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Margem do item comparada à mínima do produto. */}
+                    {canSeeFinancials && margemItem !== null && (
+                      <div className="flex items-center gap-2 text-xs flex-wrap">
+                        <span className="text-muted-foreground">Margem do item:</span>
+                        <strong
+                          className={
+                            margemAbaixoDoMinimo
+                              ? "text-destructive"
+                              : margemMinimaItem !== null && margemItem < margemMinimaItem + 5
+                                ? "text-amber-500"
+                                : "text-success"
+                          }
+                        >
+                          {percentual(margemItem)}
+                        </strong>
+                        {margemMinimaItem !== null && (
+                          <span className="text-muted-foreground">
+                            (mínima do produto: {percentual(margemMinimaItem)})
+                          </span>
+                        )}
+                        {/* Com medida, a conta da margem à vista: preço e custo da MESMA peça. */}
+                        {custoPorArea && (
+                          <span className="text-muted-foreground" data-custo-da-peca="">
+                            · peça: {brl(valorUnitarioEfetivo)} de preço, {brl(custoUnitarioForm)} de custo
+                          </span>
+                        )}
+                        {margemAbaixoDoMinimo && (
+                          <span className="flex items-center gap-1 text-destructive">
+                            <TrendingDown className="h-3 w-3" /> abaixo do mínimo
+                          </span>
+                        )}
+                        {form.origem_calculo === "motor" && form.margem_prevista != null && (
+                          <span className="text-muted-foreground">· custo calculado</span>
+                        )}
+                        {form.tempo_producao_min && (
+                          <span className="text-muted-foreground">
+                            · produção estimada: {Math.round((form.tempo_producao_min * quantidadeForm) / 60 * 10) / 10}h
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* A calculadora é diálogo: não ocupa espaço até ser aberta. */}
+                    {canSeeFinancials && (
+                      <CalculadoraCusto
+                        open={calculadoraAberta}
+                        onOpenChange={setCalculadoraAberta}
+                        produtoId={form.produto_id}
+                        quantidade={paraNumero(form.quantidade) || 1}
+                        // A ficha técnica dá consumo por unidade de venda: em produto
+                        // medido em m², a base é a metragem cobrada, não o nº de peças.
+                        baseConsumo={baseConsumo}
+                        unidadeBase={vendidoPorArea ? "m²" : form.unidade || "un"}
+                        onAplicar={({ resultado, parametros }) => {
+                          const qtd = paraNumero(form.quantidade) || 1;
+                          const daPeca = resultado.custoTotal / qtd;
+                          // Com medida, o custo/m² acompanha o da peça (quatro casas: a
+                          // volta × área dá o mesmo valor de centavo).
+                          const m2DaPeca = custoPorArea ? custoM2Implicito(dimensoesForm, daPeca, form.area_minima) : null;
+                          setForm((atual) => ({
+                            ...atual,
+                            custo_unitario: daPeca.toFixed(2),
+                            custo_m2: m2DaPeca !== null ? String(m2DaPeca) : "",
+                            custo_previsto: resultado.custoTotal,
+                            margem_prevista: resultado.margemPct,
+                            parametros: parametros as unknown as Record<string, unknown>,
+                            origem_calculo: "motor",
+                            // Só sugere preço em campo ainda no zero: sobrescrever preço
+                            // já negociado com o cliente é pior que não sugerir nada.
+                            valor_unitario:
+                              paraNumero(atual.valor_unitario) > 0
+                                ? atual.valor_unitario
+                                : resultado.precoUnitario.toFixed(2),
+                          }));
+                          toast.success(
+                            `Custo calculado: ${brl(resultado.custoTotal)} · margem ${percentual(resultado.margemPct * 100)}`,
+                          );
+                        }}
+                      />
+                    )}
+
+                    {/* O que é opcional fica recolhido (20/10/2026): o tipo vem do produto, e
+                        a maioria dos itens não tem especificação nem arte na hora de orçar.
+                        O resumo ao lado do título mostra o que já está preenchido. */}
+                    <DetalhesOpcionais
+                      aberto={detalhesAbertos}
+                      onMudar={setDetalhesManual}
+                      preenchido={resumoDosDetalhes}
+                    >
+                      <div>
+                        <Label htmlFor="item-tipo" className="flex items-center gap-1">
+                          Tipo de produto
+                          <DicaIcone texto={dicaCampo("/orcamentos", "tipo_de_produto")} rotulo="Tipo de produto" className="h-5 w-5" />
+                        </Label>
+                        <Input
+                          id="item-tipo"
+                          placeholder="Adesivo, lona, placa…"
+                          value={form.tipo_produto}
+                          onChange={(e) => setForm({ ...form, tipo_produto: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="item-especificacao" className="flex flex-wrap items-center gap-1">
+                          Especificações para a produção
+                          <span className="text-muted-foreground">(sai no PDF embaixo da descrição)</span>
+                          <DicaIcone texto={dicaCampo("/orcamentos", "especificacao")} rotulo="Especificações" className="h-5 w-5" />
+                        </Label>
+                        <Textarea
+                          id="item-especificacao"
+                          rows={2}
+                          placeholder="Material, cores, frente e verso, ilhós a cada 50 cm, bastão em cima…"
+                          value={form.especificacao}
+                          onChange={(e) => setForm({ ...form, especificacao: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Layouts (artes a imprimir)</Label>
+                        {editando ? (
+                          <LayoutsDoItem
+                            itemId={editando.id}
+                            orcamentoId={id}
+                            clienteId={(orc as any)?.cliente_id ?? null}
+                            podeEditar={podeMexer}
+                          />
+                        ) : (
+                          <LayoutsDoRascunho
+                            orcamentoId={id}
+                            clienteId={(orc as any)?.cliente_id ?? null}
+                            layouts={layoutsRascunho}
+                            setLayouts={setLayoutsRascunho}
+                            desabilitado={salvandoItem}
+                          />
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          A primeira arte é a capa: sai no bloco LAYOUT do PDF com o número do item. As
+                          outras vão juntas para a produção.
+                        </p>
+                      </div>
+                    </DetalhesOpcionais>
+
+                    {/* A conferência em uma frase, antes de gravar. */}
+                    <ResumoDoItem
+                      descricao={form.descricao}
+                      quantidade={quantidadeForm}
+                      unidade={form.unidade}
+                      largura={vendidoPorArea ? dimensoesForm.largura : null}
+                      altura={vendidoPorArea ? dimensoesForm.altura : null}
+                      areaMinima={form.area_minima}
+                      valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}
+                    />
+
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {editando && (
+                        <Button variant="outline" onClick={limparFormulario} disabled={salvandoItem}>
+                          Cancelar
+                        </Button>
+                      )}
+                      <Button onClick={() => void salvarItem()} disabled={salvandoItem}>
+                        {salvandoItem ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : editando ? (
+                          <Save className="h-4 w-4 mr-1" />
+                        ) : (
+                          <Plus className="h-4 w-4 mr-1" />
+                        )}
+                        {editando ? "Salvar alterações" : "Adicionar item"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {fechado
+                      ? "Este orçamento já virou OS: os itens ficam como foram vendidos."
+                      : "Seu perfil vê o orçamento, mas não altera os itens."}
+                  </p>
+                )}
+
+                {consultaItens.isError ? (
+                  <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                    <div className="space-y-2">
+                      <p>Não foi possível carregar os itens: {mensagemErro(consultaItens.error)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Isto é falha de consulta, não orçamento vazio — não adicione os itens de novo.
+                      </p>
+                      <Button size="sm" variant="outline" onClick={() => void consultaItens.refetch()}>
+                        Tentar de novo
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10">#</TableHead>
+                          <TableHead>Item</TableHead>
+                          <TableHead>Qtd</TableHead>
+                          <TableHead>Metragem</TableHead>
+                          <TableHead>Acabamento</TableHead>
+                          <TableHead>Layout</TableHead>
+                          {canSeePrices && (
+                            <>
+                              <TableHead className="text-right">Valor un.</TableHead>
+                              <TableHead className="text-right">Total</TableHead>
+                            </>
+                          )}
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {consultaItens.isPending && (
+                          <TableRow>
+                            <TableCell colSpan={canSeePrices ? 9 : 7} className="text-center text-muted-foreground">
+                              <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Carregando os itens…
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {!consultaItens.isPending && itens.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={canSeePrices ? 9 : 7} className="text-center text-muted-foreground">
+                              Nenhum item ainda — busque um produto do catálogo acima para começar.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {itens.map((i: any, indice: number) => {
+                          const numero = indice + 1;
+                          const emEdicao = editando?.id === i.id;
+                          return (
+                            <TableRow key={i.id} className={cn(emEdicao && "bg-primary/5")}>
+                              <TableCell>
+                                <span className="grid h-6 w-6 place-items-center rounded-full border text-xs font-medium">
+                                  {numero}
+                                </span>
+                              </TableCell>
+                              <TableCell className="min-w-[180px]">
+                                <p className="font-medium">{i.descricao}</p>
+                                {i.tipo_produto && (
+                                  <p className="text-xs text-muted-foreground">{i.tipo_produto}</p>
+                                )}
+                                {i.especificacao && (
+                                  <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground">
+                                    {i.especificacao}
+                                  </p>
+                                )}
+                                {!i.produto_id && (
+                                  <p className="mt-0.5 text-xs text-amber-600" data-sem-produto="">
+                                    Sem produto ligado: o custo e a margem deste item não são calculados.
+                                  </p>
+                                )}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {/* Item com medida conta PEÇAS: "25 m2" lia-se como 25 m² quando eram
+                                    25 placas de 0,30 × 0,15 (a metragem está na coluna ao lado). */}
+                                {Number(i.quantidade).toLocaleString("pt-BR")}{" "}
+                                {temDimensoes(i) ? (Number(i.quantidade) === 1 ? "peça" : "peças") : i.unidade}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {descreverMetragem(i) ?? <span className="text-muted-foreground">—</span>}
+                                {/* Mínimo aplicado precisa aparecer: o vendedor tem de saber
+                                    por que a conta deu mais que a área da peça. */}
+                                {Number(i.area_cobrada ?? 0) > Number(i.area_total ?? 0) && (
+                                  <span className="block text-amber-600">
+                                    cobrado {m2(Number(i.area_cobrada))} (mínimo)
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {i.acabamento || <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell>
+                                <MiniaturaDoItem
+                                  capa={capas.data?.[i.id]}
+                                  onAbrir={() => setArtesDe({ id: i.id, descricao: i.descricao, numero })}
+                                />
+                              </TableCell>
+                              {canSeePrices && (
+                                <>
+                                  <TableCell className="whitespace-nowrap text-right tabular-nums">
+                                    {brl(i.valor_unitario)}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
+                                    {brl(i.valor_total)}
+                                  </TableCell>
+                                </>
+                              )}
+                              <TableCell className="whitespace-nowrap text-right">
+                                {podeMexer && (
+                                  <>
+                                    <Dica texto="Subir na lista">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={`Subir o item ${numero}`}
+                                        disabled={indice === 0}
+                                        onClick={() => void moverItem(indice, -1)}
+                                      >
+                                        <ArrowUp className="h-4 w-4" />
+                                      </Button>
+                                    </Dica>
+                                    <Dica texto="Descer na lista">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={`Descer o item ${numero}`}
+                                        disabled={indice === itens.length - 1}
+                                        onClick={() => void moverItem(indice, 1)}
+                                      >
+                                        <ArrowDown className="h-4 w-4" />
+                                      </Button>
+                                    </Dica>
+                                    <Dica texto="Editar item">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={`Editar o item ${numero}`}
+                                        onClick={() => editarItem(i, numero)}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </Dica>
+                                    <Dica texto="Duplicar item">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={`Duplicar o item ${numero}`}
+                                        onClick={() => void duplicarItem(i)}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                    </Dica>
+                                    <Dica texto="Tirar o item">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={`Tirar o item ${numero}`}
+                                        onClick={() => setARemover({ id: i.id, descricao: i.descricao, numero })}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </Dica>
+                                  </>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t pt-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Itens:</span> <strong>{itens.length}</strong>
+                  </div>
+                  {semArte > 0 && (
+                    <div className="text-amber-500">
+                      {semArte === 1 ? "1 item sem arte" : `${semArte} itens sem arte`}
+                    </div>
+                  )}
+                  {semProduto > 0 && (
+                    <div className="flex items-center gap-1 text-amber-500">
+                      {semProduto === 1 ? "1 item sem produto" : `${semProduto} itens sem produto`}
+                      <DicaIcone texto="Escolha o produto do catálogo para o custo entrar sozinho." rotulo="Item sem produto" />
+                    </div>
+                  )}
+                  {somaArea > 0 && (
+                    <div>
+                      <span className="text-muted-foreground">Soma área:</span> <strong>{m2(somaArea)}</strong>
+                    </div>
+                  )}
+                  {/* Total é preço: o vendedor vê. Custo e margem seguem só para o financeiro.
+                      Com desconto (ou crédito de parceiro), mostra de onde o total saiu —
+                      é a mesma conta do PDF: Total Produtos − Valor Desconto. */}
+                  {canSeePrices && descontoGravado > 0 && (
+                    <>
+                      <div>
+                        <span className="text-muted-foreground">Itens:</span>{" "}
+                        <span className="tabular-nums">{brl(subtotalGravado)}</span>
+                      </div>
+                      <div>
+                        <button
+                          type="button"
+                          className="text-muted-foreground underline-offset-2 hover:underline"
+                          onClick={() => irParaPasso(3, "acordo-desconto")}
+                        >
+                          Desconto:
+                        </button>{" "}
+                        <span className="tabular-nums">− {brl(descontoGravado)}</span>
+                      </div>
+                    </>
+                  )}
+                  {canSeePrices && (
+                    <div>
+                      <span className="text-muted-foreground">Total:</span>{" "}
+                      <strong className="tabular-nums">{brl(orc.valor_total)}</strong>
+                    </div>
+                  )}
+                  {canSeeFinancials && (
+                    <>
+                      <div>
+                        <span className="text-muted-foreground">Custo:</span>{" "}
+                        <span className="tabular-nums">{brl(orc.custo_estimado)}</span>
+                      </div>
+                      {margem !== null && (
+                        <div>
+                          <span className="text-muted-foreground">Margem:</span>{" "}
+                          <strong className={margem < 20 ? "text-destructive" : "text-success"}>
+                            {percentual(margem)}
+                          </strong>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {passo === 3 && (
+            <div className="space-y-4">
+              {acordo.isError ? (
                 <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                   <div className="space-y-2">
-                    <p>Não foi possível carregar os itens: {mensagemErro(consultaItens.error)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Isto é falha de consulta, não orçamento vazio — não adicione os itens de novo.
-                    </p>
-                    <Button size="sm" variant="outline" onClick={() => void consultaItens.refetch()}>
+                    <p>Não foi possível carregar prazos e pagamento: {mensagemErro(acordo.error)}</p>
+                    <Button size="sm" variant="outline" onClick={() => void acordo.refetch()}>
                       Tentar de novo
                     </Button>
                   </div>
                 </div>
+              ) : dadosDoAcordo ? (
+                <>
+                  <EntregaEPrazos acordo={dadosDoAcordo} podeEditar={podeMexer} />
+                  {/* Desconto e parcelamento são preço: quem não vê preço não vê
+                      estes blocos (mostrariam "1× de R$ 0,00", que é mentira). O
+                      desconto vem antes porque é ele que muda o total das parcelas. */}
+                  {canSeePrices && (
+                    <DescontoDoOrcamento
+                      orcamentoId={id}
+                      podeEditar={podeMexer}
+                      verCusto={canSeeFinancials}
+                      onPrevia={setTotalPrevisto}
+                    />
+                  )}
+                  {canSeePrices && (
+                    <Pagamento
+                      orcamentoId={id}
+                      total={totalPrevisto ?? Number(orc.valor_total ?? 0)}
+                      previa={totalPrevisto != null}
+                      condicao={dadosDoAcordo.condicao_pagamento}
+                      podeEditar={podeMexer}
+                    />
+                  )}
+                  <Observacoes acordo={dadosDoAcordo} podeEditar={podeMexer} />
+                </>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10">#</TableHead>
-                        <TableHead>Item</TableHead>
-                        <TableHead>Qtd</TableHead>
-                        <TableHead>Metragem</TableHead>
-                        <TableHead>Acabamento</TableHead>
-                        <TableHead>Layout</TableHead>
-                        {canSeePrices && (
-                          <>
-                            <TableHead className="text-right">Valor un.</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                          </>
-                        )}
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {consultaItens.isPending && (
-                        <TableRow>
-                          <TableCell colSpan={canSeePrices ? 9 : 7} className="text-center text-muted-foreground">
-                            <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Carregando os itens…
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {!consultaItens.isPending && itens.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={canSeePrices ? 9 : 7} className="text-center text-muted-foreground">
-                            Nenhum item ainda — busque um produto do catálogo acima para começar.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {itens.map((i: any, indice: number) => {
-                        const numero = indice + 1;
-                        const emEdicao = editando?.id === i.id;
-                        return (
-                          <TableRow key={i.id} className={cn(emEdicao && "bg-primary/5")}>
-                            <TableCell>
-                              <span className="grid h-6 w-6 place-items-center rounded-full border text-xs font-medium">
-                                {numero}
-                              </span>
-                            </TableCell>
-                            <TableCell className="min-w-[180px]">
-                              <p className="font-medium">{i.descricao}</p>
-                              {i.tipo_produto && (
-                                <p className="text-xs text-muted-foreground">{i.tipo_produto}</p>
-                              )}
-                              {i.especificacao && (
-                                <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground">
-                                  {i.especificacao}
-                                </p>
-                              )}
-                              {!i.produto_id && (
-                                <p className="mt-0.5 text-xs text-amber-600" data-sem-produto="">
-                                  Sem produto ligado: o custo e a margem deste item não são calculados.
-                                </p>
-                              )}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {/* Item com medida conta PEÇAS: "25 m2" lia-se como 25 m² quando eram
-                                  25 placas de 0,30 × 0,15 (a metragem está na coluna ao lado). */}
-                              {Number(i.quantidade).toLocaleString("pt-BR")}{" "}
-                              {temDimensoes(i) ? (Number(i.quantidade) === 1 ? "peça" : "peças") : i.unidade}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {descreverMetragem(i) ?? <span className="text-muted-foreground">—</span>}
-                              {/* Mínimo aplicado precisa aparecer: o vendedor tem de saber
-                                  por que a conta deu mais que a área da peça. */}
-                              {Number(i.area_cobrada ?? 0) > Number(i.area_total ?? 0) && (
-                                <span className="block text-amber-600">
-                                  cobrado {m2(Number(i.area_cobrada))} (mínimo)
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {i.acabamento || <span className="text-muted-foreground">—</span>}
-                            </TableCell>
-                            <TableCell>
-                              <MiniaturaDoItem
-                                capa={capas.data?.[i.id]}
-                                onAbrir={() => setArtesDe({ id: i.id, descricao: i.descricao, numero })}
-                              />
-                            </TableCell>
-                            {canSeePrices && (
-                              <>
-                                <TableCell className="whitespace-nowrap text-right tabular-nums">
-                                  {brl(i.valor_unitario)}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
-                                  {brl(i.valor_total)}
-                                </TableCell>
-                              </>
-                            )}
-                            <TableCell className="whitespace-nowrap text-right">
-                              {podeMexer && (
-                                <>
-                                  <Dica texto="Subir na lista">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={`Subir o item ${numero}`}
-                                      disabled={indice === 0}
-                                      onClick={() => void moverItem(indice, -1)}
-                                    >
-                                      <ArrowUp className="h-4 w-4" />
-                                    </Button>
-                                  </Dica>
-                                  <Dica texto="Descer na lista">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={`Descer o item ${numero}`}
-                                      disabled={indice === itens.length - 1}
-                                      onClick={() => void moverItem(indice, 1)}
-                                    >
-                                      <ArrowDown className="h-4 w-4" />
-                                    </Button>
-                                  </Dica>
-                                  <Dica texto="Editar item">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={`Editar o item ${numero}`}
-                                      onClick={() => editarItem(i, numero)}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </Dica>
-                                  <Dica texto="Duplicar item">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={`Duplicar o item ${numero}`}
-                                      onClick={() => void duplicarItem(i)}
-                                    >
-                                      <Copy className="h-4 w-4" />
-                                    </Button>
-                                  </Dica>
-                                  <Dica texto="Tirar o item">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={`Tirar o item ${numero}`}
-                                      onClick={() => setARemover({ id: i.id, descricao: i.descricao, numero })}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </Dica>
-                                </>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando prazos e pagamento…
+                </p>
               )}
+            </div>
+          )}
 
-              <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t pt-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Itens:</span> <strong>{itens.length}</strong>
-                </div>
-                {semArte > 0 && (
-                  <div className="text-amber-500">
-                    {semArte === 1 ? "1 item sem arte" : `${semArte} itens sem arte`}
-                  </div>
-                )}
-                {semProduto > 0 && (
-                  <div className="flex items-center gap-1 text-amber-500">
-                    {semProduto === 1 ? "1 item sem produto" : `${semProduto} itens sem produto`}
-                    <DicaIcone texto="Escolha o produto do catálogo para o custo entrar sozinho." rotulo="Item sem produto" />
-                  </div>
-                )}
-                {somaArea > 0 && (
-                  <div>
-                    <span className="text-muted-foreground">Soma área:</span> <strong>{m2(somaArea)}</strong>
-                  </div>
-                )}
-                {/* Total é preço: o vendedor vê. Custo e margem seguem só para o financeiro.
-                    Com desconto (ou crédito de parceiro), mostra de onde o total saiu —
-                    é a mesma conta do PDF: Total Produtos − Valor Desconto. */}
-                {canSeePrices && descontoGravado > 0 && (
-                  <>
+          {passo === 4 && (
+            <>
+              <Card id="passo-revisao" className="scroll-mt-48">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">{PASSOS_DA_EQUIPE[3].pergunta}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {fechado ? (
+                    <p className="text-sm text-muted-foreground">
+                      Este orçamento já virou OS: o que foi vendido fica como foi combinado.
+                    </p>
+                  ) : pendencias.length === 0 ? (
+                    <p className="text-sm">Nada falta para mandar ao cliente.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <p className="text-sm font-medium">Antes de mandar ao cliente, falta:</p>
+                      <ul className="space-y-1 text-sm">
+                        {pendencias.map((p) => (
+                          <li key={p}>
+                            <button
+                              type="button"
+                              className="text-amber-600 underline underline-offset-2 hover:text-amber-500"
+                              onClick={() => irParaPasso(passoDaPendencia(p), ONDE_RESOLVER[p])}
+                            >
+                              {p}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                     <div>
-                      <span className="text-muted-foreground">Itens:</span>{" "}
-                      <span className="tabular-nums">{brl(subtotalGravado)}</span>
+                      <dt className="text-muted-foreground">Cliente</dt>
+                      <dd className="font-medium">{orc.cliente_nome || "—"}</dd>
                     </div>
                     <div>
-                      <button
-                        type="button"
-                        className="text-muted-foreground underline-offset-2 hover:underline"
-                        onClick={() =>
-                          document
-                            .getElementById("acordo-desconto")
-                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                        }
-                      >
-                        Desconto:
-                      </button>{" "}
-                      <span className="tabular-nums">− {brl(descontoGravado)}</span>
+                      <dt className="text-muted-foreground">Itens</dt>
+                      <dd className="font-medium">
+                        {itens.length}
+                        {somaArea > 0 ? ` · ${m2(somaArea)}` : ""}
+                      </dd>
                     </div>
-                  </>
-                )}
-                {canSeePrices && (
-                  <div>
-                    <span className="text-muted-foreground">Total:</span>{" "}
-                    <strong className="tabular-nums">{brl(orc.valor_total)}</strong>
-                  </div>
-                )}
-                {canSeeFinancials && (
-                  <>
                     <div>
-                      <span className="text-muted-foreground">Custo:</span>{" "}
-                      <span className="tabular-nums">{brl(orc.custo_estimado)}</span>
+                      <dt className="text-muted-foreground">Entrega</dt>
+                      <dd className="font-medium">
+                        {dadosDoAcordo?.data_entrega_prometida ?? dadosDoAcordo?.prazo
+                          ? dataBR((dadosDoAcordo?.data_entrega_prometida ?? dadosDoAcordo?.prazo) as string)
+                          : "sem data"}
+                      </dd>
                     </div>
-                    {margem !== null && (
+                    {canSeePrices && (
                       <div>
-                        <span className="text-muted-foreground">Margem:</span>{" "}
-                        <strong className={margem < 20 ? "text-destructive" : "text-success"}>
-                          {percentual(margem)}
-                        </strong>
+                        <dt className="text-muted-foreground">Pagamento</dt>
+                        <dd className="font-medium">
+                          {condicao?.forma ?? "forma não escolhida"}
+                          {Number(condicao?.parcelas) > 1
+                            ? ` · ${condicao?.parcelas}×`
+                            : ""}
+                        </dd>
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                    {canSeePrices && (
+                      <div>
+                        <dt className="text-muted-foreground">Total</dt>
+                        <dd className="font-semibold tabular-nums">{brl(orc.valor_total)}</dd>
+                      </div>
+                    )}
+                  </dl>
 
-          <PDFHistoryCard tipo="orcamento" referencia_id={id} />
+                  <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+                  <Dica texto={dicaAcao("/orcamentos", "pdf")}><Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+                    <FileDown className="h-4 w-4 mr-1" /> PDF
+                  </Button></Dica>
+                  <Dica texto={dicaAcao("/orcamentos", "producao")}><Button variant="outline" size="sm" onClick={() => setPreviewProducaoOpen(true)}>
+                    <Printer className="h-4 w-4 mr-1" /> Via de produção
+                  </Button></Dica>
+                  {podeMandar && (
+                    <>
+                      <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" size="sm" onClick={copiarLinkCliente} disabled={gerandoLink}>
+                        {gerandoLink ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <LinkIcon className="h-4 w-4 mr-1" />
+                        )}
+                        Link do cliente
+                      </Button></Dica>
+                      <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
+                        <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                      </Button></Dica>
+                    </>
+                  )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <PDFHistoryCard tipo="orcamento" referencia_id={id} />
+            </>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button variant="ghost" onClick={() => irParaPasso(passoAnterior(passo))} disabled={passo === 1}>
+              <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+            </Button>
+            {!ehUltimo(passo) && (
+              // No celular quem avança é a barra fixa do rodapé; aqui só no computador.
+              <Button className="hidden lg:inline-flex" onClick={() => irParaPasso(passoSeguinte(passo))}>
+                {rotuloDoAvancar(passo)} <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* O combinado com o cliente fica ao lado dos itens, compacto — antes
-            eram dois cartões largos que empurravam os itens para baixo. */}
-        <aside className="min-w-0 space-y-4">
-          {acordo.isError ? (
-            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-              <div className="space-y-2">
-                <p>Não foi possível carregar prazos e pagamento: {mensagemErro(acordo.error)}</p>
-                <Button size="sm" variant="outline" onClick={() => void acordo.refetch()}>
-                  Tentar de novo
-                </Button>
+        {/* O resumo fica ao lado em todos os passos, como no orçamento do parceiro. */}
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-44 lg:self-start" data-testid="resumo-do-orcamento">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Resumo</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Itens</span>
+                <span className="font-medium">{itens.length}</span>
               </div>
-            </div>
-          ) : dadosDoAcordo ? (
-            <>
-              <EntregaEPrazos acordo={dadosDoAcordo} podeEditar={podeMexer} />
-              {/* Desconto e parcelamento são preço: quem não vê preço não vê
-                  estes blocos (mostrariam "1× de R$ 0,00", que é mentira). O
-                  desconto vem antes porque é ele que muda o total das parcelas. */}
-              {canSeePrices && (
-                <DescontoDoOrcamento
-                  orcamentoId={id}
-                  podeEditar={podeMexer}
-                  verCusto={canSeeFinancials}
-                  onPrevia={setTotalPrevisto}
-                />
+              {canSeePrices && descontoGravado > 0 && (
+                <>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Soma dos itens</span>
+                    <span className="tabular-nums">{brl(subtotalGravado)}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Desconto</span>
+                    <span className="tabular-nums">− {brl(descontoGravado)}</span>
+                  </div>
+                </>
               )}
               {canSeePrices && (
-                <Pagamento
-                  orcamentoId={id}
-                  total={totalPrevisto ?? Number(orc.valor_total ?? 0)}
-                  previa={totalPrevisto != null}
-                  condicao={dadosDoAcordo.condicao_pagamento}
-                  podeEditar={podeMexer}
-                />
+                <div className="flex justify-between gap-3 border-t pt-2">
+                  <span className="text-muted-foreground">Total</span>
+                  <strong className="tabular-nums">{brl(orc.valor_total)}</strong>
+                </div>
               )}
-              <Observacoes acordo={dadosDoAcordo} podeEditar={podeMexer} />
-            </>
-          ) : (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando prazos e pagamento…
-            </p>
-          )}
+              {canSeeFinancials && (
+                <>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Custo</span>
+                    <span className="tabular-nums">{brl(orc.custo_estimado)}</span>
+                  </div>
+                  {margem !== null && (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-muted-foreground">Margem</span>
+                      <strong className={margem < 20 ? "text-destructive" : "text-success"}>{percentual(margem)}</strong>
+                    </div>
+                  )}
+                </>
+              )}
+              {!fechado && (
+                <button
+                  type="button"
+                  className="w-full border-t pt-2 text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  onClick={() => irParaPasso(4)}
+                >
+                  {pendencias.length === 0
+                    ? "Nada falta para enviar"
+                    : `${pendencias.length} ${pendencias.length === 1 ? "pendência" : "pendências"} · ver na revisão`}
+                </button>
+              )}
+            </CardContent>
+          </Card>
         </aside>
+      </div>
+
+      <div
+        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 p-2 pl-4 shadow-2xl backdrop-blur md:bottom-6 lg:hidden"
+        data-testid="barra-fixa-do-orcamento"
+      >
+        <div className="min-w-0">
+          <p className="text-[11px] text-muted-foreground">{canSeePrices ? "Total" : "Itens"}</p>
+          <p className="truncate text-base font-semibold tabular-nums">
+            {canSeePrices ? brl(orc.valor_total) : itens.length}
+          </p>
+        </div>
+        {orc.os_id ? (
+          <Button asChild>
+            <Link to="/os/$id" params={{ id: orc.os_id }}>
+              Ver a OS <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        ) : passo === 4 && aprovadoParaConverter ? (
+          <Button onClick={converterEmOS} disabled={descontoPendente || convertendo}>
+            {convertendo ? "Criando a OS..." : "Converter em OS"} <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+        ) : !ehUltimo(passo) ? (
+          <Button onClick={() => irParaPasso(passoSeguinte(passo))}>
+            {rotuloDoAvancar(passo)} <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+        ) : null}
       </div>
 
       <DialogoDeLayouts
