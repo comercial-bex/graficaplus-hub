@@ -6,6 +6,10 @@ import {
   valorProgressivo,
   type ItemDoBalcao,
 } from "@/domain/simulacao/simulador-de-balcao";
+import {
+  necessidadeDeEstoque,
+  PREMISSAS_DE_ESTOQUE,
+} from "@/domain/simulacao/planejamento-de-estoque";
 import { produtoDaTabela } from "@/domain/simulacao/tabela-terceirizados";
 
 const cenario = (id: string) => {
@@ -59,28 +63,37 @@ describe("simulador de balcão", () => {
     expect(rodar("S01").taxaExpresso).toBe(0); // prazo normal não paga taxa
   });
 
-  it("com o estoque de hoje, quase nada vai em expresso (falta vinil e ilhós)", () => {
-    expect(rodar("S01").expresso.possivel).toBe(false);
-    expect(rodar("S01").material.faltas.length).toBeGreaterThan(0);
+  it("o estoque é simulado por padrão: nada trava por falta de rolo ou ilhós", () => {
+    const r = rodar("S03");
+    expect(r.material.faltas).toEqual([]);
+    expect(r.material.consumoM2.lona_280).toBeGreaterThan(0);
   });
 
-  it("com estoque cheio, o pedido comum cabe no expresso", () => {
-    expect(rodar("S18", { estoque: "abastecido" }).expresso.possivel).toBe(true);
-  });
-
-  it("material que não está cadastrado bloqueia o expresso mesmo com estoque cheio", () => {
-    const r = rodar("S07", { estoque: "abastecido" });
+  it("o estoque real, quando pedido, mostra o que falta hoje", () => {
+    const r = rodar("S01", { estoque: "real" });
+    expect(r.material.faltas.length).toBeGreaterThan(0);
     expect(r.expresso.possivel).toBe(false);
   });
 
+  it("o pedido comum cabe no expresso", () => {
+    expect(rodar("S18").expresso.possivel).toBe(true);
+  });
+
+  it("material sem cadastro não trava: é simulado e vira aviso de cadastro", () => {
+    const r = rodar("S07");
+    expect(r.avisos.some((a) => a.codigo === "material_nao_cadastrado")).toBe(true);
+    expect(r.material.consumoM2.lona_backlight).toBeGreaterThan(0);
+    expect(r.expresso.possivel).toBe(true);
+  });
+
   it("mão de obra pesada bloqueia o expresso (500 etiquetas detalhadas)", () => {
-    const r = rodar("S11", { estoque: "abastecido" });
+    const r = rodar("S11");
     expect(r.tempos.gargalo).toBe("mao_de_obra");
     expect(r.expresso.possivel).toBe(false);
   });
 
   it("a fila na frente come a janela do expresso", () => {
-    const r = rodar("S20", { estoque: "abastecido" });
+    const r = rodar("S20");
     expect(r.expresso.possivel).toBe(false);
     expect(r.tempos.totalRelogioMin + 340).toBeGreaterThan(360);
   });
@@ -94,7 +107,7 @@ describe("simulador de balcão", () => {
     const itens: ItemDoBalcao[] = [
       { produto: "adesivo_top", larguraM: 1.5, alturaM: 1.5, quantidade: 1 },
     ];
-    const r = simularPedido(itens, { estoque: "abastecido" });
+    const r = simularPedido(itens);
     expect(r.avisos.some((a) => a.codigo === "precisa_de_emenda")).toBe(true);
   });
 
@@ -104,6 +117,15 @@ describe("simulador de balcão", () => {
       expect(Number.isFinite(r.total), c.id).toBe(true);
       expect(r.total, c.id).toBeGreaterThan(0);
       expect(Number.isFinite(r.tempos.totalRelogioMin), c.id).toBe(true);
+    }
+  });
+
+  it("o aviso de compra cobre o prazo de reposição: aviso = consumo do prazo", () => {
+    const lista = necessidadeDeEstoque(CENARIOS);
+    expect(lista.length).toBeGreaterThan(0);
+    for (const n of lista) {
+      expect(n.avisoEmM2).toBeCloseTo(n.consumoNoPrazoM2, 1);
+      expect(n.estoqueCheioM2).toBeCloseTo(n.consumoNoPrazoM2 / PREMISSAS_DE_ESTOQUE.avisoPct, 1);
     }
   });
 });

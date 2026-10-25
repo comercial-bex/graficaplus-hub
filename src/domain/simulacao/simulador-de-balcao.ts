@@ -54,9 +54,9 @@ export type OpcoesDoPedido = {
   limiarPor?: "linha" | "produto";
   taxaExpressoPct?: number;
   /**
-   * "real" = o estoque que o banco tem hoje; "abastecido" = rolos e ilhós à vontade, para
-   * ver o que SÓ a capacidade (máquina e mão de obra) permite, sem a falta de material na frente.
-   * Material que nem está cadastrado continua sendo problema nos dois.
+   * "abastecido" (padrão) = a simulação não esbarra no estoque: o consumo sai no resultado e
+   * é ele que diz quanto estoque a casa precisa ter. "real" = confronta com o estoque do banco
+   * hoje, só para conferir o que falta agora.
    */
   estoque?: "real" | "abastecido";
   operadores?: number;
@@ -183,18 +183,21 @@ export function simularPedido(
       let m2DeMaterial = 0;
       let paineis = 1;
       let emendaM = 0;
+      // Material sem cadastro não trava a simulação: assume o rolo comum da família e avisa.
+      const larguraBobina = bobina.larguraM ?? (produto.familia === "adesivo" ? 1.06 : 1.6);
       if (bobina.larguraM === null) {
         avisos.push({
           codigo: "material_nao_cadastrado",
-          mensagem: `${produto.nome}: o material (${bobina.nome}) não está cadastrado; não há como reservar nem comprar pelo sistema.`,
+          mensagem: `${produto.nome}: o material (${bobina.nome}) não está cadastrado; simulado com rolo de ${larguraBobina} m. Sem cadastro não há como reservar nem comprar pelo sistema.`,
           item: indice,
         });
-      } else {
+      }
+      {
         const plano = planejarBobina({
           larguraPeca: it.larguraM,
           alturaPeca: it.alturaM,
           quantidade: it.quantidade,
-          larguraBobina: bobina.larguraM,
+          larguraBobina,
           larguraUtilMaquina: CASA.impressao.larguraUtilM,
           margemLateral: CASA.impressao.margemLateralM,
           espacamento: produto.recorte ? 0.005 : 0.003,
@@ -206,14 +209,14 @@ export function simularPedido(
         } else {
           // Maior que o rolo: sai em painéis lado a lado, soldados (lona) ou alinhados (vinil).
           const util =
-            Math.min(bobina.larguraM, CASA.impressao.larguraUtilM) -
+            Math.min(larguraBobina, CASA.impressao.larguraUtilM) -
             2 * CASA.impressao.margemLateralM;
           const menor = Math.min(it.larguraM, it.alturaM);
           const maior = Math.max(it.larguraM, it.alturaM);
           paineis = Math.max(2, Math.ceil(menor / util));
           emendaM = arred((paineis - 1) * maior * it.quantidade, 3);
           m2DeMaterial = arred(
-            paineis * bobina.larguraM * (maior + CASA.impressao.avancoM) * it.quantidade,
+            paineis * larguraBobina * (maior + CASA.impressao.avancoM) * it.quantidade,
             4,
           );
           if (produto.familia === "adesivo") emendaVinilM += emendaM;
@@ -283,7 +286,7 @@ export function simularPedido(
 
   // — estoque —
   const faltas: string[] = [];
-  if (opcoes.estoque !== "abastecido") {
+  if (opcoes.estoque === "real") {
     for (const [material, m2] of Object.entries(consumo) as [MaterialDaCasa, number][]) {
       const b = BOBINAS[material];
       if (b.estoqueM2 !== null && m2 > b.estoqueM2) {
@@ -328,8 +331,6 @@ export function simularPedido(
   // — expresso —
   const motivos: string[] = [];
   if (faltas.length > 0) motivos.push("falta material no estoque");
-  if (avisos.some((a) => a.codigo === "material_nao_cadastrado"))
-    motivos.push("material não cadastrado");
   if (totalRelogioMin > janela) {
     motivos.push(
       `pede ${Math.round(totalRelogioMin)} min e a janela do expresso é de ${janela} min${filaMin > 0 ? ` (há ${filaMin} min de fila)` : ""}`,
