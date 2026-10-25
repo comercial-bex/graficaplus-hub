@@ -58,6 +58,7 @@ Uma tarefa que tem mais de uns 5 campos, ou escolhas que dependem umas das outra
 | Item do orçamento | tamanhos, material e acabamento em cartões; tabela de degraus de quantidade; bainha com os lados e o valor de cada um |
 | Prazo de produção | cartões Normal e Expresso, com a taxa em % |
 | **Novo produto** | **6 passos**: tipo, variação, material do estoque, máquina e cobrança, preço, revisão |
+| **Novo material (insumo)** | **6 passos**: tipo, material, marca, medida da embalagem, compra e estoque cheio (aviso a 15%), revisão |
 | O que falta de cada papel | pendências com passo a passo e botão para o destino |
 
 ## 3. Análise por módulo
@@ -80,7 +81,7 @@ Medido no código de cada tela (25/10/2026). "Campos" são `Input`, `Select` e `
 | Painel (dashboard) | 953 | 1 | 0 | 0 | 7 | Painel de leitura: pendências primeiro (já é), depois 3 números |
 | Quadro de produção | 932 | 0 | 0 | 5 | 6 | Painel de trabalho: o cartão da OS deve mostrar prazo, material e próximo passo |
 | Cliente (detalhe) | 927 | 6 | 6 | 16 | 11 | Abas e seções |
-| Materiais | 874 | 0 | 0 | 13 | 6 | **Assistente para insumo novo** (ver a lista abaixo) |
+| Materiais | 874 | 0 | 0 | 13 | 6 | **Assistente de insumo novo feito** (cadastro completo segue num botão) |
 | Capacidade | 789 | 8 | 0 | 0 | 4 | Painel de leitura |
 | Meta | 782 | 5 | 0 | 0 | 3 | Painel de leitura |
 | Usuários | 756 | 1 | 2 | 11 | 4 | **Assistente**: o papel em cartões (administrador, gestor, vendedor, operador…) e o que cada um vê |
@@ -96,7 +97,7 @@ Medido no código de cada tela (25/10/2026). "Campos" são `Input`, `Select` e `
 O ganho é a quantidade de campos do cadastro vezes a frequência. A frequência real está **a medir** (o sistema ainda não registra quanto cada tela é usada); a ordem abaixo usa só o tamanho do cadastro.
 
 1. **Cliente novo** (15 campos). Tipo (pessoa física ou jurídica) → documento → contato → condições de pagamento → revisão.
-2. **Insumo novo** (13 campos, é o que alimenta o aviso de compra). Tipo (bobina, chapa, tinta, filamento) → material → marca e fornecedor → largura e comprimento da bobina → custo → **estoque cheio e mínimo a 15%** → revisão.
+2. ~~Insumo novo~~ **feito** (25/10/2026): tipo → material → marca → medida da embalagem → o que pagou e o **estoque cheio, com o mínimo a 15%** → revisão.
 3. **Orçamento 3D** (17 campos). Peça → material → impressora → custo e preço → revisão.
 4. **Máquina nova**. Tipo → velocidade → consumo (kW) → custo por hora.
 5. **Usuário novo**. Papel em cartões, com o que cada papel enxerga.
