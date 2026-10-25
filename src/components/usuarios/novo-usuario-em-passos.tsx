@@ -33,6 +33,7 @@ import {
 } from "@/domain/usuarios/novo-usuario-em-passos";
 import { criarUsuario } from "@/lib/api/usuarios.functions";
 import { mensagemErro } from "@/lib/erros";
+import { registrarUso } from "@/lib/uso-de-telas";
 
 const ICONES: Record<string, LucideIcon> = {
   Headset,
@@ -81,6 +82,7 @@ export function NovoUsuarioEmPassos({
     try {
       await criar({ data: usuarioDasRespostas(r) });
       toast.success("Usuário criado");
+      registrarUso("novo-usuario", "concluiu");
       qc.invalidateQueries({ queryKey: ["usuarios-admin"] });
       onFechar();
     } catch (e) {
@@ -116,6 +118,7 @@ export function NovoUsuarioEmPassos({
       criando={criando}
       onCriar={salvar}
       testId="novo-usuario-em-passos"
+      tela="novo-usuario"
     >
       {passo === 1 && (
         <div className="space-y-3">

@@ -22,6 +22,7 @@ import {
 } from "@/domain/maquinas/nova-maquina-em-passos";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
+import { registrarUso } from "@/lib/uso-de-telas";
 
 const ICONES: Record<string, LucideIcon> = { Printer, Scissors, Zap, Box };
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -83,6 +84,7 @@ export function NovaMaquinaEmPassos({
         .insert(maquinaDasRespostas(r, canSeeFinancials));
       if (error) throw error;
       toast.success("Máquina cadastrada");
+      registrarUso("nova-maquina", "concluiu");
       qc.invalidateQueries({ queryKey: ["maquinas"] });
       qc.invalidateQueries({ queryKey: ["maquinas-para-produto"] });
       onFechar();
@@ -107,6 +109,7 @@ export function NovaMaquinaEmPassos({
       criando={criando}
       onCriar={criar}
       testId="nova-maquina-em-passos"
+      tela="nova-maquina"
     >
       {passo === 1 && (
         <GradeDeCartoes rotulo="Tipo de máquina">

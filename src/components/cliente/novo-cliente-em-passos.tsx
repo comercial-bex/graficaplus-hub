@@ -22,6 +22,7 @@ import {
 } from "@/domain/clientes/novo-cliente-em-passos";
 import { chaveWhatsApp, formatarCEP, recebeWhatsApp } from "@/domain/documentos";
 import { mensagemErro } from "@/lib/erros";
+import { registrarUso } from "@/lib/uso-de-telas";
 
 /**
  * Novo cliente em passos: tipo, documento (CNPJ preenche o resto), contato, endereço, responsável
@@ -96,6 +97,7 @@ export function NovoClienteEmPassos({
         return;
       }
       toast.success("Cliente cadastrado");
+      registrarUso("novo-cliente", "concluiu");
       qc.invalidateQueries({ queryKey: ["clientes"] });
       onFechar();
     } finally {
@@ -134,6 +136,7 @@ export function NovoClienteEmPassos({
       criando={criando}
       onCriar={criar}
       testId="novo-cliente-em-passos"
+      tela="novo-cliente"
     >
       {passo === 1 && (
         <GradeDeCartoes rotulo="Tipo de cliente">

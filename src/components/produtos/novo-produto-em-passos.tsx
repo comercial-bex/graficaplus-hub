@@ -43,6 +43,7 @@ import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-d
 import { Carregando } from "@/components/bex/Carregando";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
+import { registrarUso, useUsoDoAssistente } from "@/lib/uso-de-telas";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { FAMILIAS } from "@/lib/produtos-catalogo";
 import {
@@ -100,6 +101,7 @@ export function NovoProdutoEmPassos({
   const [r, setR] = useState<RespostasDoProduto>(RESPOSTAS_VAZIAS);
   const [passo, setPasso] = useState<NumeroDoPasso>(1);
   const [criando, setCriando] = useState(false);
+  useUsoDoAssistente("novo-produto", aberto, passo);
 
   useEffect(() => {
     if (aberto) {
@@ -227,6 +229,7 @@ export function NovoProdutoEmPassos({
         }
       }
       toast.success(`${r.nome.trim()} cadastrado`);
+      registrarUso("novo-produto", "concluiu");
       qc.invalidateQueries({ queryKey: ["produtos"] });
       qc.invalidateQueries({ queryKey: ["pendencias-do-sistema"] });
       onFechar();
