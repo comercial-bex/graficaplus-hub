@@ -39,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Upload, Search } from "lucide-react";
 import { toast } from "sonner";
 import { CampoDocumento } from "@/components/campo-documento";
+import { NovoClienteEmPassos } from "@/components/cliente/novo-cliente-em-passos";
 import { chaveWhatsApp, formatarCEP, formatarTelefone, recebeWhatsApp } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { mensagemErro } from "@/lib/erros";
@@ -92,6 +93,7 @@ function ClientesPage() {
   const [filtroAtivo, setFiltroAtivo] = useState<"todos" | "ativos" | "inativos">("ativos");
   const [filtroVendedor, setFiltroVendedor] = useState<string>("todos");
   const [open, setOpen] = useState(false);
+  const [passosAberto, setPassosAberto] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [uploading, setUploading] = useState(false);
 
@@ -259,11 +261,13 @@ function ClientesPage() {
         title="Clientes"
         description="Cadastro, histórico e responsáveis de cada cliente."
         actions={
+          <>
+            <Button onClick={() => setPassosAberto(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Novo cliente
+            </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" /> Novo cliente
-              </Button>
+                <Button variant="outline">Cadastro completo</Button>
             </DialogTrigger>
 
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -473,6 +477,12 @@ function ClientesPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+            <NovoClienteEmPassos
+              aberto={passosAberto}
+              onFechar={() => setPassosAberto(false)}
+              onAbrirCadastroCompleto={() => setOpen(true)}
+            />
+          </>
         }
       />
 
