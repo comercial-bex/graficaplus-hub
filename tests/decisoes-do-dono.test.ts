@@ -57,3 +57,15 @@ describe("o aviso na tela", () => {
     expect(TELA).toContain("Marcar como decidido");
   });
 });
+
+describe("os sete produtos sem ficha de material", () => {
+  const sql = readFileSync(
+    "supabase/migrations/20261026450000_decisao_materiais_dos_sete_produtos.sql",
+    "utf8",
+  );
+  it("viram uma decisão pendente, sem ligar material de outro produto por palpite", () => {
+    expect(sql).toContain("'materiais_dos_sete_produtos'");
+    expect(sql).toContain("ON CONFLICT (chave) DO NOTHING");
+    expect(sql).not.toMatch(/INSERT INTO public\.produto_materiais/);
+  });
+});
