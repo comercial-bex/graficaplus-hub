@@ -1,3 +1,9 @@
+import {
+  CartaoDeEscolha,
+  GradeDeCartoes,
+  PreviaDaPeca,
+} from "@/components/orcamento/cartao-de-escolha";
+import { descricaoDoTamanho } from "@/domain/orcamentos/descricao-do-tamanho";
 import { DicaIcone } from "@/components/bex/Dica";
 import { CampoDeMedida, SeletorDeUnidade, useUnidadeDeMedida } from "@/components/orcamento/campo-de-medida";
 import { medidaLegivel, type UnidadeDeMedida } from "@/domain/orcamentos/unidade-de-medida";
@@ -255,29 +261,22 @@ export function MedidasDaPeca({
           <p className="text-xs text-muted-foreground">
             {origemDosTamanhos === "produto" ? "Tamanhos deste produto" : "Medidas comuns"}
           </p>
-          <div className="flex flex-wrap gap-2">
-          {tamanhos.map((t) => {
-            const ativo = dims.largura === Number(t.largura) && dims.altura === Number(t.altura);
-            return (
-              <button
-                key={`${t.nome}-${t.largura}x${t.altura}`}
-                type="button"
-                aria-pressed={ativo}
-                disabled={desabilitado}
-                onClick={() => onAplicarTamanho(t)}
-                className={cn(
-                  "inline-flex min-h-11 items-center rounded-xl border px-3 py-1.5 text-sm transition-colors sm:min-h-10",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  ativo
-                    ? "border-primary bg-primary/10 font-semibold"
-                    : "border-border bg-card hover:bg-muted",
-                )}
-              >
-                {t.nome}
-              </button>
-            );
-          })}
-          </div>
+          <GradeDeCartoes rotulo="Tamanhos prontos">
+            {tamanhos.map((t) => {
+              const ativo = dims.largura === Number(t.largura) && dims.altura === Number(t.altura);
+              return (
+                <CartaoDeEscolha
+                  key={`${t.nome}-${t.largura}x${t.altura}`}
+                  ativo={ativo}
+                  titulo={t.nome}
+                  detalhe={descricaoDoTamanho(t.largura, t.altura)}
+                  icone={<PreviaDaPeca largura={t.largura} altura={t.altura} />}
+                  desabilitado={desabilitado}
+                  onEscolher={() => onAplicarTamanho(t)}
+                />
+              );
+            })}
+          </GradeDeCartoes>
         </div>
       )}
     </div>

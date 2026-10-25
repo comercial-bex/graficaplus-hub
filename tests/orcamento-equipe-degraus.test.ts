@@ -129,8 +129,12 @@ describe("a tela do item da equipe", () => {
   it("os tamanhos prontos têm a mesma cara do parceiro: título, botões maiores e o escolhido marcado", () => {
     expect(MEDIDAS).toContain('data-testid="tamanhos-prontos"');
     expect(MEDIDAS).toContain("Tamanhos prontos");
-    expect(MEDIDAS).toContain("rounded-xl");
-    expect(MEDIDAS).toContain("aria-pressed={ativo}");
+    // Cada tamanho é um cartão de escolha (botão aria-pressed, cantos rounded-xl) com o escolhido marcado.
+    const CARTAO = readFileSync("src/components/orcamento/cartao-de-escolha.tsx", "utf8");
+    expect(MEDIDAS).toContain("<CartaoDeEscolha");
+    expect(MEDIDAS).toContain("ativo={ativo}");
+    expect(CARTAO).toContain("rounded-xl");
+    expect(CARTAO).toContain("aria-pressed={ativo}");
     expect(MEDIDAS).toContain("Tamanhos deste produto");
     expect(MEDIDAS).toContain("Medidas comuns");
   });

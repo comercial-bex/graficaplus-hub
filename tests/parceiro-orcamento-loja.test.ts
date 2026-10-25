@@ -140,7 +140,10 @@ describe("o editor do parceiro, com cara de loja", () => {
     const iCampos = EDITOR.indexOf("<CampoDeMedida", iBotoes);
     expect(iBotoes).toBeGreaterThan(0);
     expect(iCampos).toBeGreaterThan(iBotoes);
-    expect(EDITOR).toContain("aria-pressed={escolhido}");
+    expect(EDITOR).toContain("ativo={escolhido}");
+    expect(
+      readFileSync("src/components/orcamento/cartao-de-escolha.tsx", "utf8"),
+    ).toContain("aria-pressed={ativo}");
     expect(EDITOR).toContain("Ou digite a medida abaixo.");
   });
 

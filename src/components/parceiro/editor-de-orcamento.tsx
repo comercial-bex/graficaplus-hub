@@ -1,4 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  CartaoDeEscolha,
+  GradeDeCartoes,
+  PreviaDaPeca,
+} from "@/components/orcamento/cartao-de-escolha";
+import { descricaoDoTamanho } from "@/domain/orcamentos/descricao-do-tamanho";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -1030,29 +1036,23 @@ function ItemCard({
             {tamanhos.length > 0 && !somenteLeitura && (
               <div className="space-y-1.5" data-testid="tamanhos-prontos">
                 <span className="text-sm font-medium">Tamanhos prontos</span>
-                <div className="flex flex-wrap gap-2">
+                <GradeDeCartoes rotulo="Tamanhos prontos">
                   {tamanhos.map((t) => {
                     const escolhido =
-                      Number(item.largura) === Number(t.largura) && Number(item.altura) === Number(t.altura);
+                      Number(item.largura) === Number(t.largura) &&
+                      Number(item.altura) === Number(t.altura);
                     return (
-                      <button
+                      <CartaoDeEscolha
                         key={t.nome}
-                        type="button"
-                        aria-pressed={escolhido}
-                        onClick={() => onMudar({ largura: t.largura, altura: t.altura })}
-                        className={cn(
-                          "min-h-10 rounded-xl border px-3 py-1.5 text-sm transition-colors",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          escolhido
-                            ? "border-primary bg-primary/10 font-semibold"
-                            : "border-border bg-card hover:bg-muted",
-                        )}
-                      >
-                        {t.nome}
-                      </button>
+                        ativo={escolhido}
+                        titulo={t.nome}
+                        detalhe={descricaoDoTamanho(t.largura, t.altura)}
+                        icone={<PreviaDaPeca largura={t.largura} altura={t.altura} />}
+                        onEscolher={() => onMudar({ largura: t.largura, altura: t.altura })}
+                      />
                     );
                   })}
-                </div>
+                </GradeDeCartoes>
                 <p className="text-xs text-muted-foreground">Ou digite a medida abaixo.</p>
               </div>
             )}
