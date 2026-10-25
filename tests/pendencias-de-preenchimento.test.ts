@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { GUIA_PENDENCIAS, VISIVEL_TAMBEM_PARA } from "../src/lib/pendenciasGuia";
 
 const SQL = readFileSync(
-  "supabase/migrations/20261025700000_pendencias_de_preenchimento.sql",
+  "supabase/migrations/20261025800000_pendencias_de_preenchimento.sql",
   "utf8",
 );
 const HOOK = readFileSync("src/hooks/usePendencias.ts", "utf8");

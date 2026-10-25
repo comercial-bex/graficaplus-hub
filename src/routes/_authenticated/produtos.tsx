@@ -95,6 +95,7 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
 import { percentual } from "@/lib/percentual";
 import { Carregando } from "@/components/bex/Carregando";
+import { NovoProdutoEmPassos } from "@/components/produtos/novo-produto-em-passos";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -153,6 +154,7 @@ function ProdutosPage() {
   const [view, setView] = useState<"tabela" | "grid">("tabela");
 
   const [open, setOpen] = useState(false);
+  const [passosAberto, setPassosAberto] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState<Produto | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -481,7 +483,12 @@ function ProdutosPage() {
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
-          <Button onClick={abrirNovo}>
+          {canSeeFinancials && (
+            <Button variant="outline" size="sm" onClick={abrirNovo}>
+              Cadastro completo
+            </Button>
+          )}
+          <Button onClick={() => (canSeeFinancials ? setPassosAberto(true) : abrirNovo())}>
             <Plus className="h-4 w-4 mr-2" />
             Novo item
           </Button>
@@ -760,6 +767,11 @@ function ProdutosPage() {
         </div>
       )}
 
+      <NovoProdutoEmPassos
+        aberto={passosAberto}
+        onFechar={() => setPassosAberto(false)}
+        onAbrirCadastroCompleto={abrirNovo}
+      />
       <ProdutoFormDialog
         open={open}
         onOpenChange={setOpen}
