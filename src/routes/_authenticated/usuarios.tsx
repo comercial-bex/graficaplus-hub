@@ -76,6 +76,7 @@ import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ParceirosAcesso } from "@/components/usuarios/parceiros-acesso";
+import { NovoUsuarioEmPassos } from "@/components/usuarios/novo-usuario-em-passos";
 import { PermissoesDaPessoaSheet } from "@/components/usuarios/permissoes-da-pessoa";
 import {
   atribuirPerfil,
@@ -177,6 +178,7 @@ function EquipePage() {
 
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [passosAberto, setPassosAberto] = useState(false);
   const [senhaAlvo, setSenhaAlvo] = useState<UsuarioAdmin | null>(null);
   const [novaSenha, setNovaSenha] = useState("");
   const [excluirAlvo, setExcluirAlvo] = useState<UsuarioAdmin | null>(null);
@@ -291,10 +293,24 @@ function EquipePage() {
         title="Equipe e acessos"
         description="Cadastre a equipe, defina perfis de acesso, altere senhas e controle quem pode entrar no sistema. Em Permissões, veja o que cada pessoa pode fazer e dê ou tire uma permissão só dela."
         actions={
-          <NeonButton onClick={() => setForm({ ...emptyForm, senha: gerarSenha() })}>
-            <Plus className="h-4 w-4" /> Novo usuário
-          </NeonButton>
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setForm({ ...emptyForm, senha: gerarSenha() })}
+            >
+              Cadastro completo
+            </Button>
+            <NeonButton onClick={() => setPassosAberto(true)}>
+              <Plus className="h-4 w-4" /> Novo usuário
+            </NeonButton>
+          </>
         }
+      />
+
+      <NovoUsuarioEmPassos
+        aberto={passosAberto}
+        onFechar={() => setPassosAberto(false)}
+        onAbrirCadastroCompleto={() => setForm({ ...emptyForm, senha: gerarSenha() })}
       />
 
       {/* Lista que não carregou não tem zero pessoas: "—", e o erro aparece na tabela. */}
