@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { GUIA_PENDENCIAS } from "../src/lib/pendenciasGuia";
 import { RESUMO_POR_ROTULO } from "@/domain/painel/resumo-do-dia";
 
-const SQL = readFileSync("supabase/migrations/20261026100000_decisoes_do_dono.sql", "utf8");
+const SQL = readFileSync("supabase/migrations/20261026300000_decisoes_do_dono.sql", "utf8");
 const HOOK = readFileSync("src/hooks/usePendencias.ts", "utf8");
 const PAGINA = readFileSync("src/routes/_authenticated/configuracoes-empresa.tsx", "utf8");
 const TELA = readFileSync("src/components/configuracoes/decisoes-do-dono.tsx", "utf8");
