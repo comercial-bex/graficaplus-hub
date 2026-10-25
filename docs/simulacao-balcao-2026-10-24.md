@@ -72,7 +72,11 @@ Um dia típico de balcão (S01 a S05, S07, S10, S12, S15, S17, S21, uma vez cada
 | Lona backlight | 3,52 m² | 77,44 m² | 24,64 m² | 164,27 m² | 24,64 m² |
 | Vinil adesivo perfurado | 2,34 m² | 51,37 m² | 16,35 m² | 108,98 m² | 16,35 m² |
 
-Isso é ordem de grandeza para um dia inventado. O número de verdade vem do consumo real: os jobs do Flexi importados já dizem quantos m² saíram de cada material por dia.
+Isso é ordem de grandeza para um dia inventado, e a comparação com o consumo real mostra que ele **superestima muito**.
+
+**Consumo real** (jobs do Flexi já importados, 23/09 a 24/10/2026): 38 jobs e cerca de 34 m² impressos no mês, entre 0,1 e 10 m² por dia de impressão, em uma máquina. O dia típico da simulação passa de 40 m² por dia. Os dois números não se contradizem se a importação tiver só uma parte do movimento (a fila do Flexi guarda os jobs recentes), mas até o consumo real aparecer completo **não use o estoque cheio acima para comprar**. Os mínimos que já estão cadastrados (por exemplo 20 m² de lona 280 g e 20 m² de vinil branco) são do mesmo tamanho do consumo real de um mês e continuam razoáveis.
+
+Para o aviso de compra a 15%: `materiais.estoque_minimo` já é o nível de aviso (a view `vw_estoque_critico` marca crítico quando o saldo disponível chega a ele), mas `estoque_maximo` está vazio em todos os materiais, então a regra "avisar a 15% do cheio" ainda não tem o que medir. Falta o dono dizer o estoque cheio de cada rolo; com ele o mínimo passa a ser 15% desse valor.
 
 ## Problemas encontrados e o que foi decidido
 
