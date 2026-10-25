@@ -1,3 +1,4 @@
+import { NovoInsumoEmPassos } from "@/components/materiais/novo-insumo-em-passos";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -147,6 +148,7 @@ function MateriaisPage() {
   // e o salvar estourava permissão).
   const podeCadastrar = hasAnyRole(["admin", "gestor", "estoque"]);
   const [open, setOpen] = useState(false);
+  const [passosAberto, setPassosAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroUnidade, setFiltroUnidade] = useState<string | null>(null);
   const [form, setForm] = useState({ ...formVazio });
@@ -441,10 +443,15 @@ function MateriaisPage() {
               Entrada / saída
             </Button>
             {podeCadastrar && (
-              <NeonButton onClick={() => setOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Novo material
-              </NeonButton>
+              <>
+                <Button variant="outline" onClick={() => setOpen(true)}>
+                  Cadastro completo
+                </Button>
+                <NeonButton onClick={() => setPassosAberto(true)}>
+                  <Plus className="h-4 w-4" />
+                  Novo material
+                </NeonButton>
+              </>
             )}
           </>
         }
@@ -623,6 +630,12 @@ function MateriaisPage() {
           </Table>
         )}
       </DataPanel>
+
+      <NovoInsumoEmPassos
+        aberto={passosAberto}
+        onFechar={() => setPassosAberto(false)}
+        onAbrirCadastroCompleto={() => setOpen(true)}
+      />
 
       {/* Novo material */}
       <Dialog open={open} onOpenChange={setOpen}>
