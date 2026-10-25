@@ -325,6 +325,54 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Pague no fechamento e marque como paga — ela não gera lançamento em contas a pagar, então só sai da lista por aqui.',
     ],
   },
+  produto_custo_provisorio: {
+    acao: 'Abrir produtos',
+    passos: [
+      'Abra Financeiro › Produtos e serviços e procure os produtos com a etiqueta "Custo provisório".',
+      'Abra cada um e troque o custo por m² e o preço de balcão pelos números reais.',
+      'Ao salvar, o aviso some: a observação de provisório sai do produto.',
+    ],
+  },
+  produto_sem_custo: {
+    acao: 'Abrir produtos',
+    passos: [
+      'Abra Financeiro › Produtos e serviços e filtre pelos produtos sem custo.',
+      'Preencha o custo do produto ou monte a ficha de materiais na aba Materiais.',
+    ],
+  },
+  produto_sem_preco: {
+    acao: 'Abrir produtos',
+    passos: [
+      'Abra Financeiro › Produtos e serviços e procure os produtos sem preço.',
+      'Preencha o preço de balcão, as faixas de quantidade ou o preço de parceiro.',
+    ],
+  },
+  acabamento_sem_preco: {
+    acao: 'Abrir produtos',
+    passos: [
+      'Abra Financeiro › Produtos e serviços e entre em um produto que leva o acabamento.',
+      'Na parte de acabamentos da ficha, preencha o preço de venda de cada um.',
+    ],
+  },
+  material_sem_estoque_maximo: {
+    acao: 'Abrir materiais',
+    passos: [
+      'Abra Produção › Materiais e estoque.',
+      'Em cada rolo, preencha o estoque máximo (o estoque cheio).',
+      'O estoque mínimo, que dispara o aviso de compra, passa a ser 15% desse valor.',
+    ],
+  },
+};
+
+/**
+ * Pendências de custo e preço que, além de quem o rótulo atende, o gestor também precisa ver.
+ * Quem não vê dinheiro nem recebe a linha: o banco só devolve estas para quem pode.
+ */
+export const VISIVEL_TAMBEM_PARA: Record<string, string[]> = {
+  produto_custo_provisorio: ['gestor'],
+  produto_sem_custo: ['gestor'],
+  produto_sem_preco: ['gestor'],
+  acabamento_sem_preco: ['gestor'],
 };
 
 export function guiaDe(chave: string): GuiaPendencia | undefined {
