@@ -152,6 +152,8 @@ import {
 } from "@/domain/orcamentos/passos-da-equipe";
 import type { PassoDoOrcamento } from "@/domain/parceiros/passos-do-orcamento";
 import { PrazoDeProducao } from "@/components/orcamento/prazo-de-producao";
+import { TabelaDeDegraus } from "@/components/parceiro/tabela-de-degraus";
+import { degrausDeFaixasDeBalcao } from "@/domain/parceiros/degraus";
 import { PRAZO_NORMAL, prazoEscolhido, rotuloDaPorcentagem } from "@/domain/parceiros/prazo";
 import { CHAVE_PRAZOS, carregarPrazos } from "@/lib/parceiro-api";
 import { Carregando } from "@/components/bex/Carregando";
@@ -1514,6 +1516,18 @@ function OrcamentoDetailPage() {
                           </span>
                         )}
                       </div>
+                    )}
+
+                    {/* Os degraus em tabela, como no orçamento do parceiro: clicar numa linha põe
+                        aquela quantidade. O preço do item só muda em "Usar este preço". */}
+                    {canSeePrices && (
+                      <TabelaDeDegraus
+                        degraus={degrausDeFaixasDeBalcao(faixas, quantidadeForm)}
+                        unidade={form.unidade}
+                        titulo="Quanto mais, menor o preço por unidade"
+                        desabilitado={salvandoItem}
+                        onEscolher={(q) => setForm((atual) => ({ ...atual, quantidade: String(q) }))}
+                      />
                     )}
 
                     {/* Margem do item comparada à mínima do produto. */}
