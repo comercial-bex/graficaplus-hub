@@ -151,6 +151,9 @@ import {
   rotuloDoAvancar,
 } from "@/domain/orcamentos/passos-da-equipe";
 import type { PassoDoOrcamento } from "@/domain/parceiros/passos-do-orcamento";
+import { PrazoDeProducao } from "@/components/orcamento/prazo-de-producao";
+import { PRAZO_NORMAL, prazoEscolhido, rotuloDaPorcentagem } from "@/domain/parceiros/prazo";
+import { CHAVE_PRAZOS, carregarPrazos } from "@/lib/parceiro-api";
 import { Carregando } from "@/components/bex/Carregando";
 
 const itemVazio = {
@@ -384,7 +387,16 @@ function OrcamentoDetailPage() {
       return (data ?? []) as any[];
     },
   });
+  const { data: prazosDaCasa = [] } = useQuery({
+    queryKey: CHAVE_PRAZOS,
+    queryFn: carregarPrazos,
+    staleTime: 5 * 60_000,
+  });
   const itens = consultaItens.data ?? [];
+  // A linha "Taxa de expresso" é do banco (recalcular_taxa_prazo): fica nos itens para o
+  // total, o PDF e a OS, mas não é um item que se edita, move, nem que pede arte e produto.
+  const itensDeProduto = itens.filter((i) => i.tipo_produto !== "taxa_prazo");
+  const linhaDaTaxa = itens.find((i) => i.tipo_produto === "taxa_prazo") ?? null;
   const capas = useCapasDosItens(
     id,
     itens.map((i) => i.id as string),
@@ -808,8 +820,8 @@ function OrcamentoDetailPage() {
 
   /** Muda a posição do item: é a numeração do PDF e da OS. */
   async function moverItem(indice: number, passo: -1 | 1) {
-    const nova = reordenar(itens, indice, indice + passo);
-    if (nova === itens) return;
+    const nova = reordenar(itensDeProduto, indice, indice + passo);
+    if (nova === itensDeProduto) return;
     try {
       for (const [ordem, item] of nova.entries()) {
         if (Number(item.ordem) === ordem) continue;
@@ -976,7 +988,7 @@ function OrcamentoDetailPage() {
     dataEntrega: dadosDoAcordo ? (dadosDoAcordo.data_entrega_prometida ?? dadosDoAcordo.prazo) : "?",
     verPreco: canSeePrices,
     temCondicao: dadosDoAcordo ? !!dadosDoAcordo.condicao_pagamento : true,
-    itens: itens as { arquivo_id: string | null }[],
+    itens: itensDeProduto as { arquivo_id: string | null }[],
     descontoPendente,
   });
   const subtotalGravado = Number(orc.valor_subtotal ?? 0);
@@ -986,16 +998,16 @@ function OrcamentoDetailPage() {
   );
   const brlVersao = (v?: number | null) =>
     Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const semArte = (itens as any[]).filter((i) => !i.arquivo_id).length;
+  const semArte = (itensDeProduto as any[]).filter((i) => !i.arquivo_id).length;
   // Item em texto livre, sem produto: o banco não tem de onde tirar o custo, e a OS
   // nasce sem custo previsto (19/10/2026: as OS #163 e #166). Com produto, o custo
   // vem do cadastro mesmo quando quem monta o orçamento não vê custo.
-  const semProduto = (itens as any[]).filter((i) => !i.produto_id).length;
+  const semProduto = (itensDeProduto as any[]).filter((i) => !i.produto_id).length;
   const somaArea = somaAreaTotal(itens);
 
   const estados = estadoDosPassosDaEquipe({
     clienteNome: orc.cliente_nome ?? null,
-    itens: itens.length,
+    itens: itensDeProduto.length,
     total: canSeePrices ? Number(orc.valor_total ?? 0) : null,
     pendencias,
     fechado,
@@ -1004,7 +1016,7 @@ function OrcamentoDetailPage() {
   // abriria sempre nos itens, porque `pendencias` ainda diria que falta tudo.
   const dadosProntos = !consultaItens.isPending && !acordo.isPending && !(canSeePrices && desconto.isPending);
   if (passoInicialRef.current === null && dadosProntos) {
-    passoInicialRef.current = passoInicialDaEquipe({ fechado, itens: itens.length, pendencias });
+    passoInicialRef.current = passoInicialDaEquipe({ fechado, itens: itensDeProduto.length, pendencias });
   }
   const passo: PassoDoOrcamento = passoEscolhido ?? passoInicialRef.current ?? 2;
   const irParaPasso = (p: PassoDoOrcamento, alvo?: string) => {
@@ -1016,6 +1028,8 @@ function OrcamentoDetailPage() {
       else window.scrollTo({ top: 0, behavior: "smooth" });
     }, 60);
   };
+  const taxaDoPrazoDoOrcamento =
+    prazoEscolhido(prazosDaCasa, dadosDoAcordo?.prazo_tipo ?? PRAZO_NORMAL)?.taxa_percentual ?? 0;
   const aprovadoParaConverter = !fechado && orc.status === "aprovado" && podeConverter;
   // Colunas da tabela base que a view financeira não tipa; lidas aqui sem `any`.
   const extra = orc as typeof orc & {
@@ -1047,6 +1061,7 @@ function OrcamentoDetailPage() {
               <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
                 <span>Orçamento #{orc.numero}</span>
                 <StatusChip label={ROTULO_DO_STATUS[orc.status] ?? orc.status} tone={statusTone[orc.status] ?? "muted"} />
+                {linhaDaTaxa && <StatusChip label="Expresso" tone="amber" />}
               </div>
               <div className="mt-1 flex items-center gap-2 min-w-0">
                 <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{orc.titulo}</h1>
@@ -1719,7 +1734,7 @@ function OrcamentoDetailPage() {
                             </TableCell>
                           </TableRow>
                         )}
-                        {!consultaItens.isPending && itens.length === 0 && (
+                        {!consultaItens.isPending && itensDeProduto.length === 0 && (
                           <TableRow>
                             <TableCell colSpan={canSeePrices ? 9 : 7} className="text-center text-muted-foreground">
                               Nenhum item ainda — busque um produto do catálogo acima para começar.
@@ -1727,6 +1742,31 @@ function OrcamentoDetailPage() {
                           </TableRow>
                         )}
                         {itens.map((i: any, indice: number) => {
+                          if (i.tipo_produto === "taxa_prazo") {
+                            return (
+                              <TableRow key={i.id} className="bg-muted/30" data-taxa-prazo="">
+                                <TableCell />
+                                <TableCell colSpan={4}>
+                                  <p className="font-medium">{i.descricao}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Calculada sozinha sobre os itens acima; acompanha o prazo escolhido nas condições.
+                                  </p>
+                                </TableCell>
+                                <TableCell />
+                                {canSeePrices && (
+                                  <>
+                                    <TableCell className="whitespace-nowrap text-right tabular-nums">
+                                      {brl(i.valor_unitario)}
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap text-right font-medium tabular-nums">
+                                      {brl(i.valor_total)}
+                                    </TableCell>
+                                  </>
+                                )}
+                                <TableCell />
+                              </TableRow>
+                            );
+                          }
                           const numero = indice + 1;
                           const emEdicao = editando?.id === i.id;
                           return (
@@ -1806,7 +1846,7 @@ function OrcamentoDetailPage() {
                                         variant="ghost"
                                         size="icon"
                                         aria-label={`Descer o item ${numero}`}
-                                        disabled={indice === itens.length - 1}
+                                        disabled={indice === itensDeProduto.length - 1}
                                         onClick={() => void moverItem(indice, 1)}
                                       >
                                         <ArrowDown className="h-4 w-4" />
@@ -1855,7 +1895,7 @@ function OrcamentoDetailPage() {
 
                 <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t pt-3 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Itens:</span> <strong>{itens.length}</strong>
+                    <span className="text-muted-foreground">Itens:</span> <strong>{itensDeProduto.length}</strong>
                   </div>
                   {semArte > 0 && (
                     <div className="text-amber-500">
@@ -1923,6 +1963,16 @@ function OrcamentoDetailPage() {
 
           {passo === 3 && (
             <div className="space-y-4">
+              <PrazoDeProducao
+                orcamentoId={id}
+                prazoTipo={dadosDoAcordo?.prazo_tipo ?? null}
+                baseDaTaxa={
+                  canSeePrices
+                    ? itensDeProduto.reduce((soma: number, i) => soma + Number(i.valor_total ?? 0), 0)
+                    : null
+                }
+                podeEditar={podeMexer}
+              />
               {acordo.isError ? (
                 <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
@@ -2006,8 +2056,16 @@ function OrcamentoDetailPage() {
                     <div>
                       <dt className="text-muted-foreground">Itens</dt>
                       <dd className="font-medium">
-                        {itens.length}
+                        {itensDeProduto.length}
                         {somaArea > 0 ? ` · ${m2(somaArea)}` : ""}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Prazo de produção</dt>
+                      <dd className="font-medium">
+                        {linhaDaTaxa
+                          ? `Expresso (+${rotuloDaPorcentagem(taxaDoPrazoDoOrcamento)} sobre os produtos)`
+                          : "Normal"}
                       </dd>
                     </div>
                     <div>
@@ -2089,8 +2147,16 @@ function OrcamentoDetailPage() {
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground">Itens</span>
-                <span className="font-medium">{itens.length}</span>
+                <span className="font-medium">{itensDeProduto.length}</span>
               </div>
+              {canSeePrices && linhaDaTaxa && (
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">
+                    Expresso (+{rotuloDaPorcentagem(taxaDoPrazoDoOrcamento)})
+                  </span>
+                  <span className="tabular-nums">{brl(linhaDaTaxa.valor_total)}</span>
+                </div>
+              )}
               {canSeePrices && descontoGravado > 0 && (
                 <>
                   <div className="flex justify-between gap-3">
@@ -2146,7 +2212,7 @@ function OrcamentoDetailPage() {
         <div className="min-w-0">
           <p className="text-[11px] text-muted-foreground">{canSeePrices ? "Total" : "Itens"}</p>
           <p className="truncate text-base font-semibold tabular-nums">
-            {canSeePrices ? brl(orc.valor_total) : itens.length}
+            {canSeePrices ? brl(orc.valor_total) : itensDeProduto.length}
           </p>
         </div>
         {orc.os_id ? (

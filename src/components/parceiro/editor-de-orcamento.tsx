@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -38,6 +37,7 @@ import { SeletorDeProduto } from "./seletor-de-produto";
 import { PedidoDialog } from "./pedido-dialog";
 import { BarraDePassosDoOrcamento, PerguntaDoPasso } from "./barra-de-passos";
 import { TabelaDeDegraus } from "./tabela-de-degraus";
+import { EscolhaDoPrazo } from "@/components/orcamento/escolha-do-prazo";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 import { baixarArquivo, renderPDFBlob } from "@/lib/pdf/generate";
@@ -644,52 +644,14 @@ export function EditorDeOrcamento({ id }: { id: string }) {
                   onChange={(e) => mudarCab({ validade_dias: Number(e.target.value) })}
                 />
               </Campo>
-              {prazos.length > 1 && (
-                <fieldset className="space-y-2" data-testid="escolha-do-prazo">
-                  <legend className="text-sm font-medium">Prazo de produção</legend>
-                  <RadioGroup
-                    value={prazoAtual ? cab.prazo : PRAZO_NORMAL}
-                    onValueChange={(v) => mudarCab({ prazo: v })}
-                    disabled={somenteLeitura}
-                    className="grid gap-2"
-                  >
-                    {prazos.map((pz) => {
-                      const valor = taxaDoPrazo(resumoBase.custo, pz.taxa_percentual);
-                      return (
-                        <label
-                          key={pz.chave}
-                          htmlFor={`prazo-${pz.chave}`}
-                          className={cn(
-                            "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
-                            (prazoAtual?.chave ?? PRAZO_NORMAL) === pz.chave
-                              ? "border-primary bg-primary/10"
-                              : "border-border hover:bg-muted",
-                          )}
-                        >
-                          <RadioGroupItem id={`prazo-${pz.chave}`} value={pz.chave} className="mt-1" />
-                          <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-                              <span className="font-medium">{pz.nome}</span>
-                              <span className="text-sm tabular-nums">
-                                {pz.taxa_percentual > 0
-                                  ? `+${rotuloDaPorcentagem(pz.taxa_percentual)} sobre os produtos${valor > 0 ? ` · ${brl(valor)}` : ""}`
-                                  : "sem taxa"}
-                              </span>
-                            </span>
-                            {pz.descricao && (
-                              <span className="block text-xs text-muted-foreground">{pz.descricao}</span>
-                            )}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </RadioGroup>
-                  <p className="text-xs text-muted-foreground">
-                    A taxa é o que você paga à gráfica, calculada sobre o valor dos produtos. O preço
-                    que você cobra do seu cliente continua sendo seu.
-                  </p>
-                </fieldset>
-              )}
+              <EscolhaDoPrazo
+                prazos={prazos}
+                escolhido={prazoAtual ? cab.prazo : PRAZO_NORMAL}
+                baseDaTaxa={resumoBase.custo}
+                desabilitado={somenteLeitura}
+                onEscolher={(chave) => mudarCab({ prazo: chave })}
+                ajuda="A taxa é o que você paga à gráfica, calculada sobre o valor dos produtos. O preço que você cobra do seu cliente continua sendo seu."
+              />
               <Campo rotulo="Observações para o cliente" id="orc-obs">
                 <Textarea
                   id="orc-obs"

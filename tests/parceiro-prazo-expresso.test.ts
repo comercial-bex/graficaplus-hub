@@ -26,6 +26,7 @@ const MIGRACAO = readFileSync(
 );
 const EDITOR = readFileSync("src/components/parceiro/editor-de-orcamento.tsx", "utf8");
 const API = readFileSync("src/lib/parceiro-api.ts", "utf8");
+const ESCOLHA = readFileSync("src/components/orcamento/escolha-do-prazo.tsx", "utf8");
 
 const resumo = (o: Partial<ResumoDoOrcamento> = {}): ResumoDoOrcamento => ({
   venda: 300,
@@ -220,11 +221,12 @@ describe("o editor do parceiro", () => {
   it("a taxa vem do domínio e entra no resumo e no pedido, sem soma própria na tela", () => {
     expect(EDITOR).toContain("aplicarTaxaDePrazo(resumoBase, taxaDoPrazoReais)");
     expect(EDITOR).toMatch(/<PedidoDialog[\s\S]*resumo=\{resumo\}/);
-    expect(EDITOR).toContain('data-testid="escolha-do-prazo"');
+    expect(EDITOR).toContain("<EscolhaDoPrazo");
   });
 
   it("a escolha do prazo só aparece quando há mais de um prazo cadastrado", () => {
-    expect(EDITOR).toContain("prazos.length > 1");
+    expect(ESCOLHA).toContain("prazos.length < 2");
+    expect(ESCOLHA).toContain('data-testid="escolha-do-prazo"');
   });
 
   it("os prazos vêm de uma consulta própria", () => {

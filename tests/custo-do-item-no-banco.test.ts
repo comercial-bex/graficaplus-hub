@@ -99,7 +99,8 @@ describe("o que o gatilho não alcança: item em texto livre e produto sem custo
   });
 
   it("o orçamento avisa do item sem produto — o que o gatilho não resolve", () => {
-    expect(ORCAMENTO).toContain("const semProduto = (itens as any[]).filter((i) => !i.produto_id).length;");
+    // A linha da taxa do expresso não tem produto e não é item para conferir: fica de fora da conta.
+    expect(ORCAMENTO).toContain("const semProduto = (itensDeProduto as any[]).filter((i) => !i.produto_id).length;");
     expect(ORCAMENTO).toContain("Sem produto ligado: o custo e a margem deste item não são calculados.");
     expect(ORCAMENTO).toContain("itens sem produto");
   });
