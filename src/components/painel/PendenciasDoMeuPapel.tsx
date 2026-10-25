@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { usePendencias, type Pendencia } from "@/hooks/usePendencias";
-import { guiaDe, rotulosDoPapel, ROTULO_PAPEL, type PapelResolvedor } from "@/lib/pendenciasGuia";
+import {
+  guiaDe,
+  rotulosDoPapel,
+  ROTULO_PAPEL,
+  VISIVEL_TAMBEM_PARA,
+  type PapelResolvedor,
+} from "@/lib/pendenciasGuia";
 import { cn } from "@/lib/utils";
 
 /**
@@ -46,7 +52,11 @@ export function PendenciasDoMeuPapel({ className }: { className?: string }) {
   if (!isSuccess || !data || rotulos.length === 0) return null;
 
   const minhas = data
-    .filter((p) => rotulos.includes(p.quem_resolve as PapelResolvedor))
+    .filter(
+      (p) =>
+        rotulos.includes(p.quem_resolve as PapelResolvedor) ||
+        (VISIVEL_TAMBEM_PARA[p.chave] ?? []).some((papel) => roles.includes(papel as never)),
+    )
     .filter((p) => p.quantidade > 0)
     .sort((a, b) => ORDEM[a.severidade] - ORDEM[b.severidade] || b.quantidade - a.quantidade);
 

@@ -45,9 +45,13 @@ export function usePendencias(opcoes: { enabled?: boolean; refetchInterval?: num
     queryFn: async (): Promise<Pendencia[]> => {
       // `as any` no nome da RPC: o types.ts é gerado pelo Lovable e ainda não
       // conhece funções aplicadas por migração. Mesmo escape do resto do projeto.
-      const { data, error } = await (supabase.rpc as any)("pendencias_do_sistema");
+      const chamar = (nome: string) => (supabase.rpc as any)(nome);
+      const { data, error } = await chamar("pendencias_do_sistema");
       if (error) throw error;
-      return (data ?? []) as Pendencia[];
+      // Pendências de preenchimento (custo e preço provisórios, rolos sem estoque cheio…): outra
+      // função, mesma forma. Se ela falhar, o painel segue com as de sempre.
+      const { data: preencher } = await chamar("pendencias_de_preenchimento");
+      return [...((data ?? []) as Pendencia[]), ...((preencher ?? []) as Pendencia[])];
     },
   });
 }
