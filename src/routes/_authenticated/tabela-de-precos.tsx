@@ -228,7 +228,7 @@ function TabelaDePrecosPage() {
       semConcorrente: todas.filter((l) => l.concorrentes.length === 0).length,
       semFoto: todas.filter((l) => !l.produto.imagem_url).length,
     }),
-    [todas], // eslint-disable-line react-hooks/exhaustive-deps
+    [todas],
   );
 
   const contagemPorCategoria = useMemo(() => {
@@ -273,7 +273,8 @@ function TabelaDePrecosPage() {
   const alternarGrupo = (c: string) =>
     setRecolhidas((s) => {
       const n = new Set(s);
-      n.has(c) ? n.delete(c) : n.add(c);
+      if (n.has(c)) n.delete(c);
+      else n.add(c);
       return n;
     });
 
