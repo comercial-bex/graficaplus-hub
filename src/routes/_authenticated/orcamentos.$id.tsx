@@ -71,6 +71,12 @@ import { UnidadeDoItem } from "@/components/orcamento/unidade-do-item";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
 import { EscolhaDeMaterial } from "@/components/orcamento/escolha-de-material";
+import {
+  CobrancaDoAcabamento,
+  inserirLinhaDeAcabamento,
+  useAcabamentosDoProduto,
+  type CobrancaPronta,
+} from "@/components/orcamento/cobranca-do-acabamento";
 import { ResumoDoItem } from "@/components/orcamento/resumo-do-item";
 import {
   camposDaUnidade,
@@ -727,6 +733,30 @@ function OrcamentoDetailPage() {
     setMedidasAbertas(false);
     setEditando({ id: i.id as string, numero });
     formulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const acabamentosDoProduto = useAcabamentosDoProduto(form.produto_id);
+  const produtosJaNoOrcamento = new Set<string>();
+  for (const i of itens as { produto_id?: string | null }[]) {
+    if (i.produto_id) produtosJaNoOrcamento.add(i.produto_id);
+  }
+
+  /** Acrescenta o serviço de acabamento como uma linha comum do orçamento. */
+  async function adicionarCobrancaDeAcabamento(c: CobrancaPronta) {
+    setSalvandoItem(true);
+    try {
+      await inserirLinhaDeAcabamento(id, c, itens.length);
+      toast.success(
+        `${c.acabamento.acabamento} entrou no orçamento (${c.quantidade.toLocaleString("pt-BR")})`,
+      );
+      await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+      await qc.invalidateQueries({ queryKey: ["orc-capas", id] });
+      await recalcular();
+    } catch (e) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setSalvandoItem(false);
+    }
   }
 
   async function salvarItem() {
@@ -1397,6 +1427,17 @@ function OrcamentoDetailPage() {
                         />
                       </div>
                     </div>
+
+                    {canSeePrices && vendidoPorArea && (
+                      <CobrancaDoAcabamento
+                        acabamentos={acabamentosDoProduto.data ?? []}
+                        servicos={catalogo.produtos}
+                        peca={dimensoesForm}
+                        jaNoOrcamento={produtosJaNoOrcamento}
+                        desabilitado={salvandoItem}
+                        onAdicionar={adicionarCobrancaDeAcabamento}
+                      />
+                    )}
 
                     {/* Conferência de material e estoque, só aviso. */}
                     {form.produto_id && <RestricaoDoProduto restricao={restricao} />}
