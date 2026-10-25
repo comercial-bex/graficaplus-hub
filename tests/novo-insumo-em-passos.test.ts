@@ -175,3 +175,22 @@ describe("a tela", () => {
     expect(tela).toContain("materiaisParecidos");
   });
 });
+
+describe("o cartão Insumo do novo produto leva ao assistente de material", () => {
+  const materiais = readFileSync("src/routes/_authenticated/materiais.tsx", "utf8");
+  const produto = readFileSync("src/components/produtos/novo-produto-em-passos.tsx", "utf8");
+
+  it("a rota aceita ?novo=1 e só isso", () => {
+    expect(materiais).toContain("validateSearch");
+    expect(materiais).toContain('busca.novo === 1 || busca.novo === "1"');
+  });
+
+  it("abre o assistente só para quem pode cadastrar e limpa o endereço", () => {
+    expect(materiais).toContain("if (podeCadastrar) setPassosAberto(true)");
+    expect(materiais).toContain('navigate({ to: "/materiais", search: {}, replace: true })');
+  });
+
+  it("o cartão do novo produto manda ?novo=1", () => {
+    expect(produto).toContain("search: { novo: 1 }");
+  });
+});

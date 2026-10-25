@@ -1,6 +1,6 @@
 import { NovoInsumoEmPassos } from "@/components/materiais/novo-insumo-em-passos";
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
@@ -89,6 +89,9 @@ export const Route = createFileRoute("/_authenticated/materiais")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  // `?novo=1` abre o assistente de novo material (o cartão "Insumo" do novo produto leva para cá).
+  validateSearch: (busca: Record<string, unknown>): { novo?: 1 } =>
+    busca.novo === 1 || busca.novo === "1" ? { novo: 1 } : {},
   component: MateriaisPage,
 });
 
@@ -149,6 +152,15 @@ function MateriaisPage() {
   const podeCadastrar = hasAnyRole(["admin", "gestor", "estoque"]);
   const [open, setOpen] = useState(false);
   const [passosAberto, setPassosAberto] = useState(false);
+  const { novo } = Route.useSearch();
+  const navigate = useNavigate();
+  // Veio do cartão "Insumo" do novo produto: abre o assistente e limpa o endereço, para não
+  // reabrir ao recarregar a página.
+  useEffect(() => {
+    if (!novo) return;
+    if (podeCadastrar) setPassosAberto(true);
+    navigate({ to: "/materiais", search: {}, replace: true });
+  }, [novo, podeCadastrar, navigate]);
   const [busca, setBusca] = useState("");
   const [filtroUnidade, setFiltroUnidade] = useState<string | null>(null);
   const [form, setForm] = useState({ ...formVazio });
