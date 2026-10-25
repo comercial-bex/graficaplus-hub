@@ -74,7 +74,7 @@ Medido no código de cada tela (25/10/2026). "Campos" são `Input`, `Select` e `
 | Orçamento (detalhe) | 2.353 | 4 | 0 | 7 | 11 | Já em passos. Falta o **resumo fixo** (total, prazo, pendências) sempre à vista e recolher os blocos que o passo atual não usa |
 | Produtos | 1.452 | 8 | 1 | 19 | 8 | **Assistente feito** (novo produto). Edição segue em abas |
 | OS (detalhe) | 1.373 | 7 | 6 | 15 | 16 | Abas e seções. Falta um cartão "próximo passo" no topo (o que falta para a OS andar) |
-| Orçamento 3D (novo) | 1.188 | 5 | 0 | 17 | 5 | **Assistente**: peça, material, impressora, custo, revisão. Só 1 botão para 17 campos hoje |
+| Orçamento 3D (novo) | 1.188 | 5 | 0 | 17 | 5 | **Correção da análise:** a tela já tem 3 blocos numerados (identificação, dados do fatiador, parâmetros de custo), leitura do print do fatiador e o resultado ao vivo ao lado; um assistente de uma coisa por vez brigaria com esse resultado. Feito: impressora, filamento e presets viraram **cartões** |
 | Precificação | 1.124 | 9 | 0 | 10 | 8 | Painel de leitura com simulador: os 3 números que mandam no topo (custo, preço, margem) |
 | Relatórios | 1.040 | 12 | 0 | 2 | 2 | Painel de leitura: período em cartões e 3 números no topo, o resto recolhido |
 | Compromissos | 1.012 | 5 | 0 | 7 | 7 | Abas e seções |
@@ -98,7 +98,7 @@ O ganho é a quantidade de campos do cadastro vezes a frequência. A frequência
 
 1. **Cliente novo** (15 campos). Tipo (pessoa física ou jurídica) → documento → contato → condições de pagamento → revisão.
 2. ~~Insumo novo~~ **feito** (25/10/2026): tipo → material → marca → medida da embalagem → o que pagou e o **estoque cheio, com o mínimo a 15%** → revisão.
-3. **Orçamento 3D** (17 campos). Peça → material → impressora → custo e preço → revisão.
+3. ~~Orçamento 3D~~ **feito como cartões** (impressora, filamento e presets), mantendo os três blocos e o resultado ao vivo.
 4. **Máquina nova**. Tipo → velocidade → consumo (kW) → custo por hora.
 5. **Usuário novo**. Papel em cartões, com o que cada papel enxerga.
 

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Calculator, Cpu, Package, Sparkles, Wand2 } from "lucide-react";
+import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-de-escolha";
 import { toast } from "sonner";
 import {
   materialCost,
@@ -172,12 +173,16 @@ function NovoOrcamento3D() {
   };
 
   // aplica último preset salvo
+  const [presetAtivo, setPresetAtivo] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const id = localStorage.getItem("bex.orc3d.preset");
     if (!id) return;
     const p = PRESETS.find((x) => x.id === id);
-    if (p) aplicarPreset(p.patch);
+    if (p) {
+      aplicarPreset(p.patch);
+      setPresetAtivo(p.id);
+    }
   }, []);
 
   const [fotoModelo, setFotoModelo] = useState<File | null>(null);
@@ -665,25 +670,28 @@ function NovoOrcamento3D() {
                     required
                     hint="Custo/hora vem de maquinas_3d_config (depreciação + manutenção + rateio de estrutura)."
                   />
-                  <Select value={f.maquina_id} onValueChange={(v) => set("maquina_id", v)}>
-                    <SelectTrigger aria-label="Impressora">
-                      <SelectValue placeholder="Selecione a impressora" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {impressoras.length === 0 && (
-                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                          Nenhuma impressora ativa — cadastre em /impressoras-3d
-                        </div>
-                      )}
+                  {impressoras.length === 0 ? (
+                    <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                      Nenhuma impressora ativa — cadastre em /impressoras-3d
+                    </p>
+                  ) : (
+                    <GradeDeCartoes rotulo="Impressora" className="sm:grid-cols-2 lg:grid-cols-2">
                       {impressoras.map((m: any) => (
-                        <SelectItem key={m.maquina_id} value={m.maquina_id}>
-                          {m.maquinas?.nome}
-                          {podeVerCusto &&
-                            ` · ${money(m.custo_hora_calculado ?? 0)}/h · ${Number(m.potencia_media_w ?? 0).toFixed(0)} W`}
-                        </SelectItem>
+                        <CartaoDeEscolha
+                          key={m.maquina_id}
+                          ativo={f.maquina_id === m.maquina_id}
+                          titulo={m.maquinas?.nome}
+                          detalhe={
+                            podeVerCusto
+                              ? `${money(m.custo_hora_calculado ?? 0)}/h · ${Number(m.potencia_media_w ?? 0).toFixed(0)} W`
+                              : undefined
+                          }
+                          icone={<Cpu className="h-7 w-7 text-muted-foreground" />}
+                          onEscolher={() => set("maquina_id", m.maquina_id)}
+                        />
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </GradeDeCartoes>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <FieldTooltip
@@ -691,29 +699,28 @@ function NovoOrcamento3D() {
                     required
                     hint="Preço vem de materiais_3d_filamento. Mostramos o valor do quilo — a fórmula converte pra grama internamente."
                   />
-                  <Select value={f.material_id} onValueChange={(v) => set("material_id", v)}>
-                    <SelectTrigger aria-label="Filamento">
-                      <SelectValue placeholder="Selecione o filamento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filamentos.length === 0 && (
-                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                          Nenhum filamento — cadastre em /filamentos-3d
-                        </div>
-                      )}
+                  {filamentos.length === 0 ? (
+                    <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                      Nenhum filamento — cadastre em /filamentos-3d
+                    </p>
+                  ) : (
+                    <GradeDeCartoes rotulo="Filamento" className="sm:grid-cols-2 lg:grid-cols-2">
                       {filamentos.map((m: any) => {
                         const kg = Number(m.custo_por_grama_calculado ?? 0) * 1000;
                         return (
-                          <SelectItem key={m.material_id} value={m.material_id}>
-                            {m.materiais?.nome}
-                            {m.tipo ? ` · ${m.tipo}` : ""}
-                            {m.cor ? ` · ${m.cor}` : ""}
-                            {podeVerCusto && ` · ${money(kg)}/kg`}
-                          </SelectItem>
+                          <CartaoDeEscolha
+                            key={m.material_id}
+                            ativo={f.material_id === m.material_id}
+                            titulo={m.materiais?.nome}
+                            detalhe={[m.tipo, m.cor, podeVerCusto ? `${money(kg)}/kg` : null]
+                              .filter(Boolean)
+                              .join(" · ")}
+                            onEscolher={() => set("material_id", m.material_id)}
+                          />
                         );
                       })}
-                    </SelectContent>
-                  </Select>
+                    </GradeDeCartoes>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -886,21 +893,23 @@ function NovoOrcamento3D() {
                 sub="Presets aceleram — os tooltips têm médias de mercado"
               />
 
-              <div className="flex flex-wrap gap-2">
-                {PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      aplicarPreset(p.patch);
-                      if (typeof window !== "undefined") localStorage.setItem("bex.orc3d.preset", p.id);
-                    }}
-                    className="group"
-                  >
-                    <StatusChip label={p.label} tone={p.tone} />
-                  </button>
-                ))}
-              </div>
+                <GradeDeCartoes rotulo="Presets de custo" className="lg:grid-cols-4">
+                  {PRESETS.map((p) => (
+                    <CartaoDeEscolha
+                      key={p.id}
+                      ativo={presetAtivo === p.id}
+                      titulo={p.label}
+                      detalhe={`markup ${vezes(Number(p.patch.markup))} · falha ${p.patch.pct_falha}%`}
+                      className="min-h-16"
+                      onEscolher={() => {
+                        aplicarPreset(p.patch);
+                        setPresetAtivo(p.id);
+                        if (typeof window !== "undefined")
+                          localStorage.setItem("bex.orc3d.preset", p.id);
+                      }}
+                    />
+                  ))}
+                </GradeDeCartoes>
 
               {configErro && (
                 <p className="text-xs text-[color:var(--bex-magenta)]">
