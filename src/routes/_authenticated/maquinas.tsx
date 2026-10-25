@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { NovaMaquinaEmPassos } from "@/components/maquinas/nova-maquina-em-passos";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -88,6 +89,7 @@ function MaquinasPage() {
   const { canSeeFinancials } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(emptyForm);
+  const [passosAberto, setPassosAberto] = useState(false);
 
   const { data: maquinas = [], isLoading } = useQuery({
     queryKey: ["maquinas"],
@@ -302,10 +304,15 @@ function MaquinasPage() {
         title="Máquinas e hora-máquina"
         description="Cada equipamento precisa de custo/hora para que o orçamento e o resultado da OS fechem com a realidade."
         actions={
-          <NeonButton onClick={openNew}>
-            <Plus className="h-4 w-4" />
-            Nova máquina
-          </NeonButton>
+          <>
+            <Button variant="outline" onClick={openNew}>
+              Cadastro completo
+            </Button>
+            <NeonButton onClick={() => setPassosAberto(true)}>
+              <Plus className="h-4 w-4" />
+              Nova máquina
+            </NeonButton>
+          </>
         }
       />
 
@@ -579,6 +586,12 @@ function MaquinasPage() {
           ))}
         </div>
       )}
+
+      <NovaMaquinaEmPassos
+        aberto={passosAberto}
+        onFechar={() => setPassosAberto(false)}
+        onAbrirCadastroCompleto={openNew}
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
