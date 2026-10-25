@@ -1433,6 +1433,7 @@ function OrcamentoDetailPage() {
                         acabamentos={acabamentosDoProduto.data ?? []}
                         servicos={catalogo.produtos}
                         peca={dimensoesForm}
+                        nomeDoProduto={produtoDoForm?.nome}
                         jaNoOrcamento={produtosJaNoOrcamento}
                         desabilitado={salvandoItem}
                         onAdicionar={adicionarCobrancaDeAcabamento}

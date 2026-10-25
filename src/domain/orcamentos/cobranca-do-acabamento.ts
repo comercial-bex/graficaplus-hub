@@ -41,14 +41,41 @@ const arred = (n: number, casas: number) => {
   return Math.round((n + Number.EPSILON) * f) / f;
 };
 
+/** Quais lados da peça levam bainha e ilhós. */
+export type LadosDaBainha = "contorno" | "maiores" | "menores";
+
+export const OPCOES_DE_LADOS: readonly { chave: LadosDaBainha; titulo: string; detalhe: string }[] =
+  [
+    { chave: "contorno", titulo: "Contorno todo", detalhe: "os 4 lados" },
+    { chave: "maiores", titulo: "Só os 2 lados maiores", detalhe: "os lados compridos" },
+    { chave: "menores", titulo: "Só os 2 lados menores", detalhe: "em cima e embaixo, na largura" },
+  ];
+
+/**
+ * O lado que sugerimos: banner leva bainha (e o bastão) em cima e embaixo, nos lados menores;
+ * lona de fachada e o resto levam o contorno todo, que é o que segura o ilhós e a ventania.
+ * É só o ponto de partida: a escolha é da equipe.
+ */
+export function ladosSugeridos(nomeDoProduto: string | null | undefined): LadosDaBainha {
+  return /banner/i.test(nomeDoProduto ?? "") ? "menores" : "contorno";
+}
+
 /** Quanto cobrar (m ou m²) para a peça e a quantidade; 0 sem medida. */
 export function quantidadeDoAcabamento(
   medida: MedidaCobrada,
   peca: { largura: number; altura: number; quantidade: number },
+  lados: LadosDaBainha = "contorno",
 ): number {
   const l = Number(peca.largura);
   const a = Number(peca.altura);
   if (!(l > 0) || !(a > 0)) return 0;
   const qtd = Number(peca.quantidade) > 0 ? Number(peca.quantidade) : 1;
-  return medida === "perimetro" ? arred(2 * (l + a) * qtd, 2) : arred(l * a * qtd, 3);
+  if (medida === "area") return arred(l * a * qtd, 3);
+  const metros =
+    lados === "maiores"
+      ? 2 * Math.max(l, a)
+      : lados === "menores"
+        ? 2 * Math.min(l, a)
+        : 2 * (l + a);
+  return arred(metros * qtd, 2);
 }

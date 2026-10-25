@@ -6,6 +6,7 @@ import { CobrancaDoAcabamento } from "@/components/orcamento/cobranca-do-acabame
 import {
   acabamentoCobravel,
   ACABAMENTOS_COBRAVEIS,
+  ladosSugeridos,
   quantidadeDoAcabamento,
 } from "@/domain/orcamentos/cobranca-do-acabamento";
 
@@ -35,6 +36,31 @@ describe("quantidade do acabamento", () => {
   });
 });
 
+describe("lados da bainha", () => {
+  const peca = { largura: 0.8, altura: 1.6, quantidade: 5 };
+  it("contorno todo, só os maiores ou só os menores", () => {
+    expect(quantidadeDoAcabamento("perimetro", peca, "contorno")).toBe(24);
+    expect(quantidadeDoAcabamento("perimetro", peca, "maiores")).toBe(16);
+    expect(quantidadeDoAcabamento("perimetro", peca, "menores")).toBe(8);
+  });
+  it("o padrão é o contorno todo", () => {
+    expect(quantidadeDoAcabamento("perimetro", peca)).toBe(24);
+  });
+  it("não depende de a largura ser a menor medida", () => {
+    const deitada = { largura: 1.6, altura: 0.8, quantidade: 5 };
+    expect(quantidadeDoAcabamento("perimetro", deitada, "maiores")).toBe(16);
+    expect(quantidadeDoAcabamento("perimetro", deitada, "menores")).toBe(8);
+  });
+  it("laminação ignora os lados", () => {
+    expect(quantidadeDoAcabamento("area", peca, "menores")).toBe(6.4);
+  });
+  it("banner sugere os lados menores; o resto, o contorno", () => {
+    expect(ladosSugeridos("Banner com bastão e corda")).toBe("menores");
+    expect(ladosSugeridos("Lona 440g reforçada impressa")).toBe("contorno");
+    expect(ladosSugeridos(null)).toBe("contorno");
+  });
+});
+
 describe("cartão de cobrança", () => {
   const servicos = [
     { id: "s1", nome: "Acabamento de lona (bainha + ilhós)", unidade: "m", preco_base: 9 },
@@ -54,10 +80,30 @@ describe("cartão de cobrança", () => {
 
   it("mostra a conta e o botão que acrescenta a linha", () => {
     const html = render();
-    expect(html).toContain("Bainha + ilhós: 8 m");
-    expect(html).toContain("R$");
+    expect(html).toContain("8 m");
     expect(html).toContain("72,00");
     expect(html).toContain("Adicionar ao orçamento");
+  });
+
+  it("a bainha mostra as três opções de lados, cada uma com a metragem e o valor", () => {
+    const html = render();
+    expect(html).toContain("Contorno todo");
+    expect(html).toContain("Só os 2 lados maiores");
+    expect(html).toContain("Só os 2 lados menores");
+    expect(html).toMatch(/6 m · R\$\s54,00/); // 2 lados maiores de 3 m
+    expect(html).toMatch(/2 m · R\$\s18,00/); // 2 lados menores de 1 m
+    expect((html.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
+  });
+
+  it("no banner a sugestão já vem nos lados menores", () => {
+    const html = render({ nomeDoProduto: "Banner com bastão e corda" });
+    expect(html).toMatch(/aria-pressed="true"[^>]*>[\s\S]*?Só os 2 lados menores/);
+  });
+
+  it("a laminação não pergunta os lados", () => {
+    const html = render({ acabamentos: [{ nome: "Laminação de adesivo", padrao: false }] });
+    expect(html).not.toContain("Contorno todo");
+    expect(html).toContain("84,00"); // 3 m² × R$ 28
   });
 
   it("some quando o serviço já é linha do orçamento", () => {

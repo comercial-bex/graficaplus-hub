@@ -1,11 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-de-escolha";
 import { Button } from "@/components/ui/button";
 import {
   acabamentoCobravel,
+  ladosSugeridos,
+  OPCOES_DE_LADOS,
   quantidadeDoAcabamento,
   type AcabamentoCobravel,
+  type LadosDaBainha,
 } from "@/domain/orcamentos/cobranca-do-acabamento";
 
 type ProdutoDeServico = {
@@ -74,6 +79,7 @@ export function CobrancaDoAcabamento({
   acabamentos,
   servicos,
   peca,
+  nomeDoProduto,
   jaNoOrcamento,
   desabilitado = false,
   onAdicionar,
@@ -81,12 +87,14 @@ export function CobrancaDoAcabamento({
   acabamentos: { nome: string; padrao: boolean }[];
   servicos: readonly ProdutoDeServico[];
   peca: { largura: number; altura: number; quantidade: number };
+  /** para sugerir os lados da bainha (banner: em cima e embaixo) */
+  nomeDoProduto?: string | null;
   /** ids dos produtos de serviço que já são linha deste orçamento */
   jaNoOrcamento: ReadonlySet<string>;
   desabilitado?: boolean;
   onAdicionar: (c: CobrancaPronta) => void;
 }) {
-  const prontas: CobrancaPronta[] = [];
+  const linhas: { regra: AcabamentoCobravel; servico: ProdutoDeServico }[] = [];
   for (const a of acabamentos) {
     const regra = acabamentoCobravel(a.nome);
     if (!regra) continue;
@@ -94,49 +102,104 @@ export function CobrancaDoAcabamento({
       (s) => s.nome.trim().toLowerCase() === regra.servico.toLowerCase(),
     );
     if (!servico || jaNoOrcamento.has(servico.id)) continue;
-    const quantidade = quantidadeDoAcabamento(regra.medida, peca);
-    if (quantidade > 0) prontas.push({ acabamento: regra, servico, quantidade });
+    if (quantidadeDoAcabamento(regra.medida, peca) > 0) linhas.push({ regra, servico });
   }
-  if (prontas.length === 0) return null;
+  if (linhas.length === 0) return null;
 
   return (
     <div
-      className="space-y-2 rounded-lg border border-dashed p-3"
+      className="space-y-3 rounded-lg border border-dashed p-3"
       data-testid="cobranca-do-acabamento"
     >
       <p className="text-sm font-medium">Cobrar o acabamento à parte</p>
-      {prontas.map((c) => {
-        const preco = Number(c.servico.preco_base);
-        const unidade = c.acabamento.medida === "perimetro" ? "m" : "m²";
-        return (
-          <div key={c.servico.id} className="flex flex-wrap items-center justify-between gap-2">
-            <span className="min-w-0 text-sm">
-              {c.acabamento.acabamento}: {num(c.quantidade)} {unidade}
-              {Number.isFinite(preco) && preco > 0 && (
-                <span className="text-muted-foreground">
-                  {" "}
-                  × {brl(preco)} = {brl(Math.round(c.quantidade * preco * 100) / 100)}
-                </span>
-              )}
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-9"
-              disabled={desabilitado}
-              onClick={() => onAdicionar(c)}
-            >
-              <Plus className="h-4 w-4" /> Adicionar ao orçamento
-            </Button>
-          </div>
-        );
-      })}
+      {linhas.map(({ regra, servico }) => (
+        <LinhaDeCobranca
+          key={servico.id}
+          regra={regra}
+          servico={servico}
+          peca={peca}
+          nomeDoProduto={nomeDoProduto}
+          desabilitado={desabilitado}
+          onAdicionar={onAdicionar}
+        />
+      ))}
       <p className="text-xs text-muted-foreground">
-        {
-          "A linha entra como um item comum: dá para mudar a quantidade (a bainha conta o contorno todo) ou apagar."
-        }
+        A linha entra como um item comum: dá para mudar a quantidade depois ou apagar.
       </p>
+    </div>
+  );
+}
+
+function LinhaDeCobranca({
+  regra,
+  servico,
+  peca,
+  nomeDoProduto,
+  desabilitado,
+  onAdicionar,
+}: {
+  regra: AcabamentoCobravel;
+  servico: ProdutoDeServico;
+  peca: { largura: number; altura: number; quantidade: number };
+  nomeDoProduto?: string | null;
+  desabilitado: boolean;
+  onAdicionar: (c: CobrancaPronta) => void;
+}) {
+  const [lados, setLados] = useState<LadosDaBainha>(() => ladosSugeridos(nomeDoProduto));
+  const preco = Number(servico.preco_base);
+  const temPreco = Number.isFinite(preco) && preco > 0;
+  const unidade = regra.medida === "perimetro" ? "m" : "m²";
+  const valorDe = (q: number) => brl(Math.round(q * preco * 100) / 100);
+  const quantidade = quantidadeDoAcabamento(regra.medida, peca, lados);
+
+  return (
+    <div className="space-y-2" data-testid={`cobranca-${regra.medida}`}>
+      <p className="text-sm">
+        {regra.acabamento}
+        {temPreco && (
+          <span className="text-muted-foreground">
+            {" "}
+            · {brl(preco)}/{unidade}
+          </span>
+        )}
+      </p>
+      {regra.medida === "perimetro" && (
+        <GradeDeCartoes
+          rotulo={`Lados com ${regra.acabamento}`}
+          className="sm:grid-cols-3 lg:grid-cols-3"
+        >
+          {OPCOES_DE_LADOS.map((o) => {
+            const q = quantidadeDoAcabamento(regra.medida, peca, o.chave);
+            return (
+              <CartaoDeEscolha
+                key={o.chave}
+                ativo={lados === o.chave}
+                titulo={o.titulo}
+                detalhe={`${o.detalhe} · ${num(q)} m${temPreco ? ` · ${valorDe(q)}` : ""}`}
+                desabilitado={desabilitado}
+                onEscolher={() => setLados(o.chave)}
+                className="min-h-16"
+              />
+            );
+          })}
+        </GradeDeCartoes>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="min-w-0 text-sm">
+          {num(quantidade)} {unidade}
+          {temPreco && <span className="text-muted-foreground"> = {valorDe(quantidade)}</span>}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-9"
+          disabled={desabilitado}
+          onClick={() => onAdicionar({ acabamento: regra, servico, quantidade })}
+        >
+          <Plus className="h-4 w-4" /> Adicionar ao orçamento
+        </Button>
+      </div>
     </div>
   );
 }
