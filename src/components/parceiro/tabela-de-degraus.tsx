@@ -12,17 +12,20 @@ export function TabelaDeDegraus({
   unidade,
   desabilitado,
   onEscolher,
+  titulo,
 }: {
   degraus: Degrau[];
   unidade: string;
   desabilitado: boolean;
   onEscolher: (quantidade: number) => void;
+  /** Frase acima da tabela. Padrão: a do parceiro ("para você"). */
+  titulo?: string;
 }) {
   if (degraus.length === 0) return null;
   return (
     <div className="space-y-1.5 md:col-span-2" data-testid="tabela-de-degraus">
       <p className="text-xs text-muted-foreground">
-        Quanto mais, mais barato para você ({unidade})
+        {titulo ?? `Quanto mais, mais barato para você (${unidade})`}
       </p>
       <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border text-sm">
         {degraus.map((d) => (

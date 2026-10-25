@@ -250,10 +250,12 @@ export function MedidasDaPeca({
       </div>
 
       {tamanhos.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-xs text-muted-foreground">
-            {origemDosTamanhos === "produto" ? "Tamanhos deste produto:" : "Medidas comuns:"}
-          </span>
+        <div className="space-y-1.5" data-testid="tamanhos-prontos">
+          <span className="text-sm font-medium">Tamanhos prontos</span>
+          <p className="text-xs text-muted-foreground">
+            {origemDosTamanhos === "produto" ? "Tamanhos deste produto" : "Medidas comuns"}
+          </p>
+          <div className="flex flex-wrap gap-2">
           {tamanhos.map((t) => {
             const ativo = dims.largura === Number(t.largura) && dims.altura === Number(t.altura);
             return (
@@ -264,17 +266,18 @@ export function MedidasDaPeca({
                 disabled={desabilitado}
                 onClick={() => onAplicarTamanho(t)}
                 className={cn(
-                  "inline-flex min-h-11 items-center rounded-full border px-3 text-xs font-medium transition-colors sm:min-h-8",
+                  "inline-flex min-h-11 items-center rounded-xl border px-3 py-1.5 text-sm transition-colors sm:min-h-10",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   ativo
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "bg-card hover:border-primary/60",
+                    ? "border-primary bg-primary/10 font-semibold"
+                    : "border-border bg-card hover:bg-muted",
                 )}
               >
                 {t.nome}
               </button>
             );
           })}
+          </div>
         </div>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { faixaAplicada, faixasVigentes, type FaixaPreco } from "@/domain/orcamentos/faixas";
 import { precoDaGrafica, type ItemDoCatalogo } from "./preco";
 
 /**
@@ -40,6 +41,36 @@ export function degrausDoProduto(
       precoBalcao: f.preco_referencia,
       economiaPct: pct !== null && pct > 0 ? pct : null,
       atual: aplicada !== null && aplicada.quantidade_minima === f.quantidade_minima,
+    };
+  });
+}
+
+/**
+ * Os mesmos degraus para a EQUIPE: as faixas de preço de balcão do produto
+ * (`produto_faixas_preco`). O número mostrado em `precoParceiro` é, aqui, o preço
+ * de venda por unidade da faixa — a tabela é a mesma, só muda de quem é o preço.
+ * O degrau marcado vem de `faixaAplicada`, a regra que a tela do item já usava
+ * ("a maior faixa cujo mínimo já foi atingido"), e só existem degraus com
+ * duas faixas vigentes ou mais.
+ */
+export function degrausDeFaixasDeBalcao(
+  faixas: FaixaPreco[],
+  quantidade: number,
+  referencia = new Date(),
+): Degrau[] {
+  const vigentes = faixasVigentes(faixas, referencia);
+  if (vigentes.length < 2) return [];
+  const aplicada = faixaAplicada(faixas, quantidade, referencia);
+  const primeiro = Number(vigentes[0].preco_unitario);
+  return vigentes.map((f, i) => {
+    const preco = Number(f.preco_unitario);
+    const pct = i > 0 && primeiro > 0 ? Math.round((1 - preco / primeiro) * 100) : null;
+    return {
+      quantidadeMinima: Number(f.quantidade_minima),
+      precoParceiro: preco,
+      precoBalcao: preco,
+      economiaPct: pct !== null && pct > 0 ? pct : null,
+      atual: aplicada !== null && aplicada.id === f.id,
     };
   });
 }
