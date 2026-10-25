@@ -21,7 +21,9 @@ import { cn } from "@/lib/utils";
 import {
   agruparPorCategoria,
   composicaoMaisRecente,
+  cheioConfiavel,
   custoCheio,
+  custoProvisorio,
   margemSobreVenda,
   precoDoParceiro,
   type Composicao,
@@ -62,7 +64,7 @@ function TabelaDePrecosPage() {
     queryKey: ["tabela-precos", "produtos"],
     queryFn: async (): Promise<Produto[]> => {
       const { data, error } = await fromFinancialView("produtos", "financeiro")
-        .select("id, nome, categoria, tipo, unidade, ativo, custo_medio, margem_minima, preco_base, preco_parceiro, imagem_url, tempo_producao_min, maquina_padrao_id")
+        .select("id, nome, categoria, tipo, unidade, ativo, custo_medio, margem_minima, preco_base, preco_parceiro, imagem_url, tempo_producao_min, maquina_padrao_id, observacoes_internas")
         .order("ativo", { ascending: false })
         .order("categoria")
         .order("nome");
@@ -182,7 +184,8 @@ function TabelaDePrecosPage() {
     for (const c of concorrentes.data ?? []) porProduto.set(c.produto_id, [...(porProduto.get(c.produto_id) ?? []), c]);
     return (produtos.data ?? []).map((p) => {
       const composicao = composicoes.data?.get(p.id) ?? null;
-      const cheio = custoCheio(composicao);
+      const receita = receitas.data?.get(p.id) ?? [];
+      const cheio = cheioConfiavel({ tipo: p.tipo, temReceita: receita.length > 0, cheio: custoCheio(composicao) });
       const custo = p.custo_medio;
       return {
         produto: p,
@@ -191,7 +194,8 @@ function TabelaDePrecosPage() {
         cheio,
         composicao,
         custoBase: base === "cheio" ? (cheio ?? custo) : custo,
-        receita: receitas.data?.get(p.id) ?? [],
+        provisorio: custoProvisorio(p.observacoes_internas),
+        receita,
         venda: p.preco_base,
         parceiro: precoDoParceiro({ precoParceiro: p.preco_parceiro, precoBase: p.preco_base, descontoDoNivelPct: descontoDoNivel }),
         promocao: ofertas.data?.get(p.id) ?? null,

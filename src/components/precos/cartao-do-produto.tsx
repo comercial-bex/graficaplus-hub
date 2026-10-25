@@ -80,6 +80,11 @@ export function CartaoDoProduto({
           <div className="mt-1 flex flex-wrap gap-1">
             <SeloDaFicha nivel={ficha.nivel} />
             {!p.ativo && <Badge variant="outline" className="h-5 px-1.5 text-[11px]">só comparação</Badge>}
+            {linha.provisorio && (
+              <Dica texto="O custo e o preço de balcão foram copiados de um produto parecido até o custo real ser informado. A margem daqui é uma estimativa.">
+                <Badge variant="outline" className="h-5 border-warning/50 bg-warning/15 px-1.5 text-[11px]">Custo provisório</Badge>
+              </Dica>
+            )}
             {linha.promocao && <Badge className="h-5 px-1.5 text-[11px]">Promoção {brl(linha.promocao.preco)}</Badge>}
           </div>
         </button>
