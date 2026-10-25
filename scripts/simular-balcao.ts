@@ -10,14 +10,19 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
 const min = (n: number) => `${Math.round(n)} min`;
 const detalhe = process.argv.includes("--detalhe");
 
-console.log("| # | Cenário | Área | Produtos | Taxa 12% | Máquina | Mão de obra | Relógio | Gargalo | Expresso hoje | Expresso c/ estoque cheio |");
+console.log(
+  "| # | Cenário | Área | Produtos | Taxa 12% | Máquina | Mão de obra | Relógio | Gargalo | Expresso hoje | Expresso c/ estoque cheio |",
+);
 console.log("|---|---|---:|---:|---:|---:|---:|---:|---|---|---|");
 for (const c of CENARIOS) {
   // A taxa e o "cabe no expresso" são calculados como se o pedido fosse em expresso, mesmo nos cenários normais.
   const hoje = simularPedido(c.itens, { ...c.opcoes, prazo: "expresso", estoque: "real" });
   const cheio = simularPedido(c.itens, { ...c.opcoes, prazo: "expresso", estoque: "abastecido" });
   const t = hoje.tempos;
-  const veredito = (r: typeof hoje) => (r.expresso.possivel ? `cabe (folga ${min(r.expresso.folgaMin)})` : `NÃO — ${r.expresso.motivos[0]}`);
+  const veredito = (r: typeof hoje) =>
+    r.expresso.possivel
+      ? `cabe (folga ${min(r.expresso.folgaMin)})`
+      : `NÃO — ${r.expresso.motivos[0]}`;
   console.log(
     `| ${c.id} | ${c.titulo} | ${hoje.areaM2.toLocaleString("pt-BR")} m² | ${brl(hoje.produtos)} | ${brl(hoje.taxaExpresso)} | ${min(t.impressaoMin + t.recorteMin)} | ${min(t.maoDeObraMin)} | ${min(t.totalRelogioMin)} | ${t.gargalo === "maquina" ? "máquina" : "mão de obra"} | ${veredito(hoje)} | ${veredito(cheio)} |`,
   );

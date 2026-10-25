@@ -112,7 +112,10 @@ const arred = (n: number, casas = 2) => {
 
 const ehLonaOuBanner = (p: ProdutoDaTabela) => p.familia === "lona" || p.familia === "banner";
 
-export function simularPedido(itens: ItemDoBalcao[], opcoes: OpcoesDoPedido = {}): ResultadoDoPedido {
+export function simularPedido(
+  itens: ItemDoBalcao[],
+  opcoes: OpcoesDoPedido = {},
+): ResultadoDoPedido {
   const prazo = opcoes.prazo ?? "normal";
   const operadores = Math.max(1, opcoes.operadores ?? CASA.operadores);
   const janela = opcoes.janelaExpressoMin ?? CASA.janelaExpressoMin;
@@ -130,131 +133,153 @@ export function simularPedido(itens: ItemDoBalcao[], opcoes: OpcoesDoPedido = {}
         item: indice,
       });
     }
-    return { it, indice, produto, areaPecaM2, areaLinhaM2: arred(areaCobradaPeca * it.quantidade, 4), areaImpressaM2: arred(areaPecaM2 * it.quantidade, 4) };
+    return {
+      it,
+      indice,
+      produto,
+      areaPecaM2,
+      areaLinhaM2: arred(areaCobradaPeca * it.quantidade, 4),
+      areaImpressaM2: arred(areaPecaM2 * it.quantidade, 4),
+    };
   });
 
   // área que decide o "acima de 6 m²"
   const areaDoProduto = new Map<string, number>();
-  for (const l of linhasBase) areaDoProduto.set(l.produto.chave, (areaDoProduto.get(l.produto.chave) ?? 0) + l.areaLinhaM2);
+  for (const l of linhasBase)
+    areaDoProduto.set(l.produto.chave, (areaDoProduto.get(l.produto.chave) ?? 0) + l.areaLinhaM2);
 
   const consumo: Partial<Record<MaterialDaCasa, number>> = {};
   let ilhosPrecisos = 0;
   let bastoesPrecisos = 0;
   let emendaLonaM = 0;
   let emendaVinilM = 0;
-  const linhas: LinhaSimulada[] = linhasBase.map(({ it, indice, produto, areaPecaM2, areaLinhaM2, areaImpressaM2 }) => {
-    const areaParaFaixa = opcoes.limiarPor === "produto" ? (areaDoProduto.get(produto.chave) ?? areaLinhaM2) : areaLinhaM2;
-    const precoM2 = precoDoM2(produto, areaParaFaixa);
-    const valor = arred(areaLinhaM2 * precoM2);
+  const linhas: LinhaSimulada[] = linhasBase.map(
+    ({ it, indice, produto, areaPecaM2, areaLinhaM2, areaImpressaM2 }) => {
+      const areaParaFaixa =
+        opcoes.limiarPor === "produto"
+          ? (areaDoProduto.get(produto.chave) ?? areaLinhaM2)
+          : areaLinhaM2;
+      const precoM2 = precoDoM2(produto, areaParaFaixa);
+      const valor = arred(areaLinhaM2 * precoM2);
 
-    if (produto.aPartirDe) {
-      avisos.push({
-        codigo: "preco_a_partir_de",
-        mensagem: `${produto.nome}: a tabela diz "a partir de R$ ${produto.precoM2.toFixed(2)}/m²"; sem o preço fechado o orçamento sai pelo piso.`,
-        item: indice,
-      });
-    }
-    if (it.quantidade <= 0 || it.larguraM <= 0 || it.alturaM <= 0) {
-      avisos.push({ codigo: "medida_invalida", mensagem: "Medida ou quantidade inválida.", item: indice });
-    }
-
-    // — material e layout na bobina —
-    const bobina: BobinaDaCasa = BOBINAS[produto.material];
-    let cabeNaBobina = false;
-    let m2DeMaterial = 0;
-    let paineis = 1;
-    let emendaM = 0;
-    if (bobina.larguraM === null) {
-      avisos.push({
-        codigo: "material_nao_cadastrado",
-        mensagem: `${produto.nome}: o material (${bobina.nome}) não está cadastrado; não há como reservar nem comprar pelo sistema.`,
-        item: indice,
-      });
-    } else {
-      const plano = planejarBobina({
-        larguraPeca: it.larguraM,
-        alturaPeca: it.alturaM,
-        quantidade: it.quantidade,
-        larguraBobina: bobina.larguraM,
-        larguraUtilMaquina: CASA.impressao.larguraUtilM,
-        margemLateral: CASA.impressao.margemLateralM,
-        espacamento: produto.recorte ? 0.005 : 0.003,
-        avancoM: CASA.impressao.avancoM,
-      });
-      if (plano.cabe) {
-        cabeNaBobina = true;
-        m2DeMaterial = plano.plano.m2Consumidos;
-      } else {
-        // Maior que o rolo: sai em painéis lado a lado, soldados (lona) ou alinhados (vinil).
-        const util = Math.min(bobina.larguraM, CASA.impressao.larguraUtilM) - 2 * CASA.impressao.margemLateralM;
-        const menor = Math.min(it.larguraM, it.alturaM);
-        const maior = Math.max(it.larguraM, it.alturaM);
-        paineis = Math.max(2, Math.ceil(menor / util));
-        emendaM = arred((paineis - 1) * maior * it.quantidade, 3);
-        m2DeMaterial = arred(paineis * bobina.larguraM * (maior + CASA.impressao.avancoM) * it.quantidade, 4);
-        if (produto.familia === "adesivo") emendaVinilM += emendaM;
-        else emendaLonaM += emendaM;
+      if (produto.aPartirDe) {
         avisos.push({
-          codigo: "precisa_de_emenda",
-          mensagem: `${produto.nome} ${it.larguraM}×${it.alturaM} m passa da largura útil do rolo (${arred(util)} m): sai em ${paineis} painéis e ${emendaM} m de emenda.`,
+          codigo: "preco_a_partir_de",
+          mensagem: `${produto.nome}: a tabela diz "a partir de R$ ${produto.precoM2.toFixed(2)}/m²"; sem o preço fechado o orçamento sai pelo piso.`,
           item: indice,
         });
       }
-      consumo[produto.material] = arred((consumo[produto.material] ?? 0) + m2DeMaterial, 4);
-    }
-
-    // — tempos —
-    const impressaoMin = tempoImpressao({
-      areaM2: areaImpressaM2,
-      velocidadeM2H: CASA.impressao.m2PorHora,
-      setupMin: CASA.impressao.setupMin,
-    }).minutos;
-
-    let recorteMin = 0;
-    let maoDeObraMin: number = MAO_DE_OBRA.preparoPorLinhaMin;
-    if (produto.recorte) {
-      const contornoM = arred(2 * (it.larguraM + it.alturaM) * it.quantidade, 3);
-      const r = tempoRecorte({
-        comprimentoCorteM: contornoM,
-        velocidadeMmS: CASA.recorte.mmPorSegundo,
-        areaM2: areaImpressaM2,
-        complexidade: it.complexidade ?? "media",
-      });
-      recorteMin = r.minutosMaquina;
-      // `tempoRecorte` decapa por m²; em peça pequena o que pesa é pegar peça por peça.
-      const complexidade = it.complexidade ?? "media";
-      const porPeca = it.quantidade * MAO_DE_OBRA.decapagemPorPecaMin[complexidade];
-      const porArea = areaImpressaM2 * DECAPAGEM_MIN_POR_M2[complexidade];
-      maoDeObraMin += r.minutosMaoDeObra + Math.max(0, porPeca - porArea);
-    }
-    if (ehLonaOuBanner(produto) && it.acabamento !== "nenhum") {
-      if (produto.familia === "banner") {
-        maoDeObraMin += MAO_DE_OBRA.bastaoECordaPorPecaMin * it.quantidade;
-        bastoesPrecisos += it.quantidade;
-      } else {
-        const perimetroM = 2 * (it.larguraM + it.alturaM) * it.quantidade;
-        maoDeObraMin += MAO_DE_OBRA.bainhaEIlhosPorMetroMin * perimetroM;
-        ilhosPrecisos += Math.ceil(perimetroM * ESTOQUE_DE_ACABAMENTO.ilhosPorMetro);
+      if (it.quantidade <= 0 || it.larguraM <= 0 || it.alturaM <= 0) {
+        avisos.push({
+          codigo: "medida_invalida",
+          mensagem: "Medida ou quantidade inválida.",
+          item: indice,
+        });
       }
-    }
 
-    return {
-      indice,
-      produto,
-      areaPecaM2,
-      areaCobradaM2: areaLinhaM2,
-      precoM2,
-      valor,
-      valorEhPiso: !!produto.aPartirDe,
-      cabeNaBobina,
-      paineis,
-      emendaM,
-      m2DeMaterial,
-      impressaoMin: arred(impressaoMin),
-      recorteMin: arred(recorteMin),
-      maoDeObraMin: arred(maoDeObraMin),
-    };
-  });
+      // — material e layout na bobina —
+      const bobina: BobinaDaCasa = BOBINAS[produto.material];
+      let cabeNaBobina = false;
+      let m2DeMaterial = 0;
+      let paineis = 1;
+      let emendaM = 0;
+      if (bobina.larguraM === null) {
+        avisos.push({
+          codigo: "material_nao_cadastrado",
+          mensagem: `${produto.nome}: o material (${bobina.nome}) não está cadastrado; não há como reservar nem comprar pelo sistema.`,
+          item: indice,
+        });
+      } else {
+        const plano = planejarBobina({
+          larguraPeca: it.larguraM,
+          alturaPeca: it.alturaM,
+          quantidade: it.quantidade,
+          larguraBobina: bobina.larguraM,
+          larguraUtilMaquina: CASA.impressao.larguraUtilM,
+          margemLateral: CASA.impressao.margemLateralM,
+          espacamento: produto.recorte ? 0.005 : 0.003,
+          avancoM: CASA.impressao.avancoM,
+        });
+        if (plano.cabe) {
+          cabeNaBobina = true;
+          m2DeMaterial = plano.plano.m2Consumidos;
+        } else {
+          // Maior que o rolo: sai em painéis lado a lado, soldados (lona) ou alinhados (vinil).
+          const util =
+            Math.min(bobina.larguraM, CASA.impressao.larguraUtilM) -
+            2 * CASA.impressao.margemLateralM;
+          const menor = Math.min(it.larguraM, it.alturaM);
+          const maior = Math.max(it.larguraM, it.alturaM);
+          paineis = Math.max(2, Math.ceil(menor / util));
+          emendaM = arred((paineis - 1) * maior * it.quantidade, 3);
+          m2DeMaterial = arred(
+            paineis * bobina.larguraM * (maior + CASA.impressao.avancoM) * it.quantidade,
+            4,
+          );
+          if (produto.familia === "adesivo") emendaVinilM += emendaM;
+          else emendaLonaM += emendaM;
+          avisos.push({
+            codigo: "precisa_de_emenda",
+            mensagem: `${produto.nome} ${it.larguraM}×${it.alturaM} m passa da largura útil do rolo (${arred(util)} m): sai em ${paineis} painéis e ${emendaM} m de emenda.`,
+            item: indice,
+          });
+        }
+        consumo[produto.material] = arred((consumo[produto.material] ?? 0) + m2DeMaterial, 4);
+      }
+
+      // — tempos —
+      const impressaoMin = tempoImpressao({
+        areaM2: areaImpressaM2,
+        velocidadeM2H: CASA.impressao.m2PorHora,
+        setupMin: CASA.impressao.setupMin,
+      }).minutos;
+
+      let recorteMin = 0;
+      let maoDeObraMin: number = MAO_DE_OBRA.preparoPorLinhaMin;
+      if (produto.recorte) {
+        const contornoM = arred(2 * (it.larguraM + it.alturaM) * it.quantidade, 3);
+        const r = tempoRecorte({
+          comprimentoCorteM: contornoM,
+          velocidadeMmS: CASA.recorte.mmPorSegundo,
+          areaM2: areaImpressaM2,
+          complexidade: it.complexidade ?? "media",
+        });
+        recorteMin = r.minutosMaquina;
+        // `tempoRecorte` decapa por m²; em peça pequena o que pesa é pegar peça por peça.
+        const complexidade = it.complexidade ?? "media";
+        const porPeca = it.quantidade * MAO_DE_OBRA.decapagemPorPecaMin[complexidade];
+        const porArea = areaImpressaM2 * DECAPAGEM_MIN_POR_M2[complexidade];
+        maoDeObraMin += r.minutosMaoDeObra + Math.max(0, porPeca - porArea);
+      }
+      if (ehLonaOuBanner(produto) && it.acabamento !== "nenhum") {
+        if (produto.familia === "banner") {
+          maoDeObraMin += MAO_DE_OBRA.bastaoECordaPorPecaMin * it.quantidade;
+          bastoesPrecisos += it.quantidade;
+        } else {
+          const perimetroM = 2 * (it.larguraM + it.alturaM) * it.quantidade;
+          maoDeObraMin += MAO_DE_OBRA.bainhaEIlhosPorMetroMin * perimetroM;
+          ilhosPrecisos += Math.ceil(perimetroM * ESTOQUE_DE_ACABAMENTO.ilhosPorMetro);
+        }
+      }
+
+      return {
+        indice,
+        produto,
+        areaPecaM2,
+        areaCobradaM2: areaLinhaM2,
+        precoM2,
+        valor,
+        valorEhPiso: !!produto.aPartirDe,
+        cabeNaBobina,
+        paineis,
+        emendaM,
+        m2DeMaterial,
+        impressaoMin: arred(impressaoMin),
+        recorteMin: arred(recorteMin),
+        maoDeObraMin: arred(maoDeObraMin),
+      };
+    },
+  );
 
   // — estoque —
   const faltas: string[] = [];
@@ -269,7 +294,9 @@ export function simularPedido(itens: ItemDoBalcao[], opcoes: OpcoesDoPedido = {}
       faltas.push(`Ilhós: precisa de ${ilhosPrecisos} e há ${ESTOQUE_DE_ACABAMENTO.ilhosUn}`);
     }
     if (bastoesPrecisos > ESTOQUE_DE_ACABAMENTO.bastaoECordaUn) {
-      faltas.push(`Bastão + corda: precisa de ${bastoesPrecisos} e há ${ESTOQUE_DE_ACABAMENTO.bastaoECordaUn}`);
+      faltas.push(
+        `Bastão + corda: precisa de ${bastoesPrecisos} e há ${ESTOQUE_DE_ACABAMENTO.bastaoECordaUn}`,
+      );
     }
   }
   for (const f of faltas) avisos.push({ codigo: "falta_de_material", mensagem: f });
@@ -278,7 +305,10 @@ export function simularPedido(itens: ItemDoBalcao[], opcoes: OpcoesDoPedido = {}
   const produtos = arred(linhas.reduce((s, l) => s + l.valor, 0));
   const pct = opcoes.taxaExpressoPct ?? 12;
   const taxaExpresso = prazo === "expresso" ? taxaDoPrazo(produtos, pct) : 0;
-  const areaM2 = arred(linhasBase.reduce((s, l) => s + l.areaLinhaM2, 0), 3);
+  const areaM2 = arred(
+    linhasBase.reduce((s, l) => s + l.areaLinhaM2, 0),
+    3,
+  );
 
   // — tempo —
   const impressaoMin = arred(linhas.reduce((s, l) => s + l.impressaoMin, 0));
@@ -292,14 +322,18 @@ export function simularPedido(itens: ItemDoBalcao[], opcoes: OpcoesDoPedido = {}
   const maoDeObraRelogioMin = arred(maoDeObraMin / operadores);
   const filaMin = opcoes.filaMin ?? 0;
   const totalRelogioMin = arred(filaMin + impressaoMin + recorteMin + maoDeObraRelogioMin);
-  const gargalo: "maquina" | "mao_de_obra" = impressaoMin + recorteMin >= maoDeObraRelogioMin ? "maquina" : "mao_de_obra";
+  const gargalo: "maquina" | "mao_de_obra" =
+    impressaoMin + recorteMin >= maoDeObraRelogioMin ? "maquina" : "mao_de_obra";
 
   // — expresso —
   const motivos: string[] = [];
   if (faltas.length > 0) motivos.push("falta material no estoque");
-  if (avisos.some((a) => a.codigo === "material_nao_cadastrado")) motivos.push("material não cadastrado");
+  if (avisos.some((a) => a.codigo === "material_nao_cadastrado"))
+    motivos.push("material não cadastrado");
   if (totalRelogioMin > janela) {
-    motivos.push(`pede ${Math.round(totalRelogioMin)} min e a janela do expresso é de ${janela} min${filaMin > 0 ? ` (há ${filaMin} min de fila)` : ""}`);
+    motivos.push(
+      `pede ${Math.round(totalRelogioMin)} min e a janela do expresso é de ${janela} min${filaMin > 0 ? ` (há ${filaMin} min de fila)` : ""}`,
+    );
   }
   if (gargalo === "mao_de_obra" && maoDeObraRelogioMin > CASA.limiteMaoDeObraExpressoMin) {
     motivos.push("o que manda no tempo é mão de obra, e mão de obra não se acelera");
@@ -312,7 +346,15 @@ export function simularPedido(itens: ItemDoBalcao[], opcoes: OpcoesDoPedido = {}
     produtos,
     taxaExpresso,
     total: arred(produtos + taxaExpresso),
-    tempos: { filaMin, impressaoMin, recorteMin, maoDeObraMin, maoDeObraRelogioMin, totalRelogioMin, gargalo },
+    tempos: {
+      filaMin,
+      impressaoMin,
+      recorteMin,
+      maoDeObraMin,
+      maoDeObraRelogioMin,
+      totalRelogioMin,
+      gargalo,
+    },
     material: { consumoM2: consumo, faltas },
     expresso: { possivel, motivos, folgaMin: arred(janela - totalRelogioMin) },
     avisos: [...avisos, ...divergenciasComOSistema(linhas, opcoes.limiarPor)],
@@ -320,7 +362,10 @@ export function simularPedido(itens: ItemDoBalcao[], opcoes: OpcoesDoPedido = {}
 }
 
 /** Onde a tabela do WhatsApp e a do sistema discordam, para o produto do pedido. */
-function divergenciasComOSistema(linhas: LinhaSimulada[], limiarPor?: "linha" | "produto"): Aviso[] {
+function divergenciasComOSistema(
+  linhas: LinhaSimulada[],
+  limiarPor?: "linha" | "produto",
+): Aviso[] {
   const avisos: Aviso[] = [];
   const vistos = new Set<string>();
   for (const l of linhas) {
@@ -359,12 +404,26 @@ function divergenciasComOSistema(linhas: LinhaSimulada[], limiarPor?: "linha" | 
  * um pedido de 6,02 m² sai mais barato que um de 6,00 m². Devolve, para cada produto com
  * essa faixa, quanto o pedido mais barato custa a menos que o pedido logo abaixo do limiar.
  */
-export function degrauDePreco(p: ProdutoDaTabela): { deArea: number; paraArea: number; valorAntes: number; valorDepois: number; queda: number } | null {
+export function degrauDePreco(
+  p: ProdutoDaTabela,
+): {
+  deArea: number;
+  paraArea: number;
+  valorAntes: number;
+  valorDepois: number;
+  queda: number;
+} | null {
   if (p.precoM2Acima === undefined) return null;
   const antes = arred(LIMIAR_DO_DESCONTO_M2 * precoDoM2(p, LIMIAR_DO_DESCONTO_M2));
   const depoisArea = arred(LIMIAR_DO_DESCONTO_M2 + 0.01, 2);
   const depois = arred(depoisArea * precoDoM2(p, depoisArea));
-  return { deArea: LIMIAR_DO_DESCONTO_M2, paraArea: depoisArea, valorAntes: antes, valorDepois: depois, queda: arred(antes - depois) };
+  return {
+    deArea: LIMIAR_DO_DESCONTO_M2,
+    paraArea: depoisArea,
+    valorAntes: antes,
+    valorDepois: depois,
+    queda: arred(antes - depois),
+  };
 }
 
 /**

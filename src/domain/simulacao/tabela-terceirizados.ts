@@ -48,19 +48,117 @@ export type ProdutoDaTabela = {
 export const LIMIAR_DO_DESCONTO_M2 = 6;
 
 export const TABELA_DE_TERCEIRIZADOS: readonly ProdutoDaTabela[] = [
-  { chave: "adesivo_promo", nome: "Adesivo PROMO", familia: "adesivo", precoM2: 23.9, material: "vinil_branco", noCatalogo: null },
-  { chave: "adesivo_top", nome: "Adesivo TOP", familia: "adesivo", precoM2: 29.9, precoM2Acima: 27.9, material: "vinil_branco", noCatalogo: "Adesivo vinil branco impresso" },
-  { chave: "adesivo_recorte", nome: "Adesivo impresso + recorte", familia: "adesivo", precoM2: 44.9, precoM2Acima: 41.9, recorte: true, material: "vinil_branco", noCatalogo: "Adesivo vinil recortado" },
-  { chave: "perfurado_top", nome: "Adesivo perfurado TOP", familia: "adesivo", precoM2: 54.9, precoM2Acima: 52.9, material: "vinil_perfurado", noCatalogo: "Adesivo perfurado (one way)" },
-  { chave: "perfurado_promo", nome: "Perfurado PROMOCIONAL", familia: "adesivo", precoM2: 34.9, material: "vinil_perfurado", noCatalogo: null },
-  { chave: "adesivo_transparente", nome: "Adesivo transparente", familia: "adesivo", precoM2: 34.9, material: "vinil_transparente", noCatalogo: null },
-  { chave: "adesivo_fosco", nome: "Adesivo fosco", familia: "adesivo", precoM2: 34.9, material: "vinil_fosco", noCatalogo: null },
-  { chave: "adesivo_blackout", nome: "Adesivo blackout", familia: "adesivo", precoM2: 34.9, material: "vinil_blackout", noCatalogo: null },
-  { chave: "banner", nome: "Banner", familia: "banner", precoM2: 37.9, aPartirDe: true, material: "lona_280", noCatalogo: "Banner com bastão e corda", areaMinimaM2: 1 },
-  { chave: "lona_promo", nome: "Lona PROMO", familia: "lona", precoM2: 26.9, material: "lona_280", noCatalogo: "Lona 280g impressa" },
-  { chave: "lona_top", nome: "Lona TOP para fachada", familia: "lona", precoM2: 34.9, precoM2Acima: 29.9, material: "lona_440", noCatalogo: "Lona 440g reforçada impressa" },
-  { chave: "lona_fosca", nome: "Lona fosca", familia: "lona", precoM2: 34.9, material: "lona_fosca", noCatalogo: null },
-  { chave: "lona_backlight", nome: "Lona Backlight", familia: "lona", precoM2: 54.9, material: "lona_backlight", noCatalogo: null },
+  {
+    chave: "adesivo_promo",
+    nome: "Adesivo PROMO",
+    familia: "adesivo",
+    precoM2: 23.9,
+    material: "vinil_branco",
+    noCatalogo: null,
+  },
+  {
+    chave: "adesivo_top",
+    nome: "Adesivo TOP",
+    familia: "adesivo",
+    precoM2: 29.9,
+    precoM2Acima: 27.9,
+    material: "vinil_branco",
+    noCatalogo: "Adesivo vinil branco impresso",
+  },
+  {
+    chave: "adesivo_recorte",
+    nome: "Adesivo impresso + recorte",
+    familia: "adesivo",
+    precoM2: 44.9,
+    precoM2Acima: 41.9,
+    recorte: true,
+    material: "vinil_branco",
+    noCatalogo: "Adesivo vinil recortado",
+  },
+  {
+    chave: "perfurado_top",
+    nome: "Adesivo perfurado TOP",
+    familia: "adesivo",
+    precoM2: 54.9,
+    precoM2Acima: 52.9,
+    material: "vinil_perfurado",
+    noCatalogo: "Adesivo perfurado (one way)",
+  },
+  {
+    chave: "perfurado_promo",
+    nome: "Perfurado PROMOCIONAL",
+    familia: "adesivo",
+    precoM2: 34.9,
+    material: "vinil_perfurado",
+    noCatalogo: null,
+  },
+  {
+    chave: "adesivo_transparente",
+    nome: "Adesivo transparente",
+    familia: "adesivo",
+    precoM2: 34.9,
+    material: "vinil_transparente",
+    noCatalogo: null,
+  },
+  {
+    chave: "adesivo_fosco",
+    nome: "Adesivo fosco",
+    familia: "adesivo",
+    precoM2: 34.9,
+    material: "vinil_fosco",
+    noCatalogo: null,
+  },
+  {
+    chave: "adesivo_blackout",
+    nome: "Adesivo blackout",
+    familia: "adesivo",
+    precoM2: 34.9,
+    material: "vinil_blackout",
+    noCatalogo: null,
+  },
+  {
+    chave: "banner",
+    nome: "Banner",
+    familia: "banner",
+    precoM2: 37.9,
+    aPartirDe: true,
+    material: "lona_280",
+    noCatalogo: "Banner com bastão e corda",
+    areaMinimaM2: 1,
+  },
+  {
+    chave: "lona_promo",
+    nome: "Lona PROMO",
+    familia: "lona",
+    precoM2: 26.9,
+    material: "lona_280",
+    noCatalogo: "Lona 280g impressa",
+  },
+  {
+    chave: "lona_top",
+    nome: "Lona TOP para fachada",
+    familia: "lona",
+    precoM2: 34.9,
+    precoM2Acima: 29.9,
+    material: "lona_440",
+    noCatalogo: "Lona 440g reforçada impressa",
+  },
+  {
+    chave: "lona_fosca",
+    nome: "Lona fosca",
+    familia: "lona",
+    precoM2: 34.9,
+    material: "lona_fosca",
+    noCatalogo: null,
+  },
+  {
+    chave: "lona_backlight",
+    nome: "Lona Backlight",
+    familia: "lona",
+    precoM2: 54.9,
+    material: "lona_backlight",
+    noCatalogo: null,
+  },
 ];
 
 export function produtoDaTabela(chave: string): ProdutoDaTabela {
@@ -71,7 +169,9 @@ export function produtoDaTabela(chave: string): ProdutoDaTabela {
 
 /** O preço do m² para uma área: "acima de 6 m²" é estritamente maior que 6. */
 export function precoDoM2(p: ProdutoDaTabela, areaM2: number): number {
-  return p.precoM2Acima !== undefined && areaM2 > LIMIAR_DO_DESCONTO_M2 ? p.precoM2Acima : p.precoM2;
+  return p.precoM2Acima !== undefined && areaM2 > LIMIAR_DO_DESCONTO_M2
+    ? p.precoM2Acima
+    : p.precoM2;
 }
 
 /**
