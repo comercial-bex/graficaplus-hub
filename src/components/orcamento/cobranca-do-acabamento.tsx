@@ -36,14 +36,21 @@ export function useAcabamentosDoProduto(produtoId: string | null) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("produto_acabamentos")
-        .select("padrao, acabamentos(nome, ativo)")
+        .select("padrao, acabamentos(nome, ativo, produto_servico_id)")
         .eq("produto_id", produtoId);
       if (error) throw error;
       return (
-        (data ?? []) as { padrao: boolean; acabamentos: { nome: string; ativo: boolean } | null }[]
+        (data ?? []) as {
+          padrao: boolean;
+          acabamentos: { nome: string; ativo: boolean; produto_servico_id: string | null } | null;
+        }[]
       )
         .filter((l) => l.acabamentos?.ativo)
-        .map((l) => ({ nome: l.acabamentos!.nome, padrao: l.padrao }));
+        .map((l) => ({
+          nome: l.acabamentos!.nome,
+          padrao: l.padrao,
+          servicoId: l.acabamentos!.produto_servico_id,
+        }));
     },
   });
 }
@@ -84,7 +91,7 @@ export function CobrancaDoAcabamento({
   desabilitado = false,
   onAdicionar,
 }: {
-  acabamentos: { nome: string; padrao: boolean }[];
+  acabamentos: { nome: string; padrao: boolean; servicoId?: string | null }[];
   servicos: readonly ProdutoDeServico[];
   peca: { largura: number; altura: number; quantidade: number };
   /** para sugerir os lados da bainha (banner: em cima e embaixo) */
@@ -98,9 +105,10 @@ export function CobrancaDoAcabamento({
   for (const a of acabamentos) {
     const regra = acabamentoCobravel(a.nome);
     if (!regra) continue;
-    const servico = servicos.find(
-      (s) => s.nome.trim().toLowerCase() === regra.servico.toLowerCase(),
-    );
+    // O serviço que cobra vem da coluna `acabamentos.produto_servico_id`; o nome é só o plano B.
+    const servico =
+      servicos.find((s) => !!a.servicoId && s.id === a.servicoId) ??
+      servicos.find((s) => s.nome.trim().toLowerCase() === regra.servico.toLowerCase());
     if (!servico || jaNoOrcamento.has(servico.id)) continue;
     if (quantidadeDoAcabamento(regra.medida, peca) > 0) linhas.push({ regra, servico });
   }

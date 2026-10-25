@@ -100,6 +100,14 @@ describe("cartão de cobrança", () => {
     expect(html).toMatch(/aria-pressed="true"[^>]*>[\s\S]*?Só os 2 lados menores/);
   });
 
+  it("o serviço que cobra vem da coluna do acabamento, mesmo com outro nome", () => {
+    const html = render({
+      acabamentos: [{ nome: "Bainha + ilhós", padrao: true, servicoId: "x9" }],
+      servicos: [{ id: "x9", nome: "Bainha da casa", unidade: "m", preco_base: 10 }],
+    });
+    expect(html).toContain("80,00"); // 8 m × R$ 10
+  });
+
   it("a laminação não pergunta os lados", () => {
     const html = render({ acabamentos: [{ nome: "Laminação de adesivo", padrao: false }] });
     expect(html).not.toContain("Contorno todo");
