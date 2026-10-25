@@ -62,9 +62,9 @@ O que se traz é o **jeito de navegar**, não o conteúdo. Textos, fotos, marca,
 | # | O quê | Onde mexe | Esforço | Situação |
 |---|---|---|---|---|
 | 1 | Orçamento do parceiro **em passos** (cliente, itens, condições, revisão) | Só tela | M | **Feito neste PR** |
-| 2 | **Barra fixa de resumo no celular**: total e "Avançar" sempre à vista | Só tela | P | Próximo |
-| 3 | **Tamanhos em destaque** no item: botões maiores antes dos campos de medida (os 42 já cadastrados), com "Personalizar" para o livre | Só tela | P | Próximo |
-| 4 | **Tabela de degraus de quantidade** no item: quantidade, preço por unidade, desconto, com clique para aplicar | Só tela (as 33 faixas já existem) | M | Próximo |
+| 2 | **Barra fixa de resumo no celular**: total e "Avançar" sempre à vista | Só tela | P | **Feito** (PR da fase seguinte) |
+| 3 | **Tamanhos em destaque** no item: botões maiores antes dos campos de medida (os 42 já cadastrados), com "Personalizar" para o livre | Só tela | P | **Feito** |
+| 4 | **Tabela de degraus de quantidade** no item: quantidade, preço por unidade, desconto, com clique para aplicar | Só tela (as 33 faixas já existem) | M | **Feito** |
 | 5 | **Prazo e expresso** como passo de fechamento, com taxa em % | Migração e função de preço | M | Plano, fase 2 |
 | 6 | **Opções por produto** (material e acabamento) e **pacotes** | Migração e cadastro | G | Plano, fase 3 |
 | 7 | **Anexo da arte depois do preço** e gabarito por produto | Tabela de anexos do parceiro | M | Plano, fase 4 |

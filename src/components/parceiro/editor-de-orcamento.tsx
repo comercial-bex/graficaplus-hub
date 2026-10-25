@@ -36,6 +36,7 @@ import { dicaCampo } from "@/lib/dicas";
 import { SeletorDeProduto } from "./seletor-de-produto";
 import { PedidoDialog } from "./pedido-dialog";
 import { BarraDePassosDoOrcamento, PerguntaDoPasso } from "./barra-de-passos";
+import { TabelaDeDegraus } from "./tabela-de-degraus";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 import { baixarArquivo, renderPDFBlob } from "@/lib/pdf/generate";
@@ -64,6 +65,7 @@ import {
   type StatusDoOrcamento,
 } from "@/domain/parceiros/painel";
 import { nomeDoArquivo, propsDoOrcamentoDoParceiro } from "@/domain/parceiros/pdf";
+import { degrausDoProduto } from "@/domain/parceiros/degraus";
 import {
   ehUltimo,
   estadoDosPassos,
@@ -462,7 +464,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
   }
 
   return (
-    <div className="space-y-5 pb-16">
+    <div className="space-y-5 pb-36 lg:pb-16">
       <Link to="/parceiro/orcamentos" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Orçamentos
       </Link>
@@ -655,7 +657,8 @@ export function EditorDeOrcamento({ id }: { id: string }) {
               <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
             </Button>
             {!ehUltimo(passo) && (
-              <Button onClick={() => irParaPasso(passoSeguinte(passo))}>
+              // No celular quem avança é a barra fixa do rodapé; aqui só no computador.
+              <Button className="hidden lg:inline-flex" onClick={() => irParaPasso(passoSeguinte(passo))}>
                 {rotuloDoAvancar(passo)} <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             )}
@@ -729,7 +732,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
       </div>
 
       {sujo && !somenteLeitura && (
-        <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-full border border-border bg-card/95 py-2 pl-4 pr-2 shadow-2xl backdrop-blur md:bottom-6">
+        <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-40 mx-auto hidden max-w-md items-center justify-between gap-3 rounded-full border border-border bg-card/95 py-2 pl-4 pr-2 shadow-2xl backdrop-blur md:bottom-6 lg:flex">
           <span className="text-sm">Alterações não salvas</span>
           <Button size="sm" className="rounded-full" onClick={() => void salvar()} disabled={salvando}>
             <Save className="mr-1 h-4 w-4" />
@@ -737,6 +740,36 @@ export function EditorDeOrcamento({ id }: { id: string }) {
           </Button>
         </div>
       )}
+
+      <div
+        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 p-2 pl-4 shadow-2xl backdrop-blur md:bottom-6 lg:hidden"
+        data-testid="barra-fixa-do-resumo"
+      >
+        <div className="min-w-0">
+          <p className="text-[11px] text-muted-foreground">Cliente paga</p>
+          <p className="truncate text-base font-semibold tabular-nums">{brl(resumo.venda)}</p>
+          {resumo.lucro !== null && (
+            <p className="truncate text-[11px] text-muted-foreground">
+              Seu ganho {brl(resumo.lucro)}
+              {resumo.lucroParcial ? " (parcial)" : ""}
+            </p>
+          )}
+        </div>
+        {sujo && !somenteLeitura ? (
+          <Button onClick={() => void salvar()} disabled={salvando}>
+            <Save className="mr-1 h-4 w-4" />
+            {salvando ? "Salvando…" : "Salvar"}
+          </Button>
+        ) : !ehUltimo(passo) ? (
+          <Button onClick={() => irParaPasso(passoSeguinte(passo))}>
+            {rotuloDoAvancar(passo)} <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+        ) : !somenteLeitura ? (
+          <Button onClick={abrirPedido} disabled={salvando || resumo.itensDaGrafica === 0}>
+            <Send className="mr-1 h-4 w-4" /> Fazer pedido
+          </Button>
+        ) : null}
+      </div>
 
       <PedidoDialog
         aberto={pedidoAberto}
@@ -951,6 +984,35 @@ function ItemCard({
 
         {porArea && (
           <div className="space-y-2 md:col-span-2">
+            {tamanhos.length > 0 && !somenteLeitura && (
+              <div className="space-y-1.5" data-testid="tamanhos-prontos">
+                <span className="text-sm font-medium">Tamanhos prontos</span>
+                <div className="flex flex-wrap gap-2">
+                  {tamanhos.map((t) => {
+                    const escolhido =
+                      Number(item.largura) === Number(t.largura) && Number(item.altura) === Number(t.altura);
+                    return (
+                      <button
+                        key={t.nome}
+                        type="button"
+                        aria-pressed={escolhido}
+                        onClick={() => onMudar({ largura: t.largura, altura: t.altura })}
+                        className={cn(
+                          "min-h-10 rounded-xl border px-3 py-1.5 text-sm transition-colors",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          escolhido
+                            ? "border-primary bg-primary/10 font-semibold"
+                            : "border-border bg-card hover:bg-muted",
+                        )}
+                      >
+                        {t.nome}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">Ou digite a medida abaixo.</p>
+              </div>
+            )}
             {/* Largura e altura na unidade que a pessoa escolher; o pedido segue em metros. */}
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">Medidas da peça</span>
@@ -975,20 +1037,6 @@ function ItemCard({
                 onMudar={(m) => onMudar({ altura: numeroOuNulo(m) })}
               />
             </div>
-            {tamanhos.length > 0 && !somenteLeitura && (
-              <div className="flex flex-wrap gap-1.5">
-                {tamanhos.map((t) => (
-                  <button
-                    key={t.nome}
-                    type="button"
-                    onClick={() => onMudar({ largura: t.largura, altura: t.altura })}
-                    className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                  >
-                    {t.nome}
-                  </button>
-                ))}
-              </div>
-            )}
             {produto?.area_minima && cobradoPorArea ? (
               <p className="text-xs text-muted-foreground">
                 Peças menores que {Number(produto.area_minima).toLocaleString("pt-BR")} m² são cobradas como{" "}
@@ -1010,6 +1058,12 @@ function ItemCard({
             onChange={(e) => onMudar({ quantidade: Number(e.target.value) })}
           />
         </Campo>
+        <TabelaDeDegraus
+          degraus={degrausDoProduto(produto, item.quantidade)}
+          unidade={un}
+          desabilitado={somenteLeitura}
+          onEscolher={(q) => onMudar({ quantidade: q })}
+        />
         <Campo rotulo="Acabamento" id={`acab-${item.id}`}>
           <Input
             id={`acab-${item.id}`}
