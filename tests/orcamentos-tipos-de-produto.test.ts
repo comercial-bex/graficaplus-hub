@@ -365,7 +365,10 @@ describe("a tela", () => {
     expect(ESCOLHA).toContain("min-h-[4.5rem]");
     expect(ESCOLHA).toContain('role="radiogroup"');
     expect(ESCOLHA).toContain("onKeyDown={moverFocoNaGrade}");
-    expect(MEDIDAS).toContain("min-h-11");
+    // Os tamanhos prontos são cartões de escolha, bem acima dos 44 px.
+    const CARTAO = readFileSync("src/components/orcamento/cartao-de-escolha.tsx", "utf8");
+    expect(MEDIDAS).toContain("<CartaoDeEscolha");
+    expect(CARTAO).toContain("min-h-20");
   });
 
   it("as cinco dicas pedidas existem", () => {

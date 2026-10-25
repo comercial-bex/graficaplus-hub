@@ -1,6 +1,15 @@
 import { AlertTriangle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  Stepper,
+  StepperDescription,
+  StepperIndicator,
+  StepperItem,
+  StepperNav,
+  StepperTitle,
+  StepperTrigger,
+} from "@/components/ui/stepper";
+import {
   PASSOS_DO_ORCAMENTO,
   type EstadoDoPasso,
   type PassoDoOrcamento,
@@ -22,58 +31,62 @@ export function BarraDePassosDoOrcamento({
   onIr: (p: PassoDoOrcamento) => void;
 }) {
   return (
-    <ol
-      className="grid grid-cols-4 gap-1.5"
+    <Stepper
+      value={atual}
+      onValueChange={(n) => onIr(n as PassoDoOrcamento)}
       aria-label="Passos do orçamento"
       data-testid="passos-do-orcamento"
     >
-      {estados.map((e) => {
-        const ativo = e.n === atual;
-        return (
-          <li key={e.n}>
-            <button
-              type="button"
-              aria-current={ativo ? "step" : undefined}
-              onClick={() => onIr(e.n)}
-              className={cn(
-                "flex min-h-12 w-full flex-col items-start rounded-xl border px-2.5 py-2 text-left transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                ativo ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted",
-              )}
-            >
-              <span className="flex items-center gap-1.5 text-xs font-semibold md:text-sm">
-                <span
-                  className={cn(
-                    "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px]",
-                    e.situacao === "preenchido" && "bg-primary text-primary-foreground",
-                    e.situacao === "problema" && "bg-destructive text-destructive-foreground",
-                    e.situacao === "vazio" && "border text-muted-foreground",
-                  )}
-                  aria-hidden="true"
-                >
-                  {e.situacao === "preenchido" ? (
-                    <Check className="h-3 w-3" />
-                  ) : e.situacao === "problema" ? (
-                    <AlertTriangle className="h-3 w-3" />
-                  ) : (
-                    e.n
-                  )}
-                </span>
-                {e.titulo}
-              </span>
-              <span
+      <StepperNav className="gap-1.5">
+        {estados.map((e) => {
+          const ativo = e.n === atual;
+          return (
+            <StepperItem key={e.n} step={e.n} className="min-w-0 flex-1 items-stretch">
+              <StepperTrigger
+                aria-current={ativo ? "step" : undefined}
                 className={cn(
-                  "hidden w-full truncate text-[11px] md:block",
-                  e.situacao === "problema" ? "text-destructive" : "text-muted-foreground",
+                  "flex min-h-12 w-full flex-col items-start gap-0.5 rounded-xl border px-2.5 py-2 text-left transition-colors",
+                  ativo ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted",
                 )}
               >
-                {e.resumo}
-              </span>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
+                <span className="flex items-center gap-1.5">
+                  <StepperIndicator
+                    className={cn(
+                      "size-5 text-[11px]",
+                      e.situacao === "vazio" &&
+                        "border bg-transparent text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-muted-foreground data-[state=completed]:bg-transparent data-[state=completed]:text-muted-foreground",
+                      e.situacao === "preenchido" &&
+                        "bg-primary text-primary-foreground data-[state=active]:bg-primary data-[state=inactive]:bg-primary data-[state=inactive]:text-primary-foreground",
+                      e.situacao === "problema" &&
+                        "bg-destructive text-destructive-foreground data-[state=active]:bg-destructive data-[state=completed]:bg-destructive data-[state=inactive]:bg-destructive data-[state=inactive]:text-destructive-foreground",
+                    )}
+                  >
+                    {e.situacao === "preenchido" ? (
+                      <Check className="size-3" />
+                    ) : e.situacao === "problema" ? (
+                      <AlertTriangle className="size-3" />
+                    ) : (
+                      e.n
+                    )}
+                  </StepperIndicator>
+                  <StepperTitle className="text-xs font-semibold leading-tight md:text-sm">
+                    {e.titulo}
+                  </StepperTitle>
+                </span>
+                <StepperDescription
+                  className={cn(
+                    "hidden w-full truncate text-[11px] md:block",
+                    e.situacao === "problema" ? "text-destructive" : "text-muted-foreground",
+                  )}
+                >
+                  {e.resumo}
+                </StepperDescription>
+              </StepperTrigger>
+            </StepperItem>
+          );
+        })}
+      </StepperNav>
+    </Stepper>
   );
 }
 
