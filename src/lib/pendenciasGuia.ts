@@ -106,6 +106,22 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Elas passam a entrar no cartão "Vencido" e no lembrete diário.',
     ],
   },
+  pagamento_sem_parcela: {
+    acao: 'Abrir Contas a receber',
+    passos: [
+      'Abra Financeiro › Contas a receber e procure a OS do pagamento (o aviso mostra quantos são).',
+      'Confira se o pagamento não foi lançado duas vezes (mesmo valor e mesmo dia, em formas diferentes).',
+      'Se for válido, ligue-o à parcela da conta; se for duplicado, estorne um dos dois.',
+    ],
+  },
+  pagamento_acima_da_conta: {
+    acao: 'Abrir Contas a receber',
+    passos: [
+      'Abra a OS que recebeu mais do que a conta e veja o extrato de pagamentos.',
+      'Pagamento em dobro: estorne o repetido. Conta defasada (o valor da OS subiu): corrija a conta e a parcela.',
+      'Só feche o caixa do mês depois disso: o "recebido" está acima do que a conta autoriza.',
+    ],
+  },
   orcamento_sem_item: {
     acao: 'Abrir orçamentos',
     passos: [
