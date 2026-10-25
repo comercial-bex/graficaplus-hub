@@ -36,10 +36,12 @@ describe("seu dia", () => {
     expect(numerosDoDia(todas, ["operador"]).map((n) => n.chave)).toEqual([
       "os_na_fila_de_producao",
     ]);
-    expect(numerosDoDia(todas, ["financeiro"]).map((n) => n.chave)).toEqual([
-      "parcela_vencida_sem_baixa",
-      "produto_custo_provisorio",
-    ]);
+    // o financeiro vê todas as áreas, mas os números da própria área vêm primeiro
+    expect(
+      numerosDoDia(todas, ["financeiro"])
+        .map((n) => n.chave)
+        .slice(0, 2),
+    ).toEqual(["parcela_vencida_sem_baixa", "produto_custo_provisorio"]);
   });
 
   it("o gestor também vê o custo provisório, que é do financeiro", () => {
@@ -85,5 +87,52 @@ describe("as chaves existem de verdade", () => {
     const dash = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
     expect(dash.indexOf("<ResumoDoDia />")).toBeGreaterThan(0);
     expect(dash.indexOf("<ResumoDoDia />")).toBeLessThan(dash.indexOf("<PendenciasDoMeuPapel />"));
+  });
+});
+
+describe("administrador, gestor e financeiro veem todos os avisos", () => {
+  const todas = [
+    p("orcamento_aprovado_sem_os", 8, "critico"),
+    p("baixa_de_estoque_pendente", 14, "critico"),
+    p("estoque_nunca_carregado", 18, "critico"),
+    p("os_parada", 4, "critico"),
+    p("pagamento_sem_parcela", 2, "critico"),
+    p("pagamento_acima_da_conta", 1, "critico"),
+    p("os_na_fila_de_producao", 7, "ok"),
+  ];
+
+  it("o financeiro passa a ver os avisos de estoque e de OS, que eram da gerência", () => {
+    const chaves = numerosDoDia(todas, ["financeiro"]).map((n) => n.chave);
+    expect(
+      chaves.some((c) =>
+        ["baixa_de_estoque_pendente", "estoque_nunca_carregado", "os_parada"].includes(c),
+      ),
+    ).toBe(true);
+  });
+
+  it("o gestor passa a ver os avisos de pagamento, que eram do financeiro", () => {
+    const so = [
+      p("pagamento_sem_parcela", 2, "critico"),
+      p("pagamento_acima_da_conta", 1, "critico"),
+    ];
+    expect(numerosDoDia(so, ["gestor"]).map((n) => n.chave)).toEqual([
+      "pagamento_sem_parcela",
+      "pagamento_acima_da_conta",
+    ]);
+  });
+
+  it("outros papéis seguem vendo só o que é deles", () => {
+    expect(numerosDoDia(todas, ["operador"]).map((n) => n.chave)).toEqual([
+      "os_na_fila_de_producao",
+    ]);
+  });
+});
+
+describe("a lista completa no painel", () => {
+  it("o painel mostra tudo a quem vê tudo, e a regra está num lugar só", () => {
+    const painel = readFileSync("src/components/painel/PendenciasDoMeuPapel.tsx", "utf8");
+    const guia = readFileSync("src/lib/pendenciasGuia.ts", "utf8");
+    expect(painel).toContain("veTodosOsAvisos(roles) ||");
+    expect(guia).toContain("PAPEIS_QUE_VEEM_TUDO = ['admin', 'gestor', 'financeiro']");
   });
 });

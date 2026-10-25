@@ -10,6 +10,7 @@ import {
   guiaDe,
   rotulosDoPapel,
   ROTULO_PAPEL,
+  veTodosOsAvisos,
   VISIVEL_TAMBEM_PARA,
   type PapelResolvedor,
 } from "@/lib/pendenciasGuia";
@@ -54,6 +55,7 @@ export function PendenciasDoMeuPapel({ className }: { className?: string }) {
   const minhas = data
     .filter(
       (p) =>
+        veTodosOsAvisos(roles) ||
         rotulos.includes(p.quem_resolve as PapelResolvedor) ||
         (VISIVEL_TAMBEM_PARA[p.chave] ?? []).some((papel) => roles.includes(papel as never)),
     )

@@ -381,6 +381,17 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
 };
 
 /**
+ * Quem vê TODOS os avisos do sistema (25/10/2026, pedido do dono): administrador, gestor e
+ * financeiro. Os outros papéis seguem vendo só o que é deles. As linhas de dinheiro só chegam a
+ * quem o banco deixa ver dinheiro, então isto não abre custo para ninguém.
+ */
+export const PAPEIS_QUE_VEEM_TUDO = ['admin', 'gestor', 'financeiro'] as const;
+
+export function veTodosOsAvisos(papeis: readonly string[] | null | undefined): boolean {
+  return (papeis ?? []).some((p) => (PAPEIS_QUE_VEEM_TUDO as readonly string[]).includes(p));
+}
+
+/**
  * Pendências de custo e preço que, além de quem o rótulo atende, o gestor também precisa ver.
  * Quem não vê dinheiro nem recebe a linha: o banco só devolve estas para quem pode.
  */

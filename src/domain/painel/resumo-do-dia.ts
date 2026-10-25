@@ -1,5 +1,5 @@
 import type { Pendencia } from "@/hooks/usePendencias";
-import { rotulosDoPapel, VISIVEL_TAMBEM_PARA } from "@/lib/pendenciasGuia";
+import { rotulosDoPapel, veTodosOsAvisos, VISIVEL_TAMBEM_PARA } from "@/lib/pendenciasGuia";
 
 /**
  * "Seu dia" (25/10/2026): os poucos números que decidem o começo do expediente de cada papel,
@@ -30,11 +30,15 @@ export const RESUMO_POR_ROTULO: Record<string, { chave: string; curto: string }[
     { chave: "os_parada", curto: "OS paradas" },
     { chave: "os_sem_material_reservado", curto: "esperando material" },
     { chave: "estoque_abaixo_minimo", curto: "materiais para repor" },
+    { chave: "baixa_de_estoque_pendente", curto: "OS sem baixa de material" },
+    { chave: "estoque_nunca_carregado", curto: "materiais sem entrada" },
     { chave: "reembolsos_para_a_gerencia", curto: "reembolsos a decidir" },
   ],
   financeiro: [
     { chave: "parcela_vencida_sem_baixa", curto: "parcelas vencidas" },
     { chave: "conta_pagar_vencida", curto: "contas a pagar vencidas" },
+    { chave: "pagamento_sem_parcela", curto: "pagamentos sem parcela" },
+    { chave: "pagamento_acima_da_conta", curto: "pagamentos acima da conta" },
     { chave: "comprovante_do_portal_a_conferir", curto: "comprovantes a conferir" },
     { chave: "produto_custo_provisorio", curto: "produtos com custo provisório" },
   ],
@@ -58,7 +62,12 @@ export function numerosDoDia(
   const porChave = new Map(pendencias.map((p) => [p.chave, p]));
   const vistos = new Set<string>();
   const out: NumeroDoDia[] = [];
-  for (const rotulo of rotulosDoPapel(papeis)) {
+  // Administrador, gestor e financeiro veem os avisos de todas as áreas, os da própria área primeiro.
+  const proprios = rotulosDoPapel(papeis) as string[];
+  const rotulos = veTodosOsAvisos(papeis)
+    ? [...proprios, ...Object.keys(RESUMO_POR_ROTULO).filter((r) => !proprios.includes(r))]
+    : proprios;
+  for (const rotulo of rotulos) {
     for (const { chave, curto } of RESUMO_POR_ROTULO[rotulo] ?? []) {
       const p = porChave.get(chave);
       if (!p || p.quantidade <= 0 || vistos.has(chave)) continue;
