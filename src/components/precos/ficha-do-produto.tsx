@@ -50,9 +50,12 @@ export function FichaDoProduto({
   linha,
   nomeDoNivel,
   podeEditarFoto,
+  maoDeObraEstimada = false,
   aoFechar,
 }: {
   linha: Linha | null;
+  /** a mão de obra do custo cheio ainda é estimativa (média nacional), não o salário real */
+  maoDeObraEstimada?: boolean;
   nomeDoNivel: string | null;
   podeEditarFoto: boolean;
   aoFechar: () => void;
@@ -239,6 +242,11 @@ export function FichaDoProduto({
                     <li key={f}>{f}</li>
                   ))}
                 </ul>
+              )}
+              {maoDeObraEstimada && linha.cheio != null && (
+                <p className="mt-2 rounded-md bg-warning/15 p-2 text-xs">
+                  A mão de obra deste custo é uma estimativa (R$ 10,65/h, média nacional de impressor), não o salário real. Troque em Custos de produção.
+                </p>
               )}
               {custoCad != null && linha.cheio != null && Math.abs(linha.cheio - custoCad) > 0.05 && (
                 <p className="mt-2 text-xs text-muted-foreground">

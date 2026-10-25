@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_authenticated/tabela-de-precos")({
 const MAX_COMPARAR = 4;
 type Base = "cadastro" | "cheio";
 type Ordem = "categoria" | "margem" | "preco" | "nome";
-type Atalho = "todos" | "abaixo" | "ficha" | "sem_concorrente" | "sem_foto";
+type Atalho = "todos" | "abaixo" | "ficha" | "provisorio" | "sem_concorrente" | "sem_foto";
 
 const num = (v: unknown) => (v != null ? Number(v) : null);
 
@@ -120,6 +120,15 @@ function TabelaDePrecosPage() {
         .order("concorrente");
       if (error) throw error;
       return (data ?? []).map((c: Concorrente) => ({ ...c, preco: Number(c.preco) }));
+    },
+  });
+  // Mão de obra ainda estimada (média nacional): vira aviso na ficha até o salário real entrar.
+  const estimativaDeMaoDeObra = useQuery({
+    queryKey: ["tabela-precos", "mo-estimada"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("custos_mao_de_obra").select("observacoes").eq("ativo", true);
+      if (error) throw error;
+      return ((data ?? []) as Array<{ observacoes: string | null }>).some((r) => (r.observacoes ?? "").startsWith("Estimativa"));
     },
   });
   // Família do produto: mora na tabela (as views financeiras não a trazem).
@@ -215,6 +224,7 @@ function TabelaDePrecosPage() {
       total: todas.length,
       abaixo: todas.filter(abaixoDoMinimo).length,
       ficha: todas.filter((l) => fichaDaLinha(l).nivel !== "completa").length,
+      provisorio: todas.filter((l) => l.provisorio).length,
       semConcorrente: todas.filter((l) => l.concorrentes.length === 0).length,
       semFoto: todas.filter((l) => !l.produto.imagem_url).length,
     }),
@@ -234,6 +244,7 @@ function TabelaDePrecosPage() {
     if (categoria !== "todas" && (p.categoria ?? "outros") !== categoria) return false;
     if (atalho === "abaixo" && !abaixoDoMinimo(l)) return false;
     if (atalho === "ficha" && fichaDaLinha(l).nivel === "completa") return false;
+    if (atalho === "provisorio" && !l.provisorio) return false;
     if (atalho === "sem_concorrente" && l.concorrentes.length > 0) return false;
     if (atalho === "sem_foto" && p.imagem_url) return false;
     return true;
@@ -270,6 +281,7 @@ function TabelaDePrecosPage() {
     { id: "todos", rotulo: "Todos os produtos", n: resumo.total },
     { id: "abaixo", rotulo: "Margem abaixo do mínimo", n: resumo.abaixo, alerta: true },
     { id: "ficha", rotulo: "Ficha técnica incompleta", n: resumo.ficha, alerta: true },
+    { id: "provisorio", rotulo: "Custo provisório (trocar pelo real)", n: resumo.provisorio, alerta: true },
     { id: "sem_concorrente", rotulo: "Sem concorrente anotado", n: resumo.semConcorrente },
     { id: "sem_foto", rotulo: "Sem foto", n: resumo.semFoto },
   ];
@@ -284,7 +296,7 @@ function TabelaDePrecosPage() {
       />
 
       {/* resumo que também filtra */}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
         {Atalhos.map((a) => (
           <button
             key={a.id}
@@ -486,7 +498,7 @@ function TabelaDePrecosPage() {
         </DialogContent>
       </Dialog>
 
-      <FichaDoProduto linha={linhaAberta} nomeDoNivel={niveis.data?.nome ?? null} podeEditarFoto={podeEditarFoto} aoFechar={() => setAberto(null)} />
+      <FichaDoProduto linha={linhaAberta} maoDeObraEstimada={estimativaDeMaoDeObra.data === true} nomeDoNivel={niveis.data?.nome ?? null} podeEditarFoto={podeEditarFoto} aoFechar={() => setAberto(null)} />
     </div>
   );
 }
