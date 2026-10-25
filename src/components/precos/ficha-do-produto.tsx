@@ -25,6 +25,8 @@ import {
 import { BarraDeComparacao, LegendaDaBarra } from "./barra-de-comparacao";
 import { ConcorrentesDoProduto } from "./concorrentes-do-produto";
 import { IconeDoProduto } from "./icone-do-produto";
+import { useAcabamentos } from "@/components/acabamentos/gerenciador-de-acabamentos";
+import { margemDoAcabamento, rotuloDaBase, rotuloDoProcesso, unidadeDaBase } from "@/domain/acabamentos/acabamentos";
 import { brl, pct, sinal, type Linha, type TipoDePreco } from "./tipos";
 
 const COR_DA_FATIA = { material: "bg-primary", maquina: "bg-chart-2", maoDeObra: "bg-chart-4", indireto: "bg-muted-foreground" } as const;
@@ -56,6 +58,7 @@ export function FichaDoProduto({
   aoFechar: () => void;
 }) {
   const qc = useQueryClient();
+  const acabamentos = useAcabamentos();
   const [foto, setFoto] = useState("");
   useEffect(() => setFoto(linha?.produto.imagem_url ?? ""), [linha?.produto.id, linha?.produto.imagem_url]);
 
@@ -182,6 +185,41 @@ export function FichaDoProduto({
                 </ul>
               </section>
             )}
+
+            {(() => {
+              const ids = new Set((acabamentos.data?.links ?? []).filter((l) => l.produto_id === p.id).map((l) => l.acabamento_id));
+              const aceitos = (acabamentos.data?.lista ?? []).filter((a) => ids.has(a.id));
+              return (
+                <section className="rounded-lg border border-border bg-card p-3">
+                  <h3 className="text-sm font-semibold">Acabamentos que este produto aceita</h3>
+                  {aceitos.length === 0 ? (
+                    <p className="mt-1 text-sm text-muted-foreground">Nenhum ligado. Em Produtos › Acabamentos dá para ligar (laser, CNC, recorte, manual).</p>
+                  ) : (
+                    <ul className="mt-2 space-y-1.5 text-sm">
+                      {aceitos.map((a) => {
+                        const c = acabamentos.data?.custos.get(a.id);
+                        const m = margemDoAcabamento(a.preco_venda, c?.custo_total ?? null);
+                        return (
+                          <li key={a.id} className="flex items-start justify-between gap-2">
+                            <span className="min-w-0">
+                              {a.nome}
+                              <span className="block text-xs text-muted-foreground">
+                                {rotuloDoProcesso(a.processo)} · {rotuloDaBase(a.base).toLowerCase()}
+                                {c && c.faltas.length > 0 ? ` · falta: ${c.faltas.join("; ")}` : ""}
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-right font-mono text-xs">
+                              custo {brl(c?.custo_total ?? null)}/{unidadeDaBase(a.base)}
+                              <span className="block">preço {a.preco_venda != null ? brl(a.preco_venda) : "—"}{m != null ? ` · ${pct(m)}` : ""}</span>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </section>
+              );
+            })()}
 
             <section className="rounded-lg border border-border bg-card p-3">
               <h3 className="flex items-center gap-1.5 text-sm font-semibold">

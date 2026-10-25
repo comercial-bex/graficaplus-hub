@@ -52,6 +52,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Scissors,
   Plus,
   Search,
   Copy,
@@ -68,6 +69,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { GerenciadorDeAcabamentos } from "@/components/acabamentos/gerenciador-de-acabamentos";
 import {
   CATEGORIAS,
   FAMILIAS,
@@ -154,6 +156,7 @@ function ProdutosPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState<Produto | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [acabamentosAberto, setAcabamentosAberto] = useState(false);
 
   const { data: produtos = [], isLoading } = useQuery({
     queryKey: ["produtos", nivelDeVisao],
@@ -466,6 +469,10 @@ function ProdutosPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAcabamentosAberto(true)}>
+            <Scissors className="h-4 w-4 mr-2" />
+            Acabamentos
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
             Importar CSV
@@ -763,6 +770,8 @@ function ProdutosPage() {
         onSubmit={() => upsert.mutate(form)}
         saving={upsert.isPending}
       />
+
+      <GerenciadorDeAcabamentos aberto={acabamentosAberto} aoFechar={() => setAcabamentosAberto(false)} />
 
       <ImportDialog
         open={importOpen}
