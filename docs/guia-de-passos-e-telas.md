@@ -29,6 +29,7 @@ Uma tarefa que tem mais de uns 5 campos, ou escolhas que dependem umas das outra
 | `PreviaDaPeca` | idem | Desenho na proporção da medida |
 | `EscolhaDeMaterial` | `src/components/orcamento/escolha-de-material.tsx` | Variações do mesmo produto (lona 280 g ou 440 g) |
 | `CobrancaDoAcabamento` | `src/components/orcamento/cobranca-do-acabamento.tsx` | Acabamento cobrado à parte, com os lados da bainha e o valor de cada um |
+| `AssistenteEmPassos` | `src/components/bex/assistente-em-passos.tsx` | **A casca dos assistentes**: diálogo, barra de passos, pendência, Voltar, Avançar e criar. Os assistentes de cliente, máquina e usuário usam; o de produto e o de insumo ainda têm a casca própria |
 | `NovoProdutoEmPassos` | `src/components/produtos/novo-produto-em-passos.tsx` | Exemplo completo de assistente de seis passos |
 | `PendenciasDoMeuPapel` | `src/components/painel/PendenciasDoMeuPapel.tsx` | O que falta de cada papel, com o caminho passo a passo |
 
@@ -59,6 +60,10 @@ Uma tarefa que tem mais de uns 5 campos, ou escolhas que dependem umas das outra
 | Prazo de produção | cartões Normal e Expresso, com a taxa em % |
 | **Novo produto** | **6 passos**: tipo, variação, material do estoque, máquina e cobrança, preço, revisão |
 | **Novo material (insumo)** | **6 passos**: tipo, material, marca, medida da embalagem, compra e estoque cheio (aviso a 15%), revisão |
+| **Novo cliente** | **6 passos**: tipo, documento (CNPJ preenche o resto), contato com o WhatsApp validado e sem duplicata, endereço, responsável, revisão |
+| **Orçamento 3D** | impressora, filamento e presets em **cartões**; os três blocos e o resultado ao vivo ficam como estavam |
+| **Nova máquina** | **5 passos**: tipo, identificação, capacidade (boca e velocidade), custo e consumo, revisão |
+| **Novo usuário** | **4 passos**: perfil em cartões, pessoa, senha inicial, revisão |
 | O que falta de cada papel | pendências com passo a passo e botão para o destino |
 
 ## 3. Análise por módulo
@@ -84,10 +89,10 @@ Medido no código de cada tela (25/10/2026). "Campos" são `Input`, `Select` e `
 | Materiais | 874 | 0 | 0 | 13 | 6 | **Assistente de insumo novo feito** (cadastro completo segue num botão) |
 | Capacidade | 789 | 8 | 0 | 0 | 4 | Painel de leitura |
 | Meta | 782 | 5 | 0 | 0 | 3 | Painel de leitura |
-| Usuários | 756 | 1 | 2 | 11 | 4 | **Assistente**: o papel em cartões (administrador, gestor, vendedor, operador…) e o que cada um vê |
+| Usuários | 756 | 1 | 2 | 11 | 4 | **Assistente feito** (perfil em cartões; o cadastro completo segue num botão) |
 | Fluxo de caixa, A receber | 695 / 623 | 3 / 5 | 2 / 0 | 10 / 4 | 6 / 3 | Painel de leitura, com a baixa em um clique |
-| Clientes (lista e cadastro) | 608 | 0 | 0 | 15 | 5 | **Assistente**: pessoa física ou jurídica, documento (com a consulta de CNPJ, onde ela já existe), contato, condições |
-| Máquinas | 618 | 2 | 0 | 1 | 5 | **Assistente**: tipo de máquina, velocidade, consumo, custo por hora |
+| Clientes (lista e cadastro) | 608 | 0 | 0 | 15 | 5 | **Assistente feito** (documento com a consulta de CNPJ, WhatsApp validado) |
+| Máquinas | 618 | 2 | 0 | 1 | 5 | **Assistente feito** (tipo, capacidade, custo) |
 | Leads | 557 | 3 | 0 | 11 | 3 | Funil em cartões; cadastro em 2 passos |
 | Tabela de preços | 555 | 1 | 0 | 2 | 8 | Painel de leitura (já marca custo provisório) |
 | Importar do Flexi | 543 | 3 | 0 | 3 | 4 | **Assistente**: arquivo, conferência, vínculo com o orçamento ou a OS |
@@ -96,11 +101,11 @@ Medido no código de cada tela (25/10/2026). "Campos" são `Input`, `Select` e `
 
 O ganho é a quantidade de campos do cadastro vezes a frequência. A frequência real está **a medir** (o sistema ainda não registra quanto cada tela é usada); a ordem abaixo usa só o tamanho do cadastro.
 
-1. **Cliente novo** (15 campos). Tipo (pessoa física ou jurídica) → documento → contato → condições de pagamento → revisão.
+1. ~~Cliente novo~~ **feito** (25/10/2026): tipo → documento → contato → endereço → responsável → revisão.
 2. ~~Insumo novo~~ **feito** (25/10/2026): tipo → material → marca → medida da embalagem → o que pagou e o **estoque cheio, com o mínimo a 15%** → revisão.
 3. ~~Orçamento 3D~~ **feito como cartões** (impressora, filamento e presets), mantendo os três blocos e o resultado ao vivo.
-4. **Máquina nova**. Tipo → velocidade → consumo (kW) → custo por hora.
-5. **Usuário novo**. Papel em cartões, com o que cada papel enxerga.
+4. ~~Máquina nova~~ **feito**: tipo → identificação → capacidade → custo → revisão.
+5. ~~Usuário novo~~ **feito**: perfil em cartões → pessoa → senha inicial → revisão.
 
 ## 4. Informação na tela: o que precisa estar à vista
 
