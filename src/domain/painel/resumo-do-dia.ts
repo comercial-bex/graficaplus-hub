@@ -33,6 +33,7 @@ export const RESUMO_POR_ROTULO: Record<string, { chave: string; curto: string }[
     { chave: "baixa_de_estoque_pendente", curto: "OS sem baixa de material" },
     { chave: "estoque_nunca_carregado", curto: "materiais sem entrada" },
     { chave: "reembolsos_para_a_gerencia", curto: "reembolsos a decidir" },
+    { chave: "decisoes_do_dono", curto: "decisões do dono" },
   ],
   financeiro: [
     { chave: "parcela_vencida_sem_baixa", curto: "parcelas vencidas" },
