@@ -70,6 +70,7 @@ import { DetalhesOpcionais } from "@/components/orcamento/detalhes-opcionais";
 import { UnidadeDoItem } from "@/components/orcamento/unidade-do-item";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
+import { EscolhaDeMaterial } from "@/components/orcamento/escolha-de-material";
 import { ResumoDoItem } from "@/components/orcamento/resumo-do-item";
 import {
   camposDaUnidade,
@@ -1332,6 +1333,18 @@ function OrcamentoDetailPage() {
                         </div>
                       )}
                     </div>
+
+                    <EscolhaDeMaterial
+                      nomeAtual={produtoDoForm?.nome}
+                      catalogo={catalogo.produtos}
+                      desabilitado={salvandoItem}
+                      preco={(p) =>
+                        canSeePrices && p.preco_base != null
+                          ? `${brl(Number(p.preco_base))}/${p.unidade?.toLowerCase().replace("²", "2") === "m2" ? "m²" : p.unidade}`
+                          : undefined
+                      }
+                      onEscolher={aplicarProduto}
+                    />
 
                     {/* Passo 2 — a medida, desenhada, para o que vende por m²
                         (ou já tem medida). Preencher as duas liga a venda por m². */}
