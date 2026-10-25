@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useUsoDoAssistente } from "@/lib/uso-de-telas";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ export function AssistenteEmPassos({
   criando = false,
   onCriar,
   testId,
+  tela,
   children,
 }: {
   aberto: boolean;
@@ -55,6 +57,8 @@ export function AssistenteEmPassos({
   criando?: boolean;
   onCriar: () => void;
   testId?: string;
+  /** nome da tela para medir o uso (abriu, passo, fechou); a tela anota `concluiu` */
+  tela?: string;
   children: ReactNode;
 }) {
   const indice = Math.max(
@@ -62,6 +66,7 @@ export function AssistenteEmPassos({
     passos.findIndex((p) => p.n === atual),
   );
   const passo = passos[indice];
+  useUsoDoAssistente(tela, aberto, atual);
   const ultimo = indice === passos.length - 1;
 
   return (

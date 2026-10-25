@@ -18,6 +18,7 @@ import { formatarCEP, formatarTelefone, type TipoDocumento } from "@/domain/docu
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { Carregando } from "@/components/bex/Carregando";
 import { TaxaDoPrazo } from "@/components/configuracoes/taxa-do-prazo";
+import { UsoDosAssistentes } from "@/components/configuracoes/uso-dos-assistentes";
 
 export const Route = createFileRoute("/_authenticated/configuracoes-empresa")({
   head: () => ({ meta: [{ title: "Dados da empresa — BEX PRINT OS" }] }),
@@ -66,7 +67,7 @@ const texto = (v: unknown) => (typeof v === "string" ? v : "");
 
 function ConfiguracoesEmpresaPage() {
   const qc = useQueryClient();
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasRole } = useAuth();
   const podeEditar = hasPermission("configuracoes.manage");
 
   const [form, setForm] = useState<FormEmpresa>(vazio);
@@ -426,6 +427,8 @@ function ConfiguracoesEmpresaPage() {
       </Card>
 
       <TaxaDoPrazo podeEditar={podeEditar} />
+
+      {hasRole("admin") && <UsoDosAssistentes />}
     </div>
   );
 }

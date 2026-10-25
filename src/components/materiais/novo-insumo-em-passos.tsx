@@ -58,6 +58,7 @@ import {
 } from "@/domain/materiais/novo-insumo-em-passos";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
+import { registrarUso, useUsoDoAssistente } from "@/lib/uso-de-telas";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 
 const ICONES: Record<string, LucideIcon> = { Scroll, Square, Droplets, Cylinder, Puzzle };
@@ -86,6 +87,7 @@ export function NovoInsumoEmPassos({
   const [r, setR] = useState<RespostasDoInsumo>(RESPOSTAS_VAZIAS_DO_INSUMO);
   const [passo, setPasso] = useState<NumeroDoPasso>(1);
   const [criando, setCriando] = useState(false);
+  useUsoDoAssistente("novo-material", aberto, passo);
 
   useEffect(() => {
     if (aberto) {
@@ -189,6 +191,7 @@ export function NovoInsumoEmPassos({
         }
       }
       toast.success(`${linha.nome} cadastrado`);
+      registrarUso("novo-material", "concluiu");
       qc.invalidateQueries({ queryKey: ["materiais"] });
       qc.invalidateQueries({ queryKey: ["pendencias-do-sistema"] });
       onFechar();
