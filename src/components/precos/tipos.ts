@@ -28,6 +28,7 @@ export type Concorrente = {
 export type LinhaDaReceita = { material: string; unidade: string; quantidade: number; custoUnitario: number };
 export type Linha = {
   produto: Produto;
+  familia: string | null;
   custo: number | null;
   /** custo do cadastro OU o cheio, conforme a base escolhida na tela */
   custoBase: number | null;

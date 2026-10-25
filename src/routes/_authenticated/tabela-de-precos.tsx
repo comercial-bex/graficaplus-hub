@@ -120,6 +120,15 @@ function TabelaDePrecosPage() {
       return (data ?? []).map((c: Concorrente) => ({ ...c, preco: Number(c.preco) }));
     },
   });
+  // Família do produto: mora na tabela (as views financeiras não a trazem).
+  const familias = useQuery({
+    queryKey: ["tabela-precos", "familias"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("produtos").select("id, familia");
+      if (error) throw error;
+      return new Map<string, string>(((data ?? []) as Array<{ id: string; familia: string | null }>).filter((r) => r.familia).map((r) => [r.id, r.familia as string]));
+    },
+  });
   // Composição do custo (matéria-prima + máquina + mão de obra + indireto), mantida pelo banco.
   const composicoes = useQuery({
     queryKey: ["tabela-precos", "composicao"],
@@ -177,6 +186,7 @@ function TabelaDePrecosPage() {
       const custo = p.custo_medio;
       return {
         produto: p,
+        familia: familias.data?.get(p.id) ?? null,
         custo,
         cheio,
         composicao,
@@ -188,7 +198,7 @@ function TabelaDePrecosPage() {
         concorrentes: porProduto.get(p.id) ?? [],
       };
     });
-  }, [produtos.data, composicoes.data, receitas.data, concorrentes.data, ofertas.data, descontoDoNivel, base]);
+  }, [produtos.data, familias.data, composicoes.data, receitas.data, concorrentes.data, ofertas.data, descontoDoNivel, base]);
 
   const abaixoDoMinimo = (l: Linha) => {
     const min = l.produto.margem_minima;
@@ -216,7 +226,7 @@ function TabelaDePrecosPage() {
   const termo = busca.trim().toLowerCase();
   const linhas = todas.filter((l) => {
     const p = l.produto;
-    if (termo && !`${p.nome} ${p.categoria ?? ""} ${p.categoria ? categoriaLabel(p.categoria) : ""}`.toLowerCase().includes(termo)) return false;
+    if (termo && !`${p.nome} ${l.familia ?? ""} ${p.categoria ?? ""} ${p.categoria ? categoriaLabel(p.categoria) : ""}`.toLowerCase().includes(termo)) return false;
     if (categoria !== "todas" && (p.categoria ?? "outros") !== categoria) return false;
     if (atalho === "abaixo" && !abaixoDoMinimo(l)) return false;
     if (atalho === "ficha" && fichaDaLinha(l).nivel === "completa") return false;
@@ -293,7 +303,7 @@ function TabelaDePrecosPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-56 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto ou categoria" className="pl-9" aria-label="Buscar produto" />
+            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar produto, família ou categoria" className="pl-9" aria-label="Buscar produto" />
           </div>
           <Select value={ordem} onValueChange={(v) => setOrdem(v as Ordem)}>
             <SelectTrigger className="w-48" aria-label="Ordenar por">

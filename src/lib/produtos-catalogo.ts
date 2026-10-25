@@ -9,6 +9,30 @@ export const CATEGORIAS = [
   { value: "outros", label: "Outros" },
 ] as const;
 
+/**
+ * Famílias sugeridas (25/10/2026): agrupam produtos parecidos dentro da categoria. O campo é
+ * texto livre — estas são as sugestões da lista, as mesmas que a migração 20261025100000 gravou.
+ */
+export const FAMILIAS = [
+  "Impressão em papel",
+  "Lonas frontlight",
+  "Lonas backlight",
+  "Banners",
+  "Adesivos impressos",
+  "Adesivos com recorte",
+  "Adesivos perfurados",
+  "Adesivos especiais",
+  "Adesivos de carroceria",
+  "Fachadas e letreiros",
+  "Placas",
+  "Acrílico",
+  "Impressos gráficos",
+  "Brindes personalizados",
+  "Acabamentos",
+  "Instalação e deslocamento",
+  "Criação e serviços",
+] as const;
+
 export const UNIDADES = ["un", "m2", "m", "hora", "peca", "kg", "lote"] as const;
 
 export const TIPOS = [
