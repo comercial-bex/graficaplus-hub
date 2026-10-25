@@ -302,7 +302,7 @@ export function NovoProdutoEmPassos({
                 icone={<Droplets className="h-8 w-8 text-muted-foreground" />}
                 onEscolher={() => {
                   onFechar();
-                  navigate({ to: "/materiais" });
+                  navigate({ to: "/materiais", search: { novo: 1 } });
                 }}
               />
               <CartaoDeEscolha
