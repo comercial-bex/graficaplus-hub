@@ -14,6 +14,7 @@ export type Produto = {
   imagem_url: string | null;
   tempo_producao_min: number | null;
   maquina_padrao_id: string | null;
+  observacoes_internas?: string | null;
 };
 export type TipoDePreco = "final" | "parceiro";
 export type Concorrente = {
@@ -33,6 +34,8 @@ export type Linha = {
   /** custo do cadastro OU o cheio, conforme a base escolhida na tela */
   custoBase: number | null;
   cheio: number | null;
+  /** custo e preço de balcão copiados de um produto parecido */
+  provisorio: boolean;
   composicao: Composicao | null;
   receita: LinhaDaReceita[];
   venda: number | null;

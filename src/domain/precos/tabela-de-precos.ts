@@ -152,6 +152,21 @@ export const PARTES_DO_CUSTO = [
   { chave: "indireto", rotulo: "Indireto", ajuda: "Rateio administrativo por hora produtiva (aluguel, internet, contador…)." },
 ] as const satisfies ReadonlyArray<{ chave: keyof Composicao; rotulo: string; ajuda: string }>;
 
+/**
+ * O custo cheio só vale quando a matéria-prima está dentro dele: produto físico sem receita tem
+ * máquina, mão de obra e rateio (R$ 3,91) mas material zero, e esse "cheio" faria a margem parecer
+ * 88%. Serviço não tem material; produto com receita tem. Fora disso, vale o custo do cadastro.
+ */
+export function cheioConfiavel(a: { tipo: string | null; temReceita: boolean; cheio: number | null }): number | null {
+  if (a.cheio == null) return null;
+  return a.tipo === "servico" || a.temReceita ? a.cheio : null;
+}
+
+/** O custo e o preço de balcão foram copiados de um produto parecido (migração 20261025500000). */
+export function custoProvisorio(observacoes: string | null | undefined): boolean {
+  return /CUSTO E PREÇO DE BALCÃO PROVISÓRIOS/i.test(observacoes ?? "");
+}
+
 export function custoCheio(c: Composicao | null): number | null {
   if (!c) return null;
   const total = c.material + c.maquina + c.maoDeObra + c.indireto;

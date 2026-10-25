@@ -82,3 +82,21 @@ describe("agrupamento e duplicatas", () => {
     expect(m.get("p")?.v).toBe(2);
   });
 });
+
+import { cheioConfiavel, custoProvisorio } from "@/domain/precos/tabela-de-precos";
+
+describe("custo cheio só quando a matéria-prima está dentro", () => {
+  it("produto físico sem receita não usa o 'cheio' de R$ 3,91 (sem material)", () => {
+    expect(cheioConfiavel({ tipo: "produto", temReceita: false, cheio: 3.91 })).toBeNull();
+  });
+  it("com receita ou sendo serviço, vale", () => {
+    expect(cheioConfiavel({ tipo: "produto", temReceita: true, cheio: 14.97 })).toBe(14.97);
+    expect(cheioConfiavel({ tipo: "servico", temReceita: false, cheio: 52 })).toBe(52);
+    expect(cheioConfiavel({ tipo: "produto", temReceita: true, cheio: null })).toBeNull();
+  });
+  it("reconhece o custo provisório pela observação gravada na ativação dos sete produtos", () => {
+    expect(custoProvisorio("CUSTO E PREÇO DE BALCÃO PROVISÓRIOS (25/10/2026): copiados de ...")).toBe(true);
+    expect(custoProvisorio("Obs qualquer")).toBe(false);
+    expect(custoProvisorio(null)).toBe(false);
+  });
+});

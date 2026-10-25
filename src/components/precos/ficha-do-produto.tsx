@@ -126,6 +126,11 @@ export function FichaDoProduto({
           </TabsList>
 
           <TabsContent value="custo" className="space-y-4">
+            {linha.provisorio && (
+              <p className="rounded-md border border-warning/50 bg-warning/15 p-2 text-xs" role="note">
+                Custo provisório: o custo e o preço de balcão deste produto foram copiados de um produto parecido até o custo real por {p.unidade} ser informado. Para fechar: receita (matéria-prima), tempo e máquina no cadastro do produto.
+              </p>
+            )}
             <section className="rounded-lg border border-border bg-card p-3">
               <h3 className="text-sm font-semibold">Do que o produto é feito</h3>
               <p className="mt-0.5 text-xs text-muted-foreground">
