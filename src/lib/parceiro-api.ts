@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ExtrasDoProduto } from "@/domain/parceiros/vitrine";
 import { normalizarCatalogo, type ItemDoCatalogo } from "@/domain/parceiros/preco";
 import type { MarcaDoParceiro, PainelDoParceiro } from "@/domain/parceiros/painel";
+import { normalizarPrazos, type PrazoDeEntrega } from "@/domain/parceiros/prazo";
 
 /**
  * Conversa com o banco do clube de parceiros.
@@ -19,6 +20,7 @@ export const BUCKET_MARCAS = "parceiros-marcas";
 export const CHAVE_PAINEL = ["parceiro-painel"] as const;
 export const CHAVE_CATALOGO = ["parceiro-catalogo"] as const;
 export const CHAVE_EXTRAS = ["parceiro-catalogo-extras"] as const;
+export const CHAVE_PRAZOS = ["parceiro-prazos"] as const;
 export const chaveDoLogo = (caminho: string | null | undefined) => ["parceiro-logo", caminho ?? ""] as const;
 
 /** O banco responde 42501 quando o usuário não é parceiro ativo. */
@@ -48,6 +50,17 @@ export async function carregarExtrasDoCatalogo(): Promise<ExtrasDoProduto[]> {
   return (data ?? []) as ExtrasDoProduto[];
 }
 
+/** Prazos de produção ativos (normal e expresso), com a taxa em % de cada um. */
+export async function carregarPrazos(): Promise<PrazoDeEntrega[]> {
+  const { data, error } = await (supabase as any)
+    .from("prazos_de_entrega")
+    .select("chave, nome, descricao, taxa_percentual, ordem")
+    .eq("ativo", true)
+    .order("ordem");
+  if (error) throw error;
+  return normalizarPrazos((data ?? []) as unknown[]);
+}
+
 export async function marcarOfertaVista(ofertaId: string): Promise<void> {
   const { error } = await (supabase.rpc as any)("parceiro_marcar_oferta_vista", { p_oferta_id: ofertaId });
   if (error) throw error;
@@ -65,6 +78,9 @@ export type PedidoEnviado = {
   itens_livres_fora_do_pedido: number;
   total: number;
   credito_usado: number;
+  /** o prazo do pedido e a taxa em reais que o banco somou sobre os produtos */
+  prazo?: string;
+  taxa_prazo?: number;
 };
 
 export async function enviarPedido(orcamentoId: string, usarCredito: number): Promise<PedidoEnviado> {
