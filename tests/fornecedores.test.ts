@@ -338,6 +338,20 @@ describe("preço pago por m²/ml × custo do cadastro", () => {
 /* A porta: quem lê e quem grava                                             */
 /* ------------------------------------------------------------------------ */
 
+describe("a tela", () => {
+  const tela = readFileSync(join(__dirname, "..", "src/components/fornecedores/compras-do-fornecedor.tsx"), "utf8");
+
+  it("o aviso das reservas concorda no plural (visto no ar em 26/10: '3 reservas … não virou')", () => {
+    expect(tela).toContain("reservas foram pagas e não viraram venda");
+    expect(tela).toContain("Uma reserva foi paga e não virou venda");
+  });
+
+  it("os quatro cartões de valor não ficam lado a lado na coluna estreita (cortavam 'R$ 5.092,64')", () => {
+    expect(tela).toContain("sm:grid-cols-2 2xl:grid-cols-4");
+    expect(tela).not.toContain("lg:grid-cols-4");
+  });
+});
+
 describe("preço de compra é custo: a porta da tela e do banco", () => {
   const sql = semComentarios(ESQUEMA);
 

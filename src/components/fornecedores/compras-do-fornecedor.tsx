@@ -69,7 +69,7 @@ export function ComprasDoFornecedor({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         <KpiCard
           label="Total pago"
           value={brl(resumo.totalPago)}
@@ -90,9 +90,11 @@ export function ComprasDoFornecedor({
         <div role="note" className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
           <p>
-            {reservasSemNota.length === 1 ? "Uma reserva foi paga" : `${reservasSemNota.length} reservas foram pagas`} e
-            não virou venda no sistema do fornecedor ({reservasSemNota.map((d) => d.documento).join(", ")}). Confira se o
-            material foi retirado e peça a nota.
+            {reservasSemNota.length === 1
+              ? "Uma reserva foi paga e não virou venda"
+              : `${reservasSemNota.length} reservas foram pagas e não viraram venda`}{" "}
+            no sistema do fornecedor ({reservasSemNota.map((d) => d.documento).join(", ")}). Confira se o material foi
+            retirado e peça a nota.
           </p>
         </div>
       )}
@@ -159,8 +161,8 @@ export function ComprasDoFornecedor({
                           ` · de ${formatarPrecoDaUnidade(p.menorPago, p.material.unidade)} a ${formatarPrecoDaUnidade(p.maiorPago, p.material.unidade)}`}
                       </p>
                     </td>
-                    <td className="py-2 pr-3 tabular-nums">{formatarPrecoDaUnidade(p.ultimoPago, p.material.unidade)}</td>
-                    <td className="py-2 pr-3 tabular-nums">
+                    <td className="whitespace-nowrap py-2 pr-3 tabular-nums">{formatarPrecoDaUnidade(p.ultimoPago, p.material.unidade)}</td>
+                    <td className="whitespace-nowrap py-2 pr-3 tabular-nums">
                       {!veCustoDoCadastro
                         ? "só o financeiro vê"
                         : p.custoNoCadastro == null
@@ -256,16 +258,16 @@ function Documento({ doc, situacao }: { doc: CompraNoFornecedor; situacao: Situa
                     <td className="py-1.5 pr-3">
                       <span className="font-mono text-xs text-muted-foreground">{i.codigo}</span> {i.descricao}
                     </td>
-                    <td className="py-1.5 pr-3 tabular-nums">
+                    <td className="whitespace-nowrap py-1.5 pr-3 tabular-nums">
                       {i.quantidade.toLocaleString("pt-BR")} {i.unidade}
                     </td>
-                    <td className="py-1.5 pr-3 tabular-nums">
+                    <td className="whitespace-nowrap py-1.5 pr-3 tabular-nums">
                       {brl(i.preco_unitario)}
                       {i.preco_lista != null && i.preco_lista !== i.preco_unitario && (
                         <span className="block text-xs text-muted-foreground">tabela {brl(i.preco_lista)}</span>
                       )}
                     </td>
-                    <td className="py-1.5 pr-3 tabular-nums">{brl(i.total)}</td>
+                    <td className="whitespace-nowrap py-1.5 pr-3 tabular-nums">{brl(i.total)}</td>
                     <td className="py-1.5">{ROTULO_DA_FINALIDADE[i.finalidade]}</td>
                   </tr>
                 ))}
