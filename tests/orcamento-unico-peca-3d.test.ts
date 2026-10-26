@@ -116,3 +116,21 @@ describe("a consulta da metragem na lista só pede colunas que a view operaciona
     expect(bloco).not.toMatch(/select\([^)]*origem_calculo/);
   });
 });
+
+describe("restos resolvidos em 27/10: WhatsApp pelo sistema, aviso do webhook, hub 3D", () => {
+  it("link do catálogo e pedidos de cotação saem pela caixa do sistema", () => {
+    expect(readFileSync("src/components/catalogo/links-do-catalogo.tsx", "utf8")).toContain('origem="catalogo"');
+    const cot = readFileSync("src/components/catalogo/pedidos-de-cotacao.tsx", "utf8");
+    expect(cot).toContain("abrirConversaPeloNumero({ data: { telefone: p.telefone, nome: p.nome } })");
+    expect(cot).toContain('navigate({ to: "/whatsapp", search: { conversa: r.id } })');
+  });
+  it("o aviso 'Eventos com falha' conta só evento sem processado_em; mídia copia até 45 MB", () => {
+    expect(readFileSync("src/components/whatsapp/alerta-whatsapp.tsx", "utf8")).toContain('.is("processado_em", null)');
+    const wh = readFileSync("src/lib/api/whatsapp-webhook.server.ts", "utf8");
+    expect(wh).toContain("const LIMITE_MIDIA_BYTES = 45 * 1024 * 1024;");
+    expect(wh).not.toContain("acima de 16 MB");
+  });
+  it("a tela Impressão 3D não mostra mais o cartão de exemplo com números fictícios", () => {
+    expect(hub).not.toContain("Referência do motor de custo (exemplo)");
+  });
+});

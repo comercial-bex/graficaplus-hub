@@ -25,16 +25,10 @@ import {
   Weight,
   AlertTriangle,
   Activity,
-  DollarSign,
 } from "lucide-react";
-import {
-  price,
-  operationalCost,
-  MOTOR_VERSION,
-} from "@/domain/impressao3d/cost-engine";
+import { MOTOR_VERSION } from "@/domain/impressao3d/cost-engine";
 import { mensagemErro } from "@/lib/erros";
 import { Dica } from "@/components/bex/Dica";
-import { percentual } from "@/lib/percentual";
 import { formatBRL } from "@/lib/produtos-catalogo";
 import { Carregando } from "@/components/bex/Carregando";
 
@@ -138,25 +132,6 @@ function Impressao3DPage() {
         .data,
   });
 
-  // Motor de referência (exemplo)
-  const custoRef = operationalCost({
-    material: "30.5000",
-    maquina: "35.7000",
-    energia: "1.1220",
-    maoDeObra: "40.0000",
-    embalagem: "5.0000",
-    indiretosRateados: "10.0000",
-    reservaFalha: 0,
-  });
-  const precoRef = price({
-    custoOperacional: custoRef,
-    tributosVenda: "0.06",
-    taxaPagamento: "0.03",
-    margemLiquidaAlvo: "0.25",
-    margemMinima: "0.10",
-    quantidade: 1,
-  });
-
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -228,35 +203,6 @@ function Impressao3DPage() {
           tone={((dashboard as any)?.falhas ?? 0) > 0 ? "magenta" : "muted"}
         />
       </div>
-
-      {/* Referência do motor */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <DollarSign className="h-4 w-4" /> Referência do motor de custo (exemplo)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-4 text-sm">
-          <div className="rounded border p-3">
-            <div className="text-muted-foreground text-xs">Custo operacional</div>
-            <div className="font-mono font-semibold">R$ {custoRef.toString(2)}</div>
-          </div>
-          <div className="rounded border p-3">
-            <div className="text-muted-foreground text-xs">Preço sugerido</div>
-            <div className="font-mono font-semibold">R$ {precoRef.precoComercial.toString(2)}</div>
-          </div>
-          <div className="rounded border p-3">
-            <div className="text-muted-foreground text-xs">Margem líquida</div>
-            <div className="font-mono font-semibold">
-              {percentual(precoRef.margemLiquida.toNumber() * 100, 2)}
-            </div>
-          </div>
-          <div className="rounded border p-3">
-            <div className="text-muted-foreground text-xs">Markup</div>
-            <div className="font-mono font-semibold">{precoRef.markup.toString(2)}x</div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Orçamentos 3D reais */}
       <Card>

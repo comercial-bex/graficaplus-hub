@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import { BotaoEnviarPeloSistema } from "@/components/whatsapp/enviar-pelo-sistema";
 import { mensagemErro } from "@/lib/erros";
 import {
   VALIDADE_MAXIMA_DIAS,
@@ -246,10 +247,20 @@ export function GerarLinkDialog({
               >
                 <Copy className="mr-1 h-4 w-4" /> Copiar
               </Button>
+              {/* Cliente com telefone: sai pelo WhatsApp da gráfica e fica na conversa (27/10/2026).
+                  O wa.me continua como segunda opção, para mandar do próprio celular. */}
+              <BotaoEnviarPeloSistema
+                telefone={cliente?.telefone ?? null}
+                nome={cliente?.nome ?? null}
+                origem="catalogo"
+                texto={mensagem}
+                variant="default"
+                size="default"
+              />
               {whatsapp && (
                 <Button asChild variant="outline" className="h-11 md:h-9">
                   <a href={whatsapp} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="mr-1 h-4 w-4" /> Mandar no WhatsApp
+                    <MessageCircle className="mr-1 h-4 w-4" /> Mandar do meu celular
                   </a>
                 </Button>
               )}
