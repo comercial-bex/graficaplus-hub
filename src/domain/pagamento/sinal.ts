@@ -35,3 +35,25 @@ export function notaDoSinal(parcelas: number): string {
     ? `É a 1ª de ${parcelas} parcelas.`
     : "É o sinal de 50% para a peça entrar na produção; o restante fica para a entrega.";
 }
+
+/**
+ * As mensagens do Pix no WhatsApp (27/10/2026), no desenho de uma operadora de telecom que o dono
+ * achou boa: o QR Code, uma frase curta de apresentação e o código numa mensagem SOZINHA. Sozinho,
+ * a pessoa segura o dedo na bolha e copia só o código, sem pegar texto junto.
+ */
+export function mensagensDoPix(a: {
+  cliente?: string | null;
+  valor: number;
+  numeroDoOrcamento: number;
+  empresa?: string | null;
+  parcelas: number;
+  copiaECola: string;
+}): { legendaDoQr: string; introducao: string; codigo: string } {
+  const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const primeiro = a.cliente?.trim() ? a.cliente.trim().split(/\s+/)[0] : null;
+  return {
+    legendaDoQr: `${primeiro ? `${primeiro}, o` : "O"} Pix do orçamento #${a.numeroDoOrcamento}${a.empresa ? ` da ${a.empresa}` : ""} é de ${brl(a.valor)}. Aponte a câmera do app do seu banco para o QR Code, ou copie o código na mensagem abaixo.`,
+    introducao: `Segue o código Pix (copia e cola) 👇\n${notaDoSinal(a.parcelas)}\nDepois de pagar, me manda o comprovante por aqui (foto ou PDF) que eu confiro e libero o seu pedido.`,
+    codigo: a.copiaECola,
+  };
+}
