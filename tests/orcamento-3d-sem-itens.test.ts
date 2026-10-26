@@ -4,13 +4,15 @@ import { describe, expect, it } from "vitest";
 const pagina = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
 const lista = readFileSync("src/routes/_authenticated/orcamentos.index.tsx", "utf8");
 
-describe("Orçamento de impressão 3D abre na tela certa", () => {
-  it("vai para o orçamento 3D só depois dos itens carregarem e sem itens comuns", () => {
-    expect(pagina).toContain("consultaItens.isSuccess && itensDeProduto.length === 0");
-    expect(pagina).toContain('to: "/orcamento-3d/$id"');
-    expect(pagina).toContain("replace: true");
+describe("Orçamento de impressão 3D vive no orçamento comum", () => {
+  it("a tela do orçamento não desvia mais para o módulo 3D: lê as peças e abre a calculadora", () => {
+    expect(pagina).not.toContain('to: "/orcamento-3d/$id"');
+    expect(pagina).toContain('queryKey: ["pecas-3d-do-orcamento", id]');
+    expect(pagina).toContain('<Calculadora3D');
+    expect(pagina).toContain('modo="embutido"');
   });
-  it("a linha da lista de um orçamento 3D leva ao orçamento 3D", () => {
-    expect(lista).toContain('mapa3d[o.id]\n                      ? navigate({ to: "/orcamento-3d/$id"');
+  it("a linha da lista sempre abre o orçamento; a peça 3D é escolhida dentro dele", () => {
+    expect(lista).toContain('onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}');
+    expect(lista).toContain('sessionStorage.setItem("bex.orcamento.abrir3d", novoId)');
   });
 });

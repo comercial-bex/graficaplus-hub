@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const TELA = readFileSync("src/routes/_authenticated/orcamento-3d-novo.tsx", "utf8");
+const TELA = readFileSync("src/components/impressao3d/calculadora-3d.tsx", "utf8");
 
 describe("orçamento 3D com cartões", () => {
   it("impressora, filamento e presets são cartões de escolha", () => {

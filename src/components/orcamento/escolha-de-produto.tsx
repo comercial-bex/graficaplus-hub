@@ -165,6 +165,7 @@ export function EscolhaDeProduto({
   descricaoAtual,
   onEscolherProduto,
   onItemLivre,
+  onCalcularPeca3d,
   atalhos = [],
   desabilitado = false,
 }: {
@@ -183,6 +184,8 @@ export function EscolhaDeProduto({
   descricaoAtual: string;
   onEscolherProduto: (p: ProdutoDaEscolha) => void;
   onItemLivre: (tipo: TipoDeProduto) => void;
+  /** Peça 3D (27/10/2026): abre a calculadora em vez de um produto do catálogo. */
+  onCalcularPeca3d?: () => void;
   atalhos?: AtalhoDeProdutos[];
   desabilitado?: boolean;
 }) {
@@ -342,6 +345,8 @@ export function EscolhaDeProduto({
                   onClick={() => {
                     setBusca("");
                     setTipoExplorado(t.chave);
+                    // Impressão 3D não é um produto de prateleira: o preço sai da calculadora.
+                    if (t.chave === "impressao_3d" && onCalcularPeca3d) onCalcularPeca3d();
                   }}
                   className={cn(
                     "flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-center transition-colors",
@@ -475,6 +480,29 @@ export function EscolhaDeProduto({
                 </button>
               );
             })}
+
+            {/* Peça 3D: o produto, o material e o preço saem da calculadora (fatiador, filamento, foto). */}
+            {!termo && grupoAtual!.tipo.chave === "impressao_3d" && onCalcularPeca3d && (
+              <button
+                type="button"
+                data-cartao
+                data-testid="calcular-peca-3d"
+                tabIndex={-1}
+                disabled={desabilitado}
+                onClick={onCalcularPeca3d}
+                className="flex min-h-[4.5rem] items-center gap-3 rounded-lg border border-primary/50 bg-primary/5 p-2 text-left transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-span-2 lg:col-span-3"
+              >
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                  <Box className="h-7 w-7" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">Calcular a peça 3D</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Print do fatiador, impressora, filamento, peso, tempo e foto do modelo. A peça entra como item deste orçamento.
+                  </span>
+                </span>
+              </button>
+            )}
 
             {/* Fora do catálogo: a descrição, a unidade e o preço são digitados. */}
             {!termo && (
