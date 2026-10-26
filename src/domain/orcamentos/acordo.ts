@@ -217,10 +217,23 @@ export function pendenciasParaEnviar(o: {
   // O cliente veria no PDF e no link um desconto que a gráfica ainda não deu.
   if (o.verPreco && o.descontoPendente) falta.push("aprovação do desconto");
   if (o.itens.length === 0) falta.push("itens");
-  const semArte = o.itens.filter((i) => !i.arquivo_id).length;
-  if (semArte === 1) falta.push("layout em 1 item");
-  else if (semArte > 1) falta.push(`layout em ${semArte} itens`);
   return falta;
+}
+
+/**
+ * O que NÃO impede de mandar ao cliente, mas a equipe precisa saber (26/10/2026).
+ * O layout ia na lista de pendências: a venda parecia travada e a revisão ficava
+ * em "1 pendência" por algo que só a produção exige. A OS já barra a produção sem
+ * arte aprovada (`os_bloqueios_para`), então aqui é aviso, não pendência.
+ */
+export function avisosParaEnviar(o: { itens: { arquivo_id: string | null }[] }): string[] {
+  const semArte = o.itens.filter((i) => !i.arquivo_id).length;
+  if (semArte === 0) return [];
+  return [
+    semArte === 1
+      ? "1 item sem layout: dá para enviar, a produção só começa com a arte aprovada"
+      : `${semArte} itens sem layout: dá para enviar, a produção só começa com a arte aprovada`,
+  ];
 }
 
 /* ------------------------------------------------------------------------- */

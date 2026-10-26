@@ -143,7 +143,7 @@ import {
   proximaFaixa,
   type FaixaPreco,
 } from "@/domain/orcamentos/faixas";
-import { brl, dataBR, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
+import { avisosParaEnviar, brl, dataBR, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 
@@ -1275,6 +1275,9 @@ function OrcamentoDetailPage() {
               : "Envie de novo para registrar a nova versão."}
           </p>
         )}
+        {!fechado && pendencias.length === 0 && avisosParaEnviar({ itens: itensDeProduto as { arquivo_id: string | null }[] }).map((a) => (
+          <p key={a} className="md:pl-12 text-xs text-muted-foreground">{a}.</p>
+        ))}
         {!fechado && pendencias.length > 0 && (
           <p className="md:pl-12 text-xs text-amber-500">
             Antes de enviar ao cliente, falta:{" "}

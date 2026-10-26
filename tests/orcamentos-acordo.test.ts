@@ -9,6 +9,7 @@ import {
   modoDeEntrega,
   parcelasDoOrcamento,
   pendenciasParaEnviar,
+  avisosParaEnviar,
   prazoSeparado,
   somarDias,
   textoDoEndereco,
@@ -102,6 +103,14 @@ describe("parcelas iguais às da conversão em OS", () => {
   });
 });
 
+describe("avisos que não impedem de mandar", () => {
+  it("layout faltando é aviso, não pendência", () => {
+    expect(avisosParaEnviar({ itens: [{ arquivo_id: "a" }] })).toEqual([]);
+    expect(avisosParaEnviar({ itens: [{ arquivo_id: null }] })[0]).toContain("1 item sem layout");
+    expect(avisosParaEnviar({ itens: [{ arquivo_id: null }, { arquivo_id: null }] })[0]).toContain("2 itens sem layout");
+  });
+});
+
 describe("o que falta antes de mandar", () => {
   it("lista só o que falta, com o plural certo", () => {
     expect(
@@ -121,7 +130,7 @@ describe("o que falta antes de mandar", () => {
         temCondicao: false,
         itens: [{ arquivo_id: null }, { arquivo_id: null }],
       }),
-    ).toEqual(["cliente ou contato", "data de entrega", "condição de pagamento", "layout em 2 itens"]);
+    ).toEqual(["cliente ou contato", "data de entrega", "condição de pagamento"]);
     // quem não vê preço não é cobrado por condição de pagamento
     expect(
       pendenciasParaEnviar({
