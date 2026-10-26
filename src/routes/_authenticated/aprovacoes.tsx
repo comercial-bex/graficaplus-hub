@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +98,7 @@ const FILTROS = [
 ] as const;
 
 function AprovacoesPage() {
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["chave"]>("todos");
 
@@ -246,12 +247,17 @@ function AprovacoesPage() {
             {filtradas.map((l) => {
               const s = situacao(l);
               return (
-                <TableRow key={l.id}>
+                <TableRow
+                  key={l.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate({ to: "/orcamentos/$id", params: { id: l.id } })}
+                >
                   <TableCell>
                     <Link
                       to="/orcamentos/$id"
                       params={{ id: l.id }}
                       className="font-medium text-foreground hover:text-[color:var(--bex-cyan)]"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {l.numero ?? "s/ número"}
                     </Link>
@@ -291,6 +297,7 @@ function AprovacoesPage() {
                         to="/os/$id"
                         params={{ id: l.os_id }}
                         className="text-[color:var(--bex-cyan)] hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {l.os_numero ?? "abrir OS"}
                       </Link>

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { mensagemErro } from "@/lib/erros";
+import { EnviarComprovanteDoCliente } from "@/components/pagamento/enviar-comprovante-do-cliente";
 import { LOGO_FUNDO_CLARO } from "@/lib/marca";
 import {
   obterOrcamentoPublico,
@@ -238,6 +239,8 @@ function OrcamentoPublicoPage() {
             </CardContent>
           </Card>
         )}
+
+        {jaRespondido && <EnviarComprovanteDoCliente token={token} />}
       </div>
     </div>
   );

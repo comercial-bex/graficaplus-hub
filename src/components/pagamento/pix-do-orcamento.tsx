@@ -11,11 +11,12 @@ import { BotaoEnviarPeloSistema } from "@/components/whatsapp/enviar-pelo-sistem
 import { brCodePix, linkDoWhatsapp, mensagemDoPix, TIPOS_DE_CHAVE_PIX, type TipoDeChavePix } from "@/domain/pagamento/pix";
 import { IconePix } from "./marcas";
 import { QrCodeDoPix } from "./qr-code-do-pix";
+import { ComprovantesDoOrcamento, useComprovantesDoOrcamento } from "./comprovantes-do-orcamento";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (iso: string) => iso.split("-").reverse().join("/");
 
-export type PixRecebido = { valor: number; em: string; lancado?: boolean };
+export type PixRecebido = { valor: number; em: string; lancado?: boolean; sem_comprovante?: boolean };
 
 /**
  * Pix do orçamento: monta o copia e cola com o valor, manda ao cliente e deixa marcar que o dinheiro
@@ -23,6 +24,7 @@ export type PixRecebido = { valor: number; em: string; lancado?: boolean };
  * quem pode confirmar pagamento tem o valor lançado como baixa das parcelas (ver a conversão).
  */
 export function PixDoOrcamento({
+  orcamentoId,
   numero,
   clienteNome,
   clienteTelefone,
@@ -32,6 +34,7 @@ export function PixDoOrcamento({
   gravando,
   onMarcar,
 }: {
+  orcamentoId: string;
   numero: number | null;
   clienteNome: string | null;
   clienteTelefone: string | null;
@@ -56,6 +59,10 @@ export function PixDoOrcamento({
   const tipo = (typeof cfg?.pix_tipo === "string" ? cfg.pix_tipo : "aleatoria") as TipoDeChavePix;
   const nomeDaEmpresa = String(cfg?.nome ?? cfg?.razao_social ?? "");
   const [texto, setTexto] = useState("");
+  // Pix pago por fora precisa de comprovante: sem ele, só marca quem diz que conferiu o extrato.
+  const comprovantes = useComprovantesDoOrcamento(orcamentoId);
+  const [conferiNoExtrato, setConferiNoExtrato] = useState(false);
+  const temComprovante = (comprovantes.data?.length ?? 0) > 0;
   const valor = texto.trim() === "" ? valorSugerido : Number(texto.replace(",", ".")) || 0;
 
   const copiaECola = useMemo(
@@ -167,6 +174,8 @@ export function PixDoOrcamento({
         </>
       )}
 
+      <ComprovantesDoOrcamento orcamentoId={orcamentoId} podeAnexar={podeEditar} />
+
       {recebido ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-success/40 bg-success/10 p-2 text-sm">
           <span className="flex items-center gap-1.5 font-medium">
@@ -184,15 +193,36 @@ export function PixDoOrcamento({
         </div>
       ) : (
         podeEditar && (
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            disabled={gravando || valor <= 0}
-            onClick={() => onMarcar({ valor, em: new Date().toLocaleDateString("sv-SE") })}
-          >
-            <CheckCircle2 className="mr-1.5 h-4 w-4" /> O Pix chegou: marcar como recebido
-          </Button>
+          <div className="space-y-2">
+            {!temComprovante && (
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={conferiNoExtrato}
+                  onChange={(e) => setConferiNoExtrato(e.target.checked)}
+                />
+                Sem comprovante: conferi o valor no extrato do banco
+              </label>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={gravando || valor <= 0 || (!temComprovante && !conferiNoExtrato)}
+              onClick={() =>
+                onMarcar({
+                  valor,
+                  em: new Date().toLocaleDateString("sv-SE"),
+                  ...(temComprovante ? {} : { sem_comprovante: true }),
+                })
+              }
+            >
+              <CheckCircle2 className="mr-1.5 h-4 w-4" /> O Pix chegou: marcar como recebido
+            </Button>
+            {!temComprovante && !conferiNoExtrato && (
+              <p className="text-xs text-muted-foreground">Anexe o comprovante para marcar como recebido.</p>
+            )}
+          </div>
         )
       )}
     </div>

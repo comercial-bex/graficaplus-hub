@@ -62,6 +62,7 @@ import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { gerarPDFOrcamentoParaEnvio } from "@/lib/pdf/generate";
 import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functions";
+import { useComprovantesDoOrcamento } from "@/components/pagamento/comprovantes-do-orcamento";
 import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-antes-de-converter";
 import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
 import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
@@ -1163,6 +1164,9 @@ function OrcamentoDetailPage() {
   /** Qual conversão espera a conferência: "aprovado" (já aprovado) ou "enviado" (aprova junto). */
   const [conferindo, setConferindo] = useState<null | "aprovado" | "enviado">(null);
 
+  const comprovantes = useComprovantesDoOrcamento(id);
+  const comprovanteDoCliente = (comprovantes.data ?? []).some((c) => c.origem === "cliente" && !c.conferido_em);
+
   // O cliente abriu o link? (coluna nova; a view do orçamento não a traz)
   const visto = useQuery({
     queryKey: ["orcamento-visto", id],
@@ -1454,6 +1458,11 @@ function OrcamentoDetailPage() {
             {visto.data.visualizado_em
               ? `O cliente abriu o link em ${new Date(visto.data.visualizado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}${visto.data.visualizacoes > 1 ? ` (${visto.data.visualizacoes} vezes)` : ""}.`
               : "O cliente ainda não abriu o link."}
+          </p>
+        )}
+        {comprovanteDoCliente && (
+          <p className="md:pl-12 text-xs text-amber-500">
+            O cliente enviou um comprovante de pagamento. Confira em Condições, na parte do Pix, e marque como recebido.
           </p>
         )}
         {orc.status === "aprovado" && !fechado && recusa.data && (

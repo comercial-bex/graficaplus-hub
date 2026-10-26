@@ -761,6 +761,7 @@ function ContatosTab({ clienteId }: { clienteId: string }) {
 }
 
 function OSTab({ clienteId, nivelDeVisao }: { clienteId: string; nivelDeVisao: NivelDeVisao }) {
+  const navigate = useNavigate();
   const { data = [] } = useQuery({
     queryKey: ["os-cliente", clienteId, nivelDeVisao],
     queryFn: async () =>
@@ -793,9 +794,18 @@ function OSTab({ clienteId, nivelDeVisao }: { clienteId: string; nivelDeVisao: N
               </TableRow>
             )}
             {data.map((o: any) => (
-              <TableRow key={o.id}>
+              <TableRow
+                key={o.id}
+                className="cursor-pointer"
+                onClick={() => navigate({ to: "/os/$id", params: { id: o.id } })}
+              >
                 <TableCell>
-                  <Link to="/os/$id" params={{ id: o.id }} className="text-link hover:underline">
+                  <Link
+                    to="/os/$id"
+                    params={{ id: o.id }}
+                    className="text-link hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     #{o.numero}
                   </Link>
                 </TableCell>
@@ -822,6 +832,7 @@ function OrcamentosTab({
   canSeePrices: boolean;
   nivelDeVisao: NivelDeVisao;
 }) {
+  const navigate = useNavigate();
   const { data = [] } = useQuery({
     queryKey: ["orc-cliente", clienteId, nivelDeVisao],
     queryFn: async () =>
@@ -854,12 +865,17 @@ function OrcamentosTab({
               </TableRow>
             )}
             {data.map((o: any) => (
-              <TableRow key={o.id}>
+              <TableRow
+                key={o.id}
+                className="cursor-pointer"
+                onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
+              >
                 <TableCell>
                   <Link
                     to="/orcamentos/$id"
                     params={{ id: o.id }}
                     className="text-link hover:underline"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     #{o.numero}
                   </Link>
