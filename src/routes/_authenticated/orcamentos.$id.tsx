@@ -981,6 +981,7 @@ function OrcamentoDetailPage() {
     }
   }
 
+<<<<<<< HEAD
   const [enviandoPeloSistema, setEnviandoPeloSistema] = useState(false);
   /** Envio direto pelo Z-API: PDF + link na conversa do cliente, sem passar pelo celular de quem clicou. */
   async function enviarPeloSistema() {
@@ -1011,6 +1012,8 @@ function OrcamentoDetailPage() {
     }
   }
 
+=======
+>>>>>>> origin/main
   async function setStatus(novoStatus: string, aviso = "Status atualizado") {
     const update: any = { status: novoStatus };
     if (novoStatus === "enviado") update.enviado_em = new Date().toISOString();
