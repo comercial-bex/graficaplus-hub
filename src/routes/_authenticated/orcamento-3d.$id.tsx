@@ -231,10 +231,17 @@ function OrcamentoDetalhe() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
+        {/* A peça mora no orçamento comum (27/10/2026): voltar é voltar para ele. */}
         <Button asChild variant="ghost" size="sm">
-          <Link to="/impressao-3d">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-          </Link>
+          {orc.orcamento_id ? (
+            <Link to="/orcamentos/$id" params={{ id: orc.orcamento_id }}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Abrir o orçamento
+            </Link>
+          ) : (
+            <Link to="/impressao-3d">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Link>
+          )}
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -248,6 +255,21 @@ function OrcamentoDetalhe() {
           </p>
         </div>
         <StatusChip label={orc.status} tone={orc.status === "convertido" ? "lime" : "muted"} />
+        {orc.embutido && orc.orcamento_id && !orc.os_id && podeEditar && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              try {
+                sessionStorage.setItem("bex.orcamento.editar3d", orc.id);
+              } catch {
+                /* sem sessionStorage */
+              }
+              navigate({ to: "/orcamentos/$id", params: { id: orc.orcamento_id } });
+            }}
+          >
+            Editar a peça
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setPdfOpen(true)}>
           <FileDown className="h-4 w-4 mr-1" /> Gerar PDF
         </Button>
@@ -255,6 +277,13 @@ function OrcamentoDetalhe() {
           <Button asChild variant="outline">
             <Link to="/os/$id" params={{ id: orc.os_id }}>
               Ver OS
+            </Link>
+          </Button>
+        ) : orc.embutido && orc.orcamento_id ? (
+          // A peça é um item do orçamento: a OS nasce de lá, com todos os itens e os jobs de impressão.
+          <Button asChild>
+            <Link to="/orcamentos/$id" params={{ id: orc.orcamento_id }}>
+              Converter pelo orçamento
             </Link>
           </Button>
         ) : podeConverter ? (

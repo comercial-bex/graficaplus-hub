@@ -1,0 +1,1300 @@
+import { Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeft, Calculator, Cpu, Package, Sparkles, Wand2, X } from "lucide-react";
+import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-de-escolha";
+import { toast } from "sonner";
+import {
+  materialCost,
+  machineCost,
+  energyCost,
+  laborCost,
+  operationalCost,
+} from "@/domain/impressao3d/cost-engine";
+import { D } from "@/domain/impressao3d/decimal";
+import { SectionHeader } from "@/components/bex/SectionHeader";
+import { dicaTela } from "@/lib/dicas";
+import { StatusChip } from "@/components/bex/StatusChip";
+import { NeonButton } from "@/components/bex/NeonButton";
+import { FieldTooltip } from "@/components/bex/FieldTooltip";
+import { Dropzone, type DropzoneStatus } from "@/components/bex/Dropzone";
+import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao3d/ocr";
+import { fecharPreco } from "@/domain/impressao3d/preco";
+import {
+  BUCKET_DOS_ARQUIVOS_3D,
+  caminhoDoArquivo3d,
+  descreverFilamento,
+} from "@/domain/impressao3d/arquivos";
+import { cn } from "@/lib/utils";
+import { mensagemErro } from "@/lib/erros";
+import { useAuth } from "@/lib/auth-context";
+import { DicaIcone } from "@/components/bex/Dica";
+import { enviarLayout } from "@/components/orcamento/layouts-do-item";
+
+const num = (v: string, fallback = 0) => {
+  // tolera vírgula decimal (pt-BR): "6,52" -> 6.52, sem quebrar "1.375".
+  let s = String(v ?? "").trim();
+  if (s.includes(",")) {
+    s = s.includes(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(",", ".");
+  }
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const money = (v: any) =>
+  `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Campo do OCR deixado em branco é "não sei", não zero: 0% de preenchimento existe. */
+const numOuNulo = (v: string) => (String(v ?? "").trim() === "" ? null : num(v));
+
+const vezes = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}×`;
+
+type FormState = {
+  cliente_id: string;
+  contato_nome: string;
+  contato_telefone: string;
+  contato_email: string;
+  titulo: string;
+  quantidade: string;
+  maquina_id: string;
+  material_id: string;
+  gramas: string;
+  tempo: string; // livre: "2h 15m", "2:15", "135"
+  custo_hora: string;
+  potencia_w: string;
+  peso_suporte: string;
+  peso_purga: string;
+  pecas_placa: string;
+  filamento_tipo_detectado: string;
+  altura_camada: string;
+  infill_pct: string;
+  tarifa_kwh: string;
+  mo_custo_hora: string;
+  mo_horas: string;
+  pct_acabamento: string;
+  pct_falha: string;
+  custo_admin: string;
+  markup: string;
+};
+
+const PRESETS: {
+  id: string;
+  label: string;
+  tone: "cyan" | "magenta" | "lime" | "amber";
+  patch: Partial<FormState>;
+}[] = [
+  {
+    id: "varejo",
+    label: "Varejo padrão",
+    tone: "cyan",
+    patch: { markup: "2", pct_falha: "5", pct_acabamento: "5", mo_custo_hora: "40" },
+  },
+  {
+    id: "atacado",
+    label: "Atacado",
+    tone: "lime",
+    patch: { markup: "1.4", pct_falha: "3", pct_acabamento: "2", mo_custo_hora: "30" },
+  },
+  {
+    id: "pintada",
+    label: "Peça pintada",
+    tone: "magenta",
+    patch: { markup: "2.3", pct_acabamento: "12", mo_custo_hora: "50", pct_falha: "5" },
+  },
+  {
+    id: "prototipo",
+    label: "Protótipo rápido",
+    tone: "amber",
+    patch: { markup: "1.8", pct_falha: "10", pct_acabamento: "0", mo_custo_hora: "35" },
+  },
+];
+
+export type ResultadoDaCalculadora3d = { orcamentoId: string; orcamento3dId: string; itemId: string };
+
+/**
+ * A calculadora de peça 3D (27/10/2026), a mesma em dois lugares:
+ *   * `modo="embutido"`: dentro do orçamento comum, como um item — recebe o orçamento e o
+ *     cliente de fora, não pergunta de novo, e ao salvar grava a peça E o item num ato só
+ *     (`salvar_item_3d_no_orcamento`). Com `orcamento3dId`, reabre preenchida para editar.
+ *   * `modo="novo-orcamento"`: a porta antiga (/orcamento-3d-novo): cria o orçamento comum
+ *     antes e cai no mesmo caminho, para a pessoa terminar em /orcamentos como sempre.
+ */
+export function Calculadora3D({
+  modo,
+  orcamentoId,
+  clienteId,
+  orcamento3dId = null,
+  onSalvo,
+  onCancelar,
+}: {
+  modo: "embutido" | "novo-orcamento";
+  orcamentoId: string | null;
+  clienteId: string | null;
+  orcamento3dId?: string | null;
+  onSalvo: (r: ResultadoDaCalculadora3d) => void;
+  onCancelar?: () => void;
+}) {
+  const embutido = modo === "embutido";
+  // A mesma régua da tela do orçamento salvo: custo, lucro, margem e os
+  // parâmetros de custo são de quem tem impressao3d.cost.read. O vendedor
+  // cota e vê o preço — o que vai para o cliente.
+  const { hasPermission } = useAuth();
+  const podeVerCusto = hasPermission("impressao3d.cost.read");
+
+  const [f, setF] = useState<FormState>({
+    cliente_id: "",
+    contato_nome: "",
+    contato_telefone: "",
+    contato_email: "",
+    titulo: "",
+    quantidade: "1",
+    maquina_id: "",
+    material_id: "",
+    gramas: "",
+    tempo: "",
+    custo_hora: "",
+    potencia_w: "",
+    peso_suporte: "",
+    peso_purga: "",
+    pecas_placa: "",
+    filamento_tipo_detectado: "",
+    altura_camada: "",
+    infill_pct: "",
+    tarifa_kwh: "0.95",
+    mo_custo_hora: "40",
+    mo_horas: "0",
+    pct_acabamento: "5",
+    pct_falha: "5",
+    custo_admin: "0",
+    markup: "2",
+  });
+  // Campos que o usuário (ou um preset) já tocou — a configuração salva só
+  // preenche o que ainda está intocado, em vez de comparar com literais.
+  const tocados = useRef<Set<keyof FormState>>(new Set());
+  const set = (k: keyof FormState, v: string) => {
+    tocados.current.add(k);
+    setF((s) => ({ ...s, [k]: v }));
+  };
+  const patch = (p: Partial<FormState>) => setF((s) => ({ ...s, ...p }));
+  const aplicarPreset = (p: Partial<FormState>) => {
+    (Object.keys(p) as (keyof FormState)[]).forEach((k) => tocados.current.add(k));
+    patch(p);
+  };
+
+  // aplica último preset salvo
+  const [presetAtivo, setPresetAtivo] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = localStorage.getItem("bex.orc3d.preset");
+    if (!id) return;
+    const p = PRESETS.find((x) => x.id === id);
+    if (p) {
+      aplicarPreset(p.patch);
+      setPresetAtivo(p.id);
+    }
+  }, []);
+
+  const [fotoModelo, setFotoModelo] = useState<File | null>(null);
+  const [slicerFile, setSlicerFile] = useState<File | null>(null);
+  const [ocr, setOcr] = useState<DropzoneStatus>({ kind: "idle" });
+
+  async function processSlicer(file: File | null) {
+    setSlicerFile(file);
+    setOcr({ kind: "idle" });
+    if (!file) return;
+    setOcr({ kind: "loading", label: "Lendo…" });
+    try {
+      const r = await runSlicerOcr(file);
+      const achou: string[] = [];
+      if (r.gramas) {
+        set("gramas", String(r.gramas));
+        achou.push(`${r.gramas} g`);
+      }
+      if (r.minutos !== undefined) {
+        set("tempo", formatMinutos(r.minutos));
+        achou.push(formatMinutos(r.minutos));
+      }
+      if (r.pesoSuporteG !== undefined) set("peso_suporte", String(r.pesoSuporteG));
+      if (r.pesoPurgaG !== undefined) set("peso_purga", String(r.pesoPurgaG));
+      if (r.pecasPorPlaca !== undefined) set("pecas_placa", String(r.pecasPorPlaca));
+      if (r.filamentoTipo) set("filamento_tipo_detectado", r.filamentoTipo);
+      if (r.alturaCamadaMm !== undefined) set("altura_camada", String(r.alturaCamadaMm));
+      if (r.infillPct !== undefined) set("infill_pct", String(r.infillPct));
+      if (achou.length) {
+        setOcr({ kind: "ok", label: achou.join(" · ") });
+      } else {
+        setOcr({ kind: "error", label: "Preencha manualmente" });
+      }
+    } catch {
+      setOcr({ kind: "error", label: "OCR falhou — preencha manualmente" });
+    }
+  }
+
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes-sel"],
+    queryFn: async () =>
+      (await supabase.from("clientes").select("id, nome").order("nome")).data ?? [],
+  });
+  const { data: impressoras = [] } = useQuery({
+    queryKey: ["impressoras-sel"],
+    queryFn: async () =>
+      (
+        await (supabase as any)
+          .from("maquinas_3d_config")
+          .select("maquina_id, custo_hora_calculado, potencia_media_w, maquinas(nome)")
+          .eq("ativa", true)
+      ).data ?? [],
+  });
+  const { data: filamentos = [] } = useQuery({
+    queryKey: ["filamentos-sel"],
+    queryFn: async () =>
+      (
+        await (supabase as any)
+          .from("materiais_3d_filamento")
+          .select("material_id, custo_por_grama_calculado, tipo, cor, materiais(nome)")
+      ).data ?? [],
+  });
+
+  // Base de precificação 3D: preenche todo campo que o usuário ainda não tocou.
+  // A tarifa de energia sempre vem da conta de luz cadastrada em /configuracoes-3d.
+  const { data: configPrec, isError: configErro } = useQuery({
+    queryKey: ["config-precificacao-3d"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("config_precificacao_3d")
+        .select(
+          "tarifa_kwh_padrao, mo_custo_hora_padrao, markup_padrao, markup_atacado_padrao, pct_acabamento_padrao, pct_falha_padrao, custo_admin_padrao",
+        )
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [vindoDaConfig, setVindoDaConfig] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const c = configPrec;
+    if (!c) return;
+    const mapa: [keyof FormState, unknown][] = [
+      ["tarifa_kwh", c.tarifa_kwh_padrao],
+      ["mo_custo_hora", c.mo_custo_hora_padrao],
+      ["markup", c.markup_padrao],
+      ["pct_acabamento", c.pct_acabamento_padrao],
+      ["pct_falha", c.pct_falha_padrao],
+      ["custo_admin", c.custo_admin_padrao],
+    ];
+    const aplicados = new Set<string>();
+    setF((s) => {
+      const n2 = { ...s };
+      for (const [k, v] of mapa) {
+        if (v == null || tocados.current.has(k)) continue;
+        n2[k] = String(v);
+        aplicados.add(k);
+      }
+      return n2;
+    });
+    setVindoDaConfig(aplicados);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configPrec]);
+
+  // Reabrir uma peça gravada (edição): o banco devolve o que a calculadora precisa; os
+  // parâmetros de custo só vêm para quem pode ver custo (os demais cotam com a base da gráfica).
+  const [fotoAtualUrl, setFotoAtualUrl] = useState<string | null>(null);
+  const [slicerAtualPath, setSlicerAtualPath] = useState<string | null>(null);
+  const pecaGravada = useQuery({
+    queryKey: ["ler-item-3d", orcamento3dId],
+    enabled: !!orcamento3dId,
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("ler_item_3d", { p_orcamento_3d_id: orcamento3dId });
+      if (error) throw error;
+      return data as Record<string, any>;
+    },
+  });
+  useEffect(() => {
+    const p = pecaGravada.data;
+    if (!p) return;
+    const seg = Number(p.tempo_segundos ?? 0);
+    const ci = (p.custo_inputs ?? {}) as Record<string, any>;
+    const texto = (v: unknown) => (v == null || v === "" ? "" : String(v));
+    const patchGravado: Partial<FormState> = {
+      titulo: texto(p.titulo),
+      quantidade: texto(p.quantidade) || "1",
+      maquina_id: texto(p.maquina_id),
+      material_id: texto(p.material_id),
+      gramas: texto(p.gramas),
+      tempo: seg > 0 ? formatMinutos(Math.round(seg / 60)) : "",
+      peso_suporte: Number(p.peso_suporte_g ?? 0) > 0 ? texto(p.peso_suporte_g) : "",
+      peso_purga: Number(p.peso_purga_g ?? 0) > 0 ? texto(p.peso_purga_g) : "",
+      pecas_placa: Number(p.pecas_por_placa ?? 1) > 1 ? texto(p.pecas_por_placa) : "",
+      filamento_tipo_detectado: texto(p.filamento_tipo_detectado),
+      altura_camada: texto(p.altura_camada_mm),
+      infill_pct: texto(p.infill_pct),
+    };
+    if (ci.custo_hora_maquina != null) patchGravado.custo_hora = texto(ci.custo_hora_maquina);
+    if (ci.potencia_w != null) patchGravado.potencia_w = texto(ci.potencia_w);
+    if (ci.tarifa_kwh != null) patchGravado.tarifa_kwh = texto(ci.tarifa_kwh);
+    if (ci.mao_obra?.custo_hora != null) patchGravado.mo_custo_hora = texto(ci.mao_obra.custo_hora);
+    if (ci.mao_obra?.horas != null) patchGravado.mo_horas = texto(ci.mao_obra.horas);
+    if (ci.pct_acabamento != null) patchGravado.pct_acabamento = texto(ci.pct_acabamento);
+    if (ci.pct_falha != null) patchGravado.pct_falha = texto(ci.pct_falha);
+    if (ci.custo_admin != null) patchGravado.custo_admin = texto(ci.custo_admin);
+    if (ci.markup != null) patchGravado.markup = texto(ci.markup);
+    aplicarPreset(patchGravado);
+    setSlicerAtualPath(typeof p.slicer_screenshot === "string" ? p.slicer_screenshot : null);
+    if (typeof p.foto_modelo_path === "string" && p.foto_modelo_path) {
+      supabase.storage
+        .from(BUCKET_DOS_ARQUIVOS_3D)
+        .createSignedUrl(p.foto_modelo_path, 600)
+        .then(({ data }) => setFotoAtualUrl(data?.signedUrl ?? null));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pecaGravada.data]);
+
+  const impressora = impressoras.find((m: any) => m.maquina_id === f.maquina_id);
+  const filamento = filamentos.find((m: any) => m.material_id === f.material_id);
+
+  // Ao trocar de impressora, puxa custo-hora e potência para campos editáveis.
+  // Evita sub-precificar em silêncio quando a impressora não tem custo-hora.
+  useEffect(() => {
+    if (!impressora) return;
+    setF((s) => ({
+      ...s,
+      custo_hora: String(Number(impressora.custo_hora_calculado ?? 0)),
+      potencia_w: String(Number(impressora.potencia_media_w ?? 0)),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f.maquina_id]);
+
+  const tempoMinutos = parseTempoLivre(f.tempo) ?? 0;
+  const tempoHoras = tempoMinutos / 60;
+
+  const calc = useMemo(() => {
+    const gramasModelo = num(f.gramas);
+    const gramasSuporte = num(f.peso_suporte);
+    const gramasPurga = num(f.peso_purga);
+    const gramas = gramasModelo + gramasSuporte + gramasPurga;
+    const horasTotais = tempoHoras;
+    const cpg = Number(filamento?.custo_por_grama_calculado ?? 0);
+    const custoHora = num(f.custo_hora);
+    const potenciaW = num(f.potencia_w);
+    const qtd = num(f.quantidade, 1) || 1;
+    // O print do fatiador é UMA impressão (placa) que produz `pecasPlaca` peças.
+    // Para `qtd` peças, precisamos de `placas` impressões — e material/máquina/
+    // energia escalam por impressão, mão de obra e embalagem por peça.
+    const pecasPlaca = num(f.pecas_placa, 1) || 1;
+    const placas = Math.max(1, Math.ceil(qtd / pecasPlaca));
+
+    const materialPlaca = materialCost(D(gramas), cpg);
+    const maquinaPlaca = machineCost(horasTotais * 3600, custoHora);
+    const energiaPlaca = energyCost({
+      potenciaMediaW: potenciaW,
+      horasImpressao: horasTotais,
+      tarifaKwhSnapshot: num(f.tarifa_kwh),
+    });
+
+    const material = materialPlaca.mul(placas);
+    const maquina = maquinaPlaca.mul(placas);
+    const energia = energiaPlaca.mul(placas);
+    const acabamento = material.mul(num(f.pct_acabamento) / 100);
+    const risco = material.mul(num(f.pct_falha) / 100);
+    // mão de obra: horas de pós-processamento POR PEÇA × quantidade
+    const maoDeObra = laborCost([
+      { minutos: num(f.mo_horas) * 60, custoHoraSnapshot: num(f.mo_custo_hora) },
+    ]).mul(qtd);
+    // adm/embalagem: por peça
+    const indireto = D(num(f.custo_admin)).mul(qtd);
+
+    const operacional = operationalCost({
+      material: material.toString(),
+      maquina: maquina.toString(),
+      energia: energia.toString(),
+      maoDeObra: maoDeObra.toString(),
+      acabamento: acabamento.toString(),
+      reservaFalha: risco.toString(),
+      indiretosRateados: indireto.toString(),
+    });
+    const markup = num(f.markup, 2) || 2;
+    // TOTAL do lote = unitário arredondado × quantidade: o PDF fecha a conta.
+    const { preco, unitario, lucro, margem } = fecharPreco(operacional, markup, qtd);
+    const markupAtacado = Number(configPrec?.markup_atacado_padrao ?? 1.5) || 1.5;
+    const equilibrio = operacional.mul(1 / 0.9); // margem 10%
+    return {
+      cpg,
+      custoHora,
+      material,
+      maquina,
+      energia,
+      maoDeObra,
+      acabamento,
+      risco,
+      indireto,
+      operacional,
+      preco,
+      unitario,
+      lucro,
+      margem,
+      atacado: operacional.mul(markupAtacado),
+      markupAtacado,
+      equilibrio,
+      qtd,
+      pecasPlaca,
+      placas,
+      markup,
+    };
+  }, [f, impressora, filamento, configPrec]);
+
+  const faltando: string[] = [];
+  if (!f.titulo) faltando.push("título");
+  if (!f.maquina_id) faltando.push("impressora");
+  if (!f.material_id) faltando.push("filamento");
+  if (num(f.gramas) <= 0) faltando.push("peso");
+  // Sem tempo, `machineCost` e `energyCost` devolvem zero e o orçamento sai sem
+  // custo de máquina nem de energia — a hora de impressora vira brinde, e nada
+  // na tela avisa. Foi o que aconteceu no primeiro orçamento real do sistema.
+  if (tempoMinutos <= 0) faltando.push("tempo de impressão");
+
+  const salvar = useMutation({
+    mutationFn: async (): Promise<ResultadoDaCalculadora3d> => {
+      if (faltando.length) throw new Error(`Faltando: ${faltando.join(", ")}`);
+
+      // Porta antiga: o orçamento comum nasce aqui, com o cliente ou o contato digitado.
+      let orcId = orcamentoId;
+      if (!orcId) {
+        if (!f.cliente_id && !f.contato_nome.trim()) {
+          throw new Error("Escolha o cliente ou escreva o nome do contato.");
+        }
+        const { data: criado, error: erroOrc } = await (supabase as any)
+          .from("orcamentos")
+          .insert({
+            cliente_id: f.cliente_id || null,
+            contato_nome: f.cliente_id ? null : f.contato_nome.trim(),
+            contato_telefone: f.cliente_id ? null : f.contato_telefone.trim() || null,
+            contato_email: f.cliente_id ? null : f.contato_email.trim() || null,
+            titulo: f.titulo.trim(),
+            valor_total: 0,
+            valor_subtotal: 0,
+          })
+          .select("id")
+          .single();
+        if (erroOrc) throw erroOrc;
+        orcId = (criado as { id: string }).id;
+      }
+
+      // Print do fatiador: fica com o cálculo (só quem vê custo abre).
+      let slicerPath: string | null = null;
+      const ts = Date.now();
+      if (slicerFile) {
+        const path = caminhoDoArquivo3d("slicer", slicerFile.name, ts);
+        const { error } = await supabase.storage.from(BUCKET_DOS_ARQUIVOS_3D).upload(path, slicerFile);
+        if (error) throw error;
+        slicerPath = path;
+      }
+      // Foto do modelo: entra como arte do item (capa): sai no PDF, no link do cliente e na OS.
+      let fotoArquivoId: string | null = null;
+      if (fotoModelo) {
+        const r = await enviarLayout(fotoModelo, orcId, clienteId ?? (f.cliente_id || null));
+        fotoArquivoId = r.id;
+      }
+
+      const horasTotais = tempoHoras;
+      const inputs = {
+        cliente_id: clienteId ?? f.cliente_id ?? null,
+        quantidade: calc.qtd,
+        gramas: num(f.gramas),
+        peso_suporte_g: num(f.peso_suporte),
+        peso_purga_g: num(f.peso_purga),
+        pecas_por_placa: num(f.pecas_placa, 1) || 1,
+        filamento_tipo_detectado: f.filamento_tipo_detectado || null,
+        altura_camada_mm: numOuNulo(f.altura_camada),
+        infill_pct: numOuNulo(f.infill_pct),
+        horas_totais: horasTotais,
+        custo_hora_maquina: num(f.custo_hora),
+        potencia_w: num(f.potencia_w),
+        tarifa_kwh: num(f.tarifa_kwh),
+        mao_obra: { custo_hora: num(f.mo_custo_hora), horas: num(f.mo_horas) },
+        pct_acabamento: num(f.pct_acabamento),
+        pct_falha: num(f.pct_falha),
+        custo_admin: num(f.custo_admin),
+        markup: num(f.markup, 2),
+        slicer_screenshot: slicerPath ?? slicerAtualPath,
+        impressora: impressora?.maquinas?.nome ?? null,
+        filamento: filamento?.materiais?.nome ?? null,
+      };
+      const resultados = {
+        material: calc.material.toNumber(),
+        maquina: calc.maquina.toNumber(),
+        energia: calc.energia.toNumber(),
+        mao_de_obra: calc.maoDeObra.toNumber(),
+        acabamento: calc.acabamento.toNumber(),
+        risco: calc.risco.toNumber(),
+        indireto: calc.indireto.toNumber(),
+        operacional: calc.operacional.toNumber(),
+        preco: calc.preco.toNumber(),
+        margem: calc.margem.toNumber(),
+      };
+
+      const { data, error } = await (supabase.rpc as any)("salvar_item_3d_no_orcamento", {
+        p_orcamento_id: orcId,
+        p_orcamento_3d_id: orcamento3dId,
+        p_titulo: f.titulo.trim(),
+        p_quantidade: calc.qtd,
+        p_maquina_id: f.maquina_id,
+        p_material_id: f.material_id,
+        p_gramas: num(f.gramas),
+        p_tempo_segundos: Math.round(horasTotais * 3600),
+        p_custo_por_grama: calc.cpg,
+        p_inputs: inputs,
+        p_resultados: resultados,
+        p_custo_material: calc.material.toNumber(),
+        p_custo_maquina: calc.maquina.toNumber(),
+        p_custo_energia: calc.energia.toNumber(),
+        p_custo_mao_obra: calc.maoDeObra.toNumber(),
+        p_custo_acabamento: calc.acabamento.toNumber(),
+        p_custo_risco: calc.risco.toNumber(),
+        p_custo_indireto: calc.indireto.toNumber(),
+        p_custo_operacional: calc.operacional.toNumber(),
+        p_preco: calc.preco.toNumber(),
+        p_markup: num(f.markup, 2),
+        p_margem: calc.margem.toNumber(),
+        p_lucro: calc.lucro.toNumber(),
+        p_foto_arquivo_id: fotoArquivoId,
+        p_material_descricao: descreverFilamento(filamento),
+      });
+      if (error) throw error;
+      const r = data as { orcamento_3d_id: string; item_id: string };
+      return { orcamentoId: orcId, orcamento3dId: r.orcamento_3d_id, itemId: r.item_id };
+    },
+    onSuccess: (r) => {
+      toast.success(orcamento3dId ? "Peça 3D atualizada" : "Peça 3D adicionada ao orçamento");
+      onSalvo(r);
+    },
+    onError: (e: any) => toast.error(mensagemErro(e)),
+  });
+
+
+  const margemPct = calc.margem.toNumber() * 100;
+  const margemTone: "lime" | "amber" | "magenta" =
+    margemPct >= 40 ? "lime" : margemPct >= 15 ? "amber" : "magenta";
+
+  const total = calc.operacional.toNumber() || 1;
+  const breakdown = [
+    { label: "Material", value: calc.material.toNumber(), tone: "cyan" as const },
+    { label: "Máquina", value: calc.maquina.toNumber(), tone: "magenta" as const },
+    { label: "Energia", value: calc.energia.toNumber(), tone: "amber" as const },
+    { label: "Mão de obra", value: calc.maoDeObra.toNumber(), tone: "lime" as const },
+    { label: "Acabamento", value: calc.acabamento.toNumber(), tone: "cyan" as const },
+    { label: "Falha", value: calc.risco.toNumber(), tone: "magenta" as const },
+    { label: "Adm./embal.", value: calc.indireto.toNumber(), tone: "muted" as const },
+  ];
+
+  return (
+    <div className="space-y-6 pb-24">
+      {embutido ? (
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold">{orcamento3dId ? "Editar a peça 3D" : "Peça de impressão 3D"}</h2>
+            <p className="text-sm text-muted-foreground">
+              {podeVerCusto
+                ? "Solte o print do fatiador: o motor calcula custo, preço e margem. Ao salvar, a peça entra como item do orçamento."
+                : "Solte o print do fatiador: o motor calcula o preço. Ao salvar, a peça entra como item do orçamento."}
+            </p>
+          </div>
+          {onCancelar && (
+            <Button type="button" variant="ghost" size="sm" onClick={onCancelar} disabled={salvar.isPending}>
+              <X className="mr-1 h-4 w-4" /> Cancelar
+            </Button>
+          )}
+        </div>
+      ) : (
+      <SectionHeader
+        ajuda={dicaTela("/orcamento-3d-novo")}
+        breadcrumb="Impressão 3D · Novo orçamento"
+        title="Novo orçamento 3D"
+        description={
+          podeVerCusto
+            ? "Solte o print do fatiador e o motor calcula custo, preço e margem em tempo real. A peça nasce como item de um orçamento comum."
+            : "Solte o print do fatiador e o motor calcula o preço em tempo real. A peça nasce como item de um orçamento comum."
+        }
+        actions={
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/orcamentos">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Orçamentos
+            </Link>
+          </Button>
+        }
+      />
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        {/* ---- Formulário ---- */}
+        <div className="space-y-6">
+          {/* 1. Identificação */}
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <BlocoTitulo n="1" icone={<Package className="h-4 w-4" />} titulo="Identificação" sub="Quem, o quê, quantos" />
+              <div className={embutido ? "grid gap-3 md:grid-cols-[3fr_1fr]" : "grid gap-3 md:grid-cols-[2fr_1fr_1fr]"}>
+                <div className="space-y-1.5">
+                  <FieldTooltip
+                    label="Título"
+                    required
+                    hint="Nome curto que aparece no PDF e na listagem. Ex.: 'Porta-joias verde matcha'."
+                  />
+                  <Input
+                    aria-label="Título"
+                    value={f.titulo}
+                    onChange={(e) => set("titulo", e.target.value)}
+                    placeholder="ex.: Porta-joias verde matcha"
+                  />
+                </div>
+                {!embutido && (
+                <div className="space-y-1.5">
+                  <FieldTooltip
+                    label="Cliente"
+                    hint="Opcional. Sem cliente cadastrado, escreva o nome do contato abaixo — o vínculo só é exigido na hora de virar OS."
+                  />
+                  <Select
+                    value={f.cliente_id || "__avulso"}
+                    onValueChange={(v) => set("cliente_id", v === "__avulso" ? "" : v)}
+                  >
+                    <SelectTrigger aria-label="Cliente">
+                      <SelectValue placeholder="Selecionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__avulso">Sem cadastro (contato avulso)</SelectItem>
+                      {clientes.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <FieldTooltip
+                    label="Quantidade"
+                    hint="Total de peças a cotar. O motor escala automaticamente: material/máquina/energia por impressão e mão de obra/embalagem por peça (use 'Peças na placa' se o print traz mais de uma)."
+                  />
+                  <Input
+                    type="number"
+                    min="1"
+                    inputMode="numeric"
+                    aria-label="Quantidade"
+                    value={f.quantidade}
+                    onChange={(e) => set("quantidade", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {!embutido && !f.cliente_id && (
+                <div className="grid gap-3 md:grid-cols-3 rounded-lg border border-border/60 bg-card/40 p-3">
+                  <div className="space-y-1.5">
+                    <FieldTooltip
+                      label="Nome do contato"
+                      hint="Aparece no PDF no lugar do cliente. Você cadastra o cliente depois, na conversão em OS."
+                    />
+                    <Input
+                      aria-label="Nome do contato"
+                      value={f.contato_nome}
+                      onChange={(e) => set("contato_nome", e.target.value)}
+                      placeholder="Ex.: Marina (Instagram)"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Telefone / WhatsApp" hint="Opcional. Facilita o follow-up do orçamento." />
+                    <Input
+                      aria-label="Telefone do contato"
+                      value={f.contato_telefone}
+                      onChange={(e) => set("contato_telefone", e.target.value)}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="E-mail" hint="Opcional. Usado no envio do PDF do orçamento." />
+                    <Input
+                      aria-label="E-mail do contato"
+                      value={f.contato_email}
+                      onChange={(e) => set("contato_email", e.target.value)}
+                      placeholder="contato@email.com"
+                    />
+                  </div>
+                </div>
+              )}
+
+
+
+              <Dropzone
+                label={fotoAtualUrl && !fotoModelo ? "Trocar a foto do modelo (opcional)" : "Foto do modelo (opcional)"}
+                hint="A peça como o cliente vai recebê-la — sai no PDF, no link do cliente e na OS"
+                file={fotoModelo}
+                onFile={setFotoModelo}
+                accent="magenta"
+                captureFromClipboard={false}
+              />
+              {fotoAtualUrl && !fotoModelo && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground" data-testid="foto-atual-da-peca">
+                  <img src={fotoAtualUrl} alt="Foto atual do modelo" className="h-14 w-14 rounded-md border object-cover" />
+                  A foto atual fica; solte outra acima para trocar.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 2. Fatiador */}
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <BlocoTitulo n="2" icone={<Cpu className="h-4 w-4" />} titulo="Dados do fatiador" sub="O herói — o motor lê tudo daqui" />
+
+              <Dropzone
+                label="Print do fatiador"
+                hint="Bambu Studio, Orca, Cura ou PrusaSlicer — lemos peso e tempo automaticamente"
+                file={slicerFile}
+                onFile={processSlicer}
+                status={ocr}
+                accent="cyan"
+              />
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <FieldTooltip
+                    label="Impressora"
+                    required
+                    hint="Custo/hora vem de maquinas_3d_config (depreciação + manutenção + rateio de estrutura)."
+                  />
+                  {impressoras.length === 0 ? (
+                    <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                      Nenhuma impressora ativa — cadastre em /impressoras-3d
+                    </p>
+                  ) : (
+                    <GradeDeCartoes rotulo="Impressora" className="sm:grid-cols-2 lg:grid-cols-2">
+                      {impressoras.map((m: any) => (
+                        <CartaoDeEscolha
+                          key={m.maquina_id}
+                          ativo={f.maquina_id === m.maquina_id}
+                          titulo={m.maquinas?.nome}
+                          detalhe={
+                            podeVerCusto
+                              ? `${money(m.custo_hora_calculado ?? 0)}/h · ${Number(m.potencia_media_w ?? 0).toFixed(0)} W`
+                              : undefined
+                          }
+                          icone={<Cpu className="h-7 w-7 text-muted-foreground" />}
+                          onEscolher={() => set("maquina_id", m.maquina_id)}
+                        />
+                      ))}
+                    </GradeDeCartoes>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <FieldTooltip
+                    label="Filamento"
+                    required
+                    hint="Preço vem de materiais_3d_filamento. Mostramos o valor do quilo — a fórmula converte pra grama internamente."
+                  />
+                  {filamentos.length === 0 ? (
+                    <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                      Nenhum filamento — cadastre em /filamentos-3d
+                    </p>
+                  ) : (
+                    <GradeDeCartoes rotulo="Filamento" className="sm:grid-cols-2 lg:grid-cols-2">
+                      {filamentos.map((m: any) => {
+                        const kg = Number(m.custo_por_grama_calculado ?? 0) * 1000;
+                        return (
+                          <CartaoDeEscolha
+                            key={m.material_id}
+                            ativo={f.material_id === m.material_id}
+                            titulo={m.materiais?.nome}
+                            detalhe={[m.tipo, m.cor, podeVerCusto ? `${money(kg)}/kg` : null]
+                              .filter(Boolean)
+                              .join(" · ")}
+                            onEscolher={() => set("material_id", m.material_id)}
+                          />
+                        );
+                      })}
+                    </GradeDeCartoes>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <FieldTooltip
+                    label="Peso do modelo (g)"
+                    required
+                    hint="Só o peso do modelo. Suporte e purga ficam nos campos 'Detectado no print' abaixo. Aceita decimais (ex.: 6,52)."
+                  />
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    aria-label="Peso do modelo (g)"
+                    value={f.gramas}
+                    onChange={(e) => set("gramas", e.target.value.replace(",", "."))}
+                    placeholder="ex.: 6,52"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <FieldTooltip
+                    label="Tempo total"
+                    hint="Aceita: 2h 15m · 2:15 · 135min · 1,5h · 90m. Cada hora custa a linha 'Máquina' + 'Energia'."
+                  />
+                  <Input
+                    type="text"
+                    inputMode="text"
+                    aria-label="Tempo total"
+                    value={f.tempo}
+                    onChange={(e) => set("tempo", e.target.value)}
+                    placeholder="ex.: 2h 15m ou 2:15"
+                  />
+                  {tempoMinutos > 0 && (
+                    <div className="text-[11px] text-muted-foreground font-mono">
+                      ≈ {formatMinutos(tempoMinutos)} · {tempoMinutos} min
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Detectado no print — bloco enxuto com campos extras */}
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Detectado no print
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Preenchido pelo OCR; ajuste se preciso</span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <FieldTooltip
+                      label="Peso suporte (g)"
+                      hint="Filamento gasto em estruturas de suporte. Soma no total de material antes do custo."
+                    />
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      aria-label="Peso suporte (g)"
+                      value={f.peso_suporte}
+                      onChange={(e) => set("peso_suporte", e.target.value.replace(",", "."))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip
+                      label="Peso purga/torre (g)"
+                      hint="Purga e torre de troca (prime tower). Em multicolor passa fácil de 20% do total."
+                    />
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      aria-label="Peso purga/torre (g)"
+                      value={f.peso_purga}
+                      onChange={(e) => set("peso_purga", e.target.value.replace(",", "."))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip
+                      label="Peças na placa"
+                      hint="Quantas peças o print inclui. Confira contra 'Quantidade' para evitar subestimar 5×."
+                    />
+                    <Input
+                      type="number"
+                      min="1"
+                      inputMode="numeric"
+                      aria-label="Peças na placa"
+                      value={f.pecas_placa}
+                      onChange={(e) => set("pecas_placa", e.target.value)}
+                      placeholder="1"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Tipo detectado" hint="Se diferente do filamento selecionado, revise — pode mudar R$/kg." />
+                    <Input
+                      aria-label="Tipo detectado"
+                      value={f.filamento_tipo_detectado}
+                      onChange={(e) => set("filamento_tipo_detectado", e.target.value.toUpperCase())}
+                      placeholder="PLA / PETG / ABS…"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Altura camada (mm)" hint="Só metadado de reprodutibilidade. Não afeta o custo." />
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      aria-label="Altura camada (mm)"
+                      value={f.altura_camada}
+                      onChange={(e) => set("altura_camada", e.target.value.replace(",", "."))}
+                      placeholder="ex.: 0,2"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldTooltip label="Infill (%)" hint="Só metadado. Peça re-cotada com infill maior vai gastar mais material." />
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      aria-label="Infill (%)"
+                      value={f.infill_pct}
+                      onChange={(e) => set("infill_pct", e.target.value.replace(",", "."))}
+                      placeholder="ex.: 15"
+                    />
+                  </div>
+                </div>
+                {f.filamento_tipo_detectado && filamento?.tipo &&
+                  f.filamento_tipo_detectado.toUpperCase() !== String(filamento.tipo).toUpperCase() && (
+                    <div className="text-xs rounded border border-amber-400/40 bg-amber-400/10 px-2 py-1.5 text-amber-300">
+                      Atenção: fatiador diz <b>{f.filamento_tipo_detectado}</b>, você selecionou <b>{filamento.tipo}</b>.
+                    </div>
+                  )}
+                {num(f.pecas_placa) > 1 && num(f.quantidade) !== num(f.pecas_placa) && (
+                  <div className="text-xs rounded border border-amber-400/40 bg-amber-400/10 px-2 py-1.5 text-amber-300">
+                    O print é de <b>{num(f.pecas_placa)}</b> peças e a quantidade cotada é <b>{num(f.quantidade)}</b>. Confira se o peso e o tempo cobrem o total.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+
+
+          {/* 3. Parâmetros de custo — só para quem vê custo; os demais cotam com a
+              base das Configurações 3D, sem ver os números de custo. */}
+          {!podeVerCusto ? (
+            <Card>
+              <CardContent className="pt-6 space-y-2">
+                <BlocoTitulo
+                  n="3"
+                  icone={<Wand2 className="h-4 w-4" />}
+                  titulo="Parâmetros de custo"
+                  sub="Seguem as Configurações 3D da gráfica"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Custo-hora, energia, mão de obra, perdas e markup vêm da base da gráfica. Quem tem
+                  permissão de ver custo ajusta esses números; aqui você cota com eles.
+                </p>
+                {f.maquina_id && num(f.custo_hora) <= 0 && (
+                  <p className="text-xs text-destructive">
+                    A impressora escolhida está sem custo-hora no cadastro: peça à gerência para
+                    corrigir antes de enviar este preço.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <BlocoTitulo
+                n="3"
+                icone={<Wand2 className="h-4 w-4" />}
+                titulo="Parâmetros de custo"
+                sub="Presets aceleram — os tooltips têm médias de mercado"
+              />
+
+                <GradeDeCartoes rotulo="Presets de custo" className="lg:grid-cols-4">
+                  {PRESETS.map((p) => (
+                    <CartaoDeEscolha
+                      key={p.id}
+                      ativo={presetAtivo === p.id}
+                      titulo={p.label}
+                      detalhe={`markup ${vezes(Number(p.patch.markup))} · falha ${p.patch.pct_falha}%`}
+                      className="min-h-16"
+                      onEscolher={() => {
+                        aplicarPreset(p.patch);
+                        setPresetAtivo(p.id);
+                        if (typeof window !== "undefined")
+                          localStorage.setItem("bex.orc3d.preset", p.id);
+                      }}
+                    />
+                  ))}
+                </GradeDeCartoes>
+
+              {configErro && (
+                <p className="text-xs text-[color:var(--bex-magenta)]">
+                  Não foi possível ler a base de precificação 3D — os valores abaixo são padrões
+                  genéricos. Revise em Configurações 3D.
+                </p>
+              )}
+              {!configErro && vindoDaConfig.size > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Tarifa de energia, mão de obra e demais parâmetros vindos das{" "}
+                  <Link to="/configuracoes-3d" className="text-[color:var(--bex-cyan)] hover:underline">
+                    Configurações 3D
+                  </Link>
+                  . Edite abaixo para sobrepor só neste orçamento.
+                </p>
+              )}
+
+
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <Campo
+                  label="Custo-hora máquina (R$/h)"
+                  hint="Puxado da impressora ao selecioná-la; edite se o cadastro estiver incompleto."
+                  value={f.custo_hora}
+                  onChange={(v) => set("custo_hora", v)}
+                  step="0.01"
+                />
+                <Campo
+                  label="Potência (W)"
+                  hint="Potência média da impressora, puxada do cadastro. Base do custo de energia."
+                  value={f.potencia_w}
+                  onChange={(v) => set("potencia_w", v)}
+                  step="1"
+                />
+                <Campo
+                  label="Tarifa energia (R$/kWh)"
+                  hint="R$/kWh da conta de luz. Média BR residencial 0,85–1,10; comercial 0,60–0,90."
+                  value={f.tarifa_kwh}
+                  onChange={(v) => set("tarifa_kwh", v)}
+                  step="0.01"
+                />
+                <Campo
+                  label="Mão de obra (R$/h)"
+                  hint="Custo do operador incluindo encargos. Sugerido 25–60 R$/h para operação 3D."
+                  value={f.mo_custo_hora}
+                  onChange={(v) => set("mo_custo_hora", v)}
+                  step="0.01"
+                />
+                <Campo
+                  label="Mão de obra (horas)"
+                  hint="Só o pós-processamento manual (remoção de suporte, lixa, montagem)."
+                  value={f.mo_horas}
+                  onChange={(v) => set("mo_horas", v)}
+                  step="0.1"
+                />
+                <Campo
+                  label="% Acabamento"
+                  hint="Reserva para tinta, cola, verniz. Peça crua 0–3%; pintada 8–15%."
+                  value={f.pct_acabamento}
+                  onChange={(v) => set("pct_acabamento", v)}
+                  step="0.1"
+                />
+                <Campo
+                  label="% Falha"
+                  hint="Provisão de reimpressão. FDM confiável 3–7%; resina/peça complexa 10–15%."
+                  value={f.pct_falha}
+                  onChange={(v) => set("pct_falha", v)}
+                  step="0.1"
+                />
+                <Campo
+                  label="Adm./embalagem (R$)"
+                  hint="Rateio fixo por peça: caixa, plástico, etiqueta. Média 1,50–5,00."
+                  value={f.custo_admin}
+                  onChange={(v) => set("custo_admin", v)}
+                  step="0.01"
+                />
+                <Campo
+                  label="Markup (×)"
+                  hint="Multiplica o custo operacional. Varejo 2,0–2,5×; atacado 1,3–1,5×; peça premium 2,5–3,5×."
+                  value={f.markup}
+                  onChange={(v) => set("markup", v)}
+                  step="0.1"
+                />
+              </div>
+              {f.maquina_id && num(f.custo_hora) <= 0 && (
+                <p className="mt-2 text-xs text-destructive">
+                  A impressora selecionada está sem custo-hora — informe manualmente acima ou
+                  corrija o cadastro, senão o orçamento sub-precifica.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          )}
+        </div>
+
+        {/* ---- Resumo herói (sticky) ---- */}
+        <div className="space-y-4">
+          <div className={embutido ? "space-y-4" : "lg:sticky lg:top-4 space-y-4"}>
+            <Card className="overflow-hidden border-[color:var(--bex-cyan)]/30">
+              <div
+                className="px-5 py-4 border-b border-border"
+                style={{ background: "var(--gradient-cmyk)" }}
+              >
+                <div className="flex items-center justify-between text-background/90">
+                  <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest font-bold">
+                    <Calculator className="h-3.5 w-3.5" /> Resultado
+                  </div>
+                  {podeVerCusto && (
+                    <StatusChip
+                      label={`${margemPct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% de margem`}
+                      tone={margemTone}
+                    />
+                  )}
+                </div>
+              </div>
+              <CardContent className="pt-5 space-y-4">
+                <div>
+                  {/* "Preço (2×)" lia como "duas peças": a quantidade e o markup
+                      agora têm nome. */}
+                  <div className="text-xs uppercase tracking-widest text-muted-foreground font-mono">
+                    {calc.qtd > 1 ? `Preço total · ${calc.qtd} peças` : "Preço"}
+                    {podeVerCusto && ` · markup ${vezes(calc.markup)}`}
+                  </div>
+                  <div className="font-mono text-4xl font-black tracking-tight">
+                    {money(calc.preco)}
+                  </div>
+                  {podeVerCusto && (
+                    <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
+                      <span>Custo {money(calc.operacional)}</span>
+                      <span>·</span>
+                      <span>Lucro {money(calc.lucro)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {calc.qtd > 1 && (
+                  <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      Preço unitário
+                      {calc.placas !== calc.qtd ? ` · ${calc.placas} impressões` : ""}
+                    </span>
+                    <span className="font-mono font-semibold">{money(calc.unitario)}</span>
+                  </div>
+                )}
+
+                {podeVerCusto && (
+                <>
+                <div className="space-y-2">
+                  <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+                    De onde vem o custo
+                  </div>
+                  {breakdown.map((b) => {
+                    const pct = total > 0 ? (b.value / total) * 100 : 0;
+                    return (
+                      <div key={b.label} className="space-y-0.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">{b.label}</span>
+                          <span className="font-mono">{money(b.value)}</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full transition-all",
+                              b.tone === "cyan" && "bg-[color:var(--bex-cyan)]",
+                              b.tone === "magenta" && "bg-[color:var(--bex-magenta)]",
+                              b.tone === "amber" && "bg-amber-400",
+                              b.tone === "lime" && "bg-[color:var(--bex-lime)]",
+                              b.tone === "muted" && "bg-muted-foreground",
+                            )}
+                            style={{ width: `${Math.min(100, pct)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div
+                    className="rounded-lg border border-border px-2 py-1.5"
+                  >
+                    <div className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground font-mono">
+                      Atacado {vezes(calc.markupAtacado)}
+                      <DicaIcone
+                        texto={`Preço de atacado: custo × ${vezes(calc.markupAtacado)} (markup de atacado das Configurações 3D)`}
+                        rotulo="Atacado"
+                      />
+                    </div>
+                    <div className="font-mono font-semibold">{money(calc.atacado)}</div>
+                    <div className="text-[10px] text-muted-foreground">preço para revenda</div>
+                  </div>
+                  <div
+                    className="rounded-lg border border-border px-2 py-1.5"
+                  >
+                    <div className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground font-mono">
+                      Piso · 10% de margem
+                      <DicaIcone texto="O menor preço que ainda deixa 10% de margem. Abaixo dele, a peça dá prejuízo." rotulo="Piso" />
+                    </div>
+                    <div className="font-mono font-semibold">{money(calc.equilibrio)}</div>
+                    <div className="text-[10px] text-muted-foreground">não vender abaixo</div>
+                  </div>
+                </div>
+                </>
+                )}
+
+                {faltando.length > 0 && (
+                  <div className="text-xs rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-amber-300 flex items-start gap-2">
+                    <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>Faltando: {faltando.join(", ")}</span>
+                  </div>
+                )}
+
+                <NeonButton
+                  className="w-full"
+                  onClick={() => salvar.mutate()}
+                  disabled={salvar.isPending || faltando.length > 0}
+                >
+                  {salvar.isPending ? "Salvando..." : embutido ? (orcamento3dId ? "Salvar a peça" : "Adicionar a peça ao orçamento") : "Salvar orçamento"}
+                </NeonButton>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BlocoTitulo({
+  n,
+  icone,
+  titulo,
+  sub,
+}: {
+  n: string;
+  icone: React.ReactNode;
+  titulo: string;
+  sub: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 pb-2 border-b border-border">
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg font-mono text-sm font-black text-background"
+        style={{ background: "var(--gradient-cmyk)" }}
+      >
+        {n}
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider">
+          {icone}
+          {titulo}
+        </div>
+        <div className="text-xs text-muted-foreground">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function Campo({
+  label,
+  hint,
+  value,
+  onChange,
+  step,
+}: {
+  label: string;
+  hint: string;
+  value: string;
+  onChange: (v: string) => void;
+  step?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <FieldTooltip label={label} hint={hint} />
+      <Input
+        type="number"
+        step={step}
+        inputMode="decimal"
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}

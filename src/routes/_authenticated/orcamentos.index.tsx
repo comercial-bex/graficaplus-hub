@@ -95,6 +95,8 @@ function OrcamentosPage() {
   // Contato avulso com telefone vira cliente no ato (26/10/2026): 8 de 10 rascunhos estavam sem cliente,
   // e sem cliente a conversão em OS (e a automática) recusa. Desmarque para manter avulso.
   const [cadastrarContato, setCadastrarContato] = useState(true);
+  // Peça 3D (27/10/2026): o orçamento nasce igual aos outros e a calculadora abre em cima.
+  const [comecarPelo3d, setComecarPelo3d] = useState(false);
 
   const { data: orcamentos = [], isLoading } = useQuery({
     queryKey: ["orcamentos", nivelDeVisao],
@@ -249,6 +251,14 @@ function OrcamentosPage() {
       });
       qc.invalidateQueries({ queryKey: ["orcamentos"] });
       const novoId = (criado as { id: string } | null)?.id;
+      if (novoId && comecarPelo3d) {
+        try {
+          sessionStorage.setItem("bex.orcamento.abrir3d", novoId);
+        } catch {
+          /* sem sessionStorage */
+        }
+      }
+      setComecarPelo3d(false);
       if (novoId) navigate({ to: "/orcamentos/$id", params: { id: novoId } });
     } finally {
       criandoRef.current = false;
@@ -387,6 +397,10 @@ function OrcamentosPage() {
                     onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                   />
                 </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={comecarPelo3d} onCheckedChange={(v) => setComecarPelo3d(v === true)} />
+                  É uma peça de impressão 3D (abre a calculadora: print do fatiador, filamento, foto)
+                </label>
                 <p className="text-xs text-muted-foreground">
                   O valor é calculado automaticamente pelos produtos que você lançar na próxima
                   tela.
@@ -495,11 +509,7 @@ function OrcamentosPage() {
                 <TableRow
                   key={o.id}
                   className="cursor-pointer"
-                  onClick={() =>
-                    mapa3d[o.id]
-                      ? navigate({ to: "/orcamento-3d/$id", params: { id: mapa3d[o.id] } })
-                      : navigate({ to: "/orcamentos/$id", params: { id: o.id } })
-                  }
+                  onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
                 >
                   <TableCell className="font-mono text-xs text-[color:var(--bex-cyan)]">
                     #{o.numero}

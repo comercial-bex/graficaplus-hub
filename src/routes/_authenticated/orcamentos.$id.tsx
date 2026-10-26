@@ -41,6 +41,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  Box,
   Copy,
   FileDown,
   Link as LinkIcon,
@@ -64,6 +65,9 @@ import { gerarPDFOrcamentoParaEnvio } from "@/lib/pdf/generate";
 import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functions";
 import { useComprovantesDoOrcamento } from "@/components/pagamento/comprovantes-do-orcamento";
 import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-antes-de-converter";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Calculadora3D } from "@/components/impressao3d/calculadora-3d";
+import { descreverLinhaDeMetragem, metragemPorMaterial, totaisDaMetragem } from "@/domain/orcamentos/metragem-por-material";
 import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
 import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
 import {
@@ -171,6 +175,21 @@ import { degrausDeFaixasDeBalcao } from "@/domain/parceiros/degraus";
 import { PRAZO_NORMAL, prazoEscolhido, rotuloDaPorcentagem } from "@/domain/parceiros/prazo";
 import { CHAVE_PRAZOS, carregarPrazos } from "@/lib/parceiro-api";
 import { Carregando } from "@/components/bex/Carregando";
+
+type Peca3dDoOrcamento = {
+  id: string;
+  item_id: string | null;
+  titulo: string;
+  quantidade: number | string | null;
+  material_descricao: string | null;
+  gramas_modelo: number | string | null;
+  peso_suporte_g: number | string | null;
+  peso_purga_g: number | string | null;
+  pecas_por_placa: number | string | null;
+  embutido: boolean;
+  os_id: string | null;
+  foto_modelo_path: string | null;
+};
 
 const itemVazio = {
   descricao: "",
@@ -875,6 +894,18 @@ function OrcamentoDetailPage() {
   }
 
   async function removerItem(itemId: string) {
+    // Peça 3D: item e peça (placas, consumos, cálculos) saem juntos, pela função do banco.
+    const peca = pecaDoItem.get(itemId);
+    if (peca) {
+      const { error } = await (supabase.rpc as any)("remover_item_3d_do_orcamento", { p_orcamento_3d_id: peca.id });
+      if (error) return toast.error(mensagemErro(error));
+      toast.success("Peça 3D tirada do orçamento");
+      if (editando?.id === itemId) limparFormulario();
+      await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+      await qc.invalidateQueries({ queryKey: ["pecas-3d-do-orcamento", id] });
+      await recalcular();
+      return;
+    }
     const { data, error } = await supabase.from("orcamento_itens").delete().eq("id", itemId).select("id");
     if (error) return toast.error(mensagemErro(error));
     if (!data || data.length === 0) return toast.error("Seu perfil não pode tirar itens deste orçamento.");
@@ -1136,29 +1167,65 @@ function OrcamentoDetailPage() {
   // A resposta era "OS criada (787db567-840d-…)" e a tela ficava no
   // orçamento: o código interno não diz nada, e a OS precisava ser procurada.
   // Agora trava durante a chamada e leva direto à OS.
-  // Orçamento de impressão 3D: o produto, o material e o preço moram no orçamento 3D (o valor aparece
-  // aqui, mas sem itens comuns). A tela de itens abria vazia e sem como editar; a casa certa dele é a
-  // tela do 3D. Só vai para lá quando NÃO há itens comuns, para não esconder um orçamento misto.
-  const orcamento3d = useQuery({
-    queryKey: ["orcamento-3d-do-orcamento", id],
-    staleTime: 60_000,
+  // Peças 3D deste orçamento (27/10/2026): cada uma é um ITEM (item_id). A calculadora reabre por
+  // aqui, a metragem soma as gramas e "Tirar" apaga peça e item juntos.
+  const pecas3d = useQuery({
+    queryKey: ["pecas-3d-do-orcamento", id],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("orcamentos_3d")
-        .select("id, titulo")
+        .select("id, item_id, titulo, quantidade, material_descricao, gramas_modelo, peso_suporte_g, peso_purga_g, pecas_por_placa, embutido, os_id, foto_modelo_path")
         .eq("orcamento_id", id)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .order("created_at");
       if (error) throw error;
-      return (data?.[0] ?? null) as { id: string; titulo: string | null } | null;
+      return (data ?? []) as Peca3dDoOrcamento[];
     },
   });
-  const vaiParaO3d = !!orcamento3d.data && !isLoading && consultaItens.isSuccess && itensDeProduto.length === 0;
+  const pecaDoItem = new Map<string, Peca3dDoOrcamento>();
+  for (const p of pecas3d.data ?? []) if (p.item_id) pecaDoItem.set(p.item_id, p);
+  // Peça 3D antiga sem item (não deve sobrar depois do retroativo): a tela do 3D continua lá.
+  const peca3dSolta = (pecas3d.data ?? []).find((p) => !p.item_id) ?? null;
+  const [calculadora3d, setCalculadora3d] = useState<null | { orcamento3dId: string | null }>(null);
+  // Veio da lista ("é uma peça 3D") ou da tela do 3D ("Editar a peça"): a calculadora já abre.
   useEffect(() => {
-    if (vaiParaO3d && orcamento3d.data) {
-      void navigate({ to: "/orcamento-3d/$id", params: { id: orcamento3d.data.id }, replace: true });
+    try {
+      if (sessionStorage.getItem("bex.orcamento.abrir3d") === id) {
+        sessionStorage.removeItem("bex.orcamento.abrir3d");
+        setCalculadora3d({ orcamento3dId: null });
+      }
+      const editar = sessionStorage.getItem("bex.orcamento.editar3d");
+      if (editar && (pecas3d.data ?? []).some((p) => p.id === editar)) {
+        sessionStorage.removeItem("bex.orcamento.editar3d");
+        setCalculadora3d({ orcamento3dId: editar });
+      }
+    } catch {
+      /* sem sessionStorage (SSR) */
     }
-  }, [vaiParaO3d, orcamento3d.data, navigate]);
+  }, [id, pecas3d.data]);
+
+  // Metragem por material: o material principal de cada produto que está no orçamento.
+  const idsDeProduto = [...new Set((itens as any[]).map((i) => i.produto_id).filter(Boolean) as string[])];
+  const produtosDaMetragem = useQuery({
+    queryKey: ["produtos-da-metragem", idsDeProduto.join(",")],
+    enabled: idsDeProduto.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produtos_operacional")
+        .select("id, nome, material_principal_id, materiais_operacional:material_principal_id(nome)")
+        .in("id", idsDeProduto);
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((p) => ({
+        id: p.id as string,
+        nome: p.nome as string,
+        material_principal_id: (p.material_principal_id as string | null) ?? null,
+        material_nome: ((p.materiais_operacional?.nome as string | null | undefined) ?? null),
+      }));
+    },
+  });
+  const linhasDeMetragem = metragemPorMaterial(itensDeProduto as any[], produtosDaMetragem.data ?? [], pecas3d.data ?? []);
+  const totaisDeMetragem = totaisDaMetragem(linhasDeMetragem);
 
   const [convertendo, setConvertendo] = useState(false);
   /** Qual conversão espera a conferência: "aprovado" (já aprovado) ou "enviado" (aprova junto). */
@@ -1230,21 +1297,6 @@ function OrcamentoDetailPage() {
   }
 
   if (isLoading) return <Carregando tela />;
-  if (vaiParaO3d && orcamento3d.data) {
-    return (
-      <div className="space-y-3 p-6" data-testid="orcamento-3d-redirecionando">
-        <p className="text-sm font-medium">Este é um orçamento de impressão 3D.</p>
-        <p className="text-sm text-muted-foreground">
-          O produto, o material e o preço ficam na tela do orçamento 3D. Abrindo para você editar…
-        </p>
-        <Button asChild>
-          <Link to="/orcamento-3d/$id" params={{ id: orcamento3d.data.id }}>
-            Abrir o orçamento 3D <ArrowRight className="ml-1 h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
-    );
-  }
   if (!orc) return <div className="p-6">Orçamento não encontrado</div>;
 
   const margem =
@@ -1470,6 +1522,27 @@ function OrcamentoDetailPage() {
             O cliente aprovou, mas a OS não saiu sozinha: {recusa.data.descricao}
           </p>
         )}
+        <Dialog open={!!calculadora3d} onOpenChange={(v) => !v && setCalculadora3d(null)}>
+          <DialogContent className="max-h-[94vh] w-[96vw] max-w-6xl overflow-y-auto p-4 sm:p-6" data-testid="dialogo-peca-3d">
+            <DialogTitle className="sr-only">Peça de impressão 3D</DialogTitle>
+            {calculadora3d && (
+              <Calculadora3D
+                modo="embutido"
+                orcamentoId={id}
+                clienteId={((orc as any).cliente_id as string | null | undefined) ?? null}
+                orcamento3dId={calculadora3d.orcamento3dId}
+                onCancelar={() => setCalculadora3d(null)}
+                onSalvo={async () => {
+                  setCalculadora3d(null);
+                  await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+                  await qc.invalidateQueries({ queryKey: ["orc-capas", id] });
+                  await qc.invalidateQueries({ queryKey: ["pecas-3d-do-orcamento", id] });
+                  await recalcular();
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
         <ConferenciaAntesDeConverter
           aberto={conferindo !== null}
           onFechar={() => setConferindo(null)}
@@ -1589,6 +1662,16 @@ function OrcamentoDetailPage() {
                       Repetir o último pedido deste cliente (#{ultimoPedido.data.numero})
                     </Button>
                   )}
+                  {!editando && podeMexer && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCalculadora3d({ orcamento3dId: null })}
+                      data-testid="botao-peca-3d"
+                    >
+                      <Box className="mr-1 h-4 w-4" /> Peça 3D
+                    </Button>
+                  )}
                   {editando && (
                     <Button variant="ghost" size="sm" onClick={limparFormulario}>
                       <X className="mr-1 h-4 w-4" /> Cancelar edição
@@ -1597,6 +1680,14 @@ function OrcamentoDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
+                {peca3dSolta && (
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
+                    Este orçamento tem uma peça 3D antiga sem item.{" "}
+                    <Link to="/orcamento-3d/$id" params={{ id: peca3dSolta.id }} className="underline">
+                      Abrir a peça no módulo 3D
+                    </Link>
+                  </p>
+                )}
                 {podeMexer ? (
                   <div ref={formulario} className="scroll-mt-48 space-y-4 rounded-lg border border-dashed p-3 sm:p-4">
                     {/* Passo 1 — o tipo e o produto, em cartões. Escolher do
@@ -1615,6 +1706,7 @@ function OrcamentoDetailPage() {
                       descricaoAtual={form.descricao}
                       onEscolherProduto={aplicarProduto}
                       onItemLivre={aplicarItemLivre}
+                      onCalcularPeca3d={() => setCalculadora3d({ orcamento3dId: null })}
                       desabilitado={salvandoItem}
                       atalhos={[
                         {
@@ -2100,7 +2192,7 @@ function OrcamentoDetailPage() {
                         {!consultaItens.isPending && itensDeProduto.length === 0 && (
                           <TableRow>
                             <TableCell colSpan={canSeePrices ? 9 : 7} className="text-center text-muted-foreground">
-                              Nenhum item ainda — busque um produto do catálogo acima para começar.
+                              Nenhum item ainda — escolha um produto do catálogo acima ou calcule uma peça 3D.
                             </TableCell>
                           </TableRow>
                         )}
@@ -2147,6 +2239,15 @@ function OrcamentoDetailPage() {
                                 {i.especificacao && (
                                   <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground">
                                     {i.especificacao}
+                                  </p>
+                                )}
+                                {pecaDoItem.has(i.id) && (
+                                  <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-primary" data-peca-3d="">
+                                    <Box className="h-3.5 w-3.5" aria-hidden /> Peça 3D
+                                    {pecaDoItem.get(i.id)!.material_descricao ? ` · ${pecaDoItem.get(i.id)!.material_descricao}` : ""}
+                                    {Number(pecaDoItem.get(i.id)!.gramas_modelo ?? 0) > 0
+                                      ? ` · ${Number(pecaDoItem.get(i.id)!.gramas_modelo).toLocaleString("pt-BR")} g por impressão`
+                                      : ""}
                                   </p>
                                 )}
                                 {!i.produto_id && (
@@ -2220,21 +2321,27 @@ function OrcamentoDetailPage() {
                                         variant="ghost"
                                         size="icon"
                                         aria-label={`Editar o item ${numero}`}
-                                        onClick={() => editarItem(i, numero)}
+                                        onClick={() =>
+                                          pecaDoItem.has(i.id)
+                                            ? setCalculadora3d({ orcamento3dId: pecaDoItem.get(i.id)!.id })
+                                            : editarItem(i, numero)
+                                        }
                                       >
                                         <Pencil className="h-4 w-4" />
                                       </Button>
                                     </Dica>
-                                    <Dica texto="Duplicar item">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label={`Duplicar o item ${numero}`}
-                                        onClick={() => void duplicarItem(i)}
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </Button>
-                                    </Dica>
+                                    {!pecaDoItem.has(i.id) && (
+                                      <Dica texto="Duplicar item">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          aria-label={`Duplicar o item ${numero}`}
+                                          onClick={() => void duplicarItem(i)}
+                                        >
+                                          <Copy className="h-4 w-4" />
+                                        </Button>
+                                      </Dica>
+                                    )}
                                     <Dica texto="Tirar o item">
                                       <Button
                                         variant="ghost"
@@ -2529,6 +2636,30 @@ function OrcamentoDetailPage() {
                 <span className="text-muted-foreground">Itens</span>
                 <span className="font-medium">{itensDeProduto.length}</span>
               </div>
+              {linhasDeMetragem.length > 0 && (
+                <div className="space-y-1 border-t pt-2" data-testid="metragem-por-material">
+                  <p className="text-xs font-medium text-muted-foreground">Metragem por material</p>
+                  {linhasDeMetragem.map((l) => (
+                    <div key={l.material} className="flex justify-between gap-3 text-xs">
+                      <span className="min-w-0 truncate">{l.material}</span>
+                      <span className="shrink-0 tabular-nums">{descreverLinhaDeMetragem(l)}</span>
+                    </div>
+                  ))}
+                  {linhasDeMetragem.length > 1 && (totaisDeMetragem.m2 > 0 || totaisDeMetragem.gramas > 0) && (
+                    <div className="flex justify-between gap-3 text-xs font-medium">
+                      <span>Total</span>
+                      <span className="tabular-nums">
+                        {[
+                          totaisDeMetragem.m2 > 0 ? m2(totaisDeMetragem.m2) : null,
+                          totaisDeMetragem.gramas > 0 ? `${Math.round(totaisDeMetragem.gramas)} g` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
               {canSeePrices && linhaDaTaxa && (
                 <div className="flex justify-between gap-3">
                   <span className="text-muted-foreground">

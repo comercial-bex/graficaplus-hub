@@ -163,7 +163,7 @@ function Impressao3DPage() {
         ajuda={dicaTela("/impressao-3d")}
         breadcrumb="Comercial · Impressão 3D"
         title="Impressão 3D"
-        description="Orçamentos 3D com motor de custo Decimal, produção e apontamentos"
+        description="As peças 3D nascem dentro dos orçamentos (item Peça 3D). Aqui: produção, apontamentos, filamentos e impressoras."
         actions={
           <div className="flex items-center gap-2">
             <Button asChild size="sm">
@@ -305,13 +305,23 @@ function Impressao3DPage() {
                           <div className="h-10 w-10 shrink-0 rounded-md border border-dashed" aria-hidden />
                         )}
                         <div className="min-w-0">
-                          <Link
-                            to="/orcamento-3d/$id"
-                            params={{ id: o.id }}
-                            className="hover:underline text-primary"
-                          >
-                            {o.titulo}
-                          </Link>
+                          {o.orcamento_id ? (
+                            <Link
+                              to="/orcamentos/$id"
+                              params={{ id: o.orcamento_id }}
+                              className="hover:underline text-primary"
+                            >
+                              {o.titulo}
+                            </Link>
+                          ) : (
+                            <Link
+                              to="/orcamento-3d/$id"
+                              params={{ id: o.id }}
+                              className="hover:underline text-primary"
+                            >
+                              {o.titulo}
+                            </Link>
+                          )}
                           {o.orcamentos?.numero != null && (
                             <div className="text-[11px] font-mono text-muted-foreground">
                               Nº {o.orcamentos.numero}
@@ -340,6 +350,12 @@ function Impressao3DPage() {
                         <Button asChild variant="ghost" size="sm">
                           <Link to="/os/$id" params={{ id: o.os_id }}>
                             Ver OS
+                          </Link>
+                        </Button>
+                      ) : o.embutido && o.orcamento_id ? (
+                        <Button asChild variant="ghost" size="sm">
+                          <Link to="/orcamentos/$id" params={{ id: o.orcamento_id }}>
+                            Abrir orçamento
                           </Link>
                         </Button>
                       ) : podeConverter ? (
