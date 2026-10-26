@@ -74,3 +74,10 @@ describe("o produto de prateleira da impressão 3D fica escondido quando a calcu
     expect(escolha).toContain('? "calculadora"');
   });
 });
+
+describe("o tempo de impressão na especificação do item sai em português", () => {
+  it("troca o ponto por vírgula (1,00 h), só no texto", () => {
+    const fix = readFileSync("supabase/migrations/20261027310000_peca_3d_tempo_com_virgula.sql", "utf8");
+    expect(fix).toContain("replace(round(p_tempo_segundos / 3600.0, 2)::text, '.', ',') || ' h de impressão'");
+  });
+});
