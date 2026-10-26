@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { chaveWhatsApp } from "@/domain/documentos";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -88,6 +90,9 @@ function OrcamentosPage() {
     contato_email: "",
     titulo: "",
   });
+  // Contato avulso com telefone vira cliente no ato (26/10/2026): 8 de 10 rascunhos estavam sem cliente,
+  // e sem cliente a conversão em OS (e a automática) recusa. Desmarque para manter avulso.
+  const [cadastrarContato, setCadastrarContato] = useState(true);
 
   const { data: orcamentos = [], isLoading } = useQuery({
     queryKey: ["orcamentos", nivelDeVisao],
@@ -178,13 +183,50 @@ function OrcamentosPage() {
     criandoRef.current = true;
     setCriando(true);
     try {
+      let clienteId = form.cliente_id || null;
+      let contatoVirouCliente = false;
+      if (!clienteId && cadastrarContato && form.contato_nome.trim() && chaveWhatsApp(form.contato_telefone)) {
+        // Mesmo número já cadastrado: usa o cliente que existe em vez de duplicar.
+        const chave = chaveWhatsApp(form.contato_telefone);
+        const { data: existente, error: erroBusca } = await (supabase as any)
+          .from("clientes")
+          .select("id")
+          .eq("telefone_normalizado", chave)
+          .eq("ativo", true)
+          .limit(2);
+        if (erroBusca) {
+          // Sem conseguir conferir duplicata, não cadastra: contato avulso é melhor que cliente repetido.
+          toast.warning("Não consegui conferir se o cliente já existe; o orçamento segue com contato avulso.");
+        } else if (existente?.length === 1) {
+          clienteId = existente[0].id;
+          contatoVirouCliente = true;
+        } else if (existente.length === 0) {
+          const { data: novo, error: erroCliente } = await (supabase as any)
+            .from("clientes")
+            .insert({
+              nome: form.contato_nome.trim(),
+              tipo: "pf",
+              tipo_cliente: "pf",
+              telefone: form.contato_telefone.trim(),
+              whatsapp_principal: form.contato_telefone.trim(),
+              email: form.contato_email.trim() || null,
+            })
+            .select("id")
+            .single();
+          if (erroCliente) toast.warning("Não consegui cadastrar o cliente; o orçamento segue com contato avulso.");
+          else {
+            clienteId = novo.id;
+            contatoVirouCliente = true;
+          }
+        }
+      }
       const { data: criado, error } = await supabase
         .from("orcamentos")
         .insert({
-          cliente_id: form.cliente_id || null,
-          contato_nome: form.cliente_id ? null : form.contato_nome.trim(),
-          contato_telefone: form.cliente_id ? null : form.contato_telefone.trim() || null,
-          contato_email: form.cliente_id ? null : form.contato_email.trim() || null,
+          cliente_id: clienteId,
+          contato_nome: clienteId ? null : form.contato_nome.trim(),
+          contato_telefone: clienteId ? null : form.contato_telefone.trim() || null,
+          contato_email: clienteId ? null : form.contato_email.trim() || null,
           titulo: form.titulo,
           valor_total: 0,
           valor_subtotal: 0,
@@ -192,7 +234,9 @@ function OrcamentosPage() {
         .select("id")
         .single();
       if (error) return toast.error(mensagemErro(error));
-      toast.success("Orçamento criado — lance os produtos");
+      toast.success(
+        contatoVirouCliente ? "Orçamento criado e cliente cadastrado — lance os produtos" : "Orçamento criado — lance os produtos",
+      );
       setOpen(false);
       setForm({
         cliente_id: "",
@@ -275,7 +319,7 @@ function OrcamentosPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    O cliente cadastrado só é exigido na conversão em OS.
+                    Para virar OS é preciso ter cliente cadastrado; com telefone, o contato avulso é cadastrado por você.
                   </p>
                 </div>
                 {!form.cliente_id && (
@@ -316,6 +360,13 @@ function OrcamentosPage() {
                         placeholder="contato@email.com"
                       />
                     </div>
+                    <label className="flex items-center gap-2 text-sm sm:col-span-3">
+                      <Checkbox
+                        checked={cadastrarContato}
+                        onCheckedChange={(v) => setCadastrarContato(v === true)}
+                      />
+                      Cadastrar este contato como cliente (com telefone, já fica pronto para virar OS)
+                    </label>
                   </div>
                 )}
 
