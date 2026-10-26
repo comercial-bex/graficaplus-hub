@@ -41,6 +41,7 @@ export const CHAVES_CONFERIDAS_NA_TELA: readonly string[] = [
   "leads.read",
   "leads.update",
   "maquinas.manage",
+  "orcamentos.approve",
   "orcamentos.convert",
   "orcamentos.create",
   "orcamentos.read",

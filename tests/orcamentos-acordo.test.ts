@@ -9,6 +9,8 @@ import {
   modoDeEntrega,
   parcelasDoOrcamento,
   pendenciasParaEnviar,
+  avisosParaEnviar,
+  somarDiasUteis,
   prazoSeparado,
   somarDias,
   textoDoEndereco,
@@ -102,6 +104,14 @@ describe("parcelas iguais às da conversão em OS", () => {
   });
 });
 
+describe("avisos que não impedem de mandar", () => {
+  it("layout faltando é aviso, não pendência", () => {
+    expect(avisosParaEnviar({ itens: [{ arquivo_id: "a" }] })).toEqual([]);
+    expect(avisosParaEnviar({ itens: [{ arquivo_id: null }] })[0]).toContain("1 item sem layout");
+    expect(avisosParaEnviar({ itens: [{ arquivo_id: null }, { arquivo_id: null }] })[0]).toContain("2 itens sem layout");
+  });
+});
+
 describe("o que falta antes de mandar", () => {
   it("lista só o que falta, com o plural certo", () => {
     expect(
@@ -121,7 +131,7 @@ describe("o que falta antes de mandar", () => {
         temCondicao: false,
         itens: [{ arquivo_id: null }, { arquivo_id: null }],
       }),
-    ).toEqual(["cliente ou contato", "data de entrega", "condição de pagamento", "layout em 2 itens"]);
+    ).toEqual(["cliente ou contato", "data de entrega", "condição de pagamento"]);
     // quem não vê preço não é cobrado por condição de pagamento
     expect(
       pendenciasParaEnviar({
@@ -140,5 +150,15 @@ describe("dinheiro em pt-BR", () => {
     expect(brl(0)).toMatch(/^R\$\s0,00$/);
     expect(brl(1234.5)).toMatch(/^R\$\s1\.234,50$/);
     expect(brl("abc")).toMatch(/^R\$\s0,00$/);
+  });
+});
+
+describe("dias úteis da entrega sugerida", () => {
+  it("pula sábado e domingo", () => {
+    // 2026-10-23 é sexta: 1 dia útil depois é segunda 26; 5 dias úteis depois da segunda 26 é a segunda 2/11.
+    expect(somarDiasUteis("2026-10-23", 1)).toBe("2026-10-26");
+    expect(somarDiasUteis("2026-10-26", 5)).toBe("2026-11-02");
+    expect(somarDiasUteis("2026-10-24", 1)).toBe("2026-10-26");
+    expect(somarDiasUteis("2026-10-26", 0)).toBe("2026-10-26");
   });
 });
