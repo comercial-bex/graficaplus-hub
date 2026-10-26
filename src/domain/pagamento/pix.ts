@@ -1,3 +1,5 @@
+import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
+
 /**
  * Pix copia e cola ("BR Code" estático), no formato EMV do Banco Central.
  *
@@ -105,7 +107,8 @@ export function mensagemDoPix(a: { cliente?: string | null; valor: number; numer
 
 /** Link do WhatsApp com a mensagem pronta; sem telefone, abre a escolha do contato. */
 export function linkDoWhatsapp(telefone: string | null | undefined, mensagem: string): string {
+  // O mesmo normalizador do envio (código do país, 9 na frente): "(55) 99999-9999" é DDD 55, não um 55 de país.
   const d = (telefone ?? "").replace(/\D/g, "");
-  const numero = d ? (d.startsWith("55") ? d : `55${d}`) : "";
+  const numero = telefoneParaZapi(telefone) ?? (d.length > 11 ? d : d ? `55${d}` : "");
   return `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
 }
