@@ -43,8 +43,12 @@ import { hashDoSegredo, hashesIguais } from "@/domain/whatsapp/segredo-webhook";
  */
 
 const BUCKET = "whatsapp-midias";
-/** Mídia maior que isso fica só com o link do Z-API (vale por 30 dias). */
-const LIMITE_MIDIA_BYTES = 16 * 1024 * 1024;
+/**
+ * Mídia maior que isso fica só com o link do Z-API (vale por 30 dias). Era 16 MB; um PNG de
+ * arte 97×150 cm mandado pelo cliente passa disso com folga (27/10/2026). 45 MB fica abaixo do
+ * teto de 50 MB por objeto do Storage.
+ */
+const LIMITE_MIDIA_BYTES = 45 * 1024 * 1024;
 
 type Resposta = Record<string, unknown>;
 
@@ -446,7 +450,7 @@ async function guardarMidia(
     reaproveitada = true;
   } else {
     const declarado = Number(resposta.headers.get("content-length") ?? 0);
-    if (declarado > LIMITE_MIDIA_BYTES) throw new Error("mídia acima de 16 MB — ficou só o link");
+    if (declarado > LIMITE_MIDIA_BYTES) throw new Error("mídia acima de 45 MB — ficou só o link");
     if (candidato && declarado > 0 && candidato.size === declarado) {
       // Mesmo nome, mesmo tamanho: é a cópia da tentativa anterior.
       caminho = `${prefixo}/${candidato.name}`;
@@ -455,7 +459,7 @@ async function guardarMidia(
     } else {
       const corpo = await resposta.arrayBuffer();
       if (corpo.byteLength > LIMITE_MIDIA_BYTES) {
-        throw new Error("mídia acima de 16 MB — ficou só o link");
+        throw new Error("mídia acima de 45 MB — ficou só o link");
       }
       if (candidato && candidato.size === corpo.byteLength) {
         caminho = `${prefixo}/${candidato.name}`;

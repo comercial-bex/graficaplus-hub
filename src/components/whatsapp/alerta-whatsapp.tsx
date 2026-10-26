@@ -49,10 +49,14 @@ export function AlertaWhatsapp({ compacto = false }: { compacto?: boolean }) {
         .maybeSingle();
       if (erroInstancia) throw erroInstancia;
       const desde = new Date(Date.now() - 864e5).toISOString();
+      // Só falha de verdade (evento sem processado_em). "Processado com falha" (a mensagem
+      // entrou e a mídia grande ficou só com o link) tem processado_em e vive no Monitor —
+      // contá-lo aqui punha "Eventos com falha" em todas as telas por um PNG de 97×150 (27/10/2026).
       const { count, error: erroEventos } = await supabase
         .from("whatsapp_webhook_eventos")
         .select("id", { count: "exact", head: true })
         .not("erro", "is", null)
+        .is("processado_em", null)
         .gte("created_at", desde);
       if (erroEventos) throw erroEventos;
       return alertasDaConexao(inst ?? null, count ?? 0);

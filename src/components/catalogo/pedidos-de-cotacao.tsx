@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Check, Inbox, Loader2, MessageCircle, RotateCcw } from "lucide-react";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
 import { mensagemErro } from "@/lib/erros";
+import { abrirConversaPeloNumero } from "@/lib/api/whatsapp-caixa.functions";
 import {
   atenderCotacao,
   lerCotacoes,
@@ -29,8 +31,28 @@ function quando(iso: string): string {
  */
 export function PedidosDeCotacao() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [soAbertos, setSoAbertos] = useState(true);
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [abrindo, setAbrindo] = useState<string | null>(null);
+
+  /**
+   * Abre a conversa do cliente NA CAIXA DO SISTEMA (27/10/2026): a resposta sai pelo WhatsApp
+   * da gráfica e fica registrada. O wa.me, que abria o celular de quem clicou, é a saída de
+   * emergência quando o perfil não responde pela caixa.
+   */
+  async function abrirConversa(p: PedidoDeCotacaoRecebido) {
+    setAbrindo(p.id);
+    try {
+      const r = await abrirConversaPeloNumero({ data: { telefone: p.telefone, nome: p.nome } });
+      navigate({ to: "/whatsapp", search: { conversa: r.id } });
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não consegui abrir a conversa pelo sistema; abrindo no seu celular"));
+      window.open(`https://wa.me/${p.telefone.length <= 11 ? `55${p.telefone}` : p.telefone}`, "_blank", "noopener,noreferrer");
+    } finally {
+      setAbrindo(null);
+    }
+  }
   const pedidos = useQuery({ queryKey: ["catalogo-cotacoes"], queryFn: lerCotacoes });
 
   async function marcar(p: PedidoDeCotacaoRecebido, atendida: boolean) {
@@ -113,14 +135,18 @@ export function PedidosDeCotacao() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button asChild variant="outline" className="h-11 md:h-9">
-                    <a
-                      href={`https://wa.me/${p.telefone.length <= 11 ? `55${p.telefone}` : p.telefone}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <MessageCircle className="mr-1 h-4 w-4" /> {p.telefone}
-                    </a>
+                  <Button
+                    variant="outline"
+                    className="h-11 md:h-9"
+                    disabled={abrindo === p.id}
+                    onClick={() => void abrirConversa(p)}
+                  >
+                    {abrindo === p.id ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <MessageCircle className="mr-1 h-4 w-4" />
+                    )}
+                    Responder · {p.telefone}
                   </Button>
                   <Button
                     variant={p.atendido_em ? "ghost" : "default"}
