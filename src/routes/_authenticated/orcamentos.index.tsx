@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FunilDoOrcamento } from "@/components/orcamento/funil-do-orcamento";
 import { Checkbox } from "@/components/ui/checkbox";
 import { chaveWhatsApp } from "@/domain/documentos";
 import { Label } from "@/components/ui/label";
@@ -397,6 +398,8 @@ function OrcamentosPage() {
           </Dialog>
         }
       />
+
+      {podeConverter && <FunilDoOrcamento />}
 
       <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Orçamentos em aberto" value={kpis.abertos} tone="cyan" icon={FileText} />

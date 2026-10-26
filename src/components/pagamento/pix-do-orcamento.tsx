@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BotaoEnviarPeloSistema } from "@/components/whatsapp/enviar-pelo-sistema";
 import { brCodePix, linkDoWhatsapp, mensagemDoPix, TIPOS_DE_CHAVE_PIX, type TipoDeChavePix } from "@/domain/pagamento/pix";
 import { IconePix } from "./marcas";
 import { QrCodeDoPix } from "./qr-code-do-pix";
@@ -155,6 +156,13 @@ export function PixDoOrcamento({
             >
               <Send className="mr-1.5 h-4 w-4" /> Enviar ao cliente
             </Button>
+            <BotaoEnviarPeloSistema
+              telefone={clienteTelefone}
+              nome={clienteNome}
+              origem="pix"
+              variant="default"
+              texto={copiaECola ? mensagemDoPix({ cliente: clienteNome, valor, numeroDoOrcamento: numero, copiaECola, empresa: nomeDaEmpresa || null }) : ""}
+            />
           </div>
         </>
       )}

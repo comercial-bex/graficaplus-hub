@@ -62,6 +62,7 @@ import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { gerarPDFOrcamentoParaEnvio } from "@/lib/pdf/generate";
 import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functions";
+import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
 import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
 import {
   EscolhaDeProduto,
@@ -757,6 +758,15 @@ function OrcamentoDetailPage() {
   }
 
   const acabamentosDoProduto = useAcabamentosDoProduto(form.produto_id);
+  // O acabamento padrão do produto já vem marcado (bainha e ilhós na lona): quem vende não precisa
+  // lembrar. Só preenche item NOVO e vazio; editar um item nunca troca o que a pessoa escreveu.
+  const padraoDoProduto = (acabamentosDoProduto.data ?? []).filter((a) => a.padrao).map((a) => a.nome).join(", ");
+  useEffect(() => {
+    if (!editando && padraoDoProduto && !form.acabamento.trim()) {
+      setForm((f) => (f.acabamento.trim() ? f : { ...f, acabamento: padraoDoProduto }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [padraoDoProduto, form.produto_id, editando]);
   const produtosJaNoOrcamento = new Set<string>();
   for (const i of itens as { produto_id?: string | null }[]) {
     if (i.produto_id) produtosJaNoOrcamento.add(i.produto_id);
@@ -893,6 +903,68 @@ function OrcamentoDetailPage() {
   }
 
   /** Copia o item: mesma descrição, preço e TODAS as artes, medida ajustável. */
+  /** O último pedido do mesmo cliente que tem itens: quem compra de novo costuma pedir igual. */
+  const clienteDoOrcamento = (orc as any)?.cliente_id as string | null | undefined;
+  const ultimoPedido = useQuery({
+    queryKey: ["ultimo-pedido-do-cliente", clienteDoOrcamento, id],
+    enabled: !!clienteDoOrcamento && itensDeProduto.length === 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data: lista, error } = await (supabase as any)
+        .from("orcamentos")
+        .select("id, numero, titulo")
+        .eq("cliente_id", clienteDoOrcamento)
+        .neq("id", id)
+        .in("status", ["aprovado", "convertido", "enviado"])
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      for (const o of lista ?? []) {
+        const { data: its, error: e2 } = await fromFinancialView("orcamento_itens", nivelDeVisao)
+          .select("*")
+          .eq("orcamento_id", o.id)
+          .order("ordem");
+        if (e2) throw e2;
+        const reais = ((its ?? []) as any[]).filter((i) => i.tipo_produto !== "taxa_prazo");
+        if (reais.length > 0) return { numero: o.numero as number, itens: reais };
+      }
+      return null;
+    },
+  });
+  const [repetindo, setRepetindo] = useState(false);
+  async function repetirUltimoPedido() {
+    const base = ultimoPedido.data;
+    if (!base || repetindo) return;
+    setRepetindo(true);
+    try {
+      const linhas = base.itens.map((item: any, n: number) => {
+        const copia: Record<string, unknown> = {
+          orcamento_id: id,
+          descricao: item.descricao,
+          quantidade: item.quantidade,
+          unidade: item.unidade,
+          largura: item.largura,
+          altura: item.altura,
+          acabamento: item.acabamento,
+          tipo_produto: item.tipo_produto ?? null,
+          especificacao: item.especificacao ?? null,
+          valor_unitario: canSeePrices ? item.valor_unitario : 0,
+          ordem: itens.length + n,
+          produto_id: item.produto_id,
+        };
+        if (item.custo_unitario != null) copia.custo_unitario = item.custo_unitario;
+        return copia;
+      });
+      const { error } = await (supabase as any).from("orcamento_itens").insert(linhas);
+      if (error) return toast.error(mensagemErro(error));
+      toast.success(`Itens do orçamento #${base.numero} copiados. Confira medidas e preços.`);
+      await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+      await recalcular();
+    } finally {
+      setRepetindo(false);
+    }
+  }
+
   async function duplicarItem(item: any) {
     const copia: Record<string, unknown> = {
       orcamento_id: id,
@@ -1008,6 +1080,32 @@ function OrcamentoDetailPage() {
       toast.error(mensagemErro(e, "Não foi possível enviar pelo sistema"));
     } finally {
       setEnviandoPeloSistema(false);
+    }
+  }
+
+  const [lembrando, setLembrando] = useState(false);
+  /** Lembrete ao cliente que não respondeu: quem clica autoriza (regra da casa), sai pelo WhatsApp da gráfica. */
+  async function lembrarCliente() {
+    if (lembrando) return;
+    setLembrando(true);
+    try {
+      const url = await obterLinkCliente();
+      const fone = String((orc as any)?.contato_telefone || foneDoCliente || "");
+      await enviarTextoPeloSistema({
+        data: {
+          telefone: fone,
+          nome: (orc as any)?.cliente_nome ?? (orc as any)?.contato_nome ?? undefined,
+          origem: "lembrete_orcamento",
+          texto: `Olá! Passando para saber se deu para ver o orçamento nº ${(orc as any).numero} — ${(orc as any).titulo}. Qualquer ajuste é só falar. Para conferir e aprovar: ${url}`,
+        },
+      });
+      const http = await acionarEnvio();
+      if ("falhaDeRede" in http || http.status >= 400) toast.warning("Entrou na fila de envio; o despachante manda em até 2 minutos.");
+      else toast.success("Lembrete enviado pelo WhatsApp da gráfica.");
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível enviar o lembrete"));
+    } finally {
+      setLembrando(false);
     }
   }
 
@@ -1369,6 +1467,12 @@ function OrcamentoDetailPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium">
                   <span>{editando ? `Editando o item ${editando.numero}` : "Itens do orçamento"}</span>
+                  {!editando && podeMexer && itensDeProduto.length === 0 && ultimoPedido.data && (
+                    <Button variant="outline" size="sm" onClick={() => void repetirUltimoPedido()} disabled={repetindo}>
+                      {repetindo ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                      Repetir o último pedido deste cliente (#{ultimoPedido.data.numero})
+                    </Button>
+                  )}
                   {editando && (
                     <Button variant="ghost" size="sm" onClick={limparFormulario}>
                       <X className="mr-1 h-4 w-4" /> Cancelar edição
@@ -2264,6 +2368,14 @@ function OrcamentoDetailPage() {
                       <Dica texto="Envia o PDF e o link de aprovação direto na conversa do cliente, pelo WhatsApp da gráfica."><Button size="sm" onClick={enviarPeloSistema} disabled={enviandoPeloSistema || gerandoLink}>
                         {enviandoPeloSistema ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MessageCircle className="h-4 w-4 mr-1" />} Enviar pelo sistema
                       </Button></Dica>
+                      {orc.status === "enviado" && hasPermission("whatsapp.reply") && (orc as any).enviado_em &&
+                        Date.now() - new Date((orc as any).enviado_em).getTime() > 48 * 3600_000 && (
+                          <Dica texto="O cliente não respondeu há mais de 48 horas. Manda um lembrete curto com o link, pelo WhatsApp da gráfica.">
+                            <Button variant="outline" size="sm" onClick={lembrarCliente} disabled={lembrando}>
+                              {lembrando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MessageCircle className="h-4 w-4 mr-1" />} Lembrar o cliente
+                            </Button>
+                          </Dica>
+                        )}
                       <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
                         <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
                       </Button></Dica>
@@ -2374,7 +2486,7 @@ function OrcamentoDetailPage() {
             </Link>
           </Button>
         ) : passo === 4 && aprovadoParaConverter ? (
-          <Button onClick={converterEmOS} disabled={descontoPendente || convertendo}>
+          <Button onClick={() => converterEmOS()} disabled={descontoPendente || convertendo}>
             {convertendo ? "Criando a OS..." : "Converter em OS"} <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
         ) : !ehUltimo(passo) ? (

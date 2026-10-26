@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BotaoEnviarPeloSistema } from "@/components/whatsapp/enviar-pelo-sistema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -136,8 +137,17 @@ export function EnviarParaAprovacao({
                 <p className="text-xs text-muted-foreground">
                   Copie agora: o link não é recuperável depois. Gerar outro cancela este.
                 </p>
+                {telefoneCliente && mensagem && (
+                  <BotaoEnviarPeloSistema
+                    telefone={telefoneCliente}
+                    origem="aprovacao_de_arte"
+                    texto={mensagem}
+                    variant="default"
+                    size="default"
+                  />
+                )}
                 {whatsapp && (
-                  <Button asChild className="w-full">
+                  <Button asChild className="w-full" variant="outline">
                     <a href={whatsapp} target="_blank" rel="noreferrer">
                       Abrir no WhatsApp com a mensagem pronta
                     </a>
