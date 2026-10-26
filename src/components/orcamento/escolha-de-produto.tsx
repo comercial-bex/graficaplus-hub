@@ -198,6 +198,10 @@ export function EscolhaDeProduto({
   const gradeDeProdutos = useColunas();
 
   const porId = useMemo(() => new Map(produtos.map((p) => [p.id, p])), [produtos]);
+  // O "Impressão 3D (serviço)" do catálogo é só a prateleira do tipo: com a calculadora ligada,
+  // escolher o produto a seco daria um item de R$ 0. Ele some dos atalhos, da busca e da lista;
+  // o tipo continua na grade para abrir a calculadora.
+  const ocultar = (p: ProdutoDaEscolha) => !!onCalcularPeca3d && tipoDoProduto(p).chave === "impressao_3d";
   const grupos = useMemo(() => agruparPorTipo(produtos), [produtos]);
   const produtoAtual = produtoId ? (porId.get(produtoId) ?? null) : null;
   // O tipo confirmado do item: o marcado; sem marca, o do produto.
@@ -229,6 +233,7 @@ export function EscolhaDeProduto({
           .toLowerCase()
           .includes(termo),
       )
+      .filter((p) => !ocultar(p))
       .slice(0, 30);
   }, [produtos, termo]);
 
@@ -364,7 +369,11 @@ export function EscolhaDeProduto({
                     </span>
                   )}
                   <span className="text-[10px] leading-none text-muted-foreground">
-                    {lista.length === 1 ? "1 produto" : `${lista.length} produtos`}
+                    {t.chave === "impressao_3d" && onCalcularPeca3d
+                      ? "calculadora"
+                      : lista.length === 1
+                        ? "1 produto"
+                        : `${lista.length} produtos`}
                   </span>
                 </button>
               );
@@ -387,7 +396,7 @@ export function EscolhaDeProduto({
       {!termo && !tipoAtual && atalhos.some((a) => a.ids.some((id) => porId.has(id))) && (
         <div className="space-y-2 rounded-md border bg-muted/30 p-3">
           {atalhos.map((a) => {
-            const lista = a.ids.map((id) => porId.get(id)).filter((p): p is ProdutoDaEscolha => !!p);
+            const lista = a.ids.map((id) => porId.get(id)).filter((p): p is ProdutoDaEscolha => !!p && !ocultar(p));
             if (lista.length === 0) return null;
             const Icone = ICONES_DOS_ATALHOS[a.icone];
             return (
@@ -431,7 +440,7 @@ export function EscolhaDeProduto({
             onKeyDown={moverFocoNaGrade}
             className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"
           >
-            {(termo ? resultadosDaBusca : grupoAtual!.produtos).map((p, indice) => {
+            {(termo ? resultadosDaBusca : grupoAtual!.produtos.filter((p) => !ocultar(p))).map((p, indice) => {
               const t = tipoDoProduto(p);
               const marcado = p.id === produtoId;
               const preco = verPreco ? precoLegivel(p) : null;
