@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Building2, Pencil, Plus, RefreshCw } from "lucide-react";
+import { Building2, Pencil, Plus, ReceiptText, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 import { dicaTela } from "@/lib/dicas";
@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { FornecedorDialog } from "@/components/fornecedores/fornecedor-dialog";
 import { ComprasDoFornecedor } from "@/components/fornecedores/compras-do-fornecedor";
+import { RegistrarCompraDialog } from "@/components/fornecedores/registrar-compra-dialog";
 import {
   buscarComprasNoFornecedor,
   buscarFornecedores,
@@ -45,9 +46,13 @@ function FornecedoresPage() {
   const { hasPermission, canSeeFinancials } = useAuth();
   const podeEditar =
     hasPermission("catalogo.manage") || hasPermission("pagamentos.create") || hasPermission("compras.create");
+  // As mesmas portas das funções do banco (registrar_compra_fornecedor e excluir_compra_fornecedor).
+  const podeRegistrar = hasPermission("pagamentos.create") || hasPermission("compras.create");
+  const podeExcluir = hasPermission("pagamentos.reverse") || hasPermission("compras.cancel");
 
   const [editando, setEditando] = useState<Fornecedor | null>(null);
   const [novoAberto, setNovoAberto] = useState(false);
+  const [registrando, setRegistrando] = useState(false);
 
   const fornecedores = useQuery({ queryKey: CHAVE_DOS_FORNECEDORES, queryFn: buscarFornecedores });
   const compras = useQuery({ queryKey: CHAVE_DAS_COMPRAS, queryFn: buscarComprasNoFornecedor });
@@ -175,11 +180,18 @@ function FornecedoresPage() {
                         </p>
                       </div>
                     </div>
-                    {podeEditar && (
-                      <Button variant="outline" className="h-11 md:h-9" onClick={() => setEditando(selecionado)}>
-                        <Pencil className="mr-1 h-4 w-4" /> Editar
-                      </Button>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {podeRegistrar && (
+                        <Button className="h-11 md:h-9" onClick={() => setRegistrando(true)}>
+                          <ReceiptText className="mr-1 h-4 w-4" /> Registrar compra
+                        </Button>
+                      )}
+                      {podeEditar && (
+                        <Button variant="outline" className="h-11 md:h-9" onClick={() => setEditando(selecionado)}>
+                          <Pencil className="mr-1 h-4 w-4" /> Editar
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {selecionado.categorias.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
@@ -223,10 +235,22 @@ function FornecedoresPage() {
                 documentos={docsDoSelecionado}
                 materiais={materiais.data ?? []}
                 veCustoDoCadastro={canSeeFinancials}
+                podeExcluir={podeExcluir}
+                onExcluido={() => void qc.invalidateQueries({ queryKey: CHAVE_DAS_COMPRAS })}
               />
             </section>
           )}
         </div>
+      )}
+
+      {selecionado && (
+        <RegistrarCompraDialog
+          open={registrando}
+          fornecedor={selecionado}
+          documentos={docsDoSelecionado}
+          onOpenChange={setRegistrando}
+          onRegistrado={() => void qc.invalidateQueries({ queryKey: CHAVE_DAS_COMPRAS })}
+        />
       )}
 
       <FornecedorDialog

@@ -124,7 +124,7 @@ export const dicas = {
   },
   "/fornecedores": {
     menu: "De quem a gráfica compra e o que foi comprado em cada um.",
-    tela: "Cada fornecedor com o que se compra lá e os documentos que ele emitiu — venda, reserva paga sem nota e devolução —, com quem pagou (Agência Bex ou Bex Print) e o preço pago por m² ou ml contra o custo do cadastro. É registro: não mexe em estoque, caixa nem custo.",
+    tela: "Cada fornecedor com o que se compra lá e os documentos que ele emitiu — venda, reserva paga sem nota e devolução —, com quem pagou (Agência Bex ou Bex Print) e o preço pago por m² ou ml contra o custo do cadastro. \"Registrar compra\" copia um documento novo, item por item; um registro errado sai com motivo. É registro: não mexe em estoque, caixa nem custo.",
   },
   "/compromissos": {
     menu: "Contas e obrigações futuras que entram na previsão do caixa.",

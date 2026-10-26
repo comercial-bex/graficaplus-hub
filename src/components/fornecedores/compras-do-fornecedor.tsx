@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronRight, ReceiptText } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Loader2, ReceiptText, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { mensagemErro } from "@/lib/erros";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,12 +53,18 @@ export function ComprasDoFornecedor({
   documentos,
   materiais,
   veCustoDoCadastro,
+  podeExcluir = false,
+  onExcluido,
 }: {
   documentos: CompraNoFornecedor[];
   materiais: MaterialDoCadastro[];
   /** Custo do cadastro só para quem vê o financeiro; quem cuida de compras vê o preço pago. */
   veCustoDoCadastro: boolean;
+  /** Excluir registro feito errado: quem estorna pagamento ou cancela compra. */
+  podeExcluir?: boolean;
+  onExcluido?: () => void;
 }) {
+  const [excluindo, setExcluindo] = useState<CompraNoFornecedor | null>(null);
   const resumo = resumoDasCompras(documentos);
   const precos = precosPagosPorMaterial(documentos, materiais);
   const reservasSemNota = documentos.filter((d) => situacaoDoDocumento(d, documentos) === "reserva_paga");
@@ -201,15 +213,37 @@ export function ComprasDoFornecedor({
         </CardHeader>
         <CardContent className="space-y-2">
           {documentos.map((d) => (
-            <Documento key={d.id} doc={d} situacao={situacaoDoDocumento(d, documentos)} />
+            <Documento
+              key={d.id}
+              doc={d}
+              situacao={situacaoDoDocumento(d, documentos)}
+              onExcluir={podeExcluir ? () => setExcluindo(d) : undefined}
+            />
           ))}
         </CardContent>
       </Card>
+
+      <ExcluirCompraDialog
+        doc={excluindo}
+        onOpenChange={(v) => !v && setExcluindo(null)}
+        onExcluido={() => {
+          setExcluindo(null);
+          onExcluido?.();
+        }}
+      />
     </div>
   );
 }
 
-function Documento({ doc, situacao }: { doc: CompraNoFornecedor; situacao: Situacao }) {
+function Documento({
+  doc,
+  situacao,
+  onExcluir,
+}: {
+  doc: CompraNoFornecedor;
+  situacao: Situacao;
+  onExcluir?: () => void;
+}) {
   const [aberto, setAberto] = useState(false);
   const Seta = aberto ? ChevronDown : ChevronRight;
   return (
@@ -276,8 +310,85 @@ function Documento({ doc, situacao }: { doc: CompraNoFornecedor; situacao: Situa
           </div>
           {doc.observacoes && <p className="text-xs">{doc.observacoes}</p>}
           {doc.fonte && <p className="text-xs text-muted-foreground">Fonte: {doc.fonte}</p>}
+          {onExcluir && (
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" className="h-11 text-destructive md:h-8" onClick={onExcluir}>
+                <Trash2 className="mr-1 h-4 w-4" /> Excluir registro
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Tirar um registro feito errado. O motivo e os itens ficam na auditoria;
+ * venda com devolução só sai depois da devolução (o banco recusa e diz qual).
+ */
+function ExcluirCompraDialog({
+  doc,
+  onOpenChange,
+  onExcluido,
+}: {
+  doc: CompraNoFornecedor | null;
+  onOpenChange: (aberto: boolean) => void;
+  onExcluido: () => void;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  async function excluir() {
+    if (!doc) return;
+    if (motivo.trim().length < 5) {
+      toast.error("Diga por que o registro sai.");
+      return;
+    }
+    setEnviando(true);
+    try {
+      const { error } = await (supabase as any).rpc("excluir_compra_fornecedor", { p_id: doc.id, p_motivo: motivo });
+      if (error) throw error;
+      toast.success(`${doc.documento} excluída do registro.`);
+      setMotivo("");
+      onExcluido();
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível excluir o registro."));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!doc} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Excluir {doc?.documento}?</DialogTitle>
+          <DialogDescription>
+            Use só para registro feito errado — a compra continua tendo acontecido no fornecedor. O motivo e os itens
+            ficam guardados no histórico de alterações.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="excluir-compra-motivo">Motivo</Label>
+          <Textarea
+            id="excluir-compra-motivo"
+            rows={3}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ex.: número do documento digitado errado"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button variant="destructive" className="h-11 md:h-9" disabled={enviando} onClick={excluir}>
+            {enviando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+            Excluir registro
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
