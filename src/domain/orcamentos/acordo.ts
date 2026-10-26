@@ -263,3 +263,84 @@ export function brl(v: number | string | null | undefined): string {
 export function m2(v: number): string {
   return `${v.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} m²`;
 }
+
+/* ------------------------------------------------------------------------- */
+/* Conferência antes de converter em OS                                       */
+/* ------------------------------------------------------------------------- */
+
+export type ItemDaConferencia = {
+  chave: string;
+  rotulo: string;
+  ok: boolean;
+  /** `obrigatorio` e não ok = a OS nasce com um problema; `aviso` e não ok = só atenção. */
+  nivel: "obrigatorio" | "aviso";
+  detalhe: string;
+};
+
+/**
+ * O que a pessoa precisa ver ANTES de criar a OS (27/10/2026). Nada aqui bloqueia: o banco já
+ * recusa o que não pode (desconto sem aprovação, valor mudado). É a diferença entre descobrir
+ * "sem arte" na produção e saber disso na hora de converter.
+ */
+export function conferenciaAntesDeConverter(o: {
+  temCliente: boolean;
+  dataEntrega: string | null;
+  verPreco: boolean;
+  forma: string | null;
+  pixRecebido: boolean;
+  itensSemArte: number;
+  descontoPendente: boolean;
+}): ItemDaConferencia[] {
+  const lista: ItemDaConferencia[] = [
+    {
+      chave: "cliente",
+      rotulo: "Cliente cadastrado",
+      ok: o.temCliente,
+      nivel: "obrigatorio",
+      detalhe: o.temCliente ? "A OS fica ligada ao cadastro." : "Sem cliente cadastrado a OS não pode ser criada.",
+    },
+    {
+      chave: "entrega",
+      rotulo: "Data de entrega",
+      ok: !!o.dataEntrega,
+      nivel: "obrigatorio",
+      detalhe: o.dataEntrega ? "A OS herda a data e entra na agenda." : "Sem data a OS nasce sem prazo (e sai nos alertas).",
+    },
+  ];
+  if (o.verPreco) {
+    lista.push({
+      chave: "pagamento",
+      rotulo: "Forma de pagamento",
+      ok: !!o.forma,
+      nivel: "obrigatorio",
+      detalhe: o.forma ? `${o.forma}: a conta a receber é criada.` : "Sem forma, a conta a receber nasce sem condição.",
+    });
+    if (o.forma && o.forma.toLowerCase() === "pix") {
+      lista.push({
+        chave: "pix",
+        rotulo: "Pix recebido",
+        ok: o.pixRecebido,
+        nivel: "aviso",
+        detalhe: o.pixRecebido ? "A baixa vai junto com a OS." : "Ainda não marcado como recebido: a parcela fica em aberto.",
+      });
+    }
+    lista.push({
+      chave: "desconto",
+      rotulo: "Desconto aprovado",
+      ok: !o.descontoPendente,
+      nivel: "obrigatorio",
+      detalhe: o.descontoPendente ? "O desconto passou da alçada sem aprovação: o banco recusa." : "Dentro da alçada ou aprovado.",
+    });
+  }
+  lista.push({
+    chave: "arte",
+    rotulo: "Layout dos itens",
+    ok: o.itensSemArte === 0,
+    nivel: "aviso",
+    detalhe:
+      o.itensSemArte === 0
+        ? "Todos os itens têm arte."
+        : `${o.itensSemArte} ${o.itensSemArte === 1 ? "item sem layout" : "itens sem layout"}: a OS nasce em Design e só vai à produção com a arte aprovada.`,
+  });
+  return lista;
+}
