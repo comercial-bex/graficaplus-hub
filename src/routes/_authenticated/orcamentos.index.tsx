@@ -143,12 +143,14 @@ function OrcamentosPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("orcamento_itens_operacional")
-        .select("orcamento_id, area_cobrada, area_total, origem_calculo")
+        // A view operacional NÃO tem `origem_calculo`: pedir essa coluna derrubava a consulta
+        // inteira e a coluna ficava toda "—" (a falha que se lê como vazio, 27/10/2026).
+        .select("orcamento_id, area_cobrada, area_total, tipo_produto")
         .in("orcamento_id", idsDosOrcamentos);
       if (error) throw error;
       const soma: Record<string, number> = {};
       for (const i of (data ?? []) as any[]) {
-        if (i.origem_calculo === "taxa_prazo") continue;
+        if (i.tipo_produto === "taxa_prazo") continue;
         const area = Number(i.area_cobrada ?? 0) || Number(i.area_total ?? 0) || 0;
         if (area > 0) soma[i.orcamento_id] = (soma[i.orcamento_id] ?? 0) + area;
       }

@@ -105,3 +105,12 @@ describe("arquivo do fatiador (.3mf/.gcode) ligado à calculadora", () => {
     expect(lista).toContain("<TableHead className=\"hidden md:table-cell\">Metragem</TableHead>");
   });
 });
+
+describe("a consulta da metragem na lista só pede colunas que a view operacional tem", () => {
+  it("não pede origem_calculo (a view não tem; a consulta inteira cairia e a coluna ficaria '—')", () => {
+    const lista = readFileSync("src/routes/_authenticated/orcamentos.index.tsx", "utf8");
+    const bloco = lista.slice(lista.indexOf('queryKey: ["orcamentos-m2"'), lista.indexOf("return soma;"));
+    expect(bloco).toContain('.select("orcamento_id, area_cobrada, area_total, tipo_produto")');
+    expect(bloco).not.toContain("origem_calculo");
+  });
+});
