@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CalendarClock,
@@ -40,6 +40,8 @@ import {
   dataBR,
   datasAoDefinirEntrega,
   enderecoDoCliente,
+  isoLocal,
+  somarDiasUteis,
   lerCondicao,
   modoDeEntrega,
   parcelasDoOrcamento,
@@ -121,12 +123,32 @@ function falta(dias: number | null): string | null {
   return Math.abs(dias) === 1 ? "passou 1 dia" : `passou ${Math.abs(dias)} dias`;
 }
 
+/** Prazo padrão de entrega em dias úteis (custos_tabela.prazo_entrega_padrao_dias); 5 se o cadastro não responder. */
+function usePrazoPadraoDias(): number {
+  const { data } = useQuery({
+    queryKey: ["prazo-entrega-padrao-dias"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("custos_tabela")
+        .select("valor")
+        .eq("codigo", "prazo_entrega_padrao_dias")
+        .eq("ativo", true)
+        .maybeSingle();
+      if (error) throw error;
+      return Number(data?.valor) || 5;
+    },
+  });
+  return data ?? 5;
+}
+
 /* ------------------------------------------------------------------------- */
 /* Entrega e prazos                                                           */
 /* ------------------------------------------------------------------------- */
 
 export function EntregaEPrazos({ acordo, podeEditar }: { acordo: AcordoDoOrcamento; podeEditar: boolean }) {
   const gravar = useGravarOrcamento(acordo.id);
+  const prazoPadrao = usePrazoPadraoDias();
   const [maisDatas, setMaisDatas] = useState(prazoSeparado(acordo) || !!acordo.data_inicio);
   const [validade, setValidade] = useState(String(acordo.validade_dias ?? 7));
   const [endereco, setEndereco] = useState(textoDoEndereco(acordo.endereco_entrega));
@@ -193,6 +215,22 @@ export function EntregaEPrazos({ acordo, podeEditar }: { acordo: AcordoDoOrcamen
               gravar.mutate({ campos: datasAoDefinirEntrega(novo, acordo), aviso: "Data de entrega salva" })
             }
           />
+          {!acordo.data_entrega_prometida && podeEditar && !fechado && (() => {
+            const sugerida = somarDiasUteis(isoLocal(new Date()), prazoPadrao);
+            return (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={gravar.isPending}
+                onClick={() =>
+                  gravar.mutate({ campos: datasAoDefinirEntrega(sugerida, acordo), aviso: "Data de entrega salva" })
+                }
+              >
+                Sugerir {dataBR(sugerida)} · {prazoPadrao} dias úteis
+              </Button>
+            );
+          })()}
           <p className="text-xs text-muted-foreground">
             {acordo.data_entrega_prometida
               ? `${falta(diasEntrega)} · sai no PDF e a OS herda`
@@ -365,7 +403,9 @@ export function Pagamento({
   numero = null,
   clienteNome = null,
   clienteTelefone = null,
+  clienteId = null,
 }: {
+  clienteId?: string | null;
   numero?: number | null;
   clienteNome?: string | null;
   clienteTelefone?: string | null;
@@ -378,6 +418,25 @@ export function Pagamento({
 }) {
   const gravar = useGravarOrcamento(orcamentoId);
   const condicao = lerCondicao(cru);
+  // A última condição que este cliente usou: quem compra de novo quase sempre paga igual.
+  const ultima = useQuery({
+    queryKey: ["ultima-condicao-do-cliente", clienteId, orcamentoId],
+    enabled: !!clienteId && !cru?.["forma" as keyof typeof cru],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orcamentos")
+        .select("condicao_pagamento")
+        .eq("cliente_id", clienteId)
+        .neq("id", orcamentoId)
+        .not("condicao_pagamento", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      const achada = (data ?? []).map((l: any) => l.condicao_pagamento).find((c: any) => c && typeof c.forma === "string" && c.forma);
+      return (achada ?? null) as Record<string, unknown> | null;
+    },
+  });
   const formaGravada = typeof condicao.forma === "string" ? condicao.forma : "";
   const formaDaLista = (FORMAS_DE_PAGAMENTO as readonly string[]).includes(formaGravada);
   const [outra, setOutra] = useState(formaGravada && !formaDaLista ? formaGravada : "");
@@ -413,6 +472,27 @@ export function Pagamento({
       <CardContent className="space-y-3">
         <div className="space-y-2">
           <Label className="text-xs">Forma</Label>
+          {podeEditar && !formaGravada && ultima.data && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={gravar.isPending}
+              onClick={() =>
+                salvar(
+                  {
+                    forma: String(ultima.data?.forma),
+                    parcelas: Number(ultima.data?.parcelas ?? 1) || 1,
+                    intervalo_dias: Number(ultima.data?.intervalo_dias ?? 30) || 30,
+                  },
+                  "Condição repetida do último pedido",
+                )
+              }
+            >
+              Repetir o último deste cliente: {String(ultima.data.forma)}
+              {Number(ultima.data.parcelas) > 1 ? ` · ${Number(ultima.data.parcelas)}×` : ""}
+            </Button>
+          )}
           <FormaDePagamento
             valor={valorDaSelecao}
             desabilitado={!podeEditar || gravar.isPending}

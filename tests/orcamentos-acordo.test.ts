@@ -10,6 +10,7 @@ import {
   parcelasDoOrcamento,
   pendenciasParaEnviar,
   avisosParaEnviar,
+  somarDiasUteis,
   prazoSeparado,
   somarDias,
   textoDoEndereco,
@@ -149,5 +150,15 @@ describe("dinheiro em pt-BR", () => {
     expect(brl(0)).toMatch(/^R\$\s0,00$/);
     expect(brl(1234.5)).toMatch(/^R\$\s1\.234,50$/);
     expect(brl("abc")).toMatch(/^R\$\s0,00$/);
+  });
+});
+
+describe("dias úteis da entrega sugerida", () => {
+  it("pula sábado e domingo", () => {
+    // 2026-10-23 é sexta: 1 dia útil depois é segunda 26; 5 dias úteis depois da segunda 26 é a segunda 2/11.
+    expect(somarDiasUteis("2026-10-23", 1)).toBe("2026-10-26");
+    expect(somarDiasUteis("2026-10-26", 5)).toBe("2026-11-02");
+    expect(somarDiasUteis("2026-10-24", 1)).toBe("2026-10-26");
+    expect(somarDiasUteis("2026-10-26", 0)).toBe("2026-10-26");
   });
 });

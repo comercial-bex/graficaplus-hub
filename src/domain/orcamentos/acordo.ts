@@ -30,6 +30,19 @@ export function somarDias(iso: string, dias: number): string {
   return isoLocal(d);
 }
 
+/** Soma dias ÚTEIS (segunda a sexta) a uma data "aaaa-mm-dd"; sábado e domingo não contam. */
+export function somarDiasUteis(iso: string, dias: number): string {
+  const d = dataLocal(iso);
+  if (!d) return iso;
+  let faltam = Math.max(0, Math.round(dias));
+  while (faltam > 0) {
+    d.setDate(d.getDate() + 1);
+    const dia = d.getDay();
+    if (dia !== 0 && dia !== 6) faltam -= 1;
+  }
+  return isoLocal(d);
+}
+
 /** dd/mm/aaaa de uma data "aaaa-mm-dd" (ou de um timestamp). */
 export function dataBR(valor: string | null | undefined): string | null {
   const d = dataLocal(valor ?? null);

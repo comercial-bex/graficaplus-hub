@@ -2148,6 +2148,7 @@ function OrcamentoDetailPage() {
                       condicao={dadosDoAcordo.condicao_pagamento}
                       podeEditar={podeMexer}
                       numero={Number((orc as any).numero ?? 0) || null}
+                      clienteId={(dadosDoAcordo as any).cliente_id ?? null}
                       clienteNome={orc.cliente_nome ?? (orc as any).contato_nome ?? null}
                       clienteTelefone={
                         ((orc as any).cliente_whatsapp ?? (orc as any).cliente_telefone ?? (orc as any).contato_telefone ?? null) as string | null
