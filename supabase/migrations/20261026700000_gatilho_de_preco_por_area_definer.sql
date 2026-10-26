@@ -1,0 +1,14 @@
+-- Ninguém da equipe conseguia ADICIONAR item por m² a um orçamento (26/10/2026, achado na simulação ao vivo).
+--
+-- Sintoma: "Adicionar item" não fazia nada; o navegador mostrava 403 em POST orcamento_itens e o banco
+-- respondia "permission denied for table produtos" (42501).
+-- Causa: a migração 20261025200000 (faixa por área) fez o gatilho tg_item_precificar_por_area ler
+-- produtos.preco_parceiro, preco_parceiro_acima e acima_de_m2. Essas colunas de preço NÃO têm SELECT
+-- para quem está logado (saem pelas views do nível de visão), e o gatilho rodava com os direitos de quem
+-- insere. O ensaio da migração foi feito como dono do banco, onde tudo passa: só falhou com gente de verdade,
+-- a partir de 24/10/2026 22:51, para qualquer item vendido por área.
+-- Correção: o gatilho passa a rodar como SECURITY DEFINER (search_path já fixo em public). Ele só LÊ o preço
+-- do produto e escreve no registro que está sendo gravado; nada vaza. Regra para gatilho que lê coluna
+-- fechada: DEFINER, e ensaiar como `authenticated`, nunca como dono.
+-- Desfazer: ALTER FUNCTION public.tg_item_precificar_por_area() SECURITY INVOKER;
+ALTER FUNCTION public.tg_item_precificar_por_area() SECURITY DEFINER;
