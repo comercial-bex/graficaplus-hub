@@ -529,6 +529,7 @@ export function Pagamento({
           )}
           {formaGravada === "PIX" && (
             <PixDoOrcamento
+              orcamentoId={orcamentoId}
               numero={numero}
               clienteNome={clienteNome}
               clienteTelefone={clienteTelefone}

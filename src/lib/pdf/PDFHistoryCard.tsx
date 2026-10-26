@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { VisualizadorDeArquivo } from "@/components/arquivos/visualizador-de-arquivo";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,7 @@ type Props = {
 };
 
 export function PDFHistoryCard({ tipo, referencia_id }: Props) {
+  const [vendo, setVendo] = useState<{ titulo: string; nome: string; caminho: string } | null>(null);
   const { data = [] } = useQuery({
     queryKey: ["documentos-gerados", tipo, referencia_id],
     queryFn: async () => {
@@ -74,7 +77,18 @@ export function PDFHistoryCard({ tipo, referencia_id }: Props) {
               </div>
             </div>
             <div className="flex gap-1">
-              <Button size="sm" variant="ghost" onClick={() => abrir(d.caminho, false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label="Ver o PDF"
+                onClick={() =>
+                  setVendo({
+                    titulo: `${tipo === "orcamento" ? "Orçamento" : "OS"} #${d.numero} · ${d.variante}`,
+                    nome: d.caminho.split("/").pop() ?? "documento.pdf",
+                    caminho: d.caminho,
+                  })
+                }
+              >
                 <Eye className="h-4 w-4" />
               </Button>
               <Button size="sm" variant="ghost" onClick={() => abrir(d.caminho, true)}>
@@ -84,6 +98,10 @@ export function PDFHistoryCard({ tipo, referencia_id }: Props) {
           </div>
         ))}
       </CardContent>
+      <VisualizadorDeArquivo
+        alvo={vendo ? { titulo: vendo.titulo, nome: vendo.nome, bucket: "documentos-pdf", caminho: vendo.caminho } : null}
+        onFechar={() => setVendo(null)}
+      />
     </Card>
   );
 }
