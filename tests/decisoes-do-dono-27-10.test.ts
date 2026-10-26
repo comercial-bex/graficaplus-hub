@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { notaDoSinal, pedidoDeSinal } from "../src/domain/pagamento/sinal";
+import { mensagensDoPix, notaDoSinal, pedidoDeSinal } from "../src/domain/pagamento/sinal";
 
 const le = (p: string) => readFileSync(p, "utf8");
 
@@ -49,5 +49,27 @@ describe("decisões do dono gravadas no banco e no código", () => {
     expect(pagina).toContain("aoMarcarPixRecebido={() => {");
     expect(pagina).toContain('data-testid="pix-do-sinal-enviado"');
     expect(le("src/components/orcamento/acordo-do-orcamento.tsx")).toContain("marca ? aoMarcarPixRecebido : undefined");
+  });
+});
+
+describe("o Pix chega em três mensagens: QR Code, apresentação e o código sozinho", () => {
+  const m = mensagensDoPix({ cliente: "Maria Souza", valor: 77.5, numeroDoOrcamento: 150, empresa: "BEX PRINT", parcelas: 1, copiaECola: "000201...6304ABCD" });
+  it("o código vai numa mensagem só dele, para copiar com um toque", () => {
+    expect(m.codigo).toBe("000201...6304ABCD");
+    expect(m.introducao).not.toContain("000201");
+  });
+  it("a legenda do QR traz o valor e a apresentação pede o comprovante", () => {
+    expect(m.legendaDoQr).toContain("Maria,");
+    expect(m.legendaDoQr).toContain("#150");
+    expect(m.legendaDoQr).toMatch(/R\$\s?77,50/);
+    expect(m.introducao).toContain("comprovante");
+    expect(m.introducao).toContain("50%");
+  });
+  it("o servidor enfileira QR, apresentação e código nessa ordem", () => {
+    const s = le("src/lib/api/orcamento-whatsapp.functions.ts");
+    const i = (t: string) => s.indexOf(t);
+    expect(i("p_legenda: msgs.legendaDoQr")).toBeGreaterThan(0);
+    expect(i('enfileirarTexto(db, conversaId, usuarioId, msgs.introducao, "pix_sinal")')).toBeGreaterThan(i("p_legenda: msgs.legendaDoQr"));
+    expect(i('enfileirarTexto(db, conversaId, usuarioId, msgs.codigo, "pix_sinal_codigo")')).toBeGreaterThan(i("msgs.introducao"));
   });
 });

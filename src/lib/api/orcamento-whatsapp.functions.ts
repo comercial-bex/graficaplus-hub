@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { brCodePix, mensagemDoPix } from "@/domain/pagamento/pix";
-import { notaDoSinal, pedidoDeSinal } from "@/domain/pagamento/sinal";
+import { brCodePix } from "@/domain/pagamento/pix";
+import { mensagensDoPix, pedidoDeSinal } from "@/domain/pagamento/sinal";
 
 /**
  * "Enviar pelo sistema": o orçamento sai pelo Z-API, na conversa do cliente,
@@ -43,6 +43,45 @@ type Orc = {
   condicao_pagamento: Record<string, unknown> | null;
 };
 
+/** Enfileira um texto na conversa, na mesma fila da caixa (a ordem de saída é a de criação). */
+async function enfileirarTexto(db: any, conversaId: string, usuarioId: string, texto: string, origem: string) {
+  const { data: c } = await db.from("whatsapp_conversas").select("instancia_id").eq("id", conversaId).single();
+  const { data: msg, error: erroMsg } = await db
+    .from("whatsapp_mensagens")
+    .insert({
+      conversa_id: conversaId,
+      instancia_id: c?.instancia_id,
+      direcao: "saida",
+      tipo: "texto",
+      status: "pendente",
+      texto,
+      enviada_por: usuarioId,
+      origem: "humano",
+      payload: { origem },
+    })
+    .select("id")
+    .single();
+  if (erroMsg) throw new Error(erroMsg.message);
+  const { data: fila, error: erroFila } = await db
+    .from("whatsapp_fila_envio")
+    .insert({
+      conversa_id: conversaId,
+      mensagem_id: msg.id,
+      payload: { tipo: "texto", texto },
+      status: "pendente",
+      idempotency_key: `${origem}:${msg.id}`,
+      created_by: usuarioId,
+    })
+    .select("id")
+    .single();
+  if (erroFila) throw new Error(erroFila.message);
+  await db
+    .from("whatsapp_conversas")
+    .update({ ultima_mensagem: texto.slice(0, 500), ultima_mensagem_at: new Date().toISOString(), nao_lidas: 0 })
+    .eq("id", conversaId);
+  return fila.id as string;
+}
+
 /** O Pix do sinal: QR Code (imagem) com o copia e cola na legenda, na mesma conversa. */
 async function enviarPixDoSinal(
   db: any,
@@ -68,13 +107,14 @@ async function enviarPixDoSinal(
     cidade: String(cfg?.cidade ?? "Macapa"),
     identificador: `ORC${orc.numero}`,
   });
-  const texto = `${mensagemDoPix({
+  const msgs = mensagensDoPix({
     cliente: clienteNome,
     valor: pedido.valor,
     numeroDoOrcamento: orc.numero,
-    copiaECola,
     empresa,
-  })}\n\n${notaDoSinal(pedido.parcelas)}`;
+    parcelas: pedido.parcelas,
+    copiaECola,
+  });
 
   // O QR Code nasce aqui (no servidor) e sobe para a pasta da conversa: o cliente lê com a câmera do banco.
   const mod: any = await import("qrcode");
@@ -92,9 +132,12 @@ async function enviarPixDoSinal(
     p_tipo: "imagem",
     p_storage_path: destino,
     p_nome_arquivo: nomeArquivo,
-    p_legenda: texto,
+    p_legenda: msgs.legendaDoQr,
   });
   if (error) throw new Error(error.message);
+  // Depois do QR Code: a apresentação e, SOZINHO, o código para copiar.
+  await enfileirarTexto(db, conversaId, usuarioId, msgs.introducao, "pix_sinal");
+  await enfileirarTexto(db, conversaId, usuarioId, msgs.codigo, "pix_sinal_codigo");
 
   // Fica registrado no orçamento: o que foi pedido, quando, e com qual código. É isso que o
   // webhook usa para reconhecer o comprovante e o que a tela mostra como "aguardando".
@@ -195,41 +238,7 @@ export const enviarOrcamentoPeloSistema = createServerFn({ method: "POST" })
       comPdf = true;
     } else {
       // 4b. Sem PDF: só o texto com o link, na mesma fila.
-      const { data: c } = await db.from("whatsapp_conversas").select("instancia_id").eq("id", conversaId).single();
-      const { data: msg, error: erroMsg } = await db
-        .from("whatsapp_mensagens")
-        .insert({
-          conversa_id: conversaId,
-          instancia_id: c?.instancia_id,
-          direcao: "saida",
-          tipo: "texto",
-          status: "pendente",
-          texto,
-          enviada_por: context.userId,
-          origem: "humano",
-          payload: { origem: "orcamento" },
-        })
-        .select("id")
-        .single();
-      if (erroMsg) throw new Error(erroMsg.message);
-      const { data: fila, error: erroFila } = await db
-        .from("whatsapp_fila_envio")
-        .insert({
-          conversa_id: conversaId,
-          mensagem_id: msg.id,
-          payload: { tipo: "texto", texto },
-          status: "pendente",
-          idempotency_key: `orcamento:${msg.id}`,
-          created_by: context.userId,
-        })
-        .select("id")
-        .single();
-      if (erroFila) throw new Error(erroFila.message);
-      await db
-        .from("whatsapp_conversas")
-        .update({ ultima_mensagem: texto.slice(0, 500), ultima_mensagem_at: new Date().toISOString(), nao_lidas: 0 })
-        .eq("id", conversaId);
-      filaId = fila.id as string;
+      filaId = await enfileirarTexto(db, conversaId, context.userId, texto, "orcamento");
     }
 
     // 5. O Pix do sinal, logo depois do orçamento. Acessório: se falhar, o orçamento já saiu e
