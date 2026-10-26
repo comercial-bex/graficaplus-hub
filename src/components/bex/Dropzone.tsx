@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, X, ImageIcon, Loader2, Check, AlertTriangle } from "lucide-react";
+import { Upload, X, ImageIcon, Loader2, Check, AlertTriangle, FileBox } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type DropzoneStatus =
@@ -36,7 +36,8 @@ export function Dropzone({
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!file) {
+    // Só imagem tem miniatura; .3mf/.gcode aparece como arquivo, com nome e tamanho.
+    if (!file || !file.type.startsWith("image/")) {
       setPreview(null);
       return;
     }
@@ -109,6 +110,26 @@ export function Dropzone({
               <p className="text-xs text-muted-foreground">
                 {file ? `${(file.size / 1024).toFixed(0)} KB` : ""}
               </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFile(null);
+                }}
+                className="mt-2 inline-flex items-center gap-1 text-xs text-[color:var(--bex-magenta)] hover:underline"
+              >
+                <X className="h-3 w-3" /> Remover
+              </button>
+            </div>
+          </div>
+        ) : file ? (
+          <div className="flex w-full items-center gap-3" data-testid="arquivo-sem-previa">
+            <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-border bg-background/60">
+              <FileBox className="h-9 w-9" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="truncate text-sm font-medium">{file.name}</p>
+              <p className="text-xs text-muted-foreground">{`${(file.size / 1024).toFixed(0)} KB`}</p>
               <button
                 type="button"
                 onClick={(e) => {

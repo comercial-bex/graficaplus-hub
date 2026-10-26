@@ -460,7 +460,12 @@ function OrcamentoDetalhe() {
                 <CardTitle className="text-base">Print do fatiador</CardTitle>
               </CardHeader>
               <CardContent>
-                {shotUrl ? (
+                {shotUrl && /\.(3mf|gcode)$/i.test(String(inputs?.slicer_screenshot ?? "")) ? (
+                  // Veio o ARQUIVO do fatiador, não um print: baixa em vez de mostrar.
+                  <a href={shotUrl} target="_blank" rel="noreferrer" className="text-sm underline">
+                    Baixar o arquivo do fatiador ({String(inputs.slicer_screenshot).replace(/^.*_slicer_/, "")})
+                  </a>
+                ) : shotUrl ? (
                   <a href={shotUrl} target="_blank" rel="noreferrer">
                     <img src={shotUrl} alt="Print do fatiador" className="rounded-lg border max-w-full" />
                   </a>

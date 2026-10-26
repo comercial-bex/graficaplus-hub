@@ -81,3 +81,27 @@ describe("o tempo de impressão na especificação do item sai em português", (
     expect(fix).toContain("replace(round(p_tempo_segundos / 3600.0, 2)::text, '.', ',') || ' h de impressão'");
   });
 });
+
+describe("arquivo do fatiador (.3mf/.gcode) ligado à calculadora", () => {
+  const fn = readFileSync("src/lib/api/fatiador.functions.ts", "utf8");
+  const dropzone = readFileSync("src/components/bex/Dropzone.tsx", "utf8");
+  it("o servidor só lê da pasta do fatiador, com a permissão de quem cria orçamento, e o leitor roda só no servidor", () => {
+    expect(fn).toContain("^orcamentos-3d\\/[0-9]+_slicer_[A-Za-z0-9._-]+\\.(3mf|gcode)$");
+    expect(fn).toContain('_permission: "orcamentos.create"');
+    expect(fn).toContain('await import("@/domain/impressao3d/slicer-import")');
+  });
+  it("a calculadora aceita o arquivo, sobe uma vez só e reaproveita o caminho ao salvar", () => {
+    expect(calc).toContain('accept="image/*,.3mf,.gcode"');
+    expect(calc).toContain("lerArquivoDoFatiador({ data: { caminho: path } })");
+    expect(calc).toContain("slicerPath = slicerSubidoPath;");
+  });
+  it("o Dropzone mostra arquivo sem miniatura em vez de imagem quebrada", () => {
+    expect(dropzone).toContain('if (!file || !file.type.startsWith("image/"))');
+    expect(dropzone).toContain('data-testid="arquivo-sem-previa"');
+  });
+  it("a lista de orçamentos mostra a metragem de cada um", () => {
+    const lista = readFileSync("src/routes/_authenticated/orcamentos.index.tsx", "utf8");
+    expect(lista).toContain('queryKey: ["orcamentos-m2"');
+    expect(lista).toContain("<TableHead className=\"hidden md:table-cell\">Metragem</TableHead>");
+  });
+});

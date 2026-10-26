@@ -60,7 +60,6 @@ const CONHECIDOS: Record<string, string> = {
   "src/domain/crm/schemas.ts": "schema sem consumidor",
   "src/domain/custos/categorias.ts": "as telas declaram a lista de categorias localmente",
   "src/domain/financeiro/schemas.ts": "schema sem consumidor",
-  "src/domain/impressao3d/slicer-import.ts": "o assistente 3D lê o .3mf por outro caminho",
   "src/domain/orcamentos/schemas.ts": "schema sem consumidor",
   "src/domain/whatsapp/schemas.ts": "schema sem consumidor",
 };

@@ -38,6 +38,7 @@ import {
 } from "@/domain/impressao3d/arquivos";
 import { cn } from "@/lib/utils";
 import { mensagemErro } from "@/lib/erros";
+import { lerArquivoDoFatiador } from "@/lib/api/fatiador.functions";
 import { useAuth } from "@/lib/auth-context";
 import { DicaIcone } from "@/components/bex/Dica";
 import { enviarLayout } from "@/components/orcamento/layouts-do-item";
@@ -207,12 +208,46 @@ export function Calculadora3D({
 
   const [fotoModelo, setFotoModelo] = useState<File | null>(null);
   const [slicerFile, setSlicerFile] = useState<File | null>(null);
+  // O .3mf/.gcode sobe na hora da leitura; ao salvar, o mesmo caminho é reaproveitado.
+  const [slicerSubidoPath, setSlicerSubidoPath] = useState<string | null>(null);
   const [ocr, setOcr] = useState<DropzoneStatus>({ kind: "idle" });
 
   async function processSlicer(file: File | null) {
     setSlicerFile(file);
+    setSlicerSubidoPath(null);
     setOcr({ kind: "idle" });
     if (!file) return;
+    // Arquivo do fatiador (.3mf / .gcode): o servidor lê peso e tempo de DENTRO do arquivo —
+    // o número exato, sem o OCR errar vírgula (27/10/2026).
+    if (/\.(3mf|gcode)$/i.test(file.name)) {
+      setOcr({ kind: "loading", label: "Lendo o arquivo…" });
+      try {
+        const path = caminhoDoArquivo3d("slicer", file.name);
+        const { error } = await supabase.storage.from(BUCKET_DOS_ARQUIVOS_3D).upload(path, file);
+        if (error) throw error;
+        setSlicerSubidoPath(path);
+        const r = await lerArquivoDoFatiador({ data: { caminho: path } });
+        const achou: string[] = [];
+        if (r.totalWeightG) {
+          set("gramas", String(r.totalWeightG));
+          achou.push(`${r.totalWeightG.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} g`);
+        }
+        if (r.totalTimeSeconds) {
+          const min = Math.round(r.totalTimeSeconds / 60);
+          set("tempo", formatMinutos(min));
+          achou.push(formatMinutos(min));
+        }
+        if (r.plates.length > 1) achou.push(`${r.plates.length} placas somadas`);
+        setOcr(
+          achou.length
+            ? { kind: "ok", label: `${achou.join(" · ")} · lido do arquivo` }
+            : { kind: "error", label: "Arquivo sem peso e tempo — preencha manualmente" },
+        );
+      } catch (e) {
+        setOcr({ kind: "error", label: mensagemErro(e, "Não li o arquivo — preencha manualmente") });
+      }
+      return;
+    }
     setOcr({ kind: "loading", label: "Lendo…" });
     try {
       const r = await runSlicerOcr(file);
@@ -495,10 +530,14 @@ export function Calculadora3D({
       let slicerPath: string | null = null;
       const ts = Date.now();
       if (slicerFile) {
-        const path = caminhoDoArquivo3d("slicer", slicerFile.name, ts);
-        const { error } = await supabase.storage.from(BUCKET_DOS_ARQUIVOS_3D).upload(path, slicerFile);
-        if (error) throw error;
-        slicerPath = path;
+        if (slicerSubidoPath) {
+          slicerPath = slicerSubidoPath; // o .3mf/.gcode já subiu quando foi lido
+        } else {
+          const path = caminhoDoArquivo3d("slicer", slicerFile.name, ts);
+          const { error } = await supabase.storage.from(BUCKET_DOS_ARQUIVOS_3D).upload(path, slicerFile);
+          if (error) throw error;
+          slicerPath = path;
+        }
       }
       // Foto do modelo: entra como arte do item (capa): sai no PDF, no link do cliente e na OS.
       let fotoArquivoId: string | null = null;
@@ -758,12 +797,13 @@ export function Calculadora3D({
               <BlocoTitulo n="2" icone={<Cpu className="h-4 w-4" />} titulo="Dados do fatiador" sub="O herói — o motor lê tudo daqui" />
 
               <Dropzone
-                label="Print do fatiador"
-                hint="Bambu Studio, Orca, Cura ou PrusaSlicer — lemos peso e tempo automaticamente"
+                label="Print ou arquivo do fatiador"
+                hint="Solte o print (imagem) ou o próprio arquivo .3mf/.gcode do Bambu Studio, Orca, Cura ou PrusaSlicer — lemos peso e tempo; o arquivo é exato, o print passa por OCR"
                 file={slicerFile}
                 onFile={processSlicer}
                 status={ocr}
                 accent="cyan"
+                accept="image/*,.3mf,.gcode"
               />
 
               <div className="grid gap-3 md:grid-cols-2">
