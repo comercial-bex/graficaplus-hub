@@ -62,6 +62,7 @@ import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { gerarPDFOrcamentoParaEnvio } from "@/lib/pdf/generate";
 import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functions";
+import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-antes-de-converter";
 import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
 import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
 import {
@@ -144,7 +145,7 @@ import {
   proximaFaixa,
   type FaixaPreco,
 } from "@/domain/orcamentos/faixas";
-import { avisosParaEnviar, brl, dataBR, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
+import { avisosParaEnviar, conferenciaAntesDeConverter, brl, dataBR, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 
@@ -1135,6 +1136,42 @@ function OrcamentoDetailPage() {
   // orçamento: o código interno não diz nada, e a OS precisava ser procurada.
   // Agora trava durante a chamada e leva direto à OS.
   const [convertendo, setConvertendo] = useState(false);
+  /** Qual conversão espera a conferência: "aprovado" (já aprovado) ou "enviado" (aprova junto). */
+  const [conferindo, setConferindo] = useState<null | "aprovado" | "enviado">(null);
+
+  // O cliente abriu o link? (coluna nova; a view do orçamento não a traz)
+  const visto = useQuery({
+    queryKey: ["orcamento-visto", id],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orcamentos")
+        .select("visualizado_em, visualizacoes")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as { visualizado_em: string | null; visualizacoes: number } | null;
+    },
+  });
+  // Aprovado e a conversão automática recusou: o motivo fica no histórico.
+  const recusa = useQuery({
+    queryKey: ["orcamento-recusa-automatica", id],
+    enabled: (orc as any)?.status === "aprovado",
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("eventos_negocio")
+        .select("descricao, created_at")
+        .eq("entidade", "orcamento")
+        .eq("entidade_id", id)
+        .eq("tipo", "orcamento_conversao_automatica_recusada")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0] ?? null) as { descricao: string | null; created_at: string } | null;
+    },
+  });
+
   async function converterEmOS(aprovarAntes = false) {
     if (convertendo) return;
     setConvertendo(true);
@@ -1284,7 +1321,7 @@ function OrcamentoDetailPage() {
           {!fechado && orc.status === "enviado" && podeConverter && hasPermission("orcamentos.approve") && (
             <Dica texto="Use quando o cliente já confirmou por WhatsApp ou no balcão. Registra a aprovação da equipe no histórico e cria a OS.">
               <Button
-                onClick={() => converterEmOS(true)}
+                onClick={() => setConferindo("enviado")}
                 disabled={descontoPendente || convertendo}
                 className="shrink-0 h-11 md:h-10"
               >
@@ -1299,7 +1336,7 @@ function OrcamentoDetailPage() {
               // aqui com o motivo.
               <Dica texto={descontoPendente ? dicaCampo("/orcamentos", "desconto_pendente") : null}>
                 <Button
-                  onClick={() => converterEmOS()}
+                  onClick={() => setConferindo("aprovado")}
                   disabled={descontoPendente || convertendo}
                   className="shrink-0 h-11 md:h-10"
                 >
@@ -1373,6 +1410,37 @@ function OrcamentoDetailPage() {
               : "Envie de novo para registrar a nova versão."}
           </p>
         )}
+        {orc.status === "enviado" && visto.data && (
+          <p className="md:pl-12 text-xs text-muted-foreground">
+            {visto.data.visualizado_em
+              ? `O cliente abriu o link em ${new Date(visto.data.visualizado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}${visto.data.visualizacoes > 1 ? ` (${visto.data.visualizacoes} vezes)` : ""}.`
+              : "O cliente ainda não abriu o link."}
+          </p>
+        )}
+        {orc.status === "aprovado" && !fechado && recusa.data && (
+          <p className="md:pl-12 text-xs text-amber-500">
+            O cliente aprovou, mas a OS não saiu sozinha: {recusa.data.descricao}
+          </p>
+        )}
+        <ConferenciaAntesDeConverter
+          aberto={conferindo !== null}
+          onFechar={() => setConferindo(null)}
+          convertendo={convertendo}
+          aprovaJunto={conferindo === "enviado"}
+          itens={conferenciaAntesDeConverter({
+            temCliente: !!(orc as any).cliente_id,
+            dataEntrega: dadosDoAcordo ? (dadosDoAcordo.data_entrega_prometida ?? dadosDoAcordo.prazo) : null,
+            verPreco: canSeePrices,
+            forma: condicao?.forma ?? null,
+            pixRecebido: !!(condicao as any)?.pix_recebido,
+            itensSemArte: (itensDeProduto as { arquivo_id: string | null }[]).filter((i) => !i.arquivo_id).length,
+            descontoPendente: !!descontoPendente,
+          })}
+          onConfirmar={async () => {
+            await converterEmOS(conferindo === "enviado");
+            setConferindo(null);
+          }}
+        />
         {!fechado && pendencias.length === 0 && avisosParaEnviar({ itens: itensDeProduto as { arquivo_id: string | null }[] }).map((a) => (
           <p key={a} className="md:pl-12 text-xs text-muted-foreground">{a}.</p>
         ))}
@@ -2486,7 +2554,7 @@ function OrcamentoDetailPage() {
             </Link>
           </Button>
         ) : passo === 4 && aprovadoParaConverter ? (
-          <Button onClick={() => converterEmOS()} disabled={descontoPendente || convertendo}>
+          <Button onClick={() => setConferindo("aprovado")} disabled={descontoPendente || convertendo}>
             {convertendo ? "Criando a OS..." : "Converter em OS"} <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
         ) : !ehUltimo(passo) ? (

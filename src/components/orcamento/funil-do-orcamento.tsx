@@ -8,6 +8,8 @@ type Funil = {
   dias: number;
   criados: number;
   enviados: number;
+  vistos?: number;
+  horas_enviar_ate_ver?: number | null;
   aprovados: number;
   viraram_os: number;
   rascunhos_sem_cliente: number;
@@ -38,6 +40,7 @@ export function FunilDoOrcamento() {
 
   const itens = [
     { rotulo: "Criar até enviar", valor: horas(data.horas_criar_ate_enviar) },
+    { rotulo: "Enviar até o cliente abrir", valor: horas(data.horas_enviar_ate_ver ?? null) },
     { rotulo: "Enviar até aprovar", valor: horas(data.horas_enviar_ate_aprovar) },
     { rotulo: "Aprovar até virar OS", valor: horas(data.horas_aprovar_ate_os) },
     { rotulo: "Aprovados que viram OS em 24 h", valor: data.pct_os_em_24h == null ? "—" : `${data.pct_os_em_24h}%` },
@@ -52,11 +55,11 @@ export function FunilDoOrcamento() {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          {data.criados} criados · {data.enviados} enviados · {data.aprovados} aprovados · {data.viraram_os} viraram OS
+          {data.criados} criados · {data.enviados} enviados{data.vistos != null ? ` · ${data.vistos} vistos pelo cliente` : ""} · {data.aprovados} aprovados · {data.viraram_os} viraram OS
           {data.aprovados_sem_os > 0 ? ` · ${data.aprovados_sem_os} aprovados esperando OS` : ""}
           {data.rascunhos_sem_cliente > 0 ? ` · ${data.rascunhos_sem_cliente} rascunhos sem cliente` : ""}
         </p>
-        <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {itens.map((i) => (
             <div key={i.rotulo}>
               <dt className="text-xs text-muted-foreground">{i.rotulo}</dt>

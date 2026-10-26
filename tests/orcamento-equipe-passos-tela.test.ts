@@ -99,7 +99,7 @@ describe("os passos da tela da equipe", () => {
     expect(i).toBeGreaterThan(0);
     const barra = TELA.slice(TELA.lastIndexOf("<div", i), TELA.indexOf("<DialogoDeLayouts", i));
     expect(barra).toContain("lg:hidden");
-    expect(barra).toContain("converterEmOS");
+    expect(barra).toContain("setConferindo");
     expect(barra).toContain("Ver a OS");
     expect(barra).toContain("rotuloDoAvancar(passo)");
     // quem não vê preço não vê o total

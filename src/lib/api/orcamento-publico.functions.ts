@@ -92,6 +92,17 @@ export const obterOrcamentoPublico = createServerFn({ method: "POST" })
 
     const o = orc as Record<string, any>;
 
+    // "Cliente viu": a primeira abertura do link fica registrada e cada abertura é contada.
+    // Não pode derrubar a página do cliente se falhar.
+    try {
+      await supabaseAdmin
+        .from("orcamentos")
+        .update({ visualizado_em: o.visualizado_em ?? new Date().toISOString(), visualizacoes: Number(o.visualizacoes ?? 0) + 1 } as never)
+        .eq("id", o.id);
+    } catch (e) {
+      console.error("[orcamento-publico] não registrou a visualização", e);
+    }
+
     const [{ data: itens }, { data: cliente }, { data: empresa }] = await Promise.all([
       supabaseAdmin.from("orcamento_itens").select("*").eq("orcamento_id", o.id).order("ordem"),
       o.cliente_id
