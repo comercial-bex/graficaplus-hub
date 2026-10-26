@@ -30,6 +30,7 @@ export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso
   juntarArteComEntrega(b);
   somarTabelaDePrecos(b);
   if (decideReembolso) somarReembolsos(b);
+  somarFornecedores(b);
   if (!temCatalogo) return b;
   const vendas = b.arvore.find((a) => a.area === "Vendas");
   const orcamentos = vendas?.subs.find((s) => s.sub === "Orçamentos");
@@ -57,6 +58,21 @@ function somarReembolsos(b: ResumoDoMenu): void {
     ?.subs.find((s) => s.sub === "Pagar e caixa");
   if (!pagar) return;
   pagar.itens.splice(pagar.itens.indexOf("Despesas fixas e contratos") + 1, 0, "Reembolsos");
+  b.itens += 1;
+}
+
+/**
+ * "Fornecedores" (26/10/2026, pedido do dono): de quem a gráfica compra e o que
+ * foi comprado em cada um, no fim de Financeiro › Pagar e caixa. Abre com
+ * financeiro.read ou compras.read — preço de compra é custo. Quem tem "Pagar e
+ * caixa" tem financeiro.read, então ganha o item; ninguém ganha área nova.
+ */
+function somarFornecedores(b: ResumoDoMenu): void {
+  const pagar = b.arvore
+    .find((a) => a.area === "Financeiro")
+    ?.subs.find((s) => s.sub === "Pagar e caixa");
+  if (!pagar) return;
+  pagar.itens.push("Fornecedores");
   b.itens += 1;
 }
 

@@ -169,6 +169,8 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   // o operador não ganhar uma área Financeiro inteira por causa de um item. A
   // leitura da tabela segue a mesma regra no banco: quem pediu, ou quem decide.
   { path: "/reembolsos", permissions: ["reembolsos.pay", "reembolsos.approve"] },
+  // Preço de compra é custo: a mesma porta das tabelas compras_fornecedor (26/10/2026).
+  { path: "/fornecedores", permissions: ["financeiro.read", "compras.read"] },
   { path: "/meus-reembolsos", permissions: ["reembolsos.request"] },
   // Avisos ao cliente é fila de quem fala com o cliente: quem lê orçamento ou
   // responde no WhatsApp. Abria com os.read e chegava ao operador, que não
