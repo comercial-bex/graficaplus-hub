@@ -227,5 +227,16 @@ export const responderOrcamentoPublico = createServerFn({ method: "POST" })
       .eq("id", o.id);
     if (error) throw new Error("Não foi possível registrar sua resposta");
 
+    // Aprovou e o pedido está completo: vira OS sem esperar ninguém lembrar. O banco
+    // nunca lança aqui (devolve o motivo) e a aprovação já está gravada, então uma
+    // recusa só deixa o orçamento "aprovado" para o lembrete diário.
+    if (patch.status === "aprovado") {
+      try {
+        await (supabaseAdmin.rpc as any)("converter_aprovado_pelo_cliente", { p_orcamento_id: o.id });
+      } catch (e) {
+        console.error("[orcamento-publico] conversão automática falhou", e);
+      }
+    }
+
     return { ok: true, status: patch.status };
   });
