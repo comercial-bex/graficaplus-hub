@@ -20,10 +20,10 @@ describe("conferência antes de converter", () => {
     const l = conferenciaAntesDeConverter({ ...base, temCliente: false, dataEntrega: null, descontoPendente: true });
     expect(l.filter((i) => !i.ok && i.nivel === "obrigatorio").map((i) => i.chave)).toEqual(["cliente", "entrega", "desconto"]);
   });
-  it("sem layout e Pix não recebido são só avisos", () => {
+  it("sem layout é só aviso; Pix não recebido é obrigatório (decisão do dono, 27/10)", () => {
     const l = conferenciaAntesDeConverter({ ...base, itensSemArte: 2, pixRecebido: false });
     expect(l.filter((i) => !i.ok).map((i) => [i.chave, i.nivel])).toEqual([
-      ["pix", "aviso"],
+      ["pix", "obrigatorio"],
       ["arte", "aviso"],
     ]);
   });

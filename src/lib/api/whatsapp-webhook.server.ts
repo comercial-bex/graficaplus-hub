@@ -316,6 +316,18 @@ async function tratar(
       };
       try {
         const copia = await guardarMidia(evento.midia, ctx);
+        // Comprovante do sinal (27/10/2026): imagem ou PDF que o CLIENTE manda numa conversa cujo
+        // orçamento pediu o Pix vira anexo do orçamento. Acessório: nunca derruba o evento.
+        if (!evento.deMim) {
+          const { error: erroComprovante } = await supabaseAdmin.rpc("anexar_comprovante_recebido" as never, {
+            p_conversa_id: ctx.conversaId,
+            p_caminho: copia.caminho,
+            p_nome: evento.midia.nomeArquivo ?? null,
+            p_mime: evento.midia.mimeType ?? null,
+            p_tamanho: null,
+          } as never);
+          if (erroComprovante) console.warn("[webhook] comprovante não anexado:", erroComprovante.message);
+        }
         return { mensagem: gravada, midia: copia.reaproveitada ? "reaproveitada" : "guardada" };
       } catch (e) {
         const motivo = e instanceof Error ? e.message : String(e);

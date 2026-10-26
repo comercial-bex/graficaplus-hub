@@ -318,10 +318,13 @@ export function conferenciaAntesDeConverter(o: {
     if (o.forma && o.forma.toLowerCase() === "pix") {
       lista.push({
         chave: "pix",
-        rotulo: "Pix recebido",
+        rotulo: "Sinal em Pix recebido",
         ok: o.pixRecebido,
-        nivel: "aviso",
-        detalhe: o.pixRecebido ? "A baixa vai junto com a OS." : "Ainda não marcado como recebido: a parcela fica em aberto.",
+        // Decisão do dono (27/10/2026): pagamento em Pix só vira OS com o sinal marcado como recebido.
+        nivel: "obrigatorio",
+        detalhe: o.pixRecebido
+          ? "A baixa vai junto com a OS."
+          : "Pagamento em Pix: a OS só nasce com o sinal marcado como recebido. Confira o extrato ou o comprovante e marque \"O Pix chegou\".",
       });
     }
     lista.push({
