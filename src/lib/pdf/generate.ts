@@ -1172,6 +1172,20 @@ export async function gerarESalvarPDF(opts: {
   return { props, filename };
 }
 
+/** Gera e registra a via do cliente do orçamento SEM baixar; devolve o caminho no Storage (envio pelo sistema). */
+export async function gerarPDFOrcamentoParaEnvio(id: string, nivelDeVisao?: NivelDeVisao) {
+  const props = await carregarPropsOrcamento(id, true, nivelDeVisao);
+  const blob = await renderPDFBlob(props);
+  const { path } = await salvarERegistrarPDF({
+    blob,
+    tipo: "orcamento",
+    referencia_id: id,
+    numero: props.numero,
+    variante: "cliente",
+  });
+  return path;
+}
+
 // Backwards-compat wrappers (caso algum lugar ainda chame os antigos)
 export const gerarPDFOrcamento = (id: string, mostrarValores = true) =>
   gerarESalvarPDF({ tipo: "orcamento", referencia_id: id, mostrarValores });

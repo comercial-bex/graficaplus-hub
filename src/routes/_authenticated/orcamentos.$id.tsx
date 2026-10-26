@@ -60,6 +60,9 @@ import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
+import { gerarPDFOrcamentoParaEnvio } from "@/lib/pdf/generate";
+import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functions";
+import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
 import {
   EscolhaDeProduto,
   tipoDoItemGravado,
@@ -978,6 +981,39 @@ function OrcamentoDetailPage() {
     }
   }
 
+<<<<<<< HEAD
+  const [enviandoPeloSistema, setEnviandoPeloSistema] = useState(false);
+  /** Envio direto pelo Z-API: PDF + link na conversa do cliente, sem passar pelo celular de quem clicou. */
+  async function enviarPeloSistema() {
+    if (enviandoPeloSistema) return;
+    setEnviandoPeloSistema(true);
+    try {
+      let pdfCaminho: string | undefined;
+      try {
+        pdfCaminho = await gerarPDFOrcamentoParaEnvio(id, nivelDeVisao);
+      } catch (e) {
+        // Sem PDF o link ainda segue: o cliente aprova pelo link.
+        toast.warning("Não consegui gerar o PDF; vou mandar só o texto com o link.");
+      }
+      const r = await enviarOrcamentoPeloSistema({
+        data: { orcamentoId: id, origem: window.location.origin, pdfCaminho },
+      });
+      if ((orc as any)?.status === "rascunho") await setStatus("enviado", "Orçamento marcado como enviado");
+      const http = await acionarEnvio();
+      if ("falhaDeRede" in http || http.status >= 400) {
+        toast.warning("Entrou na fila de envio; o despachante manda em até 2 minutos.");
+      } else {
+        toast.success(r.comPdf ? "Orçamento (PDF + link) enviado pelo WhatsApp da gráfica." : "Link do orçamento enviado pelo WhatsApp da gráfica.");
+      }
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível enviar pelo sistema"));
+    } finally {
+      setEnviandoPeloSistema(false);
+    }
+  }
+
+=======
+>>>>>>> origin/main
   async function setStatus(novoStatus: string, aviso = "Status atualizado") {
     const update: any = { status: novoStatus };
     if (novoStatus === "enviado") update.enviado_em = new Date().toISOString();
@@ -2203,6 +2239,9 @@ function OrcamentoDetailPage() {
                           <LinkIcon className="h-4 w-4 mr-1" />
                         )}
                         Link do cliente
+                      </Button></Dica>
+                      <Dica texto="Envia o PDF e o link de aprovação direto na conversa do cliente, pelo WhatsApp da gráfica."><Button size="sm" onClick={enviarPeloSistema} disabled={enviandoPeloSistema || gerandoLink}>
+                        {enviandoPeloSistema ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MessageCircle className="h-4 w-4 mr-1" />} Enviar pelo sistema
                       </Button></Dica>
                       <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
                         <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
