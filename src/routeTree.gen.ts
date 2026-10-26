@@ -39,6 +39,7 @@ import { Route as AuthenticatedEntregasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedFilamentos3dRouteImport } from './routes/_authenticated/filamentos-3d'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedFluxoCaixaRouteImport } from './routes/_authenticated/fluxo-caixa'
+import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedFunilRouteImport } from './routes/_authenticated/funil'
 import { Route as AuthenticatedImportarFlexiRouteImport } from './routes/_authenticated/importar-flexi'
 import { Route as AuthenticatedImpressao3dRouteImport } from './routes/_authenticated/impressao-3d'
@@ -275,6 +276,12 @@ const AuthenticatedFluxoCaixaRoute = AuthenticatedFluxoCaixaRouteImport.update({
   path: '/fluxo-caixa',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFornecedoresRoute =
+  AuthenticatedFornecedoresRouteImport.update({
+    id: '/fornecedores',
+    path: '/fornecedores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFunilRoute = AuthenticatedFunilRouteImport.update({
   id: '/funil',
   path: '/funil',
@@ -718,6 +725,7 @@ export interface FileRoutesByFullPath {
   '/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/funil': typeof AuthenticatedFunilRoute
   '/importar-flexi': typeof AuthenticatedImportarFlexiRoute
   '/impressao-3d': typeof AuthenticatedImpressao3dRoute
@@ -825,6 +833,7 @@ export interface FileRoutesByTo {
   '/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/funil': typeof AuthenticatedFunilRoute
   '/importar-flexi': typeof AuthenticatedImportarFlexiRoute
   '/impressao-3d': typeof AuthenticatedImpressao3dRoute
@@ -935,6 +944,7 @@ export interface FileRoutesById {
   '/_authenticated/filamentos-3d': typeof AuthenticatedFilamentos3dRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/fluxo-caixa': typeof AuthenticatedFluxoCaixaRoute
+  '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/funil': typeof AuthenticatedFunilRoute
   '/_authenticated/importar-flexi': typeof AuthenticatedImportarFlexiRoute
   '/_authenticated/impressao-3d': typeof AuthenticatedImpressao3dRoute
@@ -1045,6 +1055,7 @@ export interface FileRouteTypes {
     | '/filamentos-3d'
     | '/financeiro'
     | '/fluxo-caixa'
+    | '/fornecedores'
     | '/funil'
     | '/importar-flexi'
     | '/impressao-3d'
@@ -1152,6 +1163,7 @@ export interface FileRouteTypes {
     | '/filamentos-3d'
     | '/financeiro'
     | '/fluxo-caixa'
+    | '/fornecedores'
     | '/funil'
     | '/importar-flexi'
     | '/impressao-3d'
@@ -1261,6 +1273,7 @@ export interface FileRouteTypes {
     | '/_authenticated/filamentos-3d'
     | '/_authenticated/financeiro'
     | '/_authenticated/fluxo-caixa'
+    | '/_authenticated/fornecedores'
     | '/_authenticated/funil'
     | '/_authenticated/importar-flexi'
     | '/_authenticated/impressao-3d'
@@ -1583,6 +1596,13 @@ declare module '@tanstack/react-router' {
       path: '/fluxo-caixa'
       fullPath: '/fluxo-caixa'
       preLoaderRoute: typeof AuthenticatedFluxoCaixaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fornecedores': {
+      id: '/_authenticated/fornecedores'
+      path: '/fornecedores'
+      fullPath: '/fornecedores'
+      preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/funil': {
@@ -2150,6 +2170,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFilamentos3dRoute: typeof AuthenticatedFilamentos3dRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedFluxoCaixaRoute: typeof AuthenticatedFluxoCaixaRoute
+  AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedFunilRoute: typeof AuthenticatedFunilRoute
   AuthenticatedImportarFlexiRoute: typeof AuthenticatedImportarFlexiRoute
   AuthenticatedImpressao3dRoute: typeof AuthenticatedImpressao3dRoute
@@ -2226,6 +2247,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFilamentos3dRoute: AuthenticatedFilamentos3dRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedFluxoCaixaRoute: AuthenticatedFluxoCaixaRoute,
+  AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedFunilRoute: AuthenticatedFunilRoute,
   AuthenticatedImportarFlexiRoute: AuthenticatedImportarFlexiRoute,
   AuthenticatedImpressao3dRoute: AuthenticatedImpressao3dRoute,

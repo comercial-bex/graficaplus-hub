@@ -122,6 +122,10 @@ export const dicas = {
     menu: "Comprou algo para a gráfica com o seu dinheiro? Peça o reembolso com a foto do cupom.",
     tela: "Diga o que comprou, para qual OS (ou se foi despesa da empresa) e mande a foto do cupom ou da nota — sem foto não há reembolso. O aprovado é pago na sexta. Enquanto ninguém decidiu, você pode cancelar o pedido.",
   },
+  "/fornecedores": {
+    menu: "De quem a gráfica compra e o que foi comprado em cada um.",
+    tela: "Cada fornecedor com o que se compra lá e os documentos que ele emitiu — venda, reserva paga sem nota e devolução —, com quem pagou (Agência Bex ou Bex Print) e o preço pago por m² ou ml contra o custo do cadastro. É registro: não mexe em estoque, caixa nem custo.",
+  },
   "/compromissos": {
     menu: "Contas e obrigações futuras que entram na previsão do caixa.",
     tela: "Registre pagamentos previstos, recorrências e vencimentos. Eles entram no saldo projetado; o saldo real só muda quando o pagamento é efetivamente lançado.",

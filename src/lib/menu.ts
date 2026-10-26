@@ -326,6 +326,9 @@ export const AREAS: AreaDoMenu[] = [
           // 15/10/2026: a mesa de quem decide (financeiro e gerência). O pedido
           // de cada pessoa é "Meus reembolsos", no rodapé — ver FORA_DO_MENU.
           item("Reembolsos", "/reembolsos", HandCoins),
+          // 26/10/2026, pedido do dono: de quem a gráfica compra e o que foi
+          // comprado em cada um (Camaleão Tintas primeiro).
+          item("Fornecedores", "/fornecedores", Building2),
         ],
       },
       {
