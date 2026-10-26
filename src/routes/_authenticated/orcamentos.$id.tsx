@@ -58,6 +58,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import {
   EscolhaDeProduto,
@@ -336,6 +337,22 @@ function OrcamentoDetailPage() {
         .eq("id", (orc as any).cliente_id)
         .maybeSingle();
       return data?.revendedor === true;
+    },
+  });
+
+  // O celular do cliente cadastrado (26/10/2026). As views orcamentos_* só trazem `contato_telefone`,
+  // o telefone digitado no orçamento: com o cliente escolhido da lista e esse campo vazio, o botão
+  // "WhatsApp" abria o compartilhamento sem destinatário (visto ao vivo na simulação do #133).
+  const { data: foneDoCliente = null } = useQuery({
+    queryKey: ["cliente-fone", (orc as any)?.cliente_id ?? null],
+    enabled: !!(orc as any)?.cliente_id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("clientes")
+        .select("whatsapp_principal, telefone")
+        .eq("id", (orc as any).cliente_id)
+        .maybeSingle();
+      return (data?.whatsapp_principal || data?.telefone || null) as string | null;
     },
   });
 
@@ -943,15 +960,14 @@ function OrcamentoDetailPage() {
     setGerandoLink(true);
     try {
       const url = await obterLinkCliente();
-      const telefone = String(
-        (orc as any)?.cliente_whatsapp ??
-          (orc as any)?.cliente_telefone ??
-          (orc as any)?.contato_telefone ??
-          "",
-      ).replace(/\D/g, "");
-      const destino = telefone ? (telefone.length > 11 ? telefone : `55${telefone}`) : "";
+      // O telefone digitado no orçamento vale primeiro; sem ele, o do cadastro do cliente.
+      const bruto = String((orc as any)?.contato_telefone || foneDoCliente || "");
+      const destino = telefoneParaZapi(bruto) ?? bruto.replace(/\D/g, "");
       const texto = `Olá! Segue o orçamento nº ${(orc as any).numero} — ${(orc as any).titulo}.\nVocê pode conferir e aprovar por aqui: ${url}`;
       const endereco = `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`;
+      // Mandou: o orçamento sai de "rascunho" para "enviado" (congela a versão e entra em "Aguardando o cliente").
+      // Antes do clique do WhatsApp o link só existia; o status seguia "rascunho" até alguém trocar à mão.
+      if ((orc as any)?.status === "rascunho") await setStatus("enviado", "Orçamento marcado como enviado");
       if (janela) janela.location.href = endereco;
       else window.location.href = endereco;
     } catch (e) {
@@ -962,7 +978,7 @@ function OrcamentoDetailPage() {
     }
   }
 
-  async function setStatus(novoStatus: string) {
+  async function setStatus(novoStatus: string, aviso = "Status atualizado") {
     const update: any = { status: novoStatus };
     if (novoStatus === "enviado") update.enviado_em = new Date().toISOString();
     if (novoStatus === "aprovado") update.aprovado_em = new Date().toISOString();
@@ -979,8 +995,9 @@ function OrcamentoDetailPage() {
     if (!data || data.length === 0) {
       return toast.error("Seu perfil não pode alterar o status deste orçamento.");
     }
-    toast.success("Status atualizado");
+    toast.success(aviso);
     qc.invalidateQueries({ queryKey: ["orcamento", id] });
+    qc.invalidateQueries({ queryKey: ["orcamentos"] });
   }
 
   // A resposta era "OS criada (787db567-840d-…)" e a tela ficava no
