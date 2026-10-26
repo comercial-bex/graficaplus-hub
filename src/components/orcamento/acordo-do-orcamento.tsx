@@ -404,8 +404,11 @@ export function Pagamento({
   clienteNome = null,
   clienteTelefone = null,
   clienteId = null,
+  aoMarcarPixRecebido,
 }: {
   clienteId?: string | null;
+  /** Chamado depois de gravar "O Pix chegou": o orçamento aprovado pode virar OS na hora. */
+  aoMarcarPixRecebido?: () => void;
   numero?: number | null;
   clienteNome?: string | null;
   clienteTelefone?: string | null;
@@ -447,9 +450,12 @@ export function Pagamento({
   useEffect(() => setParcelas(String(Number(condicao.parcelas ?? 1) || 1)), [condicao.parcelas]);
   useEffect(() => setIntervalo(String(Number(condicao.intervalo_dias ?? 30) || 30)), [condicao.intervalo_dias]);
 
-  function salvar(mudanca: Partial<typeof condicao>, aviso = "Pagamento salvo") {
+  function salvar(mudanca: Partial<typeof condicao>, aviso = "Pagamento salvo", depois?: () => void) {
     // Preserva o que já estava no jsonb (outras chaves que a conversão ou o PDF leem).
-    gravar.mutate({ campos: { condicao_pagamento: { ...(cru ?? {}), ...mudanca } }, aviso });
+    gravar.mutate(
+      { campos: { condicao_pagamento: { ...(cru ?? {}), ...mudanca } }, aviso },
+      { onSuccess: () => depois?.() },
+    );
   }
 
   const nParcelas = Math.max(1, Math.round(Number(parcelas) || 1));
@@ -537,7 +543,13 @@ export function Pagamento({
               recebido={condicao.pix_recebido ?? null}
               podeEditar={podeEditar}
               gravando={gravar.isPending}
-              onMarcar={(marca) => salvar({ pix_recebido: marca }, marca ? "Pix marcado como recebido" : "Marca do Pix removida")}
+              onMarcar={(marca) =>
+                salvar(
+                  { pix_recebido: marca },
+                  marca ? "Pix marcado como recebido" : "Marca do Pix removida",
+                  marca ? aoMarcarPixRecebido : undefined,
+                )
+              }
             />
           )}
         </div>

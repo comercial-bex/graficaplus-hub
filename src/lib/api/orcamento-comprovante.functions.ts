@@ -114,9 +114,10 @@ export const urlDoComprovante = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!(await equipePode(context.supabase, context.userId))) throw new Error("Seu perfil não pode ver comprovantes.");
     const db = await admin();
-    const { data: c } = await db.from("orcamento_comprovantes").select("caminho, nome").eq("id", data.id).maybeSingle();
+    const { data: c } = await db.from("orcamento_comprovantes").select("caminho, nome, bucket").eq("id", data.id).maybeSingle();
     if (!c) throw new Error("Comprovante não encontrado.");
-    const { data: url, error } = await db.storage.from("comprovantes").createSignedUrl(c.caminho, 600);
+    // O comprovante pode ter chegado pelo WhatsApp (bucket whatsapp-midias) ou pela tela (comprovantes).
+    const { data: url, error } = await db.storage.from(c.bucket || "comprovantes").createSignedUrl(c.caminho, 600);
     if (error || !url?.signedUrl) throw new Error(error?.message || "Não consegui abrir o comprovante.");
     return { url: url.signedUrl as string, nome: c.nome as string };
   });

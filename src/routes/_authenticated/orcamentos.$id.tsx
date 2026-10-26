@@ -1517,6 +1517,13 @@ function OrcamentoDetailPage() {
             O cliente enviou um comprovante de pagamento. Confira em Condições, na parte do Pix, e marque como recebido.
           </p>
         )}
+        {(condicao as any)?.pix_enviado && !(condicao as any)?.pix_recebido && !fechado && (
+          <p className="md:pl-12 text-xs text-muted-foreground" data-testid="pix-do-sinal-enviado">
+            Pix do sinal enviado ao cliente em{" "}
+            {new Date(String((condicao as any).pix_enviado.em)).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+            {" "}({brl(Number((condicao as any).pix_enviado.valor))}); aguardando o comprovante.
+          </p>
+        )}
         {orc.status === "aprovado" && !fechado && recusa.data && (
           <p className="md:pl-12 text-xs text-amber-500">
             O cliente aprovou, mas a OS não saiu sozinha: {recusa.data.descricao}
@@ -2476,6 +2483,10 @@ function OrcamentoDetailPage() {
                       podeEditar={podeMexer}
                       numero={Number((orc as any).numero ?? 0) || null}
                       clienteId={(dadosDoAcordo as any).cliente_id ?? null}
+                      aoMarcarPixRecebido={() => {
+                        // Aprovado + sinal recebido = pode virar OS agora: abre a conferência.
+                        if (orc.status === "aprovado" && !fechado && podeConverter) setConferindo("aprovado");
+                      }}
                       clienteNome={orc.cliente_nome ?? (orc as any).contato_nome ?? null}
                       clienteTelefone={
                         ((orc as any).cliente_whatsapp ?? (orc as any).cliente_telefone ?? (orc as any).contato_telefone ?? null) as string | null
