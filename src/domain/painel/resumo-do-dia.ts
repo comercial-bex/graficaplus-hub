@@ -40,6 +40,7 @@ export const RESUMO_POR_ROTULO: Record<string, { chave: string; curto: string }[
     { chave: "conta_pagar_vencida", curto: "contas a pagar vencidas" },
     { chave: "pagamento_sem_parcela", curto: "pagamentos sem parcela" },
     { chave: "pagamento_acima_da_conta", curto: "pagamentos acima da conta" },
+    { chave: "compra_reserva_sem_conferir", curto: "compras sem nota a conferir" },
     { chave: "comprovante_do_portal_a_conferir", curto: "comprovantes a conferir" },
     { chave: "produto_custo_provisorio", curto: "produtos com custo provisório" },
   ],

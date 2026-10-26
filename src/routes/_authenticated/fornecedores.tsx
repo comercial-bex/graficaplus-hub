@@ -236,7 +236,8 @@ function FornecedoresPage() {
                 materiais={materiais.data ?? []}
                 veCustoDoCadastro={canSeeFinancials}
                 podeExcluir={podeExcluir}
-                onExcluido={() => void qc.invalidateQueries({ queryKey: CHAVE_DAS_COMPRAS })}
+                podeConferir={podeRegistrar}
+                onMudou={() => void qc.invalidateQueries({ queryKey: CHAVE_DAS_COMPRAS })}
               />
             </section>
           )}

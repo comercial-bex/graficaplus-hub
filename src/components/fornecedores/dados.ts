@@ -35,7 +35,7 @@ export async function buscarComprasNoFornecedor(): Promise<CompraNoFornecedor[]>
   const { data, error } = await (supabase as any)
     .from("compras_fornecedor")
     .select(
-      "id, fornecedor_id, documento, tipo, data_operacao, comprador_nome, comprador_cnpj, codigo_cliente, forma_pagamento, condicao_pagamento, pago, total_bruto, desconto, total, devolve_compra_id, observacoes, fonte, itens:compras_fornecedor_itens(id, ordem, codigo, descricao, unidade, quantidade, preco_lista, desconto_pct, preco_unitario, total, finalidade, material_id, rende_do_material)",
+      "id, fornecedor_id, documento, tipo, data_operacao, comprador_nome, comprador_cnpj, codigo_cliente, forma_pagamento, condicao_pagamento, pago, total_bruto, desconto, total, devolve_compra_id, observacoes, fonte, retirada_conferida_em, retirada_obs, itens:compras_fornecedor_itens(id, ordem, codigo, descricao, unidade, quantidade, preco_lista, desconto_pct, preco_unitario, total, finalidade, material_id, rende_do_material)",
     )
     .order("data_operacao", { ascending: false });
   if (error) throw error;
