@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronRight, Loader2, ReceiptText, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Loader2, ReceiptText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { mensagemErro } from "@/lib/erros";
@@ -37,6 +37,7 @@ const COR_DA_SITUACAO: Record<Situacao, string> = {
   devolvido: "border-muted-foreground/30 bg-muted text-muted-foreground line-through",
   devolucao: "border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300",
   reserva_paga: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  reserva_conferida: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   reserva_em_aberto: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   nao_pago: "border-destructive/40 bg-destructive/10 text-destructive",
 };
@@ -54,7 +55,8 @@ export function ComprasDoFornecedor({
   materiais,
   veCustoDoCadastro,
   podeExcluir = false,
-  onExcluido,
+  podeConferir = false,
+  onMudou,
 }: {
   documentos: CompraNoFornecedor[];
   materiais: MaterialDoCadastro[];
@@ -62,9 +64,13 @@ export function ComprasDoFornecedor({
   veCustoDoCadastro: boolean;
   /** Excluir registro feito errado: quem estorna pagamento ou cancela compra. */
   podeExcluir?: boolean;
-  onExcluido?: () => void;
+  /** Marcar que o material da reserva paga foi retirado: quem registra compra. */
+  podeConferir?: boolean;
+  /** Algo mudou no banco (excluído ou conferido): a lista lê de novo. */
+  onMudou?: () => void;
 }) {
   const [excluindo, setExcluindo] = useState<CompraNoFornecedor | null>(null);
+  const [conferindo, setConferindo] = useState<CompraNoFornecedor | null>(null);
   const resumo = resumoDasCompras(documentos);
   const precos = precosPagosPorMaterial(documentos, materiais);
   const reservasSemNota = documentos.filter((d) => situacaoDoDocumento(d, documentos) === "reserva_paga");
@@ -218,6 +224,7 @@ export function ComprasDoFornecedor({
               doc={d}
               situacao={situacaoDoDocumento(d, documentos)}
               onExcluir={podeExcluir ? () => setExcluindo(d) : undefined}
+              onConferir={podeConferir ? () => setConferindo(d) : undefined}
             />
           ))}
         </CardContent>
@@ -228,7 +235,16 @@ export function ComprasDoFornecedor({
         onOpenChange={(v) => !v && setExcluindo(null)}
         onExcluido={() => {
           setExcluindo(null);
-          onExcluido?.();
+          onMudou?.();
+        }}
+      />
+
+      <ConferirRetiradaDialog
+        doc={conferindo}
+        onOpenChange={(v) => !v && setConferindo(null)}
+        onConferido={() => {
+          setConferindo(null);
+          onMudou?.();
         }}
       />
     </div>
@@ -239,10 +255,12 @@ function Documento({
   doc,
   situacao,
   onExcluir,
+  onConferir,
 }: {
   doc: CompraNoFornecedor;
   situacao: Situacao;
   onExcluir?: () => void;
+  onConferir?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const Seta = aberto ? ChevronDown : ChevronRight;
@@ -310,11 +328,25 @@ function Documento({
           </div>
           {doc.observacoes && <p className="text-xs">{doc.observacoes}</p>}
           {doc.fonte && <p className="text-xs text-muted-foreground">Fonte: {doc.fonte}</p>}
-          {onExcluir && (
-            <div className="flex justify-end">
-              <Button variant="ghost" size="sm" className="h-11 text-destructive md:h-8" onClick={onExcluir}>
-                <Trash2 className="mr-1 h-4 w-4" /> Excluir registro
-              </Button>
+          {doc.retirada_conferida_em && (
+            <p className="flex items-start gap-1 text-xs text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              Retirada conferida em {DATA.format(new Date(doc.retirada_conferida_em))}
+              {doc.retirada_obs ? ` — ${doc.retirada_obs}` : ""}. Falta a nota do fornecedor.
+            </p>
+          )}
+          {(onExcluir || (onConferir && situacao === "reserva_paga")) && (
+            <div className="flex flex-wrap justify-end gap-2">
+              {onConferir && situacao === "reserva_paga" && (
+                <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={onConferir}>
+                  <CheckCircle2 className="mr-1 h-4 w-4" /> Confirmar retirada
+                </Button>
+              )}
+              {onExcluir && (
+                <Button variant="ghost" size="sm" className="h-11 text-destructive md:h-8" onClick={onExcluir}>
+                  <Trash2 className="mr-1 h-4 w-4" /> Excluir registro
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -386,6 +418,71 @@ function ExcluirCompraDialog({
           <Button variant="destructive" className="h-11 md:h-9" disabled={enviando} onClick={excluir}>
             {enviando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
             Excluir registro
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Reserva paga é material pago sem nota. Conferir a retirada tira o aviso do
+ * painel do financeiro; a reserva continua reserva até a nota virar venda.
+ */
+function ConferirRetiradaDialog({
+  doc,
+  onOpenChange,
+  onConferido,
+}: {
+  doc: CompraNoFornecedor | null;
+  onOpenChange: (aberto: boolean) => void;
+  onConferido: () => void;
+}) {
+  const [obs, setObs] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  async function conferir() {
+    if (!doc) return;
+    setEnviando(true);
+    try {
+      const { error } = await (supabase as any).rpc("conferir_retirada_compra", { p_id: doc.id, p_obs: obs });
+      if (error) throw error;
+      toast.success(`Retirada da ${doc.documento} conferida.`);
+      setObs("");
+      onConferido();
+    } catch (e) {
+      toast.error(mensagemErro(e, "Não foi possível conferir a retirada."));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!doc} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirmar a retirada da {doc?.documento}?</DialogTitle>
+          <DialogDescription>
+            O material desta reserva foi pago e retirado da loja. A nota continua faltando: quando vier, registre a venda.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="conferir-retirada-obs">Observação (opcional)</Label>
+          <Textarea
+            id="conferir-retirada-obs"
+            rows={2}
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+            placeholder="Ex.: retirado por Leonardo em 16/08; nota pedida"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button className="h-11 md:h-9" disabled={enviando} onClick={conferir}>
+            {enviando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
+            Confirmar retirada
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -114,6 +114,14 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Se for válido, ligue-o à parcela da conta; se for duplicado, estorne um dos dois.',
     ],
   },
+  compra_reserva_sem_conferir: {
+    acao: 'Abrir Fornecedores',
+    passos: [
+      'Abra Financeiro › Fornecedores e escolha o fornecedor da reserva.',
+      'Confira com a oficina se o material foi retirado e, no documento da reserva, toque em "Confirmar retirada".',
+      'Peça a nota ao fornecedor; quando ela vier, registre a venda e exclua a reserva com o motivo.',
+    ],
+  },
   pagamento_acima_da_conta: {
     acao: 'Abrir Contas a receber',
     passos: [

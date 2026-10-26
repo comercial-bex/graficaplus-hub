@@ -57,6 +57,9 @@ export type CompraNoFornecedor = {
   devolve_compra_id: string | null;
   observacoes: string | null;
   fonte: string | null;
+  /** Reserva paga: quando conferiram que o material foi retirado (a nota pode não ter vindo). */
+  retirada_conferida_em?: string | null;
+  retirada_obs?: string | null;
   itens: ItemDaCompra[];
 };
 
@@ -100,12 +103,22 @@ export const brl = (v: number | null | undefined) => (v == null ? "—" : REAL.f
 const centavos = (v: number) => Math.round(Number(v) * 100);
 const reais = (c: number) => c / 100;
 
-export type Situacao = "comprado" | "devolvido" | "devolucao" | "reserva_paga" | "reserva_em_aberto" | "nao_pago";
+export type Situacao =
+  | "comprado"
+  | "devolvido"
+  | "devolucao"
+  | "reserva_paga"
+  | "reserva_conferida"
+  | "reserva_em_aberto"
+  | "nao_pago";
 
 /** O que aconteceu com o documento, olhando os outros (a devolução aponta para a venda). */
 export function situacaoDoDocumento(doc: CompraNoFornecedor, todos: CompraNoFornecedor[]): Situacao {
   if (doc.tipo === "devolucao") return "devolucao";
-  if (doc.tipo === "reserva") return doc.pago ? "reserva_paga" : "reserva_em_aberto";
+  if (doc.tipo === "reserva") {
+    if (!doc.pago) return "reserva_em_aberto";
+    return doc.retirada_conferida_em ? "reserva_conferida" : "reserva_paga";
+  }
   if (todos.some((d) => d.tipo === "devolucao" && d.devolve_compra_id === doc.id)) return "devolvido";
   return doc.pago ? "comprado" : "nao_pago";
 }
@@ -115,6 +128,7 @@ export const ROTULO_DA_SITUACAO: Record<Situacao, string> = {
   devolvido: "Devolvido",
   devolucao: "Devolução",
   reserva_paga: "Reserva paga — sem nota",
+  reserva_conferida: "Retirada conferida — sem nota",
   reserva_em_aberto: "Reserva em aberto",
   nao_pago: "Não pago",
 };
