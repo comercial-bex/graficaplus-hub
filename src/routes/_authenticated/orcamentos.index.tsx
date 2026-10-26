@@ -495,7 +495,11 @@ function OrcamentosPage() {
                 <TableRow
                   key={o.id}
                   className="cursor-pointer"
-                  onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
+                  onClick={() =>
+                    mapa3d[o.id]
+                      ? navigate({ to: "/orcamento-3d/$id", params: { id: mapa3d[o.id] } })
+                      : navigate({ to: "/orcamentos/$id", params: { id: o.id } })
+                  }
                 >
                   <TableCell className="font-mono text-xs text-[color:var(--bex-cyan)]">
                     #{o.numero}

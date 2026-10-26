@@ -1135,6 +1135,30 @@ function OrcamentoDetailPage() {
   // A resposta era "OS criada (787db567-840d-…)" e a tela ficava no
   // orçamento: o código interno não diz nada, e a OS precisava ser procurada.
   // Agora trava durante a chamada e leva direto à OS.
+  // Orçamento de impressão 3D: o produto, o material e o preço moram no orçamento 3D (o valor aparece
+  // aqui, mas sem itens comuns). A tela de itens abria vazia e sem como editar; a casa certa dele é a
+  // tela do 3D. Só vai para lá quando NÃO há itens comuns, para não esconder um orçamento misto.
+  const orcamento3d = useQuery({
+    queryKey: ["orcamento-3d-do-orcamento", id],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orcamentos_3d")
+        .select("id, titulo")
+        .eq("orcamento_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0] ?? null) as { id: string; titulo: string | null } | null;
+    },
+  });
+  const vaiParaO3d = !!orcamento3d.data && !isLoading && consultaItens.isSuccess && itensDeProduto.length === 0;
+  useEffect(() => {
+    if (vaiParaO3d && orcamento3d.data) {
+      void navigate({ to: "/orcamento-3d/$id", params: { id: orcamento3d.data.id }, replace: true });
+    }
+  }, [vaiParaO3d, orcamento3d.data, navigate]);
+
   const [convertendo, setConvertendo] = useState(false);
   /** Qual conversão espera a conferência: "aprovado" (já aprovado) ou "enviado" (aprova junto). */
   const [conferindo, setConferindo] = useState<null | "aprovado" | "enviado">(null);
@@ -1202,6 +1226,21 @@ function OrcamentoDetailPage() {
   }
 
   if (isLoading) return <Carregando tela />;
+  if (vaiParaO3d && orcamento3d.data) {
+    return (
+      <div className="space-y-3 p-6" data-testid="orcamento-3d-redirecionando">
+        <p className="text-sm font-medium">Este é um orçamento de impressão 3D.</p>
+        <p className="text-sm text-muted-foreground">
+          O produto, o material e o preço ficam na tela do orçamento 3D. Abrindo para você editar…
+        </p>
+        <Button asChild>
+          <Link to="/orcamento-3d/$id" params={{ id: orcamento3d.data.id }}>
+            Abrir o orçamento 3D <ArrowRight className="ml-1 h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+    );
+  }
   if (!orc) return <div className="p-6">Orçamento não encontrado</div>;
 
   const margem =
