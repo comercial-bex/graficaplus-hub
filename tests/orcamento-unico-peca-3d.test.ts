@@ -111,6 +111,8 @@ describe("a consulta da metragem na lista só pede colunas que a view operaciona
     const lista = readFileSync("src/routes/_authenticated/orcamentos.index.tsx", "utf8");
     const bloco = lista.slice(lista.indexOf('queryKey: ["orcamentos-m2"'), lista.indexOf("return soma;"));
     expect(bloco).toContain('.select("orcamento_id, area_cobrada, area_total, tipo_produto")');
-    expect(bloco).not.toContain("origem_calculo");
+    // o comentário do código cita a coluna; o que não pode é pedi-la ou lê-la
+    expect(bloco).not.toContain("i.origem_calculo");
+    expect(bloco).not.toMatch(/select\([^)]*origem_calculo/);
   });
 });
