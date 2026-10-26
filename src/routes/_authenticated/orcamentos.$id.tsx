@@ -1037,10 +1037,19 @@ function OrcamentoDetailPage() {
   // orçamento: o código interno não diz nada, e a OS precisava ser procurada.
   // Agora trava durante a chamada e leva direto à OS.
   const [convertendo, setConvertendo] = useState(false);
-  async function converterEmOS() {
+  async function converterEmOS(aprovarAntes = false) {
     if (convertendo) return;
     setConvertendo(true);
     try {
+      // "O cliente aprovou" dito por WhatsApp ou balcão: registra a aprovação da equipe
+      // (fica no histórico do orçamento) e converte no mesmo clique.
+      if (aprovarAntes) {
+        const { error: erroAprovar } = await (supabase.rpc as any)("aprovar_orcamento", {
+          p_orcamento_id: id,
+          p_observacao: "Aprovado pela equipe: o cliente confirmou por WhatsApp ou no balcão.",
+        });
+        if (erroAprovar) return toast.error(mensagemErro(erroAprovar));
+      }
       const { data, error } = await (supabase.rpc as any)("converter_orcamento_em_os", {
         p_orcamento_id: id,
         p_opcoes: {},
@@ -1174,6 +1183,17 @@ function OrcamentoDetailPage() {
               </Link>
             </Button>
           )}
+          {!fechado && orc.status === "enviado" && podeConverter && hasPermission("orcamentos.approve") && (
+            <Dica texto="Use quando o cliente já confirmou por WhatsApp ou no balcão. Registra a aprovação da equipe no histórico e cria a OS.">
+              <Button
+                onClick={() => converterEmOS(true)}
+                disabled={descontoPendente || convertendo}
+                className="shrink-0 h-11 md:h-10"
+              >
+                {convertendo ? "Criando a OS..." : "Cliente aprovou: converter em OS"} <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </Dica>
+          )}
           {!fechado && orc.status === "aprovado" && (
             podeConverter ? (
               // Desconto que passou da alçada sem aprovação: o banco recusa a
@@ -1181,7 +1201,7 @@ function OrcamentoDetailPage() {
               // aqui com o motivo.
               <Dica texto={descontoPendente ? dicaCampo("/orcamentos", "desconto_pendente") : null}>
                 <Button
-                  onClick={converterEmOS}
+                  onClick={() => converterEmOS()}
                   disabled={descontoPendente || convertendo}
                   className="shrink-0 h-11 md:h-10"
                 >
