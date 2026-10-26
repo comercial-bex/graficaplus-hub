@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BotaoEnviarPeloSistema } from "@/components/whatsapp/enviar-pelo-sistema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -599,8 +600,17 @@ function LinkDoPortalCard({ clienteId }: { clienteId: string }) {
                 )}
                 {copiado ? "Copiado" : "Copiar link"}
               </Button>
+              {gerado && telefone && (
+                <BotaoEnviarPeloSistema
+                  telefone={telefone}
+                  nome={contato.data?.nome}
+                  origem="portal"
+                  variant="default"
+                  texto={mensagemDoLink(contato.data?.nome, gerado.url, gerado.venceEm)}
+                />
+              )}
               {whatsapp ? (
-                <Button size="sm" asChild>
+                <Button size="sm" variant="outline" asChild>
                   <a href={whatsapp} target="_blank" rel="noreferrer">
                     <MessageSquare className="mr-1 h-3.5 w-3.5" /> Mandar pelo WhatsApp
                   </a>
