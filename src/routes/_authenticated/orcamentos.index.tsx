@@ -69,6 +69,7 @@ const statusLabel: Record<string, string> = {
 };
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const m2 = (n: number) => `${n.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} m²`;
 
 function OrcamentosPage() {
   const qc = useQueryClient();
@@ -129,6 +130,29 @@ function OrcamentosPage() {
       const map: Record<string, string> = {};
       for (const r of data ?? []) if (r.orcamento_id) map[r.orcamento_id] = r.id;
       return map;
+    },
+  });
+
+  // Metragem por orçamento (27/10/2026): a soma da área COBRADA dos itens, para ler na lista
+  // "quanto de material" cada pedido leva sem abrir um por um.
+  const idsDosOrcamentos = (orcamentos as any[]).map((o) => o.id as string);
+  const { data: m2PorOrcamento = {} as Record<string, number> } = useQuery({
+    queryKey: ["orcamentos-m2", idsDosOrcamentos.join(",")],
+    enabled: idsDosOrcamentos.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orcamento_itens_operacional")
+        .select("orcamento_id, area_cobrada, area_total, origem_calculo")
+        .in("orcamento_id", idsDosOrcamentos);
+      if (error) throw error;
+      const soma: Record<string, number> = {};
+      for (const i of (data ?? []) as any[]) {
+        if (i.origem_calculo === "taxa_prazo") continue;
+        const area = Number(i.area_cobrada ?? 0) || Number(i.area_total ?? 0) || 0;
+        if (area > 0) soma[i.orcamento_id] = (soma[i.orcamento_id] ?? 0) + area;
+      }
+      return soma;
     },
   });
 
@@ -484,6 +508,7 @@ function OrcamentosPage() {
               <TableHead>Título</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Cliente</TableHead>
+              <TableHead className="hidden md:table-cell">Metragem</TableHead>
               <TableHead>Status</TableHead>
               {canSeePrices && <TableHead>Valor</TableHead>}
               <TableHead className="text-right">Ações</TableHead>
@@ -492,14 +517,14 @@ function OrcamentosPage() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="py-2">
+                <TableCell colSpan={8} className="py-2">
                   <Carregando />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && filtrados.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Nenhum orçamento
                 </TableCell>
               </TableRow>
@@ -531,6 +556,9 @@ function OrcamentosPage() {
                         <StatusChip label="sem cadastro" tone="amber" />
                       </span>
                     )}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-xs tabular-nums">
+                    {m2PorOrcamento[o.id] > 0 ? m2(m2PorOrcamento[o.id]) : <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>
                     <StatusChip
