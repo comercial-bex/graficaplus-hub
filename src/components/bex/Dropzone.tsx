@@ -9,8 +9,9 @@ export type DropzoneStatus =
   | { kind: "error"; label: string };
 
 /**
- * Área de upload proeminente — drag & drop, clique ou colar do clipboard.
- * Mostra preview 200x200, nome do arquivo e badge de status.
+ * Área de upload — drag & drop, clique ou colar do clipboard.
+ * `compact` encolhe a área de soltar; `previewClassName` define a altura da
+ * foto anexada, que passa a ocupar a largura toda do campo.
  */
 export function Dropzone({
   label,
@@ -21,6 +22,8 @@ export function Dropzone({
   accent = "cyan",
   captureFromClipboard = true,
   accept = "image/*",
+  compact = false,
+  previewClassName = "h-24",
 }: {
   label: string;
   hint?: string;
@@ -30,6 +33,10 @@ export function Dropzone({
   accent?: "cyan" | "magenta" | "lime";
   captureFromClipboard?: boolean;
   accept?: string;
+  /** Área de soltar menor, com tipografia mais discreta. */
+  compact?: boolean;
+  /** Altura da prévia quando o arquivo é imagem. */
+  previewClassName?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -93,39 +100,55 @@ export function Dropzone({
           if (f) onFile(f);
         }}
         className={cn(
-          "relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 text-center transition-all",
+          "relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed text-center transition-all",
+          compact ? "min-h-[72px] gap-1.5 p-3" : "min-h-[180px] gap-2 p-4",
           accentClass,
           dragOver && "scale-[1.01] ring-2 ring-primary/40",
         )}
       >
         {preview ? (
-          <div className="flex w-full items-center gap-3">
+          <div className="w-full">
             <img
               src={preview}
               alt={file?.name ?? "preview"}
-              className="h-24 w-24 rounded-lg object-cover border border-border"
+              className={cn(
+                "w-full rounded-lg border border-border bg-background/60 object-cover",
+                previewClassName,
+              )}
             />
-            <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-medium">{file?.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {file ? `${(file.size / 1024).toFixed(0)} KB` : ""}
-              </p>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFile(null);
-                }}
-                className="mt-2 inline-flex items-center gap-1 text-xs text-[color:var(--bex-magenta)] hover:underline"
-              >
-                <X className="h-3 w-3" /> Remover
-              </button>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <div className="min-w-0 text-left">
+                <p className="truncate text-xs font-medium">{file?.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {file ? `${(file.size / 1024).toFixed(0)} KB` : ""}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="text-[11px] text-muted-foreground">
+                  Clique para trocar
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFile(null);
+                  }}
+                  className="inline-flex items-center gap-1 text-xs text-[color:var(--bex-magenta)] hover:underline"
+                >
+                  <X className="h-3 w-3" /> Remover
+                </button>
+              </div>
             </div>
           </div>
         ) : file ? (
           <div className="flex w-full items-center gap-3" data-testid="arquivo-sem-previa">
-            <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-border bg-background/60">
-              <FileBox className="h-9 w-9" aria-hidden />
+            <div
+              className={cn(
+                "flex items-center justify-center rounded-lg border border-border bg-background/60",
+                compact ? "h-12 w-12" : "h-24 w-24",
+              )}
+            >
+              <FileBox className={compact ? "h-5 w-5" : "h-9 w-9"} aria-hidden />
             </div>
             <div className="min-w-0 flex-1 text-left">
               <p className="truncate text-sm font-medium">{file.name}</p>
@@ -144,11 +167,16 @@ export function Dropzone({
           </div>
         ) : (
           <>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background/60">
-              <Upload className="h-5 w-5" />
+            <div
+              className={cn(
+                "flex items-center justify-center rounded-full bg-background/60",
+                compact ? "h-8 w-8" : "h-12 w-12",
+              )}
+            >
+              <Upload className={compact ? "h-4 w-4" : "h-5 w-5"} />
             </div>
             <div className="space-y-0.5">
-              <p className="text-sm font-medium">
+              <p className={compact ? "text-xs font-medium" : "text-sm font-medium"}>
                 Arraste, cole (Ctrl+V) ou <span className="underline">clique para escolher</span>
               </p>
               {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
