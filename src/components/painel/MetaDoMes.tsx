@@ -258,7 +258,7 @@ export function MetaDoMes({ className }: { className?: string }) {
                   <span className="ml-2 text-sm font-normal text-muted-foreground">vendido no mês</span>
                 </span>
                 <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                  {pct(atingido)} de {brl(meta)}
+                  {pct(atingido)} de {brl(metaDaBarra)}
                 </span>
               </div>
 

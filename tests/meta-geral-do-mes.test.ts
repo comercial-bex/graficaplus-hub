@@ -26,6 +26,10 @@ describe("meta geral do mês (27/10/2026)", () => {
     expect(card).toMatch(/metaGeral > 0 \? metaGeral : temEquilibrio \? meta : 0/);
   });
 
+  it("o texto ao lado do vendido mostra a % da meta da barra (a geral), não a do ponto de equilíbrio", () => {
+    expect(card).toContain("{pct(atingido)} de {brl(metaDaBarra)}");
+  });
+
   it("meta batida pinta a barra inteira de verde", () => {
     expect(card).toContain('bateu ? "bg-emerald-500"');
   });
