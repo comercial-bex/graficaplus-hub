@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Calculator, Cpu, Package, Sparkles, Wand2, X } from "lucide-react";
-import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-de-escolha";
+import { SeletorFilamento, SeletorImpressora } from "@/components/impressao3d/seletores-3d";
 import { toast } from "sonner";
 import {
   materialCost,
@@ -818,51 +818,39 @@ export function Calculadora3D({
                       Nenhuma impressora ativa — cadastre em /impressoras-3d
                     </p>
                   ) : (
-                    <GradeDeCartoes rotulo="Impressora" className="sm:grid-cols-2 lg:grid-cols-2">
-                      {impressoras.map((m: any) => (
-                        <CartaoDeEscolha
-                          key={m.maquina_id}
-                          ativo={f.maquina_id === m.maquina_id}
-                          titulo={m.maquinas?.nome}
-                          detalhe={
-                            podeVerCusto
-                              ? `${money(m.custo_hora_calculado ?? 0)}/h · ${Number(m.potencia_media_w ?? 0).toFixed(0)} W`
-                              : undefined
-                          }
-                          icone={<Cpu className="h-7 w-7 text-muted-foreground" />}
-                          onEscolher={() => set("maquina_id", m.maquina_id)}
-                        />
-                      ))}
-                    </GradeDeCartoes>
+                    <SeletorImpressora
+                      impressoras={impressoras}
+                      valor={f.maquina_id}
+                      onChange={(id) => set("maquina_id", id)}
+                      detalhe={(m: any) =>
+                        podeVerCusto
+                          ? `${money(m.custo_hora_calculado ?? 0)}/h · ${Number(m.potencia_media_w ?? 0).toFixed(0)} W`
+                          : undefined
+                      }
+                    />
                   )}
                 </div>
                 <div className="space-y-1.5">
                   <FieldTooltip
                     label="Filamento"
                     required
-                    hint="Preço vem de materiais_3d_filamento. Mostramos o valor do quilo — a fórmula converte pra grama internamente."
+                    hint="Preço vem de materiais_3d_filamento. Toque numa cor para filtrar a lista."
                   />
                   {filamentos.length === 0 ? (
                     <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
                       Nenhum filamento — cadastre em /filamentos-3d
                     </p>
                   ) : (
-                    <GradeDeCartoes rotulo="Filamento" className="sm:grid-cols-2 lg:grid-cols-2">
-                      {filamentos.map((m: any) => {
-                        const kg = Number(m.custo_por_grama_calculado ?? 0) * 1000;
-                        return (
-                          <CartaoDeEscolha
-                            key={m.material_id}
-                            ativo={f.material_id === m.material_id}
-                            titulo={m.materiais?.nome}
-                            detalhe={[m.tipo, m.cor, podeVerCusto ? `${money(kg)}/kg` : null]
-                              .filter(Boolean)
-                              .join(" · ")}
-                            onEscolher={() => set("material_id", m.material_id)}
-                          />
-                        );
-                      })}
-                    </GradeDeCartoes>
+                    <SeletorFilamento
+                      filamentos={filamentos}
+                      valor={f.material_id}
+                      onChange={(id) => set("material_id", id)}
+                      detalhe={(m: any) =>
+                        [m.tipo, m.cor, podeVerCusto ? `${money(Number(m.custo_por_grama_calculado ?? 0) * 1000)}/kg` : null]
+                          .filter(Boolean)
+                          .join(" · ")
+                      }
+                    />
                   )}
                 </div>
 
