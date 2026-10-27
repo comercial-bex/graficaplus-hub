@@ -305,11 +305,11 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
     ],
   },
   estoque_nunca_carregado: {
-    acao: 'Abrir materiais',
+    acao: 'Abrir a folha de contagem',
     passos: [
-      'Abra Produção › Materiais e estoque.',
-      'Para cada material que já está na prateleira, use "Entrada / saída" e registre a quantidade real com o custo de compra.',
-      'A partir da primeira entrada, a OS passa a reservar e baixar sozinha.',
+      'Toque em "Dar entrada agora": abre a folha com só os materiais que nunca receberam entrada.',
+      'Digite a quantidade que está na prateleira em cada um e deixe em branco o que não contou (em branco não é zero).',
+      'Aplique a contagem. A partir da primeira entrada, a OS passa a reservar e baixar sozinha. Para entrada de compra com custo, abra Produção › Materiais e estoque e use a aba Entradas e saídas.',
     ],
   },
   estoque_abaixo_minimo: {

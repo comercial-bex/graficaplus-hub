@@ -43,10 +43,27 @@ export type MaterialParaContar = {
  * material, a baixa não acontece e o custo real não fecha: o primeiro item
  * crítico do painel de pendências explica quase todos os outros.
  */
-export function FolhaDeContagem({ materiais }: { materiais: MaterialParaContar[] }) {
+export function FolhaDeContagem({
+  materiais,
+  aberta: abertaDeFora,
+  onAbertaChange,
+  motivoInicial = "",
+}: {
+  materiais: MaterialParaContar[];
+  /**
+   * Controlada de fora (27/10/2026): o painel abre a folha num pop-up, sem o botão, só com os
+   * materiais que nunca receberam entrada. Sem esta prop ela é a de sempre, com o botão.
+   */
+  aberta?: boolean;
+  onAbertaChange?: (aberta: boolean) => void;
+  motivoInicial?: string;
+}) {
   const qc = useQueryClient();
-  const [aberta, setAberta] = useState(false);
-  const [motivo, setMotivo] = useState("");
+  const [abertaPropria, setAbertaPropria] = useState(false);
+  const controlada = abertaDeFora !== undefined;
+  const aberta = controlada ? abertaDeFora : abertaPropria;
+  const setAberta = (v: boolean) => (controlada ? onAbertaChange?.(v) : setAbertaPropria(v));
+  const [motivo, setMotivo] = useState(motivoInicial);
   const [contagem, setContagem] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
@@ -120,6 +137,10 @@ export function FolhaDeContagem({ materiais }: { materiais: MaterialParaContar[]
       qc.invalidateQueries({ queryKey: ["movimentacoes-estoque"] }),
       qc.invalidateQueries({ queryKey: ["materiais-para-movimentacao"] }),
       qc.invalidateQueries({ queryKey: ["materiais"] }),
+      // O painel (cartão "nunca receberam entrada", estoque crítico) se relê na hora.
+      qc.invalidateQueries({ queryKey: ["pendencias-do-sistema"] }),
+      qc.invalidateQueries({ queryKey: ["materiais-sem-entrada"] }),
+      qc.invalidateQueries({ queryKey: ["dashboard-operacional"] }),
     ]);
 
     if (erros.length > 0) {
@@ -140,19 +161,21 @@ export function FolhaDeContagem({ materiais }: { materiais: MaterialParaContar[]
     );
     setAberta(false);
     setContagem({});
-    setMotivo("");
+    setMotivo(motivoInicial);
   }
 
   const semSaldo = materiais.filter((m) => Number(m.estoque ?? 0) === 0).length;
 
   return (
     <Dialog open={aberta} onOpenChange={(v) => !salvando && setAberta(v)}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="h-11 md:h-10">
-          <ClipboardList className="mr-2 h-4 w-4" />
-          Folha de contagem
-        </Button>
-      </DialogTrigger>
+      {!controlada && (
+        <DialogTrigger asChild>
+          <Button variant="outline" className="h-11 md:h-10">
+            <ClipboardList className="mr-2 h-4 w-4" />
+            Folha de contagem
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Contar o estoque inteiro de uma vez</DialogTitle>

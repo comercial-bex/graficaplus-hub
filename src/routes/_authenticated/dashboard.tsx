@@ -33,6 +33,7 @@ import { MinhasComissoes } from "@/components/painel/MinhasComissoes";
 import { MinhaMeta } from "@/components/metas/minha-meta";
 import { PainelProducao } from "@/components/painel/PainelProducao";
 import { MetaDoMes } from "@/components/painel/MetaDoMes";
+import { MetasDaEquipe } from "@/components/painel/MetasDaEquipe";
 import { PrecoDoCatalogo } from "@/components/painel/PrecoDoCatalogo";
 import { dicaTela } from "@/lib/dicas";
 import { KpiCard } from "@/components/bex/KpiCard";
@@ -447,6 +448,13 @@ function PainelCompleto({
     (m: any) => Number(m.estoque ?? 0) > 0 && Number(m.estoque ?? 0) <= Number(m.estoque_minimo ?? 0),
   ).length;
   const criticos = semEstoque + noMinimo;
+  // Com saldo e no mínimo primeiro (é o que ainda dá para repor antes de faltar); depois os zerados.
+  const materiaisCriticos = [...materiais]
+    .filter((m: any) => Number(m.estoque ?? 0) <= 0 || Number(m.estoque ?? 0) <= Number(m.estoque_minimo ?? 0))
+    .sort(
+      (a: any, b: any) =>
+        Number(Number(a.estoque ?? 0) <= 0) - Number(Number(b.estoque ?? 0) <= 0) || String(a.nome).localeCompare(String(b.nome), "pt-BR"),
+    );
   const wppNaoLidas = conversas.reduce((s: number, c: any) => s + Number(c.nao_lidas ?? 0), 0);
 
   return (
@@ -482,6 +490,9 @@ function PainelCompleto({
           título; no celular os atalhos de ação continuam em cima, porque quem
           abre o painel no balcão precisa do toque, não do número. */}
       {canSeeFinancials && <MetaDoMes />}
+
+      {/* A meta de CADA vendedor, lado a lado (27/10/2026): só existia dentro de Financeiro. */}
+      {canSeeFinancials && <MetasDaEquipe />}
 
       {/* O que o sistema espera de QUEM está logado. Cada papel vê só o que é
           dele; o bloco some quando não há nada pendente. */}
@@ -662,7 +673,13 @@ function PainelCompleto({
               value={dashViews?.comercial?.ticket_medio != null ? `R$ ${Number(dashViews.comercial.ticket_medio).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}` : "—"}
               icon={Receipt}
               tone="cyan"
-              hint={dashViews?.comercial?.orcamentos_mes ? `${dashViews.comercial.orcamentos_mes} orçamentos` : undefined}
+              // Média do que o cliente APROVOU no mês (era a média do custo de todo orçamento,
+              // inclusive rascunho e recusado: R$ 473 contra R$ 381 de verdade).
+              hint={
+                dashViews?.comercial?.orcamentos_mes
+                  ? `média dos aprovados no mês · ${dashViews.comercial.orcamentos_mes} orçamentos criados`
+                  : "média dos aprovados no mês"
+              }
             />
             <KpiCard
               label="Custo total"
@@ -934,20 +951,25 @@ function PainelCompleto({
 
         <BexCard title="Estoque · críticos">
           <div className="space-y-2">
-            {materiais
-              .filter((m: any) => Number(m.estoque ?? 0) <= 0)
-              .map((m: any) => (
-                <div key={m.id} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0">
-                  <div>
-                    <div className="text-sm font-medium">{m.nome}</div>
-                    <div className="text-xs text-muted-foreground">Reposição necessária</div>
+            {/* A mesma conta do cartão "Estoque crítico" (zerados + no mínimo com saldo): a lista
+                só mostrava os zerados e escondia os que ainda têm saldo e já pedem reposição. */}
+            {materiaisCriticos.map((m: any) => (
+              <div key={m.id} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-0">
+                <div>
+                  <div className="text-sm font-medium">{m.nome}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {Number(m.estoque ?? 0) <= 0
+                      ? "Zerado"
+                      : `No mínimo ou abaixo (mínimo ${Number(m.estoque_minimo ?? 0).toLocaleString("pt-BR")})`}
                   </div>
-                  <StatusChip label={`${m.estoque} ${m.unidade}`} tone="magenta" />
                 </div>
-              ))}
-            {materiais.filter((m: any) => Number(m.estoque ?? 0) <= 0).length === 0 && (
-              <StatusChip label="Sem itens críticos" tone="lime" />
-            )}
+                <StatusChip
+                  label={`${Number(m.estoque ?? 0).toLocaleString("pt-BR")} ${m.unidade}`}
+                  tone={Number(m.estoque ?? 0) <= 0 ? "magenta" : "amber"}
+                />
+              </div>
+            ))}
+            {materiaisCriticos.length === 0 && <StatusChip label="Sem itens críticos" tone="lime" />}
           </div>
         </BexCard>
       </div>
