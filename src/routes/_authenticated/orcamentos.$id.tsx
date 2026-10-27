@@ -291,6 +291,8 @@ function OrcamentoDetailPage() {
   const [layoutsRascunho, setLayoutsRascunho] = useState<LayoutRascunho[]>([]);
   // Item em edição: o mesmo formulário, preenchido, com "Salvar alterações".
   const [editando, setEditando] = useState<{ id: string; numero: number } | null>(null);
+  const [novoItemAberto, setNovoItemAberto] = useState(false);
+  const continuarLancando = useRef(false);
   // Os detalhes opcionais do item (tipo, especificações, artes): fechados até a
   // pessoa abrir, e abertos sozinhos quando já há conteúdo ou o item está em edição.
   // Uma vez aberta a seção, não fecha sozinha — ela sumiria debaixo do cursor.
@@ -775,7 +777,7 @@ function OrcamentoDetailPage() {
     setItemLivre(!i.produto_id);
     setMedidasAbertas(false);
     setEditando({ id: i.id as string, numero });
-    formulario.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setNovoItemAberto(true);
   }
 
   const acabamentosDoProduto = useAcabamentosDoProduto(form.produto_id);
@@ -883,6 +885,8 @@ function OrcamentoDetailPage() {
         toast.success("Item adicionado");
       }
       limparFormulario();
+      setNovoItemAberto(continuarLancando.current);
+      continuarLancando.current = false;
       await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
       await qc.invalidateQueries({ queryKey: ["orc-capas", id] });
       await recalcular();
@@ -1696,7 +1700,29 @@ function OrcamentoDetailPage() {
                   </p>
                 )}
                 {podeMexer ? (
-                  <div ref={formulario} className="scroll-mt-48 space-y-4 rounded-lg border border-dashed p-3 sm:p-4">
+                  <>
+                  <Button
+                    className="w-full sm:w-auto"
+                    onClick={() => {
+                      limparFormulario();
+                      setNovoItemAberto(true);
+                    }}
+                    data-testid="botao-novo-item"
+                  >
+                    <Plus className="mr-1 h-4 w-4" /> Novo item
+                  </Button>
+                  <Dialog
+                    open={novoItemAberto}
+                    onOpenChange={(aberto) => {
+                      if (!aberto && !salvandoItem) {
+                        limparFormulario();
+                        setNovoItemAberto(false);
+                      }
+                    }}
+                  >
+                  <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+                  <DialogTitle>{editando ? `Editando o item ${editando.numero}` : "Novo item"}</DialogTitle>
+                  <div ref={formulario} className="space-y-4">
                     {/* Passo 1 — o tipo e o produto, em cartões. Escolher do
                         catálogo traz medida, preço, custo e material certos; o
                         item fora do catálogo continua liberado. Na edição abre
@@ -2173,7 +2199,6 @@ function OrcamentoDetailPage() {
                   </DialogContent>
                   </Dialog>
                   </>
-                ) : (
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     {fechado
