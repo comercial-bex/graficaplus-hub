@@ -2654,10 +2654,10 @@ function OrcamentoDetailPage() {
         {/* O resumo fica ao lado em todos os passos, como no orçamento do parceiro. */}
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-44 lg:self-start" data-testid="resumo-do-orcamento">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Resumo</CardTitle>
+            <CardHeader className="px-4 pb-1 pt-3">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resumo</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-1.5 px-4 pb-3 text-sm">
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground">Itens</span>
                 <span className="font-medium">{itensDeProduto.length}</span>

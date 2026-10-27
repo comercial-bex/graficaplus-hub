@@ -603,7 +603,7 @@ export function MiniaturaDoItem({ capa, onAbrir }: { capa: CapaDoItem | undefine
     >
       <span
         className={cn(
-          "relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted",
+          "relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted",
           !capa && "border-dashed border-amber-500/60",
         )}
       >
