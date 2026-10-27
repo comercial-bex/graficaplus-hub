@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Gem, Medal, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { metaGeralDaEquipe, useMetasDaEquipe } from "@/hooks/useMetasDaEquipe";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,17 +39,7 @@ export function MetasDaEquipe({ className }: { className?: string }) {
   const { hasRole, hasPermission } = useAuth();
   const podeVer = hasRole("admin") || hasRole("gestor") || hasPermission("financeiro.read");
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["meta-painel", "painel-inicial"],
-    enabled: podeVer,
-    refetchInterval: 120_000,
-    retry: false,
-    queryFn: async (): Promise<MetaDoMes[]> => {
-      const { data: d, error } = await (supabase.rpc as any)("meta_painel");
-      if (error) throw error;
-      return (d ?? []) as MetaDoMes[];
-    },
-  });
+  const { data, isLoading, isError } = useMetasDaEquipe(podeVer);
 
   if (!podeVer) return null;
 
@@ -80,10 +69,13 @@ export function MetasDaEquipe({ className }: { className?: string }) {
     );
   }
 
-  const total = data.reduce(
-    (t, m) => ({ meta: t.meta + Number(m.meta), vendido: t.vendido + Number(m.vendido), pago: t.pago + Number(m.pago) }),
-    { meta: 0, vendido: 0, pago: 0 },
-  );
+  const total = {
+    meta: metaGeralDaEquipe(data),
+    vendido: data.reduce((t, m) => t + Number(m.vendido), 0),
+    pago: data.reduce((t, m) => t + Number(m.pago), 0),
+  };
+  // Como a meta geral foi repartida: quanto cada um carrega dos R$ 40 mil.
+  const divisao = data.map((m) => `${m.usuario_nome ?? "—"} ${brl(Number(m.meta))} (${pct(pctDe(Number(m.meta), total.meta))})`).join(" · ");
   const mes = data[0].mes;
 
   return (
@@ -104,8 +96,8 @@ export function MetasDaEquipe({ className }: { className?: string }) {
           </Link>
         </div>
         <p className="text-sm text-muted-foreground">
-          Cada vendedor tem a sua meta, combinada com ele — não depende do ponto de equilíbrio da gráfica. Juntos:{" "}
-          <strong className="text-foreground">{brl(total.vendido)}</strong> vendidos de {brl(total.meta)} (
+          A meta geral do mês é a soma das metas de cada vendedor: <strong className="text-foreground">{brl(total.meta)}</strong>.
+          Divisão: {divisao}. Juntos: <strong className="text-foreground">{brl(total.vendido)}</strong> vendidos (
           {pct(pctDe(total.vendido, total.meta))}), {brl(total.pago)} já pagos.
         </p>
       </CardHeader>

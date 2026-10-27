@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 import { brl } from "@/domain/parceiros/preco";
+import { metaGeralDaEquipe, useMetasDaEquipe } from "@/hooks/useMetasDaEquipe";
 import { cn } from "@/lib/utils";
 
 /**
@@ -125,6 +126,10 @@ export function MetaDoMes({ className }: { className?: string }) {
     },
   });
 
+  // A meta GERAL do mês (27/10/2026: R$ 40 mil = a soma das metas de cada vendedor). O ponto de equilíbrio
+  // continua, mas como marco dentro da barra: é o mínimo para pagar as contas, não o objetivo.
+  const { data: metasDaEquipe } = useMetasDaEquipe(canSeeFinancials);
+
   useEffect(() => {
     if (error) toast.error(mensagemErro(error));
   }, [error]);
@@ -168,12 +173,19 @@ export function MetaDoMes({ className }: { className?: string }) {
   const diasNoMes = num(data.dias_no_mes);
   const diasCorridos = num(data.dias_corridos);
 
-  const temMeta = meta != null && meta > 0;
-  const pctDaMeta = (v: number) => (temMeta ? Math.round((1000 * v) / meta) / 10 : 0);
+  const metaGeral = metaGeralDaEquipe(metasDaEquipe);
+  const temEquilibrio = meta != null && meta > 0;
+  // A barra mede contra a meta geral; sem metas por vendedor, volta para o ponto de equilíbrio.
+  const metaDaBarra = metaGeral > 0 ? metaGeral : temEquilibrio ? meta : 0;
+  const temMeta = metaDaBarra > 0;
+  const pctDaMeta = (v: number) => (temMeta ? Math.round((1000 * v) / metaDaBarra) / 10 : 0);
   const atingido = pctDaMeta(vendido);
-  const faltaVender = temMeta ? Math.max(meta - vendido, 0) : null;
-  const faltaReceber = temMeta ? Math.max(meta - recebido, 0) : null;
+  const faltaVender = temMeta ? Math.max(metaDaBarra - vendido, 0) : null;
+  const faltaVenderParaEmpatar = temEquilibrio ? Math.max(meta - vendido, 0) : null;
+  const faltaReceber = temEquilibrio ? Math.max(meta - recebido, 0) : null;
   const bateu = temMeta && faltaVender === 0;
+  // Onde o ponto de equilíbrio cai na barra da meta geral (só aparece quando a barra é maior que ele).
+  const marcoEquilibrio = temEquilibrio && temMeta && metaDaBarra > meta ? (100 * meta) / metaDaBarra : null;
 
   // Ritmo: o mês já andou X% dos dias, a venda devia ter andado o mesmo.
   const esperado = diasNoMes > 0 ? (100 * diasCorridos) / diasNoMes : 0;
@@ -182,9 +194,11 @@ export function MetaDoMes({ className }: { className?: string }) {
   const [, mesDeHoje, diaDeHoje] = String(data.hoje ?? "").slice(0, 10).split("-");
   const hojeCurto = mesDeHoje && diaDeHoje ? `${diaDeHoje}/${mesDeHoje}` : "";
 
-  // Barra: o vendido por inteiro (ciano claro) e, por cima, o que já entrou no caixa.
-  const fatiaRecebido = temMeta ? Math.min((100 * Math.min(recebido, vendido)) / meta, 100) : 0;
-  const fatiaVendido = temMeta ? Math.min((100 * vendido) / meta, 100) - fatiaRecebido : 0;
+  // Barra: verde = já entrou no caixa, azul = vendido e ainda a receber (completa até o vendido) e
+  // vermelho = o que falta vender para bater a meta. Meta batida: a barra inteira fica verde.
+  const fatiaRecebido = temMeta ? Math.min((100 * Math.min(recebido, vendido)) / metaDaBarra, 100) : 0;
+  const fatiaVendido = temMeta ? Math.max(Math.min((100 * vendido) / metaDaBarra, 100) - fatiaRecebido, 0) : 0;
+  const fatiaFalta = temMeta ? Math.max(100 - fatiaRecebido - fatiaVendido, 0) : 0;
 
   return (
     <Card className={cn("border-l-4 border-l-[color:var(--bex-cyan)]", className)}>
@@ -204,16 +218,26 @@ export function MetaDoMes({ className }: { className?: string }) {
           </Link>
         </div>
         <p className="text-sm text-muted-foreground">
-          {mesPorExtenso(data.mes)} · precisa vender{" "}
-          <strong className="text-foreground">{temMeta ? brl(meta) : "—"}</strong> para pagar{" "}
-          {brl(custoFixo)} de custo fixo com {pct(num(data.margem_contribuicao_pct))} de margem.
+          {mesPorExtenso(data.mes)} ·{" "}
+          {metaGeral > 0 ? (
+            <>
+              meta geral <strong className="text-foreground">{brl(metaGeral)}</strong> (a soma das metas de cada vendedor). Só para
+              pagar {brl(custoFixo)} de custo fixo com {pct(num(data.margem_contribuicao_pct))} de margem, precisa vender{" "}
+              <strong className="text-foreground">{temEquilibrio ? brl(meta) : "—"}</strong>.
+            </>
+          ) : (
+            <>
+              precisa vender <strong className="text-foreground">{temEquilibrio ? brl(meta) : "—"}</strong> para pagar{" "}
+              {brl(custoFixo)} de custo fixo com {pct(num(data.margem_contribuicao_pct))} de margem.
+            </>
+          )}
         </p>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Sem margem de contribuição não existe meta: dizer isso é melhor do
             que desenhar uma barra em cima de um número que não existe. */}
-        {meta == null ? (
+        {!temEquilibrio ? (
           <PorQueZero
             texto={`A conta não fecha: material, perda, falha, imposto e cartão somam ${pct(num(data.custo_variavel_pct))} do preço de venda. Não sobra nada para pagar o custo fixo, então não há meta possível com esses números.`}
             para="/precificacao"
@@ -238,22 +262,42 @@ export function MetaDoMes({ className }: { className?: string }) {
                 </span>
               </div>
 
-              {/* Barra própria em vez do Progress da ui: são duas fatias e
-                  cores da casa, e o Progress só pinta uma em bg-primary. */}
-              <div
-                className="flex h-3 w-full overflow-hidden rounded-full bg-muted"
-                role="img"
-                aria-label={`${pct(atingido)} da meta vendidos; ${pct(pctDaMeta(recebido))} recebidos`}
-              >
+              {/* Barra própria em vez do Progress da ui: são três fatias e cores da casa. O vermelho é o
+                  que falta; o marcador é o ponto de equilíbrio (o mínimo para pagar as contas). */}
+              <div className="relative pb-5">
                 <div
-                  className={cn("h-full", bateu ? "bg-emerald-500" : "bg-[color:var(--bex-lime)]")}
-                  style={{ width: `${fatiaRecebido}%` }}
-                />
-                <div
-                  className="h-full bg-[color:var(--bex-cyan)]/45"
-                  style={{ width: `${fatiaVendido}%` }}
-                />
+                  className="flex h-3 w-full overflow-hidden rounded-full bg-muted"
+                  role="img"
+                  aria-label={`${pct(atingido)} da meta vendidos; ${pct(pctDaMeta(recebido))} recebidos; faltam ${pct(Math.max(100 - atingido, 0))}`}
+                >
+                  <div
+                    className={cn("h-full", bateu ? "bg-emerald-500" : "bg-[color:var(--bex-lime)]")}
+                    style={{ width: `${fatiaRecebido}%` }}
+                  />
+                  <div
+                    className="h-full bg-[color:var(--bex-cyan)]/60"
+                    style={{ width: `${fatiaVendido}%` }}
+                  />
+                  <div className="h-full bg-red-500/75" style={{ width: `${fatiaFalta}%` }} />
+                </div>
+                {marcoEquilibrio != null && (
+                  <div
+                    className="pointer-events-none absolute top-[-3px] flex -translate-x-1/2 flex-col items-center"
+                    style={{ left: `${marcoEquilibrio}%` }}
+                    aria-hidden="true"
+                  >
+                    <span className="h-[18px] w-0.5 rounded bg-foreground/80" />
+                    <span className="mt-0.5 whitespace-nowrap text-[10px] text-muted-foreground">
+                      empata em {brl(meta ?? 0)}
+                    </span>
+                  </div>
+                )}
               </div>
+              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                <li className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[color:var(--bex-lime)]" /> recebido</li>
+                <li className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[color:var(--bex-cyan)]/60" /> vendido, a receber</li>
+                <li className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500/75" /> falta vender</li>
+              </ul>
             </div>
 
             {/* As três medidas, cada uma com a sua régua contra a meta. */}
@@ -293,14 +337,26 @@ export function MetaDoMes({ className }: { className?: string }) {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded-lg border border-border bg-muted/40 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam vender para empatar</p>
-                  <p className="font-mono text-2xl font-bold tabular-nums text-amber-500">{brl(faltaVender)}</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {faltaVenderParaEmpatar != null && metaGeral > 0 && (
+                  <div className="rounded-lg border border-border bg-muted/40 p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam vender para empatar</p>
+                    <p className={cn("font-mono text-2xl font-bold tabular-nums", faltaVenderParaEmpatar > 0 ? "text-red-500" : "text-emerald-500")}>
+                      {faltaVenderParaEmpatar > 0 ? brl(faltaVenderParaEmpatar) : "Empatou"}
+                    </p>
+                  </div>
+                )}
+                <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {metaGeral > 0 ? `Faltam vender para a meta de ${brl(metaGeral)}` : "Faltam vender para empatar"}
+                  </p>
+                  <p className="font-mono text-2xl font-bold tabular-nums text-red-500">{brl(faltaVender)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted/40 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam receber para pagar as contas</p>
-                  <p className="font-mono text-2xl font-bold tabular-nums text-amber-500">{brl(faltaReceber)}</p>
+                  <p className={cn("font-mono text-2xl font-bold tabular-nums", (faltaReceber ?? 0) > 0 ? "text-red-500" : "text-emerald-500")}>
+                    {faltaReceber != null && faltaReceber > 0 ? brl(faltaReceber) : "Pagas"}
+                  </p>
                 </div>
               </div>
             )}
@@ -331,8 +387,11 @@ export function MetaDoMes({ className }: { className?: string }) {
                       ? `1 de ${diasNoMes} dias do mês já fechou`
                       : `${diasCorridos} de ${diasNoMes} dias do mês já fecharam`}
                     : o esperado até ontem era {pct(esperado)} da meta e o vendido está em {pct(atingido)}.
-                    {faltaVender != null && faltaVender > 0 && diasRestantes > 0
-                      ? ` Para empatar faltam ${brl(faltaVender)}: cerca de ${brl(faltaVender / diasRestantes)} por dia nos ${diasRestantes} dias que restam, contando hoje.`
+                    {faltaVenderParaEmpatar != null && faltaVenderParaEmpatar > 0 && diasRestantes > 0
+                      ? ` Para empatar faltam ${brl(faltaVenderParaEmpatar)}: cerca de ${brl(faltaVenderParaEmpatar / diasRestantes)} por dia nos ${diasRestantes} dias que restam, contando hoje.`
+                      : ""}
+                    {metaGeral > 0 && faltaVender != null && faltaVender > 0 && diasRestantes > 0
+                      ? ` Para a meta geral, ${brl(faltaVender / diasRestantes)} por dia.`
                       : ""}
                   </span>
                 </span>
