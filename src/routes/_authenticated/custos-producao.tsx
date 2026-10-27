@@ -24,6 +24,8 @@ import { KpiCard } from "@/components/bex/KpiCard";
 import { CalculadoraDeEncargos } from "@/components/custos/calculadora-de-encargos";
 import { ParametrosDaCasa } from "@/components/custos/parametros-da-casa";
 import {
+  HORAS_DO_MES_DA_CASA,
+  SALARIO_MINIMO,
   custoHoraComEncargos,
   parcelasDoRegime,
   quantoFalta,
@@ -63,6 +65,9 @@ type Form = {
   setor: string;
   custo_hora: string;
   encargos_pct: string;
+  /** Salário real da pessoa/função; com as horas dá o custo/hora (salário ÷ horas). */
+  salario_mensal: string;
+  horas_mensais: string;
   ativo: boolean;
   observacoes: string;
 };
@@ -72,9 +77,19 @@ const emptyForm: Form = {
   setor: "",
   custo_hora: "0",
   encargos_pct: "0",
+  salario_mensal: "",
+  horas_mensais: String(HORAS_DO_MES_DA_CASA),
   ativo: true,
   observacoes: "",
 };
+
+/** Salário ÷ horas quando há salário; senão o custo/hora digitado. Quatro casas: a tela mostra duas. */
+function custoHoraDoForm(f: Form): number {
+  const salario = Number(f.salario_mensal);
+  const horas = Number(f.horas_mensais) || HORAS_DO_MES_DA_CASA;
+  if (salario > 0) return Number((salario / horas).toFixed(4));
+  return Number(f.custo_hora) || 0;
+}
 
 function CustosProducaoPage() {
   const qc = useQueryClient();
@@ -103,8 +118,11 @@ function CustosProducaoPage() {
       const payload = {
         funcao: form.funcao,
         setor: form.setor || null,
-        custo_hora: Number(form.custo_hora) || 0,
+        // Com salário e horas informados o custo/hora é a conta deles; sem salário vale o digitado.
+        custo_hora: custoHoraDoForm(form),
         encargos_pct: Number(form.encargos_pct) || 0,
+        salario_mensal: Number(form.salario_mensal) > 0 ? Number(form.salario_mensal) : null,
+        horas_mensais: Number(form.salario_mensal) > 0 ? Number(form.horas_mensais) || HORAS_DO_MES_DA_CASA : null,
         ativo: form.ativo,
         observacoes: form.observacoes || null,
       };
@@ -322,6 +340,12 @@ function CustosProducaoPage() {
                       <div className="font-bold text-[color:var(--bex-lime)]">{brl(total)}</div>
                     </div>
                   </div>
+                  {f.salario_mensal != null && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Salário {brl(Number(f.salario_mensal))} ÷ {Number(f.horas_mensais ?? HORAS_DO_MES_DA_CASA)} h por mês
+                      {Number(f.salario_mensal) === SALARIO_MINIMO ? " · salário mínimo, provisório" : ""}
+                    </p>
+                  )}
                   {podeMudarCusto && (
                     <Button
                       variant="outline"
@@ -334,6 +358,8 @@ function CustosProducaoPage() {
                           setor: f.setor ?? "",
                           custo_hora: String(f.custo_hora),
                           encargos_pct: String(f.encargos_pct),
+                          salario_mensal: f.salario_mensal != null ? String(f.salario_mensal) : "",
+                          horas_mensais: String(f.horas_mensais ?? HORAS_DO_MES_DA_CASA),
                           ativo: f.ativo,
                           observacoes: f.observacoes ?? "",
                         });
@@ -374,12 +400,35 @@ function CustosProducaoPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label>Salário mensal (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="1621"
+                value={form.salario_mensal}
+                onChange={(e) => setForm((f) => ({ ...f, salario_mensal: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Horas por mês</Label>
+              <Input
+                type="number"
+                value={form.horas_mensais}
+                onChange={(e) => setForm((f) => ({ ...f, horas_mensais: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Custo/hora (R$)</Label>
               <Input
                 type="number"
-                value={form.custo_hora}
+                step="0.0001"
+                disabled={Number(form.salario_mensal) > 0}
+                value={Number(form.salario_mensal) > 0 ? String(custoHoraDoForm(form)) : form.custo_hora}
                 onChange={(e) => setForm((f) => ({ ...f, custo_hora: e.target.value }))}
               />
+              {Number(form.salario_mensal) > 0 && (
+                <p className="text-[11px] text-muted-foreground">Salário ÷ horas. Apague o salário para digitar o custo/hora direto.</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Encargos (0,8 = 80%)</Label>
@@ -402,11 +451,13 @@ function CustosProducaoPage() {
                 mundo digitou zero. */}
             <div className="sm:col-span-2">
               <CalculadoraDeEncargos
-                onAplicar={({ custoHora, encargosPct }) =>
+                onAplicar={({ custoHora, encargosPct, salarioMensal, horasMensais }) =>
                   setForm((f) => ({
                     ...f,
                     custo_hora: String(custoHora),
                     encargos_pct: String(encargosPct),
+                    salario_mensal: String(salarioMensal),
+                    horas_mensais: String(horasMensais),
                   }))
                 }
               />

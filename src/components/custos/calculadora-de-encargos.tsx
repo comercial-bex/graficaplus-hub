@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  HORAS_DO_MES_DA_CASA,
   PARCELAS,
+  SALARIO_MINIMO,
   custoDaHora,
   parcelasDoRegime,
   somarEncargos,
@@ -28,10 +30,10 @@ export function CalculadoraDeEncargos({
   onAplicar,
 }: {
   /** devolve custo/hora e a fração de encargo para o formulário da função */
-  onAplicar: (r: { custoHora: number; encargosPct: number }) => void;
+  onAplicar: (r: { custoHora: number; encargosPct: number; salarioMensal: number; horasMensais: number }) => void;
 }) {
   const [salario, setSalario] = useState("");
-  const [horas, setHoras] = useState("220");
+  const [horas, setHoras] = useState(String(HORAS_DO_MES_DA_CASA));
   const [marcadas, setMarcadas] = useState<string[]>(parcelasDoRegime("simples"));
 
   const encargos = somarEncargos(marcadas);
@@ -49,8 +51,9 @@ export function CalculadoraDeEncargos({
       <div>
         <h4 className="text-sm font-semibold">Calcular do salário</h4>
         <p className="text-[11px] text-muted-foreground">
-          As horas são as <strong>contratadas</strong> (220 na jornada de 44h), não as
-          produtivas: o salário é pago por elas tenha a máquina rodado ou não.
+          As horas são as de <strong>presença</strong>: 8 h por dia (10 h na casa menos 2 h de
+          almoço) × 22 dias úteis = {HORAS_DO_MES_DA_CASA} h. Não são as produtivas: o salário é
+          pago tenha a máquina rodado ou não.
         </p>
       </div>
 
@@ -65,6 +68,13 @@ export function CalculadoraDeEncargos({
             value={salario}
             onChange={(e) => setSalario(e.target.value)}
           />
+          <button
+            type="button"
+            className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            onClick={() => setSalario(String(SALARIO_MINIMO))}
+          >
+            usar o salário mínimo ({brl(SALARIO_MINIMO)})
+          </button>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Horas por mês</Label>
@@ -130,7 +140,14 @@ export function CalculadoraDeEncargos({
         size="sm"
         className="w-full"
         disabled={r.custoHora <= 0}
-        onClick={() => onAplicar({ custoHora: r.salarioHora, encargosPct: encargos })}
+        onClick={() =>
+          onAplicar({
+            custoHora: Number((Number(salario.replace(",", ".")) / (Number(horas) || HORAS_DO_MES_DA_CASA)).toFixed(4)),
+            encargosPct: encargos,
+            salarioMensal: Number(salario.replace(",", ".")) || 0,
+            horasMensais: Number(horas) || HORAS_DO_MES_DA_CASA,
+          })
+        }
       >
         Usar estes valores
       </Button>

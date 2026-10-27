@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import { Fragment, useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
 import { AcessoPortalCard } from "@/components/cliente/acesso-portal-card";
@@ -61,7 +61,10 @@ import {
   Package,
   Calendar,
   MessageCircle,
+  ChevronRight,
+  Paperclip,
 } from "lucide-react";
+import { DialogoDeLayouts } from "@/components/orcamento/layouts-do-item";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
@@ -238,7 +241,12 @@ function ClienteDetailPage() {
           <OSTab clienteId={id} nivelDeVisao={nivelDeVisao} />
         </TabsContent>
         <TabsContent value="orcamentos">
-          <OrcamentosTab clienteId={id} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} />
+          <OrcamentosTab
+            clienteId={id}
+            canSeePrices={canSeePrices}
+            nivelDeVisao={nivelDeVisao}
+            podeAnexar={hasPermission("orcamentos.update")}
+          />
         </TabsContent>
         <TabsContent value="portal">
           <AcessoPortalCard clienteId={id} />
@@ -827,12 +835,18 @@ function OrcamentosTab({
   clienteId,
   canSeePrices,
   nivelDeVisao,
+  podeAnexar,
 }: {
   clienteId: string;
   canSeePrices: boolean;
   nivelDeVisao: NivelDeVisao;
+  podeAnexar: boolean;
 }) {
   const navigate = useNavigate();
+  // Clicar na linha abre os ITENS aqui mesmo (27/10/2026): a lista era só número, título, status e
+  // valor, e para saber o que tinha dentro e anexar a arte era preciso abrir cada orçamento.
+  const [aberto, setAberto] = useState<string | null>(null);
+  const [anexando, setAnexando] = useState<{ orcamentoId: string; item: { id: string; descricao: string; numero: number } } | null>(null);
   const { data = [] } = useQuery({
     queryKey: ["orc-cliente", clienteId, nivelDeVisao],
     queryFn: async () =>
@@ -850,6 +864,7 @@ function OrcamentosTab({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8" />
               <TableHead>#</TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Status</TableHead>
@@ -859,38 +874,142 @@ function OrcamentosTab({
           <TableBody>
             {data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   Sem orçamentos
                 </TableCell>
               </TableRow>
             )}
-            {data.map((o: any) => (
-              <TableRow
-                key={o.id}
-                className="cursor-pointer"
-                onClick={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
-              >
-                <TableCell>
-                  <Link
-                    to="/orcamentos/$id"
-                    params={{ id: o.id }}
-                    className="text-link hover:underline"
-                    onClick={(e) => e.stopPropagation()}
+            {data.map((o: any) => {
+              const expandido = aberto === o.id;
+              return (
+                <Fragment key={o.id}>
+                  <TableRow
+                    className="cursor-pointer"
+                    aria-expanded={expandido}
+                    onClick={() => setAberto(expandido ? null : o.id)}
                   >
-                    #{o.numero}
-                  </Link>
-                </TableCell>
-                <TableCell>{o.titulo}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{o.status}</Badge>
-                </TableCell>
-                {canSeePrices && <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>}
-              </TableRow>
-            ))}
+                    <TableCell>
+                      <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expandido ? "rotate-90" : ""}`} />
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        to="/orcamentos/$id"
+                        params={{ id: o.id }}
+                        className="text-link hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        #{o.numero}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{o.titulo}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{o.status}</Badge>
+                    </TableCell>
+                    {canSeePrices && <TableCell>R$ {Number(o.valor_total).toFixed(2)}</TableCell>}
+                  </TableRow>
+                  {expandido && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="bg-muted/30">
+                        <ItensDoOrcamentoDoCliente
+                          orcamentoId={o.id}
+                          nivelDeVisao={nivelDeVisao}
+                          canSeePrices={canSeePrices}
+                          podeAnexar={podeAnexar && !(o.status === "convertido" || o.os_id)}
+                          onAbrir={() => navigate({ to: "/orcamentos/$id", params: { id: o.id } })}
+                          onAnexar={(item) => setAnexando({ orcamentoId: o.id, item })}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
+      <DialogoDeLayouts
+        item={anexando?.item ?? null}
+        orcamentoId={anexando?.orcamentoId ?? ""}
+        clienteId={clienteId}
+        podeEditar={podeAnexar}
+        onFechar={() => setAnexando(null)}
+      />
     </Card>
+  );
+}
+
+function ItensDoOrcamentoDoCliente({
+  orcamentoId,
+  nivelDeVisao,
+  canSeePrices,
+  podeAnexar,
+  onAbrir,
+  onAnexar,
+}: {
+  orcamentoId: string;
+  nivelDeVisao: NivelDeVisao;
+  canSeePrices: boolean;
+  podeAnexar: boolean;
+  onAbrir: () => void;
+  onAnexar: (item: { id: string; descricao: string; numero: number }) => void;
+}) {
+  const { data: itens, isLoading } = useQuery({
+    // Mesma chave da tela do orçamento: anexar a arte aqui atualiza lá e vice-versa.
+    queryKey: ["orc-itens", orcamentoId, nivelDeVisao],
+    queryFn: async () => {
+      const { data, error } = await fromFinancialView("orcamento_itens", nivelDeVisao)
+        .select("*")
+        .eq("orcamento_id", orcamentoId)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+  if (isLoading) return <p className="py-2 text-sm text-muted-foreground">Carregando itens…</p>;
+  if (!itens || itens.length === 0) {
+    return (
+      <p className="py-2 text-sm text-muted-foreground">
+        Este orçamento não tem nenhum item.{" "}
+        <button type="button" className="underline underline-offset-2" onClick={onAbrir}>
+          Abrir e acrescentar
+        </button>
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-2 py-1">
+      <ul className="divide-y divide-border/60">
+        {itens.map((it: any, i: number) => (
+          <li key={it.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <div className="min-w-0">
+              <div className="font-medium">{it.descricao}</div>
+              <div className="text-xs text-muted-foreground">
+                {Number(it.quantidade).toLocaleString("pt-BR")} {it.unidade ?? "un"}
+                {it.largura && it.altura ? ` · ${it.largura} × ${it.altura} m` : ""}
+                {it.acabamento ? ` · ${it.acabamento}` : ""}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {canSeePrices && <span className="font-mono text-sm">R$ {Number(it.valor_total ?? 0).toFixed(2)}</span>}
+              {podeAnexar && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onAnexar({ id: it.id, descricao: it.descricao, numero: i + 1 })}
+                >
+                  <Paperclip className="mr-1 h-3.5 w-3.5" />
+                  Anexar arte
+                </Button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <Button type="button" size="sm" variant="ghost" onClick={onAbrir}>
+        Abrir o orçamento
+      </Button>
+    </div>
   );
 }
 

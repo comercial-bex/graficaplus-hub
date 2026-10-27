@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  HORAS_DO_MES_DA_CASA,
   PARCELAS,
+  SALARIO_MINIMO,
   custoDaHora,
   custoHoraComEncargos,
   parcelasDoRegime,
@@ -43,18 +45,30 @@ describe("as parcelas do encargo", () => {
 });
 
 describe("o custo real da hora", () => {
-  it("R$ 2.500 em 220 h com 32% de encargo dá R$ 15,00 a hora", () => {
+  it("R$ 2.500 em 176 h com 32% de encargo dá R$ 18,78 a hora", () => {
     const r = custoDaHora({ salarioMensal: 2500, encargosPct: 0.3219 });
-    expect(r.salarioHora).toBeCloseTo(11.36, 2);
-    expect(r.custoHora).toBeCloseTo(15.02, 2);
-    expect(r.acrescimo).toBeCloseTo(3.66, 2);
+    expect(r.salarioHora).toBeCloseTo(14.2, 2);
+    expect(r.custoHora).toBeCloseTo(18.78, 2);
+    expect(r.acrescimo).toBeCloseTo(4.57, 2);
   });
 
-  it("as horas são as CONTRATADAS, não as produtivas", () => {
-    // 220 h é a jornada de 44h/semana. O salário é pago por elas tenha a
-    // máquina rodado ou não — a ociosidade já entra no custo/hora da máquina.
-    expect(custoDaHora({ salarioMensal: 2200, encargosPct: 0 }).salarioHora).toBe(10);
-    expect(custoDaHora({ salarioMensal: 2200, horasMensais: 160, encargosPct: 0 }).salarioHora).toBeCloseTo(13.75, 2);
+  it("as horas são as de PRESENÇA da casa (8 h × 22 dias = 176), não as 220 do contrato nem as produtivas", () => {
+    // Regra do dono (27/10/2026): 10 h na casa menos 2 h de almoço = 8 h por dia. A ociosidade já
+    // entra no custo/hora da máquina; por isso o divisor não é o tempo "produtivo".
+    expect(HORAS_DO_MES_DA_CASA).toBe(176);
+    expect(custoDaHora({ salarioMensal: 1760, encargosPct: 0 }).salarioHora).toBe(10);
+    expect(custoDaHora({ salarioMensal: 2200, horasMensais: 220, encargosPct: 0 }).salarioHora).toBe(10);
+  });
+
+  it("salário mínimo de 2026 com os encargos do Simples dá R$ 12,17 a hora (era R$ 40 no módulo 3D)", () => {
+    const r = custoDaHora({
+      salarioMensal: SALARIO_MINIMO,
+      encargosPct: somarEncargos(parcelasDoRegime("simples")),
+    });
+    expect(SALARIO_MINIMO).toBe(1621);
+    expect(r.salarioHora).toBeCloseTo(9.21, 2);
+    expect(r.encargosPct).toBeCloseTo(0.3219, 4);
+    expect(r.custoHora).toBeCloseTo(12.17, 2);
   });
 
   it("sem salário não inventa custo", () => {
@@ -67,7 +81,7 @@ describe("o custo real da hora", () => {
 
   it("encargo negativo não vira desconto no custo da pessoa", () => {
     const r = custoDaHora({ salarioMensal: 2200, encargosPct: -0.5 });
-    expect(r.custoHora).toBe(10);
+    expect(r.custoHora).toBe(12.5);
   });
 });
 
