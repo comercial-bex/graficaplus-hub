@@ -15,6 +15,7 @@ import {
   type CartaoDeSaida,
   type CartaoGrande,
   type Coluna,
+  type ColunaDaParede,
   type EtiquetaDePrazo,
   type LinhaDaFila,
   type Mini,
@@ -77,7 +78,7 @@ export function TelaDaOficina(p: PropsDaTela) {
       ) : null}
       <Cartoes cartoes={p.tela.cartoes} minis={p.tela.minis} />
       <Maquinas
-        colunas={p.tela.colunas}
+        parede={p.tela.parede}
         temFaixa={faixa !== null}
         tique={p.tique}
         medir={p.medir}
@@ -391,13 +392,80 @@ function ColunaDaMaquina({
   );
 }
 
+/** "Bambu Lab 3D 01" → "BAMBU 3D 01": cabe numa linha do cartão e continua sendo o nome do cadastro. */
+export function rotuloDaImpressora(c: Coluna): string {
+  const nome = (c.rotulo ?? "").trim();
+  if (!nome) return c.identidade.curto.toUpperCase();
+  return nome.replace(/\bLab\b/i, "").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+/**
+ * As impressoras 3D numa coluna só (28/10/2026): um cartão por impressora, com o nome do cadastro,
+ * o estado, o que está imprimindo e quantos esperam. O nº da OS aparece sempre inteiro; o nome do
+ * produto corta com reticências.
+ */
+function Grupo3D({ g }: { g: Extract<ColunaDaParede, { tipo: "grupo_3d" }> }) {
+  const rodando = g.subs.filter((s) => s.estado === "rodando").length;
+  return (
+    <div className="maq grupo3d esmaece" data-maq={g.id} data-grupo="3d">
+      <div className="filete" style={{ background: g.identidade.cor }} />
+      <div className="topo">
+        <div className="nomel">
+          <div className="nome cx fixo">
+            <Icone nome={g.identidade.icone} px={28} cor={g.identidade.cor} />
+            <span>{g.identidade.curto}</span>
+          </div>
+          <div className="fila fixo">
+            <Icone nome="Layers" px={22} />
+            <span data-fila-total>{g.filaTotal}</span>
+          </div>
+        </div>
+        <div className="sub3dresumo fixo">
+          {rodando} de {g.subs.length} imprimindo
+        </div>
+      </div>
+      <div className="subs3d">
+        {g.subs.map((c) => (
+          <div
+            key={c.id}
+            className={`sub3d ${c.classe} ${c.estourou ? "estourou" : ""}`}
+            data-maq={c.id}
+            data-estado={c.estado}
+          >
+            <div className="s1">
+              <span className="sn fixo">{rotuloDaImpressora(c)}</span>
+              <span className="sf fixo">{c.filaTotal > 0 ? `fila ${c.filaTotal}` : "vazia"}</span>
+            </div>
+            <div className="s2 corta">
+              {c.agora ? (
+                <>
+                  <b className={c.agora.prazo?.k === "atr" ? "atr" : ""} data-os-agora={c.agora.osNumero}>
+                    OS #{c.agora.osNumero}
+                  </b>{" "}
+                  {c.agora.produto}
+                </>
+              ) : (
+                (c.notas[0] ?? c.desde)
+              )}
+            </div>
+            <div className="s3">
+              <span className="sp fixo">{c.palavra}</span>
+              <span className="corta">{c.agora ? c.agora.nota : c.desde}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Maquinas({
-  colunas,
+  parede,
   temFaixa,
   tique,
   medir,
 }: {
-  colunas: Coluna[];
+  parede: ColunaDaParede[];
   temFaixa: boolean;
   tique: number;
   medir: Medidor | null;
@@ -405,9 +473,13 @@ function Maquinas({
   const porPagina = trabalhosPorPagina(temFaixa);
   return (
     <section className="maquinas">
-      {colunas.map((c) => (
-        <ColunaDaMaquina key={c.id} c={c} porPagina={porPagina} tique={tique} medir={medir} />
-      ))}
+      {parede.map((p) =>
+        p.tipo === "grupo_3d" ? (
+          <Grupo3D key={p.id} g={p} />
+        ) : (
+          <ColunaDaMaquina key={p.c.id} c={p.c} porPagina={porPagina} tique={tique} medir={medir} />
+        ),
+      )}
     </section>
   );
 }

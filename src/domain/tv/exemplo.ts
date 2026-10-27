@@ -19,10 +19,10 @@
 
 import type { PainelDaOficina } from "./painel";
 
-export type ModoDeExemplo = "cheio" | "hoje";
+export type ModoDeExemplo = "cheio" | "hoje" | "tres_d";
 
 export function modoDeExemplo(valor: unknown): ModoDeExemplo | undefined {
-  return valor === "cheio" || valor === "hoje" ? valor : undefined;
+  return valor === "cheio" || valor === "hoje" || valor === "tres_d" ? valor : undefined;
 }
 
 export function etiquetaDoExemplo(modo: ModoDeExemplo): string {
@@ -593,6 +593,30 @@ export const EXEMPLO_HOJE: PainelDaOficina = {
   consistencia: { ok: true, falhas: [] },
 };
 
+/**
+ * `?demo=tres_d`: o dia de exemplo com as QUATRO impressoras 3D da gráfica (Bambu Lab 3D 01, 02, 03 e
+ * Mini) dividindo a coluna 3D. A 01 é a do exemplo (imprimindo); as outras três ainda sem registro.
+ */
+function exemploComImpressoras3D(): PainelDaOficina {
+  const base = EXEMPLO_CHEIO.maquinas;
+  const d3 = base.find((m) => m.id === D3);
+  if (!d3) return EXEMPLO_CHEIO;
+  const outras = [
+    ["b3d00000-0000-4000-8000-000000000002", "Bambu Lab 3D 02"],
+    ["b3d00000-0000-4000-8000-000000000003", "Bambu Lab 3D 03"],
+    ["b3d00000-0000-4000-8000-000000000004", "Bambu Lab 3D Mini"],
+  ] as const;
+  const livres = outras.map(([id, rotulo], i) => ({
+    ...SEM_REGISTRO(id, "impressora_3d", 6 + i),
+    rotulo,
+  }));
+  return {
+    ...EXEMPLO_CHEIO,
+    maquinas: base.flatMap((m) => (m.id === D3 ? [{ ...m, rotulo: "Bambu Lab 3D 01" }, ...livres] : [m])),
+  };
+}
+
 export function painelDeExemplo(modo: ModoDeExemplo): PainelDaOficina {
+  if (modo === "tres_d") return exemploComImpressoras3D();
   return modo === "hoje" ? EXEMPLO_HOJE : EXEMPLO_CHEIO;
 }

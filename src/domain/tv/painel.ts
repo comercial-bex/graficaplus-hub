@@ -128,6 +128,8 @@ export type MaquinaDoPainel = {
   id: string;
   /** `maquinas.tipo` — texto livre no banco; tipo novo cai na identidade genérica */
   tipo: string;
+  /** nome da máquina no cadastro ("Bambu Lab 3D 01"); chave nova da função viva, opcional no retrato antigo */
+  rotulo?: string | null;
   ordem: number;
   estado: EstadoDaMaquina;
   desde_em: string | null;
@@ -367,6 +369,7 @@ function lerMaquina(v: unknown, c: string): MaquinaDoPainel {
   return {
     id: texto(o.id, `${c}.id`),
     tipo: texto(o.tipo, `${c}.tipo`),
+    ...(o.rotulo !== undefined ? { rotulo: ouNulo(o.rotulo, `${c}.rotulo`, texto) } : {}),
     ordem: inteiro(o.ordem, `${c}.ordem`),
     estado: umDe(o.estado, `${c}.estado`, ESTADOS_DA_MAQUINA),
     desde_em: ouNulo(o.desde_em, `${c}.desde_em`, instante),

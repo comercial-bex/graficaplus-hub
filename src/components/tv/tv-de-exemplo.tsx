@@ -28,7 +28,7 @@ export function TvDeExemplo({ modo }: { modo: ModoDeExemplo }) {
   const [geradoEmMs, setGeradoEmMs] = useState(geradoEmOriginalMs);
   useEffect(() => {
     setGeradoEmMs(geradoEmOriginalMs);
-    if (modo !== "cheio") return;
+    if (modo === "hoje") return;
     const passo = painel.intervalo_s * 1000;
     const id = window.setInterval(() => setGeradoEmMs((g) => g + passo), passo);
     return () => window.clearInterval(id);
