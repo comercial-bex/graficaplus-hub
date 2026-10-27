@@ -66,6 +66,7 @@ import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functio
 import { useComprovantesDoOrcamento } from "@/components/pagamento/comprovantes-do-orcamento";
 import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-antes-de-converter";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { PassosDoItem } from "@/components/orcamento/passos-do-item";
 import { Calculadora3D } from "@/components/impressao3d/calculadora-3d";
 import { descreverLinhaDeMetragem, metragemPorMaterial, totaisDaMetragem } from "@/domain/orcamentos/metragem-por-material";
 import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
@@ -610,6 +611,8 @@ function OrcamentoDetailPage() {
 
   // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
   const quantidadeForm = paraNumero(form.quantidade) || 1;
+  // Na janela "Novo item", medida, preço e detalhes só abrem depois do produto (ou item livre).
+  const itemEscolhido = !!form.produto_id || itemLivre || !!editando;
   const faixaAtual = faixaAplicada(faixas, quantidadeForm);
   const faixaSeguinte = proximaFaixa(faixas, quantidadeForm);
 
@@ -1732,7 +1735,7 @@ function OrcamentoDetailPage() {
                     passos={[
                       { rotulo: "Tipo", feito: !!tipoEscolhido || itemEscolhido },
                       { rotulo: "Produto", feito: itemEscolhido },
-                      { rotulo: "Medida e quantidade", feito: itemEscolhido && quantidadeForm > 0 },
+                      { rotulo: "Medida e quantidade", feito: itemEscolhido && !!form.descricao.trim() },
                       { rotulo: "Preço e revisão", feito: false },
                     ]}
                   />
@@ -2182,7 +2185,7 @@ function OrcamentoDetailPage() {
                       >
                         Cancelar
                       </Button>
-                      {!editando && (
+                      {!editando && itemEscolhido && (
                         <Button
                           variant="outline"
                           onClick={() => {
@@ -2199,7 +2202,7 @@ function OrcamentoDetailPage() {
                           continuarLancando.current = false;
                           void salvarItem();
                         }}
-                        disabled={salvandoItem}
+                        disabled={salvandoItem || !itemEscolhido}
                       >
                         {salvandoItem ? (
                           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
