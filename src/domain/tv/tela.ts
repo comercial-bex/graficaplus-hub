@@ -272,6 +272,8 @@ export type LinhaDaFila = {
 export type Coluna = {
   id: string;
   identidade: IdentidadeMaquina;
+  /** nome da máquina no cadastro, quando a função viva o manda ("Bambu Lab 3D 01") */
+  rotulo?: string | null;
   estado: MaquinaDoPainel["estado"];
   palavra: string;
   classe: string;
@@ -302,6 +304,35 @@ export type Coluna = {
   aviso: { texto: string; ambar: boolean } | null;
 };
 
+/**
+ * O que a parede desenha: cinco colunas. As impressoras 3D (duas ou mais) dividem UMA coluna, com
+ * um cartão por impressora, cada uma com o nome do cadastro. O resto da tela (conferência R7, fichas,
+ * testes) continua lendo `colunas`, uma por máquina.
+ */
+export type ColunaDaParede =
+  | { tipo: "maquina"; c: Coluna }
+  | { tipo: "grupo_3d"; id: string; identidade: IdentidadeMaquina; filaTotal: number; subs: Coluna[] };
+
+/** Junta as impressoras 3D numa coluna só quando há mais de uma; senão a parede fica como sempre foi. */
+export function organizarParede(colunas: Coluna[], tipos: string[]): ColunaDaParede[] {
+  const idx3d = tipos.map((t, i) => (t === "impressora_3d" ? i : -1)).filter((i) => i >= 0);
+  if (idx3d.length < 2) return colunas.map((c) => ({ tipo: "maquina", c }));
+  const subs = idx3d.map((i) => colunas[i]);
+  const grupo: ColunaDaParede = {
+    tipo: "grupo_3d",
+    id: "grupo-3d",
+    identidade: subs[0].identidade,
+    filaTotal: subs.reduce((t, c) => t + c.filaTotal, 0),
+    subs,
+  };
+  const saida: ColunaDaParede[] = [];
+  colunas.forEach((c, i) => {
+    if (!idx3d.includes(i)) saida.push({ tipo: "maquina", c });
+    else if (i === idx3d[0]) saida.push(grupo);
+  });
+  return saida;
+}
+
 export type Canto = { c1: string; c2: string };
 
 export type FaixaDoPainel = {
@@ -315,6 +346,8 @@ export type TelaDaOficina = {
   cartoes: CartaoGrande[];
   minis: Mini[];
   colunas: Coluna[];
+  /** as colunas como a parede as desenha (impressoras 3D agrupadas) */
+  parede: ColunaDaParede[];
   saidas: CartaoDeSaida[];
   canto: Canto;
   /** as falhas da função + as da conferência R7, já em frase */
@@ -396,10 +429,15 @@ export function montarTela(painel: PainelDaOficina, agoraDoDadoMs: number): Tela
 
   /* ---------- as cinco colunas ---------- */
   const colunas: Coluna[] = maquinas.map((m, i) => {
-    const identidade = identidadePorTipo(m.tipo);
+    // A plotter de impressão aparece como "Plotter" na parede (pedido do dono, 28/10/2026).
+    const identidade =
+      m.tipo === "plotter_impressao"
+        ? { ...identidadePorTipo(m.tipo), curto: "Plotter" }
+        : identidadePorTipo(m.tipo);
     const c: Coluna = {
       id: m.id,
       identidade,
+      rotulo: m.rotulo ?? null,
       estado: m.estado,
       palavra: PALAVRA_DO_ESTADO[m.estado],
       classe: classeDoEstado(m.estado),
@@ -724,5 +762,9 @@ export function montarTela(painel: PainelDaOficina, agoraDoDadoMs: number): Tela
     };
   }
 
-  return { chips, cartoes, minis, colunas, saidas, canto, falhas, faixa, conferencia };
+  const parede = organizarParede(
+    colunas,
+    maquinas.map((m) => m.tipo),
+  );
+  return { chips, cartoes, minis, colunas, parede, saidas, canto, falhas, faixa, conferencia };
 }
