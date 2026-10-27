@@ -322,7 +322,16 @@ export function EscolhaDeProduto({
         </div>
       ) : null}
 
-      {/* Cartões de tipo. radiogroup: um só marcado; setas andam entre eles. */}
+      {/* Passo 1 concluído: o tipo vira uma linha curta e a grade fecha. */}
+      {tipoAtual && !termo ? (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm" data-testid="tipo-escolhido">
+          <IconeDoTipo icone={tipoAtual.icone} className="h-4 w-4 text-primary" />
+          <span className="min-w-0 flex-1 truncate font-medium">{tipoAtual.rotulo}</span>
+          <Button type="button" variant="ghost" size="sm" className="h-7" disabled={desabilitado} onClick={() => setTipoExplorado(null)}>
+            Trocar tipo
+          </Button>
+        </div>
+      ) : (
       <div
         ref={gradeDeTipos.ref}
         role="radiogroup"
@@ -379,8 +388,9 @@ export function EscolhaDeProduto({
               );
             })}
       </div>
+      )}
 
-      <div className="relative">
+      {!tipoAtual && <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           aria-label="Buscar produto"
@@ -390,7 +400,7 @@ export function EscolhaDeProduto({
           disabled={desabilitado}
           onChange={(e) => setBusca(e.target.value)}
         />
-      </div>
+      </div>}
 
       {/* Atalhos: só antes de escolher tipo ou digitar. */}
       {!termo && !tipoAtual && atalhos.some((a) => a.ids.some((id) => porId.has(id))) && (
