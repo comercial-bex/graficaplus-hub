@@ -66,6 +66,7 @@ import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functio
 import { useComprovantesDoOrcamento } from "@/components/pagamento/comprovantes-do-orcamento";
 import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-antes-de-converter";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { PassosDoItem } from "@/components/orcamento/passos-do-item";
 import { Calculadora3D } from "@/components/impressao3d/calculadora-3d";
 import { descreverLinhaDeMetragem, metragemPorMaterial, totaisDaMetragem } from "@/domain/orcamentos/metragem-por-material";
 import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
@@ -610,6 +611,8 @@ function OrcamentoDetailPage() {
 
   // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
   const quantidadeForm = paraNumero(form.quantidade) || 1;
+  // Na janela "Novo item", medida, preço e detalhes só abrem depois do produto (ou item livre).
+  const itemEscolhido = !!form.produto_id || itemLivre || !!editando;
   const faixaAtual = faixaAplicada(faixas, quantidadeForm);
   const faixaSeguinte = proximaFaixa(faixas, quantidadeForm);
 
@@ -1728,6 +1731,14 @@ function OrcamentoDetailPage() {
                   >
                   <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
                   <DialogTitle>{editando ? `Editando o item ${editando.numero}` : "Novo item"}</DialogTitle>
+                  <PassosDoItem
+                    passos={[
+                      { rotulo: "Tipo", feito: !!tipoEscolhido || itemEscolhido },
+                      { rotulo: "Produto", feito: itemEscolhido },
+                      { rotulo: "Medida e quantidade", feito: itemEscolhido && !!form.descricao.trim() },
+                      { rotulo: "Preço e revisão", feito: false },
+                    ]}
+                  />
                   <div ref={formulario} className="space-y-4">
                     {/* Passo 1 — o tipo e o produto, em cartões. Escolher do
                         catálogo traz medida, preço, custo e material certos; o
@@ -1762,6 +1773,7 @@ function OrcamentoDetailPage() {
                       ]}
                     />
 
+                    {itemEscolhido && (<>
                     <div>
                       <Label htmlFor="item-descricao">Descrição</Label>
                       <Input
@@ -2160,8 +2172,9 @@ function OrcamentoDetailPage() {
                       areaMinima={form.area_minima}
                       valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}
                     />
+                    </>)}
 
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="sticky -bottom-6 -mx-6 flex flex-wrap items-center justify-end gap-2 border-t bg-background px-6 py-3">
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -2172,7 +2185,7 @@ function OrcamentoDetailPage() {
                       >
                         Cancelar
                       </Button>
-                      {!editando && (
+                      {!editando && itemEscolhido && (
                         <Button
                           variant="outline"
                           onClick={() => {
@@ -2189,7 +2202,7 @@ function OrcamentoDetailPage() {
                           continuarLancando.current = false;
                           void salvarItem();
                         }}
-                        disabled={salvandoItem}
+                        disabled={salvandoItem || !itemEscolhido}
                       >
                         {salvandoItem ? (
                           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
