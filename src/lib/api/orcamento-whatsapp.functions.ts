@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { brCodePix } from "@/domain/pagamento/pix";
+import { BOTOES_DO_PIX, TEXTO_DOS_BOTOES_DO_PIX } from "@/domain/pagamento/botoes-do-pix";
 import { mensagensDoPix, pedidoDeSinal } from "@/domain/pagamento/sinal";
 
 /**
@@ -43,43 +44,17 @@ type Orc = {
   condicao_pagamento: Record<string, unknown> | null;
 };
 
-/** Enfileira um texto na conversa, na mesma fila da caixa (a ordem de saída é a de criação). */
-async function enfileirarTexto(db: any, conversaId: string, usuarioId: string, texto: string, origem: string) {
-  const { data: c } = await db.from("whatsapp_conversas").select("instancia_id").eq("id", conversaId).single();
-  const { data: msg, error: erroMsg } = await db
-    .from("whatsapp_mensagens")
-    .insert({
-      conversa_id: conversaId,
-      instancia_id: c?.instancia_id,
-      direcao: "saida",
-      tipo: "texto",
-      status: "pendente",
-      texto,
-      enviada_por: usuarioId,
-      origem: "humano",
-      payload: { origem },
-    })
-    .select("id")
-    .single();
-  if (erroMsg) throw new Error(erroMsg.message);
-  const { data: fila, error: erroFila } = await db
-    .from("whatsapp_fila_envio")
-    .insert({
-      conversa_id: conversaId,
-      mensagem_id: msg.id,
-      payload: { tipo: "texto", texto },
-      status: "pendente",
-      idempotency_key: `${origem}:${msg.id}`,
-      created_by: usuarioId,
-    })
-    .select("id")
-    .single();
-  if (erroFila) throw new Error(erroFila.message);
-  await db
-    .from("whatsapp_conversas")
-    .update({ ultima_mensagem: texto.slice(0, 500), ultima_mensagem_at: new Date().toISOString(), nao_lidas: 0 })
-    .eq("id", conversaId);
-  return fila.id as string;
+/** Texto na mesma fila da caixa (a ordem de saída é a de criação). */
+async function enfileirarTexto(
+  db: any,
+  conversaId: string,
+  usuarioId: string,
+  texto: string,
+  origem: string,
+  extra?: Record<string, unknown>,
+) {
+  const { enfileirarMensagem } = await import("./whatsapp-fila.server");
+  return enfileirarMensagem(db, { conversaId, usuarioId, texto, origem, extra });
 }
 
 /** O Pix do sinal: QR Code (imagem) com o copia e cola na legenda, na mesma conversa. */
@@ -137,7 +112,15 @@ async function enviarPixDoSinal(
   if (error) throw new Error(error.message);
   // Depois do QR Code: a apresentação e, SOZINHO, o código para copiar.
   await enfileirarTexto(db, conversaId, usuarioId, msgs.introducao, "pix_sinal");
-  await enfileirarTexto(db, conversaId, usuarioId, msgs.codigo, "pix_sinal_codigo");
+  // O código vai SOZINHO e sem a assinatura de pessoa, para copiar com um toque.
+  await enfileirarTexto(db, conversaId, usuarioId, msgs.codigo, "pix_sinal_codigo", { sem_assinatura: true });
+  // E o menu: Já paguei / Ver orçamento / Falar com a equipe. Se o Z-API recusar botão, a fila manda
+  // o mesmo menu como texto.
+  await enfileirarTexto(db, conversaId, usuarioId, TEXTO_DOS_BOTOES_DO_PIX, "pix_sinal_botoes", {
+    tipo: "botoes",
+    sem_assinatura: true,
+    botoes: BOTOES_DO_PIX.map(({ id, rotulo }) => ({ id, rotulo })),
+  });
 
   // Fica registrado no orçamento: o que foi pedido, quando, e com qual código. É isso que o
   // webhook usa para reconhecer o comprovante e o que a tela mostra como "aguardando".

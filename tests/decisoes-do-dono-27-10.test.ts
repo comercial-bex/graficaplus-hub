@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { mensagensDoPix, notaDoSinal, pedidoDeSinal } from "../src/domain/pagamento/sinal";
+import { acaoDoBotaoDoPix, BOTOES_DO_PIX, textoDeReservaDosBotoes } from "../src/domain/pagamento/botoes-do-pix";
+import { montarEnvio } from "../src/domain/whatsapp/zapi-envio";
 
 const le = (p: string) => readFileSync(p, "utf8");
 
@@ -70,6 +72,41 @@ describe("o Pix chega em três mensagens: QR Code, apresentação e o código so
     const i = (t: string) => s.indexOf(t);
     expect(i("p_legenda: msgs.legendaDoQr")).toBeGreaterThan(0);
     expect(i('enfileirarTexto(db, conversaId, usuarioId, msgs.introducao, "pix_sinal")')).toBeGreaterThan(i("p_legenda: msgs.legendaDoQr"));
-    expect(i('enfileirarTexto(db, conversaId, usuarioId, msgs.codigo, "pix_sinal_codigo")')).toBeGreaterThan(i("msgs.introducao"));
+    expect(i('msgs.codigo, "pix_sinal_codigo"')).toBeGreaterThan(i("msgs.introducao"));
+    expect(i('"pix_sinal_botoes"')).toBeGreaterThan(i('msgs.codigo, "pix_sinal_codigo"'));
+  });
+});
+
+describe("botões do Pix: Já paguei, Ver orçamento, Falar com a equipe", () => {
+  it("o toque no botão e a frase digitada levam à mesma ação; outra frase não", () => {
+    expect(acaoDoBotaoDoPix("Já paguei")).toBe("paguei");
+    expect(acaoDoBotaoDoPix("  ja PAGUEI! ")).toBe("paguei");
+    expect(acaoDoBotaoDoPix("Ver orçamento")).toBe("orcamento");
+    expect(acaoDoBotaoDoPix("Falar com a equipe")).toBe("equipe");
+    expect(acaoDoBotaoDoPix("já paguei ontem o outro")).toBeNull();
+    expect(acaoDoBotaoDoPix("")).toBeNull();
+    expect(BOTOES_DO_PIX.length).toBeLessThanOrEqual(3);
+    expect(BOTOES_DO_PIX.every((b) => b.rotulo.length <= 20)).toBe(true);
+  });
+  it("o pedido 'botoes' vira send-button-list e a reserva em texto lista as opções", () => {
+    const m = montarEnvio({ tipo: "botoes", para: "(96) 99111-6169", texto: "Precisa de mais?", botoes: BOTOES_DO_PIX.map(({ id, rotulo }) => ({ id, rotulo })) }, { instanceId: "I", token: "T" });
+    expect("url" in m && m.url).toContain("/send-button-list");
+    expect("corpo" in m && (m.corpo as any).buttonList.buttons).toHaveLength(3);
+    expect(textoDeReservaDosBotoes("Precisa de mais?", BOTOES_DO_PIX)).toContain("*Já paguei*, *Ver orçamento*, *Falar com a equipe*");
+  });
+  it("fila: o código vai sem assinatura, a resposta automática tem chave 'auto:' e o botão cai para texto se o Z-API recusar", () => {
+    const f = le("src/lib/api/whatsapp-enviar.server.ts");
+    expect(f).toContain("linha.payload?.sem_assinatura !== true");
+    expect(f).toContain("/^(ia|auto):/.test(linha.idempotency_key");
+    expect(f).toContain("textoDeReservaDosBotoes(pedido.texto");
+    const o = le("src/lib/api/orcamento-whatsapp.functions.ts");
+    expect(o).toContain('"pix_sinal_codigo", { sem_assinatura: true }');
+    expect(o).toContain('tipo: "botoes"');
+  });
+  it("o webhook reage ao toque só com orçamento esperando o sinal, e a conversa vira humana em 'equipe'", () => {
+    const w = le("src/lib/api/whatsapp-webhook.server.ts");
+    expect(w).toContain('await reagirAoBotaoDoPix(gravada.conversa_id, evento.texto)');
+    expect(w).toContain('"orcamento_do_pix_da_conversa"');
+    expect(w).toContain('update({ modo: "humano" } as never)');
   });
 });

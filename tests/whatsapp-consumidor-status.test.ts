@@ -379,7 +379,9 @@ describe("a porta lateral da fila está fechada no consumidor", () => {
     // `whatsapp_ia_enviar` (caixa v3, SECURITY DEFINER, só service_role)
     // enfileira sem created_by. Sem esta exceção, ligar a assistente faria
     // toda resposta dela virar "pedido de fora".
-    expect(fonte).toMatch(/const daIa = \(linha\.idempotency_key \?\? ""\)\.startsWith\("ia:"\)/);
+    // 27/10/2026: 'auto:' é a resposta automática do sistema (toque num botão do Pix); mesma porta
+    // estreita da IA — só service_role enfileira sem autor, e a chave é a única exceção.
+    expect(fonte).toMatch(/const daIa = \/\^\(ia\|auto\):\/\.test\(linha\.idempotency_key \?\? ""\)/);
     expect(fonte).toMatch(/if \(!linha\.conversa_id \|\| \(!linha\.created_by && !daIa\)\)/);
     expect(fonte).toMatch(/sem conversa ou sem autor/);
     expect(fonte).toMatch(

@@ -15,7 +15,7 @@ import { chaveWhatsApp } from "@/domain/documentos";
  */
 
 /** O que o Z-API aceita e o sistema usa. */
-export type TipoEnvio = "texto" | "pdf" | "imagem";
+export type TipoEnvio = "texto" | "pdf" | "imagem" | "botoes";
 
 export type PedidoDeEnvio = {
   tipo: TipoEnvio;
@@ -27,6 +27,8 @@ export type PedidoDeEnvio = {
   documento?: string;
   /** Nome do arquivo que o cliente vê. Só para tipo "pdf". */
   nomeArquivo?: string;
+  /** Botões de resposta rápida (até 3). Só para tipo "botoes"; o texto é o corpo da mensagem. */
+  botoes?: Botao[];
 };
 
 /**
@@ -73,6 +75,10 @@ export function montarEnvio(
     const message = (pedido.texto ?? "").trim();
     if (!message) return { erro: "mensagem sem texto" };
     return { url: `${base}/send-text`, corpo: { phone, message } };
+  }
+
+  if (pedido.tipo === "botoes") {
+    return montarBotoes({ para: pedido.para, texto: pedido.texto ?? "", botoes: pedido.botoes ?? [] }, credenciais);
   }
 
   if (pedido.tipo === "imagem") {

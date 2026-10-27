@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- `rpc as any`: funções novas fora dos tipos gerados; é a forma que tests/rpc-assinaturas lê */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
+import { textoDeReservaDosBotoes } from "@/domain/pagamento/botoes-do-pix";
 import {
   lerRespostaZapi,
   montarEnvio,
@@ -600,9 +601,15 @@ export type ResultadoDaLinha = {
  */
 function pedidoDaLinha(linha: LinhaDaFila, telefoneDaConversa: string): PedidoDeEnvio {
   const p = linha.payload ?? {};
-  const tipo = p.tipo === "pdf" ? "pdf" : p.tipo === "imagem" ? "imagem" : "texto";
+  const tipo = p.tipo === "pdf" ? "pdf" : p.tipo === "imagem" ? "imagem" : p.tipo === "botoes" ? "botoes" : "texto";
+  const botoes = Array.isArray(p.botoes)
+    ? (p.botoes as Array<{ id?: unknown; rotulo?: unknown }>)
+        .filter((b) => typeof b?.id === "string" && typeof b?.rotulo === "string")
+        .map((b) => ({ id: b.id as string, rotulo: b.rotulo as string }))
+    : undefined;
   return {
     tipo,
+    botoes,
     para: telefoneDaConversa,
     texto: (p.texto as string) ?? (p.message as string) ?? undefined,
     documento: (p.documento as string) ?? (p.document as string) ?? undefined,
@@ -758,7 +765,9 @@ async function rodada(quem: Quem): Promise<Response> {
     // (SECURITY DEFINER, só service_role) enfileira sem autor, com a chave
     // 'ia:<mensagem>'. Fora disso é pedido de fora, e pedido de fora não sai —
     // falha definitiva, com o motivo na linha.
-    const daIa = (linha.idempotency_key ?? "").startsWith("ia:");
+    // 'auto:' (27/10/2026): resposta automática do sistema (toque num botão do Pix), sem autor
+    // e sem assinatura de pessoa, como a da assistente de IA.
+    const daIa = /^(ia|auto):/.test(linha.idempotency_key ?? "");
     if (!linha.conversa_id || (!linha.created_by && !daIa)) {
       resultados.push(
         await marcarFalha(
@@ -819,7 +828,8 @@ async function rodada(quem: Quem): Promise<Response> {
     // assistente de IA (sem autor) não leva nome de pessoa. A fila é a de
     // quando a pessoa escreveu (o aviso de transferência a leva no payload);
     // sem ela, a da conversa agora — a resposta comum sai na hora.
-    if (linha.created_by && !daIa) {
+    // `sem_assinatura` (27/10/2026): o código do Pix vai SOZINHO na mensagem, para copiar com um toque.
+    if (linha.created_by && !daIa && linha.payload?.sem_assinatura !== true) {
       const fila = (linha.payload?.fila as string | undefined) ?? (conversa?.fila as string | null) ?? null;
       pedido.texto = assinarMensagem(
         pedido.texto,
@@ -860,7 +870,22 @@ async function rodada(quem: Quem): Promise<Response> {
       continue;
     }
 
-    const lido = lerRespostaZapi(resposta.status, resposta.corpo);
+    let lido = lerRespostaZapi(resposta.status, resposta.corpo);
+    // Botão é o que o WhatsApp mais muda: se o Z-API recusar, o MESMO menu vai como texto
+    // ("responda com: Já paguei…") e a reação aceita a frase digitada.
+    if (!lido.ok && pedido.tipo === "botoes" && pedido.botoes?.length) {
+      const alt = montarEnvio(
+        { tipo: "texto", para: pedido.para, texto: textoDeReservaDosBotoes(pedido.texto ?? "", pedido.botoes) },
+        { instanceId: instancia.zapi_instance_id, token },
+      );
+      if (!("erro" in alt)) {
+        const r2 = await chamarZapi(alt, clientToken);
+        if (!("falhaDeRede" in r2)) {
+          const l2 = lerRespostaZapi(r2.status, r2.corpo);
+          if (l2.ok) lido = l2;
+        }
+      }
+    }
     await registrarLog(erros, {
       ...logBase,
       tipo: lido.ok ? tipoDeLog : "erro",
