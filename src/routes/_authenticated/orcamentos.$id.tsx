@@ -1728,6 +1728,14 @@ function OrcamentoDetailPage() {
                   >
                   <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
                   <DialogTitle>{editando ? `Editando o item ${editando.numero}` : "Novo item"}</DialogTitle>
+                  <PassosDoItem
+                    passos={[
+                      { rotulo: "Tipo", feito: !!tipoEscolhido || itemEscolhido },
+                      { rotulo: "Produto", feito: itemEscolhido },
+                      { rotulo: "Medida e quantidade", feito: itemEscolhido && quantidadeForm > 0 },
+                      { rotulo: "Preço e revisão", feito: false },
+                    ]}
+                  />
                   <div ref={formulario} className="space-y-4">
                     {/* Passo 1 — o tipo e o produto, em cartões. Escolher do
                         catálogo traz medida, preço, custo e material certos; o
@@ -1762,6 +1770,7 @@ function OrcamentoDetailPage() {
                       ]}
                     />
 
+                    {itemEscolhido && (<>
                     <div>
                       <Label htmlFor="item-descricao">Descrição</Label>
                       <Input
@@ -2160,8 +2169,9 @@ function OrcamentoDetailPage() {
                       areaMinima={form.area_minima}
                       valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}
                     />
+                    </>)}
 
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="sticky -bottom-6 -mx-6 flex flex-wrap items-center justify-end gap-2 border-t bg-background px-6 py-3">
                       <Button
                         variant="outline"
                         onClick={() => {
