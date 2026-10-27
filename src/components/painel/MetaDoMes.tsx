@@ -301,28 +301,28 @@ export function MetaDoMes({ className }: { className?: string }) {
             </div>
 
             {/* As três medidas, cada uma com a sua régua contra a meta. */}
-            <dl className="grid gap-2 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-muted/40 p-3">
+            <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
                 <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-[color:var(--bex-cyan)]/60" /> Vendido
                 </dt>
-                <dd className="font-mono text-lg font-bold tabular-nums">{brl(vendido)}</dd>
+                <dd className="font-mono text-base font-bold tabular-nums xl:text-lg">{brl(vendido)}</dd>
                 <dd className="text-xs text-muted-foreground">
                   {num(data.orcamentos_aprovados_n)} orçamento(s) aprovado(s) · {pct(pctDaMeta(vendido))} da meta
                 </dd>
               </div>
-              <div className="rounded-lg border border-border bg-muted/40 p-3">
+              <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
                 <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-[color:var(--bex-lime)]" /> Recebido
                 </dt>
-                <dd className="font-mono text-lg font-bold tabular-nums">{brl(recebido)}</dd>
+                <dd className="font-mono text-base font-bold tabular-nums xl:text-lg">{brl(recebido)}</dd>
                 <dd className="text-xs text-muted-foreground">entrou no caixa · {pct(pctDaMeta(recebido))} da meta</dd>
               </div>
-              <div className="rounded-lg border border-border bg-muted/40 p-3">
+              <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
                 <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-muted-foreground/60" /> Concluído
                 </dt>
-                <dd className="font-mono text-lg font-bold tabular-nums">{brl(concluido)}</dd>
+                <dd className="font-mono text-base font-bold tabular-nums xl:text-lg">{brl(concluido)}</dd>
                 <dd className="text-xs text-muted-foreground">
                   {num(data.os_concluidas_n)} OS fechada(s) · {num(data.os_abertas_n)} aberta(s)
                 </dd>
