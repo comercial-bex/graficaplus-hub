@@ -32,14 +32,16 @@ export function extensao(nome: string): string {
   return (nome.split(".").pop() ?? "").toLowerCase();
 }
 
-export function ehPdf(nome: string, mime?: string | null): boolean {
-  return mime === "application/pdf" || extensao(nome) === "pdf";
+/** `caminho` é a reserva quando o nome veio sem extensão (ex.: "Foto do modelo — Kit"). */
+export function ehPdf(nome: string, mime?: string | null, caminho?: string | null): boolean {
+  return mime === "application/pdf" || extensao(nome) === "pdf" || (!!caminho && extensao(caminho) === "pdf");
 }
 
 /** O navegador desenha? (CDR, AI, PSD e EPS não: viram ficha com o nome) */
-export function ehImagemVisivel(nome: string, mime?: string | null): boolean {
+export function ehImagemVisivel(nome: string, mime?: string | null, caminho?: string | null): boolean {
   if (mime) return mime.startsWith("image/") && !/photoshop|postscript|illustrator/.test(mime);
-  return ["png", "jpg", "jpeg", "webp", "gif", "svg", "avif", "bmp"].includes(extensao(nome));
+  const imagens = ["png", "jpg", "jpeg", "webp", "gif", "svg", "avif", "bmp"];
+  return imagens.includes(extensao(nome)) || (!!caminho && imagens.includes(extensao(caminho)));
 }
 
 /** Vale hoje: não foi substituído por outra versão nem desativado. */

@@ -159,7 +159,7 @@ export function FichaDaOs({
                             i === escolhido ? "border-[color:var(--bex-cyan)] ring-1 ring-[color:var(--bex-cyan)]" : "border-border hover:border-foreground/30",
                           )}
                         >
-                          {ehImagemVisivel(a.nome, a.mime_type) && urls.data?.get(a.caminho) ? (
+                          {ehImagemVisivel(a.nome, a.mime_type, a.caminho) && urls.data?.get(a.caminho) ? (
                             <img src={urls.data.get(a.caminho)} alt="" className="h-full w-full object-cover" loading="lazy" />
                           ) : (
                             <span className="flex h-full w-full flex-col items-center justify-center gap-0.5">
@@ -334,7 +334,7 @@ export function FichaDaOs({
 function Visualizador({ arquivo, url, carregando }: { arquivo: ArquivoDaOs; url: string | null; carregando: boolean }) {
   const [quebrou, setQuebrou] = useState(false);
   useEffect(() => setQuebrou(false), [arquivo.id]);
-  const imagem = ehImagemVisivel(arquivo.nome, arquivo.mime_type);
+  const imagem = ehImagemVisivel(arquivo.nome, arquivo.mime_type, arquivo.caminho);
   return (
     <div
       className="flex aspect-[4/3] max-h-[52dvh] w-full items-center justify-center overflow-hidden rounded-lg border border-border"
