@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
+import { ContagemRapidaDoPainel } from "@/components/painel/contagem-rapida";
 import { usePendencias, type Pendencia } from "@/hooks/usePendencias";
 import {
   guiaDe,
@@ -43,9 +44,12 @@ const TEXTO: Record<Pendencia["severidade"], string> = {
 };
 
 export function PendenciasDoMeuPapel({ className }: { className?: string }) {
-  const { roles } = useAuth();
+  const { roles, hasPermission } = useAuth();
   const { data, isSuccess } = usePendencias();
   const [aberta, setAberta] = useState<string | null>(null);
+  // Cartões que se resolvem num pop-up, sem sair do painel: hoje só a entrada inicial do estoque.
+  const [contando, setContando] = useState(false);
+  const podeContar = hasPermission("estoque.inventory");
 
   const rotulos = rotulosDoPapel(roles);
 
@@ -106,11 +110,17 @@ export function PendenciasDoMeuPapel({ className }: { className?: string }) {
                   <p className="mt-1 text-xs text-muted-foreground">{p.o_que_fazer}</p>
                 </div>
 
-                <Button asChild size="sm" variant="outline" className="shrink-0">
-                  <Link to={p.link}>
-                    {guia?.acao ?? "Resolver"} <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                  </Link>
-                </Button>
+                {p.chave === "estoque_nunca_carregado" && podeContar ? (
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => setContando(true)}>
+                    Dar entrada agora <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                ) : (
+                  <Button asChild size="sm" variant="outline" className="shrink-0">
+                    <Link to={p.link}>
+                      {guia?.acao ?? "Resolver"} <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                )}
               </div>
 
               {guia && (
@@ -140,6 +150,7 @@ export function PendenciasDoMeuPapel({ className }: { className?: string }) {
           );
         })}
       </CardContent>
+      {podeContar && <ContagemRapidaDoPainel aberta={contando} onAbertaChange={setContando} />}
     </Card>
   );
 }

@@ -48,6 +48,8 @@ type PontoDeEquilibrio = {
   atingido_pct: number;
   dias_no_mes: number;
   dias_corridos: number;
+  /** Dia de hoje no relógio de Macapá ("2026-10-26"), o mesmo que a conta usou para os dias corridos. */
+  hoje?: string;
   /** Orçamentos aprovados no mês + OS do mês que não vieram de orçamento. */
   vendido?: number;
   orcamentos_aprovados_n?: number;
@@ -176,6 +178,9 @@ export function MetaDoMes({ className }: { className?: string }) {
   // Ritmo: o mês já andou X% dos dias, a venda devia ter andado o mesmo.
   const esperado = diasNoMes > 0 ? (100 * diasCorridos) / diasNoMes : 0;
   const atrasado = atingido < esperado;
+  const diasRestantes = Math.max(diasNoMes - diasCorridos, 0);
+  const [, mesDeHoje, diaDeHoje] = String(data.hoje ?? "").slice(0, 10).split("-");
+  const hojeCurto = mesDeHoje && diaDeHoje ? `${diaDeHoje}/${mesDeHoje}` : "";
 
   // Barra: o vendido por inteiro (ciano claro) e, por cima, o que já entrou no caixa.
   const fatiaRecebido = temMeta ? Math.min((100 * Math.min(recebido, vendido)) / meta, 100) : 0;
@@ -317,13 +322,18 @@ export function MetaDoMes({ className }: { className?: string }) {
                 )}
                 <span>
                   <strong>{atrasado ? "Atrás do ritmo do mês" : "No ritmo"}.</strong>{" "}
-                  {/* `dias_corridos` conta os dias JÁ FECHADOS (no dia 7 vale 6).
-                      "Dia 6 de 31" no dia 7 parecia erro de data. */}
+                  {/* `dias_corridos` conta os dias JÁ FECHADOS (no dia 7 vale 6) e é contado no
+                      relógio de Macapá (até 27/10/2026 era UTC: depois das 21h o painel já
+                      "andava um dia"). Com a data de hoje escrita, quem lê confere sozinho. */}
                   <span className="text-muted-foreground">
+                    {hojeCurto ? `Hoje é ${hojeCurto}. ` : ""}
                     {diasCorridos === 1
                       ? `1 de ${diasNoMes} dias do mês já fechou`
                       : `${diasCorridos} de ${diasNoMes} dias do mês já fecharam`}
-                    : até ontem, o esperado era {pct(esperado)} da meta.
+                    : o esperado até ontem era {pct(esperado)} da meta e o vendido está em {pct(atingido)}.
+                    {faltaVender != null && faltaVender > 0 && diasRestantes > 0
+                      ? ` Para empatar faltam ${brl(faltaVender)}: cerca de ${brl(faltaVender / diasRestantes)} por dia nos ${diasRestantes} dias que restam, contando hoje.`
+                      : ""}
                   </span>
                 </span>
               </div>
