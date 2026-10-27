@@ -66,6 +66,7 @@ import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functio
 import { useComprovantesDoOrcamento } from "@/components/pagamento/comprovantes-do-orcamento";
 import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-antes-de-converter";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { PassosDoItem } from "@/components/orcamento/passos-do-item";
 import { Calculadora3D } from "@/components/impressao3d/calculadora-3d";
 import { descreverLinhaDeMetragem, metragemPorMaterial, totaisDaMetragem } from "@/domain/orcamentos/metragem-por-material";
 import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
