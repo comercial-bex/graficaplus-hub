@@ -154,6 +154,14 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
       'Com a OS na agenda, a capacidade e o prazo prometido passam a ter base.',
     ],
   },
+  item_sem_medida_e_sem_ficha: {
+    acao: 'Abrir as OS',
+    passos: [
+      'Veja no aviso o número da OS e quem fez o orçamento: é ele quem sabe o tamanho da peça.',
+      'Cobre dessa pessoa a largura e a altura (e o material), e abra a OS para preencher o item.',
+      'Com a medida a produção reserva o material e agenda a máquina; o aviso some sozinho.',
+    ],
+  },
   orcamento_sem_item: {
     acao: 'Abrir orçamentos',
     passos: [
