@@ -26,7 +26,10 @@ describe("auditoria dos dashboards (27/10/2026)", () => {
   });
 
   it("as views oficiais contam só OS de venda e o ticket é o do que foi aprovado", () => {
-    expect(migracao).toMatch(/o\.finalidade::text = 'venda' AND o\.status::text <> 'cancelado'/);
+    expect(migracao).toMatch(/finalidade::text = 'venda' AND status::text <> 'cancelado'/);
+    // As views são invoker e estas colunas não têm GRANT: ler a tabela direto dá 403 e o cartão sai "—".
+    expect(migracao).toContain("public.orcamentos_financeiro");
+    expect(migracao.slice(migracao.indexOf("-- 4) vw_dashboard_comercial: ticket"))).not.toMatch(/FROM public\.orcamentos o\s+WHERE o\.status/);
     expect(migracao).toMatch(/ticket_medio/);
     expect(migracao).toMatch(/IN \('aprovado', 'convertido'\)/);
     // CREATE OR REPLACE VIEW descarta security_invoker: tem de ser reposto nas duas.

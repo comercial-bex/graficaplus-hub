@@ -161,6 +161,19 @@ END
 $migracao$;
 
 -- 3) vw_dashboard_financeiro: só OS de venda que não foi cancelada ----------------------------------------
+-- As views são security_invoker e `ordens_servico.finalidade` / `orcamentos.valor_total` não têm GRANT de
+-- coluna para o perfil logado (a primeira versão leu as tabelas direto: 403 e os cartões saíram "—" no ar).
+-- Por isso: a lista de OS de venda vem de uma função definer que devolve só ids, e o orçamento é lido pela
+-- view orcamentos_financeiro, que já é o caminho de quem vê dinheiro.
+CREATE OR REPLACE FUNCTION public.os_ids_de_venda()
+ RETURNS SETOF uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $$ SELECT id FROM public.ordens_servico WHERE finalidade::text = 'venda' AND status::text <> 'cancelado' $$;
+REVOKE ALL ON FUNCTION public.os_ids_de_venda() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.os_ids_de_venda() TO authenticated;
+
 CREATE OR REPLACE VIEW public.vw_dashboard_financeiro AS
  SELECT COALESCE(sum(r.receita_liquida), (0)::numeric) AS faturamento,
     sum(r.custo_realizado) FILTER (WHERE r.custo_lancado) AS custo,
@@ -170,8 +183,7 @@ CREATE OR REPLACE VIEW public.vw_dashboard_financeiro AS
     count(*) AS os_total,
     COALESCE(sum(r.receita_liquida) FILTER (WHERE r.custo_lancado), (0)::numeric) AS faturamento_com_custo
    FROM public.vw_resultado_os r
-   JOIN public.ordens_servico o ON o.id = r.os_id
-  WHERE o.finalidade::text = 'venda' AND o.status::text <> 'cancelado';
+  WHERE r.os_id IN (SELECT public.os_ids_de_venda());
 -- CREATE OR REPLACE VIEW descarta as opções da view: repor.
 ALTER VIEW public.vw_dashboard_financeiro SET (security_invoker = true);
 
@@ -179,12 +191,12 @@ ALTER VIEW public.vw_dashboard_financeiro SET (security_invoker = true);
 CREATE OR REPLACE VIEW public.vw_dashboard_comercial AS
  SELECT (SELECT count(*) FROM public.orcamentos o
           WHERE o.created_at >= (date_trunc('month', now() AT TIME ZONE 'America/Belem')) AT TIME ZONE 'America/Belem') AS orcamentos_mes,
-    COALESCE((SELECT avg(o.valor_total) FROM public.orcamentos o
+    COALESCE((SELECT avg(o.valor_total) FROM public.orcamentos_financeiro o
                WHERE o.status::text IN ('aprovado', 'convertido')
                  AND COALESCE(o.aprovado_em, o.updated_at) >= (date_trunc('month', now() AT TIME ZONE 'America/Belem')) AT TIME ZONE 'America/Belem'),
              (0)::numeric) AS ticket_medio,
     COALESCE((SELECT avg(oc.margem_estimada) FROM public.orcamento_custos oc
-               JOIN public.orcamentos o ON o.id = oc.orcamento_id
+               JOIN public.orcamentos_financeiro o ON o.id = oc.orcamento_id
               WHERE o.status::text IN ('aprovado', 'convertido')
                 AND COALESCE(o.aprovado_em, o.updated_at) >= (date_trunc('month', now() AT TIME ZONE 'America/Belem')) AT TIME ZONE 'America/Belem'),
              (0)::numeric) AS margem_prevista;
