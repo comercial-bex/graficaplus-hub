@@ -2207,10 +2207,20 @@ function OrcamentoDetailPage() {
                       areaMinima={form.area_minima}
                       valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}
                     />
+                    </div>
 
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="sticky -bottom-6 -mx-6 flex flex-wrap items-center justify-end gap-2 border-t bg-background px-6 py-3">
+                      {passoDoItem === 3 && faltaNaMedida && (
+                        <span className="mr-auto text-xs text-amber-600">{faltaNaMedida}</span>
+                      )}
+                      {passoDoItem === 4 && canSeePrices && (
+                        <span className="mr-auto text-sm">
+                          <span className="text-muted-foreground">Total do item </span>
+                          <strong className="tabular-nums">{brl(valorUnitarioEfetivo * quantidadeForm)}</strong>
+                        </span>
+                      )}
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         onClick={() => {
                           limparFormulario();
                           setNovoItemAberto(false);
@@ -2219,7 +2229,21 @@ function OrcamentoDetailPage() {
                       >
                         Cancelar
                       </Button>
-                      {!editando && (
+                      {passoDoItem >= 3 && (
+                        <Button
+                          variant="outline"
+                          disabled={salvandoItem}
+                          onClick={() => (passoDoItem === 4 ? setPassoDoDetalhe(3) : pedirEscolha("produto"))}
+                        >
+                          <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+                        </Button>
+                      )}
+                      {passoDoItem === 3 && (
+                        <Button onClick={() => setPassoDoDetalhe(4)} disabled={!!faltaNaMedida} data-testid="continuar-para-preco">
+                          Continuar <ArrowRight className="ml-1 h-4 w-4" />
+                        </Button>
+                      )}
+                      {passoDoItem === 4 && !editando && (
                         <Button
                           variant="outline"
                           onClick={() => {
@@ -2231,6 +2255,7 @@ function OrcamentoDetailPage() {
                           Adicionar e lançar outro
                         </Button>
                       )}
+                      {passoDoItem === 4 && (
                       <Button
                         onClick={() => {
                           continuarLancando.current = false;
@@ -2247,6 +2272,7 @@ function OrcamentoDetailPage() {
                         )}
                         {editando ? "Salvar alterações" : "Adicionar item"}
                       </Button>
+                      )}
                     </div>
                   </div>
                   </DialogContent>
