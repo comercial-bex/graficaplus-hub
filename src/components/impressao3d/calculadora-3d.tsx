@@ -782,11 +782,13 @@ export function Calculadora3D({
                 onFile={setFotoModelo}
                 accent="magenta"
                 captureFromClipboard={false}
+                compact
+                previewClassName="h-44 sm:h-56"
               />
               {fotoAtualUrl && !fotoModelo && (
                 <div className="flex items-center gap-3 text-xs text-muted-foreground" data-testid="foto-atual-da-peca">
-                  <img src={fotoAtualUrl} alt="Foto atual do modelo" className="h-14 w-14 rounded-md border object-cover" />
-                  A foto atual fica; solte outra acima para trocar.
+                  <img src={fotoAtualUrl} alt="Foto atual do modelo" className="h-28 w-40 rounded-md border object-cover" />
+                  <span>A foto atual fica; solte outra acima para trocar.</span>
                 </div>
               )}
             </CardContent>
