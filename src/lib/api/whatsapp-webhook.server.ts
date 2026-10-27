@@ -300,6 +300,15 @@ async function tratar(
           .update({ origem: "celular" } as never)
           .eq("id", gravada.mensagem_id);
       }
+      // Toque num botão do Pix (ou a mesma frase digitada): "Já paguei", "Ver orçamento",
+      // "Falar com a equipe". Acessório: nunca derruba o evento.
+      if (!gravada.duplicada && !evento.deMim && evento.texto && gravada.conversa_id) {
+        try {
+          await reagirAoBotaoDoPix(gravada.conversa_id, evento.texto);
+        } catch (e) {
+          console.warn("[webhook] reação ao botão do Pix falhou:", e instanceof Error ? e.message : e);
+        }
+      }
       if (gravada.duplicada || !evento.midia || !gravada.mensagem_id || !gravada.conversa_id) {
         return { mensagem: gravada };
       }
@@ -336,6 +345,44 @@ async function tratar(
       }
     }
   }
+}
+
+/**
+ * O cliente tocou num botão do Pix do sinal (27/10/2026). O texto da resposta é o rótulo do botão.
+ * Responde na hora, sem autor (chave `auto:`), e deixa rastro no orçamento. Só age quando há um
+ * orçamento esperando o sinal nessa conversa: o mesmo "Falar com a equipe" digitado fora disso
+ * é conversa normal e segue para a caixa.
+ */
+async function reagirAoBotaoDoPix(conversaId: string, texto: string): Promise<void> {
+  const { acaoDoBotaoDoPix, RESPOSTAS_DO_PIX } = await import("@/domain/pagamento/botoes-do-pix");
+  const acao = acaoDoBotaoDoPix(texto);
+  if (!acao) return;
+  const { data: orc } = await (supabaseAdmin.rpc as any)("orcamento_do_pix_da_conversa", { p_conversa_id: conversaId });
+  const o = orc as { id: string; numero: number; token: string | null; cliente_id: string | null } | null;
+  if (!o) return;
+
+  const origem = process.env.PUBLIC_APP_URL || "https://bexprint.com.br";
+  const link = o.token ? `${origem}/orcamento-publico/${o.token}` : null;
+  const { enfileirarMensagem } = await import("./whatsapp-fila.server");
+  await enfileirarMensagem(supabaseAdmin, {
+    conversaId,
+    usuarioId: null,
+    texto: RESPOSTAS_DO_PIX[acao]({ numero: o.numero, link }),
+    origem: `pix_botao_${acao}`,
+  });
+  if (acao === "equipe") {
+    // A IA não responde mais: a conversa vira atendimento humano.
+    await supabaseAdmin.from("whatsapp_conversas").update({ modo: "humano" } as never).eq("id", conversaId);
+  }
+  await supabaseAdmin.from("eventos_negocio").insert({
+    entidade: "orcamento",
+    entidade_id: o.id,
+    cliente_id: o.cliente_id,
+    tipo: `cliente_tocou_${acao}`,
+    titulo:
+      acao === "paguei" ? "O cliente diz que já pagou o Pix" : acao === "equipe" ? "O cliente pediu a equipe" : "O cliente pediu o orçamento de novo",
+    descricao: texto,
+  } as never);
 }
 
 /** Procura a saída pendente (mesmo texto, mesma conversa, últimos 60 s) e a completa. */

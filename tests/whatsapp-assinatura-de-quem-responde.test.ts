@@ -74,7 +74,8 @@ describe("o despachante assina só o que uma pessoa escreveu", () => {
   const fonte = readFileSync("src/lib/api/whatsapp-enviar.server.ts", "utf8");
 
   it("a resposta da caixa (com autor e sem a chave 'ia:') é assinada antes de montar o envio", () => {
-    const i = fonte.indexOf("if (linha.created_by && !daIa) {");
+    // 27/10/2026: o código do Pix (payload.sem_assinatura) vai sozinho, sem assinatura de pessoa.
+    const i = fonte.indexOf("if (linha.created_by && !daIa && linha.payload?.sem_assinatura !== true) {");
     const montar = fonte.indexOf("const montado = montarEnvio(pedido");
     expect(i, "o despachante não assina mais a resposta da caixa").toBeGreaterThan(0);
     expect(i).toBeLessThan(montar);
