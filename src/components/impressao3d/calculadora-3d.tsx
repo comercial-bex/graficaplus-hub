@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Calculator, Cpu, Package, Sparkles, Wand2, X } from "lucide-react";
 import { SeletorFilamento, SeletorImpressora } from "@/components/impressao3d/seletores-3d";
+import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-de-escolha";
 import { toast } from "sonner";
 import {
   materialCost,
