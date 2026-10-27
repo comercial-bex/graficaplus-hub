@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   AlertTriangle,
   Box,
@@ -245,7 +245,7 @@ export function EscolhaDeProduto({
     setTrocando(true);
     setBusca("");
     if (reabrir.para === "tipo") {
-      pediuTipo.current = true;
+      pediuTipo.current = !aberto;
       setTipoExplorado(null);
     }
     else setTipoExplorado(tipoConfirmado?.chave ?? tipoExplorado);
