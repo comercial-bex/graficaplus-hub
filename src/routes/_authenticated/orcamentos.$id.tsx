@@ -66,6 +66,7 @@ import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functio
 import { useComprovantesDoOrcamento } from "@/components/pagamento/comprovantes-do-orcamento";
 import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-antes-de-converter";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { PassosDoItem } from "@/components/orcamento/passos-do-item";
 import { Calculadora3D } from "@/components/impressao3d/calculadora-3d";
 import { descreverLinhaDeMetragem, metragemPorMaterial, totaisDaMetragem } from "@/domain/orcamentos/metragem-por-material";
 import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
@@ -293,6 +294,12 @@ function OrcamentoDetailPage() {
   const [editando, setEditando] = useState<{ id: string; numero: number } | null>(null);
   const [novoItemAberto, setNovoItemAberto] = useState(false);
   const continuarLancando = useRef(false);
+  // Passos da janela "Novo item": a escolha diz se está no tipo (1) ou no produto (2);
+  // depois dela, medida e quantidade (3) e preço e revisão (4). Voltar não apaga nada.
+  const [passoDaEscolha, setPassoDaEscolha] = useState<1 | 2 | null>(1);
+  const [passoDoDetalhe, setPassoDoDetalhe] = useState<3 | 4>(3);
+  const [reabrirEscolha, setReabrirEscolha] = useState<{ para: "tipo" | "produto" | "fechar"; n: number } | null>(null);
+  const pedirEscolha = (para: "tipo" | "produto" | "fechar") => setReabrirEscolha((r) => ({ para, n: (r?.n ?? 0) + 1 }));
   const abriuSozinho = useRef(false);
   // Os detalhes opcionais do item (tipo, especificações, artes): fechados até a
   // pessoa abrir, e abertos sozinhos quando já há conteúdo ou o item está em edição.
@@ -610,6 +617,14 @@ function OrcamentoDetailPage() {
 
   // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
   const quantidadeForm = paraNumero(form.quantidade) || 1;
+  const itemEscolhido = !!form.produto_id || itemLivre || !!editando;
+  const passoDoItem: 1 | 2 | 3 | 4 = passoDaEscolha ?? (itemEscolhido ? passoDoDetalhe : 1);
+  // O que falta para sair de "Medida e quantidade".
+  const faltaNaMedida = !form.descricao.trim()
+    ? "Escreva a descrição do item."
+    : !(paraNumero(form.quantidade) > 0)
+      ? "Informe a quantidade."
+      : null;
   const faixaAtual = faixaAplicada(faixas, quantidadeForm);
   const faixaSeguinte = proximaFaixa(faixas, quantidadeForm);
 
@@ -736,6 +751,7 @@ function OrcamentoDetailPage() {
     setItemLivre(false);
     setMedidasAbertas(false);
     setDetalhesManual(null);
+    setPassoDoDetalhe(3);
   }
 
   /**
@@ -778,6 +794,7 @@ function OrcamentoDetailPage() {
     setItemLivre(!i.produto_id);
     setMedidasAbertas(false);
     setEditando({ id: i.id as string, numero });
+    setPassoDoDetalhe(3);
     setNovoItemAberto(true);
   }
 
@@ -1728,6 +1745,29 @@ function OrcamentoDetailPage() {
                   >
                   <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
                   <DialogTitle>{editando ? `Editando o item ${editando.numero}` : "Novo item"}</DialogTitle>
+                  <PassosDoItem
+                    atual={passoDoItem}
+                    passos={[
+                      { rotulo: "Tipo", liberado: true, onIr: () => pedirEscolha("tipo") },
+                      { rotulo: "Produto", liberado: itemEscolhido || passoDaEscolha === 2, onIr: () => pedirEscolha("produto") },
+                      {
+                        rotulo: "Medida e quantidade",
+                        liberado: itemEscolhido,
+                        onIr: () => {
+                          setPassoDoDetalhe(3);
+                          pedirEscolha("fechar");
+                        },
+                      },
+                      {
+                        rotulo: "Preço e revisão",
+                        liberado: itemEscolhido && !faltaNaMedida,
+                        onIr: () => {
+                          setPassoDoDetalhe(4);
+                          pedirEscolha("fechar");
+                        },
+                      },
+                    ]}
+                  />
                   <div ref={formulario} className="space-y-4">
                     {/* Passo 1 — o tipo e o produto, em cartões. Escolher do
                         catálogo traz medida, preço, custo e material certos; o
@@ -1747,6 +1787,8 @@ function OrcamentoDetailPage() {
                       onItemLivre={aplicarItemLivre}
                       onCalcularPeca3d={() => setCalculadora3d({ orcamento3dId: null })}
                       desabilitado={salvandoItem}
+                      reabrir={reabrirEscolha}
+                      onPasso={setPassoDaEscolha}
                       atalhos={[
                         {
                           titulo: "Neste orçamento",
@@ -1762,6 +1804,8 @@ function OrcamentoDetailPage() {
                       ]}
                     />
 
+                    {/* Passo 3: medida e quantidade. Fica montado (só escondido) para não perder nada. */}
+                    <div className={passoDoItem === 3 ? "space-y-4" : "hidden"} data-testid="passo-medida">
                     <div>
                       <Label htmlFor="item-descricao">Descrição</Label>
                       <Input
@@ -1880,6 +1924,10 @@ function OrcamentoDetailPage() {
                     )}
 
                     <OrcamentoMaterialCheck produtoId={form.produto_id} baseDeConsumo={baseConsumo} pecas={quantidadeForm} />
+                    </div>
+
+                    {/* Passo 4: preço, margem, detalhes e a conferência. */}
+                    <div className={passoDoItem === 4 ? "space-y-4" : "hidden"} data-testid="passo-preco">
 
                     {/* Preço de venda: o vendedor digita. Custo fica atrás de canSeeFinancials. */}
                     {(canSeePrices || canSeeFinancials) && (
@@ -2160,10 +2208,20 @@ function OrcamentoDetailPage() {
                       areaMinima={form.area_minima}
                       valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}
                     />
+                    </div>
 
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="sticky -bottom-6 -mx-6 flex flex-wrap items-center justify-end gap-2 border-t bg-background px-6 py-3">
+                      {passoDoItem === 3 && faltaNaMedida && (
+                        <span className="mr-auto text-xs text-amber-600">{faltaNaMedida}</span>
+                      )}
+                      {passoDoItem === 4 && canSeePrices && (
+                        <span className="mr-auto text-sm">
+                          <span className="text-muted-foreground">Total do item </span>
+                          <strong className="tabular-nums">{brl(valorUnitarioEfetivo * quantidadeForm)}</strong>
+                        </span>
+                      )}
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         onClick={() => {
                           limparFormulario();
                           setNovoItemAberto(false);
@@ -2172,7 +2230,21 @@ function OrcamentoDetailPage() {
                       >
                         Cancelar
                       </Button>
-                      {!editando && (
+                      {passoDoItem >= 3 && (
+                        <Button
+                          variant="outline"
+                          disabled={salvandoItem}
+                          onClick={() => (passoDoItem === 4 ? setPassoDoDetalhe(3) : pedirEscolha("produto"))}
+                        >
+                          <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+                        </Button>
+                      )}
+                      {passoDoItem === 3 && (
+                        <Button onClick={() => setPassoDoDetalhe(4)} disabled={!!faltaNaMedida} data-testid="continuar-para-preco">
+                          Continuar <ArrowRight className="ml-1 h-4 w-4" />
+                        </Button>
+                      )}
+                      {passoDoItem === 4 && !editando && (
                         <Button
                           variant="outline"
                           onClick={() => {
@@ -2184,6 +2256,7 @@ function OrcamentoDetailPage() {
                           Adicionar e lançar outro
                         </Button>
                       )}
+                      {passoDoItem === 4 && (
                       <Button
                         onClick={() => {
                           continuarLancando.current = false;
@@ -2200,6 +2273,7 @@ function OrcamentoDetailPage() {
                         )}
                         {editando ? "Salvar alterações" : "Adicionar item"}
                       </Button>
+                      )}
                     </div>
                   </div>
                   </DialogContent>
