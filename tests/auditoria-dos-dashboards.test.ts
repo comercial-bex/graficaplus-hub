@@ -7,6 +7,8 @@ const migracao = ler("supabase/migrations/20261027400000_auditoria_dos_dashboard
 const painel = ler("src/routes/_authenticated/dashboard.tsx");
 const metaDoMes = ler("src/components/painel/MetaDoMes.tsx");
 const metasDaEquipe = ler("src/components/painel/MetasDaEquipe.tsx");
+// desde 27/10/2026 (tarde) a consulta mora num hook compartilhado com o card "Meta do mês"
+const hookDasMetas = ler("src/hooks/useMetasDaEquipe.ts");
 const pendencias = ler("src/components/painel/PendenciasDoMeuPapel.tsx");
 const folha = ler("src/components/estoque/folha-de-contagem.tsx");
 
@@ -38,7 +40,7 @@ describe("auditoria dos dashboards (27/10/2026)", () => {
 
   it("o painel mostra a meta de cada vendedor, separada do ponto de equilíbrio", () => {
     expect(painel).toContain("<MetasDaEquipe />");
-    expect(metasDaEquipe).toContain('"meta_painel"');
+    expect(hookDasMetas).toContain('"meta_painel"');
     expect(metasDaEquipe).toContain("<BarraDeMeta");
     // O nível é do PAGO; o bloco diz isso em vez de prometer comissão sobre o vendido.
     expect(metasDaEquipe).toMatch(/contam só o que o cliente já pagou/);
