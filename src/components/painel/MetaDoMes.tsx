@@ -337,24 +337,24 @@ export function MetaDoMes({ className }: { className?: string }) {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {faltaVenderParaEmpatar != null && metaGeral > 0 && (
-                  <div className="rounded-lg border border-border bg-muted/40 p-3">
+                  <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam vender para empatar</p>
-                    <p className={cn("font-mono text-2xl font-bold tabular-nums", faltaVenderParaEmpatar > 0 ? "text-red-500" : "text-emerald-500")}>
+                    <p className={cn("font-mono text-xl font-bold tabular-nums xl:text-2xl", faltaVenderParaEmpatar > 0 ? "text-red-500" : "text-emerald-500")}>
                       {faltaVenderParaEmpatar > 0 ? brl(faltaVenderParaEmpatar) : "Empatou"}
                     </p>
                   </div>
                 )}
-                <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-3">
+                <div className="min-w-0 rounded-lg border border-red-500/40 bg-red-500/5 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     {metaGeral > 0 ? `Faltam vender para a meta de ${brl(metaGeral)}` : "Faltam vender para empatar"}
                   </p>
-                  <p className="font-mono text-2xl font-bold tabular-nums text-red-500">{brl(faltaVender)}</p>
+                  <p className="font-mono text-xl font-bold tabular-nums xl:text-2xl text-red-500">{brl(faltaVender)}</p>
                 </div>
-                <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam receber para pagar as contas</p>
-                  <p className={cn("font-mono text-2xl font-bold tabular-nums", (faltaReceber ?? 0) > 0 ? "text-red-500" : "text-emerald-500")}>
+                  <p className={cn("font-mono text-xl font-bold tabular-nums xl:text-2xl", (faltaReceber ?? 0) > 0 ? "text-red-500" : "text-emerald-500")}>
                     {faltaReceber != null && faltaReceber > 0 ? brl(faltaReceber) : "Pagas"}
                   </p>
                 </div>
