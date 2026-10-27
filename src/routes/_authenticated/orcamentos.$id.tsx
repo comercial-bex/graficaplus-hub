@@ -2130,12 +2130,35 @@ function OrcamentoDetailPage() {
                     />
 
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      {editando && (
-                        <Button variant="outline" onClick={limparFormulario} disabled={salvandoItem}>
-                          Cancelar
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          limparFormulario();
+                          setNovoItemAberto(false);
+                        }}
+                        disabled={salvandoItem}
+                      >
+                        Cancelar
+                      </Button>
+                      {!editando && (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            continuarLancando.current = true;
+                            void salvarItem();
+                          }}
+                          disabled={salvandoItem}
+                        >
+                          Adicionar e lançar outro
                         </Button>
                       )}
-                      <Button onClick={() => void salvarItem()} disabled={salvandoItem}>
+                      <Button
+                        onClick={() => {
+                          continuarLancando.current = false;
+                          void salvarItem();
+                        }}
+                        disabled={salvandoItem}
+                      >
                         {salvandoItem ? (
                           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                         ) : editando ? (
@@ -2147,6 +2170,10 @@ function OrcamentoDetailPage() {
                       </Button>
                     </div>
                   </div>
+                  </DialogContent>
+                  </Dialog>
+                  </>
+                ) : (
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     {fechado
