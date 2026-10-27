@@ -293,6 +293,7 @@ function OrcamentoDetailPage() {
   const [editando, setEditando] = useState<{ id: string; numero: number } | null>(null);
   const [novoItemAberto, setNovoItemAberto] = useState(false);
   const continuarLancando = useRef(false);
+  const abriuSozinho = useRef(false);
   // Os detalhes opcionais do item (tipo, especificações, artes): fechados até a
   // pessoa abrir, e abertos sozinhos quando já há conteúdo ou o item está em edição.
   // Uma vez aberta a seção, não fecha sozinha — ela sumiria debaixo do cursor.
