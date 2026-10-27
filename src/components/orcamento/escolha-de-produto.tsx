@@ -225,7 +225,13 @@ export function EscolhaDeProduto({
     setTrocando(false);
     setBusca("");
   }, [produtoId, itemLivre]);
+  const pediuTipo = useRef(false);
   useEffect(() => {
+    if (pediuTipo.current) {
+      pediuTipo.current = false;
+      setTipoExplorado(null);
+      return;
+    }
     setTipoExplorado(tipoConfirmado?.chave ?? null);
   }, [tipoConfirmado?.chave, aberto]);
 
@@ -238,7 +244,10 @@ export function EscolhaDeProduto({
     }
     setTrocando(true);
     setBusca("");
-    if (reabrir.para === "tipo") setTipoExplorado(null);
+    if (reabrir.para === "tipo") {
+      pediuTipo.current = true;
+      setTipoExplorado(null);
+    }
     else setTipoExplorado(tipoConfirmado?.chave ?? tipoExplorado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reabrir?.n]);
