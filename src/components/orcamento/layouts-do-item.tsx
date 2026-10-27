@@ -401,7 +401,7 @@ async function carregarLayoutsDoItem(itemId: string): Promise<Layout[]> {
       (a) => [a.id, a],
     ),
   );
-  const visiveis = [...porId.values()].filter((a) => ehImagemVisivel(a.nome, a.mime_type));
+  const visiveis = [...porId.values()].filter((a) => ehImagemVisivel(a.nome, a.mime_type, a.caminho));
   const urls = await urlsAssinadas(visiveis.map((a) => a.caminho));
 
   return lista.map((v) => {
@@ -412,7 +412,7 @@ async function carregarLayoutsDoItem(itemId: string): Promise<Layout[]> {
       arquivo_id: v.arquivo_id,
       nome: a?.nome ?? "arquivo",
       url: a ? (urls.get(a.caminho) ?? null) : null,
-      pdf: a ? ehPdf(a.nome, a.mime_type) : false,
+      pdf: a ? ehPdf(a.nome, a.mime_type, a.caminho) : false,
     };
   });
 }
@@ -574,7 +574,7 @@ export function useCapasDosItens(orcamentoId: string, itemIds: string[]) {
           (a) => [a.id, a],
         ),
       );
-      const visiveis = [...porId.values()].filter((a) => ehImagemVisivel(a.nome, a.mime_type));
+      const visiveis = [...porId.values()].filter((a) => ehImagemVisivel(a.nome, a.mime_type, a.caminho));
       const urls = await urlsAssinadas(visiveis.map((a) => a.caminho));
 
       const resultado: Record<string, CapaDoItem> = {};
@@ -583,7 +583,7 @@ export function useCapasDosItens(orcamentoId: string, itemIds: string[]) {
         resultado[itemId] = {
           nome: a?.nome ?? "arquivo",
           url: a ? (urls.get(a.caminho) ?? null) : null,
-          pdf: a ? ehPdf(a.nome, a.mime_type) : false,
+          pdf: a ? ehPdf(a.nome, a.mime_type, a.caminho) : false,
           total: lista.length,
         };
       }
@@ -603,7 +603,7 @@ export function MiniaturaDoItem({ capa, onAbrir }: { capa: CapaDoItem | undefine
     >
       <span
         className={cn(
-          "relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted",
+          "relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted",
           !capa && "border-dashed border-amber-500/60",
         )}
       >

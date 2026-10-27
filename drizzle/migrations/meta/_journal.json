@@ -29,6 +29,13 @@
       "when": 1792536469059,
       "tag": "0003_leitura_so_da_equipe",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793121880569,
+      "tag": "0004_arquivos_tipo_pelo_caminho",
+      "breakpoints": true
     }
   ]
 }
