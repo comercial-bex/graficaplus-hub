@@ -1611,7 +1611,7 @@ function OrcamentoDetailPage() {
 
       <BarraDePassosDoOrcamento atual={passo} estados={estados} onIr={(p) => irParaPasso(p)} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="min-w-0 space-y-6">
           {passo === 1 && (
             <Card id="passo-cliente" className="scroll-mt-48">
@@ -2428,10 +2428,9 @@ function OrcamentoDetailPage() {
                   </div>
                 )}
 
+                {/* Totais, custo e margem ficam no resumo ao lado; aqui só os avisos. */}
+                {(semArte > 0 || semProduto > 0 || somaArea > 0) && (
                 <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t pt-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Itens:</span> <strong>{itensDeProduto.length}</strong>
-                  </div>
                   {semArte > 0 && (
                     <div className="text-amber-500">
                       {semArte === 1 ? "1 item sem arte" : `${semArte} itens sem arte`}
@@ -2448,50 +2447,8 @@ function OrcamentoDetailPage() {
                       <span className="text-muted-foreground">Soma área:</span> <strong>{m2(somaArea)}</strong>
                     </div>
                   )}
-                  {/* Total é preço: o vendedor vê. Custo e margem seguem só para o financeiro.
-                      Com desconto (ou crédito de parceiro), mostra de onde o total saiu —
-                      é a mesma conta do PDF: Total Produtos − Valor Desconto. */}
-                  {canSeePrices && descontoGravado > 0 && (
-                    <>
-                      <div>
-                        <span className="text-muted-foreground">Itens:</span>{" "}
-                        <span className="tabular-nums">{brl(subtotalGravado)}</span>
-                      </div>
-                      <div>
-                        <button
-                          type="button"
-                          className="text-muted-foreground underline-offset-2 hover:underline"
-                          onClick={() => irParaPasso(3, "acordo-desconto")}
-                        >
-                          Desconto:
-                        </button>{" "}
-                        <span className="tabular-nums">− {brl(descontoGravado)}</span>
-                      </div>
-                    </>
-                  )}
-                  {canSeePrices && (
-                    <div>
-                      <span className="text-muted-foreground">Total:</span>{" "}
-                      <strong className="tabular-nums">{brl(orc.valor_total)}</strong>
-                    </div>
-                  )}
-                  {canSeeFinancials && (
-                    <>
-                      <div>
-                        <span className="text-muted-foreground">Custo:</span>{" "}
-                        <span className="tabular-nums">{brl(orc.custo_estimado)}</span>
-                      </div>
-                      {margem !== null && (
-                        <div>
-                          <span className="text-muted-foreground">Margem:</span>{" "}
-                          <strong className={margem < 20 ? "text-destructive" : "text-success"}>
-                            {percentual(margem)}
-                          </strong>
-                        </div>
-                      )}
-                    </>
-                  )}
                 </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -2757,16 +2714,17 @@ function OrcamentoDetailPage() {
               )}
               {canSeeFinancials && (
                 <>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">Custo</span>
-                    <span className="tabular-nums">{brl(orc.custo_estimado)}</span>
+                  <div className="flex justify-between gap-3 text-xs">
+                    <span className="text-muted-foreground">
+                      Custo <span className="tabular-nums text-foreground">{brl(orc.custo_estimado)}</span>
+                    </span>
+                    {margem !== null && (
+                      <span className="text-muted-foreground">
+                        Margem{" "}
+                        <strong className={margem < 20 ? "text-destructive" : "text-success"}>{percentual(margem)}</strong>
+                      </span>
+                    )}
                   </div>
-                  {margem !== null && (
-                    <div className="flex justify-between gap-3">
-                      <span className="text-muted-foreground">Margem</span>
-                      <strong className={margem < 20 ? "text-destructive" : "text-success"}>{percentual(margem)}</strong>
-                    </div>
-                  )}
                 </>
               )}
               {!fechado && (
