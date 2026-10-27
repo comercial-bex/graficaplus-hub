@@ -36,6 +36,22 @@ export const PARCELAS: ParcelaEncargo[] = [
   { chave: "terceiros", rotulo: "Terceiros (Sistema S)", aliquota: 0.058, foraDoSimples: true, nota: "SESI, SENAI, SEBRAE e outros" },
 ];
 
+/**
+ * Salário mínimo nacional de 2026 (Decreto 12.797/2025, vigente desde 1º/01/2026). É o salário
+ * provisório de toda função até alguém informar o salário real da pessoa.
+ */
+export const SALARIO_MINIMO = 1621;
+
+/**
+ * Horas do mês pela regra da casa (27/10/2026): 8 h de trabalho por dia (10 h na casa menos 2 h de
+ * almoço) × 22 dias úteis = 176 h. É o divisor do salário: o custo da hora é o que a empresa paga
+ * pelas horas em que a pessoa está de fato trabalhando, não pelas 220 do contrato (que incluem o
+ * descanso semanal remunerado).
+ */
+export const HORAS_DIA_DA_CASA = 8;
+export const DIAS_UTEIS_DO_MES = 22;
+export const HORAS_DO_MES_DA_CASA = HORAS_DIA_DA_CASA * DIAS_UTEIS_DO_MES;
+
 const r4 = (n: number) => Math.round((n + Number.EPSILON) * 10000) / 10000;
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const num = (v: unknown) => {
@@ -65,20 +81,21 @@ export type CustoDaHora = {
 /**
  * Custo real da hora a partir do salário mensal.
  *
- * As horas do mês são as CONTRATADAS (220 na jornada de 44h semanais), não as
- * horas produtivas: o salário é pago pelas 220 tenha a máquina rodado ou não.
- * Dividir pelas produtivas embutiria ociosidade duas vezes, porque a ociosidade
- * já entra no custo/hora da máquina.
+ * As horas do mês são as de PRESENÇA (176 = 8 h × 22 dias úteis, regra da casa
+ * desde 27/10/2026), não as horas produtivas: o salário é pago tenha a máquina
+ * rodado ou não, e dividir pelas produtivas embutiria ociosidade duas vezes,
+ * porque a ociosidade já entra no custo/hora da máquina. (Antes eram as 220 do
+ * contrato, que contam também o descanso remunerado.)
  */
 export function custoDaHora(entrada: {
   salarioMensal: number;
   horasMensais?: number;
   encargosPct: number;
 }): CustoDaHora {
-  // `!= null` e não `||`: com `0 || 220` uma jornada zerada cairia no padrão e
+  // `!= null` e não `||`: com `0 || 176` uma jornada zerada cairia no padrão e
   // devolveria R$ 17,73 de custo/hora — plausível, e vindo de entrada inválida.
   // É o mesmo "zero disfarçado" que já mordeu na troca de peça da fiber.
-  const horas = entrada.horasMensais != null ? num(entrada.horasMensais) : 220;
+  const horas = entrada.horasMensais != null ? num(entrada.horasMensais) : HORAS_DO_MES_DA_CASA;
   const salario = num(entrada.salarioMensal);
   const enc = Math.max(0, num(entrada.encargosPct));
   if (horas <= 0 || salario <= 0) {

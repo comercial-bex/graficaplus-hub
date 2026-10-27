@@ -2546,8 +2546,10 @@ export type Database = {
           custo_hora: number
           encargos_pct: number
           funcao: string
+          horas_mensais: number | null
           id: string
           observacoes: string | null
+          salario_mensal: number | null
           setor: string | null
           updated_at: string
         }
@@ -2557,8 +2559,10 @@ export type Database = {
           custo_hora?: number
           encargos_pct?: number
           funcao: string
+          horas_mensais?: number | null
           id?: string
           observacoes?: string | null
+          salario_mensal?: number | null
           setor?: string | null
           updated_at?: string
         }
@@ -2568,8 +2572,10 @@ export type Database = {
           custo_hora?: number
           encargos_pct?: number
           funcao?: string
+          horas_mensais?: number | null
           id?: string
           observacoes?: string | null
+          salario_mensal?: number | null
           setor?: string | null
           updated_at?: string
         }

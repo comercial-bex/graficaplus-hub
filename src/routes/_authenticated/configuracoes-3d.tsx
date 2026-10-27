@@ -14,6 +14,7 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { formatBRL } from "@/lib/produtos-catalogo";
 import { Carregando } from "@/components/bex/Carregando";
+import { HORAS_DO_MES_DA_CASA } from "@/domain/financeiro/encargos";
 export const Route = createFileRoute("/_authenticated/configuracoes-3d")({
   head: () => ({ meta: [{ title: "Configurações 3D — BEX PRINT OS" }] }),
   component: Configuracoes3D,
@@ -111,7 +112,7 @@ function Configuracoes3D() {
           mo_custo_hora_padrao: n(form.mo_custo_hora_padrao),
           mo_salario_mensal: form.mo_salario_mensal ? n(form.mo_salario_mensal) : null,
           mo_encargos_pct: n(form.mo_encargos_pct),
-          mo_horas_mensais: n(form.mo_horas_mensais) || 220,
+          mo_horas_mensais: n(form.mo_horas_mensais) || HORAS_DO_MES_DA_CASA,
           markup_padrao: n(form.markup_padrao) || 2,
           markup_atacado_padrao: n(form.markup_atacado_padrao) || 1.5,
           pct_acabamento_padrao: n(form.pct_acabamento_padrao),
@@ -151,7 +152,7 @@ function Configuracoes3D() {
   function recalcularMaoDeObra() {
     if (!form) return;
     const salario = n(form.mo_salario_mensal);
-    const horas = n(form.mo_horas_mensais) || 220;
+    const horas = n(form.mo_horas_mensais) || HORAS_DO_MES_DA_CASA;
     const encargos = n(form.mo_encargos_pct) / 100;
     if (salario <= 0 || horas <= 0) {
       toast.error("Preencha salário mensal e horas trabalhadas no mês.");
