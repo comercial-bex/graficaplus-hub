@@ -1310,6 +1310,11 @@ function OrcamentoDetailPage() {
       : null;
   const fechado = orc.status === "convertido" || !!orc.os_id;
   const podeMexer = podeEditar && !fechado;
+  // Orçamento ainda sem itens: a janela "Novo item" abre sozinha uma vez.
+  if (!abriuSozinho.current && podeMexer && consultaItens.isSuccess && itensDeProduto.length === 0) {
+    abriuSozinho.current = true;
+    queueMicrotask(() => setNovoItemAberto(true));
+  }
   const dadosDoAcordo = acordo.data ?? null;
   const pendencias = pendenciasParaEnviar({
     temClienteOuContato: !!(orc.cliente_nome || (orc as any).contato_nome),
