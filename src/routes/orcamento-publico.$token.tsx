@@ -122,7 +122,8 @@ function OrcamentoPublicoPage() {
           </h1>
           <p className="text-muted-foreground">{o.titulo}</p>
           <div className="flex flex-wrap gap-2 pt-2 text-xs text-muted-foreground">
-            <Badge variant="secondary">Cliente: {o.cliente}</Badge>
+            {/* Orçamento de contato avulso não tem cliente: a etiqueta vazia ("Cliente:") saía assim. */}
+            {o.cliente ? <Badge variant="secondary">Cliente: {o.cliente}</Badge> : null}
             <Badge variant="secondary">Emissão: {dataBr(o.emissao)}</Badge>
             <Badge variant="secondary">Válido até: {dataBr(o.validade)}</Badge>
             <Badge variant="secondary">Entrega: {dataBr(o.entrega)}</Badge>

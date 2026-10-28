@@ -420,7 +420,7 @@ const s = StyleSheet.create({
     marginTop: 0.8,
     fontFamily: "Helvetica-Bold",
   },
-  cartaoTitulo: { flex: 1, fontFamily: "Helvetica-Bold", fontSize: 9, color: BRANCO },
+  cartaoTitulo: { flex: 1, fontFamily: "Helvetica-Bold", fontSize: 9, color: BRANCO, textOverflow: "ellipsis" },
   cartaoArte: {
     height: ALTURA_DA_ARTE,
     alignItems: "center",
