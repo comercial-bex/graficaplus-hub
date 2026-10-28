@@ -25,8 +25,16 @@ const LADO_MAXIMO = 1200;
 const PASSA_DIRETO_ATE = 3 * 1024 * 1024;
 /** Arquivo maior que isto nem é baixado para a prévia: o celular travaria. */
 const MAIOR_ARQUIVO = 60 * 1024 * 1024;
-/** PNG convertido maior que isto é regravado em JPEG, para o PDF caber no WhatsApp. */
-const PNG_ATE = 1.5 * 1024 * 1024;
+/**
+ * PNG convertido maior que isto é regravado em JPEG. Era 1,5 MB: seis artes
+ * coloridas de 1.200 px ficavam em PNG de ~900 KB cada e o PDF do orçamento
+ * 115 saiu com 5,2 MB (medido no ar em 28/10/2026). Arte chapada (logo,
+ * vetor) continua em PNG, que fica pequeno; foto e arte cheia de cor vão em
+ * JPEG, que no cartão de 150 pt ninguém distingue.
+ */
+const PNG_ATE = 300 * 1024;
+/** Qualidade do JPEG: 0,82 fica nítido no cartão e pesa metade do 0,88. */
+const QUALIDADE_JPEG = 0.82;
 const TEMPO_LIMITE_MS = 45_000;
 
 export type Formato =
@@ -147,7 +155,7 @@ async function baixar(url: string): Promise<Uint8Array> {
 function canvasParaDataUrl(canvas: HTMLCanvasElement): string {
   const png = canvas.toDataURL("image/png");
   if (png.length * 0.75 <= PNG_ATE) return png;
-  return canvas.toDataURL("image/jpeg", 0.88);
+  return canvas.toDataURL("image/jpeg", QUALIDADE_JPEG);
 }
 
 function novoCanvas(largura: number, altura: number) {

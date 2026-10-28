@@ -152,7 +152,11 @@ export const obterOrcamentoPublico = createServerFn({ method: "POST" })
       numero: o.numero,
       titulo: o.titulo,
       status: o.status,
-      cliente: c.razao_social ?? c.nome ?? o.contato_nome ?? "Cliente",
+      // `??` só pula nulo: razão social gravada como "" saía "Cliente: " vazio na página.
+      cliente:
+        [c.razao_social, c.nome, o.contato_nome]
+          .map((v) => (typeof v === "string" ? v.trim() : ""))
+          .find(Boolean) ?? "",
       emissao: o.created_at ?? null,
       validade: o.created_at
         ? new Date(new Date(o.created_at).getTime() + (o.validade_dias ?? 7) * 86400000).toISOString()
