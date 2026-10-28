@@ -44,6 +44,14 @@ const real = (v: number) =>
 const dataBr = (v?: string | null) => (v ? new Date(v).toLocaleDateString("pt-BR") : "—");
 const m2 = (v: number) => `${v.toFixed(3).replace(".", ",")}m²`;
 
+/**
+ * A cor da barra de cada cartão de arte, em rodízio pelas cores da logo — o
+ * mesmo rodízio do bloco LAYOUT do PDF, para o link e o papel serem o mesmo
+ * documento aos olhos do cliente.
+ */
+const CORES_DOS_CARTOES = ["var(--bex-magenta)", "var(--bex-lime)", "var(--bex-cyan)"];
+const corDoCartao = (indice: number) => CORES_DOS_CARTOES[indice % CORES_DOS_CARTOES.length];
+
 function OrcamentoPublicoPage() {
   const { token } = Route.useParams();
   const [nome, setNome] = useState("");
@@ -147,23 +155,43 @@ function OrcamentoPublicoPage() {
                     </div>
                   </div>
                 </div>
+                {/* As artes em cartões grandes, como no PDF: a barra com o número
+                    e o nome do item, a arte inteira embaixo (sempre sobre
+                    branco, que é a folha — o tema escuro do celular não entra
+                    no layout). O clique abre o arquivo original. */}
                 {i.artes.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {i.artes.map((a) => (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {i.artes.map((a, k) => (
                       <a
                         key={a.url}
                         href={a.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="block w-28 rounded-md border overflow-hidden"
+                        className="block overflow-hidden rounded-lg border bg-white ring-1 ring-black/5"
                       >
+                        <div
+                          className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white"
+                          style={{ backgroundColor: corDoCartao(idx) }}
+                        >
+                          <span
+                            className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px]"
+                            style={{ color: corDoCartao(idx) }}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span className="truncate">{i.descricao}</span>
+                          {i.artes.length > 1 && (
+                            <span className="ml-auto shrink-0 font-normal opacity-90">
+                              {k + 1}/{i.artes.length}
+                            </span>
+                          )}
+                        </div>
                         <img
                           src={a.url}
                           alt={`Arte ${a.nome} do item ${i.descricao}`}
-                          className="h-20 w-full object-contain bg-muted"
+                          className="h-52 w-full bg-white object-contain p-2"
                           loading="lazy"
                         />
-                        <span className="line-clamp-2 break-all px-1 py-0.5 text-[10px] text-muted-foreground">{a.nome}</span>
                       </a>
                     ))}
                   </div>

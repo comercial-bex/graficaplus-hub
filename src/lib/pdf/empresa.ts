@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { mensagemErro } from "@/lib/erros";
-import { urlDaLogoFundoClaro } from "@/lib/marca";
+import { FAIXA_DA_MARCA, urlDaLogoFundoClaro, urlDaLogoFundoEscuro } from "@/lib/marca";
 
 /**
  * Dados do emissor que aparecem no cabeçalho de Orçamentos e OS.
@@ -30,13 +30,27 @@ export type Empresa = {
    * (`src/lib/marca.ts`); no do parceiro, a dele.
    */
   logo_url?: string | null;
-  /** Cor da marca: no documento monocromático, só a caixa que substitui o logo a usa. */
+  /**
+   * Logo para a barra escura do rodapé (letras brancas). Só a Bex Print tem;
+   * o documento do parceiro sai com o rodapé em texto, sem logo nenhuma.
+   */
+  logo_escura_url?: string | null;
+  /**
+   * Cor da marca: a caixa do número, os círculos dos itens, a barra do total.
+   * No documento do parceiro é a cor que ele cadastrou.
+   */
   cor: string;
+  /**
+   * Cores da faixa que separa cabeçalho e rodapé e dos cartões de layout (uma
+   * por cartão, em rodízio). Sem faixa, tudo sai na `cor` — é o caso do
+   * parceiro, que não leva as cores da Bex Print.
+   */
+  faixa?: readonly string[] | null;
   condicoes_gerais?: string | null;
 };
 
 /** Usado só se a configuração ainda não foi preenchida. */
-const PADRAO: Omit<Empresa, "logo_url"> = {
+const PADRAO: Omit<Empresa, "logo_url" | "logo_escura_url" | "faixa"> = {
   nome: "BEX PRINT OS",
   cor: "#7B2E8B",
 };
@@ -61,7 +75,10 @@ export async function carregarEmpresa(): Promise<Empresa> {
   // Decisão do dono (06/10/2026): todo PDF da Bex Print tem fundo branco e
   // leva a logo oficial para fundo branco — para qualquer pessoa que gere.
   const logo_url = urlDaLogoFundoClaro();
-  if (!data) return { ...PADRAO, logo_url };
+  // A faixa e a logo do rodapé são da marca, não da configuração: todo
+  // documento da Bex Print as leva, com ou sem cadastro preenchido.
+  const marca = { logo_url, logo_escura_url: urlDaLogoFundoEscuro(), faixa: FAIXA_DA_MARCA };
+  if (!data) return { ...PADRAO, ...marca };
 
   return {
     nome: data.nome ?? PADRAO.nome,
@@ -77,7 +94,7 @@ export async function carregarEmpresa(): Promise<Empresa> {
     telefones: data.telefones,
     email: data.email,
     site: data.site,
-    logo_url,
+    ...marca,
     cor: data.cor_primaria ?? PADRAO.cor,
     condicoes_gerais: data.condicoes_gerais,
   };

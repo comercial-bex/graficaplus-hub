@@ -37,3 +37,31 @@ export function urlDaLogoFundoClaro(
 ): string {
   return origem ? new URL(LOGO_FUNDO_CLARO, origem).href : LOGO_FUNDO_CLARO;
 }
+
+/**
+ * Endereço completo da logo para fundo escuro — o rodapé escuro do PDF a usa
+ * (letras brancas sobre a barra). Fora do navegador fica o caminho relativo.
+ */
+export function urlDaLogoFundoEscuro(
+  origem: string = typeof window !== "undefined" ? window.location.origin : "",
+): string {
+  return origem ? new URL(LOGO_FUNDO_ESCURO, origem).href : LOGO_FUNDO_ESCURO;
+}
+
+/**
+ * As três cores do X da logo, medidas no próprio arquivo (27/10/2026): são as
+ * da faixa que separa o cabeçalho e o rodapé do documento e dos cartões de
+ * layout. Só em documento da Bex Print — o do parceiro leva a cor dele.
+ */
+export const CORES_DA_MARCA = {
+  magenta: "#e8478b",
+  lime: "#74b22a",
+  cyan: "#37bff0",
+} as const;
+
+/** A faixa magenta · verde · ciano, na ordem em que aparece na logo. */
+export const FAIXA_DA_MARCA: readonly string[] = [
+  CORES_DA_MARCA.magenta,
+  CORES_DA_MARCA.lime,
+  CORES_DA_MARCA.cyan,
+];

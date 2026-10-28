@@ -17,6 +17,7 @@
 
 import type { DocItem, DocumentoPDFProps } from "./DocumentoPDF";
 import { carregarPdfjs } from "./pdfjs";
+import { caixaDoConteudo } from "./recorte";
 
 /** Lado maior da miniatura convertida, em pixels. Sobra para a miniatura impressa. */
 const LADO_MAXIMO = 1200;
@@ -169,8 +170,41 @@ function carregarImagem(url: string): Promise<HTMLImageElement> {
   });
 }
 
+/**
+ * Auto-recorte: tira a margem lisa em volta do conteúdo (a conta é a de
+ * `recorte.ts`). O cartão de layout mostra a arte, não a folha em volta dela.
+ * Se o canvas não entregar os pixels (tainted, memória), a imagem fica inteira.
+ */
+function recortarMargens(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
+  try {
+    const dados = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const caixa = caixaDoConteudo(dados.data, canvas.width, canvas.height);
+    if (!caixa) return canvas;
+    const { canvas: novo, ctx: ctxNovo } = novoCanvas(caixa.largura, caixa.altura);
+    ctxNovo.drawImage(
+      canvas,
+      caixa.x,
+      caixa.y,
+      caixa.largura,
+      caixa.altura,
+      0,
+      0,
+      caixa.largura,
+      caixa.altura,
+    );
+    return novo;
+  } catch (erro) {
+    console.warn("[pdf] arte sem auto-recorte:", erro);
+    return canvas;
+  }
+}
+
 /** Qualquer imagem que o navegador decodifique, regravada por canvas. */
-async function regravarPorCanvas(bytes: Uint8Array, formato: Formato): Promise<string> {
+async function regravarPorCanvas(
+  bytes: Uint8Array,
+  formato: Formato,
+  recortar = false,
+): Promise<string> {
   const tipo = formato === "desconhecido" ? "" : MIME[formato];
   const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: tipo }));
   try {
@@ -187,14 +221,14 @@ async function regravarPorCanvas(bytes: Uint8Array, formato: Formato): Promise<s
     altura *= escala;
     const { canvas, ctx } = novoCanvas(largura, altura);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvasParaDataUrl(canvas);
+    return canvasParaDataUrl(recortar ? recortarMargens(canvas, ctx) : canvas);
   } finally {
     URL.revokeObjectURL(url);
   }
 }
 
 /** 1ª página do PDF como imagem — é o que o designer manda como "arte". */
-async function primeiraPaginaDoPdf(bytes: Uint8Array): Promise<string> {
+async function primeiraPaginaDoPdf(bytes: Uint8Array, recortar = false): Promise<string> {
   const pdfjs = await carregarPdfjs();
   const tarefa = pdfjs.getDocument({ data: bytes });
   try {
@@ -202,24 +236,41 @@ async function primeiraPaginaDoPdf(bytes: Uint8Array): Promise<string> {
     const pagina = await documento.getPage(1);
     const base = pagina.getViewport({ scale: 1 });
     const viewport = pagina.getViewport({ scale: LADO_MAXIMO / Math.max(base.width, base.height) });
-    const { canvas } = novoCanvas(viewport.width, viewport.height);
+    const { canvas, ctx } = novoCanvas(viewport.width, viewport.height);
     await pagina.render({ canvas, viewport }).promise;
-    return canvasParaDataUrl(canvas);
+    // A arte em PDF costuma ser uma folha inteira com a peça no meio: é o caso
+    // em que o recorte mais faz diferença.
+    return canvasParaDataUrl(recortar ? recortarMargens(canvas, ctx) : canvas);
   } finally {
     await tarefa.destroy();
   }
 }
 
+export type OpcoesDaArte = {
+  /**
+   * Auto-recorte das margens lisas (ver recorte.ts). Ligado para as artes dos
+   * itens; desligado para a logo, que já vem no enquadramento certo.
+   */
+  recortar?: boolean;
+};
+
 /** Baixa e converte uma arte. Nunca rejeita: falha vira `{ falha }`. */
-export async function prepararArte(url: string, nome?: string | null): Promise<ArteNoPDF> {
+export async function prepararArte(
+  url: string,
+  nome?: string | null,
+  opcoes: OpcoesDaArte = {},
+): Promise<ArteNoPDF> {
+  const recortar = opcoes.recortar === true;
   try {
     const bytes = await baixar(url);
     const formato = detectarFormato(bytes.subarray(0, 1024), nome ?? url);
-    if ((formato === "jpeg" || formato === "png") && bytes.length <= PASSA_DIRETO_ATE) {
+    // Sem recorte, JPEG e PNG pequenos passam como chegaram; com recorte, todos
+    // passam pelo canvas — só ali dá para medir a margem.
+    if (!recortar && (formato === "jpeg" || formato === "png") && bytes.length <= PASSA_DIRETO_ATE) {
       return { src: dataUrl(bytes, MIME[formato]) };
     }
-    if (formato === "pdf") return { src: await primeiraPaginaDoPdf(bytes) };
-    return { src: await regravarPorCanvas(bytes, formato) };
+    if (formato === "pdf") return { src: await primeiraPaginaDoPdf(bytes, recortar) };
+    return { src: await regravarPorCanvas(bytes, formato, recortar) };
   } catch (erro) {
     const motivo = erro instanceof Error ? erro.message : String(erro);
     // Fica no console para quem for investigar; o documento mostra só o nome.
@@ -251,11 +302,14 @@ async function emLotes<T, R>(
  * vale para todo documento gerado no navegador — inclusive o do parceiro.
  */
 export async function prepararImagensDoDocumento(p: DocumentoPDFProps): Promise<DocumentoPDFProps> {
-  const [logo, itens] = await Promise.all([
+  const [logo, logoEscura, itens] = await Promise.all([
     p.empresa.logo_url ? prepararArte(p.empresa.logo_url, "logo") : Promise.resolve(null),
+    p.empresa.logo_escura_url
+      ? prepararArte(p.empresa.logo_escura_url, "logo-rodape")
+      : Promise.resolve(null),
     emLotes(p.itens, 3, async (item): Promise<DocItem> => {
       if (!item.layout_url || item.layout_sem_previa) return item;
-      const arte = await prepararArte(item.layout_url, item.layout_nome);
+      const arte = await prepararArte(item.layout_url, item.layout_nome, { recortar: true });
       return "src" in arte
         ? { ...item, layout_url: arte.src }
         : { ...item, layout_url: null, layout_sem_previa: true };
@@ -263,8 +317,13 @@ export async function prepararImagensDoDocumento(p: DocumentoPDFProps): Promise<
   ]);
   return {
     ...p,
-    // Logo que não converte some e o cabeçalho cai na caixa com o nome.
-    empresa: { ...p.empresa, logo_url: logo && "src" in logo ? logo.src : null },
+    empresa: {
+      ...p.empresa,
+      // Logo que não converte some e o cabeçalho cai na caixa com o nome.
+      logo_url: logo && "src" in logo ? logo.src : null,
+      // No rodapé, logo que não converte simplesmente não sai: o contato fica.
+      logo_escura_url: logoEscura && "src" in logoEscura ? logoEscura.src : null,
+    },
     itens,
   };
 }
