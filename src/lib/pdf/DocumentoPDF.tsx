@@ -13,12 +13,22 @@ import {
 
 /**
  * O documento da gráfica — orçamento, OS, fatura, recibo de material e
- * orçamento 3D — no formato do modelo que a operação já usava (orçamento 1059):
- * monocromático, caixas de canto arredondado, título de seção centralizado em
- * negrito sublinhado. Um visual só para todos os tipos, para a marca ser uma.
+ * orçamento 3D — num visual só, para a marca ser uma.
  *
- * A cor da marca (`empresa.cor`) fica só na caixa que substitui o logo quando
- * ele não existe: no modelo, o logo é a única coisa colorida da folha.
+ * A estrutura é a do modelo que a operação já usava (orçamento 1059): os
+ * mesmos blocos, os mesmos rótulos, na mesma ordem. O desenho é o da
+ * referência que o dono mandou em 27/10/2026 (o 142 redesenhado): barras de
+ * seção escuras com o título em branco, o número do documento numa caixa da cor
+ * da marca, a faixa magenta · verde · ciano da logo separando cabeçalho e
+ * rodapé, os itens numerados em círculos coloridos, e — a diferença que mais
+ * pesa — o bloco LAYOUT em CARTÕES grandes, um por item, com o nome do item na
+ * barra e a arte ocupando o cartão (as margens brancas da arte já vêm tiradas
+ * por `imagens.ts`). Pagamento e observação ficam lado a lado, com o valor em
+ * destaque; o rodapé é uma barra escura com endereço, telefone e e-mail.
+ *
+ * As cores vêm de `empresa` (cor da marca, faixa, logo do rodapé): o documento
+ * do parceiro passa pelo mesmo desenho com a cor DELE e sem faixa nem logo da
+ * Bex Print — nada da gráfica entra na folha dele.
  *
  * Este módulo puxa o @react-pdf inteiro: entra só por `import()` no navegador
  * (ver `renderPDFBlob`). Quem precisa dos tipos usa `import type` — importar o
@@ -43,15 +53,16 @@ export type DocItem = {
   acabamento?: string | null;
   tipo_produto?: string | null;
   /**
-   * Capa da arte do item (bloco LAYOUT). `renderPDFBlob` troca a URL por um
-   * data URL JPEG/PNG antes de desenhar (imagens.ts); quando não dá, marca
-   * `layout_sem_previa` e o documento mostra a caixa com o nome do arquivo.
+   * Capa da arte do item (cartão do bloco LAYOUT). `renderPDFBlob` troca a URL
+   * por um data URL JPEG/PNG antes de desenhar, já sem as margens lisas
+   * (imagens.ts); quando não dá, marca `layout_sem_previa` e o cartão mostra o
+   * nome do arquivo.
    */
   layout_url?: string | null;
   /** Nome do arquivo da capa, para a caixa "arte sem prévia: nome.ext". */
   layout_nome?: string | null;
   layout_sem_previa?: boolean;
-  /** Quantas artes o item tem além da capa ("+N" no bloco LAYOUT). */
+  /** Quantas artes o item tem além da capa ("+N" no cartão). */
   layouts_extras?: number;
 };
 
@@ -161,28 +172,61 @@ function Text(props: ComponentProps<typeof TextoPDF>) {
   return <TextoPDF {...({ hyphenationPenalty: 5000 } as object)} {...props} />;
 }
 
+/** Um estilo do @react-pdf (o tipo não é exportado pelo renderer; vem do próprio View). */
+type Estilo = Exclude<ComponentProps<typeof View>["style"], undefined | unknown[]>;
+
+/** `maxLines` existe no @react-pdf 4 (corta com reticências), mas não nos tipos dele. */
+const UMA_LINHA = { maxLines: 1 } as object;
+
 /* ------------------------------------------------------------------------- */
-/* Medidas tiradas do modelo (pt; A4 = 595 × 842)                             */
+/* Cores                                                                      */
 /* ------------------------------------------------------------------------- */
 
-const PRETO = "#000000";
-/** Linha fina e escura: no papel do modelo é preta; 0,75 pt a deixa cinza na tela. */
-const BORDA = "#3f3f3f";
+const PRETO = "#111111";
+/** Barras de seção e rodapé: o "escuro" da referência, que não é preto chapado. */
+const ESCURO = "#1f2a3c";
+const CINZA_TEXTO = "#4b5563";
+const BORDA = "#c9d1dc";
+const FUNDO_TABELA = "#eef2f7";
+const BRANCO = "#ffffff";
+
+const COR_VALIDA = /^#[0-9a-fA-F]{6}$/;
+
+/** Mistura a cor com branco: 0 = a cor, 1 = branco. Para o fundo das pílulas. */
+function clarear(hex: string, fator: number): string {
+  if (!COR_VALIDA.test(hex)) return "#e5e7eb";
+  const canal = (i: number) => {
+    const v = parseInt(hex.slice(i, i + 2), 16);
+    return Math.round(v + (255 - v) * fator)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${canal(1)}${canal(3)}${canal(5)}`;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Medidas (pt; A4 = 595 × 842)                                               */
+/* ------------------------------------------------------------------------- */
+
 const LINHA = 0.75;
-const RAIO = 4.5;
+const RAIO = 5;
 const MARGEM = 28.5;
-/** Recuo interno das caixas, onde começa o texto e a linha das tabelas. */
-const RECUO = 4.5;
-/** Altura da miniatura no bloco LAYOUT; a largura segue a proporção da arte. */
-const ALTURA_LAYOUT = 60;
-/** A foto da peça 3D é o produto, não uma miniatura de arte: cabe bem com o cabeçalho na mesma página. */
-const ALTURA_FOTO_DO_MODELO = 170;
-const LARGURA_UTIL = 595.28 - 2 * MARGEM - 2 * RECUO;
+/** Recuo interno das seções, onde começa o texto. */
+const RECUO = 6;
+const LARGURA_PAGINA = 595.28;
+const LARGURA_CONTEUDO = LARGURA_PAGINA - 2 * MARGEM;
+const LARGURA_UTIL = LARGURA_CONTEUDO - 2 * RECUO;
+/** Altura da área da arte no cartão de layout: dois cartões por linha, a arte do tamanho de um selo postal grande. */
+const ALTURA_DA_ARTE = 150;
+/** A faixa da marca entre cabeçalho e corpo, e entre corpo e rodapé. */
+const ALTURA_DA_FAIXA = 3.5;
+/** O que o rodapé fixo ocupa: a página reserva isso embaixo. */
+const ALTURA_DO_RODAPE = 62;
 
 const s = StyleSheet.create({
   page: {
-    paddingTop: 24,
-    paddingBottom: 34,
+    paddingTop: 22,
+    paddingBottom: ALTURA_DO_RODAPE + 16,
     paddingHorizontal: MARGEM,
     fontSize: 9,
     fontFamily: "Helvetica",
@@ -194,8 +238,8 @@ const s = StyleSheet.create({
   negrito: { fontFamily: "Helvetica-Bold" },
 
   // cabeçalho
-  cabecalho: { flexDirection: "row", alignItems: "center", minHeight: 110 },
-  logo: { width: 150, height: 110, objectFit: "contain", objectPositionX: 0 },
+  cabecalho: { flexDirection: "row", alignItems: "flex-start", minHeight: 88 },
+  logo: { width: 150, height: 80, objectFit: "contain", objectPositionX: 0 },
   logoCaixa: {
     width: 150,
     height: 84,
@@ -207,22 +251,24 @@ const s = StyleSheet.create({
   },
   logoNome: { fontFamily: "Helvetica-Bold", fontSize: 15, textAlign: "center" },
   logoSlogan: { fontSize: 7, textAlign: "center", marginTop: 5, color: "#333333" },
-  emissor: { flex: 1, paddingLeft: 25, paddingRight: 8 },
-  // Sem largura fixa: a coluna do número encolhe ao texto ("Orçamento: Nº 1059")
-  // e o bloco do emissor fica com o resto, como no modelo.
-  numeroCol: { maxWidth: 150, alignItems: "flex-end", paddingRight: 9 },
-  // No orçamento a coluna leva também o cliente: largura fixa, e o bloco do
-  // emissor fica com o resto.
-  numeroColOrcamento: { width: 172, maxWidth: 172 },
-  clienteNoCabecalho: {
-    alignSelf: "stretch",
-    marginTop: 6,
-    paddingTop: 4,
-    borderTopWidth: LINHA,
-    borderTopColor: BORDA,
+  // lineHeight sem unidade multiplica o fontSize do MESMO estilo (ou 18, se não
+  // houver): sem o fontSize aqui as linhas do emissor saíam com 22 pt de altura.
+  emissor: { flex: 1, paddingLeft: 22, paddingRight: 10, paddingTop: 6, fontSize: 9, lineHeight: 1.3 },
+  numeroCol: { width: 176, alignItems: "stretch", paddingTop: 4 },
+  numeroCaixa: {
+    borderRadius: RAIO,
+    paddingHorizontal: 8,
+    paddingTop: 5,
+    paddingBottom: 4,
   },
-  clienteNoCabecalhoLinha: { marginTop: 1.5 },
-  numero: { fontFamily: "Helvetica-Bold", textAlign: "right" },
+  numeroTexto: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 11,
+    color: BRANCO,
+    textAlign: "left",
+  },
+  clienteNoCabecalho: { marginTop: 6, paddingLeft: 1 },
+  clienteNoCabecalhoLinha: { marginTop: 1.8 },
   marcaVia: {
     marginTop: 5,
     fontFamily: "Helvetica-Bold",
@@ -232,149 +278,237 @@ const s = StyleSheet.create({
     paddingHorizontal: 5,
     paddingTop: 2,
     paddingBottom: 1,
+    alignSelf: "flex-start",
   },
-  situacao: { marginTop: 4, fontSize: 8, textAlign: "right" },
+  situacao: { marginTop: 4, fontSize: 8 },
 
-  datas: { flexDirection: "row", justifyContent: "space-between", marginTop: 3, marginBottom: 1 },
+  faixa: { flexDirection: "row", height: ALTURA_DA_FAIXA, marginTop: 6 },
+  faixaTrecho: { flex: 1 },
 
-  // caixas
-  caixa: {
+  datas: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, marginBottom: 2 },
+
+  // seções: barra escura com título + corpo com borda clara
+  secao: {
+    marginTop: 7,
     borderWidth: LINHA,
     borderColor: BORDA,
     borderRadius: RAIO,
-    paddingHorizontal: RECUO,
-    paddingTop: 4,
-    paddingBottom: 4.5,
-    marginTop: 3,
   },
-  tituloCaixa: {
-    fontFamily: "Helvetica-Bold",
-    textDecoration: "underline",
-    textAlign: "center",
-    marginBottom: 3,
+  barra: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: ESCURO,
+    borderTopLeftRadius: RAIO - 1,
+    borderTopRightRadius: RAIO - 1,
+    paddingHorizontal: RECUO + 2,
+    paddingTop: 3.5,
+    paddingBottom: 2.5,
+    minHeight: 15,
   },
+  barraTitulo: { fontFamily: "Helvetica-Bold", fontSize: 9, color: BRANCO, letterSpacing: 0.4 },
+  corpo: { paddingHorizontal: RECUO, paddingTop: 5, paddingBottom: 6 },
+  corpoSemRecuo: { paddingTop: 0, paddingBottom: 0, paddingHorizontal: 0 },
   // lineHeight sem unidade multiplica o fontSize DO MESMO estilo (ou 18, se não
   // houver): por isso os dois andam juntos aqui.
-  textoCaixa: { fontSize: 9, lineHeight: 1.3 },
+  textoCaixa: { fontSize: 9, lineHeight: 1.35 },
   /** Condições gerais (texto padrão da empresa): letra menor, é o miúdo do contrato. */
-  textoCondicoes: { fontSize: 8, lineHeight: 1.3 },
+  textoCondicoes: { fontSize: 8, lineHeight: 1.4 },
 
-  // cliente
-  caixaCliente: { paddingTop: 4.5, paddingBottom: 4.5 },
-  clienteLinha: { flexDirection: "row", paddingVertical: 1.7 },
-  clienteGrupo: { marginTop: 1.5 },
+  // cliente (OS, fatura, recibo)
+  caixaCliente: { paddingTop: 1, paddingBottom: 1 },
+  clienteLinha: { flexDirection: "row", paddingVertical: 1.2 },
+  clienteGrupo: { marginTop: 1 },
   clienteCel: { width: "50%", paddingLeft: 2.2, paddingRight: 6 },
 
   // tabela de itens
   cabecalhoTabela: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: FUNDO_TABELA,
     borderBottomWidth: LINHA,
-    borderBottomColor: PRETO,
-    paddingBottom: 1.5,
+    borderBottomColor: BORDA,
+    paddingHorizontal: RECUO,
+    paddingTop: 4,
+    paddingBottom: 3,
   },
   linhaItem: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: LINHA,
-    borderBottomColor: PRETO,
-    paddingVertical: 1,
-    minHeight: 24,
+    borderBottomColor: BORDA,
+    paddingHorizontal: RECUO,
+    paddingVertical: 1.5,
+    minHeight: 26,
   },
-  th: { fontFamily: "Helvetica-Bold" },
+  th: { fontFamily: "Helvetica-Bold", fontSize: 8.5 },
   // Círculo + descrição num bloco só: o círculo fica na altura da 1ª linha
   // mesmo quando a especificação acrescenta outras embaixo.
   cDados: { flexDirection: "row", alignItems: "flex-start", paddingVertical: 2 },
-  cNumero: { width: 14, paddingTop: 0.6, alignItems: "flex-start" },
+  cNumero: { width: 16, paddingTop: 0.2, alignItems: "flex-start" },
   cTipo: { width: 46, paddingRight: 3 },
   cAcabamento: { width: 70, paddingRight: 4 },
-  cQtd: { width: 75, paddingRight: 3 },
-  cValor: { width: 62, textAlign: "right", paddingRight: 2 },
-  cTotal: { width: 78, textAlign: "right" },
+  cQtd: { width: 72, paddingRight: 3 },
+  cValor: { width: 60, textAlign: "right", paddingRight: 2 },
+  cTotal: { width: 76, textAlign: "right" },
   unidade: { fontSize: 6.5 },
   especificacao: { fontSize: 7.5, marginTop: 1.5, color: "#262626", lineHeight: 1.25 },
   metragem: { fontSize: 7.5, lineHeight: 1.2 },
-  resumoItens: { paddingTop: 1 },
+  resumoItens: {
+    paddingHorizontal: RECUO,
+    paddingTop: 3.5,
+    paddingBottom: 3,
+    borderBottomLeftRadius: RAIO - 1,
+    borderBottomRightRadius: RAIO - 1,
+  },
 
-  // O número do item num círculo; com dois dígitos ele alarga e vira pílula.
+  // O número do item num círculo cheio da cor da marca; com dois dígitos vira pílula.
   circulo: {
-    minWidth: 10.5,
-    height: 10.5,
-    borderRadius: 5.25,
-    borderWidth: LINHA,
-    borderColor: PRETO,
-    backgroundColor: "#ffffff",
+    minWidth: 11.5,
+    height: 11.5,
+    borderRadius: 5.75,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 1.2,
+    paddingHorizontal: 1.5,
   },
-  circuloTexto: { fontSize: 7, lineHeight: 1, textAlign: "center", marginTop: 0.8 },
+  circuloTexto: {
+    fontSize: 7,
+    lineHeight: 1,
+    textAlign: "center",
+    marginTop: 0.4,
+    color: BRANCO,
+    fontFamily: "Helvetica-Bold",
+  },
 
-  // layout
-  layouts: { flexDirection: "row", flexWrap: "wrap", paddingTop: 6, paddingBottom: 4 },
-  layout: { marginRight: 18, marginBottom: 6, position: "relative" },
-  layoutImg: { height: ALTURA_LAYOUT, maxWidth: LARGURA_UTIL, objectFit: "contain" },
-  fotoModeloImg: { height: ALTURA_FOTO_DO_MODELO, maxWidth: LARGURA_UTIL, objectFit: "contain" },
-  layoutSemPrevia: {
-    height: ALTURA_LAYOUT,
-    width: 150,
+  // cartões de layout
+  cartoes: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingTop: 2,
+  },
+  cartao: {
+    width: "49.2%",
+    marginBottom: 7,
+    borderWidth: LINHA,
+    borderColor: BORDA,
+    borderRadius: RAIO,
+    position: "relative",
+  },
+  cartaoTopo: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderTopLeftRadius: RAIO - 1,
+    borderTopRightRadius: RAIO - 1,
+    paddingHorizontal: 6,
+    paddingTop: 3.5,
+    paddingBottom: 3,
+  },
+  cartaoCirculo: {
+    minWidth: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: BRANCO,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 5,
+    paddingHorizontal: 1.5,
+  },
+  cartaoCirculoTexto: {
+    fontSize: 7.5,
+    lineHeight: 1,
+    textAlign: "center",
+    marginTop: 0.8,
+    fontFamily: "Helvetica-Bold",
+  },
+  cartaoTitulo: { flex: 1, fontFamily: "Helvetica-Bold", fontSize: 9, color: BRANCO },
+  cartaoArte: {
+    height: ALTURA_DA_ARTE,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 5,
+    backgroundColor: BRANCO,
+    borderBottomLeftRadius: RAIO - 1,
+    borderBottomRightRadius: RAIO - 1,
+  },
+  cartaoImagem: { width: "100%", height: ALTURA_DA_ARTE - 10, objectFit: "contain" },
+  cartaoSemPrevia: {
+    width: "90%",
+    height: ALTURA_DA_ARTE - 24,
     borderWidth: LINHA,
     borderColor: BORDA,
     borderStyle: "dashed",
+    borderRadius: RAIO,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
   },
-  layoutSemPreviaTexto: { fontSize: 7, textAlign: "center", color: "#333333" },
-  layoutNumero: { position: "absolute", top: 1.5, left: 1.5 },
-  layoutExtras: {
+  cartaoSemPreviaTexto: { fontSize: 7.5, textAlign: "center", color: CINZA_TEXTO, lineHeight: 1.3 },
+  cartaoExtras: {
     position: "absolute",
-    bottom: 1.5,
-    right: 1.5,
-    backgroundColor: "#ffffff",
+    bottom: 5,
+    right: 5,
+    backgroundColor: BRANCO,
     borderWidth: LINHA,
-    borderColor: PRETO,
+    borderColor: ESCURO,
     borderRadius: 3,
-    paddingHorizontal: 3,
-    paddingTop: 1.2,
-    paddingBottom: 0.4,
+    paddingHorizontal: 4,
+    paddingTop: 1.5,
+    paddingBottom: 0.6,
     fontSize: 7,
     fontFamily: "Helvetica-Bold",
   },
 
-  // totais
-  totais: { alignItems: "flex-end", marginTop: 4, marginBottom: 2, paddingRight: 1.9 },
-  totalLinha: { marginTop: 1.7 },
-
-  // pagamento
-  parcelasCaixa: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    borderWidth: LINHA,
-    borderColor: PRETO,
-    marginTop: 1.5,
-    paddingHorizontal: 2.2,
-    paddingTop: 2,
-    paddingBottom: 1.6,
+  // entrega + totais
+  blocoBarra: { flexDirection: "row", alignItems: "stretch" },
+  abaDesconto: {
+    justifyContent: "center",
+    paddingHorizontal: 9,
+    paddingTop: 3.5,
+    paddingBottom: 2.5,
+    borderTopRightRadius: RAIO - 1,
   },
-  parcela: { width: "33.33%", paddingRight: 6, paddingVertical: 0.6 },
+  abaDescontoTexto: { fontFamily: "Helvetica-Bold", fontSize: 8.5, color: BRANCO },
+  blocoCorpo: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: RECUO, paddingTop: 5, paddingBottom: 5 },
+  entregaTexto: { flex: 1, paddingRight: 10, fontSize: 9, lineHeight: 1.35, paddingTop: 1 },
+  totais: { alignItems: "flex-end" },
+  totalLinha: { marginTop: 2 },
+  totalTexto: { fontFamily: "Helvetica-Bold", fontSize: 9.5 },
+  totaisSoltos: { alignItems: "flex-end", marginTop: 6, marginBottom: 2, paddingRight: 2 },
+
+  // pagamento e observação lado a lado
+  duasColunas: { flexDirection: "row", alignItems: "stretch" },
+  colunaPagamento: { width: "36%", marginRight: 7 },
+  colunaLarga: { flex: 1 },
+  pilula: {
+    alignSelf: "flex-start",
+    marginTop: 5,
+    borderWidth: LINHA,
+    borderRadius: RAIO,
+    paddingHorizontal: 9,
+    paddingTop: 4,
+    paddingBottom: 3,
+  },
+  pilulaTexto: { fontFamily: "Helvetica-Bold", fontSize: 10.5 },
+  parcelasLista: { marginTop: 4 },
+  parcela: { fontSize: 8.5, lineHeight: 1.45 },
+  pagamentoLinha: { marginTop: 2.5 },
 
   // fecho
   responsavel: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 5,
-    paddingHorizontal: 2.2,
+    marginTop: 7,
+    paddingHorizontal: 1,
   },
   prazos: { alignItems: "flex-end" },
-  validade: { marginTop: 4, paddingHorizontal: 2.2 },
-  aceite: { marginTop: 20, alignItems: "center" },
+  validade: { marginTop: 4, paddingHorizontal: 1 },
+  aceite: { marginTop: 14, alignItems: "center" },
   aceiteTexto: { textAlign: "center" },
-  assinaturaLinha: { marginTop: 28, width: 270, borderTopWidth: LINHA, borderTopColor: PRETO },
-  assinaturaRotulo: { marginTop: 9, textAlign: "center" },
+  assinaturaLinha: { marginTop: 22, width: 270, borderTopWidth: LINHA, borderTopColor: PRETO },
+  assinaturaRotulo: { marginTop: 7, textAlign: "center" },
   assinaturas: {
     flexDirection: "row",
-    marginTop: 40,
+    marginTop: 30,
     justifyContent: "space-between",
     paddingHorizontal: 10,
   },
@@ -387,15 +521,34 @@ const s = StyleSheet.create({
   },
   assinaturaTexto: { fontSize: 8, textAlign: "center" },
 
-  rodape: {
-    position: "absolute",
-    bottom: 14,
-    left: MARGEM,
-    right: MARGEM,
+  // rodapé fixo: faixa + barra escura de contato + linha da página
+  rodape: { position: "absolute", bottom: 10, left: MARGEM, right: MARGEM },
+  rodapeFaixa: { flexDirection: "row", height: ALTURA_DA_FAIXA },
+  rodapeBarra: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: ESCURO,
+    borderBottomLeftRadius: RAIO,
+    borderBottomRightRadius: RAIO,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 36,
+  },
+  // O endereço é o contato mais comprido: leva quase o dobro da coluna do
+  // telefone, senão "Perpétuo Socorro" sai hifenizado.
+  rodapeContato: { flex: 1, paddingRight: 8 },
+  rodapeEndereco: { flex: 1.9 },
+  rodapeTelefone: { flex: 0.9 },
+  rodapeEmail: { flex: 1.3 },
+  rodapeRotulo: { fontFamily: "Helvetica-Bold", fontSize: 6.3, letterSpacing: 0.6, marginBottom: 1.5 },
+  rodapeTexto: { fontSize: 7.5, color: BRANCO, lineHeight: 1.25 },
+  rodapeLogo: { width: 72, height: 30, objectFit: "contain", objectPositionX: 1 },
+  rodapePagina: {
     flexDirection: "row",
     justifyContent: "space-between",
-    fontSize: 7,
-    color: "#555555",
+    marginTop: 3,
+    fontSize: 6.8,
+    color: CINZA_TEXTO,
   },
 });
 
@@ -425,29 +578,55 @@ function Campo({ rotulo, valor }: { rotulo: string; valor?: string | number | nu
   );
 }
 
-function Caixa({
-  titulo,
-  children,
-  inteira = true,
-}: {
-  titulo: string;
-  children?: ReactNode;
-  /** false deixa a caixa quebrar entre páginas (tabelas longas). */
-  inteira?: boolean;
-}) {
+/** A faixa da marca: um trecho por cor, da esquerda para a direita. */
+function Faixa({ cores, estilo }: { cores: readonly string[]; estilo?: Estilo }) {
   return (
-    <View style={s.caixa} wrap={!inteira}>
-      <Text style={s.tituloCaixa} minPresenceAhead={30}>
-        {titulo}
-      </Text>
-      {children}
+    <View style={estilo ? [s.faixa, estilo] : s.faixa}>
+      {cores.map((cor, i) => (
+        <View key={i} style={[s.faixaTrecho, { backgroundColor: cor }]} />
+      ))}
     </View>
   );
 }
 
-function Circulo({ n }: { n: number }) {
+/**
+ * Seção do documento: barra escura com o título e o corpo com borda clara.
+ * `direita` entra na barra, à direita do título (a aba do desconto).
+ */
+function Secao({
+  titulo,
+  children,
+  inteira = true,
+  semRecuo = false,
+  estilo,
+  direita,
+}: {
+  titulo: string;
+  children?: ReactNode;
+  /** false deixa a seção quebrar entre páginas (tabelas longas). */
+  inteira?: boolean;
+  /** Corpo sem recuo: a tabela desenha as próprias margens. */
+  semRecuo?: boolean;
+  estilo?: Estilo;
+  direita?: ReactNode;
+}) {
   return (
-    <View style={n >= 10 ? [s.circulo, { paddingHorizontal: 2 }] : s.circulo}>
+    <View style={estilo ? [s.secao, estilo] : s.secao} wrap={!inteira}>
+      <View style={direita ? s.blocoBarra : undefined} minPresenceAhead={36}>
+        <View style={direita ? [s.barra, { flex: 1, borderTopRightRadius: 0 }] : s.barra}>
+          <Text style={s.barraTitulo}>{titulo}</Text>
+        </View>
+        {direita}
+      </View>
+      <View style={semRecuo ? [s.corpo, s.corpoSemRecuo] : s.corpo}>{children}</View>
+    </View>
+  );
+}
+
+/** O número do item num círculo cheio (na tabela). */
+function Circulo({ n, cor }: { n: number; cor: string }) {
+  return (
+    <View style={[s.circulo, { backgroundColor: cor }, n >= 10 ? { paddingHorizontal: 2.5 } : {}]}>
       <Text style={n >= 10 ? [s.circuloTexto, { fontSize: 6.5 }] : s.circuloTexto}>{n}</Text>
     </View>
   );
@@ -466,6 +645,14 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
   const marcaDaVia = viaDeProducao ? "VIA DE PRODUÇÃO" : p.custos ? "USO INTERNO" : null;
   const identificacao = ehRecibo ? `${titulo} — OS Nº ${p.numero}` : `${titulo} Nº ${p.numero}`;
 
+  // ------------------------------------------------------------------ cores
+  const cor = COR_VALIDA.test(empresa.cor) ? empresa.cor : "#1f2a3c";
+  // Sem faixa própria (parceiro), a faixa é a cor da marca dele, inteira.
+  const faixa = empresa.faixa && empresa.faixa.length > 0 ? empresa.faixa : [cor];
+  const corDoCartao = (i: number) => faixa[i % faixa.length];
+  const corDaAba = faixa[0];
+  const fundoClaro = clarear(cor, 0.84);
+
   // ---------------------------------------------------------------- emissor
   const linhasDoEmissor = [
     [empresa.endereco, empresa.bairro].filter(temTexto).join(", "),
@@ -483,9 +670,27 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
     empresa.site,
   ].filter(temTexto);
 
+  // O rodapé repete o contato em três colunas: só as que existem.
+  const contatos = [
+    {
+      rotulo: "ENDEREÇO",
+      estilo: s.rodapeEndereco,
+      valor: [
+        [empresa.endereco, empresa.bairro].filter(temTexto).join(", "),
+        [empresa.cidade, empresa.estado].filter(temTexto).join(" - "),
+        empresa.cep,
+      ]
+        .filter(temTexto)
+        .join(" · "),
+    },
+    { rotulo: "TELEFONE", estilo: s.rodapeTelefone, valor: empresa.telefones ?? "" },
+    { rotulo: "E-MAIL", estilo: s.rodapeEmail, valor: empresa.email ?? "" },
+  ].filter((c) => temTexto(c.valor));
+  const temRodape = contatos.length > 0 || temTexto(empresa.logo_escura_url);
+
   // ------------------------------------------------------------------ itens
   // A coluna de dados (círculo + descrição) fica com o que sobra das outras.
-  const larguraDados = LARGURA_UTIL - (ehRecibo ? 0 : 46) - 70 - 75 - (mostrar ? 62 + 78 : 0);
+  const larguraDados = LARGURA_UTIL - (ehRecibo ? 0 : 46) - 70 - 72 - (mostrar ? 60 + 76 : 0);
   const layouts = p.itens
     .map((item, indice) => ({ item, numero: indice + 1 }))
     .filter((l) => !!l.item.layout_url || !!l.item.layout_sem_previa);
@@ -509,8 +714,33 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
       ? (empresa.condicoes_gerais ?? CONDICOES_PADRAO_DA_GRAFICA)
       : null;
 
+  const temEntrega = temTexto(p.entrega);
   const cidadeDoCliente = [p.cliente.cidade, p.cliente.estado].filter(temTexto).join(" - ");
   const rotuloDocCliente = rotuloDoDocumento(p.cliente.documento);
+
+  const totais = mostrar ? (
+    <View style={s.totais}>
+      <Text style={s.totalTexto}>
+        {ROTULO_DO_TOTAL[p.tipo]}: {dinheiro(p.total)}
+      </Text>
+      {/* Na fatura o que interessa é o saldo, não o total: o cliente que já
+          pagou a entrada precisa ver quanto ainda deve. */}
+      {p.valor_pago != null && p.valor_pago > 0 && (
+        <>
+          <Text style={s.totalLinha}>Já recebido: {dinheiro(p.valor_pago)}</Text>
+          <Text style={[s.negrito, s.totalLinha]}>
+            Saldo em aberto: {dinheiro(p.total - p.valor_pago)}
+          </Text>
+        </>
+      )}
+    </View>
+  ) : null;
+
+  const abaDoDesconto = mostrar ? (
+    <View style={[s.abaDesconto, { backgroundColor: corDaAba }]}>
+      <Text style={s.abaDescontoTexto}>Valor Desconto: {dinheiro(desconto)}</Text>
+    </View>
+  ) : undefined;
 
   return (
     <Document title={identificacao} author={empresa.razao_social ?? empresa.nome}>
@@ -520,8 +750,8 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           {empresa.logo_url ? (
             <Image style={s.logo} src={empresa.logo_url} />
           ) : (
-            <View style={[s.logoCaixa, { borderColor: empresa.cor }]}>
-              <Text style={[s.logoNome, { color: empresa.cor }]}>{empresa.nome}</Text>
+            <View style={[s.logoCaixa, { borderColor: cor }]}>
+              <Text style={[s.logoNome, { color: cor }]}>{empresa.nome}</Text>
               {temTexto(empresa.slogan) && <Text style={s.logoSlogan}>{empresa.slogan}</Text>}
             </View>
           )}
@@ -531,17 +761,19 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
               <Text key={i}>{linha}</Text>
             ))}
           </View>
-          <View style={ehOrcamento ? [s.numeroCol, s.numeroColOrcamento] : s.numeroCol}>
-            {ehRecibo ? (
-              <>
-                <Text style={s.numero}>{titulo}</Text>
-                <Text style={s.numero}>OS Nº {p.numero}</Text>
-              </>
-            ) : (
-              <Text style={s.numero}>
-                {titulo}: Nº {p.numero}
-              </Text>
-            )}
+          <View style={s.numeroCol}>
+            <View style={[s.numeroCaixa, { backgroundColor: cor }]}>
+              {ehRecibo ? (
+                <>
+                  <Text style={s.numeroTexto}>{titulo}</Text>
+                  <Text style={s.numeroTexto}>OS Nº {p.numero}</Text>
+                </>
+              ) : (
+                <Text style={s.numeroTexto}>
+                  {titulo}: Nº {p.numero}
+                </Text>
+              )}
+            </View>
             {marcaDaVia && <Text style={s.marcaVia}>{marcaDaVia}</Text>}
             {temTexto(p.status) && (p.tipo === "os" || p.tipo === "fatura") && (
               <Text style={s.situacao}>Situação: {p.status}</Text>
@@ -571,6 +803,8 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           </View>
         </View>
 
+        <Faixa cores={faixa} />
+
         <View style={s.datas}>
           <Campo rotulo="Data de Emissão" valor={p.data_solicitacao ?? "—"} />
           {!ehOrcamento && (p.tipo === "os" || !!p.data_entrega) && (
@@ -580,53 +814,55 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
 
         {/* -------------------------------------------------- cliente */}
         {!ehOrcamento && (
-          <View style={[s.caixa, s.caixaCliente]} wrap={false}>
-            {(
-              [
+          <Secao titulo="CLIENTE">
+            <View style={s.caixaCliente} wrap={false}>
+              {(
                 [
-                  ["Razão Social", p.cliente.razao_social ?? p.cliente.nome],
-                  ["Nome Fantasia", p.cliente.nome_fantasia],
-                ],
-                [
-                  [rotuloDocCliente, p.cliente.documento],
-                  ["Inscrição Estadual", p.cliente.inscricao_estadual],
-                ],
-                [
-                  ["End.", p.cliente.endereco],
-                  ["Bairro", p.cliente.bairro],
-                ],
-                [
-                  ["CEP", p.cliente.cep],
-                  ["Cidade", cidadeDoCliente],
-                ],
-                [
-                  ["Telefone", p.cliente.telefone],
-                  ["Celular", p.cliente.celular],
-                ],
-                [
-                  ["E-mail", p.cliente.email],
-                  ["Contato", p.cliente.contato],
-                ],
-              ] as [string, string | null | undefined][][]
-            ).map((linha, i) => (
-              <View
-                key={i}
-                style={i === 2 || i === 4 ? [s.clienteLinha, s.clienteGrupo] : s.clienteLinha}
-              >
-                {linha.map(([rotulo, valor]) => (
-                  <View key={rotulo} style={s.clienteCel}>
-                    <Campo rotulo={rotulo} valor={valor} />
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
+                  [
+                    ["Razão Social", p.cliente.razao_social ?? p.cliente.nome],
+                    ["Nome Fantasia", p.cliente.nome_fantasia],
+                  ],
+                  [
+                    [rotuloDocCliente, p.cliente.documento],
+                    ["Inscrição Estadual", p.cliente.inscricao_estadual],
+                  ],
+                  [
+                    ["End.", p.cliente.endereco],
+                    ["Bairro", p.cliente.bairro],
+                  ],
+                  [
+                    ["CEP", p.cliente.cep],
+                    ["Cidade", cidadeDoCliente],
+                  ],
+                  [
+                    ["Telefone", p.cliente.telefone],
+                    ["Celular", p.cliente.celular],
+                  ],
+                  [
+                    ["E-mail", p.cliente.email],
+                    ["Contato", p.cliente.contato],
+                  ],
+                ] as [string, string | null | undefined][][]
+              ).map((linha, i) => (
+                <View
+                  key={i}
+                  style={i === 2 || i === 4 ? [s.clienteLinha, s.clienteGrupo] : s.clienteLinha}
+                >
+                  {linha.map(([rotulo, valor]) => (
+                    <View key={rotulo} style={s.clienteCel}>
+                      <Campo rotulo={rotulo} valor={valor} />
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </Secao>
         )}
 
         {/* ------------------------------------------------- produtos */}
-        <Caixa titulo={ehRecibo ? "MATERIAIS RETIRADOS" : "PRODUTOS/SERVIÇOS"} inteira={false}>
+        <Secao titulo={ehRecibo ? "MATERIAIS RETIRADOS" : "PRODUTOS/SERVIÇOS"} inteira={false} semRecuo>
           <View style={s.cabecalhoTabela} wrap={false}>
-            <Text style={[s.th, { width: larguraDados, paddingLeft: 14, paddingRight: 4 }]}>
+            <Text style={[s.th, { width: larguraDados, paddingLeft: 16, paddingRight: 4 }]}>
               {ehRecibo ? "Material" : "Dados Produtos/Serviços"}
             </Text>
             {!ehRecibo && <Text style={[s.th, s.cTipo]}>{"Tipo\nProduto"}</Text>}
@@ -650,7 +886,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
             // No recibo a unidade já vai junto da quantidade ("24,2 M²").
             const unidadeNaDescricao = ehRecibo ? null : unidade;
             // Sem resumo embaixo, a última linha não leva traço: colado na borda
-            // da caixa ele vira uma linha dupla.
+            // da seção ele vira uma linha dupla.
             const semTraco = indice === p.itens.length - 1 && !(mostrar || temArea);
             return (
               <View
@@ -660,7 +896,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
               >
                 <View style={[s.cDados, { width: larguraDados }]}>
                   <View style={s.cNumero}>
-                    <Circulo n={indice + 1} />
+                    <Circulo n={indice + 1} cor={cor} />
                   </View>
                   <View style={{ flex: 1, paddingRight: 4 }}>
                     <Text>
@@ -707,7 +943,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           })}
 
           {(mostrar || temArea) && (
-            <View style={s.resumoItens} wrap={false}>
+            <View style={[s.resumoItens, { backgroundColor: fundoClaro }]} wrap={false}>
               {mostrar && <Text style={s.negrito}>Total Produtos {dinheiro(subtotal)}</Text>}
               {temArea && (
                 <Text style={s.negrito}>
@@ -716,105 +952,113 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
               )}
             </View>
           )}
-        </Caixa>
+        </Secao>
 
         {/* --------------------------------------------------- layout */}
         {layouts.length > 0 && (
-          // No 3D a imagem é a foto da peça pronta, não uma arte: título próprio
-          // e tamanho de vitrine — é o que o cliente olha antes do preço.
-          <Caixa titulo={eh3d ? "FOTO DO MODELO" : "LAYOUT"} inteira={false}>
-            <View style={s.layouts}>
-              {layouts.map(({ item, numero }) => (
-                <View style={s.layout} key={numero} wrap={false}>
-                  {item.layout_url && !item.layout_sem_previa ? (
-                    <Image style={eh3d ? s.fotoModeloImg : s.layoutImg} src={item.layout_url} />
-                  ) : (
-                    <View style={s.layoutSemPrevia}>
-                      <Text style={s.layoutSemPreviaTexto}>
-                        {eh3d ? "foto sem prévia" : "arte sem prévia"}: {item.layout_nome ?? "arquivo"}
-                      </Text>
+          // No 3D a imagem é a foto da peça pronta, não uma arte: título próprio.
+          // Um cartão por item, com o nome na barra: o cliente sabe o que está
+          // olhando sem voltar à tabela.
+          <Secao titulo={eh3d ? "FOTO DO MODELO" : "LAYOUT - REFERÊNCIAS"} inteira={false}>
+            <View style={s.cartoes}>
+              {layouts.map(({ item, numero }, i) => (
+                <View style={s.cartao} key={numero} wrap={false}>
+                  <View style={[s.cartaoTopo, { backgroundColor: corDoCartao(i) }]}>
+                    <View style={s.cartaoCirculo}>
+                      <Text style={[s.cartaoCirculoTexto, { color: corDoCartao(i) }]}>{numero}</Text>
                     </View>
-                  )}
-                  <View style={s.layoutNumero}>
-                    <Circulo n={numero} />
+                    <Text style={s.cartaoTitulo} {...UMA_LINHA}>
+                      {item.descricao.trim()}
+                    </Text>
+                  </View>
+                  <View style={s.cartaoArte}>
+                    {item.layout_url && !item.layout_sem_previa ? (
+                      <Image style={s.cartaoImagem} src={item.layout_url} />
+                    ) : (
+                      <View style={s.cartaoSemPrevia}>
+                        <Text style={s.cartaoSemPreviaTexto}>
+                          {eh3d ? "foto sem prévia" : "arte sem prévia"}: {item.layout_nome ?? "arquivo"}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   {(item.layouts_extras ?? 0) > 0 && (
-                    <Text style={s.layoutExtras}>+{item.layouts_extras}</Text>
+                    <Text style={s.cartaoExtras}>+{item.layouts_extras}</Text>
                   )}
                 </View>
               ))}
             </View>
-          </Caixa>
+          </Secao>
         )}
 
-        {/* -------------------------------------------------- entrega */}
-        {temTexto(p.entrega) && (
-          <Caixa titulo="ENDEREÇO: ENTREGA">
-            <Text style={s.textoCaixa}>{p.entrega}</Text>
-          </Caixa>
+        {/* ------------------------------------------- entrega e totais */}
+        {temEntrega ? (
+          <Secao titulo="ENDEREÇO: ENTREGA" direita={abaDoDesconto} semRecuo>
+            <View style={s.blocoCorpo}>
+              <Text style={s.entregaTexto}>{p.entrega}</Text>
+              {totais}
+            </View>
+          </Secao>
+        ) : (
+          mostrar && (
+            <View style={s.totaisSoltos} wrap={false}>
+              <Text>Valor Desconto: {dinheiro(desconto)}</Text>
+              <View style={s.totalLinha}>{totais}</View>
+            </View>
+          )
         )}
 
-        {/* --------------------------------------------------- totais */}
-        {mostrar && (
-          <View style={s.totais} wrap={false}>
-            <Text>Valor Desconto: {dinheiro(desconto)}</Text>
-            <Text style={[s.negrito, s.totalLinha]}>
-              {ROTULO_DO_TOTAL[p.tipo]}: {dinheiro(p.total)}
-            </Text>
-            {/* Na fatura o que interessa é o saldo, não o total: o cliente que já
-                pagou a entrada precisa ver quanto ainda deve. */}
-            {p.valor_pago != null && p.valor_pago > 0 && (
-              <>
-                <Text style={s.totalLinha}>Já recebido: {dinheiro(p.valor_pago)}</Text>
-                <Text style={[s.negrito, s.totalLinha]}>
-                  Saldo em aberto: {dinheiro(p.total - p.valor_pago)}
-                </Text>
-              </>
+        {/* --------------------------------- pagamento e observação */}
+        {(mostrarPagamento || observacao != null) && (
+          <View style={s.duasColunas} wrap={false}>
+            {mostrarPagamento && (
+              <Secao
+                titulo="PAGAMENTO"
+                estilo={observacao != null ? s.colunaPagamento : s.colunaLarga}
+              >
+                <View style={s.pagamentoLinha}>
+                  <Campo rotulo="Forma Pagto" valor={p.pagamento?.forma ?? ""} />
+                </View>
+                <View style={s.pagamentoLinha}>
+                  <Campo rotulo="Condições de Pagamento" valor={nParcelas ? `${nParcelas}x` : ""} />
+                </View>
+                {parcelas.length > 0 &&
+                  (umaSoParcelaSemData ? (
+                    <View style={[s.pilula, { backgroundColor: fundoClaro, borderColor: cor }]}>
+                      <Text style={s.pilulaTexto}>{dinheiro(parcelas[0].valor)}</Text>
+                    </View>
+                  ) : (
+                    <View style={s.parcelasLista}>
+                      {parcelas.map((parcela) => (
+                        <Text key={parcela.numero} style={s.parcela}>
+                          <Text style={s.negrito}>{parcela.numero}ª </Text>
+                          {dinheiro(parcela.valor)}
+                          {parcela.vencimento ? `  venc. ${dataBR(parcela.vencimento)}` : ""}
+                          {parcela.pago ? "  (paga)" : ""}
+                        </Text>
+                      ))}
+                    </View>
+                  ))}
+              </Secao>
+            )}
+            {observacao != null && (
+              <Secao titulo="OBSERVAÇÃO" estilo={s.colunaLarga}>
+                <Text style={condicoesGerais ? s.textoCondicoes : s.textoCaixa}>{observacao}</Text>
+              </Secao>
             )}
           </View>
         )}
-
-        {/* ------------------------------------------------ pagamento */}
-        {mostrarPagamento && (
-          <Caixa titulo="PAGAMENTO">
-            <Campo rotulo="Forma Pagto" valor={p.pagamento?.forma ?? ""} />
-            <Campo rotulo="Condições de Pagamento" valor={nParcelas ? `${nParcelas}x` : ""} />
-            {parcelas.length > 0 && (
-              <View style={s.parcelasCaixa}>
-                {umaSoParcelaSemData ? (
-                  <Text>{dinheiro(parcelas[0].valor)}</Text>
-                ) : (
-                  parcelas.map((parcela) => (
-                    <Text key={parcela.numero} style={s.parcela}>
-                      <Text style={s.negrito}>{parcela.numero}ª </Text>
-                      {dinheiro(parcela.valor)}
-                      {parcela.vencimento ? `  venc. ${dataBR(parcela.vencimento)}` : ""}
-                      {parcela.pago ? "  (paga)" : ""}
-                    </Text>
-                  ))
-                )}
-              </View>
-            )}
-          </Caixa>
-        )}
-
-        {/* ---------------------------------------------- observações */}
-        {observacao != null && (
-          <Caixa titulo="OBSERVAÇÃO">
-            <Text style={condicoesGerais ? s.textoCondicoes : s.textoCaixa}>{observacao}</Text>
-          </Caixa>
-        )}
         {viaDeProducao && temTexto(p.observacao_interna) && (
-          <Caixa titulo="OBSERVAÇÃO INTERNA">
+          <Secao titulo="OBSERVAÇÃO INTERNA">
             <Text style={s.textoCaixa}>{p.observacao_interna}</Text>
-          </Caixa>
+          </Secao>
         )}
 
         {/* ------------------------------------------- custo (interno) */}
         {mostrar &&
           p.custos &&
           ((p.custos.tarifas?.length ?? 0) > 0 || (p.custos.itens?.length ?? 0) > 0) && (
-            <Caixa titulo="USO INTERNO — BASE DE CUSTO">
+            <Secao titulo="USO INTERNO — BASE DE CUSTO">
               {(p.custos.tarifas?.length ?? 0) > 0 && (
                 <Text style={s.textoCaixa}>
                   {(p.custos.tarifas ?? []).map((t) => `${t.rotulo}: ${t.valor}`).join("   ·   ")}
@@ -835,7 +1079,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
                     : ""}
                 </Text>
               ))}
-            </Caixa>
+            </Secao>
           )}
 
         {/* ---------------------------------------------------- fecho */}
@@ -886,12 +1130,31 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
           </View>
         )}
 
+        {/* --------------------------------------------------- rodapé */}
         <View style={s.rodape} fixed>
-          <Text>
-            {identificacao}
-            {marcaDaVia ? ` — ${marcaDaVia}` : ""}
-          </Text>
-          <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
+          {temRodape && (
+            <>
+              <Faixa cores={faixa} estilo={{ marginTop: 0 }} />
+              <View style={s.rodapeBarra}>
+                {contatos.map((c, i) => (
+                  <View key={c.rotulo} style={[s.rodapeContato, c.estilo]}>
+                    <Text style={[s.rodapeRotulo, { color: corDoCartao(i) }]}>{c.rotulo}</Text>
+                    <Text style={s.rodapeTexto}>{c.valor}</Text>
+                  </View>
+                ))}
+                {temTexto(empresa.logo_escura_url) && (
+                  <Image style={s.rodapeLogo} src={empresa.logo_escura_url} />
+                )}
+              </View>
+            </>
+          )}
+          <View style={s.rodapePagina}>
+            <Text>
+              {identificacao}
+              {marcaDaVia ? ` — ${marcaDaVia}` : ""}
+            </Text>
+            <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
+          </View>
         </View>
       </Page>
     </Document>
