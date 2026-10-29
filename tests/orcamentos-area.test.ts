@@ -1,10 +1,12 @@
 import { test, expect } from "vitest";
 import {
   areaCobrada,
+  areaLegivel,
   baseDeConsumo,
   areaUnitaria,
   areaTotal,
   ehUnidadeDeArea,
+  valorDaLinhaPorM2,
   valorUnitarioComMinimo,
   valorUnitarioPorM2,
   precoM2Implicito,
@@ -133,11 +135,39 @@ test("metragem é descrita no formato do documento", () => {
   expect(descreverMetragem(item2)).toBe("1,100m × 0,400m = 0,440m²");
 });
 
-test("área arredonda em 3 casas sem acumular erro de ponto flutuante", () => {
+test("área da peça é exata ao mm² (6 casas) sem acumular erro de ponto flutuante", () => {
   // 0.1 x 0.2 = 0.020000000000000004 em float
   expect(areaUnitaria({ largura: 0.1, altura: 0.2, quantidade: 1 })).toBe(0.02);
-  // 1.005 x 1 arredondado a 3 casas
   expect(areaUnitaria({ largura: 1.005, altura: 1, quantidade: 1 })).toBe(1.005);
+  // Até 29/10/2026 a peça arredondava em 3 casas: 5 × 5 cm (0,0025) virava 0,003 (+20%),
+  // e abaixo de 2,2 × 2,2 cm virava ZERO.
+  expect(areaUnitaria({ largura: 0.05, altura: 0.05, quantidade: 120 })).toBe(0.0025);
+  expect(areaUnitaria({ largura: 0.02, altura: 0.02, quantidade: 1 })).toBe(0.0004);
+});
+
+// O caso real da auditoria de 29/10/2026 (orçamento 115, item 6): 120 adesivos de 5 × 5 cm
+// a R$ 30/m² saíam por R$ 10,80 (0,003 × 30 = R$ 0,09 cada). São R$ 9,00.
+const adesivoMiudo = { largura: 0.05, altura: 0.05, quantidade: 120 };
+
+test("peça miúda: o total da linha sai da área exata, e o unitário em centavos é o total ÷ peças", () => {
+  expect(valorDaLinhaPorM2(adesivoMiudo, 30)).toBe(9);
+  // R$ 0,075 não cabe em centavos: a coluna guarda 0,08; o total manda (o PDF escreve R$ 0,075).
+  expect(valorUnitarioComMinimo(adesivoMiudo, 30)).toBe(0.08);
+  // 1 × 1 cm nunca mais vira preço zero: mil etiquetas a R$ 30/m² são R$ 3,00.
+  expect(valorDaLinhaPorM2({ largura: 0.01, altura: 0.01, quantidade: 1000 }, 30)).toBe(3);
+  // Com área mínima por peça, o mínimo continua mandando.
+  expect(valorDaLinhaPorM2(adesivoMiudo, 30, 0.01)).toBe(36);
+  // Peça grande: a conta de sempre (orçamento 1059).
+  expect(valorDaLinhaPorM2(item1, 35)).toBe(771.75);
+  expect(valorUnitarioComMinimo(item1, 35)).toBe(257.25);
+});
+
+test("área legível: peça miúda em cm², o resto em m²", () => {
+  expect(areaLegivel(0.0025)).toBe("25 cm²");
+  expect(areaLegivel(0.0077)).toBe("77 cm²");
+  expect(areaLegivel(0.01)).toBe("0,01 m²");
+  expect(areaLegivel(0.25)).toBe("0,25 m²");
+  expect(areaLegivel(0)).toBe("0,00 m²");
 });
 
 // A ficha técnica do produto multiplica por esta base. Trocar metragem por peças

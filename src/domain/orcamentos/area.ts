@@ -8,10 +8,15 @@
  *   - área total    = área unitária × quantidade (o que entra na soma do orçamento);
  *   - valor unitário = área unitária × preço/m² (o preço de UMA peça, não do lote).
  *
- * Área é arredondada em 3 casas (o padrão do documento: "22,050m²") e valores em
- * 2. O arredondamento acontece uma vez, no fim de cada função, para o número
- * gravado ser exatamente o número exibido — sem divergência entre tela, PDF e
- * produção.
+ * A área do LOTE é arredondada em 3 casas (o padrão do documento: "22,050m²") e
+ * valores em 2. A área da PEÇA fica com 6 casas (o mm²): até 29/10/2026 ela
+ * também era arredondada em 3 casas, e 0,001 m² é um quadrado de 10 × 10 cm —
+ * um adesivo de 5 × 5 cm (0,0025 m²) virava 0,003 e pagava 20% a mais; abaixo
+ * de 2,2 × 2,2 cm a área virava zero e o preço também (auditoria orçamento a
+ * orçamento, 29/10/2026: 120 adesivos de 5 × 5 a R$ 30/m² saíam por R$ 10,80 em
+ * vez de R$ 9,00). O dinheiro da linha sai da área exata; o unitário, que a
+ * coluna guarda em centavos, é o total da linha dividido pelas peças — a mesma
+ * regra dos gatilhos do banco (`tg_item_precificar_por_area`).
  */
 
 export type ItemDimensionado = {
@@ -47,10 +52,21 @@ export function ehUnidadeDeArea(unidade?: string | null): boolean {
   return normalizada === "m2" || normalizada === "metro2" || normalizada === "metroquadrado";
 }
 
-/** Área de uma peça, em m². 0 quando o item não é dimensionado. */
+/** Área de uma peça, em m², exata ao mm² (6 casas). 0 quando o item não é dimensionado. */
 export function areaUnitaria(item: ItemDimensionado): number {
   if (!temDimensoes(item)) return 0;
-  return round(numero(item.largura) * numero(item.altura), 3);
+  return round(numero(item.largura) * numero(item.altura), 6);
+}
+
+/**
+ * A área como a pessoa lê: peça pequena em cm² ("25 cm²"), o resto em m² com
+ * duas casas ("0,25 m²"). Com duas casas, o adesivo de 5 × 5 cm aparecia como
+ * "0,00 m²" na tela de medidas — e ninguém desconfiava da conta.
+ */
+export function areaLegivel(m2: number): string {
+  const v = Number.isFinite(m2) ? m2 : 0;
+  if (v > 0 && v < 0.01) return `${Math.round(v * 10_000).toLocaleString("pt-BR")} cm²`;
+  return `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
 }
 
 /** Área do item inteiro (peça × quantidade), em m². */
@@ -141,15 +157,36 @@ export function areaCobrada(item: ItemDimensionado, areaMinima?: number | null):
   return round(daPeca * qtd, 3);
 }
 
-/** Valor de UMA peça pelo preço por m², respeitando o mínimo cobrado. */
+/**
+ * O total da LINHA pelo preço por m²: área exata da peça (com o mínimo) × peças
+ * × preço, arredondado uma vez, em centavos. É o número que o banco grava em
+ * `valor_total` (`tg_item_precificar_por_area`) e o que o cliente paga.
+ */
+export function valorDaLinhaPorM2(
+  item: ItemDimensionado,
+  precoM2: number,
+  areaMinima?: number | null,
+): number {
+  if (!temDimensoes(item)) return 0;
+  const qtd = numero(item.quantidade) > 0 ? numero(item.quantidade) : 1;
+  return round(areaDaPeca(item, areaMinima) * qtd * numero(precoM2), 2);
+}
+
+/**
+ * Valor de UMA peça pelo preço por m², respeitando o mínimo cobrado: o total da
+ * linha dividido pelas peças, em centavos — como a coluna `valor_unitario`
+ * (numeric 12,2) consegue guardar. Em peça miúda ele não reproduz o total
+ * (R$ 0,075 vira R$ 0,08): o total manda, e o PDF escreve o unitário com as
+ * casas que faltam (`dinheiroDaUnidade`).
+ */
 export function valorUnitarioComMinimo(
   item: ItemDimensionado,
   precoM2: number,
   areaMinima?: number | null,
 ): number {
   if (!temDimensoes(item)) return 0;
-  const daPeca = Math.max(areaUnitaria(item), numero(areaMinima));
-  return round(daPeca * numero(precoM2), 2);
+  const qtd = numero(item.quantidade) > 0 ? numero(item.quantidade) : 1;
+  return round(valorDaLinhaPorM2(item, precoM2, areaMinima) / qtd, 2);
 }
 
 /**

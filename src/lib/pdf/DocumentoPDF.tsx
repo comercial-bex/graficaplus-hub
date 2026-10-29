@@ -5,6 +5,7 @@ import { rotuloDoDocumento } from "@/domain/documentos";
 import {
   dataBR,
   dinheiro,
+  dinheiroDaUnidade,
   metros,
   metrosQuadrados,
   quantidadeBR,
@@ -941,7 +942,10 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
                     </>
                   )}
                 </View>
-                {mostrar && <Text style={s.cValor}>{dinheiro(item.valor_unitario)}</Text>}
+                {/* Peça miúda: o unitário em centavos não fecha com o total; sai o total ÷ peças ("R$ 0,075"). */}
+                {mostrar && (
+                  <Text style={s.cValor}>{dinheiroDaUnidade(item.valor_unitario, item.quantidade, item.valor_total)}</Text>
+                )}
                 {mostrar && <Text style={s.cTotal}>{dinheiro(item.valor_total)}</Text>}
               </View>
             );

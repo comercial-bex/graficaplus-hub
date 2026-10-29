@@ -352,7 +352,7 @@ describe("a tela", () => {
 
   it("preço só para quem vê preço, nas duas pontas", () => {
     expect(TELA).toContain("verPreco={canSeePrices}");
-    expect(TELA).toContain("valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}");
+    expect(TELA).toContain("valorTotal={canSeePrices ? totalDaLinhaForm : null}");
     expect(ESCOLHA).toContain("const preco = verPreco ? precoLegivel(p) : null");
   });
 
