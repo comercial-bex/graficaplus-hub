@@ -1,4 +1,5 @@
 import type { EstadoDoPasso, PassoDoOrcamento } from "@/domain/parceiros/passos-do-orcamento";
+import { PENDENCIA_ITEM_SEM_CUSTO } from "@/domain/orcamentos/acordo";
 
 /**
  * O orçamento da equipe (vendas e atendimento) nos MESMOS quatro passos do
@@ -25,7 +26,7 @@ export const PASSOS_DA_EQUIPE: readonly {
 /** Em qual passo cada pendência de `pendenciasParaEnviar` se resolve. */
 export function passoDaPendencia(pendencia: string): PassoDoOrcamento {
   if (pendencia === "cliente ou contato") return 1;
-  if (pendencia === "itens" || pendencia.startsWith("layout")) return 2;
+  if (pendencia === "itens" || pendencia === PENDENCIA_ITEM_SEM_CUSTO || pendencia.startsWith("layout")) return 2;
   if (
     pendencia === "data de entrega" ||
     pendencia === "condição de pagamento" ||
@@ -68,12 +69,13 @@ export function estadoDosPassosDaEquipe(a: EntradaDosPassosDaEquipe): EstadoDoPa
   };
 
   const layouts = p2.filter((x) => x.startsWith("layout"));
+  const semCusto = p2.includes(PENDENCIA_ITEM_SEM_CUSTO);
   const passo2: EstadoDoPasso = {
     n: 2,
     titulo: "Itens",
     resumo: faltaItens
       ? "nenhum item"
-      : `${plural(a.itens, "item", "itens")}${a.total !== null ? ` · ${brl(a.total)}` : ""}${layouts.length > 0 ? " · falta layout" : ""}`,
+      : `${plural(a.itens, "item", "itens")}${a.total !== null ? ` · ${brl(a.total)}` : ""}${layouts.length > 0 ? " · falta layout" : ""}${semCusto ? " · item sem custo" : ""}`,
     situacao: faltaItens ? "vazio" : "preenchido",
   };
 

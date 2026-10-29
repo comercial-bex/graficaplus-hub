@@ -139,3 +139,24 @@ Dos 38 jobs, a tela sugeriu orçamento para 18 (alguns só por medida parecida: 
 **Do dono:** (1) os 5 impressos sem OS + o 115: OS retroativa ou histórico? (2) as sete de 28/10 (3D, banner, materiais não comprados, hora financiada, potência 3D, brindes, faixas do chaveiro); (3) preço avulso dos adesivos de carroceria abaixo de 100 un (39).
 
 **Do gestor (foi no WhatsApp):** contar o vinil e registrar o inventário; mover as OS 164, 166 e 169 no kanban (já impressas); corrigir o apontamento da 169 e refazer o da 165; conferir os Pix do 146 e do 152 e marcar "O Pix chegou"; regularizar o 107 (impresso antes do orçamento) e o 115 (impresso sem OS); confirmar os vínculos da Flexi na tela Importar Flexi; expirar ou reprecificar os rascunhos velhos (69, 80, 83–87, 136–142).
+
+## 10. Depois do relatório: as primeiras OS reais (29/10, noite)
+
+Quatro orçamentos viraram OS na tarde de 29/10, todos sob as regras novas. O valor aprovado se manteve nos quatro.
+
+| OS | Orçamento | Total | Pagamento | O que aconteceu |
+|---|---|---|---|---|
+| 212 | 150 Marcela | R$ 37,50 | Pix 50% + 50% | Parcela 1 paga. A 2ª ganhou vencimento de 29/10 sozinha quando a OS foi a "aguardando retirada". |
+| 213 | 152 lona para cavalete | R$ 71,46 | A faturar, à vista | Sem a trava de preço (#286) seria R$ 71,44. |
+| 214 | 151 Nilde, expresso | R$ 168,00 | Pix à vista | Paga na hora. |
+| 215 | 146 Nilde | R$ 2.225,00 | Pix 50% + 50% | R$ 1.112,50 pagos; saldo vence em 04/11. |
+
+**Três defeitos que essas OS mostraram, corrigidos no mesmo dia:**
+
+1. **OS nasce sem prazo (OS 212).** O orçamento nunca teve data de entrega (o botão "Sugerir entrega" é opcional) e a conversão copiava o campo como estava. Agora a OS herda o prazo do orçamento, senão a entrega prometida, senão o prazo padrão da casa (5 dias úteis, confirmados em 26/10) contado de hoje. Pedido **expresso** sem data continua sem prazo de propósito e o aviso "OS sem prazo" cobra. A 2ª parcela herda esse prazo pelo gatilho que já existia. A conferência antes de converter e o texto sob o campo da entrega dizem a data com que a OS vai nascer. Migração `20261029400000`.
+2. **Agenda do recorte (OS 212).** 50 adesivos de 21 × 5 cm (0,55 m²) ficaram "sem horário livre nos próximos 90 dias". O produto tem 35 min por m², e a agenda multiplicava por peça: 35 × 50 = 1.750 min, mais que o dia de 600 min. Agora lê por m² de área cobrada (20 min) e, quando um item pede mais que o dia, diz quanto pede e o que fazer em vez de mandar procurar folga. Migração `20261029500000`. As outras OS abertas sem reserva (166, 168, 170 a 173 e 214) não são esse defeito: o produto delas não tem máquina padrão.
+3. **Item sem produto e sem custo só era recusado depois que o cliente pagava (orçamento 153).** O banco recusa desde 22/10 o item digitado à mão, sem produto e sem custo ("a OS nasce sem material e com margem inventada"). A regra está certa, mas a recusa só aparecia ao converter. O 153 ("3 banner", R$ 42) tem o Pix recebido e dois itens "banner" digitados à mão. É também o que explica os cinco impressos sem OS: 54, 56, 57, 62 e 70 têm todos "banner" ou "adesivo" digitados à mão (no 56, o nome do item é o de um produto do catálogo, mas sem o vínculo). A função nova `itens_que_impedem_a_os` devolve as descrições desses itens; a tela passa a avisar na lista "falta" do orçamento e na conferência antes de converter, com os nomes. Não devolve custo e é vazia para quem não vê preço. Migração `20261029600000`.
+
+**Numeração das OS (187 → 212).** Foram 24 números que ninguém usou. A causa são os meus testes que desfazem no fim: a sequência do banco não volta quando a transação é desfeita, e cada conversão de teste consome um número. Nos meus registros achei 18 dessas conversões entre 25 e 29/10 (7 e 7 em duas rodadas de 25/10, 1 na manhã de 26/10, 1 de impressão 3D e 2 na madrugada de 29/10); as outras 6 vêm de testes da mesma série que não deixaram texto reconhecível. A tabela inteira tem 33 OS para 215 números, então lacuna aqui é normal. Nada foi apagado e nenhum valor mudou. Os ensaios desta noite devolveram a sequência ao valor que tinha antes (ela ficou em 215).
+
+**Ainda aberto, com a equipe:** orçamento 153 (trocar os itens digitados à mão por produto do catálogo ou informar o custo; o Pix de R$ 42 já está recebido); orçamento 142 (R$ 4.397, aguardando "O Pix chegou"); produtos sem máquina padrão (Impressão A4, DTF, kit de pintura, banner terceirizado) para a agenda conseguir reservar.

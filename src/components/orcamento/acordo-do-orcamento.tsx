@@ -51,7 +51,9 @@ import {
   modeloDaCondicao,
   modoDeEntrega,
   parcelasDoOrcamento,
+  prazoDaOsAoConverter,
   prazoSeparado,
+  textoDaOsSemDataDeEntrega,
   textoDoEndereco,
   validadeAte,
   valorDaEntrada,
@@ -132,7 +134,7 @@ function falta(dias: number | null): string | null {
 }
 
 /** Prazo padrão de entrega em dias úteis (custos_tabela.prazo_entrega_padrao_dias); 5 se o cadastro não responder. */
-function usePrazoPadraoDias(): number {
+export function usePrazoPadraoDias(): number {
   const { data } = useQuery({
     queryKey: ["prazo-entrega-padrao-dias"],
     staleTime: 10 * 60_000,
@@ -242,7 +244,7 @@ export function EntregaEPrazos({ acordo, podeEditar }: { acordo: AcordoDoOrcamen
           <p className="text-xs text-muted-foreground">
             {acordo.data_entrega_prometida
               ? `${falta(diasEntrega)} · sai no PDF e a OS herda`
-              : "Sai no PDF como “Data de Entrega”, e a OS nasce com ela."}
+              : textoDaOsSemDataDeEntrega(prazoDaOsAoConverter(acordo, isoLocal(new Date()), prazoPadrao))}
           </p>
         </div>
 
