@@ -73,6 +73,8 @@ export type ParcelaDoDocumento = {
   vencimento: string | null;
   /** Só a fatura sabe: parcela já recebida. */
   pago?: boolean;
+  /** "Entrada na aprovação", "Saldo na entrega"… (modelos de condição de 28/10/2026); sem ele sai "1ª". */
+  rotulo?: string;
 };
 
 export type DocumentoPDFProps = {
@@ -108,8 +110,11 @@ export type DocumentoPDFProps = {
   subtotal?: number | null;
   desconto?: number | null;
   total: number;
-  /** Forma e número de parcelas (`condicao_pagamento`). */
-  pagamento?: { forma?: string | null; parcelas?: number | null } | null;
+  /**
+   * Forma, número de parcelas e o texto da condição ("50% na aprovação e 50% na
+   * entrega"). Sem `condicao`, o documento escreve "2x", como sempre fez.
+   */
+  pagamento?: { forma?: string | null; parcelas?: number | null; condicao?: string | null } | null;
   /**
    * Parcelas com valor e vencimento. No orçamento, a conta da conversão em OS;
    * na fatura, as parcelas reais com a situação de cada uma. Sem as datas o
@@ -1020,7 +1025,10 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
                   <Campo rotulo="Forma Pagto" valor={p.pagamento?.forma ?? ""} />
                 </View>
                 <View style={s.pagamentoLinha}>
-                  <Campo rotulo="Condições de Pagamento" valor={nParcelas ? `${nParcelas}x` : ""} />
+                  <Campo
+                    rotulo="Condições de Pagamento"
+                    valor={p.pagamento?.condicao ?? (nParcelas ? `${nParcelas}x` : "")}
+                  />
                 </View>
                 {parcelas.length > 0 &&
                   (umaSoParcelaSemData ? (
@@ -1031,7 +1039,7 @@ export function DocumentoPDF(p: DocumentoPDFProps) {
                     <View style={s.parcelasLista}>
                       {parcelas.map((parcela) => (
                         <Text key={parcela.numero} style={s.parcela}>
-                          <Text style={s.negrito}>{parcela.numero}ª </Text>
+                          <Text style={s.negrito}>{parcela.rotulo ?? `${parcela.numero}ª`} </Text>
                           {dinheiro(parcela.valor)}
                           {parcela.vencimento ? `  venc. ${dataBR(parcela.vencimento)}` : ""}
                           {parcela.pago ? "  (paga)" : ""}

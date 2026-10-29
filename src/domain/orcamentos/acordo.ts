@@ -149,12 +149,40 @@ export const FORMAS_DE_PAGAMENTO = [
   "Transferência bancária",
 ] as const;
 
+/**
+ * Como o pagamento se divide (decisão do dono, 28/10/2026). Antes só existia "n
+ * parcelas iguais"; a condição geral da gráfica (50% na aprovação, 50% na
+ * entrega) não tinha como ser gravada, e o Pix do sinal pedia 50% enquanto a
+ * conta a receber nascia com UMA parcela do total. Agora:
+ *   a_vista        100% na aprovação;
+ *   metade_metade  50% na aprovação + 50% na entrega (o padrão da casa);
+ *   entrada        X% ou R$ X na aprovação + saldo na entrega ou em n parcelas;
+ *   parcelado      n parcelas iguais a partir do 1º vencimento (o modelo antigo).
+ * Condição sem `modelo` é acordo antigo: vale como "parcelado".
+ */
+export const MODELOS_DE_CONDICAO = ["a_vista", "metade_metade", "entrada", "parcelado"] as const;
+export type ModeloDeCondicao = (typeof MODELOS_DE_CONDICAO)[number];
+
+export const ROTULO_DO_MODELO: Record<ModeloDeCondicao, string> = {
+  a_vista: "À vista",
+  metade_metade: "50% + 50%",
+  entrada: "Entrada + saldo",
+  parcelado: "Parcelado",
+};
+
 export type CondicaoDePagamento = {
   forma?: string | null;
   /** bandeira do cartão, opcional: visa, mastercard, elo, amex, hipercard */
   bandeira?: string | null;
   /** Pix que a pessoa marcou como recebido ao combinar o pagamento; vira baixa na conversão em OS */
   pix_recebido?: { valor: number; em: string; lancado?: boolean } | null;
+  /** Como divide; ausente = acordo antigo (parcelas iguais). */
+  modelo?: ModeloDeCondicao | null;
+  /** Entrada em % do total (0–100) — só no modelo `entrada`, quando não há valor fixo. */
+  entrada_pct?: number | null;
+  /** Entrada em R$ — só no modelo `entrada`; manda sobre o percentual quando os dois existem. */
+  entrada_valor?: number | null;
+  /** Parcelas do SALDO (ou do total, quando não há entrada). */
   parcelas?: number | null;
   intervalo_dias?: number | null;
   primeiro_vencimento?: string | null;
@@ -165,7 +193,81 @@ export function lerCondicao(cru: unknown): CondicaoDePagamento {
   return cru as CondicaoDePagamento;
 }
 
-export type Parcela = { numero: number; valor: number; vencimento: string | null };
+/** O modelo gravado, ou null quando é acordo antigo (ou lixo). */
+export function modeloDaCondicao(c: CondicaoDePagamento | null | undefined): ModeloDeCondicao | null {
+  const m = c?.modelo;
+  return (MODELOS_DE_CONDICAO as readonly string[]).includes(String(m)) ? (m as ModeloDeCondicao) : null;
+}
+
+/** O padrão da casa: 50% na aprovação e 50% na entrega (condições gerais da gráfica). */
+export const CONDICAO_PADRAO_DA_CASA: Pick<CondicaoDePagamento, "modelo" | "parcelas"> = {
+  modelo: "metade_metade",
+  parcelas: 1,
+};
+
+/**
+ * Condição completa = dá para mandar ao cliente e virar OS: tem a FORMA (Pix,
+ * cartão…) e tem COMO divide (modelo novo, ou `parcelas` do acordo antigo). O
+ * `{parcelas: 1}` que o orçamento ganha ao nascer NÃO é condição: foi assim
+ * que 12 das 15 OS de outubro nasceram sem pagamento combinado.
+ */
+export function condicaoCompleta(cru: unknown): boolean {
+  const c = lerCondicao(cru);
+  const temForma = typeof c.forma === "string" && c.forma.trim() !== "";
+  const temDivisao = modeloDaCondicao(c) !== null || (c.parcelas != null && Number(c.parcelas) > 0 && !!c.forma);
+  return temForma && temDivisao;
+}
+
+const centavosDe = (v: unknown) => Math.round((Number(v) || 0) * 100);
+
+/**
+ * Quanto o cliente paga na aprovação, em R$, com a MESMA conta da conversão em
+ * OS: `round(total × pct ÷ 100, 2)` em centavos inteiros; valor fixo nunca
+ * passa do total. À vista é o total inteiro; parcelado e acordo antigo, zero.
+ */
+export function valorDaEntrada(total: number, c: CondicaoDePagamento): number {
+  const totalC = centavosDe(total);
+  if (totalC <= 0) return 0;
+  const modelo = modeloDaCondicao(c);
+  if (modelo === "a_vista") return totalC / 100;
+  if (modelo === "metade_metade") return Math.round(totalC / 2) / 100;
+  if (modelo === "entrada") {
+    if (c.entrada_valor != null && Number(c.entrada_valor) > 0) {
+      return Math.min(totalC, centavosDe(c.entrada_valor)) / 100;
+    }
+    const pct = Math.min(100, Math.max(0, Number(c.entrada_pct ?? 0) || 0));
+    return Math.round((totalC * pct) / 100) / 100;
+  }
+  return 0;
+}
+
+/** Texto da condição para o PDF, o link do cliente e a revisão. Acordo antigo sai como "2x". */
+export function descricaoDaCondicao(c: CondicaoDePagamento, total?: number): string {
+  const modelo = modeloDaCondicao(c);
+  const n = Math.max(1, Math.round(Number(c.parcelas ?? 1) || 1));
+  const intervalo = Math.max(0, Math.round(Number(c.intervalo_dias ?? 30) || 0));
+  const saldo = n === 1 ? "o saldo na entrega" : `o saldo em ${n}× a cada ${intervalo} dias`;
+  if (modelo === "a_vista") return "À vista, na aprovação";
+  if (modelo === "metade_metade") return "50% na aprovação e 50% na entrega";
+  if (modelo === "entrada") {
+    const fixo = c.entrada_valor != null && Number(c.entrada_valor) > 0;
+    const pct = Math.min(100, Math.max(0, Number(c.entrada_pct ?? 0) || 0));
+    const entrada = fixo
+      ? `Entrada de ${brl(total != null ? valorDaEntrada(total, c) : Number(c.entrada_valor))}`
+      : `Entrada de ${pct.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%${total != null && total > 0 ? ` (${brl(valorDaEntrada(total, c))})` : ""}`;
+    return `${entrada} na aprovação e ${saldo}`;
+  }
+  if (modelo === "parcelado") return n === 1 ? "Parcela única na entrega" : `${n}× a cada ${intervalo} dias`;
+  return `${n}x`;
+}
+
+export type Parcela = {
+  numero: number;
+  valor: number;
+  vencimento: string | null;
+  /** "Entrada na aprovação", "Saldo na entrega"… — só nos modelos novos. */
+  rotulo?: string;
+};
 
 /**
  * Os valores das parcelas com a conta de `converter_orcamento_em_os`, lida do
@@ -192,22 +294,67 @@ export function valoresDasParcelas(total: number, parcelas: number): number[] {
 }
 
 /**
- * As parcelas, com a MESMA conta da conversão em OS (`valoresDasParcelas`):
- * todas iguais e a última com a sobra dos centavos. Sem primeiro vencimento, a
- * conversão vence a primeira no dia em que vira OS — aqui a data fica nula.
+ * As parcelas, com a MESMA conta da conversão em OS (`converter_orcamento_em_os`):
+ *
+ *   - entrada (à vista, 50% ou X) é a 1ª parcela e vence na aprovação — aqui a
+ *     data fica nula porque o dia em que vira OS ainda não existe;
+ *   - o saldo é dividido em `parcelas` iguais (`valoresDasParcelas`, a última
+ *     com a sobra dos centavos); em uma só, sem data: vence no prazo da OS ou
+ *     na saída do pedido; em várias, a partir do 1º vencimento combinado — ou,
+ *     nos modelos com entrada, do prazo de entrega (`referencia.prazo`);
+ *   - acordo antigo (sem modelo): tudo como antes, n parcelas iguais do total.
  */
-export function parcelasDoOrcamento(total: number, condicao: CondicaoDePagamento): Parcela[] {
+export function parcelasDoOrcamento(
+  total: number,
+  condicao: CondicaoDePagamento,
+  referencia: { prazo?: string | null } = {},
+): Parcela[] {
+  const modelo = modeloDaCondicao(condicao);
   const n = Math.max(1, Math.round(Number(condicao.parcelas ?? 1) || 1));
   const intervalo = Math.max(0, Math.round(Number(condicao.intervalo_dias ?? 30) || 0));
-  const valores = valoresDasParcelas(total, n);
   const primeiro = typeof condicao.primeiro_vencimento === "string" && condicao.primeiro_vencimento
     ? condicao.primeiro_vencimento
     : null;
-  return valores.map((valor, i) => ({
-    numero: i + 1,
-    valor,
-    vencimento: primeiro ? somarDias(primeiro, intervalo * i) : null,
-  }));
+
+  if (!modelo || modelo === "parcelado") {
+    return valoresDasParcelas(total, n).map((valor, i) => ({
+      numero: i + 1,
+      valor,
+      vencimento: primeiro ? somarDias(primeiro, intervalo * i) : null,
+      ...(modelo ? { rotulo: n === 1 ? "Parcela única na entrega" : `${i + 1}ª de ${n}` } : {}),
+    }));
+  }
+
+  const totalC = Math.round((Number(total) || 0) * 100);
+  const entradaC = Math.round(valorDaEntrada(total, condicao) * 100);
+  const saldoC = totalC - entradaC;
+  const lista: Parcela[] = [];
+  if (entradaC > 0) {
+    lista.push({
+      numero: 1,
+      valor: entradaC / 100,
+      vencimento: null,
+      rotulo:
+        modelo === "a_vista" ? "À vista, na aprovação" : modelo === "metade_metade" ? "50% na aprovação" : "Entrada na aprovação",
+    });
+  }
+  if (saldoC > 0 || lista.length === 0) {
+    const base = primeiro ?? (n > 1 && referencia.prazo ? referencia.prazo : null);
+    valoresDasParcelas(saldoC / 100, n).forEach((valor, i) => {
+      lista.push({
+        numero: lista.length + 1,
+        valor,
+        vencimento: base ? somarDias(base, intervalo * i) : null,
+        rotulo:
+          n === 1
+            ? modelo === "metade_metade"
+              ? "50% na entrega"
+              : "Saldo na entrega"
+            : `Saldo ${i + 1}ª de ${n}`,
+      });
+    });
+  }
+  return lista;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -287,6 +434,8 @@ export function conferenciaAntesDeConverter(o: {
   dataEntrega: string | null;
   verPreco: boolean;
   forma: string | null;
+  /** Forma E divisão combinadas (`condicaoCompleta`); sem isto o banco não cria a OS. Ausente = só a forma. */
+  condicaoCompleta?: boolean;
   pixRecebido: boolean;
   itensSemArte: number;
   descontoPendente: boolean;
@@ -308,12 +457,16 @@ export function conferenciaAntesDeConverter(o: {
     },
   ];
   if (o.verPreco) {
+    const completa = o.condicaoCompleta ?? !!o.forma;
     lista.push({
       chave: "pagamento",
-      rotulo: "Forma de pagamento",
-      ok: !!o.forma,
+      rotulo: "Condição de pagamento",
+      ok: completa,
       nivel: "obrigatorio",
-      detalhe: o.forma ? `${o.forma}: a conta a receber é criada.` : "Sem forma, a conta a receber nasce sem condição.",
+      // Decisão do dono (28/10/2026): não existe OS sem pagamento combinado — o banco recusa.
+      detalhe: completa
+        ? `${o.forma}: a conta a receber nasce com as parcelas combinadas.`
+        : "Sem forma e divisão combinadas (à vista, 50% + 50%, entrada ou parcelado) a OS não é criada.",
     });
     if (o.forma && o.forma.toLowerCase() === "pix") {
       lista.push({

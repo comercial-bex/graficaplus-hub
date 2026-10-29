@@ -151,7 +151,7 @@ import {
   proximaFaixa,
   type FaixaPreco,
 } from "@/domain/orcamentos/faixas";
-import { avisosParaEnviar, conferenciaAntesDeConverter, brl, dataBR, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
+import { avisosParaEnviar, condicaoCompleta, conferenciaAntesDeConverter, brl, dataBR, descricaoDaCondicao, lerCondicao, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 
@@ -1337,7 +1337,8 @@ function OrcamentoDetailPage() {
     temClienteOuContato: !!(orc.cliente_nome || (orc as any).contato_nome),
     dataEntrega: dadosDoAcordo ? (dadosDoAcordo.data_entrega_prometida ?? dadosDoAcordo.prazo) : "?",
     verPreco: canSeePrices,
-    temCondicao: dadosDoAcordo ? !!dadosDoAcordo.condicao_pagamento : true,
+    // Condição obrigatória (28/10/2026): forma E divisão; o `{parcelas: 1}` de nascença não conta.
+    temCondicao: dadosDoAcordo ? condicaoCompleta(dadosDoAcordo.condicao_pagamento) : true,
     itens: itensDeProduto as { arquivo_id: string | null }[],
     descontoPendente,
   });
@@ -1587,6 +1588,7 @@ function OrcamentoDetailPage() {
             dataEntrega: dadosDoAcordo ? (dadosDoAcordo.data_entrega_prometida ?? dadosDoAcordo.prazo) : null,
             verPreco: canSeePrices,
             forma: condicao?.forma ?? null,
+            condicaoCompleta: condicaoCompleta(dadosDoAcordo?.condicao_pagamento ?? null),
             pixRecebido: !!(condicao as any)?.pix_recebido,
             itensSemArte: (itensDeProduto as { arquivo_id: string | null }[]).filter((i) => !i.arquivo_id).length,
             descontoPendente: !!descontoPendente,
@@ -2570,6 +2572,7 @@ function OrcamentoDetailPage() {
                       previa={totalPrevisto != null}
                       condicao={dadosDoAcordo.condicao_pagamento}
                       podeEditar={podeMexer}
+                      prazo={dadosDoAcordo.prazo ?? dadosDoAcordo.data_entrega_prometida}
                       numero={Number((orc as any).numero ?? 0) || null}
                       clienteId={(dadosDoAcordo as any).cliente_id ?? null}
                       aoMarcarPixRecebido={() => {
@@ -2657,8 +2660,8 @@ function OrcamentoDetailPage() {
                         <dt className="text-muted-foreground">Pagamento</dt>
                         <dd className="font-medium">
                           {condicao?.forma ?? "forma não escolhida"}
-                          {Number(condicao?.parcelas) > 1
-                            ? ` · ${condicao?.parcelas}×`
+                          {dadosDoAcordo?.condicao_pagamento
+                            ? ` · ${descricaoDaCondicao(lerCondicao(dadosDoAcordo.condicao_pagamento), Number(orc.valor_total ?? 0))}`
                             : ""}
                         </dd>
                       </div>

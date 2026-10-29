@@ -50,7 +50,7 @@ function semear(): BancoFalso {
     contato_email: null,
     prazo: "2026-08-07",
     data_entrega_prometida: "2026-08-07",
-    condicao_pagamento: { forma: "A Faturar", parcelas: 1 },
+    condicao_pagamento: { forma: "A Faturar", parcelas: 1, condicao: "1x" },
     precisa_entrega: false,
     precisa_instalacao: false,
     endereco_entrega: { descricao: "Endereço antigo, que não vale mais" },
@@ -317,7 +317,7 @@ describe("orçamento", () => {
     expect(p.total).toBe(792.43);
     expect(p.subtotal).toBe(792.43);
     expect(p.desconto).toBe(0);
-    expect(p.pagamento).toEqual({ forma: "A Faturar", parcelas: 1 });
+    expect(p.pagamento).toEqual({ forma: "A Faturar", parcelas: 1, condicao: "1x" });
     expect(p.parcelas).toEqual([{ numero: 1, valor: 792.43, vencimento: null }]);
     // "retira" manda, mesmo com um endereço antigo guardado
     expect(p.entrega).toBe("Cliente retira na empresa");
@@ -483,7 +483,7 @@ describe("OS, fatura, recibo e 3D", () => {
       { numero: 2, valor: 396.21, vencimento: "2026-09-06", pago: false },
     ]);
     expect(p.valor_pago).toBe(396.22);
-    expect(p.pagamento).toEqual({ forma: "A Faturar", parcelas: 2 });
+    expect(p.pagamento).toEqual({ forma: "A Faturar", parcelas: 2, condicao: "2x" });
     expect(p.status).toBe("Parcial");
     expect(p.observacoes?.startsWith("Impresso por CNPJ")).toBe(true);
   });

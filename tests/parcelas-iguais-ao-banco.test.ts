@@ -13,10 +13,11 @@ import { parcelasDoAcordo } from "../src/lib/pdf/formato";
  * 20261006230000 — ela regrava a função e mantém estas linhas):
  */
 const REGRA_DO_BANCO = [
+  // Desde 28/10/2026 a conta divide o SALDO (total − entrada); sem entrada, o saldo é o total.
   "v_parcelas  := GREATEST(1, COALESCE((v_orc.condicao_pagamento->>'parcelas')::int, 1));",
-  "v_valor_parcela := round(COALESCE(v_orc.valor_total, 0) / v_parcelas, 2);",
-  "CASE WHEN v_i < v_parcelas THEN v_valor_parcela",
-  "ELSE COALESCE(v_orc.valor_total, 0) - v_acumulado END,",
+  "v_saldo := v_total - v_entrada;",
+  "v_valor_parcela := round(v_saldo / v_parcelas, 2);",
+  "CASE WHEN v_i < v_parcelas THEN v_valor_parcela ELSE v_saldo - v_acumulado END,",
   "v_acumulado := v_acumulado + v_valor_parcela;",
 ];
 

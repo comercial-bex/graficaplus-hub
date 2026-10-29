@@ -9,9 +9,9 @@
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 import {
   modoDeEntrega,
+  parcelasDoOrcamento,
   ROTULO_DO_MODO,
   textoDoEndereco,
-  valoresDasParcelas,
   type CondicaoDePagamento,
   type Parcela,
 } from "@/domain/orcamentos/acordo";
@@ -105,24 +105,32 @@ export function validadeAte(
  * depois da anterior. Sem ele a conversão vence a primeira no dia em que vira
  * OS — data que o orçamento ainda não sabe; aqui fica nula e o documento mostra
  * só os valores.
+ *
+ * Desde 28/10/2026 a conta mora num lugar só, `parcelasDoOrcamento` (entrada na
+ * aprovação + saldo): o PDF chama a mesma função que a tela, e o teste que
+ * compara os dois continua valendo. Aqui só se limpa o 1º vencimento que não é
+ * data ("aaaa-mm-dd"), como o documento sempre fez.
  */
 export function parcelasDoAcordo(
   total: number,
   condicao: CondicaoDePagamento | null | undefined,
+  referencia: { prazo?: string | null } = {},
 ): Parcela[] {
   const c = condicao ?? {};
-  const n = Math.max(1, Math.round(Number(c.parcelas ?? 1) || 1));
   const intervaloLido = Math.round(Number(c.intervalo_dias ?? 30));
-  const intervalo = Number.isFinite(intervaloLido) ? Math.max(0, intervaloLido) : 30;
   const primeiro =
     typeof c.primeiro_vencimento === "string" && SO_DATA.test(c.primeiro_vencimento.trim())
       ? c.primeiro_vencimento.trim()
       : null;
-  return valoresDasParcelas(total, n).map((valor, i) => ({
-    numero: i + 1,
-    valor,
-    vencimento: primeiro ? somarDias(primeiro, intervalo * i) : null,
-  }));
+  return parcelasDoOrcamento(
+    total,
+    {
+      ...c,
+      intervalo_dias: Number.isFinite(intervaloLido) ? Math.max(0, intervaloLido) : 30,
+      primeiro_vencimento: primeiro,
+    },
+    referencia,
+  );
 }
 
 /* ------------------------------------------------------------------------- */
