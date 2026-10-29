@@ -251,14 +251,27 @@ export function custoDoItem(item: ItemDoOrcamento, produto: ItemDoCatalogo | und
       total,
     };
   }
-  const unitario = produto.por_area ? arred(areaPeca * precoUnidade, 2) : precoUnidade;
+  if (produto.por_area) {
+    // Por área, o total sai da área EXATA × peças × preço, arredondado uma vez — a conta do banco desde
+    // 29/10/2026 (`tg_item_precificar_por_area`). O unitário é o total ÷ peças: em peça miúda, o unitário em
+    // centavos × peças não reproduz o total, e o painel não pode mostrar ao parceiro um custo diferente do pedido.
+    const total = arred(areaPeca * qtd * precoUnidade, 2);
+    return {
+      tipo: "ok",
+      precoUnidade,
+      faixa: preco.faixa,
+      proxima: preco.proxima,
+      unitario: arred(total / qtd, 2),
+      total,
+    };
+  }
   return {
     tipo: "ok",
     precoUnidade,
     faixa: preco.faixa,
     proxima: preco.proxima,
-    unitario,
-    total: arred(unitario * qtd, 2),
+    unitario: precoUnidade,
+    total: arred(precoUnidade * qtd, 2),
   };
 }
 
@@ -271,10 +284,14 @@ export function vendidoPorArea(item: ItemDoOrcamento, produto: ItemDoCatalogo | 
 /** O que o parceiro cobra do cliente dele por este item. */
 export function vendaDoItem(item: ItemDoOrcamento, produto: ItemDoCatalogo | undefined): ValorDoItem {
   const preco = arred(Number(item.preco_venda_unidade) || 0, 2);
-  const unitario = vendidoPorArea(item, produto)
-    ? arred((areaDaPeca(item, item.produto_id ? produto?.area_minima : null) ?? 0) * preco, 2)
-    : preco;
-  return { unitario, total: arred(unitario * quantidadeDaConta(item.quantidade), 2) };
+  const qtd = quantidadeDaConta(item.quantidade);
+  if (vendidoPorArea(item, produto)) {
+    // A mesma regra do custo: total pela área exata, unitário = total ÷ peças (margem = venda − custo na mesma conta).
+    const area = areaDaPeca(item, item.produto_id ? produto?.area_minima : null) ?? 0;
+    const total = arred(area * qtd * preco, 2);
+    return { unitario: arred(total / qtd, 2), total };
+  }
+  return { unitario: preco, total: arred(preco * qtd, 2) };
 }
 
 export type ResumoDoOrcamento = {
