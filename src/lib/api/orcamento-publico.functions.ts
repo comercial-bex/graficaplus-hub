@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { condicaoCompleta, descricaoDaCondicao, lerCondicao } from "@/domain/orcamentos/acordo";
 
 /**
  * Link público do orçamento.
@@ -25,6 +26,8 @@ export type OrcamentoPublico = {
   soma_area: number | null;
   aprovado_em: string | null;
   aprovado_por_nome: string | null;
+  /** "Pix · 50% na aprovação e 50% na entrega" — o combinado, quando já está completo. */
+  pagamento: string | null;
   empresa: { nome: string; telefones: string | null; email: string | null };
   itens: {
     descricao: string;
@@ -167,6 +170,9 @@ export const obterOrcamentoPublico = createServerFn({ method: "POST" })
       soma_area: somaArea > 0 ? somaArea : null,
       aprovado_em: o.aprovado_em ?? null,
       aprovado_por_nome: o.aprovado_por_nome ?? null,
+      pagamento: condicaoCompleta(o.condicao_pagamento)
+        ? `${String(lerCondicao(o.condicao_pagamento).forma)} · ${descricaoDaCondicao(lerCondicao(o.condicao_pagamento), Number(o.valor_total ?? 0))}`
+        : null,
       empresa: {
         nome: emp.razao_social ?? emp.nome ?? "Bex Print",
         telefones: emp.telefones ?? emp.telefone ?? null,

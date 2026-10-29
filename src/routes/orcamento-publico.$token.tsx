@@ -209,6 +209,10 @@ function OrcamentoPublicoPage() {
               )}
               <span className="text-lg font-black">{real(o.total)}</span>
             </div>
+            {/* O combinado de pagamento sai para o cliente como no PDF: forma e quando paga. */}
+            {o.pagamento && (
+              <p className="text-right text-sm text-muted-foreground">Pagamento: {o.pagamento}</p>
+            )}
           </CardContent>
         </Card>
 

@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView, type NivelDeVisao } from "@/lib/supabase-financial-views";
 import { custoHoraComEncargos } from "@/domain/financeiro/encargos";
 import { formatarDocumento, formatarTelefone, tipoPorTamanho } from "@/domain/documentos";
-import { lerCondicao } from "@/domain/orcamentos/acordo";
+import { descricaoDaCondicao, lerCondicao } from "@/domain/orcamentos/acordo";
 import { STATUS as STATUS_DA_OS } from "@/domain/os/etapas";
 import { mensagemErro } from "@/lib/erros";
 import type { DocItem, DocumentoPDFProps } from "./DocumentoPDF";
@@ -471,7 +471,10 @@ async function lerOrcamento(
   const subtotal =
     numero(preco?.valor_subtotal) > 0 ? numero(preco?.valor_subtotal) : somaDosItens || total;
   const condicao = lerCondicao(orc.condicao_pagamento);
-  const parcelas = mostrarValores ? parcelasDoAcordo(total, condicao) : null;
+  // Saldo em várias parcelas sem 1º vencimento vence a partir do prazo de entrega: o PDF mostra as mesmas datas da conversão.
+  const parcelas = mostrarValores
+    ? parcelasDoAcordo(total, condicao, { prazo: orc.prazo ?? orc.data_entrega_prometida })
+    : null;
 
   const props: DocumentoPDFProps = {
     tipo: "orcamento",
@@ -501,7 +504,11 @@ async function lerOrcamento(
     desconto: mostrarValores ? Math.max(0, centavos(subtotal - total)) : null,
     total,
     pagamento: mostrarValores
-      ? { forma: textoOuNulo(condicao.forma), parcelas: parcelas?.length ?? 1 }
+      ? {
+          forma: textoOuNulo(condicao.forma),
+          parcelas: parcelas?.length ?? 1,
+          condicao: descricaoDaCondicao(condicao, total),
+        }
       : null,
     parcelas,
     entrega: descreverEntrega(orc),
@@ -869,7 +876,12 @@ export async function carregarPropsFatura(osId: string): Promise<DocumentoPDFPro
     parcelas,
     pagamento:
       parcelas.length > 0 || temTexto(condicao.forma)
-        ? { forma: textoOuNulo(condicao.forma), parcelas: parcelas.length || null }
+        ? {
+            forma: textoOuNulo(condicao.forma),
+            parcelas: parcelas.length || null,
+            // A fatura descreve o que a conta TEM (parcelas reais), não o que o acordo antigo dizia.
+            condicao: descricaoDaCondicao({ ...condicao, parcelas: parcelas.length || condicao.parcelas }, total),
+          }
         : null,
     entrega: descreverEntrega({ ...os, endereco_entrega }),
     // A identificação legal vem antes da observação livre: numa fiscalização é a
