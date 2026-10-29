@@ -42,7 +42,9 @@ Soma no histórico, nos 7 itens vendidos por m² que a conta atinge: R$ 5,02 a m
 
 Correção (no ar): área exata ao mm² (6 casas) nos três gatilhos e em `area.ts`; o total da linha é arredondado uma vez, em centavos; o unitário (coluna numeric 12,2, com 6 views dependendo dela — o tipo não foi mexido) é o total ÷ peças, e o PDF escreve "R$ 0,075" quando o unitário em centavos não reproduz o total. Faixa de parceiro acima de X m² segue igual. As colunas geradas `area_unitaria/area_total/area_cobrada` continuam com 3 casas (são de exibição e de consumo de material; seis views dependem delas) — o consumo de vinil de etiqueta miúda fica um pouco superestimado, nada mais.
 
-Itens já gravados **não** mudam sozinhos (gatilho só roda na escrita): 115 e 150 continuam com o valor antigo até alguém editar o item. O 150 está aprovado e com Pix de R$ 18,75 enviado: não mexi.
+Itens já gravados **não** mudam sozinhos (o gatilho só roda na escrita): 115, 150 e 152 continuam com o valor que o cliente viu. O 150 e o 152 estão aprovados e com Pix de 50% enviado: não mexi.
+
+**Efeito colateral que achei e corrigi no mesmo dia (PR #286, migração `20261029300000`).** Um ensaio com rollback, inserindo na OS os itens como a conversão faz, mostrou que a conta nova mudaria o preço desses itens antigos ao converter: o 150 passaria de R$ 37,50 para R$ 35,70, o 152 de R$ 71,46 para R$ 71,44 e o 115 perderia R$ 3,21. A OS e a conta a receber, que copia o total do orçamento, passariam a discordar. O mesmo aconteceria se alguém mexesse só na arte ou na descrição do item, porque o gatilho recalcula a cada UPDATE. Agora o item da OS copia o do orçamento ao nascer, e nenhum dos dois gatilhos recalcula num UPDATE em que nenhuma entrada do preço mudou (preço por m², largura, altura, quantidade, área mínima, produto). Refeito o ensaio: os nove itens chegam à OS com o valor aprovado; mexer só na descrição do 150 mantém R$ 37,50; mudar a quantidade recalcula pela conta nova. O painel do parceiro também passou a calcular o total por área como o banco (área exata × peças × preço), porque o teste dele é espelhar o pedido gravado.
 
 ## 4. Orçamento por orçamento
 
@@ -122,9 +124,9 @@ Dos 38 jobs, a tela sugeriu orçamento para 18 (alguns só por medida parecida: 
 
 ## 8. O que fiz hoje
 
-**Código (PR #282, no ar):** área exata no preço por m² (3 gatilhos + `area.ts` + formulário + PDF); `condicaoCompleta` e (b4) exigem o modelo; peça miúda em cm² na tela de medidas; 13 testes novos/ajustados (`tests/area-exata-no-preco-por-m2`, `orcamentos-area`, `condicoes-de-pagamento`, `unidade-de-medida`, `orcamentos-tipos-de-produto`).
+**Código (PR #282 e PR #286, no ar):** área exata no preço por m² (3 gatilhos + `area.ts` + formulário + PDF); `condicaoCompleta` e (b4) exigem o modelo; peça miúda em cm² na tela de medidas; 13 testes novos/ajustados (`tests/area-exata-no-preco-por-m2`, `orcamentos-area`, `condicoes-de-pagamento`, `unidade-de-medida`, `orcamentos-tipos-de-produto`). O PR #286 acrescentou o preço gravado que não deriva (conversão copia o item aprovado, edição sem mudar o preço não recalcula) e o painel do parceiro na mesma conta do banco, com `tests/preco-gravado-nao-deriva`.
 
-**Banco (migrações aplicadas e ensaiadas):** `20261029100000_area_exata_no_preco_por_m2`, `20261029200000_condicao_de_pagamento_exige_modelo` (função inteira, md5 igual ao vivo).
+**Banco (migrações aplicadas e ensaiadas):** `20261029100000_area_exata_no_preco_por_m2`, `20261029200000_condicao_de_pagamento_exige_modelo` (função inteira, md5 igual ao vivo), `20261029300000_preco_gravado_nao_deriva`.
 
 **Dados:** 134, 146, 150, 152 com `modelo = metade_metade`; 54, 56, 57, 62, 70 de volta a "aprovado" com nota interna (desfaz a virada errada de 26/10); decisão `orcamentos_produzidos_sem_os` registrada; sugestões de vínculo Flexi geradas pela tela.
 
