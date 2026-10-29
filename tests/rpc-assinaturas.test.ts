@@ -56,6 +56,8 @@ const ASSINATURAS: Record<string, string[]> = {
   funil_comercial: ["p_inicio", "p_fim"],
   gerar_parcelas_compromisso: ["p_compromisso_id", "p_ate"],
   identificacao_legal_os: ["p_os_id"],
+  // Migração 20261029600000: o aviso de item sem produto e sem custo, antes de o cliente pagar.
+  itens_que_impedem_a_os: ["p_orcamento_id"],
   importar_extrato: ["p_conta_id", "p_linhas"],
   iniciar_apontamento: ["p_os_id", "p_maquina_id", "p_etapa"],
   marcar_lead_perdido: ["p_lead_id", "p_motivo"],

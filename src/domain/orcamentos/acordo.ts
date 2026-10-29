@@ -74,6 +74,44 @@ export function prazoSeparado(atual: { prazo: string | null; data_entrega_promet
   return !!atual.prazo && atual.prazo !== atual.data_entrega_prometida;
 }
 
+/** O prazo com que a OS nasce e de onde ele veio. */
+export type PrazoDaOs =
+  | { data: string; origem: "orcamento" | "entrega_prometida" | "padrao_da_casa" }
+  | { data: null; origem: "sem_prazo" };
+
+/**
+ * O prazo que a OS recebe na conversão — espelho do bloco b5 de `converter_orcamento_em_os` (29/10/2026):
+ * o prazo do orçamento; sem ele, a data de entrega prometida ao cliente; sem nenhuma das duas, e sendo
+ * pedido NORMAL, o prazo padrão da casa (`custos_tabela.prazo_entrega_padrao_dias`, 5 dias úteis) contado
+ * de hoje, o mesmo que o botão "Sugerir entrega" propõe. Pedido expresso sem data nasce sem prazo, de
+ * propósito: o padrão não vale para ele e o aviso "OS sem prazo" cobra a data.
+ *
+ * Antes, orçamento sem data virava OS sem prazo (OS 212, 29/10): a 2ª parcela do 50% + 50% ficava sem
+ * vencimento e a OS nunca aparecia como atrasada.
+ */
+export function prazoDaOsAoConverter(
+  orc: { prazo: string | null; data_entrega_prometida: string | null; prazo_tipo: string | null },
+  hoje: string,
+  diasPadrao: number,
+): PrazoDaOs {
+  if (orc.prazo) return { data: orc.prazo, origem: "orcamento" };
+  if (orc.data_entrega_prometida) return { data: orc.data_entrega_prometida, origem: "entrega_prometida" };
+  if (orc.prazo_tipo === "normal") return { data: somarDiasUteis(hoje, diasPadrao), origem: "padrao_da_casa" };
+  return { data: null, origem: "sem_prazo" };
+}
+
+/** O que dizer ao vendedor, sob o campo da entrega, quando o orçamento ainda não tem data de entrega. */
+export function textoDaOsSemDataDeEntrega(prazo: PrazoDaOs): string {
+  switch (prazo.origem) {
+    case "sem_prazo":
+      return "Pedido expresso sem data: a OS nasce sem prazo e nunca aparece como atrasada. Defina a entrega.";
+    case "padrao_da_casa":
+      return `Sem data, o PDF não mostra a entrega e a OS nasce com o prazo padrão da casa, ${dataBR(prazo.data)}.`;
+    default:
+      return `O PDF não mostra a entrega. A OS nasce com o prazo da produção, ${dataBR(prazo.data)}.`;
+  }
+}
+
 /**
  * Até quando o preço vale: dia da criação + validade_dias. `created_at` é
  * timestamptz em UTC — cortar a string pegaria o dia de Greenwich, e orçamento
@@ -364,6 +402,9 @@ export function parcelasDoOrcamento(
 /* O que falta antes de mandar ao cliente                                     */
 /* ------------------------------------------------------------------------- */
 
+/** O rótulo da pendência de item sem produto e sem custo (a tela e os passos reconhecem por ele). */
+export const PENDENCIA_ITEM_SEM_CUSTO = "custo de item fora do catálogo";
+
 export function pendenciasParaEnviar(o: {
   temClienteOuContato: boolean;
   dataEntrega: string | null;
@@ -372,6 +413,11 @@ export function pendenciasParaEnviar(o: {
   itens: { arquivo_id: string | null }[];
   /** desconto acima da alçada sem aprovação válida (o banco não deixa virar OS) */
   descontoPendente?: boolean;
+  /**
+   * Itens sem produto do catálogo e sem custo (`itens_que_impedem_a_os`): o banco recusa a OS deles.
+   * Vazio para quem não vê preço. Ausente = a tela ainda não perguntou.
+   */
+  itensSemCusto?: string[];
 }): string[] {
   const falta: string[] = [];
   if (!o.temClienteOuContato) falta.push("cliente ou contato");
@@ -380,6 +426,8 @@ export function pendenciasParaEnviar(o: {
   // O cliente veria no PDF e no link um desconto que a gráfica ainda não deu.
   if (o.verPreco && o.descontoPendente) falta.push("aprovação do desconto");
   if (o.itens.length === 0) falta.push("itens");
+  // Avisar enquanto o orçamento é montado, não depois que o cliente aprovou e pagou (orçamento 153, 29/10).
+  if ((o.itensSemCusto?.length ?? 0) > 0) falta.push(PENDENCIA_ITEM_SEM_CUSTO);
   return falta;
 }
 
@@ -435,6 +483,8 @@ export type ItemDaConferencia = {
 export function conferenciaAntesDeConverter(o: {
   temCliente: boolean;
   dataEntrega: string | null;
+  /** O prazo que a OS vai ganhar (`prazoDaOsAoConverter`). Ausente = a conferência não promete nada sobre ele. */
+  prazoDaOs?: PrazoDaOs;
   verPreco: boolean;
   forma: string | null;
   /** Forma E divisão combinadas (`condicaoCompleta`); sem isto o banco não cria a OS. Ausente = só a forma. */
@@ -442,6 +492,8 @@ export function conferenciaAntesDeConverter(o: {
   pixRecebido: boolean;
   itensSemArte: number;
   descontoPendente: boolean;
+  /** Itens sem produto e sem custo (`itens_que_impedem_a_os`): o banco recusa a OS. Vazio/ausente = nada a avisar. */
+  itensSemCusto?: string[];
 }): ItemDaConferencia[] {
   const lista: ItemDaConferencia[] = [
     {
@@ -455,8 +507,14 @@ export function conferenciaAntesDeConverter(o: {
       chave: "entrega",
       rotulo: "Data de entrega",
       ok: !!o.dataEntrega,
-      nivel: "obrigatorio",
-      detalhe: o.dataEntrega ? "A OS herda a data e entra na agenda." : "Sem data a OS nasce sem prazo (e sai nos alertas).",
+      // Sem data, o pedido normal ganha o prazo padrão da casa na conversão (29/10/2026): a OS não nasce
+      // sem prazo, mas o cliente não recebeu data nenhuma. Só o expresso sem data nasce sem prazo.
+      nivel: o.dataEntrega || !o.prazoDaOs || o.prazoDaOs.origem === "sem_prazo" ? "obrigatorio" : "aviso",
+      detalhe: o.dataEntrega
+        ? "A OS herda a data e entra na agenda."
+        : o.prazoDaOs?.origem === "padrao_da_casa"
+          ? `O cliente não recebeu data de entrega. A OS nasce com o prazo padrão da casa, ${dataBR(o.prazoDaOs.data)}.`
+          : "Sem data a OS nasce sem prazo (e sai nos alertas).",
     },
   ];
   if (o.verPreco) {
@@ -489,6 +547,16 @@ export function conferenciaAntesDeConverter(o: {
       ok: !o.descontoPendente,
       nivel: "obrigatorio",
       detalhe: o.descontoPendente ? "O desconto passou da alçada sem aprovação: o banco recusa." : "Dentro da alçada ou aprovado.",
+    });
+  }
+  if (o.itensSemCusto && o.itensSemCusto.length > 0) {
+    lista.push({
+      chave: "custo",
+      rotulo: "Itens fora do catálogo com custo",
+      ok: false,
+      nivel: "obrigatorio",
+      // Regra de 22/10/2026: a OS de item sem produto e sem custo nasceria sem material e com margem inventada.
+      detalhe: `Sem produto do catálogo e sem custo: ${o.itensSemCusto.join("; ")}. O banco não cria a OS assim: escolha o produto ou informe o custo no item.`,
     });
   }
   lista.push({

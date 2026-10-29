@@ -125,6 +125,7 @@ import {
   EntregaEPrazos,
   Observacoes,
   Pagamento,
+  usePrazoPadraoDias,
   type AcordoDoOrcamento,
 } from "@/components/orcamento/acordo-do-orcamento";
 import {
@@ -152,7 +153,7 @@ import {
   proximaFaixa,
   type FaixaPreco,
 } from "@/domain/orcamentos/faixas";
-import { avisosParaEnviar, condicaoCompleta, conferenciaAntesDeConverter, brl, dataBR, descricaoDaCondicao, lerCondicao, m2, pendenciasParaEnviar } from "@/domain/orcamentos/acordo";
+import { avisosParaEnviar, condicaoCompleta, conferenciaAntesDeConverter, brl, dataBR, descricaoDaCondicao, isoLocal, lerCondicao, m2, pendenciasParaEnviar, PENDENCIA_ITEM_SEM_CUSTO, prazoDaOsAoConverter } from "@/domain/orcamentos/acordo";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 
@@ -259,6 +260,7 @@ const ONDE_RESOLVER: Record<string, string> = {
   "condição de pagamento": "acordo-pagamento",
   "aprovação do desconto": "acordo-desconto",
   itens: "itens-do-orcamento",
+  [PENDENCIA_ITEM_SEM_CUSTO]: "itens-do-orcamento",
 };
 
 export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
@@ -360,6 +362,8 @@ function OrcamentoDetailPage() {
       return data as AcordoDoOrcamento | null;
     },
   });
+  // Prazo padrão da casa (dias úteis): é o que a OS ganha quando o orçamento não tem data de entrega.
+  const prazoPadrao = usePrazoPadraoDias();
 
   // Cliente revendedor: o seletor de preço avisa quando o orçamento ainda está
   // no preço de tabela.
@@ -455,6 +459,18 @@ function OrcamentoDetailPage() {
     queryFn: carregarPrazos,
     staleTime: 5 * 60_000,
   });
+  // Itens sem produto do catálogo e sem custo: o banco recusa a OS deles (regra de 22/10). A recusa só aparecia
+  // na hora de converter, com o cliente já tendo aprovado e pago (orçamento 153, 29/10); aqui avisa antes.
+  // Vazio para quem não vê preço. A chave começa com ["orc-itens", id]: salvar item atualiza o aviso.
+  const consultaSemCusto = useQuery({
+    queryKey: ["orc-itens", id, "sem-custo"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("itens_que_impedem_a_os", { p_orcamento_id: id });
+      if (error) throw error;
+      return (data ?? []) as string[];
+    },
+  });
+  const itensSemCusto = consultaSemCusto.data ?? [];
   const itens = consultaItens.data ?? [];
   // A linha "Taxa de expresso" é do banco (recalcular_taxa_prazo): fica nos itens para o
   // total, o PDF e a OS, mas não é um item que se edita, move, nem que pede arte e produto.
@@ -1349,6 +1365,7 @@ function OrcamentoDetailPage() {
     temCondicao: dadosDoAcordo ? condicaoCompleta(dadosDoAcordo.condicao_pagamento) : true,
     itens: itensDeProduto as { arquivo_id: string | null }[],
     descontoPendente,
+    itensSemCusto,
   });
   const subtotalGravado = Number(orc.valor_subtotal ?? 0);
   const descontoGravado = Math.max(
@@ -1594,12 +1611,14 @@ function OrcamentoDetailPage() {
           itens={conferenciaAntesDeConverter({
             temCliente: !!(orc as any).cliente_id,
             dataEntrega: dadosDoAcordo ? (dadosDoAcordo.data_entrega_prometida ?? dadosDoAcordo.prazo) : null,
+            prazoDaOs: dadosDoAcordo ? prazoDaOsAoConverter(dadosDoAcordo, isoLocal(new Date()), prazoPadrao) : undefined,
             verPreco: canSeePrices,
             forma: condicao?.forma ?? null,
             condicaoCompleta: condicaoCompleta(dadosDoAcordo?.condicao_pagamento ?? null),
             pixRecebido: !!(condicao as any)?.pix_recebido,
             itensSemArte: (itensDeProduto as { arquivo_id: string | null }[]).filter((i) => !i.arquivo_id).length,
             descontoPendente: !!descontoPendente,
+            itensSemCusto,
           })}
           onConfirmar={async () => {
             await converterEmOS(conferindo === "enviado");
@@ -1632,6 +1651,12 @@ function OrcamentoDetailPage() {
               );
             })}
             .
+          </p>
+        )}
+        {!fechado && itensSemCusto.length > 0 && (
+          <p className="md:pl-12 text-xs text-muted-foreground">
+            Sem produto do catálogo e sem custo: {itensSemCusto.join("; ")}. Escolha o produto ou informe o custo no
+            item; sem isso a OS não é criada depois que o cliente aprovar.
           </p>
         )}
       </header>
