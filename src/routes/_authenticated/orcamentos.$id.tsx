@@ -2778,7 +2778,16 @@ function OrcamentoDetailPage() {
                     <span className="tabular-nums">{brl(subtotalGravado)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">Desconto</span>
+                    {/* Leva ao passo 3, onde o desconto é acertado e aprovado — não só rola a página.
+                        O rodapé da tabela de itens, que tinha este atalho, saiu a pedido do dono (27/10):
+                        o atalho continua aqui, no resumo que fica ao lado em todos os passos. */}
+                    <button
+                      type="button"
+                      className="text-left text-muted-foreground underline-offset-2 hover:underline"
+                      onClick={() => irParaPasso(3, "acordo-desconto")}
+                    >
+                      Desconto
+                    </button>
                     <span className="tabular-nums">− {brl(descontoGravado)}</span>
                   </div>
                 </>

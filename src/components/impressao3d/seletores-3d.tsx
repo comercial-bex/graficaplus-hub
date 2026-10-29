@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
+import { Dica } from "@/components/bex/Dica";
 import { amostraDaCor, type AmostraCor } from "@/lib/cor-filamento";
 import { cn } from "@/lib/utils";
 
@@ -111,21 +112,23 @@ export function SeletorFilamento({
       </Popover>
       {paleta.length > 1 && (
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtrar por cor">
+          {/* Botão só de bolinha: o nome da cor vai na Dica e no aria-label, nunca em
+              title — o title não abre no toque e o leitor de tela quase nunca o lê. */}
           {paleta.map((a) => (
-            <button
-              key={a.chave}
-              type="button"
-              title={a.nome}
-              aria-label={`Cor ${a.nome}`}
-              aria-pressed={cor === a.chave}
-              onClick={() => { setCor(cor === a.chave ? null : a.chave); setAberto(true); }}
-              className={cn(
-                "rounded-full p-0.5 transition",
-                cor === a.chave ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "hover:scale-110",
-              )}
-            >
-              <Bolinha amostra={a} className="h-5 w-5" />
-            </button>
+            <Dica key={a.chave} texto={a.nome}>
+              <button
+                type="button"
+                aria-label={`Cor ${a.nome}`}
+                aria-pressed={cor === a.chave}
+                onClick={() => { setCor(cor === a.chave ? null : a.chave); setAberto(true); }}
+                className={cn(
+                  "rounded-full p-0.5 transition",
+                  cor === a.chave ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "hover:scale-110",
+                )}
+              >
+                <Bolinha amostra={a} className="h-5 w-5" />
+              </button>
+            </Dica>
           ))}
           {cor && (
             <button type="button" className="ml-1 text-xs text-muted-foreground underline" onClick={() => setCor(null)}>
