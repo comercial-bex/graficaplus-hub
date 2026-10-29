@@ -63,6 +63,23 @@ describe("o prazo com que a OS nasce (tela)", () => {
   });
 });
 
+describe("a tela não promete prazo para orçamento que já virou OS", () => {
+  const COMPONENTE = readFileSync("src/components/orcamento/acordo-do-orcamento.tsx", "utf8");
+  const ROTA = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+
+  it("o quadro da entrega recebe se o orçamento já virou OS e então só informa", () => {
+    expect(COMPONENTE).toContain("jaVirouOs = false,");
+    expect(COMPONENTE).toContain("Sem data de entrega neste orçamento. A OS já foi criada: o prazo dela se define na própria OS.");
+    // com a OS criada, o texto do prazo padrão ("a OS nasce com...") não aparece
+    const texto = COMPONENTE.slice(COMPONENTE.indexOf(": jaVirouOs"), COMPONENTE.indexOf(": jaVirouOs") + 400);
+    expect(texto.indexOf("A OS já foi criada")).toBeLessThan(texto.indexOf("textoDaOsSemDataDeEntrega"));
+  });
+
+  it("a rota passa a informação: OS ligada ao orçamento ou status convertido", () => {
+    expect(ROTA).toContain('jaVirouOs={!!(orc as any).os_id || orc.status === "convertido"}');
+  });
+});
+
 describe("a conferência antes de converter conta o que vai acontecer com o prazo", () => {
   const base = {
     temCliente: true,

@@ -2586,7 +2586,7 @@ function OrcamentoDetailPage() {
                 </div>
               ) : dadosDoAcordo ? (
                 <>
-                  <EntregaEPrazos acordo={dadosDoAcordo} podeEditar={podeMexer} />
+                  <EntregaEPrazos acordo={dadosDoAcordo} podeEditar={podeMexer} jaVirouOs={!!(orc as any).os_id || orc.status === "convertido"} />
                   {/* Desconto e parcelamento são preço: quem não vê preço não vê
                       estes blocos (mostrariam "1× de R$ 0,00", que é mentira). O
                       desconto vem antes porque é ele que muda o total das parcelas. */}

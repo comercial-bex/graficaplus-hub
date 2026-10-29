@@ -156,7 +156,16 @@ export function usePrazoPadraoDias(): number {
 /* Entrega e prazos                                                           */
 /* ------------------------------------------------------------------------- */
 
-export function EntregaEPrazos({ acordo, podeEditar }: { acordo: AcordoDoOrcamento; podeEditar: boolean }) {
+export function EntregaEPrazos({
+  acordo,
+  podeEditar,
+  jaVirouOs = false,
+}: {
+  acordo: AcordoDoOrcamento;
+  podeEditar: boolean;
+  /** O orçamento já virou OS: o prazo que a OS ganharia na conversão não vale mais. */
+  jaVirouOs?: boolean;
+}) {
   const gravar = useGravarOrcamento(acordo.id);
   const prazoPadrao = usePrazoPadraoDias();
   const [maisDatas, setMaisDatas] = useState(prazoSeparado(acordo) || !!acordo.data_inicio);
@@ -244,7 +253,9 @@ export function EntregaEPrazos({ acordo, podeEditar }: { acordo: AcordoDoOrcamen
           <p className="text-xs text-muted-foreground">
             {acordo.data_entrega_prometida
               ? `${falta(diasEntrega)} · sai no PDF e a OS herda`
-              : textoDaOsSemDataDeEntrega(prazoDaOsAoConverter(acordo, isoLocal(new Date()), prazoPadrao))}
+              : jaVirouOs
+                ? "Sem data de entrega neste orçamento. A OS já foi criada: o prazo dela se define na própria OS."
+                : textoDaOsSemDataDeEntrega(prazoDaOsAoConverter(acordo, isoLocal(new Date()), prazoPadrao))}
           </p>
         </div>
 
