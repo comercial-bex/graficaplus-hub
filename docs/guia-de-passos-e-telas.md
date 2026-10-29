@@ -61,7 +61,7 @@ Uma tarefa que tem mais de uns 5 campos, ou escolhas que dependem umas das outra
 | **Novo produto** | **6 passos**: tipo, variação, material do estoque, máquina e cobrança, preço, revisão |
 | **Novo material (insumo)** | **6 passos**: tipo, material, marca, medida da embalagem, compra e estoque cheio (aviso a 15%), revisão |
 | **Novo cliente** | **6 passos**: tipo, documento (CNPJ preenche o resto), contato com o WhatsApp validado e sem duplicata, endereço, responsável, revisão |
-| **Orçamento 3D** | impressora, filamento e presets em **cartões**; os três blocos e o resultado ao vivo ficam como estavam |
+| **Orçamento 3D** | impressora em lista suspensa e filamento com busca e paleta de cores (**seleção compacta**, pedido do dono em 27/10/2026); presets em **cartões**; os três blocos e o resultado ao vivo ficam como estavam |
 | **Nova máquina** | **5 passos**: tipo, identificação, capacidade (boca e velocidade), custo e consumo, revisão |
 | **Novo usuário** | **4 passos**: perfil em cartões, pessoa, senha inicial, revisão |
 | O que falta de cada papel | pendências com passo a passo e botão para o destino |
@@ -79,7 +79,7 @@ Medido no código de cada tela (25/10/2026). "Campos" são `Input`, `Select` e `
 | Orçamento (detalhe) | 2.353 | 4 | 0 | 7 | 11 | Já em passos. Falta o **resumo fixo** (total, prazo, pendências) sempre à vista e recolher os blocos que o passo atual não usa |
 | Produtos | 1.452 | 8 | 1 | 19 | 8 | **Assistente feito** (novo produto). Edição segue em abas |
 | OS (detalhe) | 1.373 | 7 | 6 | 15 | 16 | Abas e seções. Falta um cartão "próximo passo" no topo (o que falta para a OS andar) |
-| Orçamento 3D (novo) | 1.188 | 5 | 0 | 17 | 5 | **Correção da análise:** a tela já tem 3 blocos numerados (identificação, dados do fatiador, parâmetros de custo), leitura do print do fatiador e o resultado ao vivo ao lado; um assistente de uma coisa por vez brigaria com esse resultado. Feito: impressora, filamento e presets viraram **cartões** |
+| Orçamento 3D (novo) | 1.188 | 5 | 0 | 17 | 5 | **Correção da análise:** a tela já tem 3 blocos numerados (identificação, dados do fatiador, parâmetros de custo), leitura do print do fatiador e o resultado ao vivo ao lado; um assistente de uma coisa por vez brigaria com esse resultado. Feito: presets em **cartões**; impressora e filamento em **seleção compacta** desde 27/10/2026, a pedido do dono — os cartões ocupavam espaço demais dentro do orçamento |
 | Precificação | 1.124 | 9 | 0 | 10 | 8 | Painel de leitura com simulador: os 3 números que mandam no topo (custo, preço, margem) |
 | Relatórios | 1.040 | 12 | 0 | 2 | 2 | Painel de leitura: período em cartões e 3 números no topo, o resto recolhido |
 | Compromissos | 1.012 | 5 | 0 | 7 | 7 | Abas e seções |
@@ -103,7 +103,7 @@ O ganho é a quantidade de campos do cadastro vezes a frequência. A frequência
 
 1. ~~Cliente novo~~ **feito** (25/10/2026): tipo → documento → contato → endereço → responsável → revisão.
 2. ~~Insumo novo~~ **feito** (25/10/2026): tipo → material → marca → medida da embalagem → o que pagou e o **estoque cheio, com o mínimo a 15%** → revisão.
-3. ~~Orçamento 3D~~ **feito como cartões** (impressora, filamento e presets), mantendo os três blocos e o resultado ao vivo.
+3. ~~Orçamento 3D~~ **feito**: presets em cartões; impressora e filamento em seleção compacta desde 27/10/2026 (lista suspensa, e busca com paleta de cores), mantendo os três blocos e o resultado ao vivo.
 4. ~~Máquina nova~~ **feito**: tipo → identificação → capacidade → custo → revisão.
 5. ~~Usuário novo~~ **feito**: perfil em cartões → pessoa → senha inicial → revisão.
 
