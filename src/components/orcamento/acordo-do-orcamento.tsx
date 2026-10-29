@@ -693,7 +693,8 @@ export function Pagamento({
                         setEntrada(tipo === "pct" ? "50" : "");
                       }}
                       className={cn(
-                        "px-3 text-sm font-semibold transition-colors",
+                        // whitespace-nowrap: "R$" quebrava em duas linhas e aparecia só o "R".
+                        "whitespace-nowrap px-3 text-sm font-semibold transition-colors",
                         tipoDaEntrada === tipo ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground",
                       )}
                     >
