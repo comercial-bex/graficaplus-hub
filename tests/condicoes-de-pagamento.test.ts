@@ -117,14 +117,18 @@ describe("a descrição e a obrigatoriedade", () => {
     expect(descricaoDaCondicao({ parcelas: 2 })).toBe("2x");
   });
 
-  it("condição completa = forma + divisão; o {parcelas: 1} de nascença não conta", () => {
+  it("condição completa = forma + divisão ESCOLHIDA; forma com o {parcelas: 1} de nascença não conta (orçamento 152, 29/10)", () => {
     expect(condicaoCompleta(null)).toBe(false);
     expect(condicaoCompleta({ parcelas: 1 })).toBe(false);
     expect(condicaoCompleta({ modelo: "metade_metade" })).toBe(false);
     expect(condicaoCompleta({ forma: "PIX" })).toBe(false);
-    expect(condicaoCompleta({ forma: "PIX", parcelas: 1 })).toBe(true);
+    // A brecha de 28/10: forma escolhida e o `parcelas: 1` de nascença passavam como "completa".
+    expect(condicaoCompleta({ forma: "PIX", parcelas: 1 })).toBe(false);
+    expect(condicaoCompleta({ forma: "PIX", parcelas: 3, primeiro_vencimento: "2026-11-10" })).toBe(false);
+    expect(condicaoCompleta({ forma: "PIX", modelo: "parcelado", parcelas: 3 })).toBe(true);
     expect(condicaoCompleta({ forma: "Dinheiro", ...CONDICAO_PADRAO_DA_CASA })).toBe(true);
     expect(condicaoCompleta({ forma: "  ", modelo: "a_vista" })).toBe(false);
+    expect(condicaoCompleta({ forma: "PIX", modelo: "qualquer_coisa" })).toBe(false);
   });
 
   it("a conferência antes de converter cobra a condição completa, não só a forma", () => {
@@ -152,7 +156,8 @@ describe("a descrição e a obrigatoriedade", () => {
 describe("o que a tela, o banco e o PDF dizem", () => {
   const tela = ler("src/components/orcamento/acordo-do-orcamento.tsx");
   const rota = ler("src/routes/_authenticated/orcamentos.$id.tsx");
-  const sql = ler("supabase/migrations/20261028600000_condicao_de_pagamento_obrigatoria_com_entrada.sql");
+  // 29/10: a função inteira regravada só com o bloco (b4) exigindo o modelo (parcelas sozinho não vale).
+  const sql = ler("supabase/migrations/20261029200000_condicao_de_pagamento_exige_modelo.sql");
 
   it("a tela oferece os quatro modelos, a entrada em % ou R$ e o padrão da casa", () => {
     expect(tela).toContain('aria-label="Como divide"');
@@ -168,6 +173,9 @@ describe("o que a tela, o banco e o PDF dizem", () => {
   it("o banco recusa orçamento sem condição e divide entrada + saldo", () => {
     expect(sql).toContain("(b4) Condição de pagamento obrigatória");
     expect(sql).toContain("Orçamento sem condição de pagamento");
+    // 29/10: a divisão tem de ser um modelo escolhido; `parcelas` sozinho (o de nascença) não vale.
+    expect(sql).toContain("OR COALESCE(v_orc.condicao_pagamento->>'modelo', '') NOT IN ('a_vista', 'metade_metade', 'entrada', 'parcelado') THEN");
+    expect(sql).not.toContain("AND (v_orc.condicao_pagamento->>'parcelas') IS NULL");
     expect(sql).toContain("v_entrada := round(v_total * 0.5, 2);");
     expect(sql).toContain("VALUES (v_conta_id, v_n, v_entrada, v_hoje);");
     expect(sql).toContain("WHEN v_modelo IN ('entrada', 'metade_metade') THEN COALESCE(v_orc.prazo, v_hoje)");

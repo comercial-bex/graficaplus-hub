@@ -207,15 +207,18 @@ export const CONDICAO_PADRAO_DA_CASA: Pick<CondicaoDePagamento, "modelo" | "parc
 
 /**
  * Condição completa = dá para mandar ao cliente e virar OS: tem a FORMA (Pix,
- * cartão…) e tem COMO divide (modelo novo, ou `parcelas` do acordo antigo). O
- * `{parcelas: 1}` que o orçamento ganha ao nascer NÃO é condição: foi assim
- * que 12 das 15 OS de outubro nasceram sem pagamento combinado.
+ * cartão…) e tem COMO divide (um dos quatro modelos, escolhido). O
+ * `{parcelas: 1}` que o orçamento ganha ao nascer NÃO é divisão: foi assim
+ * que 12 das 15 OS de outubro nasceram sem pagamento combinado — e, em
+ * 29/10/2026, o orçamento 152 saiu com forma Pix e esse `parcelas: 1` de
+ * nascença: o Pix pedia 50%, o PDF dizia "1x" e a conta a receber nasceria com
+ * UMA parcela do total. Acordo antigo em n parcelas vira "Parcelado" com um
+ * clique; o banco (`converter_orcamento_em_os`) cobra a mesma régua.
  */
 export function condicaoCompleta(cru: unknown): boolean {
   const c = lerCondicao(cru);
   const temForma = typeof c.forma === "string" && c.forma.trim() !== "";
-  const temDivisao = modeloDaCondicao(c) !== null || (c.parcelas != null && Number(c.parcelas) > 0 && !!c.forma);
-  return temForma && temDivisao;
+  return temForma && modeloDaCondicao(c) !== null;
 }
 
 const centavosDe = (v: unknown) => Math.round((Number(v) || 0) * 100);

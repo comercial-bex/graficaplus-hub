@@ -38,7 +38,8 @@ describe("digitar na unidade, guardar em metros", () => {
   it("o caso real da OS 165: 27 × 26 cm e 80 × 50 cm", () => {
     expect(paraMetros("27", "cm")).toBe(0.27);
     expect(paraMetros("26", "cm")).toBe(0.26);
-    expect(areaUnitaria({ largura: paraMetros("27", "cm"), altura: paraMetros("26", "cm"), quantidade: 1 })).toBe(0.07);
+    // 0,27 × 0,26 = 0,0702 m² exatos: a peça não arredonda mais em 3 casas (29/10/2026).
+    expect(areaUnitaria({ largura: paraMetros("27", "cm"), altura: paraMetros("26", "cm"), quantidade: 1 })).toBe(0.0702);
     expect(areaUnitaria({ largura: paraMetros("80", "cm"), altura: paraMetros("50", "cm"), quantidade: 1 })).toBe(0.4);
   });
 

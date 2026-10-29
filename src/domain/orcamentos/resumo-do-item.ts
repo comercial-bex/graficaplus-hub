@@ -1,4 +1,4 @@
-import { areaCobrada, areaTotal, areaUnitaria, temDimensoes } from "./area";
+import { areaCobrada, areaLegivel, areaTotal, areaUnitaria, temDimensoes } from "./area";
 import { camposDaUnidade } from "./tipos-de-produto";
 
 /**
@@ -36,7 +36,8 @@ export function fraseDoResumo(e: EntradaDoResumo): string {
     const total = areaTotal(dims);
     const cobrada = areaCobrada(dims, e.areaMinima);
     partes.push(`${qtd} × ${nome}`);
-    partes.push(`${metros(dims.largura!)} × ${metros(dims.altura!)} m = ${m2(peca)} a peça`);
+    // A peça miúda sai em cm² ("25 cm² a peça"); o lote continua em m².
+    partes.push(`${metros(dims.largura!)} × ${metros(dims.altura!)} m = ${areaLegivel(peca)} a peça`);
     if (qtd > 1) partes.push(`${m2(total)} no total`);
     if (cobrada > total + 0.0001) partes.push(`cobrado ${m2(cobrada)} (mínimo)`);
   } else {

@@ -167,6 +167,32 @@ export function dinheiro(v: number | string | null | undefined): string {
   return `R$ ${numeroBR(Number.isFinite(n) ? n : 0, 2)}`;
 }
 
+/**
+ * O unitário como o papel escreve (29/10/2026). A coluna guarda centavos, e em
+ * peça miúda o unitário em centavos não reproduz o total da linha: 120 adesivos
+ * de 5 × 5 cm a R$ 30/m² custam R$ 9,00 — R$ 0,075 cada —, e "R$ 0,08 × 120 =
+ * R$ 9,60" no papel faria o cliente refazer a conta e achar erro. Quando o
+ * unitário em centavos × peças não fecha com o total, sai o total ÷ peças com
+ * as casas que faltam (até 4: "R$ 0,075"). Fecha? Sai como sempre.
+ */
+export function dinheiroDaUnidade(
+  valorUnitario: number | string | null | undefined,
+  quantidade: number | string | null | undefined,
+  valorTotal: number | string | null | undefined,
+): string {
+  const vu = Number(valorUnitario ?? 0);
+  const qtd = Number(quantidade ?? 0);
+  const total = Number(valorTotal ?? 0);
+  // Fecha = unitário × peças chega ao total com no máximo um centavo de diferença (o resto de uma
+  // divisão como R$ 10,00 ÷ 3). Mais que isso, o cliente refaz a conta e não chega no total.
+  if (!(qtd > 1) || !Number.isFinite(total) || total <= 0 || Math.abs(vu * qtd - total) <= 0.0101) {
+    return dinheiro(vu);
+  }
+  const exato = total / qtd;
+  const casas = Math.abs(Math.round(exato * 1000) - exato * 1000) < 1e-6 ? 3 : 4;
+  return `R$ ${numeroBR(exato, casas)}`;
+}
+
 /** "3,000m" — medidas sempre com 3 casas, como no modelo. */
 export const metros = (v: number) => `${numeroBR(v, 3)}m`;
 

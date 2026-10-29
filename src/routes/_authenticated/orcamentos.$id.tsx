@@ -143,6 +143,7 @@ import {
   precoM2Implicito,
   somaAreaTotal,
   temDimensoes,
+  valorDaLinhaPorM2,
   valorUnitarioComMinimo,
 } from "@/domain/orcamentos/area";
 import {
@@ -631,6 +632,13 @@ function OrcamentoDetailPage() {
   // Preço unitário efetivo do item em edição, para conferir a margem na hora.
   const valorUnitarioEfetivo =
     valorUnitarioDerivado !== null ? valorUnitarioDerivado : paraNumero(form.valor_unitario);
+  // O total da linha vem da área EXATA da peça (29/10/2026), como o banco grava:
+  // em peça miúda, unitário em centavos × peças não reproduz o total (R$ 0,075
+  // vira R$ 0,08, e 120 adesivos de 5 × 5 cm sairiam por R$ 9,60 em vez de R$ 9,00).
+  const totalDaLinhaForm =
+    valorUnitarioDerivado !== null
+      ? valorDaLinhaPorM2(dimensoesForm, precoM2Form, form.area_minima)
+      : valorUnitarioEfetivo * quantidadeForm;
   // Com medida, o custo da peça sai do custo/m² × a área cobrada (a mesma do
   // preço). Era o custo/m² do produto comparado ao preço da PEÇA: placa de
   // R$ 11,25 com "custo" de R$ 78,00 e margem de −593%.
@@ -2010,7 +2018,7 @@ function OrcamentoDetailPage() {
                           <div className="col-span-6 md:col-span-3">
                             <Label>Total do item</Label>
                             <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm font-medium tabular-nums">
-                              {brl(valorUnitarioEfetivo * quantidadeForm)}
+                              {brl(totalDaLinhaForm)}
                             </div>
                           </div>
                         )}
@@ -2208,7 +2216,7 @@ function OrcamentoDetailPage() {
                       largura={vendidoPorArea ? dimensoesForm.largura : null}
                       altura={vendidoPorArea ? dimensoesForm.altura : null}
                       areaMinima={form.area_minima}
-                      valorTotal={canSeePrices ? valorUnitarioEfetivo * quantidadeForm : null}
+                      valorTotal={canSeePrices ? totalDaLinhaForm : null}
                     />
                     </div>
 
@@ -2219,7 +2227,7 @@ function OrcamentoDetailPage() {
                       {passoDoItem === 4 && canSeePrices && (
                         <span className="mr-auto text-sm">
                           <span className="text-muted-foreground">Total do item </span>
-                          <strong className="tabular-nums">{brl(valorUnitarioEfetivo * quantidadeForm)}</strong>
+                          <strong className="tabular-nums">{brl(totalDaLinhaForm)}</strong>
                         </span>
                       )}
                       <Button

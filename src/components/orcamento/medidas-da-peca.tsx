@@ -9,7 +9,7 @@ import { CampoDeMedida, SeletorDeUnidade, useUnidadeDeMedida } from "@/component
 import { medidaLegivel, type UnidadeDeMedida } from "@/domain/orcamentos/unidade-de-medida";
 import { dicaCampo } from "@/lib/dicas";
 import { cn } from "@/lib/utils";
-import { areaCobrada, areaTotal, areaUnitaria, temDimensoes } from "@/domain/orcamentos/area";
+import { areaCobrada, areaLegivel, areaTotal, areaUnitaria, temDimensoes } from "@/domain/orcamentos/area";
 import type { TamanhoComum } from "@/domain/orcamentos/tipos-de-produto";
 
 /**
@@ -24,7 +24,8 @@ import type { TamanhoComum } from "@/domain/orcamentos/tipos-de-produto";
  */
 
 const metros = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const m2 = (v: number) => `${metros(v)} m²`;
+// Peça miúda em cm² ("25 cm²"): com duas casas de m² ela aparecia como "0,00 m²".
+const m2 = (v: number) => areaLegivel(v);
 
 const paraNumero = (texto: string) => {
   const n = Number(String(texto).replace(",", "."));
