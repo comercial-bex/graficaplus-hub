@@ -31,7 +31,12 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { FieldTooltip } from "@/components/bex/FieldTooltip";
 import { Dropzone, type DropzoneStatus } from "@/components/bex/Dropzone";
 import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao3d/ocr";
-import { fecharPreco } from "@/domain/impressao3d/preco";
+import {
+  fecharPreco,
+  horasDeMaoDeObraPorPeca,
+  POS_PROCESSAMENTO_PADRAO_MIN,
+  PRECO_MINIMO_POR_PECA,
+} from "@/domain/impressao3d/preco";
 import {
   BUCKET_DOS_ARQUIVOS_3D,
   caminhoDoArquivo3d,
@@ -445,8 +450,9 @@ export function Calculadora3D({
     const acabamento = material.mul(num(f.pct_acabamento) / 100);
     const risco = material.mul(num(f.pct_falha) / 100);
     // mão de obra: horas de pós-processamento POR PEÇA × quantidade
+    const horasMaoDeObra = horasDeMaoDeObraPorPeca(num(f.mo_horas));
     const maoDeObra = laborCost([
-      { minutos: num(f.mo_horas) * 60, custoHoraSnapshot: num(f.mo_custo_hora) },
+      { minutos: horasMaoDeObra * 60, custoHoraSnapshot: num(f.mo_custo_hora) },
     ]).mul(qtd);
     // adm/embalagem: por peça
     const indireto = D(num(f.custo_admin)).mul(qtd);
@@ -462,7 +468,12 @@ export function Calculadora3D({
     });
     const markup = num(f.markup, 2) || 2;
     // TOTAL do lote = unitário arredondado × quantidade: o PDF fecha a conta.
-    const { preco, unitario, lucro, margem } = fecharPreco(operacional, markup, qtd);
+    const { preco, unitario, lucro, margem, peloMinimo } = fecharPreco(
+      operacional,
+      markup,
+      qtd,
+      PRECO_MINIMO_POR_PECA,
+    );
     const markupAtacado = Number(configPrec?.markup_atacado_padrao ?? 1.5) || 1.5;
     const equilibrio = operacional.mul(1 / 0.9); // margem 10%
     return {
@@ -478,6 +489,8 @@ export function Calculadora3D({
       operacional,
       preco,
       unitario,
+      peloMinimo,
+      horasMaoDeObra,
       lucro,
       margem,
       atacado: operacional.mul(markupAtacado),
@@ -562,7 +575,7 @@ export function Calculadora3D({
         custo_hora_maquina: num(f.custo_hora),
         potencia_w: num(f.potencia_w),
         tarifa_kwh: num(f.tarifa_kwh),
-        mao_obra: { custo_hora: num(f.mo_custo_hora), horas: num(f.mo_horas) },
+        mao_obra: { custo_hora: num(f.mo_custo_hora), horas: calc.horasMaoDeObra },
         pct_acabamento: num(f.pct_acabamento),
         pct_falha: num(f.pct_falha),
         custo_admin: num(f.custo_admin),
@@ -1094,7 +1107,7 @@ export function Calculadora3D({
                 />
                 <Campo
                   label="Mão de obra (horas)"
-                  hint="Só o pós-processamento manual (remoção de suporte, lixa, montagem)."
+                  hint={`Só o pós-processamento manual por peça (remoção de suporte, lixa, montagem). Em branco ou 0, vale o padrão de ${POS_PROCESSAMENTO_PADRAO_MIN} minutos por peça.`}
                   value={f.mo_horas}
                   onChange={(v) => set("mo_horas", v)}
                   step="0.1"
@@ -1187,6 +1200,12 @@ export function Calculadora3D({
                     </span>
                     <span className="font-mono font-semibold">{money(calc.unitario)}</span>
                   </div>
+                )}
+
+                {calc.peloMinimo && (
+                  <p className="text-xs text-muted-foreground" data-testid="preco-minimo-3d">
+                    Preço mínimo de {money(PRECO_MINIMO_POR_PECA)} por peça aplicado: o cálculo deu menos que isso.
+                  </p>
                 )}
 
                 {podeVerCusto && (
