@@ -8463,6 +8463,8 @@ export type Database = {
           endereco_entrega: Json | null
           estoque_baixado: boolean
           estoque_baixado_em: string | null
+          fechamento_estimado: boolean
+          fechamento_estimativas: Json
           finalidade: string
           id: string
           local_mostruario: string | null
@@ -8516,6 +8518,8 @@ export type Database = {
           endereco_entrega?: Json | null
           estoque_baixado?: boolean
           estoque_baixado_em?: string | null
+          fechamento_estimado?: boolean
+          fechamento_estimativas?: Json
           finalidade?: string
           id?: string
           local_mostruario?: string | null
@@ -8569,6 +8573,8 @@ export type Database = {
           endereco_entrega?: Json | null
           estoque_baixado?: boolean
           estoque_baixado_em?: string | null
+          fechamento_estimado?: boolean
+          fechamento_estimativas?: Json
           finalidade?: string
           id?: string
           local_mostruario?: string | null

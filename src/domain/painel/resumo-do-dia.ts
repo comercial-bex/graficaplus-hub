@@ -18,6 +18,8 @@ export const RESUMO_POR_ROTULO: Record<string, { chave: string; curto: string }[
     { chave: "orcamento_aprovado_sem_os", curto: "aprovados sem OS" },
     { chave: "whatsapp_esperando_resposta", curto: "esperando no WhatsApp" },
     { chave: "whatsapp_encerrado_sem_resposta", curto: "contatos encerrados sem resposta" },
+    { chave: "orcamento_enviado_sem_condicao", curto: "enviados sem condição de pagamento" },
+    { chave: "orcamento_rascunho_esquecido", curto: "rascunhos esquecidos" },
     { chave: "orcamento_parado", curto: "orçamentos sem resposta" },
     { chave: "item_sem_medida_e_sem_ficha", curto: "itens sem medida" },
     { chave: "os_prazo_vencido", curto: "OS com prazo vencido" },

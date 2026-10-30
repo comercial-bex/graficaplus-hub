@@ -257,6 +257,15 @@ function OSDetailPage() {
               </Button>
             </Dica>
             <StatusChip label={rotuloDe(os.status)} tone="cyan" />
+            {os.fechamento_estimado && (
+              <Dica
+                texto={`Fechada com estimativa: a margem real desta OS é a prevista, porque faltou registro. ${(Array.isArray(os.fechamento_estimativas) ? os.fechamento_estimativas : []).join(" ")}`}
+              >
+                <span>
+                  <StatusChip label="Fechada com estimativa" tone="amber" />
+                </span>
+              </Dica>
+            )}
             {/* Status + trocar status ficam sempre visíveis: é a ação principal do detalhe. */}
             <Select value={os.status} onValueChange={updateStatus}>
               <SelectTrigger className="w-full sm:w-56 h-11 md:h-9 text-base md:text-sm">
