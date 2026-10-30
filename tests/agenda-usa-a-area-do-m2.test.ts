@@ -13,15 +13,21 @@ const MIGRACAO = "20261029500000_agenda_usa_a_area_do_m2.sql";
 const SQL = readFileSync(join(PASTA, MIGRACAO), "utf8");
 
 describe("agenda de máquina: o tempo do produto em m² é por m²", () => {
-  it("é a última definição de agendar_os_interno", () => {
+  it("a regra da área está na definição original e segue na última (a divisão de 30/10 a manteve)", () => {
     const ultima = readdirSync(PASTA)
       .filter((nome) => nome.endsWith(".sql"))
       .sort()
       .filter((nome) =>
-        readFileSync(join(PASTA, nome), "utf8").includes("CREATE OR REPLACE FUNCTION public.agendar_os_interno("),
+        readFileSync(join(PASTA, nome), "utf8").includes(
+          "CREATE OR REPLACE FUNCTION public.agendar_os_interno(",
+        ),
       )
       .pop();
-    expect(ultima).toBe(MIGRACAO);
+    expect(ultima).toBeTruthy();
+    const sqlUltima = readFileSync(join(PASTA, ultima!), "utf8");
+    expect(sqlUltima).toContain("p.unidade::text AS unidade_produto");
+    expect(sqlUltima).toContain("THEN r.area_cobrada");
+    expect(sqlUltima).toContain("v_min := ceil((r.area_cobrada / r.velocidade_m2_h) * 60)::int;");
   });
 
   it("produto em m² com área cobrada gasta tempo × área; os demais, tempo × quantidade", () => {
@@ -37,23 +43,32 @@ describe("agenda de máquina: o tempo do produto em m² é por m²", () => {
   });
 
   it("a mesma regra de unidade do custo cheio: tempo por unidade do produto, sem multiplicar por peça", () => {
-    const custo = readFileSync(join(PASTA, "20261028500000_custo_cheio_usa_custo_digitado_sem_ficha.sql"), "utf8");
+    const custo = readFileSync(
+      join(PASTA, "20261028500000_custo_cheio_usa_custo_digitado_sem_ficha.sql"),
+      "utf8",
+    );
     expect(custo).toContain("v_horas := COALESCE(p.tempo_producao_min, 0) / 60.0;");
     expect(custo).toContain("lower(replace(COALESCE(p.unidade, ''), '²', '2')) = 'm2'");
     expect(custo).not.toMatch(/tempo_producao_min[^;]*quantidade/);
   });
 
   it("a máquina com velocidade (impressora) continua pela velocidade", () => {
-    expect(SQL).toContain("IF COALESCE(r.velocidade_m2_h, 0) > 0 AND COALESCE(r.area_cobrada, 0) > 0 THEN");
+    expect(SQL).toContain(
+      "IF COALESCE(r.velocidade_m2_h, 0) > 0 AND COALESCE(r.area_cobrada, 0) > 0 THEN",
+    );
     expect(SQL).toContain("v_min := ceil((r.area_cobrada / r.velocidade_m2_h) * 60)::int;");
   });
 
-  it("item maior que o dia diz quanto precisa, antes de procurar horário nos 90 dias", () => {
+  it("na migração original, item maior que o dia dizia quanto precisava (hoje ele é dividido em partes)", () => {
     const limite = SQL.indexOf("IF v_min > 600 THEN");
-    const busca = SQL.indexOf("v_inicio := public.proximo_horario_livre_interno(r.maquina_id, v_min, v_cursor);");
+    const busca = SQL.indexOf(
+      "v_inicio := public.proximo_horario_livre_interno(r.maquina_id, v_min, v_cursor);",
+    );
     expect(limite).toBeGreaterThan(-1);
     expect(busca).toBeGreaterThan(limite);
-    expect(SQL).toContain("'precisa de ' || v_min || ' min seguidos, mais que o dia de 600 min (08:00 às 18:00)");
+    expect(SQL).toContain(
+      "'precisa de ' || v_min || ' min seguidos, mais que o dia de 600 min (08:00 às 18:00)",
+    );
   });
 
   it("o dia de 600 min é o expediente que a busca de horário oferece", () => {

@@ -476,7 +476,16 @@ function OSDetailPage() {
   );
 }
 
-type ReservaCriada = { id: string; maquina: string | null; item: string; inicio: string; minutos: number };
+type ReservaCriada = {
+  id: string;
+  maquina: string | null;
+  item: string;
+  inicio: string;
+  minutos: number;
+  /** Item maior que um dia vem em partes de até 4 h: "parte 2 de 4". */
+  parte?: number;
+  partes?: number;
+};
 type ItemPulado = { item: string; motivo: string };
 type ResultadoAgendamento = {
   os?: number | string;
@@ -560,7 +569,8 @@ function ResultadoDoAgendamento({
         <ul className="space-y-1 text-xs text-muted-foreground">
           {reservas.map((r) => (
             <li key={r.id}>
-              <span className="text-foreground">{r.item}</span> · {r.maquina ?? "máquina"} ·{" "}
+              <span className="text-foreground">{r.item}</span>
+              {r.partes && r.partes > 1 ? ` (parte ${r.parte} de ${r.partes})` : ""} · {r.maquina ?? "máquina"} ·{" "}
               {quandoComeca(r.inicio)} · {r.minutos} min
             </li>
           ))}
