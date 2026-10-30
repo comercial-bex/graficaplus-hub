@@ -75,3 +75,28 @@ describe("a decisão do fechamento da OS fica registrada", () => {
     );
   });
 });
+
+describe("o aviso do orçamento enviado sem a condição de pagamento", () => {
+  const AVISO = readFileSync(
+    join(PASTA, "20261030880000_aviso_orcamento_enviado_sem_condicao.sql"),
+    "utf8",
+  );
+
+  it("olha o enviado depois da regra de 29/10 que não traz forma e modelo válido", () => {
+    expect(AVISO).toContain("'orcamento_enviado_sem_condicao'");
+    expect(AVISO).toContain("o.status = 'enviado' AND o.created_at >= '2026-10-29'");
+    expect(AVISO).toContain("IN ('a_vista', 'metade_metade', 'entrada', 'parcelado')");
+  });
+
+  it("é aviso, não trava: o orçamento sai por mais de uma porta e o dono não decidiu barrar o envio no banco", () => {
+    expect(AVISO).not.toMatch(/CREATE\s+(OR REPLACE\s+)?TRIGGER/i);
+    expect(AVISO).toContain("'atencao', 'atendimento'");
+  });
+
+  it("aparece no resumo do dia do atendimento e é seguro de reaplicar", () => {
+    expect(RESUMO_POR_ROTULO.atendimento.map((x) => x.chave)).toContain(
+      "orcamento_enviado_sem_condicao",
+    );
+    expect(AVISO).toContain("IF position('orcamento_enviado_sem_condicao' IN v_def) = 0 THEN");
+  });
+});
