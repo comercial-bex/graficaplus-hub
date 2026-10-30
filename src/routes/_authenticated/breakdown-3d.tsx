@@ -1,3 +1,4 @@
+import { hojeBr, diasAntesDeHojeBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -46,8 +47,8 @@ const brl = (n: number | null) =>
   n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (n: number) => percentual(Number(n) * 100);
 
-const hoje = new Date().toISOString().slice(0, 10);
-const noventa = new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10);
+const hoje = hojeBr();
+const noventa = diasAntesDeHojeBr(89);
 
 /**
  * Custo por peça 3D: o que foi orçado e o que a peça custou de verdade.

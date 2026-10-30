@@ -8489,7 +8489,6 @@ export type Database = {
           responsavel_id: string | null
           setor_atual: string | null
           status: Database["public"]["Enums"]["status_os"]
-          status_arte: string
           status_comercial: string
           status_financeiro: Database["public"]["Enums"]["status_pagamento"]
           status_geral: string
@@ -8543,7 +8542,6 @@ export type Database = {
           responsavel_id?: string | null
           setor_atual?: string | null
           status?: Database["public"]["Enums"]["status_os"]
-          status_arte?: string
           status_comercial?: string
           status_financeiro?: Database["public"]["Enums"]["status_pagamento"]
           status_geral?: string
@@ -8597,7 +8595,6 @@ export type Database = {
           responsavel_id?: string | null
           setor_atual?: string | null
           status?: Database["public"]["Enums"]["status_os"]
-          status_arte?: string
           status_comercial?: string
           status_financeiro?: Database["public"]["Enums"]["status_pagamento"]
           status_geral?: string
@@ -19864,7 +19861,6 @@ export type Database = {
           responsavel_id: string | null
           setor_atual: string | null
           status: Database["public"]["Enums"]["status_os"]
-          status_arte: string
           status_comercial: string
           status_financeiro: Database["public"]["Enums"]["status_pagamento"]
           status_geral: string

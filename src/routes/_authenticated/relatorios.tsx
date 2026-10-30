@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hojeBr, diasAntesDeHojeBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -185,8 +186,8 @@ type ExportSection = {
   rows: ExportRow[];
 };
 
-const today = new Date().toISOString().slice(0, 10);
-const defaultStart = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const today = hojeBr();
+const defaultStart = diasAntesDeHojeBr(29);
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const decimal = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });

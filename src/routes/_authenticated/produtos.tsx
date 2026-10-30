@@ -1,3 +1,4 @@
+import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -424,7 +425,7 @@ function ProdutosPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `catalogo-produtos-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `catalogo-produtos-${hojeBr()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

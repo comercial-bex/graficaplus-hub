@@ -115,7 +115,7 @@ export const SEM_GRANT: Record<string, string[]> = {
     "valor_unitario, custo_unitario, valor_total, desconto, custo_previsto, margem_prevista, parametros, produto_snapshot, origem_calculo, preco_m2",
   ),
   ordens_servico: lista(
-    "valor_total, custo_previsto, custo_real, margem_real, estoque_baixado_em, numero_os, contato_id, status_financeiro, status_arte, status_producao, prazo_cliente, prazo_interno, valor_venda, lucro_previsto, lucro_real, margem_prevista, status_comercial, status_logistica, status_geral, desconto, data_fechamento, condicao_pagamento",
+    "valor_total, custo_previsto, custo_real, margem_real, estoque_baixado_em, numero_os, contato_id, status_financeiro, status_producao, prazo_cliente, prazo_interno, valor_venda, lucro_previsto, lucro_real, margem_prevista, status_comercial, status_logistica, status_geral, desconto, data_fechamento, condicao_pagamento",
   ),
   itens_os: lista(
     "valor_unitario, custo_unitario, valor_total, orcamento_item_id, produto_snapshot, parametros, custos_previstos, preco_snapshot, margem_prevista, planejamento, requer_qualidade, precisa_entrega, precisa_instalacao, preco_m2",

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -184,7 +185,7 @@ function PlanilhaPage() {
 
   function exportarMateriais() {
     baixar(
-      `materiais-${new Date().toISOString().slice(0, 10)}.csv`,
+      `materiais-${hojeBr()}.csv`,
       paraCSV(
         ["id", "nome", "unidade", "custo_unitario", "fornecedor"],
         materiais.map((m: any) => ({
@@ -200,7 +201,7 @@ function PlanilhaPage() {
 
   function exportarMaoObra() {
     baixar(
-      `mao-de-obra-${new Date().toISOString().slice(0, 10)}.csv`,
+      `mao-de-obra-${hojeBr()}.csv`,
       paraCSV(
         ["id", "funcao", "setor", "custo_hora", "encargos_pct"],
         maoDeObra.map((m: any) => ({

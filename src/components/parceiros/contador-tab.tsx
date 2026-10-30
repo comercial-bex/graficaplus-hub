@@ -1,3 +1,4 @@
+import { mesBr } from "@/lib/hoje-br";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardList, Copy, Download, FileSpreadsheet, Info } from "lucide-react";
@@ -25,7 +26,7 @@ import { fechamentoConfere, resumoDoFechamento } from "@/domain/parceiros/contad
  * brinde saem numa lista separada porque não são crédito: saem do estoque.
  */
 
-const mesAtual = () => new Date().toISOString().slice(0, 7);
+const mesAtual = () => mesBr();
 
 function limitesDoMes(mes: string): { inicio: string; fim: string } {
   const [ano, m] = mes.split("-").map(Number);

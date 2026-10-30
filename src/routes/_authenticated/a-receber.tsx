@@ -1,3 +1,4 @@
+import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -103,11 +104,7 @@ const brl = (n: number | null | undefined) =>
 const dia = (d: string | null | undefined) =>
   d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 
-const hojeISO = () => {
-  const agora = new Date();
-  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-};
+const hojeISO = () => hojeBr();
 
 const num = (v: unknown) => Number(v ?? 0) || 0;
 

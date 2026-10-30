@@ -1,3 +1,4 @@
+import { hojeBr, diasAntesDeHojeBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -41,8 +42,8 @@ const brl = (n: number | null) =>
 const num = (n: number | null, casas = 1) =>
   n == null ? "—" : n.toLocaleString("pt-BR", { maximumFractionDigits: casas });
 
-const hoje = new Date().toISOString().slice(0, 10);
-const trintaDias = new Date(Date.now() - 29 * 864e5).toISOString().slice(0, 10);
+const hoje = hojeBr();
+const trintaDias = diasAntesDeHojeBr(29);
 
 /**
  * Produtividade da impressão 3D.

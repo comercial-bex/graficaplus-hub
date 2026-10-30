@@ -1,3 +1,4 @@
+import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -72,7 +73,7 @@ export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
 });
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const hoje = () => new Date().toISOString().slice(0, 10);
+const hoje = () => hojeBr();
 
 const categorias = [
   "materia_prima",

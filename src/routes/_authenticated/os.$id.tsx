@@ -1,3 +1,4 @@
+import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { STATUS, rotuloBloqueio, rotuloDe } from "@/domain/os/etapas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1151,7 +1152,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
   async function marcarPago(id: string) {
     const { error } = await (supabase.rpc as any)("confirmar_pagamento_registrado", {
       p_pagamento_id: id,
-      p_data: new Date().toISOString().slice(0, 10),
+      p_data: hojeBr(),
       p_referencia_externa: null,
     });
     if (error) return toast.error(mensagemErro(error));
