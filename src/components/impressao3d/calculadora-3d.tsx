@@ -1106,11 +1106,14 @@ export function Calculadora3D({
                   step="0.01"
                 />
                 <Campo
-                  label="Mão de obra (horas)"
-                  hint={`Só o pós-processamento manual por peça (remoção de suporte, lixa, montagem). Em branco ou 0, vale o padrão de ${POS_PROCESSAMENTO_PADRAO_MIN} minutos por peça.`}
-                  value={f.mo_horas}
-                  onChange={(v) => set("mo_horas", v)}
-                  step="0.1"
+                    label="Mão de obra (horas)"
+                    hint={
+                      "Só o pós-processamento manual por peça (remoção de suporte, lixa, montagem). " +
+                      `Em branco ou 0, vale o padrão de ${POS_PROCESSAMENTO_PADRAO_MIN} minutos por peça.`
+                    }
+                    value={f.mo_horas}
+                    onChange={(v) => set("mo_horas", v)}
+                    step="0.1"
                 />
                 <Campo
                   label="% Acabamento"
@@ -1204,7 +1207,8 @@ export function Calculadora3D({
 
                 {calc.peloMinimo && (
                   <p className="text-xs text-muted-foreground" data-testid="preco-minimo-3d">
-                    Preço mínimo de {money(PRECO_MINIMO_POR_PECA)} por peça aplicado: o cálculo deu menos que isso.
+                    Preço mínimo de {money(PRECO_MINIMO_POR_PECA)} por peça aplicado: o cálculo deu
+                    menos que isso.
                   </p>
                 )}
 
