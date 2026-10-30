@@ -1,3 +1,4 @@
+import { hojeBr, diasAntesDeHojeBr } from "@/lib/hoje-br";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -62,8 +63,8 @@ const tomDoEstagio: Record<string, "secondary" | "outline" | "destructive"> = {
   perdido: "destructive",
 };
 
-const hoje = new Date().toISOString().slice(0, 10);
-const noventa = new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10);
+const hoje = hojeBr();
+const noventa = diasAntesDeHojeBr(89);
 
 /**
  * Funil comercial: o que entra, o que vira venda e o que parou no caminho.

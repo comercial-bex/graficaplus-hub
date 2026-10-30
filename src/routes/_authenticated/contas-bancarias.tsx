@@ -1,3 +1,4 @@
+import { hojeBr, diasAntesDeHojeBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -71,7 +72,7 @@ export const Route = createFileRoute("/_authenticated/contas-bancarias")({
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
-const hoje = () => new Date().toISOString().slice(0, 10);
+const hoje = () => hojeBr();
 
 type ContaForm = {
   nome: string;
@@ -245,7 +246,7 @@ function ContasBancariasPage() {
   const kpis = useMemo(() => {
     const saldo = contas.reduce((a, c) => a + Number(c.saldo_atual ?? 0), 0);
     const naoConc = contas.reduce((a, c) => a + Number(c.nao_conciliados ?? 0), 0);
-    const limite = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const limite = diasAntesDeHojeBr(30);
     const recentes = transacoes.filter((t) => t.data >= limite);
     const entradas = recentes
       .filter((t) => t.tipo === "credito")

@@ -1,3 +1,4 @@
+import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -101,7 +102,7 @@ function FinanceiroPage() {
     },
   });
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hojeBr();
   const totalRecebido = pagamentos
     .filter((p: any) => p.status === "pago")
     .reduce((s: number, p: any) => s + Number(p.valor), 0);

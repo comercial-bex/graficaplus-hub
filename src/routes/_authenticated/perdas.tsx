@@ -1,3 +1,4 @@
+import { mesBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -220,8 +221,8 @@ function PerdasPage() {
 
   const kpis = useMemo(() => {
     const custoTotal = perdas.reduce((a, p) => a + custoDaPerda(custos.get(p.id)), 0);
-    const mesAtual = new Date().toISOString().slice(0, 7);
-    const doMes = perdas.filter((p) => String(p.created_at ?? "").slice(0, 7) === mesAtual);
+    const mesAtual = mesBr();
+    const doMes = perdas.filter((p) => (p.created_at ? mesBr(p.created_at) : "") === mesAtual);
     const custoMes = doMes.reduce((a, p) => a + custoDaPerda(custos.get(p.id)), 0);
     return { custoTotal, custoMes, registros: perdas.length, registrosMes: doMes.length };
   }, [perdas, custos]);

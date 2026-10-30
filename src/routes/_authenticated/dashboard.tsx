@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { mensagemErro } from "@/lib/erros";
@@ -189,7 +190,7 @@ function PainelCompleto({
   const osAbertas = useCount("ordens_servico", (q) =>
     q.not("status", "in", "(concluido,faturado,cancelado)"),
   );
-  const today = new Date().toISOString().slice(0, 10);
+  const today = hojeBr();
   const osAtrasadas = useCount("ordens_servico", (q) =>
     q.lt("prazo_entrega", today).not("status", "in", "(concluido,faturado,cancelado)"),
   );

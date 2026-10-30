@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -73,7 +74,7 @@ const brl = (n: number | null | undefined) =>
 const dia = (d: string | null | undefined) =>
   d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 
-const hoje = () => new Date().toISOString().slice(0, 10);
+const hoje = () => hojeBr();
 
 const TIPOS = [
   ["financiamento", "Financiamento"],

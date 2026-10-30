@@ -7,6 +7,8 @@
  * do banco; a tela apenas sugere.
  */
 
+import { hojeBr } from "@/lib/hoje-br";
+
 export type FaixaPreco = {
   id: string;
   quantidade_minima: number;
@@ -18,7 +20,7 @@ export type FaixaPreco = {
 };
 
 const emVigencia = (faixa: FaixaPreco, referencia: Date) => {
-  const dia = referencia.toISOString().slice(0, 10);
+  const dia = hojeBr(referencia);
   if (faixa.vigencia_inicio && faixa.vigencia_inicio > dia) return false;
   if (faixa.vigencia_fim && faixa.vigencia_fim < dia) return false;
   return true;
