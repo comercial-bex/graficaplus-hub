@@ -84,25 +84,31 @@ export function FinalizarOsDialog({
 
   async function confirmar() {
     setTrabalhando(true);
+    let estimativas: string[] = [];
     try {
       if (caminho === "concluir") {
         const { data, error } = await (supabase.rpc as any)("fechar_os", { os_id: osId });
         if (error) throw error;
-        const res = data as { fechada?: boolean; bloqueios?: string[] } | null;
+        const res = data as { fechada?: boolean; bloqueios?: string[]; estimativas?: string[] } | null;
         if (res && res.fechada === false) {
           const motivos = (res.bloqueios ?? []).map((b) => `• ${rotuloBloqueio(b)}`).join("\n");
           toast.error("A OS ainda não pode ser fechada", { description: motivos });
           void travas.refetch();
           return;
         }
+        estimativas = res?.estimativas ?? [];
       } else {
         const { error } = await (supabase.rpc as any)("avancar_os_status", { os_id: osId, novo_status: escolhido.status });
         if (error) throw error;
       }
       toast.success(`Pedido #${numero}: ${escolhido.titulo.toLowerCase()}`, {
-        description: aviso
-          ? `O cliente recebe "${ROTULO_DO_AVISO[aviso] ?? "aviso"}" no WhatsApp em até 2 minutos.`
-          : "Esta etapa não avisa o cliente.",
+        description:
+          (estimativas.length > 0
+            ? `Fechada com estimativa: a margem real é a prevista (${estimativas.length === 1 ? "1 registro" : `${estimativas.length} registros`} coberto pelo previsto). `
+            : "") +
+          (aviso
+            ? `O cliente recebe "${ROTULO_DO_AVISO[aviso] ?? "aviso"}" no WhatsApp em até 2 minutos.`
+            : "Esta etapa não avisa o cliente."),
       });
       for (const chave of [["os", osId], ["resultado-os", osId], ["snapshot-os", osId], ["pag-os", osId], ["kanban-bloqueios"]]) {
         void qc.invalidateQueries({ queryKey: chave });

@@ -322,6 +322,9 @@ export const ROTULO_BLOQUEIO: Record<string, string> = {
   // A prova mínima do dono (22/10/2026): o que foi feito, e de que tamanho.
   sem_layout: "Sem o layout final (anexe o arquivo do que foi produzido e marque como final)",
   sem_medidas: "Item sem medidas (informe largura × altura do que foi impresso ou confeccionado)",
+  // Fechamento assistido (30/10/2026): o que o sistema cobre com o previsto não trava mais; estes dois ficam.
+  peca_nao_saiu: "A peça ainda não saiu: registre a retirada ou a entrega (ou mova a OS para a etapa de entrega)",
+  sem_custo_previsto: "Sem custo lançado e sem custo previsto para estimar: informe o custo da OS",
 };
 
 export function rotuloBloqueio(codigo: string): string {
