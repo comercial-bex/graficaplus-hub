@@ -114,3 +114,40 @@ peças.
 - Tema escuro: todo token novo precisa do par escuro no mesmo PR.
 - Testes que leem classes (267 arquivos em `tests/`): rodar a suíte a cada fase, não no fim.
 - Licença: nenhuma linha dos templates entra no repositório; só padrões.
+
+## 7. Variante vidro (pedida pelo dono em 31/10/2026)
+
+O dono pediu vidro e desfoque. A regra que faz o vidro sobreviver na oficina: **desfoque só nas camadas que
+flutuam**; o que é lido em massa fica sólido.
+
+| Onde entra o vidro | Onde não entra |
+| --- | --- |
+| Menu lateral flutuante | Linhas de tabela e listas longas |
+| Busca e ações do topo da tela | Campos de formulário |
+| `KpiCard`, cartões de resumo e o herói | Cartões do kanban (muitos elementos arrastáveis) |
+| `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Toaster` | TV da oficina |
+
+Tokens novos em `src/styles.css`:
+
+| Token | Claro | Escuro |
+| --- | --- | --- |
+| `--vidro-fundo` | `rgb(255 255 255 / .66)` | `rgb(21 23 31 / .62)` |
+| `--vidro-fundo-menu` | `rgb(18 19 26 / .82)` | `rgb(18 19 26 / .70)` |
+| `--vidro-desfoque` | `blur(18px) saturate(1.4)` | `blur(20px) saturate(1.35)` |
+| `--vidro-desfoque-forte` | `blur(26px) saturate(1.5)` | `blur(28px) saturate(1.5)` |
+| `--vidro-anel` | `rgb(255 255 255 / .6)` | `rgb(255 255 255 / .1)` |
+| `--vidro-brilho` | `inset 0 1px 0 rgb(255 255 255 / .9)` | `inset 0 1px 0 rgb(255 255 255 / .08)` |
+| `--fundo-manchas` | três `radial-gradient` ciano/magenta/âmbar a 26/14/14 % sobre `#f1f0ea` | a 18/13/9 % sobre `#0a0b10` |
+
+Utilitário `@utility bex-vidro` com três camadas de segurança, todas obrigatórias no mesmo PR:
+
+1. `@supports not (backdrop-filter: blur(1px))`: fundo sólido (`--card`).
+2. `@media (prefers-reduced-transparency: reduce)`: sem desfoque, fundo sólido.
+3. Limite de ~12 superfícies com desfoque por tela; nenhuma dentro de lista virtualizada; sem `will-change`.
+
+Contraste medido na proposta: cartão claro a 66 % sobre as manchas dá fundo efetivo ≥ `#f3f3f1`, texto `#15171c`
+≥ 12:1 e apoio `#5d6472` ≥ 5:1. Escuro: cartão a 62 % sobre `#0a0b10` dá ~`#111319`, texto `#e6e8ee` ≥ 13:1.
+
+Custo: entra na fase 2 como mais um PR, o das sobreposições (`Dialog`, `Sheet`, `Popover`, `Toaster`). Antes de
+fechar a fase 2, medir num celular de entrada com Chrome Android na oficina: rolagem da lista de OS e abertura do
+menu. Se engasgar, o fallback sólido já está pronto e vira o padrão no celular por media query de `pointer: coarse`.
