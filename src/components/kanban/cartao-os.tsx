@@ -5,9 +5,10 @@ import { Card } from "@/components/ui/card";
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { areaEmTexto, resumoDaProducao } from "@/domain/os/o-que-produzir";
+import { faltaEmPalavras } from "@/domain/os/etapas";
 import { paradaHa, prazoEmPalavras } from "@/domain/os/prazo";
 import { semCapa } from "@/domain/os/arquivos-da-os";
-import { AlertTriangle, FileImage, Layers, Lock } from "lucide-react";
+import { FileImage, Layers, Lock } from "lucide-react";
 import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { TrilhaDaOs } from "@/components/kanban/trilha-da-os";
 import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
@@ -22,9 +23,16 @@ import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
  *      arquivo ("PDF", "CDR") ou "Sem arte" — dizer que falta arte é informação.
  *   2. ONDE ESTÁ — a trilha das seis etapas (entrada, arte, fila, produção,
  *      acabamento, saída), as mesmas do quadro e, agrupadas, da TV da oficina.
- *   3. O QUE FALTA — as pendências, numa linha só: o nome da primeira e quantas
- *      mais. Antes era uma faixa amarela com a pendência por extenso em todo
- *      cartão, o tempo todo; o "como resolver" de cada uma está na ficha.
+ *   3. O QUE FALTA — as pendências, todas na mesma linha e em palavras curtas:
+ *      "Falta: pagamento · aceite da arte · arquivo final". Antes era o nome da
+ *      primeira e um "+2" que obrigava a abrir a ficha (31/10/2026), e antes disso
+ *      uma faixa amarela com a pendência por extenso em todo cartão; o "como
+ *      resolver" de cada uma, com o botão, está na ficha.
+ *
+ * Enxugado em 31/10/2026: o cartão não repete o que a coluna já diz (o nome da
+ * etapa), não avisa a falta de designer e de operador em todo cartão (está na
+ * ficha), não mostra a abertura em OS que nunca andou e só diz "parada há" de um
+ * dia para cima. Campo vazio não vira linha.
  *
  * E ele ABRE: clicar em qualquer lugar abre a ficha; o arrasto continua porque
  * o sensor só ativa depois de 5px (mouse) ou 250 ms (toque).
@@ -58,7 +66,9 @@ export function CartaoOs({
   const producao = resumoDaProducao(os.itens);
   // "Parada há" conta da última troca de etapa (os_status_historico), não do
   // updated_at — que muda com qualquer edição da ficha.
-  const parada = paradaHa(os.ultimo_movimento?.mudou_em ?? os.updated_at);
+  // Só de um dia para cima: "parada há 9h" é fila normal, não encalhe.
+  const paradaTotal = paradaHa(os.ultimo_movimento?.mudou_em ?? os.updated_at);
+  const parada = paradaTotal && /d$/.test(paradaTotal) ? paradaTotal : null;
   const responsaveis = [os.designer, os.operador].filter(Boolean);
   const pausada = os.status === "pausado";
   const maquina = identidadeDaMaquina(os);
@@ -133,48 +143,49 @@ export function CartaoOs({
           </div>
         )}
 
-        {/* O que impede de avançar, numa linha: o nome da primeira e quantas mais.
-            O "como resolver" de cada uma está na ficha. */}
+        {/* O que impede de avançar, tudo na mesma linha e em palavras curtas. O texto
+            completo e o "como resolver" de cada uma estão na ficha (e no leitor de tela). */}
         {bloqueios.length > 0 && (
-          <div className="flex items-center gap-1.5 text-xs text-[color:var(--bex-amber)] md:text-[10px]">
-            <Lock className="h-3 w-3 shrink-0" aria-hidden />
-            <span className="truncate">{bloqueios[0].titulo}</span>
-            {bloqueios.length > 1 && <span className="shrink-0 font-semibold">+{bloqueios.length - 1}</span>}
+          <div className="flex items-start gap-1.5 text-xs text-[color:var(--bex-amber)] md:text-[10px]">
+            <Lock className="mt-px h-3 w-3 shrink-0" aria-hidden />
+            <span className="line-clamp-2" aria-hidden>
+              Falta: {faltaEmPalavras(bloqueios)}
+            </span>
             <span className="sr-only">{bloqueios.map((b) => b.titulo).join(", ")}</span>
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2">
-          <div className="flex min-w-0 items-center gap-1.5">
-            {responsaveis.length > 0 && (
-              <div className="flex shrink-0 -space-x-1.5" aria-hidden>
-                {responsaveis.map((r: any) => (
-                  <Avatar key={r.id} className="h-5 w-5 border border-background">
-                    <AvatarImage src={r.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-[9px]">{r.nome?.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                ))}
-              </div>
-            )}
-            {responsaveis.length > 0 ? (
-              <span className="truncate text-xs text-muted-foreground md:text-[10px]">
-                {responsaveis.map((r: any) => primeiroNome(r.nome)).join(" · ")}
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground md:text-[10px]">
-                <AlertTriangle className="h-3 w-3" aria-hidden />
-                sem designer nem operador
-              </span>
+        {/* Quem cuida e quanto vale. A falta de designer e operador não vira aviso em todo
+            cartão: está na ficha. Sem ninguém e sem valor, a linha nem existe. */}
+        {(responsaveis.length > 0 || (canSeePrices && Number(os.valor_total) > 0)) && (
+          <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              {responsaveis.length > 0 && (
+                <>
+                  <div className="flex shrink-0 -space-x-1.5" aria-hidden>
+                    {responsaveis.map((r: any) => (
+                      <Avatar key={r.id} className="h-5 w-5 border border-background">
+                        <AvatarImage src={r.avatar_url ?? undefined} />
+                        <AvatarFallback className="text-[9px]">{r.nome?.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  <span className="truncate text-xs text-muted-foreground md:text-[10px]">
+                    {responsaveis.map((r: any) => primeiroNome(r.nome)).join(" · ")}
+                  </span>
+                </>
+              )}
+            </div>
+            {canSeePrices && Number(os.valor_total) > 0 && (
+              <span className="font-mono text-xs text-[color:var(--bex-lime)]">{brl(Number(os.valor_total))}</span>
             )}
           </div>
-          {canSeePrices && Number(os.valor_total) > 0 && (
-            <span className="font-mono text-xs text-[color:var(--bex-lime)]">{brl(Number(os.valor_total))}</span>
-          )}
-        </div>
+        )}
 
         {/* Quem mexeu por último e quando — todos movem, e o registro fica à vista.
-            De onde veio também: "Produção → Arte" é retrabalho. */}
-        {os.ultimo_movimento?.rotulo && (
+            De onde veio também: "Produção → Arte" é retrabalho. OS que nunca andou
+            não tem movimento a mostrar: "aberta por" não é movimento. */}
+        {os.ultimo_movimento?.rotulo && os.ultimo_movimento.verbo !== "aberta" && (
           <div className="line-clamp-2 font-mono text-xs text-muted-foreground md:text-[10px]">
             {os.ultimo_movimento.verbo ?? "movida"} por {os.ultimo_movimento.rotulo}
             {os.ultimo_movimento.passo && <> · {os.ultimo_movimento.passo}</>}

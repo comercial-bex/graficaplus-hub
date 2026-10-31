@@ -105,20 +105,47 @@ describe("o cartão do Quadro diz à vista o que o title escondia", () => {
       createElement(TooltipProvider, null, createElement(CartaoOs, { os: { ...os, ...extra }, bloqueios })),
     );
 
-  it("as pendências: a primeira pelo nome e quantas mais, com a lista inteira para o leitor de tela", () => {
+  it("as pendências: todas na mesma linha, em palavras curtas, com o texto inteiro para o leitor de tela (31/10/2026: antes era a primeira e um +N)", () => {
     const h = html({}, [
-      { codigo: "a", titulo: "Falta a arte aprovada", resolver: "" },
-      { codigo: "b", titulo: "Falta o sinal", resolver: "" },
+      { codigo: "sem_pagamento", titulo: "Nenhum pagamento registrado", resolver: "" },
+      { codigo: "arte_nao_aprovada", titulo: "Arte ainda não aprovada", resolver: "" },
+      { codigo: "sem_arquivo_final", titulo: "Sem arquivo final de produção", resolver: "" },
     ]);
-    expect(h).toContain("Falta a arte aprovada");
-    expect(h).toContain("+1");
-    expect(h).toContain('<span class="sr-only">Falta a arte aprovada, Falta o sinal</span>');
+    expect(h).toContain("Falta: pagamento · aceite da arte · arquivo final");
+    expect(h).toContain('<span class="sr-only">Nenhum pagamento registrado, Arte ainda não aprovada, Sem arquivo final de produção</span>');
+    expect(h).not.toContain("+2");
     expect(h).not.toContain("2 pendências");
   });
 
-  it("quem está na OS pelo primeiro nome; sem ninguém, diz o que falta", () => {
+  it("trava que a lista curta não conhece aparece pelo título, e margem e desconto contam como um aval só", () => {
+    const h = html({}, [
+      { codigo: "trava_nova", titulo: "Falta o carimbo", resolver: "" },
+      { codigo: "margem_baixa", titulo: "Margem abaixo do mínimo", resolver: "" },
+      { codigo: "desconto_alto", titulo: "Desconto acima do limite", resolver: "" },
+    ]);
+    expect(h).toContain("Falta: Falta o carimbo · aval do gestor");
+    expect(h).not.toContain("aval do gestor · aval do gestor");
+  });
+
+  it("quem está na OS pelo primeiro nome; sem ninguém, não há aviso em todo cartão (campo vazio não vira linha)", () => {
     expect(html()).toContain("Ana · Leonardo");
-    expect(html({ designer: null, operador: null })).toContain("sem designer nem operador");
+    const vazio = html({ designer: null, operador: null });
+    expect(vazio).not.toContain("sem designer nem operador");
+    expect(vazio).not.toContain("border-t border-border/60");
+  });
+
+  it("OS que nunca andou não mostra 'aberta por'; só o movimento de verdade", () => {
+    expect(html({ ultimo_movimento: { rotulo: "Yvens · 14/10 16:29", passo: "Abriu em Entrada", verbo: "aberta", mudou_em: null } })).not.toContain("aberta por");
+  });
+
+  it("'parada há' só de um dia para cima; o cartão não repete o nome da etapa nem o passo 'Entrada'", () => {
+    const dias = (n: number) => new Date(Date.now() - n * 24 * 3600 * 1000).toISOString();
+    expect(html({ status: "design", ultimo_movimento: { rotulo: "Ana · 1/1", passo: "Entrada → Design", verbo: "movida", mudou_em: dias(3) } })).toContain("parada há 3d");
+    expect(html({ status: "design", ultimo_movimento: { rotulo: "Ana · 1/1", passo: "Entrada → Design", verbo: "movida", mudou_em: new Date(Date.now() - 9 * 3600 * 1000).toISOString() } })).not.toContain("parada há");
+    const naEntrada = html({ status: "entrada", ultimo_movimento: null });
+    expect(naEntrada).not.toContain(">Atendimento<");
+    expect(naEntrada).not.toContain(">Entrada<");
+    expect(html({ status: "arte_aprovada", ultimo_movimento: null })).toContain(">Arte aprovada<");
   });
 
   it("de onde a OS veio fica à vista (Produção → Arte é retrabalho)", () => {

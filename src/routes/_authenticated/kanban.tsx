@@ -4,6 +4,8 @@ import {
   ETAPAS_QUADRO,
   ROTULO_ETAPA,
   etapaDe,
+  itensDaRecusa,
+  rotuloDe,
   statusPadraoDaEtapa,
   traduzirBloqueios,
   type Etapa,
@@ -147,7 +149,7 @@ function KanbanPage() {
   // canSeePrices: vê preço de venda (vendedor, gestão, financeiro). O quadro só
   // mostra valor da OS e dos itens — preço, nunca custo nem margem — então a
   // leitura segue o nível de visão, não o flag de financeiro.
-  const { canSeePrices, canSeeFinancials, nivelDeVisao } = useAuth();
+  const { canSeePrices, canSeeFinancials, nivelDeVisao, hasPermission } = useAuth();
   const [activeOs, setActiveOs] = useState<any>(null);
   const [cancelando, setCancelando] = useState<{ id: string; numero: number | null } | null>(null);
   const [motivoDoCancelamento, setMotivoDoCancelamento] = useState("");
@@ -451,9 +453,20 @@ function KanbanPage() {
       // os códigos das travas. Código cru não diz nada a quem está no quadro.
       const bruto = mensagemErro(error);
       const travas = traduzirBloqueios(bruto);
-      toast.error(travas ? "A OS ainda não pode fechar" : bruto, {
-        description: travas ?? undefined,
-      });
+      // Recusa de ENTRAR em produção: a mensagem do banco ("A OS não pode avançar ainda:
+      // A; B.") vira o que falta, com o caminho para resolver: abre a ficha, onde cada
+      // pendência tem o seu botão. Antes era o texto cru e a pessoa ficava sem saber por onde.
+      const faltas = itensDaRecusa(bruto);
+      if (faltas) {
+        toast.error(`A OS ainda não vai para ${rotuloDe(novoStatus)}`, {
+          description: `Falta: ${faltas.join(" · ")}`,
+          action: { label: "Ver o que falta", onClick: () => setFichaId(osId) },
+        });
+      } else {
+        toast.error(travas ? "A OS ainda não pode fechar" : bruto, {
+          description: travas ?? undefined,
+        });
+      }
       qc.invalidateQueries({ queryKey: ["kanban-os"] });
       return false;
     }
@@ -570,7 +583,7 @@ function KanbanPage() {
         breadcrumb="Print OS · Operação · Quadro de produção"
         // Um nome só: menu, manifest e painel já dizem "Quadro de produção".
         title="Quadro de produção"
-        description="Kanban: uma coluna por etapa. Arraste para mudar de etapa; clique no cartão para ver a ficha e escolher o passo exato."
+        description="Arraste o cartão para mudar de etapa. Clique nele para ver o que falta e o que fazer."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <StatusChip label={carregandoOs ? "carregando…" : `${filtered.length}/${os.length} OS`} tone="cyan" />
@@ -740,6 +753,9 @@ function KanbanPage() {
         os={fichaOs}
         bloqueios={fichaId ? (bloqueios.get(fichaId) ?? []) : []}
         canSeePrices={canSeePrices}
+        podeAnexar={hasPermission("arquivos.upload")}
+        podeFinalizar={hasPermission("arquivos.finalize")}
+        podeAceitar={hasPermission("os.update")}
         aberto={fichaId !== null}
         onFechar={() => setFichaId(null)}
         onMudarStatus={(osId, novo) => {
