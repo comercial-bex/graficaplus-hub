@@ -116,9 +116,12 @@ describe("o cartão e a ficha", () => {
     expect(CARTAO).toContain("<TrilhaDaOs status={os.status} compacta />");
   });
 
-  it("a pendência no cartão é uma linha só: a primeira pelo nome e quantas mais", () => {
-    expect(CARTAO).toContain("bloqueios[0].titulo");
-    expect(CARTAO).toContain("+{bloqueios.length - 1}");
+  it("a pendência no cartão é uma linha só, com todas em palavras curtas (31/10/2026: era a primeira e um +N)", () => {
+    expect(CARTAO).toContain("faltaEmPalavras(bloqueios)");
+    expect(CARTAO).toContain("Falta: ");
+    expect(CARTAO).toContain('bloqueios.map((b) => b.titulo).join(", ")');
+    expect(CARTAO).not.toContain("bloqueios[0].titulo");
+    expect(CARTAO).not.toContain("+{bloqueios.length - 1}");
     expect(CARTAO).not.toContain("bg-[color:var(--bex-amber)]/10");
   });
 

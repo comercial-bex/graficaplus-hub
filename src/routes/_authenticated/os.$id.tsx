@@ -272,7 +272,8 @@ function OSDetailPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS.map((st) => (
+                {/* O status legado "Produção" duplica "Em produção" (31/10/2026): só aparece para a OS que já está nele. */}
+                {STATUS.filter((st) => st.status !== "producao" || st.status === os.status).map((st) => (
                   <SelectItem key={st.status} value={st.status}>
                     {st.rotulo}
                   </SelectItem>

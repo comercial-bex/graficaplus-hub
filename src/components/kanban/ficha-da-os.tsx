@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ExternalLink, FileImage, FileText, Lock, Pause, X } from "lucide-react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { etapaDe, fluxo, rotuloDe, setorDe } from "@/domain/os/etapas";
+import { etapaDe, fluxoParaEscolher, rotuloDe } from "@/domain/os/etapas";
 import { areaEmTexto, descreverItem, resumoDaProducao } from "@/domain/os/o-que-produzir";
 import { formatarData, paradaHa, prazoEmPalavras } from "@/domain/os/prazo";
 import { arquivosEmOrdem, ehImagemVisivel, ehPdf, extensao, type ArquivoDaOs } from "@/domain/os/arquivos-da-os";
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 import { urlsAssinadas } from "@/lib/urls-dos-arquivos";
 import type { BloqueioOs } from "@/components/kanban/cartao-os";
+import { AceiteDaArteRapido } from "@/components/kanban/aceite-da-arte-rapido";
 import { AnexarArquivoRapido } from "@/components/kanban/anexar-arquivo-rapido";
+import { MarcarComoFinal } from "@/components/kanban/marcar-como-final";
 import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { TrilhaDaOs } from "@/components/kanban/trilha-da-os";
 import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
@@ -39,10 +42,20 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
  * outros arquivos da OS ao lado — e, à direita, onde a OS está (as seis etapas),
  * o que falta para produzir, o que vai ser produzido e o combinado.
  *
- * "O que falta para produzir" virou lista de conferência: cada condição aparece,
- * feita (✓) ou pendente (✗, com o "como resolver"). Antes só apareciam as
- * pendentes, em amarelo, em toda OS — e quem olhava via sempre "trancado" sem
- * saber o que já estava certo.
+ * Enxugada em 31/10/2026, depois do teste do dono no quadro. O que mudou, e por quê:
+ *
+ *  - "O que falta" mostra só o que FALTA, cada pendência com o botão que a resolve
+ *    (o cliente aprovou, marcar como final, anexar, abrir a OS). O que já está certo
+ *    vira uma linha. Antes eram seis caixas, três delas com "✓", e o "como resolver"
+ *    era só texto: quem lia sabia o que fazer e não tinha por onde.
+ *  - Sem frase de explicação técnica ("as mesmas regras que o banco aplica...").
+ *  - Equipe: o que falta definir vira uma frase só, em vez de três linhas vazias.
+ *  - O seletor de etapa não oferece o status legado "Produção" (ver `fluxoParaEscolher`)
+ *    e troca o "!" sem explicação por duas ou três palavras.
+ *  - Escolher "Arte aprovada" sem o aceite abre o registro do aceite: o status sozinho
+ *    não libera a produção, e a ficha não deixa a pessoa descobrir isso depois.
+ *  - O botão de anexar só aparece para quem pode: a ficha oferecia a todos e o banco
+ *    recusava ("sem permissão").
  */
 
 /** As condições que o banco confere para a OS entrar em produção (os_bloqueios_para). */
@@ -55,6 +68,12 @@ const CONDICOES: { codigo: string; rotulo: string; soVenda?: boolean }[] = [
   { codigo: "margem_baixa", rotulo: "Margem dentro do mínimo", soVenda: true },
 ];
 
+/** "designer, operador e máquina". */
+function emFrase(itens: string[]): string {
+  if (itens.length <= 1) return itens.join("");
+  return `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
+}
+
 export function FichaDaOs({
   os,
   bloqueios = [],
@@ -62,6 +81,9 @@ export function FichaDaOs({
   aberto,
   onFechar,
   onMudarStatus,
+  podeAnexar = false,
+  podeFinalizar = false,
+  podeAceitar = false,
 }: {
   os: any | null;
   bloqueios?: BloqueioOs[];
@@ -70,12 +92,22 @@ export function FichaDaOs({
   aberto: boolean;
   onFechar: () => void;
   onMudarStatus: (osId: string, novoStatus: string) => void;
+  /** arquivos.upload: sem ele o botão de anexar não é oferecido. */
+  podeAnexar?: boolean;
+  /** arquivos.finalize: marcar o arquivo como final de produção. */
+  podeFinalizar?: boolean;
+  /** os.update: registrar o aceite da arte do cliente. */
+  podeAceitar?: boolean;
 }) {
   const [escolhido, setEscolhido] = useState(0);
+  const [aceiteAberto, setAceiteAberto] = useState(false);
   const arquivos = arquivosEmOrdem(os?.arquivos as ArquivoDaOs[] | undefined);
 
-  // Outra OS aberta começa na primeira arte.
-  useEffect(() => setEscolhido(0), [os?.id]);
+  // Outra OS aberta começa na primeira arte, com o registro do aceite fechado.
+  useEffect(() => {
+    setEscolhido(0);
+    setAceiteAberto(false);
+  }, [os?.id]);
 
   const urls = useQuery({
     queryKey: ["ficha-os-arquivos", os?.id, arquivos.map((a) => a.id).join(",")],
@@ -95,8 +127,34 @@ export function FichaDaOs({
   const interna = os.finalidade && os.finalidade !== "venda";
   const falta = new Map(bloqueios.map((b) => [b.codigo, b]));
   const condicoes = CONDICOES.filter((c) => !(interna && c.soVenda));
-  const pendentes = condicoes.filter((c) => falta.has(c.codigo)).length;
+  const pendencias = condicoes.filter((c) => falta.has(c.codigo));
+  const pendentes = pendencias.length;
+  const certas = condicoes.filter((c) => !falta.has(c.codigo));
+  // Pendência que o banco devolve e esta lista não conhece: aparece mesmo assim.
+  const desconhecidas = bloqueios.filter((b) => !CONDICOES.some((c) => c.codigo === b.codigo));
   const arquivo = arquivos[Math.min(escolhido, Math.max(arquivos.length - 1, 0))] ?? null;
+  // Tudo certo e ainda antes da fila: o próximo passo é um toque.
+  const podeIrParaAFila =
+    pendentes === 0 && desconhecidas.length === 0 && (etapaAtual === "entrada" || etapaAtual === "pre_impressao");
+
+  const equipe: [string, string | null][] = [
+    ["Responsável", os.responsavel?.nome ?? null],
+    ["Designer", os.designer?.nome ?? null],
+    ["Operador", os.operador?.nome ?? null],
+    ["Máquina", os.maquinas?.nome ?? (maquina ? `${maquina.curto} (não vinculada)` : null)],
+  ];
+  const definidos = equipe.filter(([, v]) => !!v);
+  const semDefinir = equipe.filter(([, v]) => !v).map(([r]) => r.toLowerCase());
+
+  function escolherEtapa(novo: string) {
+    // "Arte aprovada" só pelo status não libera a produção: a trava lê o aceite. Pede o aceite.
+    if (novo === "arte_aprovada" && falta.has("arte_nao_aprovada") && podeAceitar) {
+      setAceiteAberto(true);
+      toast.info("Para marcar “Arte aprovada”, registre o aceite do cliente.");
+      return;
+    }
+    onMudarStatus(os.id, novo);
+  }
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !v && onFechar()}>
@@ -139,15 +197,17 @@ export function FichaDaOs({
                       )}
                     </div>
                   </div>
-                  {urls.data?.get(arquivo.caminho) && (
-                    <Button asChild variant="outline" size="sm">
-                      <a href={urls.data.get(arquivo.caminho)} target="_blank" rel="noreferrer">
-                        <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir
-                      </a>
-                    </Button>
-                  )}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {podeAnexar && <AnexarArquivoRapido osId={os.id} semArquivoFinal={!arquivos.some((a) => a.final_producao)} />}
+                    {urls.data?.get(arquivo.caminho) && (
+                      <Button asChild variant="outline" size="sm">
+                        <a href={urls.data.get(arquivo.caminho)} target="_blank" rel="noreferrer">
+                          <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir
+                        </a>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <AnexarArquivoRapido osId={os.id} semArquivoFinal={!arquivos.some((a) => a.final_producao)} />
                 {arquivos.length > 1 && (
                   <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Arquivos da OS">
                     {arquivos.map((a, i) => (
@@ -181,12 +241,17 @@ export function FichaDaOs({
             ) : (
               <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
                 <FileImage className="h-8 w-8 text-muted-foreground/60" aria-hidden />
-                <p className="text-sm font-medium text-foreground">Esta OS ainda não tem arte anexada</p>
-                <p className="max-w-xs text-xs text-muted-foreground">
-                  Sem o arquivo, a produção não sabe o que imprimir. Anexe aqui: o arquivo já fica marcado como final de produção.
-                </p>
-                <AnexarArquivoRapido osId={os.id} semArquivoFinal />
-
+                <p className="text-sm font-medium text-foreground">Esta OS ainda não tem arquivo</p>
+                {podeAnexar ? (
+                  <>
+                    <p className="max-w-xs text-xs text-muted-foreground">
+                      Anexe aqui: o arquivo já fica marcado como final de produção.
+                    </p>
+                    <AnexarArquivoRapido osId={os.id} semArquivoFinal />
+                  </>
+                ) : (
+                  <p className="max-w-xs text-xs text-muted-foreground">Peça a quem pode anexar o arquivo da arte.</p>
+                )}
               </div>
             )}
           </section>
@@ -205,7 +270,6 @@ export function FichaDaOs({
                   <TrilhaDaOs status={os.status} />
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                     <span className="font-medium text-foreground">{rotuloDe(os.status)}</span>
-                    <span>· setor {setorDe(os.status)}</span>
                     {maquina && <SeloDaMaquina identidade={maquina} />}
                     {parada && <span className="font-mono">· parada há {parada}</span>}
                   </div>
@@ -214,46 +278,60 @@ export function FichaDaOs({
             </Bloco>
 
             <Bloco titulo={pendentes > 0 ? `Para produzir · falta ${pendentes} de ${condicoes.length}` : "Para produzir · tudo certo"}>
-              <ul className="space-y-1.5">
-                {condicoes.map((c) => {
-                  const b = falta.get(c.codigo);
-                  return (
-                    <li
-                      key={c.codigo}
-                      className={cn(
-                        "rounded border px-3 py-1.5",
-                        b ? "border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10" : "border-border/60 bg-muted/20",
-                      )}
-                    >
-                      <div className={cn("flex items-center gap-1.5 text-xs font-medium", b ? "text-[color:var(--bex-amber)]" : "text-foreground/80")}>
-                        {b ? (
-                          <X className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        ) : (
-                          <Check className="h-3.5 w-3.5 shrink-0 text-[color:var(--bex-lime)]" aria-hidden />
-                        )}
-                        {b ? b.titulo : c.rotulo}
-                        <span className="sr-only">{b ? " — pendente" : " — ok"}</span>
-                      </div>
-                      {b && <div className="mt-0.5 pl-5 text-[11px] text-muted-foreground">{b.resolver}</div>}
-                    </li>
-                  );
-                })}
-                {/* Pendência que o banco devolve e esta lista não conhece: aparece mesmo assim. */}
-                {bloqueios
-                  .filter((b) => !CONDICOES.some((c) => c.codigo === b.codigo))
-                  .map((b) => (
-                    <li key={b.codigo} className="rounded border border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10 px-3 py-1.5">
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-[color:var(--bex-amber)]">
-                        <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {(pendentes > 0 || desconhecidas.length > 0) && (
+                <ul className="space-y-2">
+                  {pendencias.map((c) => {
+                    const b = falta.get(c.codigo)!;
+                    return (
+                      <li key={c.codigo} className="rounded-md border border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10 px-3 py-2">
+                        <div className="flex items-start gap-1.5 text-xs font-medium text-[color:var(--bex-amber)]">
+                          <X className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+                          <span>{b.titulo}</span>
+                          <span className="sr-only"> — pendente</span>
+                        </div>
+                        <div className="mt-0.5 pl-5 text-[11px] text-muted-foreground">{b.resolver}</div>
+                        <div className="mt-2 pl-5">
+                          <AcaoDaPendencia
+                            codigo={c.codigo}
+                            osId={os.id}
+                            arquivo={arquivo}
+                            temArquivos={arquivos.length > 0}
+                            podeAnexar={podeAnexar}
+                            podeFinalizar={podeFinalizar}
+                            podeAceitar={podeAceitar}
+                            aceiteAberto={aceiteAberto}
+                            onAceiteAberto={setAceiteAberto}
+                            onFechar={onFechar}
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                  {desconhecidas.map((b) => (
+                    <li key={b.codigo} className="rounded-md border border-[color:var(--bex-amber)]/30 bg-[color:var(--bex-amber)]/10 px-3 py-2">
+                      <div className="flex items-start gap-1.5 text-xs font-medium text-[color:var(--bex-amber)]">
+                        <Lock className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
                         {b.titulo}
                       </div>
                       <div className="mt-0.5 pl-5 text-[11px] text-muted-foreground">{b.resolver}</div>
                     </li>
                   ))}
-              </ul>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                As mesmas regras que o banco aplica ao avançar a OS, não uma cópia na tela.
-              </p>
+                </ul>
+              )}
+              {certas.length > 0 && (
+                <p className={cn("flex items-start gap-1.5 text-[11px] text-muted-foreground", pendentes > 0 && "mt-2")}>
+                  <Check className="mt-px h-3.5 w-3.5 shrink-0 text-[color:var(--bex-lime)]" aria-hidden />
+                  <span>
+                    <span className="sr-only">Já está certo: </span>
+                    {certas.map((c) => c.rotulo).join(" · ")}
+                  </span>
+                </p>
+              )}
+              {podeIrParaAFila && (
+                <Button type="button" className="mt-3 w-full" onClick={() => onMudarStatus(os.id, "aguardando_producao")}>
+                  Enviar para a fila de produção
+                </Button>
+              )}
             </Bloco>
 
             <Bloco titulo="O que vai ser produzido">
@@ -284,41 +362,50 @@ export function FichaDaOs({
             </Bloco>
 
             <Bloco titulo="Combinado e equipe">
-              <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-                <Linha rotulo="Prazo de entrega" valor={formatarData(os.prazo_entrega)} />
-                <Linha rotulo="Prioridade" valor={PRIORIDADE[os.prioridade] ?? "—"} />
-                <Linha rotulo="Responsável" valor={os.responsavel?.nome ?? "não definido"} />
-                <Linha rotulo="Designer" valor={os.designer?.nome ?? "não definido"} />
-                <Linha rotulo="Operador" valor={os.operador?.nome ?? "não definido"} />
-                <Linha rotulo="Máquina" valor={os.maquinas?.nome ?? (maquina ? `${maquina.curto} (não vinculada)` : "não definida")} />
-              </dl>
+              <div className="space-y-1 text-xs">
+                <p>
+                  <span className="text-muted-foreground">Entrega </span>
+                  <span className="font-medium text-foreground/85">{formatarData(os.prazo_entrega)}</span>
+                  <span className="text-muted-foreground"> · Prioridade </span>
+                  <span className="font-medium text-foreground/85">{PRIORIDADE[os.prioridade] ?? "—"}</span>
+                </p>
+                {definidos.length > 0 && (
+                  <p className="text-muted-foreground">
+                    {definidos.map(([rotulo, valor], i) => (
+                      <span key={rotulo}>
+                        {i > 0 && " · "}
+                        {rotulo} <span className="font-medium text-foreground/85">{valor}</span>
+                      </span>
+                    ))}
+                  </p>
+                )}
+                {semDefinir.length > 0 && <p className="text-muted-foreground">Ainda sem {emFrase(semDefinir)}.</p>}
+              </div>
               {os.briefing && (
                 <div className="mt-3 rounded border border-border/60 bg-muted/30 px-2.5 py-2 text-xs leading-relaxed text-muted-foreground">{os.briefing}</div>
               )}
             </Bloco>
 
-            <Bloco titulo="Mudar status">
-              <Select value={os.status} onValueChange={(v) => onMudarStatus(os.id, v)}>
+            <Bloco titulo="Mover para">
+              <Select value={os.status} onValueChange={escolherEtapa}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {fluxo().map((et) => (
+                  {fluxoParaEscolher(os.status).map((et) => (
                     <SelectGroup key={et.etapa}>
                       <SelectLabel className="text-[10px] uppercase tracking-wider">{et.rotulo}</SelectLabel>
                       {et.status.map((s) => (
                         <SelectItem key={s.status} value={s.status}>
                           {s.rotulo}
-                          {s.observacao && <span className="ml-1 text-[color:var(--bex-amber)]">!</span>}
+                          {s.dica && <span className="ml-1.5 text-[10px] text-muted-foreground">{s.dica}</span>}
                         </SelectItem>
                       ))}
                     </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Arrastar o cartão troca a etapa; aqui você escolhe o passo exato dentro dela.
-              </p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">Também dá para arrastar o cartão.</p>
             </Bloco>
 
             <Link to="/os/$id" params={{ id: os.id }} className="block" onClick={onFechar}>
@@ -331,6 +418,76 @@ export function FichaDaOs({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * O botão que resolve cada pendência. Só oferece o que a pessoa pode fazer: quem não pode
+ * lê a quem pedir, em vez de apertar e tomar "sem permissão".
+ */
+function AcaoDaPendencia({
+  codigo,
+  osId,
+  arquivo,
+  temArquivos,
+  podeAnexar,
+  podeFinalizar,
+  podeAceitar,
+  aceiteAberto,
+  onAceiteAberto,
+  onFechar,
+}: {
+  codigo: string;
+  osId: string;
+  arquivo: ArquivoDaOs | null;
+  temArquivos: boolean;
+  podeAnexar: boolean;
+  podeFinalizar: boolean;
+  podeAceitar: boolean;
+  aceiteAberto: boolean;
+  onAceiteAberto: (aberto: boolean) => void;
+  onFechar: () => void;
+}) {
+  switch (codigo) {
+    case "arte_nao_aprovada":
+      return podeAceitar ? (
+        <AceiteDaArteRapido osId={osId} aberto={aceiteAberto} onAbertoChange={onAceiteAberto} />
+      ) : (
+        <Pedir texto="Peça a quem pode registrar o aceite da arte." />
+      );
+    case "sem_arquivo_final":
+      if (temArquivos && arquivo && podeFinalizar) return <MarcarComoFinal arquivoId={arquivo.id} nome={arquivo.nome} />;
+      // Sem arquivo nenhum, o botão de anexar já está na área da arte: aqui só aponta, para não haver dois iguais.
+      if (!temArquivos && podeAnexar) return <Pedir texto="Use o botão “Anexar arquivo” na área da arte." />;
+      return <Pedir texto={temArquivos ? "Peça a quem pode marcar o arquivo como final." : "Peça a quem pode anexar o arquivo."} />;
+    case "sem_pagamento":
+      return <IrPara osId={osId} rotulo="Registrar na OS" onFechar={onFechar} />;
+    case "sem_responsavel":
+      return <IrPara osId={osId} rotulo="Definir na OS" onFechar={onFechar} />;
+    case "material_insuficiente":
+      return (
+        <Button asChild variant="outline" size="sm">
+          <Link to="/materiais" onClick={onFechar}>
+            Ver estoque
+          </Link>
+        </Button>
+      );
+    default:
+      return null;
+  }
+}
+
+function Pedir({ texto }: { texto: string }) {
+  return <p className="text-[11px] italic text-muted-foreground">{texto}</p>;
+}
+
+function IrPara({ osId, rotulo, onFechar }: { osId: string; rotulo: string; onFechar: () => void }) {
+  return (
+    <Button asChild variant="outline" size="sm">
+      <Link to="/os/$id" params={{ id: osId }} onClick={onFechar}>
+        {rotulo}
+      </Link>
+    </Button>
   );
 }
 
@@ -384,14 +541,5 @@ function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode
       <h3 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{titulo}</h3>
       {children}
     </section>
-  );
-}
-
-function Linha({ rotulo, valor }: { rotulo: string; valor: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-muted-foreground">{rotulo}</dt>
-      <dd className="truncate font-medium text-foreground/85">{valor}</dd>
-    </div>
   );
 }

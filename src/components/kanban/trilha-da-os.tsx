@@ -52,14 +52,11 @@ export function TrilhaDaOs({
             />
           ))}
         </div>
-        <div className="flex items-center justify-between gap-2 text-xs md:text-[10px]">
-          <span className="font-medium text-foreground/85">
-            {foraDoFluxo ? detalhe : nomeAtual}
-          </span>
-          {!foraDoFluxo && detalhe !== nomeAtual && (
-            <span className="truncate text-muted-foreground">{detalhe}</span>
-          )}
-        </div>
+        {/* O cartão já está dentro da coluna da etapa: repetir o nome dela é ruído. Fica só o passo
+            exato, e só quando diz algo (todo cartão de "Atendimento" estava em "Entrada"). */}
+        {(foraDoFluxo || status !== "entrada") && detalhe && (
+          <div className="truncate text-xs font-medium text-foreground/85 md:text-[10px]">{detalhe}</div>
+        )}
       </div>
     );
   }
