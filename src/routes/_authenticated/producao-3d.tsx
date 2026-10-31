@@ -31,6 +31,7 @@ import {
 import { Activity, Cuboid, Clock, Plus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
+import { UsoDasImpressoras } from "@/components/producao/uso-das-impressoras";
 
 export const Route = createFileRoute("/_authenticated/producao-3d")({
   head: () => ({ meta: [{ title: "Produção 3D — BEX PRINT OS" }] }),
@@ -178,6 +179,8 @@ function Producao3DPage() {
           tone={totais.falhas > 0 ? "magenta" : "muted"}
         />
       </div>
+
+      <UsoDasImpressoras jobs={jobs} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <Card>

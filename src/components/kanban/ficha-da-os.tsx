@@ -22,6 +22,7 @@ import { arquivosEmOrdem, ehImagemVisivel, ehPdf, extensao, type ArquivoDaOs } f
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 import { urlsAssinadas } from "@/lib/urls-dos-arquivos";
 import type { BloqueioOs } from "@/components/kanban/cartao-os";
+import { AnexarArquivoRapido } from "@/components/kanban/anexar-arquivo-rapido";
 import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { TrilhaDaOs } from "@/components/kanban/trilha-da-os";
 import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
@@ -146,6 +147,7 @@ export function FichaDaOs({
                     </Button>
                   )}
                 </div>
+                <AnexarArquivoRapido osId={os.id} semArquivoFinal={!arquivos.some((a) => a.final_producao)} />
                 {arquivos.length > 1 && (
                   <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Arquivos da OS">
                     {arquivos.map((a, i) => (
@@ -181,8 +183,10 @@ export function FichaDaOs({
                 <FileImage className="h-8 w-8 text-muted-foreground/60" aria-hidden />
                 <p className="text-sm font-medium text-foreground">Esta OS ainda não tem arte anexada</p>
                 <p className="max-w-xs text-xs text-muted-foreground">
-                  Sem o arquivo, a produção não sabe o que imprimir. Anexe a arte na OS completa e marque o arquivo final.
+                  Sem o arquivo, a produção não sabe o que imprimir. Anexe aqui: o arquivo já fica marcado como final de produção.
                 </p>
+                <AnexarArquivoRapido osId={os.id} semArquivoFinal />
+
               </div>
             )}
           </section>
