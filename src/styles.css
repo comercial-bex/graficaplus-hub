@@ -190,7 +190,7 @@
   --surface-hero: #15171c;
   --surface-hero-foreground: #f4f3ef;
   --vidro-fundo: rgb(255 255 255 / 0.66);
-  --vidro-fundo-janela: rgb(255 255 255 / 0.86);
+  --vidro-fundo-janela: rgb(255 255 255 / 0.94);
   --vidro-fundo-menu: rgb(18 19 26 / 0.82);
   --vidro-desfoque: blur(18px) saturate(1.4);
   --vidro-desfoque-forte: blur(26px) saturate(1.5);
@@ -273,7 +273,7 @@
   --surface-hero: #f4f3ef;
   --surface-hero-foreground: #15171c;
   --vidro-fundo: rgb(21 23 31 / 0.62);
-  --vidro-fundo-janela: rgb(21 23 31 / 0.84);
+  --vidro-fundo-janela: rgb(21 23 31 / 0.92);
   --vidro-fundo-menu: rgb(18 19 26 / 0.7);
   --vidro-desfoque: blur(20px) saturate(1.35);
   --vidro-desfoque-forte: blur(28px) saturate(1.5);

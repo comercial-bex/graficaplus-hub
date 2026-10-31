@@ -72,14 +72,23 @@ export function CartaoOs({
       } ${atrasada ? "border-[color:var(--bex-magenta)]/60" : ""}`}
     >
       <Capa os={os}>
-        <span className="absolute left-2 top-2 rounded-md bg-background/85 px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground backdrop-blur md:text-[11px]">
-          #{os.numero}
-        </span>
-        <div className="absolute right-2 top-2 flex flex-wrap justify-end gap-1">
-          {pausada && <StatusChip label="Pausada" tone="muted" />}
-          {prazo && prazo.tom !== "muted" && (
-            <StatusChip label={prazo.texto} tone={prazo.tom === "magenta" ? "magenta" : "amber"} />
-          )}
+        {/* Número e avisos na MESMA linha: antes cada um era posicionado no seu canto e,
+            numa coluna estreita, o aviso ("vence amanhã", "2 dias de atraso") cobria o
+            número da OS. Agora o aviso desce para a linha de baixo quando não cabe. */}
+        <div className="absolute inset-x-2 top-2 flex flex-wrap items-start gap-1">
+          <span className="shrink-0 rounded-md bg-background/85 px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground backdrop-blur md:text-[11px]">
+            #{os.numero}
+          </span>
+          <div className="ml-auto flex min-w-0 flex-wrap justify-end gap-1">
+            {pausada && <StatusChip compacto label="Pausada" tone="muted" />}
+            {prazo && prazo.tom !== "muted" && (
+              <StatusChip
+                compacto
+                label={prazo.texto}
+                tone={prazo.tom === "magenta" ? "magenta" : "amber"}
+              />
+            )}
+          </div>
         </div>
         <div className={`absolute inset-x-0 bottom-0 h-1 ${PRIO_COR[os.prioridade] ?? "bg-muted"}`} aria-hidden />
       </Capa>
@@ -199,8 +208,11 @@ function Capa({ os, children }: { os: any; children?: React.ReactNode }) {
   // "Sem arte" nelas fazia 14 cartões concluídos parecerem trabalho faltando.
   const avulsa = semArquivo.rotulo === "Sem arte" && /^RIP sem OS\b/i.test(String(os.titulo ?? ""));
   const falta = avulsa ? { rotulo: "Impressão avulsa", detalhe: "feita direto no RIP" } : semArquivo;
+  const temImagem = Boolean(url && !quebrou);
   return (
-    <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted/60">
+    // Sem imagem a capa ganha altura mínima: o cabeçalho (número + aviso, que pode
+    // quebrar em duas linhas) mora no alto e o "Sem arte" fica embaixo, sem um cobrir o outro.
+    <div className={`relative aspect-[16/9] w-full overflow-hidden bg-muted/60 ${temImagem ? "" : "min-h-[104px]"}`}>
       {url && !quebrou ? (
         <img
           src={url}
@@ -211,7 +223,7 @@ function Capa({ os, children }: { os: any; children?: React.ReactNode }) {
           className="h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+        <div className="flex h-full w-full flex-col items-center justify-end gap-0.5 pb-2 text-muted-foreground">
           <FileImage className="h-6 w-6 opacity-60" aria-hidden />
           <span className="text-xs font-semibold uppercase tracking-wider">{quebrou ? "Imagem indisponível" : falta.rotulo}</span>
           {falta.detalhe && <span className="max-w-[90%] truncate text-[10px]">{falta.detalhe}</span>}

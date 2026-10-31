@@ -21,22 +21,28 @@ const toneMap: Record<Tone, string> = {
 export function StatusChip({
   label,
   tone = "cyan",
+  compacto = false,
   className,
 }: {
   label: string;
   tone?: Tone;
+  /** Para cantos apertados (capa do cartão do quadro): 20 px de altura, 11 px de letra. */
+  compacto?: boolean;
   className?: string;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13px] font-semibold md:h-6 md:text-xs",
+        // min-w-0 + max-w-full: dentro de um vizinho apertado o selo encolhe (o rótulo
+        // ganha reticências) em vez de passar por cima do que está ao lado.
+        "inline-flex min-w-0 max-w-full items-center whitespace-nowrap rounded-full font-semibold",
+        compacto ? "h-5 gap-1 px-1.5 text-[11px]" : "h-7 gap-1.5 px-2.5 text-[13px] md:h-6 md:text-xs",
         toneMap[tone] ?? toneMap.cyan,
         className,
       )}
     >
       <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
-      {label}
+      <span className="truncate">{label}</span>
     </span>
   );
 }
