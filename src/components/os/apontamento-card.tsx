@@ -384,12 +384,13 @@ export function ApontamentoDaOS({ osId }: { osId: string }) {
               <div className="flex flex-wrap items-end gap-2">
                 <div className="w-40">
                   <Label htmlFor={`qtd-produzida-${a.id}`} className="text-xs">
-                    Quantidade produzida
+                    Quantidade produzida *
                   </Label>
                   <Input
                     id={`qtd-produzida-${a.id}`}
                     type="number"
-                    min="0"
+                    min="1"
+                    required
                     value={quantidades[a.id] ?? ""}
                     onChange={(e) =>
                       setQuantidades((q) => ({ ...q, [a.id]: e.target.value }))
@@ -399,7 +400,19 @@ export function ApontamentoDaOS({ osId }: { osId: string }) {
                 <Button
                   variant="destructive"
                   disabled={finalizar.isPending}
-                  onClick={() => finalizar.mutate(a)}
+                  onClick={() => {
+                    // Encerrar sem quantidade lançava "0 min · 0 un" e R$ 0,03
+                    // (testado ao vivo em 30/10/2026): o tempo da máquina não vira
+                    // custo por peça sem a quantidade, e o fechamento fica no previsto.
+                    if (!(Number(quantidades[a.id]) > 0)) {
+                      toast.error("Informe a quantidade produzida", {
+                        description: "Sem ela o tempo da máquina não vira custo por peça.",
+                      });
+                      document.getElementById(`qtd-produzida-${a.id}`)?.focus();
+                      return;
+                    }
+                    finalizar.mutate(a);
+                  }}
                 >
                   <Square className="h-4 w-4 mr-1" />{" "}
                   {canSeeFinancials ? "Encerrar e lançar custo" : "Encerrar produção"}
