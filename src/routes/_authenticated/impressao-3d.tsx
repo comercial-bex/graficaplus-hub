@@ -140,7 +140,7 @@ function Impressao3DPage() {
         title="Impressão 3D"
         description="As peças 3D nascem dentro dos orçamentos (item Peça 3D). Aqui: produção, apontamentos, filamentos e impressoras."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button asChild size="sm">
               <Link to="/orcamento-3d-novo">Novo orçamento</Link>
             </Button>

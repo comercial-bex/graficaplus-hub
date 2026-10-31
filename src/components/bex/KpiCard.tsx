@@ -71,8 +71,8 @@ export function KpiCard({
         )}
         <p
           className={cn(
-            // Quebra em duas linhas em vez de cortar: "WhatsApp nã…" no celular não diz nada.
-            "min-w-0 line-clamp-2 text-[13px] font-semibold leading-snug",
+            // Quebra linha em vez de cortar: "WhatsApp nã…" no celular não diz nada.
+            "min-w-0 text-[13px] font-semibold leading-snug",
             destaque ? "text-surface-hero-foreground/70" : "text-muted-foreground",
           )}
         >

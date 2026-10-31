@@ -88,7 +88,8 @@ export function AssistenteEmPassos({
               >
                 <StepperTrigger className="flex flex-col items-start gap-1">
                   <StepperIndicator>{i + 1}</StepperIndicator>
-                  <StepperTitle className="text-xs">{p.titulo}</StepperTitle>
+                  {/* No celular seis nomes não cabem lado a lado e se sobrepunham: só o passo atual mostra o nome. */}
+                  <StepperTitle className="text-xs max-md:hidden max-md:group-data-[state=active]/step:block">{p.titulo}</StepperTitle>
                 </StepperTrigger>
                 {i < passos.length - 1 && (
                   <StepperSeparator className="absolute inset-x-0 left-[calc(50%+0.875rem)] top-3 m-0 group-data-[orientation=horizontal]/stepper-nav:w-[calc(100%-2rem+0.225rem)] group-data-[orientation=horizontal]/stepper-nav:flex-none group-data-[state=completed]/step:bg-primary" />

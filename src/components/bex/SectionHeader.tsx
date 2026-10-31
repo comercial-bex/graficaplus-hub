@@ -35,7 +35,8 @@ export function SectionHeader({
           <p className="mb-1.5 text-[13px] font-semibold text-muted-foreground">{breadcrumb}</p>
         )}
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-foreground md:text-[2rem] md:leading-tight">
+          {/* No celular o título quebra linha; cortar "Produção 3D — Jobs & Apo…" esconde o nome da tela. */}
+          <h1 className="min-w-0 break-words text-2xl font-bold leading-tight tracking-tight text-foreground md:truncate md:text-[2rem]">
             {title}
           </h1>
           <DicaIcone texto={ajuda} rotulo={title} lado="bottom" className="h-5 w-5" />

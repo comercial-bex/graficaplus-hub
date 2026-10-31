@@ -221,9 +221,12 @@
   --secondary-foreground: #e2e8f0;
   --muted: #1f2230;
   --muted-foreground: #9aa2b1;
-  --accent: #f5d90a;
-  --accent-foreground: #050506;
-  --link: #00d3f2;
+  /* Hover e seleção no escuro: tinta de ciano, não mais o amarelo #f5d90a —
+     com a pele de 31/10/2026 o botão fantasma e a linha escolhida ficavam
+     um bloco amarelo no meio do painel escuro. */
+  --accent: #11313a;
+  --accent-foreground: #9ee8f5;
+  --link: #4fd9ef;
   --destructive: #ff2d9b;
   --destructive-foreground: #050506;
   --success: #45d4a0;

@@ -224,7 +224,7 @@ function MovimentacoesPage() {
         title="Movimentações de estoque"
         description="Toda entrada, baixa e ajuste de material, com origem e responsável"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* A folha vem primeiro: contar a oficina inteira é o caso comum,
                 e o ajuste de um material só é a exceção. Era o contrário, e
                 14 dos 18 materiais nunca receberam carga nenhuma. */}
