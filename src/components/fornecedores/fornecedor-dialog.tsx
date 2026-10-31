@@ -126,7 +126,6 @@ export function FornecedorDialog({ open, fornecedor, onOpenChange, onSalvo }: Pr
               value={form.nome}
               onChange={(e) => muda("nome", e.target.value)}
               placeholder="Ex.: Camaleão Tintas"
-              className="h-11 md:h-9"
             />
           </div>
           <div className="space-y-1.5">
@@ -135,7 +134,6 @@ export function FornecedorDialog({ open, fornecedor, onOpenChange, onSalvo }: Pr
               id="forn-razao"
               value={form.razao_social}
               onChange={(e) => muda("razao_social", e.target.value)}
-              className="h-11 md:h-9"
             />
           </div>
 
@@ -172,7 +170,6 @@ export function FornecedorDialog({ open, fornecedor, onOpenChange, onSalvo }: Pr
               inputMode="tel"
               value={form.telefone}
               onChange={(e) => muda("telefone", e.target.value)}
-              className="h-11 md:h-9"
             />
           </div>
           <div className="space-y-1.5">
@@ -182,7 +179,6 @@ export function FornecedorDialog({ open, fornecedor, onOpenChange, onSalvo }: Pr
               type="email"
               value={form.email}
               onChange={(e) => muda("email", e.target.value)}
-              className="h-11 md:h-9"
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
@@ -191,7 +187,6 @@ export function FornecedorDialog({ open, fornecedor, onOpenChange, onSalvo }: Pr
               id="forn-endereco"
               value={form.endereco}
               onChange={(e) => muda("endereco", e.target.value)}
-              className="h-11 md:h-9"
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
@@ -200,7 +195,6 @@ export function FornecedorDialog({ open, fornecedor, onOpenChange, onSalvo }: Pr
               id="forn-site"
               value={form.site}
               onChange={(e) => muda("site", e.target.value)}
-              className="h-11 md:h-9"
             />
           </div>
 
@@ -245,10 +239,10 @@ export function FornecedorDialog({ open, fornecedor, onOpenChange, onSalvo }: Pr
         </div>
 
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="h-11 md:h-9" disabled={salvando} onClick={salvar}>
+          <Button disabled={salvando} onClick={salvar}>
             {salvando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
             Salvar
           </Button>

@@ -101,7 +101,6 @@ function CatalogoPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              className="h-11 md:h-9"
               onClick={() => {
                 void catalogo.refetch();
                 void secoes.refetch();
@@ -110,7 +109,7 @@ function CatalogoPage() {
             >
               <RefreshCw className="mr-1 h-4 w-4" /> Tentar de novo
             </Button>
-            <Button asChild variant="ghost" className="h-11 md:h-9">
+            <Button asChild variant="ghost">
               <Link to="/catalogos/gerenciar">
                 <ChevronLeft className="mr-1 h-4 w-4" /> Catálogos
               </Link>
@@ -146,7 +145,7 @@ function CatalogoPage() {
           .filter(Boolean)
           .join(" · ")}
         actions={
-          <Button asChild variant="outline" className="h-11 md:h-9">
+          <Button asChild variant="outline">
             <Link to="/catalogos/gerenciar">
               <ChevronLeft className="mr-1 h-4 w-4" /> Catálogos
             </Link>
@@ -255,7 +254,6 @@ function CatalogoPage() {
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
-                className="h-11 md:h-9"
                 onClick={() => {
                   setFiltroInicial("foto_a_conferir");
                   setAba("itens");
@@ -265,7 +263,6 @@ function CatalogoPage() {
               </Button>
               <Button
                 variant="outline"
-                className="h-11 md:h-9"
                 onClick={() => {
                   setFiltroInicial("sem_foto");
                   setAba("itens");

@@ -24,7 +24,7 @@ function PedidosPage() {
         title="Pedidos de cotação"
         description="O que os clientes pediram pelos links da vitrine. Responda pelo WhatsApp e marque como atendido."
         actions={
-          <Button asChild variant="outline" className="h-11 md:h-9">
+          <Button asChild variant="outline">
             <Link to="/catalogos">
               <ChevronLeft className="mr-1 h-4 w-4" /> Loja
             </Link>

@@ -412,10 +412,10 @@ function ExcluirCompraDialog({
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button variant="destructive" className="h-11 md:h-9" disabled={enviando} onClick={excluir}>
+          <Button variant="destructive" disabled={enviando} onClick={excluir}>
             {enviando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
             Excluir registro
           </Button>
@@ -477,10 +477,10 @@ function ConferirRetiradaDialog({
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="h-11 md:h-9" disabled={enviando} onClick={conferir}>
+          <Button disabled={enviando} onClick={conferir}>
             {enviando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
             Confirmar retirada
           </Button>

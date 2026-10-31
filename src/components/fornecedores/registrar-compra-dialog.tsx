@@ -231,7 +231,6 @@ export function RegistrarCompraDialog({
                 value={form.numero}
                 onChange={(e) => muda("numero", e.target.value)}
                 placeholder="Ex.: 23500"
-                className="h-11 md:h-9"
               />
               {form.numero.trim() && (
                 <p className="text-xs text-muted-foreground">Fica registrado como {documentoComTipo(form.tipo, form.numero)}.</p>
@@ -244,7 +243,6 @@ export function RegistrarCompraDialog({
                 type="datetime-local"
                 value={form.data}
                 onChange={(e) => muda("data", e.target.value)}
-                className="h-11 md:h-9"
               />
             </div>
 
@@ -258,7 +256,7 @@ export function RegistrarCompraDialog({
                     value={form.devolve_compra_id ?? undefined}
                     onValueChange={(v) => muda("devolve_compra_id", v)}
                   >
-                    <SelectTrigger className="h-11 md:h-9">
+                    <SelectTrigger>
                       <SelectValue placeholder="Escolha a venda" />
                     </SelectTrigger>
                     <SelectContent>
@@ -306,7 +304,6 @@ export function RegistrarCompraDialog({
                 value={form.comprador_nome}
                 disabled={comprador !== "outro"}
                 onChange={(e) => muda("comprador_nome", e.target.value)}
-                className="h-11 md:h-9"
               />
             </div>
             <div className="space-y-1.5">
@@ -317,7 +314,6 @@ export function RegistrarCompraDialog({
                 disabled={comprador !== "outro"}
                 onChange={(e) => muda("comprador_cnpj", e.target.value)}
                 placeholder={comprador === "agencia" ? "não aparece no documento" : undefined}
-                className="h-11 md:h-9"
               />
             </div>
             <div className="space-y-1.5">
@@ -327,7 +323,6 @@ export function RegistrarCompraDialog({
                 value={form.codigo_cliente}
                 onChange={(e) => muda("codigo_cliente", e.target.value)}
                 placeholder="Opcional"
-                className="h-11 md:h-9"
               />
             </div>
           </section>
@@ -340,7 +335,6 @@ export function RegistrarCompraDialog({
                 list="compra-formas"
                 value={form.forma_pagamento}
                 onChange={(e) => muda("forma_pagamento", e.target.value)}
-                className="h-11 md:h-9"
               />
               <datalist id="compra-formas">
                 {["Pix", "Dinheiro", "Cartão débito", "Cartão crédito", "Boleto", "Transferência"].map((x) => (
@@ -355,7 +349,6 @@ export function RegistrarCompraDialog({
                 list="compra-condicoes"
                 value={form.condicao_pagamento}
                 onChange={(e) => muda("condicao_pagamento", e.target.value)}
-                className="h-11 md:h-9"
               />
               <datalist id="compra-condicoes">
                 {["À vista", "Cartão", "A prazo"].map((x) => (
@@ -409,27 +402,27 @@ export function RegistrarCompraDialog({
                   <div className="grid gap-3 sm:grid-cols-6">
                     <div className="space-y-1 sm:col-span-1">
                       <Label htmlFor={`item-${i}-codigo`} className="text-xs">Código</Label>
-                      <Input id={`item-${i}-codigo`} value={l.codigo} onChange={(e) => mudaLinha(i, { codigo: e.target.value })} className="h-11 md:h-9" />
+                      <Input id={`item-${i}-codigo`} value={l.codigo} onChange={(e) => mudaLinha(i, { codigo: e.target.value })} />
                     </div>
                     <div className="space-y-1 sm:col-span-4">
                       <Label htmlFor={`item-${i}-descricao`} className="text-xs">Descrição</Label>
-                      <Input id={`item-${i}-descricao`} value={l.descricao} onChange={(e) => mudaLinha(i, { descricao: e.target.value })} className="h-11 md:h-9" />
+                      <Input id={`item-${i}-descricao`} value={l.descricao} onChange={(e) => mudaLinha(i, { descricao: e.target.value })} />
                     </div>
                     <div className="space-y-1 sm:col-span-1">
                       <Label htmlFor={`item-${i}-unidade`} className="text-xs">Unidade</Label>
-                      <Input id={`item-${i}-unidade`} value={l.unidade} onChange={(e) => mudaLinha(i, { unidade: e.target.value })} placeholder="UN, RL, MT" className="h-11 md:h-9" />
+                      <Input id={`item-${i}-unidade`} value={l.unidade} onChange={(e) => mudaLinha(i, { unidade: e.target.value })} placeholder="UN, RL, MT" />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor={`item-${i}-qtd`} className="text-xs">Quantidade</Label>
-                      <Input id={`item-${i}-qtd`} inputMode="decimal" value={l.quantidade} onChange={(e) => mudaLinha(i, { quantidade: e.target.value })} className="h-11 md:h-9" />
+                      <Input id={`item-${i}-qtd`} inputMode="decimal" value={l.quantidade} onChange={(e) => mudaLinha(i, { quantidade: e.target.value })} />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor={`item-${i}-lista`} className="text-xs">Preço de tabela</Label>
-                      <Input id={`item-${i}-lista`} inputMode="decimal" value={l.preco_lista} onChange={(e) => mudaLinha(i, { preco_lista: e.target.value })} placeholder="450,00" className="h-11 md:h-9" />
+                      <Input id={`item-${i}-lista`} inputMode="decimal" value={l.preco_lista} onChange={(e) => mudaLinha(i, { preco_lista: e.target.value })} placeholder="450,00" />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor={`item-${i}-desc`} className="text-xs">Desconto %</Label>
-                      <Input id={`item-${i}-desc`} inputMode="decimal" value={l.desconto_pct} onChange={(e) => mudaLinha(i, { desconto_pct: e.target.value })} placeholder="20" className="h-11 md:h-9" />
+                      <Input id={`item-${i}-desc`} inputMode="decimal" value={l.desconto_pct} onChange={(e) => mudaLinha(i, { desconto_pct: e.target.value })} placeholder="20" />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor={`item-${i}-preco`} className="text-xs">Preço pago (un.)</Label>
@@ -439,7 +432,6 @@ export function RegistrarCompraDialog({
                         value={l.preco_unitario}
                         onChange={(e) => mudaLinha(i, { preco_unitario: e.target.value })}
                         placeholder={preco != null && !l.preco_unitario ? preco.toFixed(2).replace(".", ",") : "360,00"}
-                        className="h-11 md:h-9"
                       />
                     </div>
                     <div className="space-y-1 sm:col-span-2">
@@ -451,7 +443,7 @@ export function RegistrarCompraDialog({
                     <div className="space-y-1 sm:col-span-2">
                       <Label className="text-xs">Para quê</Label>
                       <Select value={l.finalidade} onValueChange={(v) => mudaLinha(i, { finalidade: v as Finalidade })}>
-                        <SelectTrigger className="h-11 md:h-9">
+                        <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -466,7 +458,7 @@ export function RegistrarCompraDialog({
                     <div className="space-y-1 sm:col-span-2">
                       <Label className="text-xs">Material do estoque (opcional)</Label>
                       <Select value={l.material_id ?? NENHUM} onValueChange={(v) => escolherMaterial(i, v)}>
-                        <SelectTrigger className="h-11 md:h-9">
+                        <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -490,7 +482,6 @@ export function RegistrarCompraDialog({
                           value={l.rende}
                           onChange={(e) => mudaLinha(i, { rende: e.target.value })}
                           placeholder="rolo 1,06 × 50 = 53"
-                          className="h-11 md:h-9"
                         />
                       </div>
                     )}
@@ -530,10 +521,10 @@ export function RegistrarCompraDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="h-11 md:h-9" disabled={salvando} onClick={salvar}>
+          <Button disabled={salvando} onClick={salvar}>
             {salvando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
             Registrar compra
           </Button>

@@ -218,7 +218,7 @@ export function MeusDadosCard() {
               </Avatar>
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
-                  <Button asChild variant="outline" size="sm" className="h-11 md:h-9" disabled={mexendoNaFoto}>
+                  <Button asChild variant="outline" size="sm" disabled={mexendoNaFoto}>
                     <label className="cursor-pointer">
                       {mexendoNaFoto ? (
                         <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -240,7 +240,7 @@ export function MeusDadosCard() {
                     </label>
                   </Button>
                   {ficha.data?.avatar_url && (
-                    <Button variant="ghost" size="sm" className="h-11 md:h-9" disabled={mexendoNaFoto} onClick={tirarFoto}>
+                    <Button variant="ghost" size="sm" disabled={mexendoNaFoto} onClick={tirarFoto}>
                       <Trash2 className="mr-1 h-4 w-4" /> Tirar foto
                     </Button>
                   )}
@@ -259,7 +259,6 @@ export function MeusDadosCard() {
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   autoComplete="name"
-                  className="h-11 md:h-9"
                 />
                 <p className="text-xs text-muted-foreground">
                   Sai no orçamento enviado ao cliente, como vendedor, e (só o primeiro nome) no painel do parceiro.
@@ -281,7 +280,6 @@ export function MeusDadosCard() {
                   }}
                   placeholder="(96) 99999-9999"
                   autoComplete="tel"
-                  className="h-11 md:h-9"
                 />
                 <p className="text-xs text-muted-foreground">
                   {aviso ?? "Aparece para o administrador na lista de Usuários. O sistema ainda não manda mensagem para este número."}
@@ -321,7 +319,7 @@ export function MeusDadosCard() {
             )}
 
             <div className="flex justify-end">
-              <Button className="h-11 md:h-9" disabled={salvando} onClick={salvar}>
+              <Button disabled={salvando} onClick={salvar}>
                 {salvando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
                 Salvar meus dados
               </Button>

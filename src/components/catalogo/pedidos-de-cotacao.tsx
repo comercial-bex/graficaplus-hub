@@ -137,7 +137,6 @@ export function PedidosDeCotacao() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
-                    className="h-11 md:h-9"
                     disabled={abrindo === p.id}
                     onClick={() => void abrirConversa(p)}
                   >
@@ -150,7 +149,6 @@ export function PedidosDeCotacao() {
                   </Button>
                   <Button
                     variant={p.atendido_em ? "ghost" : "default"}
-                    className="h-11 md:h-9"
                     disabled={ocupado === p.id}
                     onClick={() => void marcar(p, !p.atendido_em)}
                   >

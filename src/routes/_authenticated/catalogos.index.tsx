@@ -60,7 +60,7 @@ function LojaDaEquipePage() {
         actions={
           <>
             <Dica texto={dicaAcao("/catalogos", "pedidos")}>
-              <Button asChild variant="outline" className="h-11 md:h-9">
+              <Button asChild variant="outline">
                 <Link to="/catalogos/pedidos">
                   <Inbox className="mr-1 h-4 w-4" /> Pedidos de cotação
                   {cotacoes.isSuccess && cotacoes.data.abertos > 0
@@ -71,7 +71,7 @@ function LojaDaEquipePage() {
             </Dica>
             {podeGerenciar && (
               <Dica texto={dicaAcao("/catalogos", "gerenciar")}>
-                <Button asChild variant="outline" className="h-11 md:h-9">
+                <Button asChild variant="outline">
                   <Link to="/catalogos/gerenciar">
                     <Settings2 className="mr-1 h-4 w-4" /> Gerenciar
                   </Link>
@@ -94,7 +94,7 @@ function LojaDaEquipePage() {
             <p className="text-muted-foreground">
               Isto é uma falha de consulta, não uma loja vazia.
             </p>
-            <Button variant="outline" className="h-11 md:h-9" onClick={() => void loja.refetch()}>
+            <Button variant="outline" onClick={() => void loja.refetch()}>
               <RefreshCw className="mr-1 h-4 w-4" /> Tentar de novo
             </Button>
           </CardContent>

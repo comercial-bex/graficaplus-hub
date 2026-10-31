@@ -166,7 +166,7 @@ function CartaoDoPedido({ ordem, obterUrl }: { ordem: OrdemNoPortal; obterUrl: O
             size="sm"
             onClick={() => setAberto((v) => !v)}
             aria-expanded={aberto}
-            className="h-10 md:h-9"
+            className="h-10"
           >
             <FileText className="mr-1 h-4 w-4" />
             {aberto ? "Esconder" : "Ver"} arquivos e documentos ({anexos})
@@ -255,7 +255,7 @@ function LinhaDeAnexo({
           <Button
             size="sm"
             variant="ghost"
-            className="h-10 md:h-9"
+            className="h-10"
             disabled={abrindo !== null}
             onClick={() => onAbrir("ver")}
           >
@@ -270,7 +270,7 @@ function LinhaDeAnexo({
         <Button
           size="sm"
           variant="outline"
-          className="h-10 md:h-9"
+          className="h-10"
           disabled={abrindo !== null}
           onClick={() => onAbrir("baixar")}
         >

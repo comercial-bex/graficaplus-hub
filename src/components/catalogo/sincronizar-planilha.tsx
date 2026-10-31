@@ -412,11 +412,11 @@ function PreviaDaPlanilha({
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Button className="h-11 md:h-9" disabled={aplicando} onClick={onAplicar}>
+          <Button disabled={aplicando} onClick={onAplicar}>
             {aplicando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}
             Aplicar a planilha
           </Button>
-          <Button variant="outline" className="h-11 md:h-9" disabled={aplicando} onClick={onDescartar}>
+          <Button variant="outline" disabled={aplicando} onClick={onDescartar}>
             Descartar
           </Button>
         </div>

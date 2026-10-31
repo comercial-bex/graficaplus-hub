@@ -134,7 +134,7 @@ export function EmpresaSecao() {
             </p>
           )}
 
-          <Button asChild variant="outline" size="sm" className="h-11 md:h-9">
+          <Button asChild variant="outline" size="sm">
             <Link to="/configuracoes-empresa">
               <Pencil className="mr-1 h-4 w-4" /> Editar dados da empresa
             </Link>

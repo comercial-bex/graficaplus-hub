@@ -428,7 +428,7 @@ function AReceberPage() {
                 type="number"
                 inputMode="decimal"
                 step="0.01"
-                className="h-11 font-mono text-base md:h-9 md:text-sm"
+                className="font-mono text-base md:text-sm"
                 value={valor}
                 onChange={(e) => setValor(e.target.value)}
               />
@@ -441,7 +441,7 @@ function AReceberPage() {
             <div className="space-y-1">
               <Label className="text-xs">Como o cliente pagou</Label>
               <Select value={meio} onValueChange={setMeio}>
-                <SelectTrigger className="h-11 text-base md:h-9 md:text-sm">
+                <SelectTrigger className="text-base md:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -458,7 +458,7 @@ function AReceberPage() {
               <Label className="text-xs">Dia em que o dinheiro entrou</Label>
               <Input
                 type="date"
-                className="h-11 text-base md:h-9 md:text-sm"
+                className="text-base md:text-sm"
                 value={data}
                 onChange={(e) => setData(e.target.value)}
               />
@@ -467,7 +467,7 @@ function AReceberPage() {
             <div className="space-y-1">
               <Label className="text-xs">Referência (opcional)</Label>
               <Input
-                className="h-11 text-base md:h-9 md:text-sm"
+                className="text-base md:text-sm"
                 placeholder="Número do comprovante, fim do Pix, maquininha…"
                 value={referencia}
                 onChange={(e) => setReferencia(e.target.value)}

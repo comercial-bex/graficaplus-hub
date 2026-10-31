@@ -101,7 +101,7 @@ export function ComissaoCell({ usuarioId }: { usuarioId: string }) {
         <div className="flex items-center gap-2">
           <Input
             type="number" step="0.5" min="0" max="100"
-            className="h-9 w-24 font-mono"
+            className="w-24 font-mono"
             value={pct}
             onChange={(e) => setPct(e.target.value)}
             placeholder="0"

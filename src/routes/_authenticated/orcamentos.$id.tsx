@@ -1526,7 +1526,7 @@ function OrcamentoDetailPage() {
         {/* Linha 3 — ações secundárias */}
         <div className="flex items-center gap-2 flex-wrap md:pl-12">
           <Select value={orc.status} onValueChange={setStatus} disabled={fechado}>
-            <SelectTrigger className="w-48 h-9" aria-label="Status do orçamento">
+            <SelectTrigger className="w-48" aria-label="Status do orçamento">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

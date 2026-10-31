@@ -200,10 +200,10 @@ export function GerarOrcamentoDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="h-11 md:h-9" disabled={!podeGerar} onClick={() => void gerar()}>
+          <Button disabled={!podeGerar} onClick={() => void gerar()}>
             {enviando && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Gerar orçamento
           </Button>
         </DialogFooter>

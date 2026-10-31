@@ -201,7 +201,6 @@ function LinhaDeCobranca({
           type="button"
           size="sm"
           variant="outline"
-          className="h-9"
           disabled={desabilitado}
           onClick={() => onAdicionar({ acabamento: regra, servico, quantidade })}
         >

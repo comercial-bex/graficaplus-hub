@@ -299,7 +299,7 @@ export function FichaDaOs({
 
             <Bloco titulo="Mudar status">
               <Select value={os.status} onValueChange={(v) => onMudarStatus(os.id, v)}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

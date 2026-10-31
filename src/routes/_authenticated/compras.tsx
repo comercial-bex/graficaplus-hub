@@ -115,7 +115,7 @@ function ComprasPage() {
         description="O material que falta vira pedido — com quantos materiais precisar —, e o pedido recebido entra no estoque com lote e custo."
         actions={
           permissoes.criar ? (
-            <Button className="h-11 md:h-9" onClick={() => setNovoAberto(true)}>
+            <Button onClick={() => setNovoAberto(true)}>
               <PackagePlus className="mr-1 h-4 w-4" /> Novo pedido
             </Button>
           ) : undefined
@@ -176,7 +176,7 @@ function ComprasPage() {
           <CardContent role="alert" className="space-y-2 p-6 text-sm">
             <p className="font-medium">Não deu para carregar os pedidos de compra.</p>
             <p className="text-muted-foreground">{mensagemErro(lista.error)}</p>
-            <Button variant="outline" className="h-11 md:h-9" disabled={lista.isFetching} onClick={() => lista.refetch()}>
+            <Button variant="outline" disabled={lista.isFetching} onClick={() => lista.refetch()}>
               <RefreshCw className="mr-1 h-4 w-4" /> {lista.isFetching ? "Tentando…" : "Tentar de novo"}
             </Button>
           </CardContent>

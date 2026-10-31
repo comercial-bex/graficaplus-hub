@@ -558,14 +558,13 @@ export function RegraDeVendaPainel({
       <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
-          className="h-11 md:h-9"
           disabled={ocupado !== null || erros.length > 0}
           onClick={() => void verPrevia()}
         >
           {ocupado === "previa" ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Eye className="mr-1 h-4 w-4" />}
           Ver prévia
         </Button>
-        <Button className="h-11 md:h-9" disabled={ocupado !== null || !previaEmDia} onClick={() => void salvar()}>
+        <Button disabled={ocupado !== null || !previaEmDia} onClick={() => void salvar()}>
           {ocupado === "salvar" ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
           Gravar regra
         </Button>

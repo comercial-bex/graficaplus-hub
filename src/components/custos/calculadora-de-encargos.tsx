@@ -61,7 +61,7 @@ export function CalculadoraDeEncargos({
         <div className="space-y-1">
           <Label className="text-xs">Salário mensal</Label>
           <Input
-            className="h-9 font-mono"
+            className="font-mono"
             type="number"
             step="0.01"
             placeholder="2500"
@@ -79,7 +79,7 @@ export function CalculadoraDeEncargos({
         <div className="space-y-1">
           <Label className="text-xs">Horas por mês</Label>
           <Input
-            className="h-9 font-mono"
+            className="font-mono"
             type="number"
             step="1"
             value={horas}

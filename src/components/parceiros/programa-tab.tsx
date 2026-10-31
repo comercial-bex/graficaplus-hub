@@ -104,7 +104,7 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
           type="number"
           step="0.01"
           min="0"
-          className="h-9 font-mono"
+          className="font-mono"
           value={String(r[k] ?? "")}
           disabled={!podeEditar}
           onChange={(e) => setR({ ...r, [k]: Number(e.target.value) })}

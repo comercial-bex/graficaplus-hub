@@ -133,7 +133,7 @@ export function NovaOsInterna() {
   return (
     <Dialog open={aberto} onOpenChange={(v) => !gravando && setAberto(v)}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="h-11 px-5 md:h-9 md:px-4">
+        <Button variant="outline" className="px-5 md:px-4">
           <Store className="mr-2 h-4 w-4" /> OS interna
         </Button>
       </DialogTrigger>

@@ -264,7 +264,6 @@ function CapacidadePage() {
             variant={janela === j.chave ? "default" : "outline"}
             onClick={() => setJanela(j.chave)}
             aria-pressed={janela === j.chave}
-            className="h-11 md:h-9"
           >
             {j.rotulo}
           </Button>
