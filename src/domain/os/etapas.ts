@@ -94,6 +94,8 @@ export type StatusOs = {
   paralela?: boolean;
   /** Quando o status existe no banco mas merece ressalva na tela. */
   observacao?: string;
+  /** A ressalva em duas ou três palavras, para ler ao lado do nome no seletor (no lugar de um "!" sem explicação). */
+  dica?: string;
 };
 
 export const STATUS: StatusOs[] = [
@@ -119,6 +121,7 @@ export const STATUS: StatusOs[] = [
     setor: "Produção",
     paralela: true,
     observacao: "a casa não tem máquina UV — este caminho é para serviço de terceiro",
+    dica: "só terceiro",
   },
 
   // Dois status para a mesma coisa, herdados do banco. `em_producao` era o que
@@ -129,6 +132,7 @@ export const STATUS: StatusOs[] = [
     etapa: "producao",
     setor: "Produção",
     observacao: "genérico, quando a máquina não foi especificada",
+    dica: "sem máquina definida",
   },
   {
     status: "producao",
@@ -178,6 +182,22 @@ export function fluxo(): { etapa: Etapa; rotulo: string; descricao: string; stat
     rotulo: ROTULO_ETAPA[etapa],
     descricao: DESCRICAO_ETAPA[etapa],
     status: porEtapa(etapa),
+  }));
+}
+
+/**
+ * O que a pessoa pode ESCOLHER no seletor de etapa da ficha.
+ *
+ * O status legado `producao` ("duplica Em produção") fica de fora: ele era a porta
+ * lateral que passava sem pagamento, arte, arquivo nem material (31/10/2026, as OS
+ * 170 a 173 entraram por ele) e, mesmo agora com as mesmas travas, dois nomes para a
+ * mesma coisa só confundem. Se a OS JÁ está nele, ele aparece, para o seletor mostrar
+ * onde ela está. `fluxo()` segue inteiro: a lista de automações e a TV precisam dele.
+ */
+export function fluxoParaEscolher(statusAtual?: string | null) {
+  return fluxo().map((grupo) => ({
+    ...grupo,
+    status: grupo.status.filter((s) => s.status !== "producao" || s.status === statusAtual),
   }));
 }
 
@@ -345,4 +365,44 @@ export function traduzirBloqueios(mensagem: string): string | null {
     .map((c) => rotuloBloqueio(c.trim()))
     .filter(Boolean)
     .join(" · ");
+}
+
+/**
+ * As travas de ENTRAR em produção, em uma ou duas palavras (31/10/2026).
+ *
+ * O cartão mostrava "Nenhum pagamento registrado +2": o nome da primeira e um número
+ * que obrigava a abrir a ficha para saber o resto. Agora diz tudo na mesma linha, no
+ * tamanho que cabe: "Falta: pagamento · aceite da arte · arquivo final". O texto
+ * completo de cada uma (e o como resolver) continua na ficha e para o leitor de tela.
+ */
+const NOME_CURTO_DA_TRAVA: Record<string, string> = {
+  sem_pagamento: "pagamento",
+  arte_nao_aprovada: "aceite da arte",
+  sem_arquivo_final: "arquivo final",
+  material_insuficiente: "material",
+  sem_responsavel: "responsável",
+  margem_baixa: "aval do gestor",
+  desconto_alto: "aval do gestor",
+};
+
+/** "pagamento · aceite da arte · arquivo final": sem repetir (margem e desconto são o mesmo aval). */
+export function faltaEmPalavras(bloqueios: readonly { codigo: string; titulo: string }[]): string {
+  const nomes = bloqueios.map((b) => NOME_CURTO_DA_TRAVA[b.codigo] ?? b.titulo);
+  return [...new Set(nomes)].join(" · ");
+}
+
+/**
+ * Os motivos de uma recusa de `avancar_os_status`: "A OS não pode avançar ainda: Arte ainda
+ * não aprovada; Sem arquivo final de produção." vira ["Arte ainda não aprovada", "Sem arquivo
+ * final de produção"]. `null` quando a mensagem não é dessa forma, para quem chama cair no
+ * texto original em vez de inventar. (A recusa de FECHAR tem a sua: `traduzirBloqueios`.)
+ */
+export function itensDaRecusa(mensagem: string): string[] | null {
+  const m = /n[aã]o pode avan[cç]ar ainda:\s*(.+?)\.?$/i.exec(mensagem.trim());
+  if (!m) return null;
+  const itens = m[1]
+    .split(";")
+    .map((c) => c.trim())
+    .filter(Boolean);
+  return itens.length > 0 ? itens : null;
 }

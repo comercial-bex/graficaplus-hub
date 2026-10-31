@@ -16,6 +16,7 @@ export const CHAVES_CONFERIDAS_NA_TELA: readonly string[] = [
   "agenda.schedule",
   "arquivos.finalize",
   "arquivos.request_approval",
+  "arquivos.upload",
   "automacoes.manage",
   "catalogo.manage",
   "clientes.update",
