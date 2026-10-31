@@ -181,7 +181,7 @@ function KanbanPage() {
     });
   }, []);
   // Calcula a coluna mais próxima do início da rolagem. Só importa no celular
-  // (no desktop cabem as cinco); no grid o scrollLeft é 0 e o resultado é a 1ª.
+  // (no desktop cabem todas na linha); sem rolagem o scrollLeft é 0 e o resultado é a 1ª.
   const aoRolarQuadro = useCallback(() => {
     const el = quadroRef.current;
     if (!el) return;
@@ -675,11 +675,14 @@ function KanbanPage() {
         </div>
 
         {/* Celular: flex com snap, uma coluna por tela (85vw deixa a borda da
-            próxima aparecer, dica de que há mais). Desktop: o grid de 5. */}
+            próxima aparecer, dica de que há mais). Desktop: uma linha só com todas as
+            etapas (eram cinco no grid e a sexta, a Fila de produção, caía para a
+            linha de baixo); a coluna vazia encolhe e a cheia ocupa o resto, e só
+            rola de lado quando nem assim cabe. */}
         <div
           ref={quadroRef}
           onScroll={aoRolarQuadro}
-          className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-[repeat(5,minmax(220px,1fr))] md:snap-none"
+          className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:snap-none md:gap-2.5"
         >
           {ETAPAS_QUADRO.map((etapa) => (
             <Coluna
@@ -797,6 +800,9 @@ function KanbanPage() {
   );
 }
 
+/** Cartões que a última coluna mostra antes do "Mostrar as outras". */
+const LIMITE_DA_COLUNA_FINAL = 8;
+
 function Coluna({
   etapa,
   itens,
@@ -817,6 +823,13 @@ function Coluna({
   containerRef?: (el: HTMLDivElement | null) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: etapa });
+  // A última coluna junta tudo o que já saiu: eram 15 cartões e o quadro passava
+  // de 8.000 px de altura (medido em 30/10/2026). Aparecem os primeiros e o resto
+  // abre num toque; o número do cabeçalho continua sendo o total.
+  const [abertaPorInteiro, setAbertaPorInteiro] = useState(false);
+  const limite = etapa === "saida" && !abertaPorInteiro ? LIMITE_DA_COLUNA_FINAL : Infinity;
+  const visiveis = itens.slice(0, limite);
+  const escondidas = itens.length - visiveis.length;
 
   // A OS parada há mais tempo nesta etapa. É a pergunta que o quadro existe
   // para responder — onde está encalhado — e não precisa de configuração
@@ -828,10 +841,12 @@ function Coluna({
   const encalhe = itens.length > 0 ? paradaHa(maisAntiga) : null;
 
   return (
-    <div ref={containerRef} className="flex min-w-[85vw] snap-start flex-col md:min-w-0">
+    <div ref={containerRef} className={`flex min-w-[85vw] snap-start flex-col ${
+        itens.length > 0 ? "md:min-w-[180px] md:flex-1" : "md:min-w-[130px] md:flex-[0.6]"
+      }`}>
       <div className="mb-2 px-1">
         <div className="flex items-baseline justify-between gap-2">
-          <h3 className="truncate font-mono text-xs uppercase tracking-[0.18em] text-foreground/80 md:text-[11px]">
+          <h3 className="min-w-0 break-words font-mono text-xs uppercase leading-tight tracking-[0.12em] text-foreground/80 md:text-[11px]">
             {ROTULO_ETAPA[etapa]}
           </h3>
           <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-xs text-muted-foreground/80 md:text-[10px]">
@@ -874,7 +889,7 @@ function Coluna({
             : "border-border/50 bg-muted/30"
         }`}
       >
-        {itens.map((o) => (
+        {visiveis.map((o) => (
           <CartaoArrastavel
             key={o.id}
             os={o}
@@ -883,6 +898,24 @@ function Coluna({
             onAbrir={() => onAbrir(o.id)}
           />
         ))}
+        {escondidas > 0 && (
+          <button
+            type="button"
+            onClick={() => setAbertaPorInteiro(true)}
+            className="w-full rounded-lg border border-dashed border-border py-2 font-mono text-xs text-muted-foreground hover:bg-muted/50"
+          >
+            Mostrar as outras {escondidas}
+          </button>
+        )}
+        {abertaPorInteiro && etapa === "saida" && itens.length > LIMITE_DA_COLUNA_FINAL && (
+          <button
+            type="button"
+            onClick={() => setAbertaPorInteiro(false)}
+            className="w-full rounded-lg border border-dashed border-border py-2 font-mono text-xs text-muted-foreground hover:bg-muted/50"
+          >
+            Mostrar menos
+          </button>
+        )}
         {itens.length === 0 && carregando && (
           <div className="space-y-2" aria-hidden data-carregando="">
             <div className="h-24 animate-pulse rounded-lg bg-muted/60" />

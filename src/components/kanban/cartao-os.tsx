@@ -193,7 +193,12 @@ export function CartaoOs({
 function Capa({ os, children }: { os: any; children?: React.ReactNode }) {
   const [quebrou, setQuebrou] = useState(false);
   const url: string | null = os.capa_url ?? null;
-  const falta = semCapa(os.arquivos);
+  const semArquivo = semCapa(os.arquivos);
+  // "RIP sem OS" é a impressão que saiu direto no RIP e foi lançada depois: a OS
+  // nasce sem arte POR NATUREZA (o arquivo é o próprio nome do trabalho). Dizer
+  // "Sem arte" nelas fazia 14 cartões concluídos parecerem trabalho faltando.
+  const avulsa = semArquivo.rotulo === "Sem arte" && /^RIP sem OS\b/i.test(String(os.titulo ?? ""));
+  const falta = avulsa ? { rotulo: "Impressão avulsa", detalhe: "feita direto no RIP" } : semArquivo;
   return (
     <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted/60">
       {url && !quebrou ? (
