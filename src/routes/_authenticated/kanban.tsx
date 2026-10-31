@@ -846,7 +846,7 @@ function Coluna({
       }`}>
       <div className="mb-2 px-1">
         <div className="flex items-baseline justify-between gap-2">
-          <h3 className="truncate font-mono text-xs uppercase tracking-[0.18em] text-foreground/80 md:text-[11px]">
+          <h3 className="min-w-0 break-words font-mono text-xs uppercase leading-tight tracking-[0.12em] text-foreground/80 md:text-[11px]">
             {ROTULO_ETAPA[etapa]}
           </h3>
           <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-xs text-muted-foreground/80 md:text-[10px]">

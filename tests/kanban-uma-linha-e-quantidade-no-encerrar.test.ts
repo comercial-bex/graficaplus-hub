@@ -10,6 +10,8 @@ describe("quadro de produção em uma linha e encerrar com quantidade (30/10/202
     expect(ETAPAS_QUADRO.length).toBe(6);
     expect(kanban).not.toMatch(/repeat\(5,/);
     expect(kanban).not.toMatch(/md:grid-cols/);
+    // o nome da etapa quebra em duas linhas em vez de virar "FILA DE P…" na coluna estreita
+    expect(kanban).not.toMatch(/truncate font-mono text-xs uppercase tracking-\[0\.18em\]/);
   });
 
   it("a última coluna mostra os primeiros cartões e abre o resto num toque", () => {
