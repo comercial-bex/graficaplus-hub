@@ -127,6 +127,12 @@ describe("o seletor de etapa da ficha", () => {
     expect(status(fluxoParaEscolher("entrada"))).toContain("em_producao");
   });
 
+  it("a tela da OS também não oferece o legado (só para a OS que já está nele)", () => {
+    const TELA_DA_OS = readFileSync("src/routes/_authenticated/os.$id.tsx", "utf8");
+    expect(TELA_DA_OS).toContain('STATUS.filter((st) => st.status !== "producao" || st.status === os.status)');
+    expect(TELA_DA_OS).not.toContain("{STATUS.map((st) => (");
+  });
+
   it("a ficha usa a lista filtrada e troca o '!' sem explicação por duas ou três palavras", () => {
     expect(FICHA).toContain("fluxoParaEscolher(os.status)");
     expect(FICHA).not.toContain("fluxo().map");
