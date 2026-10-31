@@ -119,10 +119,10 @@ function AuthenticatedLayout() {
         { "--sidebar-width": LARGURA_DO_MENU, "--sidebar-width-icon": LARGURA_DO_TRILHO } as CSSProperties
       }
     >
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="bex-manchas min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-2 md:gap-3 border-b border-border bg-card/90 backdrop-blur-xl px-2 md:px-4 sticky top-0 z-30 relative shadow-sm">
+          <header className="h-14 flex items-center gap-2 md:gap-3 border-b border-border/70 bg-background/70 backdrop-blur-xl backdrop-saturate-150 px-2 md:px-4 sticky top-0 z-30 relative">
             {/* No celular o gatilho do menu é o alvo principal: 44px */}
             <SidebarTrigger className="h-11 w-11 md:h-7 md:w-7" />
             {!noInicio && (
@@ -156,8 +156,9 @@ function AuthenticatedLayout() {
               style={{ background: "var(--gradient-cmyk)" }}
             />
           </header>
-          {/* Celular: margem menor e sem o fundo de pontos (contraste em tela barata ao sol) */}
-          <main className="flex-1 p-4 md:p-7 lg:p-8 overflow-auto bg-background md:bex-grid">
+          {/* Celular: margem menor. O chão (papel com manchas CMYK) vem do contêiner,
+              atrás do menu flutuante e do conteúdo. */}
+          <main className="flex-1 p-4 md:p-7 lg:p-8 overflow-auto">
             {canAccessRoute ? (
               <>
                 <AlertaWhatsapp />

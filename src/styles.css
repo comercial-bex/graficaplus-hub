@@ -60,32 +60,50 @@
   --color-surface-subtle: var(--surface-subtle);
   --color-positive: var(--positive);
   --color-positive-foreground: var(--positive-foreground);
-  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --color-chip-cyan: var(--chip-cyan);
+  --color-chip-cyan-foreground: var(--chip-cyan-foreground);
+  --color-chip-magenta: var(--chip-magenta);
+  --color-chip-magenta-foreground: var(--chip-magenta-foreground);
+  --color-chip-positive: var(--chip-positive);
+  --color-chip-positive-foreground: var(--chip-positive-foreground);
+  --color-chip-warning: var(--chip-warning);
+  --color-chip-warning-foreground: var(--chip-warning-foreground);
+  --color-surface-hero: var(--surface-hero);
+  --color-surface-hero-foreground: var(--surface-hero-foreground);
+  --radius-card: var(--raio-cartao);
+  --shadow-card: var(--sombra-cartao);
+  --shadow-card-hover: var(--sombra-cartao-alta);
+  --shadow-flutuante: var(--sombra-flutuante);
+  --font-sans: "Plus Jakarta Sans", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-marca: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
 }
 
-/* BEX PRINT OS — painel industrial híbrido, claro por padrão. */
+/* BEX PRINT OS — pele "papel e tinta" (31/10/2026): fundo papel quente com
+   três manchas CMYK bem claras, cartão branco de raio grande com anel fino e
+   sombra longa, vidro só nas camadas que flutuam. Claro por padrão. */
 :root {
-  --radius: 0.5rem;
+  --radius: 0.75rem;
+  --raio-cartao: 1.25rem;
 
-  --background: #f7f9fc;
-  --foreground: #20242d;
+  --background: #f1f0ea;
+  --foreground: #15171c;
 
   --card: #ffffff;
-  --card-foreground: #20242d;
+  --card-foreground: #15171c;
 
   --popover: #ffffff;
-  --popover-foreground: #20242d;
+  --popover-foreground: #15171c;
 
   --primary: #00a9c6;
   --primary-foreground: #04141a;
 
-  --secondary: #edf1f5;
-  --secondary-foreground: #20242d;
+  --secondary: #ebeae3;
+  --secondary-foreground: #15171c;
 
-  --muted: #edf1f5;
-  --muted-foreground: #5d6779;
+  --muted: #ebeae3;
+  --muted-foreground: #5d6472;
 
   --accent: #e6f7fa;
   --accent-foreground: #096b7d;
@@ -97,20 +115,21 @@
   --destructive: #d92d72;
   --destructive-foreground: #ffffff;
 
-  --success: #16825d;
+  /* #147555: 4,9:1 sobre o papel #f1f0ea (o #16825d de antes dava 4,2:1 no fundo novo). */
+  --success: #147555;
   --success-foreground: #ffffff;
   --warning: #c78300;
-  --warning-foreground: #20242d;
+  --warning-foreground: #15171c;
   --info: #00a9c6;
   --info-foreground: #ffffff;
-  --positive: #16825d;
+  --positive: #147555;
   --positive-foreground: #ffffff;
 
-  --border: #dce2e9;
-  --input: #cfd7e1;
+  --border: #e3e1da;
+  --input: #d6d4cc;
   --ring: #00a9c6;
   --surface-raised: #ffffff;
-  --surface-subtle: #f1f4f8;
+  --surface-subtle: #f6f5f0;
 
   --chart-1: #00a9c6;
   --chart-2: #e32686;
@@ -155,6 +174,34 @@
   --shadow-neon-lime: 0 8px 24px -16px color-mix(in oklab, var(--bex-lime) 45%, transparent);
   --shadow-neon-magenta: 0 8px 24px -16px color-mix(in oklab, var(--bex-magenta) 45%, transparent);
   --shadow-neon-cyan: 0 8px 24px -16px color-mix(in oklab, var(--bex-cyan) 45%, transparent);
+
+  /* Pele de 31/10/2026: cartão, chips, herói, vidro, manchas do fundo e movimento. */
+  --sombra-cartao: 0 0 0 1px rgb(21 23 28 / 0.06), 0 1px 2px rgb(21 23 28 / 0.04), 0 14px 34px -22px rgb(21 23 28 / 0.22);
+  --sombra-cartao-alta: 0 0 0 1px rgb(21 23 28 / 0.06), 0 2px 4px rgb(21 23 28 / 0.05), 0 22px 44px -22px rgb(21 23 28 / 0.3);
+  --sombra-flutuante: 0 0 0 1px rgb(255 255 255 / 0.14), 0 24px 48px -26px rgb(21 23 28 / 0.6);
+  --chip-cyan: #e6f7fa;
+  --chip-cyan-foreground: #096b7d;
+  --chip-magenta: #fbe4ee;
+  --chip-magenta-foreground: #b91e68;
+  --chip-positive: #e4f3ec;
+  --chip-positive-foreground: #116b4d;
+  --chip-warning: #fbf0d9;
+  --chip-warning-foreground: #805600;
+  --surface-hero: #15171c;
+  --surface-hero-foreground: #f4f3ef;
+  --vidro-fundo: rgb(255 255 255 / 0.66);
+  --vidro-fundo-janela: rgb(255 255 255 / 0.86);
+  --vidro-fundo-menu: rgb(18 19 26 / 0.82);
+  --vidro-desfoque: blur(18px) saturate(1.4);
+  --vidro-desfoque-forte: blur(26px) saturate(1.5);
+  --vidro-anel: rgb(255 255 255 / 0.6);
+  --vidro-brilho: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --fundo-manchas:
+    radial-gradient(900px 620px at 6% -4%, rgb(0 169 198 / 0.26), transparent 62%),
+    radial-gradient(820px 620px at 102% 18%, rgb(227 38 134 / 0.14), transparent 60%),
+    radial-gradient(760px 520px at 58% 104%, rgb(199 131 0 / 0.14), transparent 60%);
+  --duracao-curta: 180ms;
+  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .dark {
@@ -162,18 +209,18 @@
      o vão entre barras e a ordem fixa (recebidas à esquerda) completam. */
   --wa-recebidas: #0a9cb5;
   --wa-enviadas: #e32686;
-  --background: #0a0b10;
-  --foreground: #e2e8f0;
-  --card: #171925;
-  --card-foreground: #e2e8f0;
-  --popover: #171925;
-  --popover-foreground: #e2e8f0;
+  --background: #0b0c10;
+  --foreground: #e6e8ee;
+  --card: #15171f;
+  --card-foreground: #e6e8ee;
+  --popover: #15171f;
+  --popover-foreground: #e6e8ee;
   --primary: #00d3f2;
   --primary-foreground: #050506;
   --secondary: #1f2230;
   --secondary-foreground: #e2e8f0;
   --muted: #1f2230;
-  --muted-foreground: #8b94a7;
+  --muted-foreground: #9aa2b1;
   --accent: #f5d90a;
   --accent-foreground: #050506;
   --link: #00d3f2;
@@ -187,11 +234,11 @@
   --info-foreground: #050506;
   --positive: #45d4a0;
   --positive-foreground: #050506;
-  --border: #313547;
+  --border: #2a2d3a;
   --input: #1f2230;
   --ring: #00d3f2;
   --surface-raised: #1d2030;
-  --surface-subtle: #0e1016;
+  --surface-subtle: #0f1016;
   --status-cyan: #00d3f2;
   --status-magenta: #ff5aae;
   --status-amber: #f5d90a;
@@ -208,6 +255,31 @@
   --sidebar-trilho-foreground: #050506;
   --sidebar-marca: #00d3f2;
   --sidebar-online: #45d4a0;
+
+  --sombra-cartao: 0 0 0 1px rgb(255 255 255 / 0.07), 0 14px 34px -22px rgb(0 0 0 / 0.7);
+  --sombra-cartao-alta: 0 0 0 1px rgb(255 255 255 / 0.09), 0 22px 44px -22px rgb(0 0 0 / 0.8);
+  --sombra-flutuante: 0 0 0 1px rgb(255 255 255 / 0.1), 0 24px 48px -26px rgb(0 0 0 / 0.9);
+  --chip-cyan: rgb(0 211 242 / 0.14);
+  --chip-cyan-foreground: #4fd9ef;
+  --chip-magenta: rgb(255 90 174 / 0.14);
+  --chip-magenta-foreground: #ff7cc0;
+  --chip-positive: rgb(69 212 160 / 0.14);
+  --chip-positive-foreground: #5fe0b0;
+  --chip-warning: rgb(245 200 74 / 0.14);
+  --chip-warning-foreground: #f5c84a;
+  --surface-hero: #f4f3ef;
+  --surface-hero-foreground: #15171c;
+  --vidro-fundo: rgb(21 23 31 / 0.62);
+  --vidro-fundo-janela: rgb(21 23 31 / 0.84);
+  --vidro-fundo-menu: rgb(18 19 26 / 0.7);
+  --vidro-desfoque: blur(20px) saturate(1.35);
+  --vidro-desfoque-forte: blur(28px) saturate(1.5);
+  --vidro-anel: rgb(255 255 255 / 0.1);
+  --vidro-brilho: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --fundo-manchas:
+    radial-gradient(900px 620px at 6% -4%, rgb(0 211 242 / 0.18), transparent 62%),
+    radial-gradient(820px 620px at 102% 18%, rgb(255 45 155 / 0.13), transparent 60%),
+    radial-gradient(760px 520px at 58% 104%, rgb(245 217 10 / 0.09), transparent 60%);
 }
 
 
@@ -269,4 +341,83 @@
     linear-gradient(var(--card), var(--card)) padding-box,
     var(--gradient-cmyk) border-box;
   border: 1px solid transparent;
+}
+
+/* Vidro (pele de 31/10/2026): desfoque só nas camadas que flutuam — menu,
+   barra, cartões de resumo, herói e janelas. Listas, formulários e kanban
+   ficam sólidos. Sem backdrop-filter, ou com "reduzir transparência" ligado
+   no aparelho, tudo vira sólido. */
+@utility bex-vidro {
+  background-color: var(--vidro-fundo);
+  border-color: var(--vidro-anel);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  backdrop-filter: var(--vidro-desfoque);
+  box-shadow: var(--vidro-brilho), var(--sombra-cartao);
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: var(--card);
+    border-color: var(--border);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--card);
+    border-color: var(--border);
+  }
+}
+
+@utility bex-vidro-janela {
+  background-color: var(--vidro-fundo-janela);
+  border-color: var(--vidro-anel);
+  -webkit-backdrop-filter: var(--vidro-desfoque-forte);
+  backdrop-filter: var(--vidro-desfoque-forte);
+  box-shadow: var(--vidro-brilho), var(--sombra-cartao-alta);
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: var(--card);
+    border-color: var(--border);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--card);
+    border-color: var(--border);
+  }
+}
+
+@utility bex-vidro-menu {
+  background-color: var(--vidro-fundo-menu);
+  -webkit-backdrop-filter: var(--vidro-desfoque-forte);
+  backdrop-filter: var(--vidro-desfoque-forte);
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: var(--sidebar);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--sidebar);
+  }
+}
+
+/* O chão: papel (ou tinta) com três manchas CMYK bem claras, para o vidro
+   ter o que desfocar. Vai no contêiner atrás do menu e do conteúdo. */
+@utility bex-manchas {
+  background-color: var(--background);
+  background-image: var(--fundo-manchas);
+  background-repeat: no-repeat;
+}
+
+/* Cartão que sobe 2 px no hover; desligado para quem pede menos movimento. */
+@utility bex-sobe {
+  transition:
+    transform var(--duracao-curta) var(--curva),
+    box-shadow var(--duracao-curta) var(--curva);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--vidro-brilho), var(--sombra-cartao-alta);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover {
+      transform: none;
+    }
+  }
 }
