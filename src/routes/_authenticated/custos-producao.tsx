@@ -269,7 +269,6 @@ function CustosProducaoPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9"
                     disabled={aplicarEncargos.isPending}
                     onClick={() => aplicarEncargos.mutate("simples")}
                   >
@@ -278,7 +277,6 @@ function CustosProducaoPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9"
                     disabled={aplicarEncargos.isPending}
                     onClick={() => aplicarEncargos.mutate("fora_do_simples")}
                   >

@@ -93,10 +93,10 @@ export function ResolverDuvidaDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="h-11 md:h-9" disabled={gravando || !nota.trim()} onClick={() => void gravar()}>
+          <Button disabled={gravando || !nota.trim()} onClick={() => void gravar()}>
             {gravando && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Confirmar
           </Button>
         </DialogFooter>

@@ -250,7 +250,7 @@ function OSDetailPage() {
           <div className="flex items-center gap-2 flex-wrap">
             {/* No celular o Voltar precisa de 44px de alvo; no desktop fica o ícone de 36px. */}
             <Dica texto="Voltar para as ordens de serviço">
-              <Button asChild variant="ghost" size="icon" className="h-11 w-11 md:h-9 md:w-9">
+              <Button asChild variant="ghost" size="icon" className="w-11 md:w-9">
                 <Link to="/os" aria-label="Voltar para as ordens de serviço">
                   <ArrowLeft className="h-4 w-4" />
                 </Link>
@@ -268,7 +268,7 @@ function OSDetailPage() {
             )}
             {/* Status + trocar status ficam sempre visíveis: é a ação principal do detalhe. */}
             <Select value={os.status} onValueChange={updateStatus}>
-              <SelectTrigger className="w-full sm:w-56 h-11 md:h-9 text-base md:text-sm">
+              <SelectTrigger className="w-full sm:w-56 text-base md:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -282,7 +282,7 @@ function OSDetailPage() {
             </Select>
             {/* Finalizar guiado: o que falta, o dinheiro e o aviso ao cliente (24/10/2026). */}
             {!["concluido", "faturado", "cancelado"].includes(os.status) && (
-              <Button onClick={() => setFinalizarOpen(true)} className="h-11 md:h-9">
+              <Button onClick={() => setFinalizarOpen(true)}>
                 <CheckCircle2 className="h-4 w-4 mr-1" /> Finalizar pedido
               </Button>
             )}

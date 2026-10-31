@@ -13,7 +13,13 @@ import { cn } from "@/lib/utils";
  * OS pausada ou cancelada não está em passo nenhum: a trilha diz isso em vez de
  * desenhar uma barra vazia.
  */
-export function TrilhaDaOs({ status, compacta = false }: { status: string | null | undefined; compacta?: boolean }) {
+export function TrilhaDaOs({
+  status,
+  compacta = false,
+}: {
+  status: string | null | undefined;
+  compacta?: boolean;
+}) {
   const etapa = etapaDe(status);
   const foraDoFluxo = etapa === "fora_do_fluxo" || !etapa;
   const atual = foraDoFluxo ? -1 : ETAPAS_QUADRO.indexOf(etapa as Exclude<Etapa, "fora_do_fluxo">);
@@ -22,7 +28,13 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
 
   if (compacta) {
     return (
-      <div className="space-y-1" role="img" aria-label={foraDoFluxo ? detalhe : `Etapa ${atual + 1} de ${ETAPAS_QUADRO.length}: ${nomeAtual}`}>
+      <div
+        className="space-y-1"
+        role="img"
+        aria-label={
+          foraDoFluxo ? detalhe : `Etapa ${atual + 1} de ${ETAPAS_QUADRO.length}: ${nomeAtual}`
+        }
+      >
         <div className="flex gap-0.5" aria-hidden>
           {ETAPAS_QUADRO.map((e, i) => (
             <span
@@ -50,38 +62,64 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
   }
 
   return (
-    <ol className="flex items-start" aria-label="Etapas da OS">
-      {ETAPAS_QUADRO.map((e, i) => {
-        const feita = i < atual;
-        const aqui = i === atual;
-        return (
-          <li key={e} className="relative flex min-w-0 flex-1 flex-col items-center gap-1 text-center">
-            {i > 0 && (
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute right-1/2 top-2.5 h-px w-full -translate-y-1/2",
-                  foraDoFluxo ? "bg-border" : i <= atual ? "bg-[color:var(--bex-lime)]/50" : "bg-border",
-                )}
-              />
-            )}
-            <span
-              className={cn(
-                "relative z-10 flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold",
-                feita && "border-[color:var(--bex-lime)]/60 bg-[color:var(--bex-lime)]/20 text-[color:var(--bex-lime)]",
-                aqui && "border-[color:var(--bex-cyan)] bg-[color:var(--bex-cyan)] text-black",
-                !feita && !aqui && "border-border bg-card text-muted-foreground/60",
-              )}
-              aria-current={aqui ? "step" : undefined}
+    <div>
+      <ol className="flex items-start" aria-label="Etapas da OS">
+        {ETAPAS_QUADRO.map((e, i) => {
+          const feita = i < atual;
+          const aqui = i === atual;
+          return (
+            <li
+              key={e}
+              className="relative flex min-w-0 flex-1 flex-col items-center gap-1 text-center"
             >
-              {feita ? <Check className="h-3 w-3" aria-hidden /> : i + 1}
-            </span>
-            <span className={cn("px-0.5 text-[10px] leading-tight", aqui ? "font-semibold text-foreground" : "text-muted-foreground")}>
-              {ROTULO_ETAPA[e]}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+              {i > 0 && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute right-1/2 top-2.5 h-px w-full -translate-y-1/2",
+                    foraDoFluxo
+                      ? "bg-border"
+                      : i <= atual
+                        ? "bg-[color:var(--bex-lime)]/50"
+                        : "bg-border",
+                  )}
+                />
+              )}
+              <span
+                className={cn(
+                  "relative z-10 flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold",
+                  feita &&
+                    "border-[color:var(--bex-lime)]/60 bg-[color:var(--bex-lime)]/20 text-[color:var(--bex-lime)]",
+                  aqui && "border-[color:var(--bex-cyan)] bg-[color:var(--bex-cyan)] text-black",
+                  !feita && !aqui && "border-border bg-card text-muted-foreground/60",
+                )}
+                aria-current={aqui ? "step" : undefined}
+              >
+                {feita ? <Check className="h-3 w-3" aria-hidden /> : i + 1}
+              </span>
+              {/* No celular seis nomes de 10 px não cabem lado a lado (os vizinhos se
+                encostavam: "ProduçãoAcabamento"); o nome da etapa atual vai numa
+                linha só, abaixo dos pontos, e os demais ficam só para o leitor de tela. */}
+              <span
+                className={cn(
+                  "px-0.5 text-[10px] leading-tight max-md:sr-only",
+                  aqui ? "font-semibold text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {ROTULO_ETAPA[e]}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {!foraDoFluxo && (
+        <p
+          className="mt-1.5 text-center text-xs font-semibold text-foreground md:hidden"
+          aria-hidden
+        >
+          {atual + 1} de {ETAPAS_QUADRO.length} · {nomeAtual}
+        </p>
+      )}
+    </div>
   );
 }

@@ -109,18 +109,17 @@ export function ApontarFotoDialog({
           {item?.foto_id && (
             <Button
               variant="outline"
-              className="h-11 md:h-9 sm:mr-auto"
+              className="sm:mr-auto"
               disabled={gravando}
               onClick={() => void gravar(null)}
             >
               Tirar a foto
             </Button>
           )}
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button
-            className="h-11 md:h-9"
             disabled={gravando || !escolhida || escolhida === item?.foto_id}
             onClick={() => void gravar(escolhida)}
           >

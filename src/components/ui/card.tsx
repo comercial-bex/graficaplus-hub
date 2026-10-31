@@ -2,15 +2,26 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("rounded-lg border border-border bg-card text-card-foreground shadow-sm", className)}
-      {...props}
-    />
-  ),
-);
+/**
+ * Cartão da pele "papel e tinta" (31/10/2026): raio grande, anel fino e
+ * sombra longa. `vidro` liga o desfoque — só para cartões de resumo que
+ * flutuam sobre o fundo; listas e formulários ficam sólidos
+ * (docs/plano-nova-pele-visual.md, seção 7).
+ */
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { vidro?: boolean }
+>(({ className, vidro = false, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-card border border-border bg-card text-card-foreground shadow-card",
+      vidro && "bex-vidro",
+      className,
+    )}
+    {...props}
+  />
+));
 Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
@@ -24,7 +35,7 @@ const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivE
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("font-semibold leading-none tracking-tight", className)}
+      className={cn("text-base font-bold leading-none tracking-tight", className)}
       {...props}
     />
   ),

@@ -260,7 +260,7 @@ export function useAtalhoNovaConversa(ativo: boolean, abrir: () => void) {
 export function BotaoNovaConversa({ onClick, className }: { onClick: () => void; className?: string }) {
   return (
     <Dica texto={dicaAcao("/whatsapp", "nova_conversa")} className={cn("shrink-0", className)}>
-      <Button type="button" variant="outline" size="sm" className="h-9" onClick={onClick}>
+      <Button type="button" variant="outline" size="sm" onClick={onClick}>
         <MessageSquarePlus className="mr-1 h-4 w-4" />
         Nova
       </Button>

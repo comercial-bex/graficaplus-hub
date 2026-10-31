@@ -61,7 +61,7 @@ function CatalogosPage() {
         description="Fornecedores e catálogos: planilha, fotos, regra de venda e links para clientes. Preço de venda para quem vende, custo para quem vê o financeiro."
         actions={
           <>
-            <Button asChild variant="ghost" className="h-11 md:h-9">
+            <Button asChild variant="ghost">
               <Link to="/catalogos">
                 <ChevronLeft className="mr-1 h-4 w-4" /> Loja
               </Link>
@@ -69,14 +69,13 @@ function CatalogosPage() {
             {podeGerenciar && (
               <Button
                 variant="outline"
-                className="h-11 md:h-9"
                 onClick={() => setNovoFornecedor(true)}
               >
                 <Building2 className="mr-1 h-4 w-4" /> Novo fornecedor
               </Button>
             )}
             {podeGerenciar && (
-              <Button className="h-11 md:h-9" onClick={() => setNovoCatalogo(true)}>
+              <Button onClick={() => setNovoCatalogo(true)}>
                 <Plus className="mr-1 h-4 w-4" /> Novo catálogo
               </Button>
             )}
@@ -98,7 +97,7 @@ function CatalogosPage() {
             <p className="text-muted-foreground">
               Isto é uma falha de consulta, não uma lista vazia.
             </p>
-            <Button variant="outline" className="h-11 md:h-9" onClick={() => void resumo.refetch()}>
+            <Button variant="outline" onClick={() => void resumo.refetch()}>
               <RefreshCw className="mr-1 h-4 w-4" /> Tentar de novo
             </Button>
           </CardContent>
@@ -258,11 +257,10 @@ function NovoFornecedorDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button
-            className="h-11 md:h-9"
             disabled={gravando || !nome.trim()}
             onClick={() => void gravar()}
           >
@@ -355,11 +353,10 @@ function NovoCatalogoDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button
-            className="h-11 md:h-9"
             disabled={gravando || !fornecedorId || !titulo.trim()}
             onClick={() => void gravar()}
           >

@@ -221,7 +221,6 @@ export function PedidoDialog({
                 value={fornecedor}
                 onChange={(e) => setFornecedor(e.target.value)}
                 placeholder="Quem vai entregar"
-                className="h-11 md:h-9"
               />
             </div>
             <div className="space-y-1.5">
@@ -231,7 +230,6 @@ export function PedidoDialog({
                 type="date"
                 value={previsao}
                 onChange={(e) => setPrevisao(e.target.value)}
-                className="h-11 md:h-9"
               />
             </div>
           </div>
@@ -271,7 +269,7 @@ export function PedidoDialog({
                       <div className="col-span-2 space-y-1 sm:col-span-1">
                         <Label className="text-xs text-muted-foreground sm:sr-only">Material</Label>
                         <Select value={l.material_id} onValueChange={(v) => escolherMaterial(l.chave, v)}>
-                          <SelectTrigger className="h-11 md:h-9" aria-label={`Material da linha ${i + 1}`}>
+                          <SelectTrigger aria-label={`Material da linha ${i + 1}`}>
                             <SelectValue placeholder={ultima ? "Adicionar material…" : "Escolha o material"} />
                           </SelectTrigger>
                           <SelectContent>
@@ -295,7 +293,6 @@ export function PedidoDialog({
                           step="0.01"
                           value={l.quantidade}
                           onChange={(e) => alterarLinha(l.chave, { quantidade: e.target.value })}
-                          className="h-11 md:h-9"
                         />
                       </div>
                       <div className="space-y-1">
@@ -310,7 +307,6 @@ export function PedidoDialog({
                           step="0.01"
                           value={l.custo_unitario}
                           onChange={(e) => alterarLinha(l.chave, { custo_unitario: e.target.value })}
-                          className="h-11 md:h-9"
                         />
                       </div>
                       <div className="text-right font-mono text-sm tabular-nums sm:pb-2">
@@ -322,7 +318,7 @@ export function PedidoDialog({
                             type="button"
                             size="icon"
                             variant="ghost"
-                            className="h-11 w-11 md:h-9 md:w-9"
+                            className="w-11 md:w-9"
                             onClick={() => removerLinha(l.chave)}
                             aria-label={`Tirar ${m?.nome ?? "esta linha"} do pedido`}
                           >
@@ -365,24 +361,23 @@ export function PedidoDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           {ehRegistrado ? (
-            <Button className="h-11 md:h-9" disabled={!!salvando || materiais.isLoading} onClick={() => salvar(true)}>
+            <Button disabled={!!salvando || materiais.isLoading} onClick={() => salvar(true)}>
               {salvando ? "Salvando…" : "Salvar alterações"}
             </Button>
           ) : (
             <>
               <Button
                 variant="outline"
-                className="h-11 md:h-9"
                 disabled={!!salvando || materiais.isLoading}
                 onClick={() => salvar(false)}
               >
                 {salvando === "rascunho" ? "Guardando…" : "Guardar como rascunho"}
               </Button>
-              <Button className="h-11 md:h-9" disabled={!!salvando || materiais.isLoading} onClick={() => salvar(true)}>
+              <Button disabled={!!salvando || materiais.isLoading} onClick={() => salvar(true)}>
                 {salvando === "registrar" ? "Registrando…" : "Registrar pedido"}
               </Button>
             </>

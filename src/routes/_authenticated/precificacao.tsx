@@ -524,7 +524,7 @@ function Simulador() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-11 w-11 shrink-0 md:h-9 md:w-9"
+                      className="w-11 shrink-0 md:w-9"
                       aria-label="Simular sem produto"
                       onClick={() => escolherProduto(null)}
                     >
@@ -569,13 +569,12 @@ function Simulador() {
                     step="0.01"
                     value={quantidade}
                     onChange={(e) => setQuantidade(e.target.value)}
-                    className="h-11 md:h-9"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Tabela</Label>
                   <Select value={tabela} onValueChange={(v) => setTabela(v as Tabela)}>
-                    <SelectTrigger className="h-11 md:h-9">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -587,7 +586,7 @@ function Simulador() {
                 <div className="space-y-1.5">
                   <Label>Como o cliente paga</Label>
                   <Select value={pagamento} onValueChange={(v) => setPagamento(v as Pagamento)}>
-                    <SelectTrigger className="h-11 md:h-9">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -652,7 +651,7 @@ function Simulador() {
                               <div className="flex h-11 items-center text-sm md:h-9">{l.nome}</div>
                             ) : (
                               <Select value={l.material_id ?? ""} onValueChange={(v) => trocarMaterial(l.chave, v)}>
-                                <SelectTrigger className="h-11 md:h-9">
+                                <SelectTrigger>
                                   <SelectValue placeholder="Escolha o material" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -677,7 +676,6 @@ function Simulador() {
                               step="0.001"
                               value={String(l.porUnidade)}
                               onChange={(e) => alterarLinha(l.chave, { porUnidade: doCampo(e.target.value) })}
-                              className="h-11 md:h-9"
                             />
                           </div>
                           <div className="space-y-1">
@@ -692,7 +690,6 @@ function Simulador() {
                               step="0.01"
                               value={String(l.custoUnitario)}
                               onChange={(e) => alterarLinha(l.chave, { custoUnitario: doCampo(e.target.value) })}
-                              className="h-11 md:h-9"
                             />
                           </div>
                           <div className="text-right font-mono text-sm tabular-nums sm:pb-2">{brl(custoLinha)}</div>
@@ -701,7 +698,7 @@ function Simulador() {
                               type="button"
                               size="icon"
                               variant="ghost"
-                              className="h-11 w-11 md:h-9 md:w-9"
+                              className="w-11 md:w-9"
                               aria-label={`Tirar ${l.nome || "esta linha"} da simulação`}
                               onClick={() => setLinhas((a) => a.filter((x) => x.chave !== l.chave))}
                             >
@@ -734,7 +731,7 @@ function Simulador() {
                   <div className="space-y-1.5">
                     <Label>Máquina</Label>
                     <Select value={maquinaId} onValueChange={setMaquinaId}>
-                      <SelectTrigger className="h-11 md:h-9">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -757,7 +754,6 @@ function Simulador() {
                       step="1"
                       value={minutos}
                       onChange={(e) => setMinutos(e.target.value)}
-                      className="h-11 md:h-9"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -771,7 +767,6 @@ function Simulador() {
                       value={outros}
                       onChange={(e) => setOutros(e.target.value)}
                       placeholder="frete, terceiros"
-                      className="h-11 md:h-9"
                     />
                   </div>
                 </div>
@@ -827,7 +822,7 @@ function Simulador() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-11 w-11 md:h-9 md:w-9"
+                                className="w-11 md:w-9"
                                 aria-label={`Voltar ${rotuloDoParametro(p.codigo, linha)} ao valor da casa`}
                                 onClick={() => mudarParametro(p.codigo, textoDaCasa(p.codigo))}
                               >
@@ -838,7 +833,6 @@ function Simulador() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-11 md:h-9"
                                 onClick={() => setAGravar({ codigo: p.codigo, valor: valoresSimulados[p.codigo] })}
                               >
                                 <Save className="mr-1 h-3.5 w-3.5" /> Salvar na casa
@@ -882,12 +876,11 @@ function Simulador() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="h-11 md:h-9" disabled={gravar.isPending}>
+            <AlertDialogCancel disabled={gravar.isPending}>
               Voltar
             </AlertDialogCancel>
             {/* Botão comum: a ação do AlertDialog fecharia antes do banco responder. */}
             <Button
-              className="h-11 md:h-9"
               disabled={gravar.isPending || !linhaAGravar}
               onClick={() => aGravar && linhaAGravar && gravar.mutate({ id: linhaAGravar.id, valor: aGravar.valor })}
             >
@@ -915,7 +908,7 @@ function EscolherProduto({
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={aberto} className="h-11 w-full justify-between md:h-9">
+        <Button variant="outline" role="combobox" aria-expanded={aberto} className="w-full justify-between">
           <span className="truncate">{produto ? produto.nome : `Escolher entre ${produtos.length} produtos ativos…`}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>

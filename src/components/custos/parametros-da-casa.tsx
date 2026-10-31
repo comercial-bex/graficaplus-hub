@@ -205,7 +205,7 @@ export function ParametrosDaCasa() {
                               inputMode="decimal"
                               value={rascunho}
                               onChange={(e) => setRascunho(e.target.value)}
-                              className="h-11 w-28 text-base md:h-9 md:text-sm"
+                              className="w-28 text-base md:text-sm"
                               aria-label={`Novo valor de ${p.descricao ?? p.codigo}`}
                             />
                             <span className="text-xs text-muted-foreground">{p.unidade}</span>

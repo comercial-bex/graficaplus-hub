@@ -78,7 +78,7 @@ function VisaoGeralPage() {
       description={`Como está o atendimento agora e nos últimos ${DIAS_DA_JANELA} dias.`}
       className="mb-2"
       actions={
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           <Button asChild variant="outline" size="sm">
             <Link to="/whatsapp-fila-humana" aria-label="Abrir a fila humana">
               <Hourglass className="h-4 w-4 sm:mr-1" />
@@ -144,7 +144,8 @@ function VisaoGeralPage() {
 
       <FaixaDaSaude saude={saude} />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      {/* Seis em linha só em tela larga: a 1440 px com o menu aberto o rótulo cortava ("Esperand… resposta"). */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         <KpiCard
           label="Esperando resposta"
           value={espera.esperando}

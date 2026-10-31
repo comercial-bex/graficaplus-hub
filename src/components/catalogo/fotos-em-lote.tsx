@@ -142,7 +142,6 @@ export function FotosEmLote({
         {enviando && <Progress value={progresso} />}
 
         <Button
-          className="h-11 md:h-9"
           disabled={enviando || conferidas.validas.length === 0}
           onClick={() => void enviar()}
         >

@@ -102,7 +102,6 @@ export function SenhaCard() {
                 autoComplete="current-password"
                 value={atual}
                 onChange={(e) => setAtual(e.target.value)}
-                className="h-11 md:h-9"
               />
             </div>
             <div className="space-y-1.5">
@@ -115,7 +114,6 @@ export function SenhaCard() {
                 value={nova}
                 onChange={(e) => setNova(e.target.value)}
                 placeholder={`Mínimo ${TAMANHO_MINIMO_DA_SENHA} caracteres`}
-                className="h-11 md:h-9"
               />
             </div>
             <div className="space-y-1.5">
@@ -126,7 +124,6 @@ export function SenhaCard() {
                 autoComplete="new-password"
                 value={confirmacao}
                 onChange={(e) => setConfirmacao(e.target.value)}
-                className="h-11 md:h-9"
               />
             </div>
           </div>
@@ -143,14 +140,14 @@ export function SenhaCard() {
             <Button
               type="button"
               variant="link"
-              className="h-11 px-0 md:h-9"
+              className="px-0"
               disabled={mandandoLink || !user?.email}
               onClick={mandarLink}
             >
               <Mail className="mr-1 h-4 w-4" />
               {mandandoLink ? "Mandando…" : "Esqueci a atual: mandar link para meu e-mail"}
             </Button>
-            <Button type="submit" className="h-11 md:h-9" disabled={trocando}>
+            <Button type="submit" disabled={trocando}>
               {trocando ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <KeyRound className="mr-1 h-4 w-4" />}
               Trocar senha
             </Button>

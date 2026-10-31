@@ -535,7 +535,7 @@ function KanbanPage() {
   const selectsDeFiltro = (largura: { cliente: string; resp: string; prio: string }) => (
     <>
       <Select value={fCliente} onValueChange={setFCliente}>
-        <SelectTrigger className={`h-11 md:h-9 ${largura.cliente}`}>
+        <SelectTrigger className={`${largura.cliente}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -548,7 +548,7 @@ function KanbanPage() {
         </SelectContent>
       </Select>
       <Select value={fResp} onValueChange={setFResp}>
-        <SelectTrigger className={`h-11 md:h-9 ${largura.resp}`}>
+        <SelectTrigger className={`${largura.resp}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -561,7 +561,7 @@ function KanbanPage() {
         </SelectContent>
       </Select>
       <Select value={fPrio} onValueChange={setFPrio}>
-        <SelectTrigger className={`h-11 md:h-9 ${largura.prio}`}>
+        <SelectTrigger className={`${largura.prio}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -614,7 +614,7 @@ function KanbanPage() {
               placeholder="Buscar título, nº ou cliente..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-11 pl-9 md:h-9"
+              className="pl-9"
             />
           </div>
           <div className="hidden flex-wrap items-center gap-2 md:flex">
@@ -645,12 +645,12 @@ function KanbanPage() {
             variant={soAtrasadas ? "destructive" : "outline"}
             size="sm"
             onClick={() => setSoAtrasadas(!soAtrasadas)}
-            className="h-11 flex-1 md:h-9 md:flex-none"
+            className="flex-1 md:flex-none"
           >
             <AlertTriangle className="mr-1 h-4 w-4" /> Atrasadas
           </Button>
           {ativosFiltros && (
-            <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-11 md:h-9">
+            <Button variant="ghost" size="sm" onClick={limparFiltros}>
               <X className="mr-1 h-4 w-4" /> Limpar
             </Button>
           )}

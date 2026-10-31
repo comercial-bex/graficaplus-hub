@@ -226,7 +226,7 @@ function OSPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               {/* Alvo de 44px no celular (equivale ao size="lg"); no desktop fica o padrão. */}
-              <Button className="h-11 px-6 md:h-9 md:px-4">
+              <Button className="px-6 md:px-4">
                 <Plus className="h-4 w-4 mr-2" /> Nova OS
               </Button>
             </DialogTrigger>

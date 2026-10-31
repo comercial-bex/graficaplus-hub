@@ -362,7 +362,7 @@ function ConflitosAgendaPage() {
         description="O que a trava do banco já impede, e o que ela não vê: reserva esquecida, produção estourando o tempo e prazo prometido que não cabe na máquina."
         ajuda={dicaTela("/conflitos-agenda")}
         actions={
-          <Button asChild variant="outline" className="h-11 md:h-9">
+          <Button asChild variant="outline">
             <Link to="/maquinas-agenda">Ver agenda</Link>
           </Button>
         }
@@ -422,10 +422,10 @@ function ConflitosAgendaPage() {
               tem o que conferir.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button asChild className="h-11 md:h-9">
+              <Button asChild>
                 <Link to="/maquinas-agenda">Reservar uma máquina</Link>
               </Button>
-              <Button asChild variant="outline" className="h-11 md:h-9">
+              <Button asChild variant="outline">
                 <Link to="/os">Abrir uma OS e agendar as peças</Link>
               </Button>
             </div>

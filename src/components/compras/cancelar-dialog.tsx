@@ -95,10 +95,10 @@ export function CancelarPedidoDialog({
           )}
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel className="h-11 md:h-9">Voltar</AlertDialogCancel>
+          <AlertDialogCancel>Voltar</AlertDialogCancel>
           {/* Botão comum, não AlertDialogAction: a ação fecharia o diálogo antes
               de o banco responder, e um erro sumiria junto. */}
-          <Button variant="destructive" className="h-11 md:h-9" disabled={cancelando} onClick={cancelar}>
+          <Button variant="destructive" disabled={cancelando} onClick={cancelar}>
             {cancelando ? "Cancelando…" : "Cancelar o pedido"}
           </Button>
         </AlertDialogFooter>

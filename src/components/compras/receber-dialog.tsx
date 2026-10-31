@@ -142,7 +142,6 @@ export function ReceberPedidoDialog({
                       step="0.01"
                       value={l?.quantidade ?? ""}
                       onChange={(e) => alterar(i.id, { quantidade: e.target.value })}
-                      className="h-11 md:h-9"
                     />
                   </div>
                   {podeVerCusto && (
@@ -161,7 +160,6 @@ export function ReceberPedidoDialog({
                         placeholder={String(Number(i.custo_unitario))}
                         value={l?.custo_unitario ?? ""}
                         onChange={(e) => alterar(i.id, { custo_unitario: e.target.value })}
-                        className="h-11 md:h-9"
                       />
                     </div>
                   )}
@@ -184,7 +182,6 @@ export function ReceberPedidoDialog({
             value={nota}
             onChange={(e) => setNota(e.target.value)}
             placeholder="Número da NF (opcional)"
-            className="h-11 md:h-9"
           />
           <p className="text-xs text-muted-foreground">
             Vai para o histórico de movimentações junto com o número do pedido.
@@ -200,10 +197,10 @@ export function ReceberPedidoDialog({
         )}
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="h-11 md:h-9" disabled={recebendo || pendentes.length === 0} onClick={receber}>
+          <Button disabled={recebendo || pendentes.length === 0} onClick={receber}>
             {recebendo ? "Recebendo…" : "Receber e dar entrada"}
           </Button>
         </DialogFooter>

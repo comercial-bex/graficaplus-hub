@@ -113,7 +113,7 @@ export function LinksDoCatalogo({ catalogoId }: { catalogoId: string }) {
                   <p className="text-xs text-muted-foreground">{textoDaVitrine(l, agora)}</p>
                 </div>
                 {situacao === "ativo" && (
-                  <Button variant="outline" className="h-11 md:h-9" onClick={() => setCancelando(l)}>
+                  <Button variant="outline" onClick={() => setCancelando(l)}>
                     <Ban className="mr-1 h-4 w-4" /> Cancelar
                   </Button>
                 )}
@@ -237,7 +237,6 @@ export function GerarLinkDialog({
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
-                className="h-11 md:h-9"
                 onClick={() => {
                   void navigator.clipboard.writeText(gerado.url).then(
                     () => toast.success("Endereço copiado."),
@@ -258,7 +257,7 @@ export function GerarLinkDialog({
                 size="default"
               />
               {whatsapp && (
-                <Button asChild variant="outline" className="h-11 md:h-9">
+                <Button asChild variant="outline">
                   <a href={whatsapp} target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="mr-1 h-4 w-4" /> Mandar do meu celular
                   </a>
@@ -317,16 +316,15 @@ export function GerarLinkDialog({
 
         <DialogFooter>
           {gerado ? (
-            <Button className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+            <Button onClick={() => onOpenChange(false)}>
               Pronto
             </Button>
           ) : (
             <>
-              <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
               <Button
-                className="h-11 md:h-9"
                 disabled={gerando || !titulo.trim() || itens.length === 0}
                 onClick={() => void gerar()}
               >

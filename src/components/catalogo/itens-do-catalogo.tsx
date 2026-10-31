@@ -234,10 +234,10 @@ export function ItensDoCatalogo({
           )}
         >
           <p className="flex-1 text-sm font-medium">{escolhidos.size} itens escolhidos</p>
-          <Button variant="ghost" className="h-11 md:h-9" onClick={() => setEscolhidos(new Set())}>
+          <Button variant="ghost" onClick={() => setEscolhidos(new Set())}>
             Limpar
           </Button>
-          <Button className="h-11 md:h-9" onClick={() => setGerandoLink(true)}>
+          <Button onClick={() => setGerandoLink(true)}>
             <Link2 className="mr-1 h-4 w-4" /> Gerar link
           </Button>
         </div>

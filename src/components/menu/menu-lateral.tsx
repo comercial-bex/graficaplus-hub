@@ -283,7 +283,7 @@ export function MenuLateral({
 
   return (
     <>
-      <Sidebar collapsible="icon" larguraNoCelular={LARGURA_DO_MENU}>
+      <Sidebar collapsible="icon" variant="floating" larguraNoCelular={LARGURA_DO_MENU}>
         <div className="flex h-full w-full">
           {/* O trilho: um ícone por módulo, na cor da marca. */}
           <nav
@@ -360,7 +360,7 @@ export function MenuLateral({
           {/* O painel do módulo ativo. Recolhido no computador, some. */}
           <div
             data-painel={ativo}
-            className="flex min-w-0 flex-1 flex-col bg-sidebar group-data-[collapsible=icon]:hidden"
+            className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden"
           >
             <div className="relative flex flex-col items-center gap-2.5 border-b border-sidebar-border px-4 pb-4 pt-4 [@media(max-height:800px)]:gap-1 [@media(max-height:800px)]:pb-2 [@media(max-height:800px)]:pt-2">
               {/* O X do Sheet fica escondido pelo componente base; sem este botão a única

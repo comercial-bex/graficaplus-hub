@@ -99,7 +99,7 @@ function FornecedoresPage() {
         description="De quem a gráfica compra e o que foi comprado em cada um: o documento do fornecedor, quem pagou e o preço pago contra o custo do cadastro."
         actions={
           podeEditar ? (
-            <Button className="h-11 md:h-9" onClick={() => setNovoAberto(true)}>
+            <Button onClick={() => setNovoAberto(true)}>
               <Plus className="mr-1 h-4 w-4" /> Novo fornecedor
             </Button>
           ) : undefined
@@ -117,7 +117,6 @@ function FornecedoresPage() {
             <p className="text-muted-foreground">{mensagemErro(erro)}</p>
             <Button
               variant="outline"
-              className="h-11 md:h-9"
               onClick={() => {
                 void fornecedores.refetch();
                 void compras.refetch();
@@ -182,12 +181,12 @@ function FornecedoresPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {podeRegistrar && (
-                        <Button className="h-11 md:h-9" onClick={() => setRegistrando(true)}>
+                        <Button onClick={() => setRegistrando(true)}>
                           <ReceiptText className="mr-1 h-4 w-4" /> Registrar compra
                         </Button>
                       )}
                       {podeEditar && (
-                        <Button variant="outline" className="h-11 md:h-9" onClick={() => setEditando(selecionado)}>
+                        <Button variant="outline" onClick={() => setEditando(selecionado)}>
                           <Pencil className="mr-1 h-4 w-4" /> Editar
                         </Button>
                       )}

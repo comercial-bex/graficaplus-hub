@@ -307,11 +307,10 @@ export function AdicionarAoOrcamentoDialog({
         ) : null}
 
         <DialogFooter>
-          <Button variant="outline" className="h-11 md:h-9" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button
-            className="h-11 md:h-9"
             disabled={enviando || !opcao || !conferencia?.ok || !destinoOk}
             onClick={() => void adicionar()}
           >

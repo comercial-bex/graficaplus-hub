@@ -180,7 +180,7 @@ function ClienteDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {podeConversar && cliente.ativo && (
-            <Button variant="outline" onClick={conversarNoWhatsApp} disabled={abrindoConversa} className="h-11 md:h-9">
+            <Button variant="outline" onClick={conversarNoWhatsApp} disabled={abrindoConversa}>
               <MessageCircle className="h-4 w-4 mr-1" />
               {abrindoConversa ? "Abrindo…" : "Conversar no WhatsApp"}
             </Button>

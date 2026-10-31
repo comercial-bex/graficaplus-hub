@@ -388,7 +388,7 @@ export function FichaDaOs({
 
             <Bloco titulo="Mover para">
               <Select value={os.status} onValueChange={escolherEtapa}>
-                <SelectTrigger className="h-10">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -613,7 +613,7 @@ export function CalculadoraCusto({
                 <div key={l.key} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-4">
                     <Select value={l.material_id ?? ""} onValueChange={(v) => escolherMaterial(l.key, v)}>
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger>
                         <SelectValue placeholder={l.descricao || "Escolher material"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -629,7 +629,7 @@ export function CalculadoraCusto({
                   <div className="col-span-2">
                     <Label className="text-xs">Qtd ({l.unidade})</Label>
                     <Input
-                      className="h-9 font-mono"
+                      className="font-mono"
                       type="number"
                       step="0.0001"
                       value={l.quantidade}
@@ -643,7 +643,7 @@ export function CalculadoraCusto({
                   <div className="col-span-2">
                     <Label className="text-xs">Custo un.</Label>
                     <Input
-                      className="h-9 font-mono"
+                      className="font-mono"
                       type="number"
                       step="0.01"
                       value={l.custoUnitario}
@@ -657,7 +657,7 @@ export function CalculadoraCusto({
                   <div className="col-span-2">
                     <Label className="text-xs">Perda %</Label>
                     <Input
-                      className="h-9 font-mono"
+                      className="font-mono"
                       type="number"
                       step="1"
                       min="0"
@@ -714,7 +714,7 @@ export function CalculadoraCusto({
               <div key={l.key} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-4">
                   <Select value={l.maquina_id ?? ""} onValueChange={(v) => escolherMaquina(l.key, v)}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger>
                       <SelectValue placeholder={l.descricao || "Escolher máquina"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -744,7 +744,7 @@ export function CalculadoraCusto({
                 <div className="col-span-2">
                   <Label className="text-xs">Custo/h</Label>
                   <Input
-                    className="h-9 font-mono"
+                    className="font-mono"
                     type="number"
                     step="0.01"
                     value={l.custoHora}
@@ -758,7 +758,7 @@ export function CalculadoraCusto({
                 <div className="col-span-2">
                   <Label className="text-xs">Setup (min)</Label>
                   <Input
-                    className="h-9 font-mono"
+                    className="font-mono"
                     type="number"
                     step="1"
                     value={l.setupMin}
@@ -788,7 +788,7 @@ export function CalculadoraCusto({
                     <div className="col-span-3">
                       <Label className="text-xs">Material</Label>
                       <Select value={l.material} onValueChange={(v) => atualizarLinha(l.key, { material: v })}>
-                        <SelectTrigger className="h-9"><SelectValue placeholder="Material" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Material" /></SelectTrigger>
                         <SelectContent>
                           {/* Vetado aparece na lista, marcado. Esconder faria a
                               vendedora procurar o material e concluir que
@@ -808,18 +808,18 @@ export function CalculadoraCusto({
                     </div>
                     <div className="col-span-2">
                       <Label className="text-xs">Espessura (mm)</Label>
-                      <Input className="h-9 font-mono" type="number" step="0.5" value={l.espessuraMm}
+                      <Input className="font-mono" type="number" step="0.5" value={l.espessuraMm}
                         onChange={(e) => atualizarLinha(l.key, { espessuraMm: e.target.value })} />
                     </div>
                     <div className="col-span-3">
                       <Label className="text-xs">Traçado de corte (m)</Label>
-                      <Input className="h-9 font-mono" type="number" step="0.1" value={l.comprimentoM}
+                      <Input className="font-mono" type="number" step="0.1" value={l.comprimentoM}
                         placeholder="perímetro total"
                         onChange={(e) => atualizarLinha(l.key, { comprimentoM: e.target.value })} />
                     </div>
                     <div className="col-span-3">
                       <Label className="text-xs">Área gravada (cm²)</Label>
-                      <Input className="h-9 font-mono" type="number" step="1" value={l.areaGravacaoCm2}
+                      <Input className="font-mono" type="number" step="1" value={l.areaGravacaoCm2}
                         placeholder="0 se só corte"
                         onChange={(e) => atualizarLinha(l.key, { areaGravacaoCm2: e.target.value })} />
                     </div>
@@ -829,7 +829,7 @@ export function CalculadoraCusto({
                   <div className="col-span-5">
                     <Label className="text-xs">Modo de qualidade</Label>
                     <Select value={l.modoId ?? ""} onValueChange={(v) => atualizarLinha(l.key, { modoId: v })}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Escolher modo" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Escolher modo" /></SelectTrigger>
                       <SelectContent>
                         {modosDe(l.maquina_id).map((mo) => (
                           <SelectItem key={mo.id} value={mo.id}>
@@ -845,13 +845,13 @@ export function CalculadoraCusto({
                   <>
                     <div className="col-span-4">
                       <Label className="text-xs">Traçado de corte (m)</Label>
-                      <Input className="h-9 font-mono" type="number" step="0.1" value={l.comprimentoM}
+                      <Input className="font-mono" type="number" step="0.1" value={l.comprimentoM}
                         onChange={(e) => atualizarLinha(l.key, { comprimentoM: e.target.value })} />
                     </div>
                     <div className="col-span-4">
                       <Label className="text-xs">Decapagem</Label>
                       <Select value={l.complexidade} onValueChange={(v) => atualizarLinha(l.key, { complexidade: v as ComplexidadeDecapagem })}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="simples">Simples — letras grandes (3 min/m²)</SelectItem>
                           <SelectItem value="media">Média — logos e textos (8 min/m²)</SelectItem>
@@ -865,12 +865,12 @@ export function CalculadoraCusto({
                   <>
                     <div className="col-span-2">
                       <Label className="text-xs">Peças</Label>
-                      <Input className="h-9 font-mono" type="number" step="1" min="0" value={l.pecas}
+                      <Input className="font-mono" type="number" step="1" min="0" value={l.pecas}
                         onChange={(e) => atualizarLinha(l.key, { pecas: e.target.value })} />
                     </div>
                     <div className="col-span-3">
                       <Label className="text-xs">Área marcada por peça (cm²)</Label>
-                      <Input className="h-9 font-mono" type="number" step="0.5" value={l.areaPecaCm2}
+                      <Input className="font-mono" type="number" step="0.5" value={l.areaPecaCm2}
                         onChange={(e) => atualizarLinha(l.key, { areaPecaCm2: e.target.value })} />
                     </div>
                     <div className="col-span-3 flex items-end pb-2">
@@ -934,7 +934,7 @@ export function CalculadoraCusto({
               <div key={l.key} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-4">
                   <Select value={l.funcao_id ?? ""} onValueChange={(v) => escolherFuncao(l.key, v)}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger>
                       <SelectValue placeholder={l.descricao || "Escolher função"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -949,7 +949,7 @@ export function CalculadoraCusto({
                 <div className="col-span-2">
                   <Label className="text-xs">Horas</Label>
                   <Input
-                    className="h-9 font-mono"
+                    className="font-mono"
                     type="number"
                     step="0.01"
                     value={l.horas}
@@ -969,7 +969,7 @@ export function CalculadoraCusto({
                 <div className="col-span-2">
                   <Label className="text-xs">Custo/h</Label>
                   <Input
-                    className="h-9 font-mono"
+                    className="font-mono"
                     type="number"
                     step="0.01"
                     value={l.custoHora}
@@ -983,7 +983,7 @@ export function CalculadoraCusto({
                 <div className="col-span-2">
                   <Label className="text-xs">Encargos %</Label>
                   <Input
-                    className="h-9 font-mono"
+                    className="font-mono"
                     type="number"
                     step="1"
                     value={l.encargosPct}
@@ -1032,7 +1032,7 @@ export function CalculadoraCusto({
             <div className="col-span-3">
               <Label className="text-xs">Outros custos (frete, terceiros)</Label>
               <Input
-                className="h-9 font-mono"
+                className="font-mono"
                 type="number"
                 step="0.01"
                 value={outrosCustos}
@@ -1042,7 +1042,7 @@ export function CalculadoraCusto({
             <div className="col-span-3">
               <Label className="text-xs">Markup padrão %</Label>
               <Input
-                className="h-9 font-mono"
+                className="font-mono"
                 type="number"
                 step="1"
                 value={markupPadrao}
@@ -1052,7 +1052,7 @@ export function CalculadoraCusto({
             <div className="col-span-3">
               <Label className="text-xs">Taxas sobre a venda % (imposto, cartão)</Label>
               <Input
-                className="h-9 font-mono"
+                className="font-mono"
                 type="number"
                 step="0.1"
                 value={taxasVenda}
