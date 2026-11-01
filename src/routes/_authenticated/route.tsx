@@ -122,15 +122,17 @@ function AuthenticatedLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-2 md:gap-3 border-b border-border bg-card/90 backdrop-blur-xl px-2 md:px-4 sticky top-0 z-30 relative shadow-sm">
+          {/* Topo azul-marinho (#121f3b), como o do Holdprint que o dono aprovou
+              em 31/10/2026; letra clara com contraste calculado em tests/casca-topo-e-cabecalho. */}
+          <header className="h-14 flex items-center gap-2 md:gap-3 bg-topbar text-topbar-foreground px-2 md:px-4 sticky top-0 z-30 relative shadow-sm">
             {/* No celular o gatilho do menu é o alvo principal: 44px */}
-            <SidebarTrigger className="h-11 w-11 md:h-7 md:w-7" />
+            <SidebarTrigger className="h-11 w-11 text-topbar-foreground hover:bg-white/10 hover:text-white md:h-9 md:w-9" />
             {!noInicio && (
               <button
                 type="button"
                 onClick={() => router.history.back()}
                 aria-label="Voltar"
-                className="md:hidden inline-flex h-11 items-center gap-0.5 rounded-md pl-1 pr-2 text-sm text-muted-foreground hover:bg-muted"
+                className="md:hidden inline-flex h-11 items-center gap-0.5 rounded-md pl-1 pr-2 text-sm text-topbar-foreground hover:bg-white/10"
               >
                 <ChevronLeft className="h-5 w-5" /> Voltar
               </button>
@@ -141,13 +143,13 @@ function AuthenticatedLayout() {
             <div className="hidden md:flex min-w-0 items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--bex-lime)] animate-pulse" />
               <div className="min-w-0">
-                <p className="truncate text-xs font-bold text-foreground">{nomeDaTela(pathname)}</p>
-                <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">BEX Print OS · Online</p>
+                <p className="truncate text-sm font-bold text-white">{nomeDaTela(pathname)}</p>
+                <p className="font-mono text-xs uppercase tracking-widest text-topbar-foreground/70">BEX Print OS · Online</p>
               </div>
             </div>
             <div className="hidden md:block flex-1" />
-            <ThemeToggle />
-            <div className="hidden sm:block font-mono text-xs uppercase tracking-wider text-muted-foreground truncate max-w-[200px]">
+            <ThemeToggle noTopo />
+            <div className="hidden sm:block font-mono text-xs uppercase tracking-wider text-topbar-foreground/80 truncate max-w-[200px]">
               {user.email}
             </div>
             {/* CMYK footer line */}
@@ -156,8 +158,8 @@ function AuthenticatedLayout() {
               style={{ background: "var(--gradient-cmyk)" }}
             />
           </header>
-          {/* Celular: margem menor e sem o fundo de pontos (contraste em tela barata ao sol) */}
-          <main className="flex-1 p-4 md:p-7 lg:p-8 overflow-auto bg-background md:bex-grid">
+          {/* Fundo liso: o fundo de pontos poluía a tela (31/10/2026, pedido do dono). */}
+          <main className="flex-1 p-4 md:p-7 lg:p-8 overflow-auto bg-background">
             {canAccessRoute ? (
               <>
                 <AlertaWhatsapp />
