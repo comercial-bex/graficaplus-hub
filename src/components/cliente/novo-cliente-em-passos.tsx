@@ -23,6 +23,7 @@ import {
 import { chaveWhatsApp, formatarCEP, recebeWhatsApp } from "@/domain/documentos";
 import { mensagemErro } from "@/lib/erros";
 import { registrarUso } from "@/lib/uso-de-telas";
+import { CampoDeOrigem } from "@/components/cliente/campos-da-ficha";
 
 /**
  * Novo cliente em passos: tipo, documento (CNPJ preenche o resto), contato, endereço, responsável
@@ -254,6 +255,10 @@ export function NovoClienteEmPassos({
             {r.tipo === "pj" &&
               campo("nc-razao", "Razão social", "razao_social", { maxLength: 200 })}
           </div>
+          <CampoDeOrigem
+            valor={r.origem}
+            onChange={(origem) => setR((atual) => ({ ...atual, origem }))}
+          />
           <div className="space-y-1.5">
             <Label htmlFor="nc-obs">Observações</Label>
             <Textarea
@@ -272,6 +277,7 @@ export function NovoClienteEmPassos({
               rotulo="Cidade"
               valor={[r.cidade, r.estado].filter(Boolean).join(" / ") || "não informada"}
             />
+            <Linha rotulo="Origem" valor={r.origem.trim() || "não informada"} />
             <Linha
               rotulo="Responsável"
               valor={

@@ -12,8 +12,10 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 | 7a | Total em reais no alto de cada coluna do quadro de produção | Mesclada (#312) |
 | 4 | Dinheiro a receber e a pagar por janela no painel inicial (função no banco, já aplicada) | Mesclada (#313) |
 | Funil | Lead do WhatsApp deixa de ser temporário pelos fatos (o funil mostrava zero) | Mesclada (#315), migração já aplicada |
-| 2b | Menu em coluna única com grupos e favoritos | Falta |
-| 3 | Padrão de lista financeira (chips, período com atalhos, Ações em lote, rodapé de totais) | Parcial: Caixa e contas a pagar mesclada (#316); falta Contas a receber e o menu Ações em lote |
+| Cadastro | Ficha do cliente com inscrições, outros contatos e origem; documento validado também na edição | Mesclada (#319), migração já aplicada |
+| Cadastro 2 | Origem no cadastro guiado Novo cliente | Em PR |
+| 2b | Menu em coluna única com grupos e favoritos | Falta; ver a proposta mais segura em Onda 2b |
+| 3 | Padrão de lista financeira (chips, período com atalhos, Ações em lote, rodapé de totais) | Quase pronta: Contas a pagar (#316) e Contas a receber (#320, com filtro de origem do cliente) mescladas; falta Ações em lote, total dos selecionados e as listas de compras, materiais e clientes |
 | 6 | Filtros do WhatsApp ao lado da conversa | Quase pronta: a caixa já tem abas de status, filtro de setor e busca; falta só filtro por responsável |
 | 7b, 7c | Tela do operador por máquina e linha do tempo | Falta |
 | 8 | Regras do dinheiro: plano de contas, centro de custo, compra que gera conta a pagar, liquidar completo | Falta |
@@ -22,11 +24,12 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 | IA | Assistente que responde com os dados da gráfica | Plano abaixo |
 | PDV | Venda de balcão | Plano abaixo, depende de prints |
 
-**Publicação:** as Ondas 1, 2, 4, 5 e 7a foram publicadas em 31/10/2026 com o OK do dono. O site responde em bexprint.com.br e bexprint.lovable.app redireciona para lá. Provado no bundle: `--topbar` e `#0ebfa6` no CSS, `vencimentos_por_janela` no chunk do painel e "Quadro de orçamentos" no chunk de orçamentos. A Onda 3 em Caixa (#316) está na `main` e ainda não foi publicada; a correção do funil (#315) é só banco e já vale. Ordem de sempre: migração aplicada antes do front, esperar o Lovable sincronizar o commit da `main` (`get_project.latest_commit_sha`), publicar, provar no bundle com `curl -L` e avisar o dono para recarregar com Ctrl+Shift+R, por causa do service worker.
+**Publicação:** as Ondas 1, 2, 4, 5 e 7a foram publicadas em 31/10/2026 com o OK do dono. O site responde em bexprint.com.br e bexprint.lovable.app redireciona para lá. Provado no bundle: `--topbar` e `#0ebfa6` no CSS, `vencimentos_por_janela` no chunk do painel e "Quadro de orçamentos" no chunk de orçamentos. As ondas posteriores (Onda 3 em Contas a pagar #316 e Contas a receber #320, cadastro de cliente #319) estão na `main`; ver no fim deste parágrafo se já foram publicadas. a correção do funil (#315) é só banco e já vale. Ordem de sempre: migração aplicada antes do front, esperar o Lovable sincronizar o commit da `main` (`get_project.latest_commit_sha`), publicar, provar no bundle com `curl -L` e avisar o dono para recarregar com Ctrl+Shift+R, por causa do service worker.
 
 ## O que o dono precisa decidir
 
-1. **Menu:** coluna única como a do Holdprint (recomendado) ou manter o trilho de ícones. Define a Onda 2b.
+1. **Menu:** o dono elogiou o menu do Holdprint, que não é poluído e expande por grupos. Hoje o trilho de ícones mostra o nome só ao passar o mouse (no celular mostra o nome embaixo do ícone). Proposta mais segura: manter o trilho, mostrar o nome sempre e tornar os subgrupos do painel recolhíveis. Alternativa maior: coluna única como a do Holdprint. Define a Onda 2b.
+   - **País com bandeira (cliente estrangeiro):** o Holdprint esconde CPF e CNPJ quando o país não é o Brasil. Aqui o banco exige WhatsApp de celular brasileiro (`aa_cliente_precisa_de_whatsapp`), então cliente de fora não cadastra. Abrir isso exige mudar a regra do banco e os caminhos de envio do WhatsApp. Perguntar ao dono se há cliente estrangeiro (Guiana Francesa, por exemplo).
 2. **Funil comercial vazio: resolvido em 31/10 (#315).** A marca de temporário nunca saía. Agora sai quando o lead ganha cliente, entra em atendimento, vira orçamento ou ganho. Medido: 16 leads qualificados e 11 ainda temporários, sendo 3 sem resposta e 8 descartados sem atendimento. Se o dono quiser contar também os descartados, basta mudar o filtro de `funil_comercial`.
 3. **Hora por centro (Onda 9):** horas produtivas por centro (hoje 160 por máquina e 176 por pessoa; o Holdprint vem com 147 por pessoa e 110 a 588 por centro), encargo (hoje 32,19% do Simples; o Holdprint vem com 45%) e quem entra no repasse.
 4. **Processos por JOB:** o Holdprint trabalha por processo de cada JOB (Revisão Comercial, Aprovação Financeira, Programação, Arte Final, Impressão, Produção, Expedição, Instalação, Entrega). Nós não temos roteiro de várias etapas por produto. Criar esse modelo só se o dono quiser; a Onda 7b e 7c funcionam por máquina sem ele.
@@ -42,7 +45,8 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 
 ### Onda 3: padrão de lista financeira
 - **Feito (#316):** `src/domain/financeiro/lista-de-contas.ts` guarda a conta (situação, períodos, busca, totais em centavos) e `src/components/financeiro/lista-financeira.tsx` as peças (chips, busca, aviso de recorte, rodapé). Já aplicados na aba Contas a pagar da tela de Caixa.
-- **Falta:** aplicar em `a-receber.tsx`, que são cartões por conta com parcelas (decidir se o recorte é por conta ou por parcela), depois `compras.tsx`, `materiais.tsx` e `clientes.index.tsx`; menu Ações em lote e total dos selecionados.
+- **Feito (#320):** Contas a receber com busca, chips, atalhos de período (a conta passa se alguma parcela vence no período), filtro por cliente, filtro por origem do cliente e rodapé de totais. `contas_a_receber` passou a devolver `cliente_origem`.
+- **Falta:** `compras.tsx`, `materiais.tsx`; menu Ações em lote e total dos selecionados; "Visões" (filtros salvos) e "Colunas" como no Holdprint.
 - **Não copiar do Holdprint:** lista que começa no mês atual e esconde o pago; o lançamento de novembro parece "não salvo". Mostrar "mostrando outubro, 2 em novembro".
 - **Conferir:** soma dos selecionados e atalhos de período com a data de hoje passada de fora (regra de teste com "hoje").
 
@@ -72,6 +76,31 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 
 ### Onda 10: agenda única
 - Calendário com vencimentos a pagar e a receber (`vencimentos_por_janela` já existe), entregas e reservas de máquina, cada um ligável por calendário.
+
+## Cadastro de cliente: o que o Holdprint tem e o que ainda falta aqui
+
+Comparado em 01/11/2026 na conta de teste do Holdprint (formulário rápido e ficha com abas).
+
+| Holdprint | Bex Print hoje |
+|---|---|
+| Formulário rápido em uma tela: país, tipo de pessoa, CNPJ com lupa, nome, telefone e e-mail | Cadastro guiado em 6 passos mais o cadastro completo; a busca do CNPJ na Receita e a validação de CPF e CNPJ já existiam |
+| País com bandeira; fora do Brasil some o CPF e o CNPJ | Falta: o banco exige WhatsApp de celular brasileiro (decisão do dono) |
+| Documentos: inscrição municipal, possui inscrição estadual, inscrição estadual | Feito (#319), só para pessoa jurídica |
+| Canais de contato: telefones 2 e 3, e-mail da nota, e-mail do boleto, site | Feito (#319) |
+| Origem do cliente, com Cadastrar para criar origem nova | Campo feito (#319 e #321) com a lista do Leads; falta criar origem nova pela tela |
+| Classificação ou grupo de cliente | Falta: `tipo_cliente` é sempre `pj` e não serve (30 de 31) |
+| Endereços múltiplos (principal, entrega, cobrança) | Falta: hoje é um endereço só, em texto |
+| Contatos (pessoas) | A aba Responsáveis e a tabela `cliente_contatos` existem, com 0 registros: ninguém usa |
+| Matriz e filiais | Falta |
+| Forma e condições de venda por cliente (opção de pagamento padrão) | Falta; a condição é escolhida em cada orçamento |
+| Carteira de vendedores | Há um vendedor por cliente (`vendedor_id`) |
+| Histórico com notas do cliente | Falta |
+| Arquivos do cliente (até 15 MB) | Falta |
+| CEP preenche o endereço | Falta para quem não é pessoa jurídica (o CNPJ já traz o endereço) |
+
+**Medido no banco em 01/11/2026 (sem mostrar nenhum número de documento):** dos 31 clientes, 14 têm documento e todos passam na conferência dos dígitos (7 CPF e 7 CNPJ); 17 não têm documento (55%). Três clientes estão como pessoa jurídica com CPF: Aline, Black produções e Connecta IA, provavelmente MEI ou cadastro com o CPF do dono. Perguntar ao dono antes de trocar o tipo.
+
+**A edição aceitava qualquer texto no documento** até o #319; agora usa o mesmo campo do cadastro, com máscara, validação e busca na Receita (que só preenche o que está vazio).
 
 ## Plano da IA (assistente com os dados da gráfica)
 
