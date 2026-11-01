@@ -1387,8 +1387,8 @@ function CelulaResultado({ rotulo, campo, nota }: { rotulo: string; campo: Campo
         {campo.texto}
       </div>
       {/* O motivo da ausência à vista: no title, só aparecia com o mouse parado. */}
-      {ausente && campo.motivo && <div className="mt-0.5 text-[11px] text-muted-foreground">{campo.motivo}</div>}
-      {nota && <div className="mt-0.5 text-[11px] text-muted-foreground">{nota}</div>}
+      {ausente && campo.motivo && <div className="mt-0.5 text-xs text-muted-foreground">{campo.motivo}</div>}
+      {nota && <div className="mt-0.5 text-xs text-muted-foreground">{nota}</div>}
     </div>
   );
 }

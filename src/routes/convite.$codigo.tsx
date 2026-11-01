@@ -196,7 +196,7 @@ function ConvitePage() {
   return (
     <Moldura>
       <div className="mb-6 space-y-1">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--bex-cyan)]">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-[color:var(--bex-cyan)]">
           Convite de parceiro
         </p>
         <h1 className="text-xl font-semibold text-foreground">

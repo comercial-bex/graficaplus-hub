@@ -31,7 +31,7 @@ export function SectionHeader({
     >
       <div className="min-w-0 flex-1 basis-64">
         {breadcrumb && (
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             {breadcrumb}
           </p>
         )}

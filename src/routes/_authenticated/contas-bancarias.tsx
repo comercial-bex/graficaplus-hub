@@ -355,7 +355,7 @@ function ContasBancariasPage() {
                     <Landmark className="h-4 w-4 text-[color:var(--bex-cyan)]" />
                     <span className="truncate font-semibold">{c.nome}</span>
                   </div>
-                  <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <div className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">
                     {[c.banco, c.agencia && `Ag. ${c.agencia}`, c.conta && `C/C ${c.conta}`]
                       .filter(Boolean)
                       .join(" · ") || "sem dados bancários"}
@@ -369,7 +369,7 @@ function ContasBancariasPage() {
               <div className="mt-4 text-2xl font-bold tabular-nums">
                 {brl(Number(c.saldo_atual ?? 0))}
               </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">
+              <div className="mt-1 text-xs text-muted-foreground">
                 {c.lancamentos} lançamento(s)
                 {c.ultimo_lancamento ? ` · último em ${dataBR(c.ultimo_lancamento)}` : ""}
               </div>
@@ -578,7 +578,7 @@ function ContasBancariasPage() {
                         <TableCell className="max-w-[420px] truncate">
                           {l.descricao}
                           {repetidasNoArquivo.has(i) && (
-                            <span className="ml-2 text-[10px] uppercase text-[color:var(--bex-amber)]">
+                            <span className="ml-2 text-xs uppercase text-[color:var(--bex-amber)]">
                               repetido no arquivo
                             </span>
                           )}

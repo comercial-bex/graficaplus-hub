@@ -52,7 +52,7 @@ export function BarraDePassosDoOrcamento({
                 <span className="flex items-center gap-1.5">
                   <StepperIndicator
                     className={cn(
-                      "size-5 text-[11px]",
+                      "size-6 text-xs",
                       e.situacao === "vazio" &&
                         "border bg-transparent text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-muted-foreground data-[state=completed]:bg-transparent data-[state=completed]:text-muted-foreground",
                       e.situacao === "preenchido" &&
@@ -75,7 +75,7 @@ export function BarraDePassosDoOrcamento({
                 </span>
                 <StepperDescription
                   className={cn(
-                    "hidden w-full truncate text-[11px] md:block",
+                    "hidden w-full truncate text-xs md:block",
                     e.situacao === "problema" ? "text-destructive" : "text-muted-foreground",
                   )}
                 >

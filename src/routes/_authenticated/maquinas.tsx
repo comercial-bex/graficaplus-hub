@@ -367,7 +367,7 @@ function MaquinasPage() {
                         ) : (
                           <Factory className="h-5 w-5 text-[color:var(--bex-cyan)]" />
                         )}
-                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-background/80 text-[10px] font-medium">
+                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-background/80 text-xs font-medium">
                           {enviandoFoto === m.id ? "..." : "trocar"}
                         </span>
                         <input
@@ -405,26 +405,26 @@ function MaquinasPage() {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {canSeeFinancials && (
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                         Custo/hora
                       </div>
                       <div className="font-bold">{brl(Number(m.custo_hora ?? 0))}</div>
                     </div>
                   )}
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                       Potência
                     </div>
                     <div className="font-bold">{Number(m.potencia_kw ?? 0)} kW</div>
                   </div>
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                       Setup
                     </div>
                     <div className="font-bold">{Number(m.setup_min ?? 0)} min</div>
                   </div>
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                       Velocidade
                     </div>
                     <div className="font-bold">{Number(m.velocidade_m2_h ?? 0)} m²/h</div>
@@ -499,7 +499,7 @@ function MaquinasPage() {
                         ))}
                     </dl>
                     {(m.especificacoes as Record<string, unknown>).fonte_ficha ? (
-                      <p className="mt-2 text-[10px] text-muted-foreground">
+                      <p className="mt-2 text-xs text-muted-foreground">
                         Fonte: {String((m.especificacoes as Record<string, unknown>).fonte_ficha)}
                       </p>
                     ) : null}

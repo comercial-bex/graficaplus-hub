@@ -116,7 +116,7 @@ export function AceiteDaArteRapido({
           Cancelar
         </Button>
       </div>
-      <p className="text-[11px] text-muted-foreground">Fica registrado quem, quando e por onde.</p>
+      <p className="text-xs text-muted-foreground">Fica registrado quem, quando e por onde.</p>
     </div>
   );
 }

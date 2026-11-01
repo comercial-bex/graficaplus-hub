@@ -140,7 +140,7 @@ function Sobre({ execucao: e }: { execucao: Execucao }) {
   const texto = e.os_numero ? `OS ${e.os_numero}` : "OS";
   if (e.entidade === "ordens_servico" && e.entidade_id) {
     return (
-      <Link to="/os/$id" params={{ id: e.entidade_id }} className="text-primary hover:underline">
+      <Link to="/os/$id" params={{ id: e.entidade_id }} className="text-link hover:underline">
         {texto}
       </Link>
     );

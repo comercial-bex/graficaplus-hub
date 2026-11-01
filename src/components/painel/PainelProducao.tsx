@@ -296,7 +296,7 @@ function LinhaOS({
             {os.prioridade === 1 && (
               <Badge
                 variant="outline"
-                className="border-[color:var(--bex-magenta)]/50 text-[10px] text-[color:var(--bex-magenta)]"
+                className="border-[color:var(--bex-magenta)]/50 text-xs text-[color:var(--bex-magenta)]"
               >
                 urgente
               </Badge>
@@ -377,13 +377,13 @@ function LinhaOS({
           </Button>
           {/* O motivo em texto visível: no celular não existe hover para ler um title. */}
           {travada && (
-            <p className="flex items-start gap-1 text-[11px] leading-snug text-[color:var(--bex-amber)]">
+            <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--bex-amber)]">
               <Lock className="mt-0.5 h-3 w-3 shrink-0" />
               <span>{bloqueios.map((b) => b.titulo).join(" · ")}</span>
             </p>
           )}
           {!travada && passos?.impedimento && (
-            <p className="flex items-start gap-1 text-[11px] leading-snug text-[color:var(--bex-amber)]">
+            <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--bex-amber)]">
               <Lock className="mt-0.5 h-3 w-3 shrink-0" />
               <span>{passos.impedimento}</span>
             </p>
@@ -461,7 +461,7 @@ function KpiCompacto({
   return (
     <div className="rounded-lg border border-border bg-card px-2 py-2 text-center">
       <p className={cn("text-2xl font-bold tabular-nums leading-none", cor)}>{value}</p>
-      <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
   );
 }

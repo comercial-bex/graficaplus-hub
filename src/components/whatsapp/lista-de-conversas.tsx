@@ -170,7 +170,7 @@ export function ListaDeConversas({
               aria-pressed={setor === v}
               onClick={() => onSetor(v)}
               className={cn(
-                "shrink-0 rounded-md border px-2 py-0.5 text-[11px] transition-colors",
+                "shrink-0 rounded-md border px-2 py-0.5 text-xs transition-colors",
                 setor === v
                   ? "border-foreground/30 bg-foreground/10 font-semibold text-foreground"
                   : "border-border text-muted-foreground hover:bg-muted",
@@ -189,7 +189,7 @@ export function ListaDeConversas({
                 aria-pressed={ativo}
                 onClick={() => onSetor(s.valor)}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors",
+                  "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-xs transition-colors",
                   ativo ? cn(s.cor, "font-semibold") : "border-border text-muted-foreground hover:bg-muted",
                 )}
               >
@@ -250,7 +250,7 @@ export function ListaDeConversas({
               )}
             >
               {a.rotulo}
-              {contadores && <span className="ml-1 font-mono text-[10px]">{contadores[a.valor]}</span>}
+              {contadores && <span className="ml-1 font-mono text-xs">{contadores[a.valor]}</span>}
             </button>
           ))}
         </div>
@@ -277,7 +277,7 @@ export function ListaDeConversas({
         ) : (
           agruparPorDia(conversas).map(({ grupo, itens }) => (
             <div key={grupo}>
-              <div className="sticky top-0 z-10 bg-card/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur">
+              <div className="sticky top-0 z-10 bg-card/95 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur">
                 {grupo}
               </div>
               {itens.map((c) => {
@@ -312,7 +312,7 @@ export function ListaDeConversas({
                           <span className={cn("truncate text-sm", naoLidas > 0 ? "font-bold" : "font-medium")}>
                             {nome}
                           </span>
-                          <span className="flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                             {espera && (
                               <span
                                 className={cn("inline-flex items-center gap-0.5 font-semibold", corDaEspera(espera.nivel))}
@@ -331,7 +331,7 @@ export function ListaDeConversas({
                         <div className="mt-1 flex items-center gap-1.5">
                           {setorDaConversa && setor !== c.fila && (
                             <span
-                              className="inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground"
+                              className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
                             >
                               <span className={cn("h-1.5 w-1.5 rounded-full", setorDaConversa.ponto)} aria-hidden />
                               <span className="sr-only">Fila </span>
@@ -343,11 +343,11 @@ export function ListaDeConversas({
                               <title>Com a assistente</title>
                             </Bot>
                           )}
-                          <span className="truncate text-[10px] text-muted-foreground">
+                          <span className="truncate text-xs text-muted-foreground">
                             {c.cliente ? c.cliente.nome : telefoneLegivel(c.telefone)}
                           </span>
                           {c.status === "arquivada" && (
-                            <span className="text-[10px] text-muted-foreground">· arquivada</span>
+                            <span className="text-xs text-muted-foreground">· arquivada</span>
                           )}
                           {(c.etiquetas ?? []).slice(0, 3).map((e) => (
                             <Tag key={e} className={cn("h-3 w-3 shrink-0", corDaEtiqueta(e))} aria-label={`Etiqueta ${e}`}>
@@ -357,7 +357,7 @@ export function ListaDeConversas({
                           <span className="ml-auto flex items-center gap-1">
                             {naoLidas > 0 && (
                               <span
-                                className="rounded-full bg-positive px-1.5 text-[10px] font-semibold leading-4 text-positive-foreground"
+                                className="rounded-full bg-positive px-1.5 text-xs font-semibold leading-4 text-positive-foreground"
                                 aria-label={`${naoLidas} não lida(s)`}
                               >
                                 {naoLidas}
@@ -365,12 +365,12 @@ export function ListaDeConversas({
                             )}
                             {resp && (
                               <span
-                                className="inline-flex max-w-[11rem] items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                                className="inline-flex max-w-[11rem] items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
                               >
                                 <span className="sr-only">Assumida por </span>
                                 <Avatar className="h-4 w-4">
                                   {resp.avatar_url && <AvatarImage src={resp.avatar_url} alt="" />}
-                                  <AvatarFallback className="text-[8px]">{iniciais(resp.nome)}</AvatarFallback>
+                                  <AvatarFallback className="text-xs">{iniciais(resp.nome)}</AvatarFallback>
                                 </Avatar>
                                 <span className="truncate">{rotuloDaPessoa(resp)}</span>
                               </span>

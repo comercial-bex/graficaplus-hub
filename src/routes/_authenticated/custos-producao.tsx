@@ -322,26 +322,26 @@ function CustosProducaoPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-sm">
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                         Base
                       </div>
                       <div className="font-bold">{brl(Number(f.custo_hora))}</div>
                     </div>
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                         Encargos
                       </div>
                       <div className="font-bold">{(Number(f.encargos_pct) * 100).toFixed(0)}%</div>
                     </div>
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                         Real
                       </div>
                       <div className="font-bold text-[color:var(--bex-lime)]">{brl(total)}</div>
                     </div>
                   </div>
                   {f.salario_mensal != null && (
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Salário {brl(Number(f.salario_mensal))} ÷ {Number(f.horas_mensais ?? HORAS_DO_MES_DA_CASA)} h por mês
                       {Number(f.salario_mensal) === SALARIO_MINIMO ? " · salário mínimo, provisório" : ""}
                     </p>
@@ -427,7 +427,7 @@ function CustosProducaoPage() {
                 onChange={(e) => setForm((f) => ({ ...f, custo_hora: e.target.value }))}
               />
               {Number(form.salario_mensal) > 0 && (
-                <p className="text-[11px] text-muted-foreground">Salário ÷ horas. Apague o salário para digitar o custo/hora direto.</p>
+                <p className="text-xs text-muted-foreground">Salário ÷ horas. Apague o salário para digitar o custo/hora direto.</p>
               )}
             </div>
             <div className="space-y-2">

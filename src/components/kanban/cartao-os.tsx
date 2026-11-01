@@ -82,7 +82,7 @@ export function CartaoOs({
       } ${atrasada ? "border-[color:var(--bex-magenta)]/60" : ""}`}
     >
       <Capa os={os}>
-        <span className="absolute left-2 top-2 rounded-md bg-background/85 px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground backdrop-blur md:text-[11px]">
+        <span className="absolute left-2 top-2 rounded-md bg-background/85 px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground backdrop-blur md:text-xs">
           #{os.numero}
         </span>
         <div className="absolute right-2 top-2 flex flex-wrap justify-end gap-1">
@@ -109,7 +109,7 @@ export function CartaoOs({
                 {os.cliente_logo_url && (
                   <Avatar className="h-4 w-4">
                     <AvatarImage src={os.cliente_logo_url} />
-                    <AvatarFallback className="text-[8px]">{os.cliente_nome.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="text-xs">{os.cliente_nome.charAt(0)}</AvatarFallback>
                   </Avatar>
                 )}
                 <span className="truncate">{os.cliente_nome}</span>
@@ -120,7 +120,7 @@ export function CartaoOs({
 
         {/* O que vai ser produzido. */}
         {producao && (
-          <div className="flex items-start gap-1.5 text-xs leading-snug text-foreground/85 md:text-[11px]">
+          <div className="flex items-start gap-1.5 text-xs leading-snug text-foreground/85 md:text-xs">
             <Layers className="mt-px h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
             <span className="line-clamp-2">
               {producao.linha}
@@ -136,7 +136,7 @@ export function CartaoOs({
         <TrilhaDaOs status={os.status} compacta />
 
         {(maquina || parada) && (
-          <div className="flex flex-wrap items-center gap-1.5 text-xs md:text-[10px]">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs md:text-xs">
             {/* O selo diz o caminho (qual máquina); a trilha acima já diz o passo. */}
             {maquina && <SeloDaMaquina identidade={maquina} />}
             {parada && <span className="font-mono text-muted-foreground">parada há {parada}</span>}
@@ -146,7 +146,7 @@ export function CartaoOs({
         {/* O que impede de avançar, tudo na mesma linha e em palavras curtas. O texto
             completo e o "como resolver" de cada uma estão na ficha (e no leitor de tela). */}
         {bloqueios.length > 0 && (
-          <div className="flex items-start gap-1.5 text-xs text-[color:var(--bex-amber)] md:text-[10px]">
+          <div className="flex items-start gap-1.5 text-xs text-[color:var(--bex-amber)] md:text-xs">
             <Lock className="mt-px h-3 w-3 shrink-0" aria-hidden />
             <span className="line-clamp-2" aria-hidden>
               Falta: {faltaEmPalavras(bloqueios)}
@@ -166,11 +166,11 @@ export function CartaoOs({
                     {responsaveis.map((r: any) => (
                       <Avatar key={r.id} className="h-5 w-5 border border-background">
                         <AvatarImage src={r.avatar_url ?? undefined} />
-                        <AvatarFallback className="text-[9px]">{r.nome?.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="text-xs">{r.nome?.charAt(0)}</AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
-                  <span className="truncate text-xs text-muted-foreground md:text-[10px]">
+                  <span className="truncate text-xs text-muted-foreground md:text-xs">
                     {responsaveis.map((r: any) => primeiroNome(r.nome)).join(" · ")}
                   </span>
                 </>
@@ -186,7 +186,7 @@ export function CartaoOs({
             De onde veio também: "Produção → Arte" é retrabalho. OS que nunca andou
             não tem movimento a mostrar: "aberta por" não é movimento. */}
         {os.ultimo_movimento?.rotulo && os.ultimo_movimento.verbo !== "aberta" && (
-          <div className="line-clamp-2 font-mono text-xs text-muted-foreground md:text-[10px]">
+          <div className="line-clamp-2 font-mono text-xs text-muted-foreground md:text-xs">
             {os.ultimo_movimento.verbo ?? "movida"} por {os.ultimo_movimento.rotulo}
             {os.ultimo_movimento.passo && <> · {os.ultimo_movimento.passo}</>}
           </div>
@@ -225,7 +225,7 @@ function Capa({ os, children }: { os: any; children?: React.ReactNode }) {
         <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
           <FileImage className="h-6 w-6 opacity-60" aria-hidden />
           <span className="text-xs font-semibold uppercase tracking-wider">{quebrou ? "Imagem indisponível" : falta.rotulo}</span>
-          {falta.detalhe && <span className="max-w-[90%] truncate text-[10px]">{falta.detalhe}</span>}
+          {falta.detalhe && <span className="max-w-[90%] truncate text-xs">{falta.detalhe}</span>}
         </div>
       )}
       {children}

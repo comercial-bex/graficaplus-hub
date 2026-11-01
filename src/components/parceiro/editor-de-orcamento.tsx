@@ -751,7 +751,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
                 ))}
               </ul>
             )}
-            <p className="mt-3 text-[11px] text-muted-foreground">
+            <p className="mt-3 text-xs text-muted-foreground">
               O que você paga é a sua tabela de parceiro. A gráfica confirma o preço no envio do pedido.
             </p>
           </section>
@@ -794,10 +794,10 @@ export function EditorDeOrcamento({ id }: { id: string }) {
         data-testid="barra-fixa-do-resumo"
       >
         <div className="min-w-0">
-          <p className="text-[11px] text-muted-foreground">Cliente paga</p>
+          <p className="text-xs text-muted-foreground">Cliente paga</p>
           <p className="truncate text-base font-semibold tabular-nums">{brl(resumo.venda)}</p>
           {resumo.lucro !== null && (
-            <p className="truncate text-[11px] text-muted-foreground">
+            <p className="truncate text-xs text-muted-foreground">
               Seu ganho {brl(resumo.lucro)}
               {resumo.lucroParcial ? " (parcial)" : ""}
             </p>

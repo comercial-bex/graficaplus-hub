@@ -113,7 +113,7 @@ function RespPage() {
           <p className="text-muted-foreground">
             Mensagens prontas para o WhatsApp. As ativas aparecem no botão de respostas rápidas da{" "}
             {hasPermission("whatsapp.read") ? (
-              <Link to="/whatsapp" className="text-primary underline underline-offset-2">
+              <Link to="/whatsapp" className="text-link underline underline-offset-2">
                 caixa de entrada
               </Link>
             ) : (

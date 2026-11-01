@@ -255,7 +255,7 @@ function Impressao3DPage() {
                             <Link
                               to="/orcamentos/$id"
                               params={{ id: o.orcamento_id }}
-                              className="hover:underline text-primary"
+                              className="hover:underline text-link"
                             >
                               {o.titulo}
                             </Link>
@@ -263,13 +263,13 @@ function Impressao3DPage() {
                             <Link
                               to="/orcamento-3d/$id"
                               params={{ id: o.id }}
-                              className="hover:underline text-primary"
+                              className="hover:underline text-link"
                             >
                               {o.titulo}
                             </Link>
                           )}
                           {o.orcamentos?.numero != null && (
-                            <div className="text-[11px] font-mono text-muted-foreground">
+                            <div className="text-xs font-mono text-muted-foreground">
                               Nº {o.orcamentos.numero}
                             </div>
                           )}

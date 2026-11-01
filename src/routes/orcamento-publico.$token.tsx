@@ -175,7 +175,7 @@ function OrcamentoPublicoPage() {
                           style={{ backgroundColor: corDoCartao(idx) }}
                         >
                           <span
-                            className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px]"
+                            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-xs"
                             style={{ color: corDoCartao(idx) }}
                           >
                             {idx + 1}

@@ -58,7 +58,7 @@ export function DataPanel({
         {children}
       </div>
       {rodape && (
-        <div className="flex items-center justify-between border-t border-border p-3 md:p-4 text-xs md:text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border p-3 md:p-4 text-xs md:text-xs text-muted-foreground">
           {rodape}
         </div>
       )}

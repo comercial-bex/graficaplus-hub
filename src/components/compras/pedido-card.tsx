@@ -85,7 +85,7 @@ export function PedidoCard({
           </div>
           {podeVerCusto && (
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Total</div>
               <div className="font-mono text-lg font-bold tabular-nums">{brl(total)}</div>
             </div>
           )}

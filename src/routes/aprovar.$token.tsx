@@ -258,7 +258,7 @@ function Moldura({ children, empresa }: { children: React.ReactNode; empresa?: s
       <div className="h-1.5" style={{ background: "var(--gradient-cmyk)" }} />
       <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
         {empresa && (
-          <div className="mb-6 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          <div className="mb-6 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
             {empresa}
           </div>
         )}

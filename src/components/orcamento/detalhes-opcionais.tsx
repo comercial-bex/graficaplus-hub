@@ -45,7 +45,7 @@ export function DetalhesOpcionais({
               <span className="text-xs text-muted-foreground">tipo de produto, especificações e artes</span>
             ) : (
               preenchido.map((p) => (
-                <span key={p} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                <span key={p} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-link">
                   {p}
                 </span>
               ))

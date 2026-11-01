@@ -108,12 +108,12 @@ export function VinculosDaConversa({ conversa, podeEditar }: { conversa: Convers
                 <Link to="/orcamentos/$id" params={{ id: o.id }} className="truncate font-medium hover:underline">
                   Orç. #{o.numero} · {o.titulo}
                 </Link>
-                <Badge variant="outline" className="shrink-0 text-[10px]">{o.status}</Badge>
+                <Badge variant="outline" className="shrink-0 text-xs">{o.status}</Badge>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{brl(o.valor_total)}</span>
                 {podeEditar && (
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" disabled={!!enviandoPdf} onClick={() => void enviarPdf(o)}>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={!!enviandoPdf} onClick={() => void enviarPdf(o)}>
                     {enviandoPdf === o.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <FileText className="mr-1 h-3 w-3" />}
                     Enviar PDF do orçamento
                   </Button>
@@ -126,7 +126,7 @@ export function VinculosDaConversa({ conversa, podeEditar }: { conversa: Convers
               <Link to="/os/$id" params={{ id: os.id }} className="truncate font-medium hover:underline">
                 OS #{os.numero} · {os.titulo}
               </Link>
-              <span className="shrink-0 text-right text-[10px] text-muted-foreground">
+              <span className="shrink-0 text-right text-xs text-muted-foreground">
                 {rotuloDe(os.status)}
                 <br />
                 {brl(os.valor_total)}

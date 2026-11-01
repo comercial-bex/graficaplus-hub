@@ -29,7 +29,7 @@ export function BexLogo({
       {showTagline && (
         <div className="mt-2 flex items-center gap-3">
           <span className="h-px w-6 bg-border" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
             Print OS · 3D · Visual
           </span>
           <span className="h-px w-6 bg-border" />

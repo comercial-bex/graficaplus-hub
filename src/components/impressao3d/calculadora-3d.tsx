@@ -899,7 +899,7 @@ export function Calculadora3D({
                     placeholder="ex.: 2h 15m ou 2:15"
                   />
                   {tempoMinutos > 0 && (
-                    <div className="text-[11px] text-muted-foreground font-mono">
+                    <div className="text-xs text-muted-foreground font-mono">
                       ≈ {formatMinutos(tempoMinutos)} · {tempoMinutos} min
                     </div>
                   )}
@@ -912,7 +912,7 @@ export function Calculadora3D({
                   <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Detectado no print
                   </div>
-                  <span className="text-[10px] text-muted-foreground">Preenchido pelo OCR; ajuste se preciso</span>
+                  <span className="text-xs text-muted-foreground">Preenchido pelo OCR; ajuste se preciso</span>
                 </div>
                 <div className="grid gap-3 md:grid-cols-3">
                   <div className="space-y-1.5">
@@ -1215,7 +1215,7 @@ export function Calculadora3D({
                 {podeVerCusto && (
                 <>
                 <div className="space-y-2">
-                  <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+                  <div className="text-xs uppercase tracking-widest font-mono text-muted-foreground">
                     De onde vem o custo
                   </div>
                   {breakdown.map((b) => {
@@ -1248,7 +1248,7 @@ export function Calculadora3D({
                   <div
                     className="rounded-lg border border-border px-2 py-1.5"
                   >
-                    <div className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground font-mono">
+                    <div className="flex items-center gap-1 text-xs uppercase text-muted-foreground font-mono">
                       Atacado {vezes(calc.markupAtacado)}
                       <DicaIcone
                         texto={`Preço de atacado: custo × ${vezes(calc.markupAtacado)} (markup de atacado das Configurações 3D)`}
@@ -1256,17 +1256,17 @@ export function Calculadora3D({
                       />
                     </div>
                     <div className="font-mono font-semibold">{money(calc.atacado)}</div>
-                    <div className="text-[10px] text-muted-foreground">preço para revenda</div>
+                    <div className="text-xs text-muted-foreground">preço para revenda</div>
                   </div>
                   <div
                     className="rounded-lg border border-border px-2 py-1.5"
                   >
-                    <div className="flex items-center gap-1 text-[10px] uppercase text-muted-foreground font-mono">
+                    <div className="flex items-center gap-1 text-xs uppercase text-muted-foreground font-mono">
                       Piso · 10% de margem
                       <DicaIcone texto="O menor preço que ainda deixa 10% de margem. Abaixo dele, a peça dá prejuízo." rotulo="Piso" />
                     </div>
                     <div className="font-mono font-semibold">{money(calc.equilibrio)}</div>
-                    <div className="text-[10px] text-muted-foreground">não vender abaixo</div>
+                    <div className="text-xs text-muted-foreground">não vender abaixo</div>
                   </div>
                 </div>
                 </>

@@ -59,7 +59,7 @@ export function ConferenciaDeDuplicidade({
               <Sparkles className="mr-1 h-3.5 w-3.5" />
             )}
             Conferir com IA
-            <span className="ml-1 text-[11px] font-normal text-muted-foreground">· usa saldo de IA</span>
+            <span className="ml-1 text-xs font-normal text-muted-foreground">· usa saldo de IA</span>
           </Button>
         )}
       </div>

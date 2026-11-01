@@ -33,7 +33,7 @@ export const IconeAmex = (p: Props) => <Marca d={D.americanexpress} titulo="Amer
 export function SeloDeBandeira({ texto, className }: { texto: string; className?: string }) {
   return (
     <span
-      className={"inline-flex h-4 items-center rounded-sm border border-current px-1 text-[9px] font-bold uppercase leading-none tracking-tight " + (className ?? "")}
+      className={"inline-flex h-4 items-center rounded-sm border border-current px-1 text-xs font-bold uppercase leading-none tracking-tight " + (className ?? "")}
       aria-label={texto}
     >
       {texto}

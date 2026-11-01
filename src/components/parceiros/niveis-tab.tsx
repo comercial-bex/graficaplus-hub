@@ -98,7 +98,7 @@ export function NiveisTab({ podeEditar }: { podeEditar: boolean }) {
           </p>
           <table className="w-full min-w-[620px] text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="py-2 pr-3 font-medium">Nível</th>
                 <th className="py-2 pr-3 text-right font-medium">Desconto</th>
                 <th className="py-2 pr-3 text-right font-medium">Ganho do parceiro</th>
@@ -167,7 +167,7 @@ export function NiveisTab({ podeEditar }: { podeEditar: boolean }) {
               <div className="grid grid-cols-2 gap-3">
                 <Campo rotulo="Compras em 90 dias (R$)" ajuda={dicaCampo("/parceiros", "compras em 90 dias")}>
                   <Input type="number" min={0} step="50" disabled={!podeEditar} value={n.compra_minima_90d} onChange={(e) => mudar(n.id, { compra_minima_90d: Number(e.target.value) })} />
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {porMes > 0 ? `≈ ${brl(porMes)} por mês` : "nível de entrada"}
                   </p>
                 </Campo>

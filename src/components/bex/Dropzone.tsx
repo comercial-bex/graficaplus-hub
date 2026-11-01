@@ -119,12 +119,12 @@ export function Dropzone({
             <div className="mt-2 flex items-center justify-between gap-3">
               <div className="min-w-0 text-left">
                 <p className="truncate text-xs font-medium">{file?.name}</p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {file ? `${(file.size / 1024).toFixed(0)} KB` : ""}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   Clique para trocar
                 </span>
                 <button
@@ -216,7 +216,7 @@ function StatusBadge({ status }: { status: DropzoneStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider",
+        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs uppercase tracking-wider",
         s.cls,
       )}
     >

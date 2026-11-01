@@ -99,7 +99,7 @@ export function PainelDaConversa({
             <Link
               to="/clientes/$id"
               params={{ id: conversa.cliente.id }}
-              className="font-medium text-primary underline underline-offset-2"
+              className="font-medium text-link underline underline-offset-2"
             >
               {conversa.cliente.nome}
             </Link>
@@ -112,7 +112,7 @@ export function PainelDaConversa({
             Lead aberto pelo WhatsApp: {conversa.lead.nome ?? "sem nome"} (
             {ROTULO_LEAD[conversa.lead.status ?? ""] ?? conversa.lead.status ?? "—"}).{" "}
             {hasPermission("leads.read") && (
-              <Link to="/leads" className="text-primary underline underline-offset-2">
+              <Link to="/leads" className="text-link underline underline-offset-2">
                 Abrir Leads
               </Link>
             )}
@@ -154,7 +154,7 @@ export function PainelDaConversa({
             <Link
               to="/os/$id"
               params={{ id: conversa.os_id }}
-              className="font-medium text-primary underline underline-offset-2"
+              className="font-medium text-link underline underline-offset-2"
             >
               Abrir a OS ligada a esta conversa
             </Link>
@@ -183,7 +183,7 @@ export function PainelDaConversa({
         ) : (
           <div className="space-y-3 text-sm">
             <div className="space-y-1">
-              <div className="text-[11px] font-semibold text-muted-foreground">
+              <div className="text-xs font-semibold text-muted-foreground">
                 Orçamentos recentes
               </div>
               {historico.data.orcamentos.length === 0 ? (
@@ -194,11 +194,11 @@ export function PainelDaConversa({
                     <Link
                       to="/orcamentos/$id"
                       params={{ id: o.id }}
-                      className="truncate text-primary underline-offset-2 hover:underline"
+                      className="truncate text-link underline-offset-2 hover:underline"
                     >
                       #{o.numero} · {o.titulo}
                     </Link>
-                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                    <Badge variant="outline" className="shrink-0 text-xs">
                       {ROTULO_ORCAMENTO[o.status] ?? o.status}
                     </Badge>
                   </div>
@@ -206,7 +206,7 @@ export function PainelDaConversa({
               )}
             </div>
             <div className="space-y-1">
-              <div className="text-[11px] font-semibold text-muted-foreground">OS recentes</div>
+              <div className="text-xs font-semibold text-muted-foreground">OS recentes</div>
               {historico.data.os.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Nenhuma OS deste cliente.</p>
               ) : (
@@ -215,7 +215,7 @@ export function PainelDaConversa({
                     <Link
                       to="/os/$id"
                       params={{ id: o.id }}
-                      className="truncate text-primary underline-offset-2 hover:underline"
+                      className="truncate text-link underline-offset-2 hover:underline"
                     >
                       OS #{o.numero} · {o.titulo}
                     </Link>
@@ -268,7 +268,7 @@ function Etiquetas({ conversa, podeEditar }: { conversa: ConversaDaCaixa; podeEd
           <span className="text-xs text-muted-foreground">Nenhuma etiqueta.</span>
         )}
         {atuais.map((e) => (
-          <Badge key={e} variant="outline" className="gap-1 text-[11px]">
+          <Badge key={e} variant="outline" className="gap-1 text-xs">
             {e}
             {podeEditar && (
               <button
@@ -292,7 +292,7 @@ function Etiquetas({ conversa, podeEditar }: { conversa: ConversaDaCaixa; podeEd
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-6 px-2 text-[11px]"
+                className="h-7 px-2 text-xs"
                 disabled={gravando}
                 onClick={() => void salvar(adicionarEtiqueta(atuais, s), `Etiqueta "${s}" gravada`)}
               >

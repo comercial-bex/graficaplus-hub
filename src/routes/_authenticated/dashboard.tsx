@@ -111,7 +111,7 @@ function BexCard({ title, children }: { title: string; children: React.ReactNode
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        <CardTitle className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
           {title}
         </CardTitle>
       </CardHeader>
@@ -533,7 +533,7 @@ function PainelCompleto({
 
       {/* KPIs operacionais */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+        <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
           <span>Operação</span>
           <span className="h-px flex-1 bg-border" />
@@ -581,7 +581,7 @@ function PainelCompleto({
 
       {canSeeFinancials && (
         <section className="space-y-3">
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             <span>Caixa · dinheiro que entrou</span>
             <span className="h-px flex-1 bg-border" />
@@ -645,7 +645,7 @@ function PainelCompleto({
       {/* KPIs financeiros — conectados às vw_dashboard_* */}
       {canSeeFinancials && (
         <section className="space-y-3">
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             <span>Financeiro · views oficiais</span>
             <span className="h-px flex-1 bg-border" />
@@ -695,7 +695,7 @@ function PainelCompleto({
 
       {/* KPIs 3D + prazos + qualidade */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+        <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
           <span>Impressão 3D · Prazos · Qualidade</span>
           <span className="h-px flex-1 bg-border" />
@@ -809,7 +809,7 @@ function PainelCompleto({
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-1.5 mt-3">
             {osPorStatus.map((s) => (
-              <span key={s.name} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+              <span key={s.name} className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
                 <span className="h-2 w-2 rounded-sm" style={{ background: s.color }} />
                 {s.name}
               </span>
@@ -832,7 +832,7 @@ function PainelCompleto({
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-1.5 mt-3">
             {custoPorCategoria.map((s) => (
-              <span key={s.name} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+              <span key={s.name} className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
                 <span className="h-2 w-2 rounded-sm" style={{ background: s.color }} />
                 {s.name}
               </span>
@@ -895,15 +895,15 @@ function PainelCompleto({
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="rounded-md border border-border bg-muted/40 p-2">
                     <div className="font-mono text-xl font-bold tabular-nums">{nOcorrenciasRetrabalho}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">retrabalhos</div>
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">retrabalhos</div>
                   </div>
                   <div className="rounded-md border border-border bg-muted/40 p-2">
                     <div className="font-mono text-xl font-bold tabular-nums">{nOsRetrabalho}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">OS em retrabalho</div>
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">OS em retrabalho</div>
                   </div>
                   <div className="rounded-md border border-border bg-muted/40 p-2">
                     <div className="font-mono text-xl font-bold tabular-nums">{nPerdas}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground">
                       perdas{canSeeFinancials && perdas.data ? ` · R$ ${perdas.data.custo.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : ""}
                     </div>
                   </div>

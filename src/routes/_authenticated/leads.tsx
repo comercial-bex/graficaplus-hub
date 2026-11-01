@@ -383,7 +383,7 @@ function LeadsPage() {
                           {l.temporario && !l.cliente_id && (
                             <Badge
                               variant="outline"
-                              className="mt-1 font-normal text-[10px]"
+                              className="mt-1 font-normal text-xs"
                             >
                               veio do WhatsApp, ainda não qualificado
                             </Badge>

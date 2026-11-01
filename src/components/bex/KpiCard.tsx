@@ -63,7 +63,7 @@ export function KpiCard({
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-1.5">
-            <p className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="truncate text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
             <DicaIcone texto={hint} rotulo={label} />
           </div>
           {Icon && <Icon className={cn("h-4 w-4", a.text)} />}
@@ -71,7 +71,7 @@ export function KpiCard({
         <h3 className="mt-1 text-3xl font-extrabold text-foreground">{value}</h3>
         {delta && (
           <div className="mt-2 flex items-center gap-2">
-            <span className={cn("text-[10px] font-bold uppercase tracking-wide", a.text)}>
+            <span className={cn("text-xs font-bold uppercase tracking-wide", a.text)}>
               {delta}
             </span>
           </div>

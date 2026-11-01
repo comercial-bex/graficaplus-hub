@@ -237,7 +237,7 @@ export function DiagnosticoWebhooks() {
                 >
                   <div>
                     <div className="font-medium text-foreground">{w.rotulo}</div>
-                    <div className="font-mono text-[11px] text-muted-foreground">
+                    <div className="font-mono text-xs text-muted-foreground">
                       {consulta.isError
                         ? "sem leitura"
                         : w.ultimo
@@ -305,7 +305,7 @@ export function DiagnosticoWebhooks() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left font-mono text-[10px] uppercase text-muted-foreground">
+                  <tr className="border-b text-left font-mono text-xs uppercase text-muted-foreground">
                     <th className="py-2 pr-3">Horário</th>
                     <th className="py-2 pr-3">Tipo</th>
                     <th className="py-2 pr-3">Situação</th>
@@ -355,7 +355,7 @@ export function DiagnosticoWebhooks() {
                             </Button>
                           )}
                           {aberto === e.id && (
-                            <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/50 p-2 font-mono text-[10px] text-foreground">
+                            <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/50 p-2 font-mono text-xs text-foreground">
                               {JSON.stringify(e.payload, null, 2)}
                             </pre>
                           )}
@@ -365,7 +365,7 @@ export function DiagnosticoWebhooks() {
                   })}
                 </tbody>
               </table>
-              <p className="mt-2 text-[11px] text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Clique numa linha para ver o conteúdo completo enviado pelo Z-API.
               </p>
             </div>
@@ -401,7 +401,7 @@ function MedidasDeEntrada() {
           <Gauge className="h-4 w-4" /> O que a entrada está devendo
         </CardTitle>
         {medidas.isSuccess && (
-          <span className="font-mono text-[11px] text-muted-foreground">
+          <span className="font-mono text-xs text-muted-foreground">
             medido {fmt(medidas.data.medido_em)}
           </span>
         )}
@@ -430,7 +430,7 @@ function MedidasDeEntrada() {
               icone={<FileWarning className="h-4 w-4" />}
             />
             {medidas.data.recibos.length > 0 && (
-              <ul className="font-mono text-[11px] text-muted-foreground md:col-span-2">
+              <ul className="font-mono text-xs text-muted-foreground md:col-span-2">
                 {medidas.data.recibos.slice(0, 10).map((r) => (
                   <li key={r.id}>
                     {r.momento ? fmt(r.momento) : "sem horário"} · {r.telefone ?? "sem telefone"} ·{" "}

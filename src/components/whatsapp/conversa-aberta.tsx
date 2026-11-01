@@ -685,7 +685,7 @@ export function ConversaAberta({
                       key={e.id}
                       className="mx-auto max-w-[85%] rounded-md border border-warning/40 bg-warning/10 p-2.5 text-sm text-foreground"
                     >
-                      <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
+                      <div className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
                         <Lock className="h-3 w-3" /> Nota de{" "}
                         {(e.de_usuario && nomes.get(e.de_usuario)) || "Equipe"} · visível só para a
                         equipe
@@ -693,14 +693,14 @@ export function ConversaAberta({
                       <div className="whitespace-pre-wrap break-words">
                         {fraseDoEvento(e, nomes, setoresDaEquipe)}
                       </div>
-                      <div className="mt-1 text-[10px] text-muted-foreground">
+                      <div className="mt-1 text-xs text-muted-foreground">
                         {diaEHora(e.created_at)}
                       </div>
                     </div>
                   );
                 }
                 return (
-                  <div key={e.id} className="py-0.5 text-center text-[11px] text-muted-foreground">
+                  <div key={e.id} className="py-0.5 text-center text-xs text-muted-foreground">
                     {fraseDoEvento(e, nomes, setoresDaEquipe)} · {diaEHora(e.created_at)}
                   </div>
                 );
@@ -724,7 +724,7 @@ export function ConversaAberta({
                     )}
                   >
                     {autor && (
-                      <div className="mb-0.5 flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
+                      <div className="mb-0.5 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
                         {m.origem === "ia" && <Bot className="h-3 w-3" aria-hidden />}
                         {autor}
                       </div>
@@ -746,14 +746,14 @@ export function ConversaAberta({
                         }
                       />
                     )}
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{diaEHora(quandoFoi(m))}</span>
                       {selo && (
                         <span className="font-semibold uppercase tracking-wide">{selo.texto}</span>
                       )}
                     </div>
                     {nossa && m.erro && m.status !== "enviada" && (
-                      <div className="mt-1 rounded bg-destructive/10 px-1.5 py-1 text-[11px] text-destructive">
+                      <div className="mt-1 rounded bg-destructive/10 px-1.5 py-1 text-xs text-destructive">
                         Motivo: {m.erro}
                       </div>
                     )}
@@ -820,7 +820,7 @@ export function ConversaAberta({
               <StickyNote className="h-3 w-3" /> Nota
             </button>
             {modo === "nota" && (
-              <span className="ml-2 self-center text-[11px] text-muted-foreground">
+              <span className="ml-2 self-center text-xs text-muted-foreground">
                 <Lock className="mr-0.5 inline h-3 w-3" />A nota fica só na equipe — nunca vai para
                 o cliente.
               </span>

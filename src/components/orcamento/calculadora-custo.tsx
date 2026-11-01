@@ -886,7 +886,7 @@ export function CalculadoraCusto({
                   // Veto em vermelho e com nome próprio: "não pode" e "falta
                   // cadastrar" saíam na mesma cor, e um deles estraga a máquina.
                   <p
-                    className={`col-span-12 text-[11px] ${
+                    className={`col-span-12 text-xs ${
                       l.vetado ? "text-destructive font-medium" : l.derivado ? "text-muted-foreground" : "text-amber-600"
                     }`}
                   >
@@ -898,7 +898,7 @@ export function CalculadoraCusto({
                     R$ 0,00 e parece calculada. O aviso é por LINHA porque o
                     aviso do bloco só aparece quando NENHUMA máquina tem custo. */}
                 {l.maquina_id && num(l.custoHora) <= 0 && !l.vetado && (
-                  <p className="col-span-12 text-[11px] text-amber-600">
+                  <p className="col-span-12 text-xs text-amber-600">
                     Esta máquina está sem custo/hora: o processo entra como R$ 0,00. Preencha em
                     Máquinas (o valor de compra ou a parcela calcula sozinho).
                   </p>
@@ -1006,7 +1006,7 @@ export function CalculadoraCusto({
                   </Button>
                 </div>
                 {l.segueProcesso && (
-                  <p className={`col-span-12 text-[11px] ${l.funcao_id ? "text-muted-foreground" : "text-amber-600"}`}>
+                  <p className={`col-span-12 text-xs ${l.funcao_id ? "text-muted-foreground" : "text-amber-600"}`}>
                     {l.ajustada
                       ? `Decapagem e fita do recorte, ajustada à mão: ${Math.round(num(l.horas) * 60)} min.`
                       : `Decapagem e fita do recorte: ${Math.round(num(l.horas) * 60)} min — segue o traçado e a complexidade da linha de máquina.`}

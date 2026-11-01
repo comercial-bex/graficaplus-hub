@@ -56,12 +56,12 @@ export function Casca({
             <SidebarTrigger className="h-11 w-11 md:h-7 md:w-7" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold">{atual?.rotulo ?? "Painel do parceiro"}</p>
-              <p className="hidden font-mono text-[9px] uppercase tracking-widest text-muted-foreground md:block">
+              <p className="hidden font-mono text-xs uppercase tracking-widest text-muted-foreground md:block">
                 Painel do parceiro · Bex Print
               </p>
             </div>
             <div className="hidden text-right sm:block">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Seu crédito</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Seu crédito</p>
               <p className="text-sm font-semibold tabular-nums">{brl(painel.saldo_credito)}</p>
             </div>
             <ThemeToggle />
@@ -84,7 +84,7 @@ export function Casca({
               key={item.to}
               to={item.to}
               className={cn(
-                "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium",
+                "flex flex-col items-center gap-1 py-2.5 text-xs font-medium",
                 selecionado ? "text-[color:var(--bex-cyan)]" : "text-muted-foreground",
               )}
             >

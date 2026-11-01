@@ -26,7 +26,7 @@ export function NivelCard({ painel }: { painel: PainelDoParceiro }) {
       />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Seu nível
             <DicaIcone texto={dicaCampo("/parceiro", "seu nivel")} rotulo="Seu nível" />
           </p>
@@ -39,7 +39,7 @@ export function NivelCard({ painel }: { painel: PainelDoParceiro }) {
           )}
         </div>
         <div className="text-right">
-          <p className="flex items-center justify-end gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <p className="flex items-center justify-end gap-1 text-xs uppercase tracking-wider text-muted-foreground">
             Desconto
             <DicaIcone texto={dicaCampo("/parceiro", "desconto")} rotulo="Desconto" />
           </p>
@@ -89,7 +89,7 @@ export function NivelCard({ painel }: { painel: PainelDoParceiro }) {
         <div className="relative mt-3 overflow-x-auto">
           <table className="w-full min-w-[420px] text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="py-2 pr-3 font-medium">Nível</th>
                 <th className="py-2 pr-3 font-medium">Compras em 90 dias</th>
                 <th className="py-2 pr-3 text-right font-medium">Desconto</th>

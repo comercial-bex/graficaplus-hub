@@ -171,7 +171,7 @@ export function ParametrosDaCasa() {
         {categorias.map((cat) => (
           <Card key={cat}>
             <CardContent className="p-4">
-              <h3 className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <h3 className="mb-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
                 {NOME_DA_CATEGORIA[cat] ?? cat}
               </h3>
               <ul className="divide-y divide-border">
@@ -185,7 +185,7 @@ export function ParametrosDaCasa() {
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium">{p.descricao ?? p.codigo}</span>
                             {ENTRA_NA_META.has(p.codigo) && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--bex-lime)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--bex-lime)]">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--bex-lime)]/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[color:var(--bex-lime)]">
                                 <Percent className="h-2.5 w-2.5" />
                                 entra na meta
                               </span>
@@ -265,7 +265,7 @@ export function ParametrosDaCasa() {
       {verHistorico && (
         <Card>
           <CardContent className="p-4">
-            <h3 className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <h3 className="mb-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Últimas mudanças
             </h3>
             {historico.length === 0 ? (

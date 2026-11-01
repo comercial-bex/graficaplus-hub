@@ -50,7 +50,7 @@ export function CalculadoraDeEncargos({
     <div className="space-y-4 rounded-md border bg-muted/30 p-3">
       <div>
         <h4 className="text-sm font-semibold">Calcular do salário</h4>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           As horas são as de <strong>presença</strong>: 8 h por dia (10 h na casa menos 2 h de
           almoço) × 22 dias úteis = {HORAS_DO_MES_DA_CASA} h. Não são as produtivas: o salário é
           pago tenha a máquina rodado ou não.
@@ -70,7 +70,7 @@ export function CalculadoraDeEncargos({
           />
           <button
             type="button"
-            className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
             onClick={() => setSalario(String(SALARIO_MINIMO))}
           >
             usar o salário mínimo ({brl(SALARIO_MINIMO)})
@@ -113,7 +113,7 @@ export function CalculadoraDeEncargos({
               <span className="flex-1">
                 <span className="font-medium">{p.rotulo}</span>
                 <span className="font-mono text-muted-foreground"> · {pct(p.aliquota)}</span>
-                <span className="block text-[11px] text-muted-foreground">{p.nota}</span>
+                <span className="block text-xs text-muted-foreground">{p.nota}</span>
               </span>
             </label>
           </li>
@@ -151,7 +151,7 @@ export function CalculadoraDeEncargos({
       >
         Usar estes valores
       </Button>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         O campo <em>Custo/h</em> recebe o salário-hora e o campo <em>Encargos</em> recebe a
         alíquota — o orçamento multiplica os dois. Guardar já multiplicado somaria o encargo
         duas vezes.

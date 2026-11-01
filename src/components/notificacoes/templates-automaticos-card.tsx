@@ -107,7 +107,7 @@ export function TemplatesAutomaticosCard() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-medium">{t.descricao}</div>
-                    <code className="text-[11px] text-muted-foreground">{t.evento}</code>
+                    <code className="text-xs text-muted-foreground">{t.evento}</code>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">
@@ -139,7 +139,7 @@ export function TemplatesAutomaticosCard() {
                       <Badge
                         key={v}
                         variant="outline"
-                        className="font-mono text-[10px] font-normal cursor-pointer"
+                        className="font-mono text-xs font-normal cursor-pointer"
                         onClick={() =>
                           setRascunhos((r) => ({
                             ...r,

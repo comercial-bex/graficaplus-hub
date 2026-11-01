@@ -407,7 +407,7 @@ function FaixaDaSaude({ saude }: { saude: Saude }) {
       <Icone className={cn("mt-0.5 h-5 w-5 shrink-0", e.cor)} aria-hidden />
       <div className="min-w-0 text-sm">
         <p>
-          <span className={cn("mr-1.5 text-[10px] font-bold uppercase tracking-wider", e.cor)}>{e.rotulo}</span>
+          <span className={cn("mr-1.5 text-xs font-bold uppercase tracking-wider", e.cor)}>{e.rotulo}</span>
           <strong>{saude.titulo}</strong>
         </p>
         <p className="text-xs text-muted-foreground">{saude.detalhe}</p>

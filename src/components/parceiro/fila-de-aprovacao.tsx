@@ -103,7 +103,7 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{p.nome}</span>
                 {!p.tem_login && (
-                  <Badge variant="outline" className="h-4 text-[10px]">
+                  <Badge variant="outline" className="h-5 text-xs">
                     sem login
                   </Badge>
                 )}

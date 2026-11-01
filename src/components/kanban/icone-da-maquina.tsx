@@ -30,7 +30,7 @@ export function IconeDaMaquina({
 export function SeloDaMaquina({ identidade }: { identidade: IdentidadeMaquina }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium"
+      className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium"
       style={{
         color: identidade.cor,
         borderColor: `${identidade.cor}55`,

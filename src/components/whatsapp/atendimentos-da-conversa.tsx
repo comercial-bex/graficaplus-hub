@@ -73,7 +73,7 @@ export function AtendimentosDaConversa({
                 </li>
               ))}
               {anteriores.length > 6 && (
-                <li className="text-[11px] text-muted-foreground">e mais {anteriores.length - 6} anteriores.</li>
+                <li className="text-xs text-muted-foreground">e mais {anteriores.length - 6} anteriores.</li>
               )}
             </ul>
           )}
@@ -91,7 +91,7 @@ function Atual({ a, nomes }: { a: AtendimentoResumo; nomes: Map<string, string> 
     <div className="space-y-1 rounded-md border p-2.5 text-sm">
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono font-semibold">{a.numero}</span>
-        <span className={cn("rounded border px-1.5 py-0.5 text-[10px]", setor.cor)}>{setor.rotulo}</span>
+        <span className={cn("rounded border px-1.5 py-0.5 text-xs", setor.cor)}>{setor.rotulo}</span>
       </div>
       <p className="text-xs text-muted-foreground">
         {ROTULO_ORIGEM[a.origem_abertura] ?? a.origem_abertura} · há {aberto?.texto ?? "—"}

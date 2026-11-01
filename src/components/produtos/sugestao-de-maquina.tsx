@@ -99,7 +99,7 @@ export function SugestaoDeMaquina({ produtos }: { produtos: Produto[] }) {
           <Factory className="h-3 w-3" /> {x.s.maquinaNome}
         </Badge>
       )}
-      <span className="w-full text-[11px] text-muted-foreground sm:w-auto sm:flex-1">{x.s.motivo}</span>
+      <span className="w-full text-xs text-muted-foreground sm:w-auto sm:flex-1">{x.s.motivo}</span>
     </li>
   );
 
@@ -148,7 +148,7 @@ export function SugestaoDeMaquina({ produtos }: { produtos: Produto[] }) {
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-destructive mb-1.5">
                   Nenhuma máquina da casa faz ({analise.foraDoParque.length})
                 </h4>
-                <p className="text-[11px] text-muted-foreground mb-1.5">
+                <p className="text-xs text-muted-foreground mb-1.5">
                   Estes produtos estão no catálogo e dependem de terceiro ou de máquina que o
                   parque não tem. Não é erro de cadastro — é informação de custo: o preço deles
                   precisa carregar a compra de fora, não a hora de máquina da casa.

@@ -64,7 +64,7 @@ function SeloDaContagem({ tipo, valor }: { tipo?: ContagemDoMenu; valor?: ValorD
       <Dica texto={dicasDoMenu.contagemFalhou} className="ml-auto">
         <span
           data-selo="erro"
-          className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-sidebar-border px-1 text-[11px] font-bold leading-none text-sidebar-foreground/60 group-data-[active=true]/item:border-sidebar group-data-[active=true]/item:text-sidebar"
+          className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border border-sidebar-border px-1 text-xs font-bold leading-none text-sidebar-foreground/60 group-data-[active=true]/item:border-sidebar group-data-[active=true]/item:text-sidebar"
         >
           <span aria-hidden="true">?</span>
           <span className="sr-only">{dicasDoMenu.contagemFalhou}</span>
@@ -76,7 +76,7 @@ function SeloDaContagem({ tipo, valor }: { tipo?: ContagemDoMenu; valor?: ValorD
   return (
     <span
       data-selo={valor}
-      className="ml-auto inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--sidebar-marca)] px-1.5 text-[11px] font-bold tabular-nums leading-none text-sidebar group-data-[active=true]/item:bg-sidebar group-data-[active=true]/item:text-[var(--sidebar-marca)]"
+      className="ml-auto inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[var(--sidebar-marca)] px-1.5 text-xs font-bold tabular-nums leading-none text-sidebar group-data-[active=true]/item:bg-sidebar group-data-[active=true]/item:text-[var(--sidebar-marca)]"
     >
       <span aria-hidden="true">{valor > 99 ? "99+" : valor}</span>
       <span className="sr-only">{`${valor} ${dicasDoMenu.contagens[tipo]}`}</span>
@@ -279,7 +279,7 @@ export function MenuLateral({
       </Dica>
     );
   const linhaDoRodape =
-    "flex h-11 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9 md:[@media(max-height:800px)]:h-8";
+    "flex h-11 w-full items-center gap-3 rounded-lg px-3 text-base font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9 md:[@media(max-height:800px)]:h-8";
 
   return (
     <>
@@ -309,14 +309,14 @@ export function MenuLateral({
                     )}
                   >
                     <m.icon className="h-5 w-5" aria-hidden="true" />
-                    <span className="max-w-full truncate text-[9px] font-bold leading-none md:hidden">
+                    <span className="max-w-full truncate text-xs font-bold leading-none md:hidden">
                       {m.curto}
                     </span>
                     {/* Módulo fechado não esconde pendência: a soma vai no canto do ícone. */}
                     {!ehAtivo && m.soma > 0 && (
                       <span
                         data-soma={m.soma}
-                        className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sidebar px-1 text-[10px] font-bold tabular-nums leading-none text-[var(--sidebar-marca)]"
+                        className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-sidebar px-1 text-xs font-bold tabular-nums leading-none text-[var(--sidebar-marca)]"
                       >
                         <span aria-hidden="true">{m.soma > 99 ? "99+" : m.soma}</span>
                         <span className="sr-only">{`${m.soma} pendências em ${m.label}`}</span>
@@ -348,7 +348,7 @@ export function MenuLateral({
                 >
                   <Avatar className="h-8 w-8 border-2 border-sidebar">
                     <AvatarImage src={pessoa.foto ?? undefined} alt="" className="object-cover" />
-                    <AvatarFallback className="bg-sidebar text-[10px] font-bold text-[var(--sidebar-marca)]">
+                    <AvatarFallback className="bg-sidebar text-xs font-bold text-[var(--sidebar-marca)]">
                       {iniciais(pessoa.nome, pessoa.email)}
                     </AvatarFallback>
                   </Avatar>
@@ -416,7 +416,7 @@ export function MenuLateral({
                 </p>
                 {pessoa.email && (
                   <p
-                    className="break-all text-[11px] text-sidebar-foreground/60 [@media(max-height:800px)]:hidden"
+                    className="break-all text-xs text-sidebar-foreground/60 [@media(max-height:800px)]:hidden"
                   >
                     {pessoa.email}
                   </p>
@@ -433,14 +433,14 @@ export function MenuLateral({
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/55">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-sidebar-foreground/70">
                     Módulo
                   </p>
                   <p className="truncate text-sm font-bold leading-tight text-sidebar-accent-foreground">
                     {moduloAtivo.label}
                   </p>
                 </div>
-                <div className="flex shrink-0 flex-col items-end text-[10px] leading-tight">
+                <div className="flex shrink-0 flex-col items-end text-xs leading-tight">
                   <span className="font-semibold text-sidebar-foreground/70">
                     {nEntradas} {nEntradas === 1 ? "item" : "itens"}
                   </span>
@@ -465,7 +465,7 @@ export function MenuLateral({
                   {sec.label && (
                     <h3
                       data-subgrupo=""
-                      className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/55"
+                      className="mb-2 px-3 text-xs font-bold uppercase tracking-[0.12em] text-sidebar-foreground/70"
                     >
                       {sec.label}
                     </h3>
@@ -485,7 +485,7 @@ export function MenuLateral({
                               {...marcas}
                               data-active={ehAtiva}
                               aria-current={ehAtiva ? "page" : undefined}
-                              className="group/item flex h-11 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[active=true]:bg-[var(--sidebar-trilho)] data-[active=true]:font-bold data-[active=true]:text-[var(--sidebar-trilho-foreground)] md:h-9"
+                              className="group/item flex h-11 w-full items-center gap-3 rounded-lg px-3 text-base font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[active=true]:bg-[var(--sidebar-trilho)] data-[active=true]:font-bold data-[active=true]:text-[var(--sidebar-trilho-foreground)] md:h-9"
                             >
                               <e.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                               <span className="min-w-0 flex-1 truncate">{e.title}</span>

@@ -446,7 +446,7 @@ function OndeParaPage() {
                         >
                           {dias(o.dias_parada)}
                         </div>
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground">
                           parada
                         </div>
                       </div>

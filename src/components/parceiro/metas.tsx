@@ -53,7 +53,7 @@ export function Metas({ campanhas, conquistas }: { campanhas: Campanha[]; conqui
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                    "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
                     x.status === "entregue"
                       ? "bg-foreground/10 text-muted-foreground"
                       : "bg-[color:var(--bex-amber)]/15 text-[color:var(--bex-amber)]",
@@ -99,7 +99,7 @@ function MetaCard({ campanha }: { campanha: Campanha }) {
           <p className="text-sm text-muted-foreground">{campanha.titulo}</p>
         </div>
         {p.prazo && (
-          <span className="shrink-0 text-[11px] text-muted-foreground">{p.prazo}</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{p.prazo}</span>
         )}
       </div>
       {campanha.descricao && <p className="mt-2 text-sm text-muted-foreground">{campanha.descricao}</p>}

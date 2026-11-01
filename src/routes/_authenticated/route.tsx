@@ -142,12 +142,12 @@ function AuthenticatedLayout() {
               <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--bex-lime)] animate-pulse" />
               <div className="min-w-0">
                 <p className="truncate text-xs font-bold text-foreground">{nomeDaTela(pathname)}</p>
-                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">BEX Print OS · Online</p>
+                <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">BEX Print OS · Online</p>
               </div>
             </div>
             <div className="hidden md:block flex-1" />
             <ThemeToggle />
-            <div className="hidden sm:block font-mono text-[10px] uppercase tracking-wider text-muted-foreground truncate max-w-[200px]">
+            <div className="hidden sm:block font-mono text-xs uppercase tracking-wider text-muted-foreground truncate max-w-[200px]">
               {user.email}
             </div>
             {/* CMYK footer line */}

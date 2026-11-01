@@ -75,7 +75,7 @@ export function BarraDeComposicao({
             style={{ width: `${Math.max(f.fracao * 100, 0)}%` }}
           >
             {f.fracao > 0.11 && (
-              <span className="px-1 text-[10px] font-medium text-white whitespace-nowrap">
+              <span className="px-1 text-xs font-medium text-white whitespace-nowrap">
                 {pct(f.fracao)}
               </span>
             )}

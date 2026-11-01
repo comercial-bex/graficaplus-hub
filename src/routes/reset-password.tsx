@@ -101,7 +101,7 @@ function ResetPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <label className="ml-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                   Nova senha
                 </label>
                 <input
@@ -117,7 +117,7 @@ function ResetPasswordPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <label className="ml-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                   Confirmar senha
                 </label>
                 <input

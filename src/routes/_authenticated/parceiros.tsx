@@ -232,7 +232,7 @@ function ParceirosPage() {
                         <p className="truncate text-base font-semibold">{p.nome}</p>
                         {p.nivel?.nome && (
                           <span
-                            className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                            className="rounded-full border px-2 py-0.5 text-xs font-medium"
                             style={{ borderColor: p.nivel.cor ?? undefined, color: p.nivel.cor ?? undefined }}
                           >
                             {p.nivel.nome}
@@ -342,7 +342,7 @@ function ParceirosPage() {
 function Metrica({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <div className="min-w-0">
-      <dt className="flex items-center gap-1 truncate text-[11px] uppercase tracking-wider text-muted-foreground">
+      <dt className="flex items-center gap-1 truncate text-xs uppercase tracking-wider text-muted-foreground">
         {rotulo}
         <DicaIcone texto={dicaCampo("/parceiros", rotulo)} rotulo={rotulo} />
       </dt>

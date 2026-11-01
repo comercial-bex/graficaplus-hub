@@ -223,7 +223,7 @@ function PosVendaPage() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1 font-mono">
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
                     <span>Nada provável</span>
                     <span>Extremamente provável</span>
                   </div>

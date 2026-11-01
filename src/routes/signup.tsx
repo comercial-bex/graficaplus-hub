@@ -105,31 +105,31 @@ function SignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label className="ml-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                 Nome completo
               </label>
               <input value={nome} onChange={(e) => setNome(e.target.value)} required className={inputCls} placeholder="Seu nome" />
             </div>
             <div className="space-y-2">
-              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label className="ml-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                 E-mail corporativo
               </label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} placeholder="voce@bexprint.com.br" />
             </div>
             <div className="space-y-2">
-              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label className="ml-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                 Senha
               </label>
               <input type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required className={inputCls} placeholder="Mínimo 6 caracteres" />
             </div>
             <div className="space-y-2">
-              <label className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label className="ml-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                 Telefone / WhatsApp
               </label>
               <input value={telefone} onChange={(e) => setTelefone(e.target.value)} className={inputCls} placeholder="(96) 99111-6169" />
             </div>
             <div className="space-y-2">
-              <label htmlFor="cargo" className="ml-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label htmlFor="cargo" className="ml-1 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                 O que você faz na gráfica
               </label>
               {/* É a informação que o administrador usa para escolher o perfil.
@@ -140,7 +140,7 @@ function SignupPage() {
                   <option key={f.valor} value={f.valor}>{f.rotulo}</option>
                 ))}
               </select>
-              <p className="px-1 text-[11px] text-muted-foreground/80">
+              <p className="px-1 text-xs text-muted-foreground/80">
                 Isto é só uma indicação — quem decide o acesso é o administrador.
               </p>
             </div>

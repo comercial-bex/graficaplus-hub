@@ -681,7 +681,7 @@ function KanbanPage() {
                 }`}
               >
                 {ROTULO_ETAPA[etapa]}
-                <span className="rounded bg-muted px-1 text-[11px] text-foreground/80">{n}</span>
+                <span className="rounded bg-muted px-1 text-xs text-foreground/80">{n}</span>
               </button>
             );
           })}
@@ -715,7 +715,7 @@ function KanbanPage() {
 
         {foraDoFluxo.length > 0 && (
           <section className="mt-4 rounded-xl border border-dashed border-border bg-muted/20 p-3">
-            <h2 className="mb-2 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            <h2 className="mb-2 flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
               <Pause className="h-3 w-3" />
               Fora do fluxo · {foraDoFluxo.length}
               <span className="ml-1 font-sans normal-case tracking-normal">
@@ -862,16 +862,16 @@ function Coluna({
       }`}>
       <div className="mb-2 px-1">
         <div className="flex items-baseline justify-between gap-2">
-          <h3 className="min-w-0 break-words font-mono text-xs uppercase leading-tight tracking-[0.12em] text-foreground/80 md:text-[11px]">
+          <h3 className="min-w-0 break-words font-mono text-xs uppercase leading-tight tracking-[0.12em] text-foreground/80 md:text-xs">
             {ROTULO_ETAPA[etapa]}
           </h3>
-          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-xs text-muted-foreground/80 md:text-[10px]">
+          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-xs text-muted-foreground/80 md:text-xs">
             {itens.length.toString().padStart(2, "0")}
           </span>
         </div>
         {/* Descrição e legenda só no desktop: no celular custam altura na
             primeira dobra e o chip de etapa já situa o impressor. */}
-        <p className="mt-0.5 hidden line-clamp-2 text-[10px] leading-snug text-muted-foreground md:block">
+        <p className="mt-0.5 hidden line-clamp-2 text-xs leading-snug text-muted-foreground md:block">
           {DESCRICAO_ETAPA[etapa]}
         </p>
         {/* A legenda mora aqui e só aqui: é na Produção que o ícone do cartão
@@ -882,7 +882,7 @@ function Coluna({
             {legendaDeMaquinas().map((m) => (
               <span
                 key={m.chave}
-                className="flex items-center gap-0.5 text-[9px]"
+                className="flex items-center gap-0.5 text-xs"
                 style={{ color: m.cor }}
               >
                 <IconeDaMaquina identidade={m} className="h-2.5 w-2.5" />
@@ -892,7 +892,7 @@ function Coluna({
           </div>
         )}
         {encalhe && encalhe !== "agora" && (
-          <p className="mt-0.5 font-mono text-xs text-muted-foreground/70 md:text-[10px]">
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground/70 md:text-xs">
             mais antiga: {encalhe}
           </p>
         )}
@@ -939,7 +939,7 @@ function Coluna({
           </div>
         )}
         {itens.length === 0 && !carregando && (
-          <div className="py-6 text-center font-mono text-xs text-muted-foreground/60 md:text-[11px]">
+          <div className="py-6 text-center font-mono text-xs text-muted-foreground/60 md:text-xs">
             — vazio —
           </div>
         )}

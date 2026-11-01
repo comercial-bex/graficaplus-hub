@@ -444,32 +444,32 @@ function CompromissosPage() {
 
               <div className="grid gap-3 sm:grid-cols-4 text-sm">
                 <div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                     Bens da casa
                   </div>
                   <div className="font-bold font-mono">{brl(r.patrimonioBruto)}</div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {r.quitadas} quitada(s) · {r.financiadas} financiada(s)
                   </div>
                 </div>
                 <div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                     Dívida sobre eles
                   </div>
                   <div className="font-bold font-mono">{brl(r.dividaSobreBens)}</div>
                 </div>
                 <div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                     Patrimônio líquido
                   </div>
                   <div className="font-bold font-mono text-emerald-600">{brl(r.patrimonioLiquido)}</div>
                 </div>
                 <div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                     Locação a pagar
                   </div>
                   <div className="font-bold font-mono">{brl(r.compromissoLocacao)}</div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {r.locadas} alugada(s) — não é patrimônio
                   </div>
                 </div>
@@ -482,7 +482,7 @@ function CompromissosPage() {
                     <li key={mq.id} className="space-y-1">
                       <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
                         <span className="font-medium">{mq.nome}</span>
-                        <Badge variant="outline" className="font-normal text-[10px] capitalize">
+                        <Badge variant="outline" className="font-normal text-xs capitalize">
                           {mq.forma_aquisicao}
                         </Badge>
                         <span className="ml-auto font-mono text-xs">
@@ -498,7 +498,7 @@ function CompromissosPage() {
                         </div>
                       )}
                       {(mq.pendencia_patrimonio || mq.pendencia_divida) && (
-                        <p className="text-[11px] text-amber-600">
+                        <p className="text-xs text-amber-600">
                           {[mq.pendencia_patrimonio, mq.pendencia_divida].filter(Boolean).join(" · ")}
                         </p>
                       )}
@@ -631,21 +631,21 @@ function CompromissosPage() {
 
                   <div className="grid gap-3 sm:grid-cols-4 text-sm">
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Parcela</div>
+                      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Parcela</div>
                       <div className="font-bold font-mono">
                         {atual ? `${atual.numero} de ${atual.de}` : "sem fim"}
                       </div>
                     </div>
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Já pago</div>
+                      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Já pago</div>
                       <div className="font-bold font-mono">{brl(c.valor_pago)}</div>
                     </div>
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Ainda devo</div>
+                      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Ainda devo</div>
                       <div className="font-bold font-mono">{c.saldo_devedor == null ? "—" : brl(c.saldo_devedor)}</div>
                     </div>
                     <div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Próxima</div>
+                      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Próxima</div>
                       <div className="font-bold font-mono">{dia(c.proximo_vencimento)}</div>
                     </div>
                   </div>
@@ -872,7 +872,7 @@ function CompromissosPage() {
             <div className="space-y-1">
               <Label className="text-xs">Data em que foi pago</Label>
               <Input type="date" value={baixaData} onChange={(e) => setBaixaData(e.target.value)} />
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 A data real do pagamento, não a de hoje — é ela que vai para o caixa.
               </p>
             </div>
@@ -899,7 +899,7 @@ function CompromissosPage() {
               />
               <span>
                 Lançar a saída no fluxo de caixa
-                <span className="block text-[11px] text-muted-foreground">
+                <span className="block text-xs text-muted-foreground">
                   Desmarque se esta parcela foi paga antes de o sistema existir — aí a
                   obrigação fica quitada sem inventar movimento no caixa.
                 </span>
@@ -964,7 +964,7 @@ function CompromissosPage() {
                 value={form.total_parcelas}
                 onChange={(e) => setForm((f) => ({ ...f, total_parcelas: e.target.value }))}
               />
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Vazio = sem fim (aluguel, assinatura). Aí as parcelas são geradas
                 12 meses à frente.
               </p>

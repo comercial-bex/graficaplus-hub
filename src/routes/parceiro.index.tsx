@@ -105,7 +105,7 @@ function Numero(props: {
     >
       <props.icone className="h-4 w-4 text-muted-foreground" />
       <p className="mt-2 text-2xl font-bold tabular-nums">{Number(props.valor)}</p>
-      <p className="text-[11px] leading-tight text-muted-foreground md:text-xs">{props.rotulo}</p>
+      <p className="text-xs leading-tight text-muted-foreground md:text-xs">{props.rotulo}</p>
     </Link>
   );
 }

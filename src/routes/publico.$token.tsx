@@ -235,7 +235,7 @@ function Moldura({ children, empresa }: { children: ReactNode; empresa?: string 
     <div className="min-h-screen bg-background">
       <div className="h-1.5" style={{ background: "var(--gradient-cmyk)" }} />
       <div className="mx-auto max-w-3xl px-4 py-6 sm:py-10">
-        <div className="mb-6 flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+        <div className="mb-6 flex items-center justify-between gap-2 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
           <span>{empresa ?? "Bex Print"}</span>
           <span className="flex items-center gap-1">
             <Lock className="h-3 w-3" /> acesso do cliente

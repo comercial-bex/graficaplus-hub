@@ -124,7 +124,7 @@ export function ComentariosDaArte({
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
           />
-          <p className="text-right text-[11px] text-muted-foreground">
+          <p className="text-right text-xs text-muted-foreground">
             {texto.length}/{LIMITE}
           </p>
         </div>

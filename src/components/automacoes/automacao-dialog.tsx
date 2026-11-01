@@ -243,7 +243,7 @@ export function AutomacaoDialog({
               <div className="max-h-56 overflow-y-auto rounded-md border p-3 space-y-3">
                 {fluxo().map((grupo) => (
                   <div key={grupo.etapa}>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                       {grupo.rotulo}
                     </p>
                     <div className="grid gap-1 sm:grid-cols-2">
@@ -398,7 +398,7 @@ export function AutomacaoDialog({
                     onClick={() => inserirVariavel(v.chave)}
                     className={cn(
                       badgeVariants({ variant: "outline" }),
-                      "font-mono text-[10px] font-normal cursor-pointer",
+                      "font-mono text-xs font-normal cursor-pointer",
                     )}
                   >
                     {`{{${v.chave}}}`}

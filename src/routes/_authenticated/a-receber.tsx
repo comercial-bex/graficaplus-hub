@@ -432,7 +432,7 @@ function AReceberPage() {
                 value={valor}
                 onChange={(e) => setValor(e.target.value)}
               />
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Vem preenchido com o valor da parcela. Mude se o cliente pagou um valor diferente do
                 combinado.
               </p>
@@ -560,13 +560,13 @@ function ContaCard({
 
         <div className="grid grid-cols-3 gap-3 text-sm">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Total da conta
             </div>
             <div className="font-mono font-bold">{brl(conta.valor_total)}</div>
           </div>
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Vencido
             </div>
             <div
@@ -576,7 +576,7 @@ function ContaCard({
             </div>
           </div>
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Recebido
             </div>
             <div className="font-mono font-bold">{brl(conta.recebido)}</div>

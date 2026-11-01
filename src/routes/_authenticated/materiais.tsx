@@ -586,7 +586,7 @@ function MateriaisPage() {
                       {m.caracteristicas && (
                         <div className="text-xs text-muted-foreground">{m.caracteristicas}</div>
                       )}
-                      <div className="text-[11px] text-muted-foreground">
+                      <div className="text-xs text-muted-foreground">
                         {normalizarUnidade(m.unidade)}
                         {m.fornecedor ? ` · ${m.fornecedor}` : ""}
                         {m.localizacao ? ` · ${m.localizacao}` : ""}

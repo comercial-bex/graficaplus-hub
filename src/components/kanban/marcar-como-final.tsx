@@ -43,7 +43,7 @@ export function MarcarComoFinal({ arquivoId, nome }: { arquivoId: string; nome: 
       <Button type="button" size="sm" disabled={marcar.isPending} onClick={() => marcar.mutate()}>
         {marcar.isPending ? "Marcando…" : "Marcar como final"}
       </Button>
-      <p className="truncate text-[11px] text-muted-foreground">{nome}</p>
+      <p className="truncate text-xs text-muted-foreground">{nome}</p>
     </div>
   );
 }

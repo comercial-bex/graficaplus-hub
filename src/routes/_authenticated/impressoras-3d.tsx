@@ -334,7 +334,7 @@ function ImpressorasPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Printer className="h-5 w-5 text-primary" />
+                      <Printer className="h-5 w-5 text-link" />
                     </div>
                     <div>
                       <CardTitle className="text-base">{m.maquinas?.nome ?? "—"}</CardTitle>

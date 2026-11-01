@@ -196,7 +196,7 @@ function AprovacoesPage() {
                 key={f.chave}
                 type="button"
                 onClick={() => setFiltro(f.chave)}
-                className={`rounded border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition ${
+                className={`rounded border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${
                   filtro === f.chave
                     ? "border-[color:var(--bex-cyan)]/40 bg-[color:var(--bex-cyan)]/15 text-[color:var(--bex-cyan)]"
                     : "border-border text-muted-foreground hover:text-foreground"
@@ -309,7 +309,7 @@ function AprovacoesPage() {
                   <TableCell className="text-xs text-muted-foreground">
                     {dataCurta(l.ultima_decisao_em ?? l.aprovado_em ?? l.enviado_em)}
                     {l.aprovado_por_nome && (
-                      <p className="text-[11px]">por {l.aprovado_por_nome}</p>
+                      <p className="text-xs">por {l.aprovado_por_nome}</p>
                     )}
                   </TableCell>
                 </TableRow>
