@@ -14,7 +14,7 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 | Funil | Lead do WhatsApp deixa de ser temporário pelos fatos (o funil mostrava zero) | Mesclada (#315), migração já aplicada |
 | Cadastro | Ficha do cliente com inscrições, outros contatos e origem; documento validado também na edição | Mesclada (#319), migração já aplicada |
 | Cadastro 2 | Origem no cadastro guiado Novo cliente | Em PR |
-| 2b | Menu em coluna única com grupos e favoritos | Falta; ver a proposta mais segura em Onda 2b |
+| 2b | Menu em coluna única com grupos e favoritos | Parte segura feita (nome no trilho e subgrupos recolhíveis); faltam favoritos e a coluna única |
 | 3 | Padrão de lista financeira (chips, período com atalhos, Ações em lote, rodapé de totais) | Quase pronta: Contas a pagar (#316) e Contas a receber (#320, com filtro de origem do cliente) mescladas; falta Ações em lote, total dos selecionados e as listas de compras, materiais e clientes |
 | 6 | Filtros do WhatsApp ao lado da conversa | Quase pronta: a caixa já tem abas de status, filtro de setor e busca; falta só filtro por responsável |
 | 7b, 7c | Tela do operador por máquina e linha do tempo | Falta |
@@ -39,7 +39,8 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 
 ### Onda 2b: menu e favoritos
 - **Arquivos:** `src/components/menu/menu-lateral.tsx` (trilho de ícones mais painel; item em `h-11`, 16 px), `src/components/app-sidebar.tsx`, `src/routes/_authenticated/route.tsx`. A fonte do menu continua sendo `moduleMap.ts`; só muda a apresentação.
-- **Fazer:** grupos recolhíveis em coluna única, estrela de favoritos por usuário (começar por `localStorage`, depois tabela se o dono quiser levar entre aparelhos), grupo "Favoritos" no alto.
+- **Feito em 01/11 (a parte segura):** o trilho mostra o nome de cada área o tempo todo (antes só no celular e na dica do mouse) e os subgrupos do painel recolhem, com o estado lembrado neste aparelho; o subgrupo da tela atual nunca fecha.
+- **Falta, se o dono quiser:** estrela de favoritos por usuário (começar por `localStorage`, depois tabela para levar entre aparelhos), grupo "Favoritos" no alto e, como alternativa maior, a coluna única do Holdprint.
 - **Cuidado:** menu do parceiro é outro (`src/components/parceiro/menu-do-parceiro.tsx`); testes de menu e de permissão (`rolePermissions` é espelho em TS, não mexer sem ler a nota); celular usa gaveta.
 - **Conferir:** teclado, celular, `vitest` e `tsc`, e o mesmo item para quem não tem a permissão.
 

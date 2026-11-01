@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Download, HandCoins, House, LogOut, Search, UserRound, X } from "lucide-react";
+import { ChevronDown, Download, HandCoins, House, LogOut, Search, UserRound, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Sidebar, useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,6 +37,27 @@ function lerModuloLembrado(): string | null {
   } catch {
     // Navegação privada ou armazenamento bloqueado: o menu volta ao padrão.
     return null;
+  }
+}
+
+/** Os subgrupos do painel que a pessoa recolheu neste aparelho (chave "módulo:subgrupo"). */
+const CHAVE_RECOLHIDOS = "bexprint:menu:subgrupos-recolhidos";
+
+function lerRecolhidos(): string[] {
+  try {
+    const bruto = window.localStorage.getItem(CHAVE_RECOLHIDOS);
+    const lista: unknown = bruto ? JSON.parse(bruto) : [];
+    return Array.isArray(lista) ? lista.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function lembrarRecolhidos(chaves: string[]) {
+  try {
+    window.localStorage.setItem(CHAVE_RECOLHIDOS, JSON.stringify(chaves));
+  } catch {
+    /* sem armazenamento o menu só não lembra na próxima vez */
   }
 }
 
@@ -156,6 +177,18 @@ export function MenuLateral({
   useEffect(() => {
     setLembrado(lerModuloLembrado());
   }, []);
+  // Subgrupos recolhidos: começa tudo aberto (igual no servidor e no cliente) e lê o que a
+  // pessoa recolheu depois de montar, para o HTML não divergir.
+  const [recolhidos, setRecolhidos] = useState<string[]>([]);
+  useEffect(() => {
+    setRecolhidos(lerRecolhidos());
+  }, []);
+  const alternarSubgrupo = (chave: string) =>
+    setRecolhidos((atual) => {
+      const novo = atual.includes(chave) ? atual.filter((c) => c !== chave) : [...atual, chave];
+      lembrarRecolhidos(novo);
+      return novo;
+    });
   const daRota = moduloDaRota(pathname);
   const ativo: IdDoModulo =
     escolha && escolha.em === pathname ? escolha.modulo : (daRota ?? moduloPadrao(areas, lembrado));
@@ -285,7 +318,9 @@ export function MenuLateral({
     <>
       <Sidebar collapsible="icon" larguraNoCelular={LARGURA_DO_MENU}>
         <div className="flex h-full w-full">
-          {/* O trilho: um ícone por módulo, na cor da marca. */}
+          {/* O trilho: um ícone por módulo, na cor da marca, com o nome por baixo. O nome ficava
+              só no celular e na dica ao passar o mouse; quem enxerga mal não deveria ter de
+              adivinhar o ícone (01/11/2026). */}
           <nav
             aria-label="Módulos"
             className="flex w-16 shrink-0 flex-col items-center gap-1.5 bg-[var(--sidebar-trilho)] py-3"
@@ -302,14 +337,14 @@ export function MenuLateral({
                     aria-current={ehAtivo ? "true" : undefined}
                     onClick={() => escolherModulo(m.id)}
                     className={cn(
-                      "relative flex w-14 flex-col items-center justify-center gap-0.5 rounded-xl py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar md:h-11 md:w-11 md:py-0",
+                      "relative flex w-14 flex-col items-center justify-center gap-0.5 rounded-xl py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar md:h-14 md:w-14 md:py-1.5",
                       ehAtivo
                         ? "bg-sidebar text-[var(--sidebar-marca)] shadow-lg"
                         : "text-[var(--sidebar-trilho-foreground)]/75 hover:bg-black/10 hover:text-[var(--sidebar-trilho-foreground)]",
                     )}
                   >
                     <m.icon className="h-5 w-5" aria-hidden="true" />
-                    <span className="max-w-full truncate text-xs font-bold leading-none md:hidden">
+                    <span className="max-w-full truncate text-xs font-bold leading-none">
                       {m.curto}
                     </span>
                     {/* Módulo fechado não esconde pendência: a soma vai no canto do ícone. */}
@@ -460,17 +495,40 @@ export function MenuLateral({
               aria-label={moduloAtivo ? `Telas de ${moduloAtivo.label}` : "Telas"}
               className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
             >
-              {secoes.map((sec, n) => (
+              {secoes.map((sec, n) => {
+                const chave = `${ativo}:${sec.label ?? n}`;
+                // O subgrupo da tela em que a pessoa está nunca fecha: se sumisse, sumia também
+                // a pista de onde ela está. Por isso ele nem tem o botão de recolher.
+                const temTelaAtiva = sec.entradas.some(ativa);
+                const recolhida = !!sec.label && !temTelaAtiva && recolhidos.includes(chave);
+                return (
                 <div key={sec.label ?? `secao-${n}`}>
                   {sec.label && (
-                    <h3
-                      data-subgrupo=""
-                      className="mb-2 px-3 text-xs font-bold uppercase tracking-[0.12em] text-sidebar-foreground/70"
-                    >
-                      {sec.label}
-                    </h3>
+                    <div className="mb-2 flex items-center justify-between gap-2 px-3">
+                      <h3
+                        data-subgrupo=""
+                        className="text-xs font-bold uppercase tracking-[0.12em] text-sidebar-foreground/70"
+                      >
+                        {sec.label}
+                      </h3>
+                      {!temTelaAtiva && (
+                        <button
+                          type="button"
+                          data-recolher=""
+                          aria-expanded={!recolhida}
+                          aria-label={`${recolhida ? "Abrir" : "Recolher"} ${sec.label}`}
+                          onClick={() => alternarSubgrupo(chave)}
+                          className="-mr-1 flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                        >
+                          <ChevronDown
+                            aria-hidden="true"
+                            className={cn("h-4 w-4 transition-transform", recolhida && "-rotate-90")}
+                          />
+                        </button>
+                      )}
+                    </div>
                   )}
-                  <ul className="space-y-0.5">
+                  <ul hidden={recolhida} className="space-y-0.5">
                     {sec.entradas.map((e) => {
                       const ehAtiva = ativa(e);
                       const marcas: Record<string, string> = {
@@ -500,7 +558,8 @@ export function MenuLateral({
                     })}
                   </ul>
                 </div>
-              ))}
+                );
+              })}
             </nav>
 
             <div className="space-y-0.5 border-t border-sidebar-border p-3 [@media(max-height:800px)]:p-1.5">
