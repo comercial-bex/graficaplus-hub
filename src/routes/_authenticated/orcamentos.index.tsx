@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FunilDoOrcamento } from "@/components/orcamento/funil-do-orcamento";
 import { QuadroDeOrcamentos } from "@/components/orcamento/quadro-de-orcamentos";
+import { ETAPAS_DO_ENVIADO, etapaParaGravar, type EtapaDoEnviado } from "@/domain/orcamentos/quadro";
 import { Checkbox } from "@/components/ui/checkbox";
 import { chaveWhatsApp } from "@/domain/documentos";
 import { recebeWhatsApp } from "@/domain/documentos";
@@ -81,6 +82,8 @@ function OrcamentosPage() {
   // Converter em OS é `orcamentos.convert` (gerente, admin e o atendimento/vendedor, desde
   // 25/10/2026), e o banco só aceita orçamento aprovado. O botão aparece só onde a conversão é possível.
   const podeConverter = hasPermission("orcamentos.convert");
+  // Mudar a etapa é editar o orçamento: o banco deixa quem tem orcamentos.create (policy "orc permission update").
+  const podeMoverEtapa = hasPermission("orcamentos.create");
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
   // Cascas (25/10/2026): 26 orçamentos antigos, rejeitados ou expirados, sem nenhum valor — sobras
@@ -309,6 +312,17 @@ function OrcamentosPage() {
       criandoRef.current = false;
       setCriando(false);
     }
+  }
+
+  async function moverEtapa(orc: { id: string; numero?: unknown }, etapa: EtapaDoEnviado) {
+    const { error } = await supabase
+      .from("orcamentos")
+      .update({ etapa_comercial: etapaParaGravar(etapa) })
+      .eq("id", orc.id);
+    if (error) return toast.error(mensagemErro(error));
+    qc.invalidateQueries({ queryKey: ["orcamentos"] });
+    const rotulo = ETAPAS_DO_ENVIADO.find((e) => e.id === etapa)?.rotulo ?? etapa;
+    toast.success(`Orçamento #${orc.numero}: ${rotulo.toLowerCase()}`);
   }
 
   async function converterEmOS(orc: any) {
@@ -548,8 +562,10 @@ function OrcamentosPage() {
             orcamentos={filtrados}
             mostrarValores={canSeePrices}
             podeConverter={podeConverter}
+            podeMover={podeMoverEtapa}
             aoAbrir={(id) => navigate({ to: "/orcamentos/$id", params: { id } })}
             aoConverter={(o) => converterEmOS(o)}
+            aoMoverEtapa={(o, etapa) => moverEtapa(o, etapa)}
           />
         ) : (
         <Table>
@@ -616,6 +632,11 @@ function OrcamentosPage() {
                       label={statusLabel[o.status] ?? o.status}
                       tone={statusTone[o.status] ?? "muted"}
                     />
+                    {o.status === "enviado" && o.etapa_comercial && (
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {ETAPAS_DO_ENVIADO.find((e) => e.id === o.etapa_comercial)?.rotulo ?? o.etapa_comercial}
+                      </div>
+                    )}
                   </TableCell>
                   {canSeePrices && (
                     <TableCell className="font-bold text-foreground">

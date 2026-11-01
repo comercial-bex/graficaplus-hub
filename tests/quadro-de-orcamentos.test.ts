@@ -62,11 +62,27 @@ describe("em que coluna cai cada orçamento", () => {
 });
 
 describe("totais do quadro", () => {
-  it("cada orçamento aparece em uma coluna só e as seis colunas vêm na ordem do fluxo", () => {
+  it("cada orçamento aparece em uma coluna só e as oito colunas vêm na ordem do fluxo", () => {
     const q = montarQuadro(LISTA, { mostrarValores: true });
-    expect(q.map((c) => c.id)).toEqual(["rascunho", "enviado", "aprovado", "os", "rejeitado", "expirado"]);
+    // Em negociação e Aceite verbal (01/11/2026) ficam entre Enviados e Aprovados, como no Holdprint.
+    expect(q.map((c) => c.id)).toEqual([
+      "rascunho",
+      "enviado",
+      "em_negociacao",
+      "aceite_verbal",
+      "aprovado",
+      "os",
+      "rejeitado",
+      "expirado",
+    ]);
     expect(q.reduce((n, c) => n + c.quantidade, 0)).toBe(LISTA.length);
-    expect(COLUNAS_DO_QUADRO.filter((c) => c.aberta).map((c) => c.id)).toEqual(["rascunho", "enviado", "aprovado"]);
+    expect(COLUNAS_DO_QUADRO.filter((c) => c.aberta).map((c) => c.id)).toEqual([
+      "rascunho",
+      "enviado",
+      "em_negociacao",
+      "aceite_verbal",
+      "aprovado",
+    ]);
   });
 
   it("soma o valor e conta por coluna", () => {
