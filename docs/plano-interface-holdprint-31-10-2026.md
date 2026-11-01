@@ -2,7 +2,7 @@
 
 31/10/2026. Feito a partir de 20 capturas que o dono enviou (guardadas fora do git, em `docs/referencias/holdprint-31-10/` na máquina do dono), do teste que fiz na conta de 7 dias do Holdprint e da leitura do nosso código e banco.
 
-**Estado das ondas (atualizado ao fim de 31/10/2026):** as Ondas 1, 2, 4, 5 e 7a estão na `main` (#309 a #313). Nada foi publicado no site. O que falta, a ordem, as decisões do dono e os planos da IA e do PDV estão em [proximos-passos-interface-holdprint.md](proximos-passos-interface-holdprint.md); comece por lá.
+**Estado das ondas (atualizado em 01/11/2026):** as Ondas 1, 2, 4, 5 e 7a estão na `main` (#309 a #313) e foram publicadas em 31/10/2026. A Onda 3 em Caixa (#316) e a correção do funil (#315) também estão na `main`. O que falta, a ordem, as decisões do dono e os planos da IA e do PDV estão em [proximos-passos-interface-holdprint.md](proximos-passos-interface-holdprint.md); comece por lá.
 
 ## Objetivo principal
 
