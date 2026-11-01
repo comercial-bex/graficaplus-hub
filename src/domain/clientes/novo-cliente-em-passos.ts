@@ -38,6 +38,8 @@ export type RespostasDoCliente = {
   estado: string;
   vendedor_id: string;
   observacoes: string;
+  /** De onde veio o cliente (Instagram, indicação, balcão...); vazio quando ninguém disse. */
+  origem: string;
 };
 
 export const RESPOSTAS_VAZIAS_DO_CLIENTE: RespostasDoCliente = {
@@ -54,6 +56,7 @@ export const RESPOSTAS_VAZIAS_DO_CLIENTE: RespostasDoCliente = {
   estado: "",
   vendedor_id: "",
   observacoes: "",
+  origem: "",
 };
 
 /** Preenche com os dados da Receita sem sobrescrever o que já foi digitado à mão. */
@@ -121,5 +124,7 @@ export function clienteDasRespostas(r: RespostasDoCliente) {
     cep: r.cep.trim(),
     observacoes: r.observacoes.trim(),
   };
-  return r.vendedor_id ? { ...base, vendedor_id: r.vendedor_id } : base;
+  // Origem só vai quando foi dita: vazia ficaria gravada como texto vazio em vez de "não informada".
+  const comOrigem = r.origem.trim() ? { ...base, origem: r.origem.trim() } : base;
+  return r.vendedor_id ? { ...comOrigem, vendedor_id: r.vendedor_id } : comOrigem;
 }
