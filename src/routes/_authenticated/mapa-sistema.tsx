@@ -72,7 +72,7 @@ function MapaSistemaPage() {
                 <div className="h-[2px]" style={{ background: "var(--gradient-cmyk)" }} />
                 <CardContent className="p-5">
                   <div className="mb-3 flex items-center gap-3">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                    <span className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
                       Camada {String(idx + 1).padStart(2, "0")}
                     </span>
                     <StatusChip label={camada.label} tone={camada.tone} />
@@ -86,7 +86,7 @@ function MapaSistemaPage() {
                           className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-colors hover:brightness-125 ${tipoStyle[n.tipo]}`}
                         >
                           {n.label}
-                          <div className="font-mono text-[10px] font-normal uppercase tracking-wider text-muted-foreground">
+                          <div className="font-mono text-xs font-normal uppercase tracking-wider text-muted-foreground">
                             {n.rota}
                           </div>
                         </Link>
@@ -117,13 +117,13 @@ function MapaSistemaPage() {
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
                   Origem
                 </th>
-                <th className="px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
                   Destino
                 </th>
-                <th className="px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
                   Mecanismo
                 </th>
               </tr>
@@ -153,7 +153,7 @@ function MapaSistemaPage() {
                 <span className="text-base font-black tracking-tight capitalize">{p.perfil}</span>
                 <Link
                   to="/matriz-permissoes"
-                  className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                  className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
                 >
                   ver permissões
                 </Link>
@@ -170,7 +170,7 @@ function MapaSistemaPage() {
                 {p.modulos.map((m) => (
                   <span
                     key={m}
-                    className="rounded-md border border-border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+                    className="rounded-md border border-border px-2 py-0.5 font-mono text-xs uppercase tracking-wider text-muted-foreground"
                   >
                     {m}
                   </span>

@@ -63,13 +63,23 @@
   --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
+  /* Escala de letra maior (31/10/2026). O dono enxerga mal e a tela tinha letra
+     de 10 a 12 px em mais de 1.400 lugares. Agora xs = 13 px, sm = 15 px e base
+     = 16 px; nada abaixo de 12 px (guarda em tests/tema-claro-letra-legivel). */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.5rem;
 }
 
 /* BEX PRINT OS — painel industrial híbrido, claro por padrão. */
 :root {
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
-  --background: #f7f9fc;
+  /* Fundo cinza-azulado (o cartão branco se destaca) e ação principal em
+     verde-água com letra azul-marinho, como o Holdprint que o dono aprovou. O
+     verde #0ebfa6 com letra BRANCA dá só 2,3:1; com #121f3b dá 7,0:1. */
+  --background: #f2f4f7;
   --foreground: #20242d;
 
   --card: #ffffff;
@@ -78,14 +88,15 @@
   --popover: #ffffff;
   --popover-foreground: #20242d;
 
-  --primary: #00a9c6;
-  --primary-foreground: #04141a;
+  --primary: #0ebfa6;
+  --primary-foreground: #121f3b;
 
-  --secondary: #edf1f5;
+  --secondary: #e6eaf0;
   --secondary-foreground: #20242d;
 
-  --muted: #edf1f5;
-  --muted-foreground: #5d6779;
+  --muted: #e6eaf0;
+  /* Texto secundário: #4b5563 dá 6,9:1 no fundo; o #5d6779 antigo, 5,0:1. */
+  --muted-foreground: #4b5563;
 
   --accent: #e6f7fa;
   --accent-foreground: #096b7d;
@@ -97,20 +108,21 @@
   --destructive: #d92d72;
   --destructive-foreground: #ffffff;
 
-  --success: #16825d;
+  --success: #147d5a;
   --success-foreground: #ffffff;
   --warning: #c78300;
   --warning-foreground: #20242d;
   --info: #00a9c6;
   --info-foreground: #ffffff;
-  --positive: #16825d;
+  --positive: #147d5a;
   --positive-foreground: #ffffff;
 
   --border: #dce2e9;
   --input: #cfd7e1;
-  --ring: #00a9c6;
+  /* Foco do teclado visível no branco: #087f72 dá 4,9:1 (o ciano antigo, 2,8:1). */
+  --ring: #087f72;
   --surface-raised: #ffffff;
-  --surface-subtle: #f1f4f8;
+  --surface-subtle: #eceff4;
 
   --chart-1: #00a9c6;
   --chart-2: #e32686;
@@ -124,14 +136,16 @@
   --wa-recebidas: #0089a3;
   --wa-enviadas: #e32686;
 
-  /* Sidebar permanece escura nos dois temas. */
-  --sidebar: #12131a;
-  --sidebar-foreground: #cbd5e1;
+  /* Sidebar permanece escura nos dois temas, agora azul-marinho: menu #212e57
+     e item ativo #215168 (cores do Holdprint aprovadas pelo dono, 31/10/2026).
+     O bloco .dark repete os mesmos valores. */
+  --sidebar: #212e57;
+  --sidebar-foreground: #e2e8f0;
   --sidebar-primary: #00d3f2;
   --sidebar-primary-foreground: #050506;
-  --sidebar-accent: #1a1c25;
+  --sidebar-accent: #215168;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #1e2029;
+  --sidebar-border: #34447a;
   --sidebar-ring: #00d3f2;
   /* O trilho dos módulos (coluna estreita à esquerda do menu) é da cor da
      marca; o ícone do módulo ativo fica num quadrado escuro. Para o trilho
@@ -144,7 +158,7 @@
   /* Bex raw */
   --bex-cyan: #00a9c6;
   --bex-magenta: #e32686;
-  --bex-lime: #16825d;
+  --bex-lime: #147d5a;
   --bex-amber: #c78300;
   --status-cyan: #00788d;
   --status-magenta: #b91e68;
@@ -196,13 +210,13 @@
   --status-magenta: #ff5aae;
   --status-amber: #f5d90a;
   --status-positive: #45d4a0;
-  --sidebar: #12131a;
-  --sidebar-foreground: #cbd5e1;
+  --sidebar: #212e57;
+  --sidebar-foreground: #e2e8f0;
   --sidebar-primary: #00d3f2;
   --sidebar-primary-foreground: #050506;
-  --sidebar-accent: #1a1c25;
+  --sidebar-accent: #215168;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #1e2029;
+  --sidebar-border: #34447a;
   --sidebar-ring: #00d3f2;
   --sidebar-trilho: #00a9c6;
   --sidebar-trilho-foreground: #050506;

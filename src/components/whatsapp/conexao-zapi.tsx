@@ -148,7 +148,7 @@ export function ConexaoZapi() {
           <div key={i.id} className="rounded border border-border/60 bg-muted/30 p-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="font-medium text-foreground">{i.nome ?? "WhatsApp da empresa"}</span>
-              <span className="font-mono text-[11px] text-muted-foreground">
+              <span className="font-mono text-xs text-muted-foreground">
                 instância {i.zapi_instance_id}
                 {i.numero ? ` · ${i.numero}` : ""}
               </span>
@@ -191,12 +191,12 @@ export function ConexaoZapi() {
               Endereço do webhook — copie agora, ele não aparece de novo
             </div>
             <div className="flex gap-2">
-              <Input readOnly value={urlGerada} className="h-8 font-mono text-[11px]" onFocus={(e) => e.target.select()} />
+              <Input readOnly value={urlGerada} className="h-8 font-mono text-xs" onFocus={(e) => e.target.select()} />
               <Button size="sm" variant="outline" className="h-8 shrink-0" onClick={copiar}>
                 {copiado ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               </Button>
             </div>
-            <ol className="list-decimal space-y-0.5 pl-4 text-[11px] text-muted-foreground">
+            <ol className="list-decimal space-y-0.5 pl-4 text-xs text-muted-foreground">
               <li>No painel do Z-API, abra a instância e vá em Webhooks.</li>
               <li>
                 Cole este endereço em <strong>Ao receber</strong>, <strong>Status da mensagem</strong>,{" "}
@@ -243,7 +243,7 @@ export function ConexaoZapi() {
         )}
 
         {!origemValida && podeGerenciar && (
-          <p className="flex items-start gap-1.5 text-[11px] text-[color:var(--bex-amber)]">
+          <p className="flex items-start gap-1.5 text-xs text-[color:var(--bex-amber)]">
             <TriangleAlert className="mt-px h-3 w-3 shrink-0" />
             Este é um endereço de pré-visualização. A URL do webhook precisa ser gerada a partir do
             endereço publicado do sistema.

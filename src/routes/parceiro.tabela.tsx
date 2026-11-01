@@ -252,14 +252,14 @@ function Foto({ produto: p, className }: { produto: ItemDaVitrine; className?: s
 function Selos({ produto: p }: { produto: ItemDaVitrine }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="rounded-full border border-border bg-background/80 px-2 py-0.5 text-[11px] font-medium">
+      <span className="rounded-full border border-border bg-background/80 px-2 py-0.5 text-xs font-medium">
         {tipoLegivel(p.tipo)}
       </span>
-      <span className="rounded-full border border-border bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+      <span className="rounded-full border border-border bg-background/80 px-2 py-0.5 text-xs text-muted-foreground">
         {categoriaLegivel(p.categoria)}
       </span>
       {p.oferta_id && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--bex-amber)]/20 px-2 py-0.5 text-[11px] font-medium text-[color:var(--bex-amber)]">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--bex-amber)]/20 px-2 py-0.5 text-xs font-medium text-[color:var(--bex-amber)]">
           <Zap className="h-3 w-3" /> {p.oferta_titulo ?? "Oferta"}
         </span>
       )}
@@ -279,7 +279,7 @@ function Preco({ produto: p }: { produto: ItemDaVitrine }) {
         </p>
         <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full text-xs">
-            <thead className="bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <thead className="bg-muted/60 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-2 py-1 text-left font-medium">
                   <span className="inline-flex items-center gap-1">

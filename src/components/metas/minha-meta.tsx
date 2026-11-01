@@ -73,9 +73,9 @@ export function MinhaMeta({ className }: { className?: string }) {
     <Card className={cn(estilo.faixa, className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-          <Icone className={cn("h-4 w-4", data.nivel === "nenhum" ? "text-primary" : estilo.texto)} aria-hidden="true" />
+          <Icone className={cn("h-4 w-4", data.nivel === "nenhum" ? "text-link" : estilo.texto)} aria-hidden="true" />
           Sua meta de {nomeDoMes(data.mes)}
-          <Badge variant="outline" className={cn("text-[11px] font-medium", estilo.texto)}>
+          <Badge variant="outline" className={cn("text-xs font-medium", estilo.texto)}>
             {NOME_DO_NIVEL[data.nivel]}
           </Badge>
         </CardTitle>
@@ -136,7 +136,7 @@ function Numero({ rotulo, valor, dica }: { rotulo: string; valor: string; dica?:
   return (
     <Dica texto={dica} className="block">
       <div className="w-full rounded-lg border border-border p-2">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{rotulo}</div>
+        <div className="text-xs uppercase tracking-wider text-muted-foreground">{rotulo}</div>
         <div className="font-mono text-sm font-bold tabular-nums">{valor}</div>
       </div>
     </Dica>

@@ -32,7 +32,7 @@ function Painel({ titulo, ajuda, children }: { titulo: string; ajuda: string; ch
   return (
     <details className="rounded-md border bg-muted/30 p-2">
       <summary className="cursor-pointer text-xs font-medium">{titulo}</summary>
-      <p className="mt-1 text-[11px] text-muted-foreground">{ajuda}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{ajuda}</p>
       <div className="mt-2 space-y-1.5">{children}</div>
     </details>
   );
@@ -153,18 +153,18 @@ function Modos({ maquinaId }: { maquinaId: string }) {
               }
             }}
           />
-          <span className="col-span-2 text-[10px] text-muted-foreground">
+          <span className="col-span-2 text-xs text-muted-foreground">
             {mo.passadas ? `${mo.passadas} pass.` : "—"}
           </span>
           <div className="col-span-3 flex items-center justify-end gap-1">
             {mo.padrao ? (
-              <span className="text-[10px] font-medium text-primary">padrão</span>
+              <span className="text-xs font-medium text-link">padrão</span>
             ) : (
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-7 px-1.5 text-[10px]"
+                className="h-7 px-1.5 text-xs"
                 disabled={marcarPadrao.isPending}
                 onClick={() => marcarPadrao.mutate(mo.id)}
               >
@@ -287,7 +287,7 @@ function Velocidades({ maquinaId }: { maquinaId: string }) {
       ajuda="A velocidade depende da chapa: acrílico de 3 mm corta a 25 mm/s e o de 10 mm a 3 mm/s. Espessura sem linha usa a de cima — a de baixo não atravessa."
     >
       {estimadas > 0 && (
-        <p className="text-[11px] text-amber-600">
+        <p className="text-xs text-amber-600">
           {estimadas === 1 ? "1 linha é estimativa" : `${estimadas} linhas são estimativa`} por analogia, não
           medição. Corte uma peça de teste e corrija o número aqui.
         </p>
@@ -299,9 +299,9 @@ function Velocidades({ maquinaId }: { maquinaId: string }) {
             {l.material}
             {l.operacao !== "corte" && <span className="text-muted-foreground"> ({l.operacao})</span>}
             {/* De onde veio o número (medido na oficina, estimativa…) ficava só no title. */}
-            {l.fonte && <span className="block text-[10px] text-muted-foreground">{l.fonte}</span>}
+            {l.fonte && <span className="block text-xs text-muted-foreground">{l.fonte}</span>}
           </div>
-          <div className="col-span-2 font-mono text-[11px] text-muted-foreground">
+          <div className="col-span-2 font-mono text-xs text-muted-foreground">
             {Number(l.espessura_mm) > 0 ? `${Number(l.espessura_mm)} mm` : "—"}
           </div>
           <Input
@@ -354,9 +354,9 @@ function Velocidades({ maquinaId }: { maquinaId: string }) {
           propósito — e aí é uma decisão, não um clique distraído. */}
       {vetadas.length > 0 && (
         <div className="mt-2 space-y-1 border-t pt-2">
-          <div className="text-[11px] font-medium text-destructive">Esta máquina não processa</div>
+          <div className="text-xs font-medium text-destructive">Esta máquina não processa</div>
           {vetadas.map((l) => (
-            <div key={l.id} className="flex items-start gap-1.5 text-[11px]">
+            <div key={l.id} className="flex items-start gap-1.5 text-xs">
               <span className="font-medium">{l.material}</span>
               <span className="text-muted-foreground flex-1">{l.motivo}</span>
               <Button

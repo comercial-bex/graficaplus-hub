@@ -47,7 +47,7 @@ function CasosDeUsoPage() {
               href={`#${e.id}`}
               className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold hover:border-[color:var(--bex-cyan)]/40"
             >
-              <span className="font-mono text-[10px] text-muted-foreground mr-2">
+              <span className="font-mono text-xs text-muted-foreground mr-2">
                 {String(i + 1).padStart(2, "0")}
               </span>
               {e.etapa}
@@ -64,7 +64,7 @@ function CasosDeUsoPage() {
             <CardContent className="p-6 space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                  <div className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
                     Etapa {String(i + 1).padStart(2, "0")}
                   </div>
                   <h2 className="text-xl font-black tracking-tight">{etapa.etapa}</h2>
@@ -75,7 +75,7 @@ function CasosDeUsoPage() {
                     <Link
                       key={r.url}
                       to={r.url}
-                      className="rounded-md border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                      className="rounded-md border border-border px-2 py-1 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
                     >
                       {r.label}
                     </Link>
@@ -116,14 +116,14 @@ function CasosDeUsoPage() {
 
               <div className="grid gap-4 border-t border-border pt-4 md:grid-cols-3">
                 <div>
-                  <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  <div className="mb-2 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
                     Entidades
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {etapa.entidades.map((e) => (
                       <code
                         key={e}
-                        className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                        className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
                       >
                         {e}
                       </code>
@@ -131,7 +131,7 @@ function CasosDeUsoPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  <div className="mb-2 flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
                     <Users className="h-3 w-3" /> Perfis
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -141,14 +141,14 @@ function CasosDeUsoPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  <div className="mb-2 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
                     Permissões exigidas
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {etapa.permissoes.map((p) => (
                       <code
                         key={p}
-                        className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                        className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
                       >
                         {p}
                       </code>

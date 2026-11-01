@@ -71,7 +71,7 @@ export function RespostasRapidasMenu({
           <div className="space-y-2 p-3 text-sm">
             <p className="text-muted-foreground">Nenhuma resposta rápida ativa cadastrada.</p>
             {podeCadastrar ? (
-              <Link to="/respostas-rapidas" className="text-xs font-medium text-primary underline">
+              <Link to="/respostas-rapidas" className="text-xs font-medium text-link underline">
                 Cadastrar respostas rápidas
               </Link>
             ) : (

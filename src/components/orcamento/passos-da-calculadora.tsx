@@ -38,7 +38,7 @@ export function BarraDePassos({
               <span className="flex items-center gap-1 text-xs font-semibold">
                 <span
                   className={cn(
-                    "inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px]",
+                    "inline-flex h-5 w-5 items-center justify-center rounded-full text-xs",
                     e.situacao === "preenchido" && "bg-primary text-primary-foreground",
                     e.situacao === "problema" && "bg-destructive text-destructive-foreground",
                     e.situacao === "vazio" && "border text-muted-foreground",
@@ -49,7 +49,7 @@ export function BarraDePassos({
                 </span>
                 {e.titulo}
               </span>
-              <span className={cn("truncate text-[11px]", e.situacao === "problema" ? "text-destructive" : "text-muted-foreground")}>
+              <span className={cn("truncate text-xs", e.situacao === "problema" ? "text-destructive" : "text-muted-foreground")}>
                 {e.resumo}
               </span>
             </button>

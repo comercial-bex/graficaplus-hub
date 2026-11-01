@@ -82,7 +82,7 @@ export function AlertaWhatsapp({ compacto = false }: { compacto?: boolean }) {
             </span>
           </div>
           {!compacto && abreMonitor && (
-            <Link to="/whatsapp-monitor" className="shrink-0 text-xs font-medium text-primary underline">
+            <Link to="/whatsapp-monitor" className="shrink-0 text-xs font-medium text-link underline">
               Abrir Monitor
             </Link>
           )}
@@ -116,7 +116,7 @@ export function AlertaWhatsapp({ compacto = false }: { compacto?: boolean }) {
               whatsapp.read/manage). Link para uma tela que responde "sem
               acesso" é beco sem saída — então só aparece para quem entra. */}
           {!compacto && abreMonitor && (
-            <Link to="/whatsapp-monitor" className="shrink-0 text-xs font-medium text-primary underline">
+            <Link to="/whatsapp-monitor" className="shrink-0 text-xs font-medium text-link underline">
               Abrir Monitor
             </Link>
           )}

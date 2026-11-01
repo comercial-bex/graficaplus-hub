@@ -199,16 +199,16 @@ function MatrizPermissoesPage() {
           <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
                   Ação
                 </th>
                 {ROLES.map((r, i) => (
                   <th
                     key={r}
-                    className="px-2 py-3 text-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+                    className="px-2 py-3 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground"
                   >
                     {r}
-                    <div className="mt-0.5 text-[9px] text-muted-foreground/60">{totais[i]}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground/60">{totais[i]}</div>
                   </th>
                 ))}
               </tr>
@@ -219,7 +219,7 @@ function MatrizPermissoesPage() {
                   <tr className="bg-muted/40">
                     <td
                       colSpan={ROLES.length + 1}
-                      className="px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[color:var(--bex-cyan)]"
+                      className="px-4 py-2 font-mono text-xs uppercase tracking-[0.25em] text-[color:var(--bex-cyan)]"
                     >
                       {modulo}
                     </td>

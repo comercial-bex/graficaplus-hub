@@ -584,7 +584,7 @@ function ClientesPage() {
                     {c.nome}
                   </Link>
                   {c.razao_social && (
-                    <div className="text-[10px] font-medium text-muted-foreground">
+                    <div className="text-xs font-medium text-muted-foreground">
                       {c.razao_social}
                     </div>
                   )}
@@ -592,12 +592,12 @@ function ClientesPage() {
                 <TableCell>
                   <StatusChip label={c.tipo.toUpperCase()} tone="muted" />
                 </TableCell>
-                <TableCell className="font-mono text-[11px] text-muted-foreground">
+                <TableCell className="font-mono text-xs text-muted-foreground">
                   {c.documento || "—"}
                 </TableCell>
                 <TableCell>
                   <div>{c.email || "—"}</div>
-                  <div className="text-[10px] text-muted-foreground">{c.telefone || "—"}</div>
+                  <div className="text-xs text-muted-foreground">{c.telefone || "—"}</div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {c.cidade ? `${c.cidade}/${c.estado || ""}` : "—"}

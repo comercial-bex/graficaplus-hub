@@ -207,12 +207,12 @@ function GradeDeLayouts({
                 ) : (
                   <div className="flex flex-col items-center gap-1 text-muted-foreground">
                     {l.pdf ? <FileText className="h-6 w-6" /> : <ImageOff className="h-6 w-6" />}
-                    <span className="text-[11px] uppercase">{extensao(l.nome) || "arquivo"}</span>
+                    <span className="text-xs uppercase">{extensao(l.nome) || "arquivo"}</span>
                   </div>
                 )}
                 <span
                   className={cn(
-                    "absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+                    "absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-xs font-medium",
                     i === 0 ? "bg-primary text-primary-foreground" : "bg-background/90",
                   )}
                 >
@@ -225,7 +225,7 @@ function GradeDeLayouts({
                 </p>
                 <div className="flex items-center justify-between gap-1">
                   {i === 0 ? (
-                    <span className="text-[11px] text-primary">sai no PDF</span>
+                    <span className="text-xs text-link">sai no PDF</span>
                   ) : (
                     <Dica texto="Usar como capa (sai no PDF)">
                       <Button
@@ -615,7 +615,7 @@ export function MiniaturaDoItem({ capa, onAbrir }: { capa: CapaDoItem | undefine
           <Images className="h-5 w-5 text-amber-500" />
         )}
         {capa && capa.total > 1 && (
-          <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-[10px] font-medium">
+          <span className="absolute bottom-0 right-0 rounded-tl bg-background/90 px-1 text-xs font-medium">
             +{capa.total - 1}
           </span>
         )}

@@ -291,7 +291,7 @@ export function EscolhaDeProduto({
             className="h-11 w-11 shrink-0 rounded-md object-cover"
           />
         ) : (
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary/10 text-link">
             <Icone className="h-6 w-6" aria-hidden="true" />
           </span>
         )}
@@ -356,7 +356,7 @@ export function EscolhaDeProduto({
       {/* Passo 1 concluído: o tipo vira uma linha curta e a grade fecha. */}
       {tipoAtual && !termo ? (
         <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm" data-testid="tipo-escolhido">
-          <IconeDoTipo icone={tipoAtual.icone} className="h-4 w-4 text-primary" />
+          <IconeDoTipo icone={tipoAtual.icone} className="h-4 w-4 text-link" />
           <span className="min-w-0 flex-1 truncate font-medium">{tipoAtual.rotulo}</span>
           <Button type="button" variant="ghost" size="sm" className="h-7" disabled={desabilitado} onClick={() => setTipoExplorado(null)}>
             Trocar tipo
@@ -401,14 +401,14 @@ export function EscolhaDeProduto({
                       : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
                   )}
                 >
-                  <Icone className={cn("h-6 w-6", marcado ? "text-primary" : "")} aria-hidden="true" />
+                  <Icone className={cn("h-6 w-6", marcado ? "text-link" : "")} aria-hidden="true" />
                   <span className="text-xs font-medium leading-tight">{t.rotulo}</span>
                   {t.descricao && (
-                    <span className="hidden line-clamp-2 text-[10px] leading-tight text-muted-foreground sm:block">
+                    <span className="hidden line-clamp-2 text-xs leading-tight text-muted-foreground sm:block">
                       {t.descricao}
                     </span>
                   )}
-                  <span className="text-[10px] leading-none text-muted-foreground">
+                  <span className="text-xs leading-none text-muted-foreground">
                     {t.chave === "impressao_3d" && onCalcularPeca3d
                       ? "calculadora"
                       : lista.length === 1
@@ -453,7 +453,7 @@ export function EscolhaDeProduto({
                     onClick={() => escolher(p)}
                     className="inline-flex min-h-11 items-center gap-1 rounded-full border bg-card px-3 text-xs font-medium hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8"
                   >
-                    <IconeDoTipo icone={tipoDoProduto(p).icone} className="h-3.5 w-3.5 text-primary" />
+                    <IconeDoTipo icone={tipoDoProduto(p).icone} className="h-3.5 w-3.5 text-link" />
                     {p.nome}
                   </button>
                 ))}
@@ -506,7 +506,7 @@ export function EscolhaDeProduto({
                   {p.imagem_url ? (
                     <img src={p.imagem_url} alt="" className="h-14 w-14 shrink-0 rounded-md object-cover" />
                   ) : (
-                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-link">
                       <IconeDoTipo icone={t.icone} className="h-7 w-7" />
                     </span>
                   )}
@@ -516,7 +516,7 @@ export function EscolhaDeProduto({
                       <span className="line-clamp-2 text-xs text-muted-foreground">{p.descricao}</span>
                     )}
                     <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                      <span className="rounded border px-1.5 py-px font-mono text-[11px] text-muted-foreground">
+                      <span className="rounded border px-1.5 py-px font-mono text-xs text-muted-foreground">
                         {campos.medidas ? "por m²" : `por ${campos.unidadeLegivel}`}
                       </span>
                       {termo && <span className="text-muted-foreground">{t.rotulo}</span>}
@@ -542,7 +542,7 @@ export function EscolhaDeProduto({
                 onClick={onCalcularPeca3d}
                 className="flex min-h-[4.5rem] items-center gap-3 rounded-lg border border-primary/50 bg-primary/5 p-2 text-left transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-span-2 lg:col-span-3"
               >
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-link">
                   <Box className="h-7 w-7" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">

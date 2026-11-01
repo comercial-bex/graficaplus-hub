@@ -680,7 +680,7 @@ export function Pagamento({
                   )}
                 >
                   <span className="text-xs font-semibold leading-none">{ROTULO_DO_MODELO[m]}</span>
-                  <span className="text-[10px] leading-tight text-muted-foreground">{DICA_DO_MODELO[m]}</span>
+                  <span className="text-xs leading-tight text-muted-foreground">{DICA_DO_MODELO[m]}</span>
                 </button>
               );
             })}

@@ -50,7 +50,7 @@ export function FormaDePagamento({
           >
             {f.icone}
             <span className="text-xs font-semibold leading-none">{f.rotulo}</span>
-            <span className="text-[10px] leading-none text-muted-foreground">{f.dica}</span>
+            <span className="text-xs leading-none text-muted-foreground">{f.dica}</span>
           </button>
         );
       })}

@@ -467,7 +467,7 @@ function Numero({
       >
         {valor}
       </div>
-      <div className="text-[11px] leading-tight text-muted-foreground">{rotulo}</div>
+      <div className="text-xs leading-tight text-muted-foreground">{rotulo}</div>
     </div>
   );
 }
@@ -533,7 +533,7 @@ function LinhaDaChave({
           <div className={cn("text-sm leading-snug", !c.efetiva && "text-muted-foreground")}>
             {c.descricao ?? c.chave}
           </div>
-          <div className="break-all font-mono text-[11px] text-muted-foreground">{c.chave}</div>
+          <div className="break-all font-mono text-xs text-muted-foreground">{c.chave}</div>
           <div className="flex flex-wrap gap-1">
             {origem.tipo !== "sem" && (
               <StatusChip label={rotuloDaOrigem(origem)} tone={tom} className="normal-case" />

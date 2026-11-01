@@ -89,7 +89,7 @@ export function CartaoDoItem({
             {item.tem_foto ? "A foto não carregou" : "Sem foto — o cliente não vê este item"}
           </div>
         )}
-        <span className="absolute left-2 top-2 rounded bg-background/90 px-1.5 py-0.5 font-mono text-[11px] font-semibold">
+        <span className="absolute left-2 top-2 rounded bg-background/90 px-1.5 py-0.5 font-mono text-xs font-semibold">
           {item.codigo_bex}
         </span>
         {selecionavel && (
@@ -108,12 +108,12 @@ export function CartaoDoItem({
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="space-y-0.5">
           <h3 className="text-sm font-semibold leading-snug">{item.nome}</h3>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Fornecedor: <span className="font-mono">{item.codigo_fornecedor}</span>
             {secao ? ` · ${secao}` : ""}
           </p>
           {/* A descrição ficava só no title da linha do fornecedor. */}
-          {item.descricao && <p className="line-clamp-2 text-[11px] text-muted-foreground">{item.descricao}</p>}
+          {item.descricao && <p className="line-clamp-2 text-xs text-muted-foreground">{item.descricao}</p>}
         </div>
 
         <div className="flex flex-wrap gap-1">

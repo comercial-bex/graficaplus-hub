@@ -167,7 +167,7 @@ export function CartaoDaArte({
                 <Link
                   to="/orcamentos/$id"
                   params={{ id: orcamentoId }}
-                  className="text-primary hover:underline"
+                  className="text-link hover:underline"
                 >
                   Abrir o orçamento
                 </Link>

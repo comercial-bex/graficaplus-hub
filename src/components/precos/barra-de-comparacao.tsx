@@ -51,7 +51,7 @@ export function BarraDeComparacao({ marcadores, className }: { marcadores: Marca
 
 export function LegendaDaBarra() {
   return (
-    <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+    <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
       {LEGENDA_DA_BARRA.map((l) => (
         <li key={l.tipo} className="inline-flex items-center gap-1.5">
           <span className={cn("h-2.5 w-2.5 rounded-full", COR[l.tipo])} /> {l.rotulo}

@@ -205,7 +205,7 @@ export function ConfiguracaoDoAssistente() {
                 );
               })}
             </div>
-            <p className="text-[11px] text-muted-foreground">Horário de Macapá. Fora dele vai um aviso por atendimento.</p>
+            <p className="text-xs text-muted-foreground">Horário de Macapá. Fora dele vai um aviso por atendimento.</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ia-assinatura">Assinatura</Label>
@@ -215,7 +215,7 @@ export function ConfiguracaoDoAssistente() {
               value={form.assinatura}
               onChange={(e) => mudar("assinatura", e.target.value)}
             />
-            <p className="text-[11px] text-muted-foreground">Vai em negrito no começo de cada mensagem da assistente.</p>
+            <p className="text-xs text-muted-foreground">Vai em negrito no começo de cada mensagem da assistente.</p>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="ia-fora">Mensagem fora do horário</Label>

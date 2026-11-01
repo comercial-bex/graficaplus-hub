@@ -164,7 +164,7 @@ function GradeDeFotos({
                 <ImageOff className="h-5 w-5 text-muted-foreground" />
               )}
             </span>
-            <span className="line-clamp-2 p-1.5 text-[11px] leading-tight">{f.legenda ?? f.codigo_fornecedor}</span>
+            <span className="line-clamp-2 p-1.5 text-xs leading-tight">{f.legenda ?? f.codigo_fornecedor}</span>
             {marcada && (
               <span className="absolute right-1 top-1 rounded-full bg-primary p-0.5 text-primary-foreground">
                 <Check className="h-3 w-3" />

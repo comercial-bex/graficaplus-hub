@@ -135,10 +135,10 @@ export function PixDoOrcamento({
                   rows={4}
                   value={copiaECola}
                   aria-label="Pix copia e cola"
-                  className="w-full resize-none rounded-md border border-input bg-background p-2 font-mono text-[11px] leading-snug"
+                  className="w-full resize-none rounded-md border border-input bg-background p-2 font-mono text-xs leading-snug"
                   onFocus={(e) => e.currentTarget.select()}
                 />
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Ao pagar, o app do banco tem de mostrar o recebedor <strong>{String(cfg?.razao_social ?? cfg?.nome ?? "da empresa")}</strong> e o valor{" "}
                   <strong>{brl(valor)}</strong>. Se aparecer outro nome ou valor, não envie.
                 </p>

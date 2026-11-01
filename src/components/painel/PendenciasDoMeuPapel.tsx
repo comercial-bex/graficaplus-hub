@@ -77,7 +77,7 @@ export function PendenciasDoMeuPapel({ className }: { className?: string }) {
           <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
           O que falta de mim
           {rotulos.map((r) => (
-            <Badge key={r} variant="outline" className="text-[10px] font-normal">
+            <Badge key={r} variant="outline" className="text-xs font-normal">
               {ROTULO_PAPEL[r]}
             </Badge>
           ))}

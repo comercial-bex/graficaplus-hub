@@ -373,7 +373,7 @@ function CapacidadePage() {
 
                     {semCusto.length > 0 && (
                       <div className="mt-4">
-                        <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                           Sem custo/hora ({semCusto.length})
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
@@ -392,7 +392,7 @@ function CapacidadePage() {
 
                     {semVelocidade.length > 0 && (
                       <div className="mt-4">
-                        <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                           Sem velocidade ({semVelocidade.length})
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
@@ -600,7 +600,7 @@ function CapacidadeDaEquipe({ inicio, fim }: { inicio: string; fim: string }) {
                     <div className={`font-mono text-sm font-bold ${faixa.texto}`}>
                       {semFila ? "—" : pct(ocupacao)}
                     </div>
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">
                       {semFila ? "sem fila" : faixa.rotulo}
                     </div>
                   </div>

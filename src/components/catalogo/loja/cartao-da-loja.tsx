@@ -71,11 +71,11 @@ export function CartaoDaLoja({
             <ImageOff className="h-6 w-6" /> A foto não carregou
           </div>
         )}
-        <span className="absolute left-2 top-2 rounded bg-background/90 px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-wide">
+        <span className="absolute left-2 top-2 rounded bg-background/90 px-1.5 py-0.5 font-mono text-xs font-semibold tracking-wide">
           {item.codigo}
         </span>
         {noCarrinho > 0 && (
-          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
+          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
             <ShoppingCart className="h-3 w-3" /> {noCarrinho}
           </span>
         )}
@@ -165,7 +165,7 @@ export function MiniaturaDaLoja({ item, onAbrir }: { item: ItemDaLoja; onAbrir: 
       </div>
       <div className="space-y-0.5 p-2">
         <p className="line-clamp-2 text-xs font-medium leading-snug">{item.nome}</p>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {menor != null ? precoEmReais(menor) : "Sob consulta"} ·{" "}
           <span className="font-mono">{item.codigo}</span>
         </p>

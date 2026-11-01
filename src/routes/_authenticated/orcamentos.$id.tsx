@@ -1434,7 +1434,7 @@ function OrcamentoDetailPage() {
               </Button>
             </Dica>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 <span>Orçamento #{orc.numero}</span>
                 <StatusChip label={ROTULO_DO_STATUS[orc.status] ?? orc.status} tone={statusTone[orc.status] ?? "muted"} />
                 {linhaDaTaxa && <StatusChip label="Expresso" tone="amber" />}
@@ -1672,7 +1672,7 @@ function OrcamentoDetailPage() {
               </CardHeader>
               <CardContent className="space-y-5">
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Cliente</p>
+                  <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Cliente</p>
                   {extra.cliente_id && orc.cliente_nome ? (
                     <Link
                       to="/clientes/$id"
@@ -1693,14 +1693,14 @@ function OrcamentoDetailPage() {
                   )}
                 </div>
                 <div>
-                  <p className="mb-1 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                  <p className="mb-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
                     Quem trouxe a venda
                   </p>
                   <QuemTrouxeAVenda alvo="orcamento" id={id} vendedorId={extra.vendedor_id ?? null} invalidar={[["orcamento", id]]} compacto />
                 </div>
                 {canSeePrices && (
                   <div>
-                    <p className="mb-1 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
                       Preço para
                     </p>
                     <PrecoDoOrcamento
@@ -1899,7 +1899,7 @@ function OrcamentoDetailPage() {
                     ) : (
                       <button
                         type="button"
-                        className="text-xs text-primary underline-offset-2 hover:underline"
+                        className="text-xs text-link underline-offset-2 hover:underline"
                         onClick={() => setMedidasAbertas(true)}
                       >
                         Este item tem medida? Informar largura × altura
@@ -2016,7 +2016,7 @@ function OrcamentoDetailPage() {
                               {/* Material, máquina e mão de obra viram custo com a conta à vista. */}
                               <button
                                 type="button"
-                                className="text-[11px] text-primary hover:underline"
+                                className="text-xs text-link hover:underline"
                                 onClick={() => setCalculadoraAberta(true)}
                               >
                                 calcular
@@ -2416,7 +2416,7 @@ function OrcamentoDetailPage() {
                                   </p>
                                 )}
                                 {pecaDoItem.has(i.id) && (
-                                  <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-primary" data-peca-3d="">
+                                  <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-link" data-peca-3d="">
                                     <Box className="h-3.5 w-3.5" aria-hidden /> Peça 3D
                                     {pecaDoItem.get(i.id)!.material_descricao ? ` · ${pecaDoItem.get(i.id)!.material_descricao}` : ""}
                                     {Number(pecaDoItem.get(i.id)!.gramas_modelo ?? 0) > 0
@@ -2867,7 +2867,7 @@ function OrcamentoDetailPage() {
         data-testid="barra-fixa-do-orcamento"
       >
         <div className="min-w-0">
-          <p className="text-[11px] text-muted-foreground">{canSeePrices ? "Total" : "Itens"}</p>
+          <p className="text-xs text-muted-foreground">{canSeePrices ? "Total" : "Itens"}</p>
           <p className="truncate text-base font-semibold tabular-nums">
             {canSeePrices ? brl(orc.valor_total) : itensDeProduto.length}
           </p>

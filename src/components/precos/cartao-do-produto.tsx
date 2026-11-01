@@ -27,7 +27,7 @@ export function PilulaDeMargem({ margem, minimo, rotulo }: { margem: number | nu
     <Dica texto={`${rotulo}: lucro ÷ preço${minimo != null ? `. Mínimo do produto: ${pct(minimo)}.` : "."}`}>
       <span
         className={cn(
-          "rounded-full border px-2 py-0.5 font-mono text-[11px] font-semibold",
+          "rounded-full border px-2 py-0.5 font-mono text-xs font-semibold",
           margem == null && "border-border text-muted-foreground",
           margem != null && !abaixo && "border-success/40 bg-success/10 text-success",
           abaixo && !negativa && "border-warning/50 bg-warning/20 text-foreground",
@@ -79,13 +79,13 @@ export function CartaoDoProduto({
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
             <SeloDaFicha nivel={ficha.nivel} />
-            {!p.ativo && <Badge variant="outline" className="h-5 px-1.5 text-[11px]">só comparação</Badge>}
+            {!p.ativo && <Badge variant="outline" className="h-6 px-1.5 text-xs">só comparação</Badge>}
             {linha.provisorio && (
               <Dica texto="O custo e o preço de balcão foram copiados de um produto parecido até o custo real ser informado. A margem daqui é uma estimativa.">
-                <Badge variant="outline" className="h-5 border-warning/50 bg-warning/15 px-1.5 text-[11px]">Custo provisório</Badge>
+                <Badge variant="outline" className="h-6 border-warning/50 bg-warning/15 px-1.5 text-xs">Custo provisório</Badge>
               </Dica>
             )}
-            {linha.promocao && <Badge className="h-5 px-1.5 text-[11px]">Promoção {brl(linha.promocao.preco)}</Badge>}
+            {linha.promocao && <Badge className="h-6 px-1.5 text-xs">Promoção {brl(linha.promocao.preco)}</Badge>}
           </div>
         </button>
         <Checkbox
@@ -107,14 +107,14 @@ export function CartaoDoProduto({
         <PilulaDeMargem margem={mP} minimo={minimo} rotulo="Parceiro" />
         {margemRealRuim && (
           <Dica texto={`Com o custo cheio (matéria-prima + máquina + mão de obra + indireto = ${brl(linha.cheio)}) a margem da venda final fica abaixo do mínimo.`}>
-            <span className="rounded-full border border-warning/50 bg-warning/20 px-2 py-0.5 text-[11px] font-semibold">Abaixo do mínimo no custo cheio</span>
+            <span className="rounded-full border border-warning/50 bg-warning/20 px-2 py-0.5 text-xs font-semibold">Abaixo do mínimo no custo cheio</span>
           </Dica>
         )}
       </div>
 
       <div>
         <BarraDeComparacao marcadores={marcadoresDaLinha(linha, pisoDaMargem(linha.custoBase, minimo))} />
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {menor != null ? (
             <>
               Menor concorrente {brl(menor)}
@@ -126,7 +126,7 @@ export function CartaoDoProduto({
         </p>
       </div>
 
-      <button type="button" onClick={aoAbrir} className="self-start text-xs font-medium text-primary underline-offset-2 hover:underline">
+      <button type="button" onClick={aoAbrir} className="self-start text-xs font-medium text-link underline-offset-2 hover:underline">
         Ver ficha, composição e concorrentes
       </button>
     </article>
@@ -136,9 +136,9 @@ export function CartaoDoProduto({
 function Valor({ titulo, valor, nota, forte }: { titulo: string; valor: string; nota?: string; forte?: boolean }) {
   return (
     <div className={cn("rounded-lg px-1 py-1.5", forte ? "bg-primary/10" : "bg-muted/50")}>
-      <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{titulo}</dt>
+      <dt className="text-xs uppercase tracking-wide text-muted-foreground">{titulo}</dt>
       <dd className={cn("font-mono text-sm", forte && "font-semibold")}>{valor}</dd>
-      {nota && <div className="text-[10px] text-muted-foreground">{nota}</div>}
+      {nota && <div className="text-xs text-muted-foreground">{nota}</div>}
     </div>
   );
 }

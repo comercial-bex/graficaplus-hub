@@ -180,7 +180,7 @@ export function FichaDaOs({
         <div className="grid max-h-[calc(92dvh-6.5rem)] overflow-y-auto lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:overflow-hidden">
           {/* ───── A arte: o que vai ser impresso ───── */}
           <section aria-label="Arte da OS" className="space-y-3 border-b border-border p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Arte · o que vai ser impresso
             </h3>
             {arquivo ? (
@@ -217,7 +217,7 @@ export function FichaDaOs({
                           onClick={() => setEscolhido(i)}
                           aria-pressed={i === escolhido}
                           className={cn(
-                            "relative h-16 w-24 shrink-0 overflow-hidden rounded-md border bg-muted/50 text-[10px] text-muted-foreground",
+                            "relative h-16 w-24 shrink-0 overflow-hidden rounded-md border bg-muted/50 text-xs text-muted-foreground",
                             i === escolhido ? "border-[color:var(--bex-cyan)] ring-1 ring-[color:var(--bex-cyan)]" : "border-border hover:border-foreground/30",
                           )}
                         >
@@ -230,7 +230,7 @@ export function FichaDaOs({
                             </span>
                           )}
                           {a.final_producao && (
-                            <span className="absolute left-1 top-1 rounded bg-[color:var(--bex-lime)] px-1 text-[9px] font-semibold text-black">final</span>
+                            <span className="absolute left-1 top-1 rounded bg-[color:var(--bex-lime)] px-1 text-xs font-semibold text-black">final</span>
                           )}
                         </button>
                       </li>
@@ -268,7 +268,7 @@ export function FichaDaOs({
               ) : (
                 <>
                   <TrilhaDaOs status={os.status} />
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">{rotuloDe(os.status)}</span>
                     {maquina && <SeloDaMaquina identidade={maquina} />}
                     {parada && <span className="font-mono">· parada há {parada}</span>}
@@ -289,7 +289,7 @@ export function FichaDaOs({
                           <span>{b.titulo}</span>
                           <span className="sr-only"> — pendente</span>
                         </div>
-                        <div className="mt-0.5 pl-5 text-[11px] text-muted-foreground">{b.resolver}</div>
+                        <div className="mt-0.5 pl-5 text-xs text-muted-foreground">{b.resolver}</div>
                         <div className="mt-2 pl-5">
                           <AcaoDaPendencia
                             codigo={c.codigo}
@@ -313,13 +313,13 @@ export function FichaDaOs({
                         <Lock className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
                         {b.titulo}
                       </div>
-                      <div className="mt-0.5 pl-5 text-[11px] text-muted-foreground">{b.resolver}</div>
+                      <div className="mt-0.5 pl-5 text-xs text-muted-foreground">{b.resolver}</div>
                     </li>
                   ))}
                 </ul>
               )}
               {certas.length > 0 && (
-                <p className={cn("flex items-start gap-1.5 text-[11px] text-muted-foreground", pendentes > 0 && "mt-2")}>
+                <p className={cn("flex items-start gap-1.5 text-xs text-muted-foreground", pendentes > 0 && "mt-2")}>
                   <Check className="mt-px h-3.5 w-3.5 shrink-0 text-[color:var(--bex-lime)]" aria-hidden />
                   <span>
                     <span className="sr-only">Já está certo: </span>
@@ -351,11 +351,11 @@ export function FichaDaOs({
                     ))}
                   </ul>
                   {areaEmTexto(producao.areaTotal) && (
-                    <div className="mt-1.5 font-mono text-[11px] text-muted-foreground">Metragem total: {areaEmTexto(producao.areaTotal)}</div>
+                    <div className="mt-1.5 font-mono text-xs text-muted-foreground">Metragem total: {areaEmTexto(producao.areaTotal)}</div>
                   )}
                 </>
               ) : (
-                <p className="rounded border border-dashed border-border px-3 py-2 text-[11px] text-muted-foreground">
+                <p className="rounded border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
                   Nenhum item cadastrado nesta OS. Sem item, a produção não sabe o que fazer nem o estoque o que baixar.
                 </p>
               )}
@@ -394,18 +394,18 @@ export function FichaDaOs({
                 <SelectContent>
                   {fluxoParaEscolher(os.status).map((et) => (
                     <SelectGroup key={et.etapa}>
-                      <SelectLabel className="text-[10px] uppercase tracking-wider">{et.rotulo}</SelectLabel>
+                      <SelectLabel className="text-xs uppercase tracking-wider">{et.rotulo}</SelectLabel>
                       {et.status.map((s) => (
                         <SelectItem key={s.status} value={s.status}>
                           {s.rotulo}
-                          {s.dica && <span className="ml-1.5 text-[10px] text-muted-foreground">{s.dica}</span>}
+                          {s.dica && <span className="ml-1.5 text-xs text-muted-foreground">{s.dica}</span>}
                         </SelectItem>
                       ))}
                     </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">Também dá para arrastar o cartão.</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">Também dá para arrastar o cartão.</p>
             </Bloco>
 
             <Link to="/os/$id" params={{ id: os.id }} className="block" onClick={onFechar}>
@@ -478,7 +478,7 @@ function AcaoDaPendencia({
 }
 
 function Pedir({ texto }: { texto: string }) {
-  return <p className="text-[11px] italic text-muted-foreground">{texto}</p>;
+  return <p className="text-xs italic text-muted-foreground">{texto}</p>;
 }
 
 function IrPara({ osId, rotulo, onFechar }: { osId: string; rotulo: string; onFechar: () => void }) {
@@ -514,7 +514,7 @@ function Visualizador({ arquivo, url, carregando }: { arquivo: ArquivoDaOs; url:
           <FileText className="h-8 w-8" aria-hidden />
           <span className="text-sm font-semibold uppercase text-foreground">{ehPdf(arquivo.nome, arquivo.mime_type) ? "PDF" : extensao(arquivo.nome) || "Arquivo"}</span>
           <span className="max-w-[16rem] truncate text-xs">{arquivo.nome}</span>
-          <span className="text-[11px]">
+          <span className="text-xs">
             {carregando && imagem
               ? "Carregando a imagem…"
               : imagem
@@ -538,7 +538,7 @@ const PRIORIDADE: Record<number, string> = {
 function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{titulo}</h3>
+      <h3 className="mb-2 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">{titulo}</h3>
       {children}
     </section>
   );

@@ -46,7 +46,7 @@ export function MenuDoParceiro({ painel, onSair }: { painel: PainelDoParceiro; o
   const nivel = painel.nivel;
   const corDoNivel = nivel.cor ?? "var(--sidebar-marca)";
   const linhaDoRodape =
-    "flex h-11 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9";
+    "flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9";
 
   return (
     <Sidebar collapsible="offcanvas" larguraNoCelular={LARGURA_DO_MENU_DO_PARCEIRO}>
@@ -88,7 +88,7 @@ export function MenuDoParceiro({ painel, onSair }: { painel: PainelDoParceiro; o
             <p className="truncate text-sm font-semibold text-sidebar-foreground">
               Olá, <span className="text-[var(--sidebar-marca)]">{painel.parceiro.nome}</span>
             </p>
-            <p className="mt-0.5 inline-flex items-center gap-1.5 text-[11px] text-sidebar-foreground/70">
+            <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-sidebar-foreground/70">
               <Crown className="h-3 w-3" style={{ color: corDoNivel }} aria-hidden />
               Parceiro {nivel.nome ?? ""}
               {nivel.desconto_pct != null && <span>· {Number(nivel.desconto_pct).toLocaleString("pt-BR")}% de desconto</span>}
@@ -101,7 +101,7 @@ export function MenuDoParceiro({ painel, onSair }: { painel: PainelDoParceiro; o
             <Wallet className="h-4 w-4 text-[var(--sidebar-marca)]" aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/55">Seu crédito</p>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-sidebar-foreground/70">Seu crédito</p>
             <p className="truncate text-sm font-bold tabular-nums text-sidebar-accent-foreground">{brl(painel.saldo_credito)}</p>
           </div>
         </div>
@@ -117,7 +117,7 @@ export function MenuDoParceiro({ painel, onSair }: { painel: PainelDoParceiro; o
                 data-active={ativo}
                 aria-current={ativo ? "page" : undefined}
                 className={cn(
-                  "group/item flex h-11 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9",
+                  "group/item flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9",
                   "data-[active=true]:bg-[var(--sidebar-trilho)] data-[active=true]:font-bold data-[active=true]:text-[var(--sidebar-trilho-foreground)]",
                 )}
               >

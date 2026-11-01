@@ -278,7 +278,7 @@ function BlocoEquilibrio({
   return (
     <section className="mb-10">
       <div className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-lg">
-        <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
           Ponto de equilíbrio
         </p>
 
@@ -519,7 +519,7 @@ function ComposicaoDoCusto({ produto, verCusto }: { produto: ProdutoMeta; verCus
           />
         ))}
       </div>
-      <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+      <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
         {fatias.map((f) => (
           <div key={f.rotulo} className="flex items-center gap-1.5">
             <span className={`h-2 w-2 shrink-0 rounded-full ${f.cor}`} aria-hidden />
@@ -529,7 +529,7 @@ function ComposicaoDoCusto({ produto, verCusto }: { produto: ProdutoMeta; verCus
         ))}
       </dl>
       {faltando.length > 0 && (
-        <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-500">
+        <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-500">
           Falta {faltando.join(", ")} — o custo acima está{" "}
           <strong>menor do que o real</strong> e a margem, maior.
         </p>
@@ -699,7 +699,7 @@ function BlocoPorProduto({
                       {verCusto ? (
                         <>
                           <p className={`font-mono text-sm font-bold ${texto}`}>{brl(valor ?? 0)}</p>
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
                             por hora
                           </p>
                         </>
@@ -708,7 +708,7 @@ function BlocoPorProduto({
                            logo ao lado, ele entrega o custo exato da peça por subtração
                            (custo = preço − R$/h × min ÷ 60) — justo o número que a RPC
                            apagou. Fica só a posição no ranking, que não abre conta. */
-                        <p className={`text-[10px] font-medium uppercase tracking-wide ${texto}`}>
+                        <p className={`text-xs font-medium uppercase tracking-wide ${texto}`}>
                           {["rende mais", "no meio", "rende menos"][terco]}
                         </p>
                       )}

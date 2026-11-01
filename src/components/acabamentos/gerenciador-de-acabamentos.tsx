@@ -392,7 +392,7 @@ export function GerenciadorDeAcabamentos({ aberto, aoFechar }: { aberto: boolean
               )}
               {produtosPorCategoria.map(([cat, lista]) => (
                 <div key={cat}>
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{categoriaLabel(cat)}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{categoriaLabel(cat)}</div>
                   <div className="mt-1 grid gap-1 sm:grid-cols-2">
                     {lista.map((p) => (
                       <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-muted/50">

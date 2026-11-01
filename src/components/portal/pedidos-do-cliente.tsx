@@ -139,7 +139,7 @@ function CartaoDoPedido({ ordem, obterUrl }: { ordem: OrdemNoPortal; obterUrl: O
         {/* O cliente vê o preço do que comprou. Custo e margem nem chegam aqui:
             a função do banco não devolve. */}
         <div className="text-right">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
             Valor do pedido
           </div>
           <div className="font-mono font-semibold">{valorDoPedido(ordem.valor_pedido)}</div>

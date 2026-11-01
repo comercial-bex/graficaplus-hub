@@ -39,7 +39,7 @@ export function MinhasComissoes({ className }: { className?: string }) {
           <BadgePercent className="h-4 w-4 text-[color:var(--bex-lime)]" />
           Suas comissões
           {data.pct != null && (
-            <Badge variant="outline" className="text-[10px] font-normal">{Number(data.pct)}% do bruto da OS</Badge>
+            <Badge variant="outline" className="text-xs font-normal">{Number(data.pct)}% do bruto da OS</Badge>
           )}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -49,11 +49,11 @@ export function MinhasComissoes({ className }: { className?: string }) {
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-border p-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">A receber</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">A receber</div>
             <div className="font-mono text-xl font-bold tabular-nums text-[color:var(--bex-amber)]">{brl(Number(data.a_pagar))}</div>
           </div>
           <div className="rounded-lg border border-border p-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Recebido no ano</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">Recebido no ano</div>
             <div className="font-mono text-xl font-bold tabular-nums text-[color:var(--bex-lime)]">{brl(Number(data.pagas_ano))}</div>
           </div>
         </div>

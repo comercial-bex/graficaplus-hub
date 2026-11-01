@@ -43,7 +43,7 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
         {/* O cartão já está dentro da coluna da etapa: repetir o nome dela é ruído. Fica só o passo
             exato, e só quando diz algo (todo cartão de "Atendimento" estava em "Entrada"). */}
         {(foraDoFluxo || status !== "entrada") && detalhe && (
-          <div className="truncate text-xs font-medium text-foreground/85 md:text-[10px]">{detalhe}</div>
+          <div className="truncate text-xs font-medium text-foreground/85 md:text-xs">{detalhe}</div>
         )}
       </div>
     );
@@ -67,7 +67,7 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
             )}
             <span
               className={cn(
-                "relative z-10 flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold",
+                "relative z-10 flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold",
                 feita && "border-[color:var(--bex-lime)]/60 bg-[color:var(--bex-lime)]/20 text-[color:var(--bex-lime)]",
                 aqui && "border-[color:var(--bex-cyan)] bg-[color:var(--bex-cyan)] text-black",
                 !feita && !aqui && "border-border bg-card text-muted-foreground/60",
@@ -76,7 +76,7 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
             >
               {feita ? <Check className="h-3 w-3" aria-hidden /> : i + 1}
             </span>
-            <span className={cn("px-0.5 text-[10px] leading-tight", aqui ? "font-semibold text-foreground" : "text-muted-foreground")}>
+            <span className={cn("px-0.5 text-xs leading-tight", aqui ? "font-semibold text-foreground" : "text-muted-foreground")}>
               {ROTULO_ETAPA[e]}
             </span>
           </li>

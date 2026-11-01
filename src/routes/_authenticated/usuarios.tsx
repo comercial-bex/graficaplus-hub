@@ -405,7 +405,7 @@ function EquipePage() {
                         </Avatar>
                         <div className="min-w-0">
                           <div className="truncate font-medium">{u.nome}</div>
-                          <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                          <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                             {u.ultimo_acesso
                               ? `Último acesso ${new Date(u.ultimo_acesso).toLocaleDateString("pt-BR")}`
                               : "Nunca acessou"}

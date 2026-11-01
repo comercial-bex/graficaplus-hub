@@ -76,7 +76,7 @@ function PedidoLinha({ pedido }: { pedido: PedidoDoParceiro }) {
               />
               <p
                 className={cn(
-                  "truncate text-[10px]",
+                  "truncate text-xs",
                   i === s.passo ? "font-medium text-foreground" : "text-muted-foreground",
                 )}
               >

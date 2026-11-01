@@ -429,7 +429,7 @@ function Numero({ rotulo, valor }: { rotulo: string; valor: number }) {
   return (
     <div className="rounded-md border border-border p-2 text-center">
       <p className="text-lg font-semibold">{valor}</p>
-      <p className="text-[11px] text-muted-foreground">{rotulo}</p>
+      <p className="text-xs text-muted-foreground">{rotulo}</p>
     </div>
   );
 }

@@ -406,7 +406,7 @@ function WhatsappMonitorPage() {
                     <div key={m.id} className="rounded border p-3 text-sm flex items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                          <span className="font-mono text-xs uppercase text-muted-foreground">
                             {m.direcao} · {m.tipo}
                           </span>
                           <StatusChip label={m.status} tone={toneForStatus(m.status)} />

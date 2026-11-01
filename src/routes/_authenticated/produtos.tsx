@@ -638,11 +638,11 @@ function ProdutosPage() {
                         </button>
                         <div className="text-xs text-muted-foreground flex gap-2">
                           {p.sku && <span className="font-mono">{p.sku}</span>}
-                          {p.tipo === "servico" && <Badge variant="outline" className="text-[10px] h-4">serviço</Badge>}
+                          {p.tipo === "servico" && <Badge variant="outline" className="text-xs h-5">serviço</Badge>}
                           {p.ativo && !comReceita.has(p.id) && (
                             <Badge
                               variant="outline"
-                              className="h-4 border-[color:var(--bex-amber)]/50 text-[10px] text-[color:var(--bex-amber)]"
+                              className="h-5 border-[color:var(--bex-amber)]/50 text-xs text-[color:var(--bex-amber)]"
                             >
                               sem receita
                             </Badge>
@@ -656,7 +656,7 @@ function ProdutosPage() {
                           {p.ativo && faltaCusto.has(p.id) && (
                             <Badge
                               variant="outline"
-                              className="h-4 border-[color:var(--bex-amber)]/50 text-[10px] text-[color:var(--bex-amber)]"
+                              className="h-5 border-[color:var(--bex-amber)]/50 text-xs text-[color:var(--bex-amber)]"
                             >
                               material sem custo
                             </Badge>

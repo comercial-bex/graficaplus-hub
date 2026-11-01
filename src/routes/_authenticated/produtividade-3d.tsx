@@ -229,7 +229,7 @@ function ProdutividadePage() {
 function Resumo({ rotulo, valor, alerta }: { rotulo: string; valor: string; alerta?: boolean }) {
   return (
     <div className="bg-card p-4 border-r last:border-r-0">
-      <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
         {rotulo}
       </div>
       <div className={`mt-1 flex items-center gap-1.5 text-xl font-semibold ${alerta ? "text-amber-600" : ""}`}>

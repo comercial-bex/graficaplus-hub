@@ -316,7 +316,7 @@ export function SeloDaFicha({ nivel }: { nivel: "completa" | "parcial" | "sem_fi
     parcial: { texto: "Ficha incompleta", classe: "border-warning/50 bg-warning/15 text-foreground" },
     sem_ficha: { texto: "Sem ficha técnica", classe: "border-destructive/40 bg-destructive/10 text-destructive" },
   }[nivel];
-  return <Badge variant="outline" className={`h-5 px-1.5 text-[11px] font-medium ${dados.classe}`}>{dados.texto}</Badge>;
+  return <Badge variant="outline" className={`h-6 px-1.5 text-xs font-medium ${dados.classe}`}>{dados.texto}</Badge>;
 }
 
 function CaixaDePreco({
@@ -341,8 +341,8 @@ function CaixaDePreco({
     <div className="rounded-lg border border-border bg-card p-3">
       <div className="text-xs text-muted-foreground">{titulo}</div>
       <div className="font-mono text-xl font-semibold">{preco != null ? brl(preco) : <span className="text-sm text-muted-foreground">por faixa</span>}</div>
-      {nota && <div className="text-[11px] text-muted-foreground">{nota}</div>}
-      <div className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">Lucro · margem</div>
+      {nota && <div className="text-xs text-muted-foreground">{nota}</div>}
+      <div className="mt-2 text-xs uppercase tracking-wide text-muted-foreground">Lucro · margem</div>
       <dl className="mt-0.5 space-y-0.5 text-xs">
         <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Custo cadastro</dt><dd className="font-mono">{brl(lucroPorUnidade(preco, custoCadastro))} · <span className={ruim(mCad) ? "text-destructive" : ""}>{pct(mCad)}</span></dd></div>
         <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Custo cheio</dt><dd className="font-mono">{brl(lucroPorUnidade(preco, custoCheio))} · <span className={ruim(mCheio) ? "text-destructive" : ""}>{pct(mCheio)}</span></dd></div>

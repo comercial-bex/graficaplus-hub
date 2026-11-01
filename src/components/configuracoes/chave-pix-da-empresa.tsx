@@ -123,7 +123,7 @@ function TesteDeUmCentavo({ chave, nome, cidade, razao }: { chave: string; nome:
       <div className="flex flex-col gap-3 sm:flex-row">
         <QrCodeDoPix texto={codigo} tamanho={152} />
         <div className="min-w-0 flex-1 space-y-2">
-          <textarea readOnly rows={4} value={codigo} aria-label="Pix copia e cola de teste" className="w-full resize-none rounded-md border border-input bg-background p-2 font-mono text-[11px] leading-snug" onFocus={(e) => e.currentTarget.select()} />
+          <textarea readOnly rows={4} value={codigo} aria-label="Pix copia e cola de teste" className="w-full resize-none rounded-md border border-input bg-background p-2 font-mono text-xs leading-snug" onFocus={(e) => e.currentTarget.select()} />
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="sm" variant="outline" onClick={() => void copiar()}><Copy className="mr-1.5 h-4 w-4" /> Copiar</Button>
             <Button type="button" size="sm" onClick={() => window.open(linkDoWhatsapp(null, `Pix de teste de R$ 0,01 da ${nome}:\n${codigo}`), "_blank", "noopener,noreferrer")}>

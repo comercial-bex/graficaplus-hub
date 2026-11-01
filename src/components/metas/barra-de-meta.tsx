@@ -52,7 +52,7 @@ export function BarraDeMeta({ meta, compacta = false, className }: { meta: MetaD
             <div
               key={mc.chave}
               className={cn(
-                "absolute top-0 flex flex-col items-center text-[11px] leading-tight",
+                "absolute top-0 flex flex-col items-center text-xs leading-tight",
                 fim ? "-translate-x-full items-end" : "-translate-x-1/2",
                 mc.atingido ? "font-semibold text-foreground" : "text-muted-foreground",
               )}

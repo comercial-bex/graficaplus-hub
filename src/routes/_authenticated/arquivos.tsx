@@ -98,7 +98,7 @@ function ArquivosPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card><CardContent className="pt-6"><Metric icon={<FileText className="h-8 w-8 text-primary" />} label="Arquivos ativos" value={ativos} /></CardContent></Card>
+        <Card><CardContent className="pt-6"><Metric icon={<FileText className="h-8 w-8 text-link" />} label="Arquivos ativos" value={ativos} /></CardContent></Card>
         <Card><CardContent className="pt-6"><Metric icon={<FileArchive className="h-8 w-8 text-muted-foreground" />} label="Versões substituídas" value={substituidos} /></CardContent></Card>
         <Card><CardContent className="pt-6"><Metric icon={<Eye className="h-8 w-8 text-green-600" />} label="Artes aprovadas" value={aprovados} /></CardContent></Card>
       </div>

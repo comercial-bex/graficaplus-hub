@@ -287,13 +287,13 @@ export function MetaDoMes({ className }: { className?: string }) {
                     aria-hidden="true"
                   >
                     <span className="h-[18px] w-0.5 rounded bg-foreground/80" />
-                    <span className="mt-0.5 whitespace-nowrap text-[10px] text-muted-foreground">
+                    <span className="mt-0.5 whitespace-nowrap text-xs text-muted-foreground">
                       empata em {brl(meta ?? 0)}
                     </span>
                   </div>
                 )}
               </div>
-              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <li className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[color:var(--bex-lime)]" /> recebido</li>
                 <li className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[color:var(--bex-cyan)]/60" /> vendido, a receber</li>
                 <li className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500/75" /> falta vender</li>
@@ -303,7 +303,7 @@ export function MetaDoMes({ className }: { className?: string }) {
             {/* As três medidas, cada uma com a sua régua contra a meta. */}
             <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
-                <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <dt className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-[color:var(--bex-cyan)]/60" /> Vendido
                 </dt>
                 <dd className="font-mono text-base font-bold tabular-nums xl:text-lg">{brl(vendido)}</dd>
@@ -312,14 +312,14 @@ export function MetaDoMes({ className }: { className?: string }) {
                 </dd>
               </div>
               <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
-                <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <dt className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-[color:var(--bex-lime)]" /> Recebido
                 </dt>
                 <dd className="font-mono text-base font-bold tabular-nums xl:text-lg">{brl(recebido)}</dd>
                 <dd className="text-xs text-muted-foreground">entrou no caixa · {pct(pctDaMeta(recebido))} da meta</dd>
               </div>
               <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
-                <dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <dt className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-muted-foreground/60" /> Concluído
                 </dt>
                 <dd className="font-mono text-base font-bold tabular-nums xl:text-lg">{brl(concluido)}</dd>
@@ -340,20 +340,20 @@ export function MetaDoMes({ className }: { className?: string }) {
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {faltaVenderParaEmpatar != null && metaGeral > 0 && (
                   <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam vender para empatar</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Faltam vender para empatar</p>
                     <p className={cn("font-mono text-xl font-bold tabular-nums xl:text-2xl", faltaVenderParaEmpatar > 0 ? "text-red-500" : "text-emerald-500")}>
                       {faltaVenderParaEmpatar > 0 ? brl(faltaVenderParaEmpatar) : "Empatou"}
                     </p>
                   </div>
                 )}
                 <div className="min-w-0 rounded-lg border border-red-500/40 bg-red-500/5 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
                     {metaGeral > 0 ? `Faltam vender para a meta de ${brl(metaGeral)}` : "Faltam vender para empatar"}
                   </p>
                   <p className="font-mono text-xl font-bold tabular-nums xl:text-2xl text-red-500">{brl(faltaVender)}</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border bg-muted/40 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Faltam receber para pagar as contas</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Faltam receber para pagar as contas</p>
                   <p className={cn("font-mono text-xl font-bold tabular-nums xl:text-2xl", (faltaReceber ?? 0) > 0 ? "text-red-500" : "text-emerald-500")}>
                     {faltaReceber != null && faltaReceber > 0 ? brl(faltaReceber) : "Pagas"}
                   </p>

@@ -13,7 +13,7 @@ export function CreditoCard({ painel }: { painel: PainelDoParceiro }) {
   return (
     <section className="flex flex-col rounded-2xl border border-border bg-card p-5 md:p-6">
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Seu crédito
           <DicaIcone texto={dicaCampo("/parceiro", "seu credito")} rotulo="Seu crédito" />
         </p>

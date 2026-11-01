@@ -408,7 +408,7 @@ function FluxoCaixaPage() {
 
       <Card className="mb-6">
         <CardContent className="p-5">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-4">
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">
             Projeção de saldo
           </div>
           {serie.length === 0 ? (

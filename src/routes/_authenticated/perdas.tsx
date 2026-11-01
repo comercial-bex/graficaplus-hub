@@ -274,7 +274,7 @@ function PerdasPage() {
       {porMotivo.length > 0 && (
         <Card className="mb-6">
           <CardContent className="p-5">
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-4">
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">
               {canSeeFinancials ? "Custo por motivo" : "Registros por motivo"}
             </div>
             <div className="h-64">

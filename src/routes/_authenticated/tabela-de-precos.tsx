@@ -387,7 +387,7 @@ function TabelaDePrecosPage() {
                 onClick={() => alternarGrupo(g.categoria)}
                 className="flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left hover:bg-muted/50"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-link">
                   <IconeDaCategoria categoria={g.categoria} className="h-4 w-4" />
                 </span>
                 <h2 className="text-base font-semibold">{categoriaLabel(g.categoria)}</h2>
@@ -517,7 +517,7 @@ function ChipDeCategoria({ ativo, onClick, rotulo, n, categoria }: { ativo: bool
     >
       {categoria && <IconeDaCategoria categoria={categoria} className="h-3.5 w-3.5" />}
       {rotulo}
-      <span className="rounded-full bg-background/70 px-1.5 text-[10px]">{n}</span>
+      <span className="rounded-full bg-background/70 px-1.5 text-xs">{n}</span>
     </button>
   );
 }

@@ -25,9 +25,9 @@ export function PassosDoItem({ passos, atual }: { passos: PassoDoItem[]; atual: 
             >
               <span
                 className={cn(
-                  "grid h-5 w-5 place-items-center rounded-full border text-[10px] font-semibold",
+                  "grid h-6 w-6 place-items-center rounded-full border text-xs font-semibold",
                   feito && "border-primary bg-primary text-primary-foreground",
-                  ativo && "border-primary text-primary",
+                  ativo && "border-primary text-link",
                   !feito && !ativo && "text-muted-foreground",
                 )}
               >

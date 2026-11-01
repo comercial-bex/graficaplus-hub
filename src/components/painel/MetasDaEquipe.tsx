@@ -111,7 +111,7 @@ export function MetasDaEquipe({ className }: { className?: string }) {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold">{m.usuario_nome ?? "—"}</span>
-                  <Badge variant="outline" className={cn("gap-1 text-[11px] font-medium", ESTILO[m.nivel])}>
+                  <Badge variant="outline" className={cn("gap-1 text-xs font-medium", ESTILO[m.nivel])}>
                     {m.nivel !== "nenhum" && <Icone className="h-3 w-3" aria-hidden="true" />}
                     {NOME_DO_NIVEL[m.nivel]}
                   </Badge>

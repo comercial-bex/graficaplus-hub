@@ -168,7 +168,7 @@ export function ContadorTab() {
 
           <section className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-foreground/5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+              <thead className="bg-foreground/5 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">Data</th>
                   <th className="px-3 py-2 font-medium">Parceiro</th>
@@ -221,7 +221,7 @@ export function ContadorTab() {
               </p>
               <div className="mt-2 overflow-x-auto">
                 <table className="w-full min-w-[640px] text-sm">
-                  <thead className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                     <tr>
                       <th className="py-2 pr-3 font-medium">Data</th>
                       <th className="py-2 pr-3 font-medium">Pedido</th>
@@ -298,7 +298,7 @@ function Numero({
 }) {
   return (
     <div className={`rounded-xl border p-4 ${destaque ? "border-[color:var(--bex-cyan)]/40 bg-[color:var(--bex-cyan)]/5" : "border-border bg-card"}`}>
-      <p className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+      <p className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground">
         {rotulo}
         <DicaIcone texto={ajuda} rotulo={rotulo} />
       </p>

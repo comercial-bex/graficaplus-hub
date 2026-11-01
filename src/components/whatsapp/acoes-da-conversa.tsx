@@ -185,7 +185,7 @@ export function DialogoTransferir({
                     >
                       <span className={cn("h-2 w-2 rounded-full", s.ponto)} aria-hidden />
                       {s.rotulo}
-                      {atual && <span className="ml-auto text-[10px]">atual</span>}
+                      {atual && <span className="ml-auto text-xs">atual</span>}
                     </button>
                   );
                 })}
@@ -201,7 +201,7 @@ export function DialogoTransferir({
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
               />
-              <p className="text-[11px] text-muted-foreground">O motivo aparece na conversa para quem pegar.</p>
+              <p className="text-xs text-muted-foreground">O motivo aparece na conversa para quem pegar.</p>
             </div>
           </div>
         )}
@@ -225,7 +225,7 @@ export function DialogoTransferir({
                     setAvisoEditado(true);
                   }}
                 />
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Sai pelo WhatsApp em seu nome
                   {assinatura ? (
                     <>
@@ -236,7 +236,7 @@ export function DialogoTransferir({
                 </p>
               </>
             ) : (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Só a equipe fica sabendo: o cliente não recebe nada.
               </p>
             )}
@@ -410,7 +410,7 @@ export function FaixaDoModo({
             <Button
               size="sm"
               variant="outline"
-              className="ml-auto h-6 px-2 text-[11px]"
+              className="ml-auto h-7 px-2 text-xs"
               disabled={ocupado}
               onClick={onDevolver}
             >

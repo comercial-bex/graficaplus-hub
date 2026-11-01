@@ -182,7 +182,7 @@ function FunilPage() {
           {canSeeFinancials && (
             <div className="mb-4 grid overflow-hidden rounded-md border sm:grid-cols-2">
               <div className="border-r bg-card p-4">
-                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                   Saldo em conta
                 </div>
                 <div
@@ -197,7 +197,7 @@ function FunilPage() {
                 </div>
               </div>
               <div className="bg-card p-4">
-                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                   Em jogo x caixa
                 </div>
                 <div className="mt-1 text-2xl font-semibold">
@@ -400,7 +400,7 @@ function FunilPage() {
 function Metrica({ rotulo, valor, nota }: { rotulo: string; valor: string; nota: string }) {
   return (
     <div className="border-r bg-card p-4 last:border-r-0">
-      <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
         {rotulo}
       </div>
       <div className="mt-1 text-2xl font-semibold">{valor}</div>

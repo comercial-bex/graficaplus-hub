@@ -184,17 +184,17 @@ function FilaHumanaPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="truncate font-medium">{nomeDaConversa(c)}</span>
-                    <span className={cn("rounded border px-1.5 py-0.5 text-[10px]", setorDaConversa.cor)}>
+                    <span className={cn("rounded border px-1.5 py-0.5 text-xs", setorDaConversa.cor)}>
                       {setorDaConversa.rotulo}
                     </span>
                     {veioDaIa && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
                         <Bot className="h-3 w-3" /> passada pela assistente
                       </span>
                     )}
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{resumoDaConversa(c.ultima_mensagem)}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {telefoneLegivel(c.telefone)} · {responsavel ? `com ${responsavel}` : "sem responsável"}
                   </p>
                 </div>
