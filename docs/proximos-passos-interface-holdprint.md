@@ -24,7 +24,7 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 | IA | Assistente que responde com os dados da gráfica | Plano abaixo |
 | PDV | Venda de balcão | Plano abaixo, depende de prints |
 
-**Publicação:** as Ondas 1, 2, 4, 5 e 7a foram publicadas em 31/10/2026 com o OK do dono. O site responde em bexprint.com.br e bexprint.lovable.app redireciona para lá. Provado no bundle: `--topbar` e `#0ebfa6` no CSS, `vencimentos_por_janela` no chunk do painel e "Quadro de orçamentos" no chunk de orçamentos. As ondas posteriores (Onda 3 em Contas a pagar #316 e Contas a receber #320, cadastro de cliente #319) estão na `main`; ver no fim deste parágrafo se já foram publicadas. a correção do funil (#315) é só banco e já vale. Ordem de sempre: migração aplicada antes do front, esperar o Lovable sincronizar o commit da `main` (`get_project.latest_commit_sha`), publicar, provar no bundle com `curl -L` e avisar o dono para recarregar com Ctrl+Shift+R, por causa do service worker.
+**Publicação:** as Ondas 1, 2, 4, 5 e 7a foram publicadas em 31/10/2026 com o OK do dono. O site responde em bexprint.com.br e bexprint.lovable.app redireciona para lá. Provado no bundle: `--topbar` e `#0ebfa6` no CSS, `vencimentos_por_janela` no chunk do painel e "Quadro de orçamentos" no chunk de orçamentos. Em 01/11/2026 foram publicadas também a Onda 3 em Contas a pagar (#316) e em Contas a receber (#320), a ficha do cliente (#319), a origem no cadastro guiado (#321) e o menu com o nome sempre visível e os subgrupos recolhíveis (#322). Provado nos arquivos do site: `fluxo-caixa`, `a-receber` (`filtro-origem`), `clientes.index` (Documentos fiscais), `clientes._id` (Outros contatos), `campos-da-ficha` (Possui inscrição estadual) e `route` (menu: `subgrupos-recolhidos`). a correção do funil (#315) é só banco e já vale. Ordem de sempre: migração aplicada antes do front, esperar o Lovable sincronizar o commit da `main` (`get_project.latest_commit_sha`), publicar, provar no bundle com `curl -L` e avisar o dono para recarregar com Ctrl+Shift+R, por causa do service worker.
 
 ## O que o dono precisa decidir
 
@@ -143,6 +143,8 @@ Comparado em 01/11/2026 na conta de teste do Holdprint (formulário rápido e fi
 **Ondas do PDV:** PDV-0 prints e regras; PDV-1 venda rápida com recibo e baixa de estoque; PDV-2 caixa (abertura, fechamento, diferença); PDV-3 relatório do dia e integração com o dashboard.
 
 ## Como retomar
+
+**Provar que o que foi publicado está no ar:** o menu e as telas de dentro moram em arquivos que a página de login não cita. Baixe `https://bexprint.com.br/login`, pegue os `/assets/*.js`, extraia deles os nomes `[A-Za-z0-9_.$-]+-[A-Za-z0-9_-]{8}\.js`, baixe todos (cerca de 350) e procure a frase nova com `grep -ao`. No zsh, use aspas simples nas expressões: o `$-` entre aspas duplas vira as opções do shell e a busca não acha nada. A rota `clientes.$id` vira `clientes._id` no nome do arquivo.
 
 1. Ler este arquivo e o plano. Memória: notas `plano-interface-holdprint-31-10`, `dono-enxerga-mal-visual-claro-e-legivel`, `holdprint-benchmark-31-10-como-funciona`.
 2. Antes de mexer: `git fetch`, partir de `origin/main`, um ramo por onda.
