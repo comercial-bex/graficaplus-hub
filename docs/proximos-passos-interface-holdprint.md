@@ -63,6 +63,8 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
   - Decisão do dono antes de começar: a compra paga entra sozinha no caixa?
 - **8c:** liquidar completo: data e conta bancária obrigatórias, motivo da diferença, comprovante, status agendado. Hoje, das 6 contas pagas, 0 têm comprovante e 3 não têm data de pagamento.
 - **8d:** cartão de crédito (dia de fechar e vencer, compra parcelada caindo nas faturas, conferência por PDF) e conciliação lado a lado (hoje o extrato OFX e CSV vira movimento já conciliado e não casa com parcela).
+  - **Achado em 01/11:** o extrato importado entra no caixa sem vínculo e a view soma também o pagamento do sistema, então o mesmo Pix conta duas vezes (8 casos certos, R$ 3.178,49, ver Problemas do nosso lado). A importação deve parear sozinha com pagamento ou parcela em aberto (valor exato, até 3 dias, um para um) e deixar o resto para conferência manual.
+  - Existem duas contas bancárias que parecem a mesma, a segunda com o nome cortado e saldo inicial de 225 (talvez nascida da importação; não verifiquei): listar e pedir o OK do dono antes de mexer.
 - **Cuidados:** prefixo de migração de 14 dígitos único (sessões paralelas colidem), ensaio com rollback, varredura em dois fusos, `REVOKE` de PUBLIC e anon em função nova, front só depois da migração.
 
 ### Onda 9: hora por centro
@@ -125,6 +127,6 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 - Funil comercial vazio: resolvido em 31/10 (#315).
 - `tipo_cliente` desatualizado (18 pessoas físicas constam como jurídicas) e `cliente_contatos` com 0 registros; a ficha do cliente tem um endereço só e nenhum histórico.
 - Compra no fornecedor não gera conta a pagar nem movimento de caixa (Onda 8b).
-- `vw_fluxo_caixa` pode contar o mesmo Pix duas vezes nas entradas.
+- **O fluxo de caixa conta o mesmo Pix duas vezes** (medido em 01/11/2026). `vw_fluxo_caixa` soma os pagamentos do sistema e também as linhas do extrato importado que não têm vínculo. As 93 linhas de `caixa_movimentos` não têm ligação com pagamento (0 ligadas) e só 1 com conta a pagar. Pareando um para um por valor exato e data até 3 dias, 8 Pix aparecem duas vezes e somam R$ 3.178,49 a mais nas entradas; há mais 6 pares ambíguos que ficam de fora. Correção segura e reversível: ligar a linha do extrato ao pagamento (`caixa_movimentos.pagamento_id`, que a própria view já usa para não contar duas vezes). Esperar o OK do dono antes de ligar, porque mexe em dinheiro registrado.
 - "Resolver" ocorrência grava um status que `fechar_os` não libera (latente, hoje há 0 ocorrências).
 - Um orçamento convertido em OS deixa a conta a receber sem cancelar se a OS é cancelada.
