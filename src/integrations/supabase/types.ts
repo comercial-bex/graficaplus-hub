@@ -1848,19 +1848,27 @@ export type Database = {
           documento: string | null
           documento_normalizado: string | null
           email: string | null
+          email_boleto: string | null
+          email_nota_fiscal: string | null
           endereco: string | null
           estado: string | null
           id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
           interno: boolean
           logo_url: string | null
           nome: string
           nome_fantasia: string | null
           observacoes: string | null
           origem: string | null
+          possui_inscricao_estadual: string
           razao_social: string | null
           revendedor: boolean
+          site: string | null
           status: string
           telefone: string | null
+          telefone_2: string | null
+          telefone_3: string | null
           telefone_normalizado: string | null
           tipo: Database["public"]["Enums"]["tipo_cliente"]
           tipo_cliente: Database["public"]["Enums"]["tipo_cliente"]
@@ -1880,19 +1888,27 @@ export type Database = {
           documento?: string | null
           documento_normalizado?: string | null
           email?: string | null
+          email_boleto?: string | null
+          email_nota_fiscal?: string | null
           endereco?: string | null
           estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           interno?: boolean
           logo_url?: string | null
           nome: string
           nome_fantasia?: string | null
           observacoes?: string | null
           origem?: string | null
+          possui_inscricao_estadual?: string
           razao_social?: string | null
           revendedor?: boolean
+          site?: string | null
           status?: string
           telefone?: string | null
+          telefone_2?: string | null
+          telefone_3?: string | null
           telefone_normalizado?: string | null
           tipo?: Database["public"]["Enums"]["tipo_cliente"]
           tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
@@ -1912,19 +1928,27 @@ export type Database = {
           documento?: string | null
           documento_normalizado?: string | null
           email?: string | null
+          email_boleto?: string | null
+          email_nota_fiscal?: string | null
           endereco?: string | null
           estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           interno?: boolean
           logo_url?: string | null
           nome?: string
           nome_fantasia?: string | null
           observacoes?: string | null
           origem?: string | null
+          possui_inscricao_estadual?: string
           razao_social?: string | null
           revendedor?: boolean
+          site?: string | null
           status?: string
           telefone?: string | null
+          telefone_2?: string | null
+          telefone_3?: string | null
           telefone_normalizado?: string | null
           tipo?: Database["public"]["Enums"]["tipo_cliente"]
           tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
