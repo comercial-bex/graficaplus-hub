@@ -25,6 +25,8 @@ import { mensagemErro } from "@/lib/erros";
 import { registrarUso } from "@/lib/uso-de-telas";
 import { CampoDeOrigem } from "@/components/cliente/campos-da-ficha";
 import { CampoDeTelefoneComPais, SeletorDePais } from "@/components/cliente/campo-de-pais";
+import { CampoDeCep } from "@/components/cliente/campo-de-cep";
+import { preencherEnderecoDoCep } from "@/domain/clientes/ficha-do-cliente";
 import { ehBrasil, rotuloDoPais, trocarDePais } from "@/domain/clientes/paises";
 
 /**
@@ -216,10 +218,16 @@ export function NovoClienteEmPassos({
 
       {passo === 4 && (
         <div className="grid gap-3 sm:grid-cols-2">
-          {campo("nc-cep", "CEP", "cep", {
-            inputMode: "numeric",
-            onBlur: () => setR((a) => ({ ...a, cep: formatarCEP(a.cep) })),
-          })}
+          {ehBrasil(r.pais) ? (
+            <CampoDeCep
+              id="nc-cep"
+              valor={r.cep}
+              onValorChange={(cep) => setR((a) => ({ ...a, cep }))}
+              onEncontrado={(d) => setR((a) => preencherEnderecoDoCep(a, d))}
+            />
+          ) : (
+            campo("nc-cep", "Código postal", "cep", { maxLength: 12 })
+          )}
           {campo("nc-endereco", "Endereço", "endereco")}
           {campo("nc-bairro", "Bairro", "bairro")}
           {campo("nc-cidade", "Cidade", "cidade")}

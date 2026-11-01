@@ -57,11 +57,13 @@ import {
 import {
   FICHA_VAZIA,
   camposDaFichaParaGravar,
+  preencherEnderecoDoCep,
   problemaDaFicha,
   type CamposDaFicha,
 } from "@/domain/clientes/ficha-do-cliente";
 import { ORIGENS, rotuloDaOrigem } from "@/domain/crm/origens";
 import { CampoDeTelefoneComPais, SeletorDePais } from "@/components/cliente/campo-de-pais";
+import { CampoDeCep } from "@/components/cliente/campo-de-cep";
 import { bandeira, ehBrasil, paisPorCodigo, trocarDePais } from "@/domain/clientes/paises";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { mensagemErro } from "@/lib/erros";
@@ -517,14 +519,23 @@ function ClientesPage() {
                         onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>CEP</Label>
-                      <Input
-                        maxLength={10}
-                        value={form.cep}
-                        onChange={(e) => setForm({ ...form, cep: e.target.value })}
+                    {ehBrasil(form.pais) ? (
+                      <CampoDeCep
+                        id="cliente-cep"
+                        valor={form.cep}
+                        onValorChange={(cep) => setForm((atual) => ({ ...atual, cep }))}
+                        onEncontrado={(d) => setForm((atual) => preencherEnderecoDoCep(atual, d))}
                       />
-                    </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label>Código postal</Label>
+                        <Input
+                          maxLength={12}
+                          value={form.cep}
+                          onChange={(e) => setForm({ ...form, cep: e.target.value })}
+                        />
+                      </div>
+                    )}
                   </div>
                   {form.tipo === "pj" && ehBrasil(form.pais) && (
                     <div className="md:col-span-2">
