@@ -51,6 +51,22 @@ import { useAuth } from "@/lib/auth-context";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo, dicaTela } from "@/lib/dicas";
 import { Carregando } from "@/components/bex/Carregando";
+import {
+  AvisoDeFiltro,
+  CampoDeBusca,
+  GrupoDeChips,
+  RodapeDeTotais,
+} from "@/components/financeiro/lista-financeira";
+import {
+  CHIPS_DE_SITUACAO,
+  FILTRO_VAZIO,
+  contarPorSituacao,
+  filtrarPorPeriodoEBusca,
+  filtrarPorSituacao,
+  periodosDaLista,
+  totaisDaLista,
+  type FiltroDaLista,
+} from "@/domain/financeiro/lista-de-contas";
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
   head: () => ({
     meta: [
@@ -162,6 +178,24 @@ function FluxoCaixaPage() {
       return data;
     },
   });
+
+  // Lista de contas a pagar: busca, situação e período (Onda 3). O recorte nasce em
+  // "Todos"; as contagens dos chips e os totais acompanham o que está na tela.
+  const [filtro, setFiltro] = useState<FiltroDaLista>(FILTRO_VAZIO);
+  const hojeDaLista = hoje();
+  const periodos = useMemo(() => periodosDaLista(hojeDaLista), [hojeDaLista]);
+  const doPeriodo = useMemo(
+    () => filtrarPorPeriodoEBusca(contas, filtro, hojeDaLista),
+    [contas, filtro, hojeDaLista],
+  );
+  const contagens = useMemo(() => contarPorSituacao(doPeriodo, hojeDaLista), [doPeriodo, hojeDaLista]);
+  const visiveis = useMemo(
+    () => filtrarPorSituacao(doPeriodo, filtro.situacao, hojeDaLista),
+    [doPeriodo, filtro.situacao, hojeDaLista],
+  );
+  const totaisDaTela = useMemo(() => totaisDaLista(visiveis, hojeDaLista), [visiveis, hojeDaLista]);
+  const filtrando =
+    filtro.situacao !== "tudo" || filtro.periodo !== "todos" || filtro.busca.trim() !== "";
 
   const { data: movimentos = [] } = useQuery({
     queryKey: ["caixa-movimentos"],
@@ -459,6 +493,35 @@ function FluxoCaixaPage() {
 
         <TabsContent value="pagar" className="mt-4">
           <Card>
+            {contas.length > 0 && (
+              <div className="space-y-3 border-b border-border p-4">
+                <CampoDeBusca
+                  rotulo="Buscar conta a pagar"
+                  placeholder="Buscar por descrição, fornecedor ou categoria"
+                  valor={filtro.busca}
+                  onChange={(busca) => setFiltro((f) => ({ ...f, busca }))}
+                />
+                <GrupoDeChips
+                  rotulo="Situação"
+                  opcoes={CHIPS_DE_SITUACAO.map((c) => ({ ...c, quantidade: contagens[c.id] }))}
+                  valor={filtro.situacao}
+                  onChange={(situacao) => setFiltro((f) => ({ ...f, situacao }))}
+                />
+                <GrupoDeChips
+                  rotulo="Período do vencimento"
+                  opcoes={periodos.map((p) => ({ id: p.id, rotulo: p.rotulo }))}
+                  valor={filtro.periodo}
+                  onChange={(periodo) => setFiltro((f) => ({ ...f, periodo }))}
+                />
+                {filtrando && (
+                  <AvisoDeFiltro
+                    mostrando={visiveis.length}
+                    total={contas.length}
+                    onLimpar={() => setFiltro(FILTRO_VAZIO)}
+                  />
+                )}
+              </div>
+            )}
             <CardContent className="p-0">
               {isLoading ? (
                 <Carregando />
@@ -466,9 +529,13 @@ function FluxoCaixaPage() {
                 <div className="p-12 text-center text-muted-foreground">
                   Nenhuma conta a pagar lançada
                 </div>
+              ) : visiveis.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground">
+                  Nenhuma conta com esses filtros
+                </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {contas.map((c) => {
+                  {visiveis.map((c) => {
                     const atrasada =
                       c.status !== "paga" && c.status !== "cancelada" && c.vencimento < hoje();
                     return (
@@ -514,6 +581,7 @@ function FluxoCaixaPage() {
                 </div>
               )}
             </CardContent>
+            {contas.length > 0 && <RodapeDeTotais totais={totaisDaTela} />}
           </Card>
         </TabsContent>
 
