@@ -9,7 +9,7 @@ import { FunilDoOrcamento } from "@/components/orcamento/funil-do-orcamento";
 import { QuadroDeOrcamentos } from "@/components/orcamento/quadro-de-orcamentos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { chaveWhatsApp } from "@/domain/documentos";
-import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
+import { recebeWhatsApp } from "@/domain/documentos";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -405,9 +405,9 @@ function OrcamentosPage() {
                         onChange={(e) => setForm({ ...form, contato_telefone: e.target.value })}
                         placeholder="(00) 00000-0000"
                       />
-                      {form.contato_telefone.trim() && !telefoneParaZapi(form.contato_telefone) && (
+                      {form.contato_telefone.trim() && !recebeWhatsApp(form.contato_telefone) && (
                         <p className="text-xs text-amber-500">
-                          Esse número não parece um celular com WhatsApp (DDD + 9 dígitos). O envio pelo sistema não vai funcionar.
+                          Esse número não parece um celular com WhatsApp (DDD + 9 dígitos, ou + e o código do país para cliente de fora). O envio pelo sistema não vai funcionar.
                         </p>
                       )}
                     </div>

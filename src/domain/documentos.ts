@@ -166,5 +166,32 @@ export function chaveWhatsApp(valor: string | null | undefined): string | null {
  */
 export function recebeWhatsApp(valor: string | null | undefined): boolean {
   const chave = chaveWhatsApp(valor);
-  return !!chave && /^[1-9][1-9]9[0-9]{8}$/.test(chave);
+  if (chave && /^[1-9][1-9]9[0-9]{8}$/.test(chave)) return true;
+  return numeroEstrangeiro(valor) !== null;
+}
+
+/**
+ * Número de fora escrito com "+" e o código do país (que não seja o 55): de 8 a 15 dígitos, o
+ * limite do padrão E.164. Devolve só os dígitos, com o código do país, que é o que o WhatsApp
+ * quer. Espelha `public.telefone_estrangeiro` no banco.
+ *
+ * Sem o "+" não vale: digitado assim, um celular brasileiro com dígito a mais passaria por
+ * estrangeiro. O "+" é a pessoa dizendo "este é de fora".
+ */
+export function numeroEstrangeiro(valor: string | null | undefined): string | null {
+  const bruto = (valor ?? "").trim();
+  if (!bruto.startsWith("+")) return null;
+  const d = apenasDigitos(bruto);
+  return /^[1-9][0-9]{7,14}$/.test(d) && !d.startsWith("55") ? d : null;
+}
+
+/**
+ * Número de fora que CHEGOU pelo webhook: só dígitos, com o código do país, de 12 a 15, fora do
+ * 55. É regra para o que o sistema recebeu, não para o que alguém digitou. Espelha
+ * `public.conversa_recebe_whatsapp`. Número dos EUA e do Canadá (11 dígitos) fica de fora, porque
+ * sem o "+" se confunde com número brasileiro errado; cadastrado com "+1" funciona.
+ */
+export function numeroRecebidoDeFora(valor: string | null | undefined): string | null {
+  const d = apenasDigitos(valor ?? "");
+  return /^[1-9][0-9]{11,14}$/.test(d) && !d.startsWith("55") ? d : null;
 }

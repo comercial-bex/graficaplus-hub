@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Copy, Send } from "lucide-react";
 import { toast } from "sonner";
+import { numeroEstrangeiro } from "@/domain/documentos";
 
 /**
  * Gera o link que o cliente abre para aprovar a arte.
@@ -75,7 +76,7 @@ export function EnviarParaAprovacao({
   const digitos = (telefoneCliente ?? "").replace(/\D/g, "");
   const whatsapp =
     digitos.length >= 10
-      ? `https://wa.me/${digitos.startsWith("55") ? digitos : `55${digitos}`}?text=${encodeURIComponent(mensagem)}`
+      ? `https://wa.me/${numeroEstrangeiro(telefoneCliente) ?? (digitos.startsWith("55") ? digitos : `55${digitos}`)}?text=${encodeURIComponent(mensagem)}`
       : null;
 
   return (

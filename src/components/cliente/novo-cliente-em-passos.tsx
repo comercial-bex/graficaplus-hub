@@ -24,6 +24,8 @@ import { chaveWhatsApp, formatarCEP, recebeWhatsApp } from "@/domain/documentos"
 import { mensagemErro } from "@/lib/erros";
 import { registrarUso } from "@/lib/uso-de-telas";
 import { CampoDeOrigem } from "@/components/cliente/campos-da-ficha";
+import { CampoDeTelefoneComPais, SeletorDePais } from "@/components/cliente/campo-de-pais";
+import { ehBrasil, rotuloDoPais, trocarDePais } from "@/domain/clientes/paises";
 
 /**
  * Novo cliente em passos: tipo, documento (CNPJ preenche o resto), contato, endereço, responsável
@@ -80,11 +82,12 @@ export function NovoClienteEmPassos({
 
   const duplicadoDe = jaCadastrado.data?.nome ?? null;
   const pendencia = pendenciaDoPassoDoCliente(passo, r, duplicadoDe);
-  const passos = passosDoCliente().map((n) => PASSOS_DO_CLIENTE[n - 1]);
+  const passos = passosDoCliente(r).map((n) => PASSOS_DO_CLIENTE[n - 1]);
 
   function escolherTipo(t: "pf" | "pj") {
     setR({ ...r, tipo: t, documento: "" });
-    setPasso(2);
+    // Cliente de fora não tem CPF nem CNPJ: vai direto para o contato.
+    setPasso(ehBrasil(r.pais) ? 2 : 3);
   }
 
   async function criar() {
@@ -140,6 +143,14 @@ export function NovoClienteEmPassos({
       tela="novo-cliente"
     >
       {passo === 1 && (
+        <div className="space-y-4">
+          <div className="max-w-sm">
+            <SeletorDePais
+              id="nc-pais"
+              valor={r.pais}
+              onChange={(codigo) => setR((a) => ({ ...a, ...trocarDePais(a, codigo) }))}
+            />
+          </div>
         <GradeDeCartoes rotulo="Tipo de cliente">
           <CartaoDeEscolha
             ativo={r.tipo === "pj"}
@@ -165,6 +176,7 @@ export function NovoClienteEmPassos({
             }}
           />
         </GradeDeCartoes>
+        </div>
       )}
 
       {passo === 2 && (
@@ -182,29 +194,22 @@ export function NovoClienteEmPassos({
           </div>
           <p className="text-sm text-muted-foreground">
             {r.tipo === "pf"
-              ? "O CPF não tem consulta: dado de pessoa física não é público. Pode pular."
-              : "Com o CNPJ completo o sistema consulta a Receita e já preenche nome, endereço e contato. Pode pular."}
+              ? "O CPF não tem consulta: dado de pessoa física não é público. Digite os 11 números."
+              : "Com o CNPJ completo o sistema consulta a Receita e já preenche nome, endereço e contato."}
           </p>
         </div>
       )}
 
       {passo === 3 && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="nc-whats">WhatsApp *</Label>
-            <Input
-              id="nc-whats"
-              inputMode="tel"
-              maxLength={20}
-              placeholder="(96) 99999-9999"
-              value={r.telefone}
-              aria-invalid={!!r.telefone.trim() && !recebeWhatsApp(r.telefone)}
-              onChange={(e) => setR({ ...r, telefone: e.target.value })}
-            />
-            <p className="text-xs text-muted-foreground">
-              É por ele que sai o orçamento em PDF e o acompanhamento da OS.
-            </p>
-          </div>
+          <CampoDeTelefoneComPais
+            id="nc-whats"
+            pais={r.pais}
+            valor={r.telefone}
+            onChange={(telefone) => setR((a) => ({ ...a, telefone }))}
+            invalido={!!r.telefone.trim() && !recebeWhatsApp(r.telefone)}
+            ajuda="É por ele que sai o orçamento em PDF e o acompanhamento da OS."
+          />
           {campo("nc-email", "E-mail", "email", { type: "email" })}
         </div>
       )}
@@ -269,8 +274,11 @@ export function NovoClienteEmPassos({
             />
           </div>
           <dl className="grid gap-x-4 gap-y-1 rounded-lg border p-3 text-sm sm:grid-cols-2">
+            <Linha rotulo="País" valor={rotuloDoPais(r.pais)} />
             <Linha rotulo="Tipo" valor={r.tipo === "pf" ? "Pessoa física" : "Empresa"} />
-            <Linha rotulo="Documento" valor={r.documento.trim() || "não informado"} />
+            {ehBrasil(r.pais) && (
+              <Linha rotulo="Documento" valor={r.documento.trim() || "não informado"} />
+            )}
             <Linha rotulo="WhatsApp" valor={r.telefone.trim()} />
             <Linha rotulo="E-mail" valor={r.email.trim() || "não informado"} />
             <Linha

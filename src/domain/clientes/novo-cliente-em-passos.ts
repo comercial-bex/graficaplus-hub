@@ -1,5 +1,6 @@
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
-import { formatarCEP, formatarTelefone, recebeWhatsApp } from "@/domain/documentos";
+import { apenasDigitos, formatarCEP, formatarTelefone, recebeWhatsApp, validarDocumento } from "@/domain/documentos";
+import { ehBrasil } from "@/domain/clientes/paises";
 
 /**
  * Novo cliente em passos (25/10/2026). Mesma regra do cadastro de antes, uma pergunta por vez:
@@ -40,6 +41,8 @@ export type RespostasDoCliente = {
   observacoes: string;
   /** De onde veio o cliente (Instagram, indicação, balcão...); vazio quando ninguém disse. */
   origem: string;
+  /** País do cliente (ISO de duas letras). Fora do Brasil não há CPF nem CNPJ, e o WhatsApp leva o código do país. */
+  pais: string;
 };
 
 export const RESPOSTAS_VAZIAS_DO_CLIENTE: RespostasDoCliente = {
@@ -57,6 +60,7 @@ export const RESPOSTAS_VAZIAS_DO_CLIENTE: RespostasDoCliente = {
   vendedor_id: "",
   observacoes: "",
   origem: "",
+  pais: "BR",
 };
 
 /** Preenche com os dados da Receita sem sobrescrever o que já foi digitado à mão. */
@@ -76,8 +80,9 @@ export function aplicarDadosDaReceita(r: RespostasDoCliente, d: DadosCNPJ): Resp
 }
 
 /** Os passos que este cliente percorre: CPF não tem consulta, mas o documento ainda é perguntado. */
-export function passosDoCliente(): NumeroDoPasso[] {
-  return [1, 2, 3, 4, 5, 6];
+export function passosDoCliente(r?: Pick<RespostasDoCliente, "pais">): NumeroDoPasso[] {
+  // Cliente de fora não tem CPF nem CNPJ: o passo do documento não existe para ele.
+  return r && !ehBrasil(r.pais) ? [1, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6];
 }
 
 /** Por que o passo ainda não pode avançar, ou nada. `duplicadoDe` é o nome do cliente com o mesmo WhatsApp. */
@@ -89,13 +94,23 @@ export function pendenciaDoPassoDoCliente(
   switch (passo) {
     case 1:
       return r.tipo ? null : "Escolha o tipo do cliente.";
-    case 2:
-      return null; // o documento é opcional; a consulta de CNPJ só ajuda
+    case 2: {
+      // Cliente do Brasil precisa do documento (nota fiscal, contrato, boleto). A consulta do
+      // CNPJ preenche o resto, mas o número é obrigatório. Cliente de fora pula este passo.
+      if (!ehBrasil(r.pais)) return null;
+      const d = apenasDigitos(r.documento);
+      if (!d) return "Informe o CPF ou o CNPJ do cliente. Para cliente de fora, volte e escolha o país.";
+      return validarDocumento(d, r.tipo === "pf" ? "cpf" : "cnpj")
+        ? null
+        : "Confira o documento: os dígitos não conferem.";
+    }
     case 3:
       if (!r.telefone.trim())
         return "Informe o WhatsApp do cliente: é por ele que sai o orçamento e o acompanhamento da OS.";
       if (!recebeWhatsApp(r.telefone)) {
-        return "Esse número não recebe WhatsApp: precisa ser um celular com DDD e o 9 na frente.";
+        return ehBrasil(r.pais)
+          ? "Esse número não recebe WhatsApp: precisa ser um celular com DDD e o 9 na frente."
+          : "Esse número não recebe WhatsApp: escolha o código do país e escreva o número inteiro.";
       }
       if (duplicadoDe)
         return `Este WhatsApp já é de ${duplicadoDe.trim()}. Abra o cadastro que já existe.`;
@@ -114,7 +129,9 @@ export function clienteDasRespostas(r: RespostasDoCliente) {
     tipo: r.tipo ?? "pj",
     nome: r.nome.trim(),
     razao_social: r.tipo === "pj" ? r.razao_social.trim() : "",
-    documento: r.documento.trim(),
+    // Cliente de fora não tem documento brasileiro; o que sobrou de uma troca de país não vai.
+    documento: ehBrasil(r.pais) ? r.documento.trim() : "",
+    pais: r.pais || "BR",
     email: r.email.trim(),
     telefone: r.telefone.trim(),
     endereco: r.endereco.trim(),

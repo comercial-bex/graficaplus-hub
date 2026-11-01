@@ -88,6 +88,9 @@ import {
   rotuloDaInscricaoEstadual,
 } from "@/domain/clientes/ficha-do-cliente";
 import { rotuloDaOrigem } from "@/domain/crm/origens";
+import { CampoDeTelefoneComPais, SeletorDePais } from "@/components/cliente/campo-de-pais";
+import { bandeira, ehBrasil, paisPorCodigo, trocarDePais } from "@/domain/clientes/paises";
+import { recebeWhatsApp } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 export const Route = createFileRoute("/_authenticated/clientes/$id")({
   head: () => ({ meta: [{ title: "Cliente — BEX PRINT OS" }] }),
@@ -442,6 +445,23 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
         description: "Confira os dígitos ou deixe o campo vazio.",
       });
     }
+    // Documento é obrigatório para cliente do Brasil. Quem já tinha um não pode apagá-lo; quem nunca
+    // teve (cadastro antigo) salva com um aviso, para um telefone errado não ficar preso à busca do CPF.
+    if (ehBrasil(form.pais) && !docNovo) {
+      if (docAntigo) {
+        return toast.error("O CPF ou CNPJ não pode ficar vazio", {
+          description: "Cliente do Brasil precisa do documento. Se ele é de fora, troque o país.",
+        });
+      }
+      toast.warning("Cliente sem CPF ou CNPJ", {
+        description: "Salvei assim, mas complete quando puder: é o que fecha o cadastro.",
+      });
+    }
+    if (!ehBrasil(form.pais) && form.telefone && !recebeWhatsApp(form.telefone)) {
+      return toast.error("Esse número não recebe WhatsApp", {
+        description: "Para cliente de fora, escolha o código do país e escreva o número inteiro.",
+      });
+    }
     const problema = problemaDaFicha(form);
     if (problema) return toast.error(problema);
     // Envia apenas colunas editáveis: campos gerados pelo banco (ex.: telefone_normalizado)
@@ -450,7 +470,7 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
       "tipo", "nome", "razao_social", "nome_fantasia", "documento", "cpf_cnpj",
       "email", "telefone", "whatsapp_principal", "endereco", "bairro", "cidade",
       "estado", "cep", "observacoes", "logo_url", "origem", "status", "tipo_cliente", "ativo",
-      "possui_inscricao_estadual", "inscricao_estadual", "inscricao_municipal", "telefone_2",
+      "pais", "possui_inscricao_estadual", "inscricao_estadual", "inscricao_municipal", "telefone_2",
       "telefone_3", "email_nota_fiscal", "email_boleto", "site",
     ] as const;
     const payload: Record<string, unknown> = { vendedor_id: form.vendedor_id || null };
@@ -505,6 +525,12 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
             </Label>
           </div>
           <div className="grid md:grid-cols-2 gap-3">
+            <div className="md:col-span-2">
+              <SeletorDePais
+                valor={form.pais}
+                onChange={(codigo) => setForm((atual: any) => ({ ...atual, ...trocarDePais(atual, codigo) }))}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
@@ -552,6 +578,7 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
                 onChange={(e) => setForm({ ...form, razao_social: e.target.value })}
               />
             </div>
+            {ehBrasil(form.pais) && (
             <div className="space-y-2">
               <CampoDocumento
                 tipo={form.tipo === "pj" ? "cnpj" : "cpf"}
@@ -572,14 +599,15 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
                 }
               />
             </div>
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input
-                maxLength={20}
-                value={form.telefone || ""}
-                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-              />
-            </div>
+            )}
+            <CampoDeTelefoneComPais
+              id="cliente-telefone"
+              rotulo="WhatsApp"
+              pais={form.pais}
+              valor={form.telefone || ""}
+              onChange={(telefone) => setForm((atual: any) => ({ ...atual, telefone }))}
+              invalido={!!(form.telefone || "").trim() && !recebeWhatsApp(form.telefone)}
+            />
             <div className="space-y-2 md:col-span-2">
               <Label>E-mail</Label>
               <Input
@@ -629,7 +657,7 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
                 onChange={(origem) => setForm((atual: any) => ({ ...atual, origem }))}
               />
             </div>
-            {form.tipo === "pj" && (
+            {form.tipo === "pj" && ehBrasil(form.pais) && (
               <div className="md:col-span-2">
                 <SecaoRecolhivel
                   titulo="Documentos fiscais"
@@ -704,6 +732,12 @@ function DadosTab({ cliente }: { cliente: any }) {
         <div>
           <Label className="text-xs text-muted-foreground">CEP</Label>
           <div>{cliente.cep || "—"}</div>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">País</Label>
+          <div>
+            {bandeira(cliente.pais ?? "BR")} {paisPorCodigo(cliente.pais ?? "BR")?.nome ?? cliente.pais}
+          </div>
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Origem do cliente</Label>

@@ -1,3 +1,5 @@
+import { numeroEstrangeiro } from "@/domain/documentos";
+
 /**
  * O link do portal do cliente: o que é, como se reconhece e como se manda.
  *
@@ -97,7 +99,8 @@ export function linkDoWhatsapp(
 ): string | null {
   const digitos = (telefone ?? "").replace(/\D/g, "");
   if (digitos.length < 10) return null;
-  const comDdi = digitos.startsWith("55") ? digitos : `55${digitos}`;
+  // Cliente de fora (escrito com "+" e o código do país) não leva o 55 na frente.
+  const comDdi = numeroEstrangeiro(telefone) ?? (digitos.startsWith("55") ? digitos : `55${digitos}`);
   return `https://wa.me/${comDdi}?text=${encodeURIComponent(mensagem)}`;
 }
 
