@@ -11,6 +11,8 @@ import {
   type Etapa,
 } from "@/domain/os/etapas";
 import { atrasado, paradaHa } from "@/domain/os/prazo";
+import { totalDaEtapa } from "@/domain/os/total-da-etapa";
+import { brl } from "@/components/precos/tipos";
 import {
   fraseDoAviso,
   passoDoMovimento,
@@ -855,6 +857,8 @@ function Coluna({
     return !pior || o.updated_at < pior ? o.updated_at : pior;
   }, null);
   const encalhe = itens.length > 0 ? paradaHa(maisAntiga) : null;
+  // O dinheiro parado na etapa (só para quem vê preço), como o Holdprint mostra no alto da coluna.
+  const totalDaColuna = canSeePrices ? totalDaEtapa(itens) : 0;
 
   return (
     <div ref={containerRef} className={`flex min-w-[85vw] snap-start flex-col ${
@@ -869,6 +873,9 @@ function Coluna({
             {itens.length.toString().padStart(2, "0")}
           </span>
         </div>
+        {totalDaColuna > 0 && (
+          <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">{brl(totalDaColuna)}</p>
+        )}
         {/* Descrição e legenda só no desktop: no celular custam altura na
             primeira dobra e o chip de etapa já situa o impressor. */}
         <p className="mt-0.5 hidden line-clamp-2 text-xs leading-snug text-muted-foreground md:block">
