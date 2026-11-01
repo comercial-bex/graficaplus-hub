@@ -104,7 +104,7 @@ export function periodosDaLista(hoje: string): Periodo[] {
   ];
 }
 
-const semAcento = (t: string) =>
+export const semAcento = (t: string) =>
   t
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")

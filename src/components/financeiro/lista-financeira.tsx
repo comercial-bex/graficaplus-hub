@@ -117,7 +117,14 @@ const CELULAS: ReadonlyArray<{ chave: keyof Omit<TotaisDaLista, "quantidade">; r
 ];
 
 /** Totais do que está na tela. O ponto colorido enfeita; quem diz a situação é o texto. */
-export function RodapeDeTotais({ totais }: { totais: TotaisDaLista }) {
+export function RodapeDeTotais({
+  totais,
+  rotuloPagas = "Pagas",
+}: {
+  totais: TotaisDaLista;
+  /** Na lista de contas a receber o dinheiro que entrou se chama "Recebidas". */
+  rotuloPagas?: string;
+}) {
   return (
     <dl
       aria-label="Totais da lista"
@@ -127,7 +134,7 @@ export function RodapeDeTotais({ totais }: { totais: TotaisDaLista }) {
         <div key={c.chave} className="bg-muted px-4 py-3">
           <dt className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <span aria-hidden="true" className={cn("h-2.5 w-2.5 rounded-full", c.ponto)} />
-            {c.rotulo}
+            {c.chave === "pagas" ? rotuloPagas : c.rotulo}
           </dt>
           <dd className="mt-0.5 text-lg font-bold tabular-nums text-foreground">{moeda(totais[c.chave])}</dd>
         </div>
