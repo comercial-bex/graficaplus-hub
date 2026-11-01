@@ -13,8 +13,12 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 | 4 | Dinheiro a receber e a pagar por janela no painel inicial (função no banco, já aplicada) | Mesclada (#313) |
 | Funil | Lead do WhatsApp deixa de ser temporário pelos fatos (o funil mostrava zero) | Mesclada (#315), migração já aplicada |
 | Cadastro | Ficha do cliente com inscrições, outros contatos e origem; documento validado também na edição | Mesclada (#319), migração já aplicada |
-| Cadastro 2 | Origem no cadastro guiado Novo cliente | Em PR |
-| 2b | Menu em coluna única com grupos e favoritos | Parte segura feita (nome no trilho e subgrupos recolhíveis); faltam favoritos e a coluna única |
+| Cadastro 2 | Origem no cadastro guiado Novo cliente | Mesclada (#321) |
+| Cadastro 3 | Cliente de fora (país com bandeira e nome, WhatsApp com código do país), documento obrigatório para o Brasil, lista com Sem CPF/CNPJ | Mesclada (#324), migração já aplicada |
+| Cadastro 4 | CEP que preenche o endereço e aba Histórico com notas do cliente | Em PR (#327), migração já aplicada |
+| Caixa | Pix contado em dobro: conciliação do extrato com os pagamentos, automática a cada importação | Mesclada (#324): 9 Pix, R$ 3.197,24 a menos nas entradas |
+| Orçamento | Funil de negociação: Em negociação e Aceite verbal no quadro, validade à vista | Mesclada (#326), migração já aplicada |
+| 2b | Menu em coluna única com grupos e favoritos | Quase pronta: nome no trilho e subgrupos recolhíveis (#322) e favoritos com estrela (#325); a coluna única só se o dono pedir |
 | 3 | Padrão de lista financeira (chips, período com atalhos, Ações em lote, rodapé de totais) | Quase pronta: Contas a pagar (#316) e Contas a receber (#320, com filtro de origem do cliente) mescladas; falta Ações em lote, total dos selecionados e as listas de compras, materiais e clientes |
 | 6 | Filtros do WhatsApp ao lado da conversa | Quase pronta: a caixa já tem abas de status, filtro de setor e busca; falta só filtro por responsável |
 | 7b, 7c | Tela do operador por máquina e linha do tempo | Falta |
@@ -28,12 +32,12 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 
 ## O que o dono precisa decidir
 
-1. **Menu:** o dono elogiou o menu do Holdprint, que não é poluído e expande por grupos. Hoje o trilho de ícones mostra o nome só ao passar o mouse (no celular mostra o nome embaixo do ícone). Proposta mais segura: manter o trilho, mostrar o nome sempre e tornar os subgrupos do painel recolhíveis. Alternativa maior: coluna única como a do Holdprint. Define a Onda 2b.
-   - **País com bandeira (cliente estrangeiro):** o Holdprint esconde CPF e CNPJ quando o país não é o Brasil. Aqui o banco exige WhatsApp de celular brasileiro (`aa_cliente_precisa_de_whatsapp`), então cliente de fora não cadastra. Abrir isso exige mudar a regra do banco e os caminhos de envio do WhatsApp. Perguntar ao dono se há cliente estrangeiro (Guiana Francesa, por exemplo).
+1. **Menu e cliente de fora: resolvidos em 01/11.** O dono gostou do menu com o nome à vista e pediu os favoritos visíveis (#325). Tem cliente estrangeiro: o cadastro ganhou país com bandeira e nome e o WhatsApp com código do país (#324). A coluna única do Holdprint ficou de fora porque o dono aprovou o menu atual; só se ele pedir.
 2. **Funil comercial vazio: resolvido em 31/10 (#315).** A marca de temporário nunca saía. Agora sai quando o lead ganha cliente, entra em atendimento, vira orçamento ou ganho. Medido: 16 leads qualificados e 11 ainda temporários, sendo 3 sem resposta e 8 descartados sem atendimento. Se o dono quiser contar também os descartados, basta mudar o filtro de `funil_comercial`.
 3. **Hora por centro (Onda 9):** horas produtivas por centro (hoje 160 por máquina e 176 por pessoa; o Holdprint vem com 147 por pessoa e 110 a 588 por centro), encargo (hoje 32,19% do Simples; o Holdprint vem com 45%) e quem entra no repasse.
 4. **Processos por JOB:** o Holdprint trabalha por processo de cada JOB (Revisão Comercial, Aprovação Financeira, Programação, Arte Final, Impressão, Produção, Expedição, Instalação, Entrega). Nós não temos roteiro de várias etapas por produto. Criar esse modelo só se o dono quiser; a Onda 7b e 7c funcionam por máquina sem ele.
 5. **Verde-água:** a ação principal ficou `#0ebfa6` com letra `#121f3b`. A alternativa é `#087f72` com letra branca.
+6. **O que o dono deixou para depois (01/11):** horas produtivas e encargo por centro (item 3), processos por JOB (item 4), se a compra paga entra sozinha no caixa (Onda 8b), os prints do PDV e o modelo e o teto de custo da IA.
 
 ## O que fazer em cada onda que falta
 
@@ -85,7 +89,7 @@ Comparado em 01/11/2026 na conta de teste do Holdprint (formulário rápido e fi
 | Holdprint | Bex Print hoje |
 |---|---|
 | Formulário rápido em uma tela: país, tipo de pessoa, CNPJ com lupa, nome, telefone e e-mail | Cadastro guiado em 6 passos mais o cadastro completo; a busca do CNPJ na Receita e a validação de CPF e CNPJ já existiam |
-| País com bandeira; fora do Brasil some o CPF e o CNPJ | Falta: o banco exige WhatsApp de celular brasileiro (decisão do dono) |
+| País com bandeira; fora do Brasil some o CPF e o CNPJ | Feito (#324): país com bandeira e nome, some o CPF e o CNPJ, o WhatsApp leva o código do país. A regra do banco foi ampliada (número com + e código, fora do 55) |
 | Documentos: inscrição municipal, possui inscrição estadual, inscrição estadual | Feito (#319), só para pessoa jurídica |
 | Canais de contato: telefones 2 e 3, e-mail da nota, e-mail do boleto, site | Feito (#319) |
 | Origem do cliente, com Cadastrar para criar origem nova | Campo feito (#319 e #321) com a lista do Leads; falta criar origem nova pela tela |
@@ -95,13 +99,26 @@ Comparado em 01/11/2026 na conta de teste do Holdprint (formulário rápido e fi
 | Matriz e filiais | Falta |
 | Forma e condições de venda por cliente (opção de pagamento padrão) | Falta; a condição é escolhida em cada orçamento |
 | Carteira de vendedores | Há um vendedor por cliente (`vendedor_id`) |
-| Histórico com notas do cliente | Falta |
+| Histórico com notas do cliente | Feito (#327): aba Histórico com Registrar nota e a linha do tempo |
 | Arquivos do cliente (até 15 MB) | Falta |
-| CEP preenche o endereço | Falta para quem não é pessoa jurídica (o CNPJ já traz o endereço) |
+| CEP preenche o endereço | Feito (#327) nos três cadastros, só onde está vazio; cliente de fora vê código postal livre |
 
 **Medido no banco em 01/11/2026 (sem mostrar nenhum número de documento):** dos 31 clientes, 14 têm documento e todos passam na conferência dos dígitos (7 CPF e 7 CNPJ); 17 não têm documento (55%). Três clientes estão como pessoa jurídica com CPF: Aline, Black produções e Connecta IA, provavelmente MEI ou cadastro com o CPF do dono. Perguntar ao dono antes de trocar o tipo.
 
 **A edição aceitava qualquer texto no documento** até o #319; agora usa o mesmo campo do cadastro, com máscara, validação e busca na Receita (que só preenche o que está vazio).
+
+## Orçamento: o que o Holdprint tem e o que ficou
+
+O dono esclareceu em 01/11: o orçamento do Bex Print, inclusive o fluxo 3D, já é bem estruturado. O Holdprint é só referência para melhorar; nada foi trocado.
+
+| Holdprint | Bex Print |
+|---|---|
+| Painel de Negociação com colunas Rascunhos, Emitidos, Enviados, Em Negociação, Aceite Verbal | Quadro com totais (#311) e, agora, Em negociação e Aceite verbal entre Enviados e Aprovados (#326). "Emitido" não entrou: o PDF aqui sai a qualquer momento |
+| Meta para aprovação (data, padrão 15 dias) | O orçamento já tem `validade_dias`; o quadro mostra "Validade: vence em N dias" e destaca até 3 dias (#326) |
+| Contato obrigatório no orçamento | Já existem `contato_id` e o contato avulso; fica como possível entrega |
+| Funil e etapas configuráveis | Etapa fixa, em marca à parte (`etapa_comercial`): o status não mudou |
+
+Ideias que cabem depois, se o dono quiser: aviso dos orçamentos que vencem em até 3 dias no painel inicial, e "Reenviar" nos expirados (hoje 8, R$ 3.579,50).
 
 ## Plano da IA (assistente com os dados da gráfica)
 
@@ -159,6 +176,6 @@ Comparado em 01/11/2026 na conta de teste do Holdprint (formulário rápido e fi
 - Funil comercial vazio: resolvido em 31/10 (#315).
 - `tipo_cliente` desatualizado (18 pessoas físicas constam como jurídicas) e `cliente_contatos` com 0 registros; a ficha do cliente tem um endereço só e nenhum histórico.
 - Compra no fornecedor não gera conta a pagar nem movimento de caixa (Onda 8b).
-- **O fluxo de caixa conta o mesmo Pix duas vezes** (medido em 01/11/2026). `vw_fluxo_caixa` soma os pagamentos do sistema e também as linhas do extrato importado que não têm vínculo. As 93 linhas de `caixa_movimentos` não têm ligação com pagamento (0 ligadas) e só 1 com conta a pagar. Pareando um para um por valor exato e data até 3 dias, 8 Pix aparecem duas vezes e somam R$ 3.178,49 a mais nas entradas; há mais 6 pares ambíguos que ficam de fora. Correção segura e reversível: ligar a linha do extrato ao pagamento (`caixa_movimentos.pagamento_id`, que a própria view já usa para não contar duas vezes). Esperar o OK do dono antes de ligar, porque mexe em dinheiro registrado.
+- ~~O fluxo de caixa conta o mesmo Pix duas vezes~~ **resolvido em 01/11 (#324).** `conciliar_extrato_com_pagamentos` liga a linha do extrato ao pagamento (valor exato, até 3 dias, um para um) e a importação do extrato chama sozinha. Aplicado: 9 Pix, R$ 3.197,24 a menos nas entradas (36.649,57 para 33.452,33), nenhum movimento apagado. Reversível: voltar `caixa_movimentos.pagamento_id` a nulo.
 - "Resolver" ocorrência grava um status que `fechar_os` não libera (latente, hoje há 0 ocorrências).
 - Um orçamento convertido em OS deixa a conta a receber sem cancelar se a OS é cancelada.
