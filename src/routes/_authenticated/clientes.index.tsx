@@ -61,6 +61,8 @@ import {
   type CamposDaFicha,
 } from "@/domain/clientes/ficha-do-cliente";
 import { ORIGENS, rotuloDaOrigem } from "@/domain/crm/origens";
+import { CampoDeTelefoneComPais, SeletorDePais } from "@/components/cliente/campo-de-pais";
+import { bandeira, ehBrasil, paisPorCodigo, trocarDePais } from "@/domain/clientes/paises";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { mensagemErro } from "@/lib/erros";
 
@@ -87,10 +89,12 @@ type FormState = {
   vendedor_id: string;
   observacoes: string;
   logo_url: string;
+  pais: string;
 } & CamposDaFicha;
 
 const emptyForm: FormState = {
   ...FICHA_VAZIA,
+  pais: "BR",
   tipo: "pj",
   nome: "",
   razao_social: "",
@@ -114,6 +118,7 @@ function ClientesPage() {
   const [filtroAtivo, setFiltroAtivo] = useState<"todos" | "ativos" | "inativos">("ativos");
   const [filtroVendedor, setFiltroVendedor] = useState<string>("todos");
   const [filtroOrigem, setFiltroOrigem] = useState<string>("todas");
+  const [soSemDocumento, setSoSemDocumento] = useState(false);
   const [open, setOpen] = useState(false);
   const [passosAberto, setPassosAberto] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -143,16 +148,20 @@ function ClientesPage() {
   });
 
   const filtered = useMemo(() => {
-    if (!search) return clientes;
+    // Cliente do Brasil sem CPF ou CNPJ: a fila de cadastros por completar.
+    const base = soSemDocumento
+      ? clientes.filter((c: any) => ehBrasil(c.pais) && !apenasDigitos(c.documento ?? ""))
+      : clientes;
+    if (!search) return base;
     const s = search.toLowerCase();
-    return clientes.filter(
+    return base.filter(
       (c: any) =>
         c.nome?.toLowerCase().includes(s) ||
         c.documento?.toLowerCase().includes(s) ||
         c.email?.toLowerCase().includes(s) ||
         c.telefone?.includes(s),
     );
-  }, [clientes, search]);
+  }, [clientes, search, soSemDocumento]);
 
   async function handleLogoUpload(file: File) {
     if (!file.type.startsWith("image/"))
@@ -234,6 +243,13 @@ function ClientesPage() {
   async function handleCreate() {
     if (salvando) return;
     if (!form.nome.trim()) return toast.error("Nome é obrigatório");
+    // Cliente do Brasil tem CPF ou CNPJ, e sem ele o cadastro fica pela metade (nota fiscal,
+    // contrato, boleto). Cliente de fora não tem documento brasileiro e não precisa.
+    if (ehBrasil(form.pais) && !apenasDigitos(form.documento)) {
+      return toast.error("Informe o CPF ou o CNPJ do cliente", {
+        description: "É obrigatório para cliente do Brasil. Para cliente de fora, escolha o país dele.",
+      });
+    }
     // O WhatsApp é por onde sai o orçamento em PDF e o acompanhamento da OS.
     // Cliente sem ele fica sem canal nenhum — e o banco recusa desde 28/09.
     if (!form.telefone.trim()) {
@@ -243,8 +259,9 @@ function ClientesPage() {
     }
     if (!recebeWhatsApp(form.telefone)) {
       return toast.error("Esse número não recebe WhatsApp", {
-        description:
-          "Precisa ser um celular com DDD e o 9 na frente. Telefone fixo não recebe; se o cliente tem dois números, guarde um aqui e o outro em Contatos.",
+        description: ehBrasil(form.pais)
+          ? "Precisa ser um celular com DDD e o 9 na frente. Telefone fixo não recebe; se o cliente tem dois números, guarde um aqui e o outro em Contatos."
+          : "Para cliente de fora, escolha o código do país e escreva o número inteiro, como se usa lá.",
       });
     }
     if (jaCadastrado.data) {
@@ -338,6 +355,12 @@ function ClientesPage() {
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-3">
+                  <div className="md:col-span-2">
+                    <SeletorDePais
+                      valor={form.pais}
+                      onChange={(codigo) => setForm((atual) => ({ ...atual, ...trocarDePais(atual, codigo) }))}
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label>Tipo</Label>
                     <Select
@@ -392,6 +415,7 @@ function ClientesPage() {
                       />
                     </div>
                   )}
+                  {ehBrasil(form.pais) && (
                   <div className="space-y-2">
                     <CampoDocumento
                       tipo={form.tipo === "pj" ? "cnpj" : "cpf"}
@@ -413,15 +437,14 @@ function ClientesPage() {
                       onDadosEncontrados={preencherComReceita}
                     />
                   </div>
+                  )}
                   <div className="space-y-2">
-                    <Label>WhatsApp *</Label>
-                    <Input
-                      maxLength={20}
-                      inputMode="tel"
-                      placeholder="(96) 99999-9999"
-                      value={form.telefone}
-                      onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                      aria-invalid={!!form.telefone.trim() && !recebeWhatsApp(form.telefone)}
+                    <CampoDeTelefoneComPais
+                      id="cliente-whatsapp"
+                      pais={form.pais}
+                      valor={form.telefone}
+                      onChange={(telefone) => setForm((atual) => ({ ...atual, telefone }))}
+                      invalido={!!form.telefone.trim() && !recebeWhatsApp(form.telefone)}
                     />
                     {jaCadastrado.data ? (
                       <p className="text-xs text-amber-600" role="status" data-ja-cadastrado="">
@@ -439,7 +462,9 @@ function ClientesPage() {
                     ) : (
                       <p className="text-xs text-muted-foreground">
                         {form.telefone.trim() && !recebeWhatsApp(form.telefone)
-                          ? "Celular com DDD e o 9 na frente. Fixo não recebe."
+                          ? ehBrasil(form.pais)
+                            ? "Celular com DDD e o 9 na frente. Fixo não recebe."
+                            : "Escolha o código do país e escreva o número inteiro."
                           : "Por aqui sai o orçamento em PDF e o acompanhamento da OS."}
                       </p>
                     )}
@@ -501,7 +526,7 @@ function ClientesPage() {
                       />
                     </div>
                   </div>
-                  {form.tipo === "pj" && (
+                  {form.tipo === "pj" && ehBrasil(form.pais) && (
                     <div className="md:col-span-2">
                       <SecaoRecolhivel
                         titulo="Documentos fiscais"
@@ -621,6 +646,15 @@ function ClientesPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              type="button"
+              variant={soSemDocumento ? "secondary" : "outline"}
+              aria-pressed={soSemDocumento}
+              className="h-10"
+              onClick={() => setSoSemDocumento((v) => !v)}
+            >
+              Sem CPF/CNPJ
+            </Button>
           </>
         }
       >
@@ -668,6 +702,19 @@ function ClientesPage() {
                   >
                     {c.nome}
                   </Link>
+                  {!ehBrasil(c.pais) && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      <span aria-hidden="true" className="text-lg leading-none">
+                        {bandeira(c.pais)}
+                      </span>{" "}
+                      {paisPorCodigo(c.pais)?.nome ?? c.pais}
+                    </span>
+                  )}
+                  {ehBrasil(c.pais) && !apenasDigitos(c.documento ?? "") && (
+                    <Badge variant="outline" className="ml-2 align-middle text-sm font-normal">
+                      Sem CPF/CNPJ
+                    </Badge>
+                  )}
                   {c.razao_social && (
                     <div className="text-xs font-medium text-muted-foreground">
                       {c.razao_social}

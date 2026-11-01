@@ -1861,6 +1861,7 @@ export type Database = {
           nome_fantasia: string | null
           observacoes: string | null
           origem: string | null
+          pais: string
           possui_inscricao_estadual: string
           razao_social: string | null
           revendedor: boolean
@@ -1901,6 +1902,7 @@ export type Database = {
           nome_fantasia?: string | null
           observacoes?: string | null
           origem?: string | null
+          pais?: string
           possui_inscricao_estadual?: string
           razao_social?: string | null
           revendedor?: boolean
@@ -1941,6 +1943,7 @@ export type Database = {
           nome_fantasia?: string | null
           observacoes?: string | null
           origem?: string | null
+          pais?: string
           possui_inscricao_estadual?: string
           razao_social?: string | null
           revendedor?: boolean

@@ -200,12 +200,26 @@ function ContasBancariasPage() {
         p_linhas: linhas,
       });
       if (error) throw error;
-      return data as { importadas: number; duplicadas: number; saldo_atual: number };
+      // O mesmo Pix existe no extrato e no pagamento que o sistema registrou; sem ligar os dois, o
+      // fluxo de caixa conta em dobro. A conciliação liga os pares certos (valor exato, até 3 dias,
+      // um para um). Se ela falhar, a importação já deu certo e continua valendo.
+      let ligados = 0;
+      try {
+        const { data: c } = await (supabase as any).rpc("conciliar_extrato_com_pagamentos", { p_aplicar: true });
+        ligados = Number((c as { ligados?: number } | null)?.ligados ?? 0) || 0;
+      } catch {
+        ligados = 0;
+      }
+      return {
+        ...(data as { importadas: number; duplicadas: number; saldo_atual: number }),
+        ligados,
+      };
     },
     onSuccess: (r) => {
       toast.success(
         `${r.importadas} lançamento(s) importado(s)` +
-          (r.duplicadas > 0 ? ` · ${r.duplicadas} já existiam e foram ignorados` : ""),
+          (r.duplicadas > 0 ? ` · ${r.duplicadas} já existiam e foram ignorados` : "") +
+          (r.ligados > 0 ? ` · ${r.ligados} Pix ligado(s) aos pagamentos do sistema` : ""),
       );
       qc.invalidateQueries({ queryKey: ["saldo-contas"] });
       qc.invalidateQueries({ queryKey: ["banco-transacoes"] });

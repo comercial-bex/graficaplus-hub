@@ -1,4 +1,4 @@
-import { chaveWhatsApp } from "@/domain/documentos";
+import { chaveWhatsApp, numeroEstrangeiro, numeroRecebidoDeFora } from "@/domain/documentos";
 
 /**
  * O envio pelo Z-API.
@@ -41,8 +41,10 @@ export type PedidoDeEnvio = {
  */
 export function telefoneParaZapi(valor: string | null | undefined): string | null {
   const chave = chaveWhatsApp(valor);
-  if (!chave || !/^[1-9][1-9]9[0-9]{8}$/.test(chave)) return null;
-  return `55${chave}`;
+  if (chave && /^[1-9][1-9]9[0-9]{8}$/.test(chave)) return `55${chave}`;
+  // Cliente de fora: o número já carrega o código do país e NÃO leva o 55 na frente. Escrito com
+  // "+" (cadastro) ou só dígitos de 12 a 15 (conversa que chegou pelo webhook).
+  return numeroEstrangeiro(valor) ?? numeroRecebidoDeFora(valor);
 }
 
 export type EnderecoZapi = {

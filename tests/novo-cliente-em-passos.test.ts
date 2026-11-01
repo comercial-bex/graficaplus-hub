@@ -20,9 +20,15 @@ describe("passos do cliente", () => {
     expect(pendenciaDoPassoDoCliente(6, base({ nome: " Gráfica Norte " }))).toBeNull();
   });
 
-  it("documento, endereço e responsável são opcionais", () => {
-    for (const p of [2, 4, 5] as const)
+  it("endereço e responsável são opcionais", () => {
+    for (const p of [4, 5] as const)
       expect(pendenciaDoPassoDoCliente(p, RESPOSTAS_VAZIAS_DO_CLIENTE)).toBeNull();
+  });
+
+  it("o documento é obrigatório para cliente do Brasil (a decisão do dono de 01/11)", () => {
+    expect(pendenciaDoPassoDoCliente(2, RESPOSTAS_VAZIAS_DO_CLIENTE)).toMatch(/CPF ou o CNPJ/);
+    expect(pendenciaDoPassoDoCliente(2, base({ tipo: "pj", documento: "12345678000100" }))).toMatch(/dígitos/);
+    expect(pendenciaDoPassoDoCliente(2, base({ tipo: "pj", documento: "11222333000181" }))).toBeNull();
   });
 
   it("o WhatsApp é obrigatório e precisa ser celular com DDD e o 9", () => {
