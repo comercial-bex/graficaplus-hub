@@ -34,6 +34,7 @@ import { MinhasComissoes } from "@/components/painel/MinhasComissoes";
 import { MinhaMeta } from "@/components/metas/minha-meta";
 import { PainelProducao } from "@/components/painel/PainelProducao";
 import { MetaDoMes } from "@/components/painel/MetaDoMes";
+import { JanelasDeVencimento } from "@/components/painel/JanelasDeVencimento";
 import { MetasDaEquipe } from "@/components/painel/MetasDaEquipe";
 import { PrecoDoCatalogo } from "@/components/painel/PrecoDoCatalogo";
 import { dicaTela } from "@/lib/dicas";
@@ -491,6 +492,9 @@ function PainelCompleto({
           título; no celular os atalhos de ação continuam em cima, porque quem
           abre o painel no balcão precisa do toque, não do número. */}
       {canSeeFinancials && <MetaDoMes />}
+
+      {/* Quanto entra e quanto sai: hoje, amanhã, 7 e 30 dias (Onda 4, 31/10/2026). */}
+      {canSeeFinancials && <JanelasDeVencimento />}
 
       {/* A meta de CADA vendedor, lado a lado (27/10/2026): só existia dentro de Financeiro. */}
       {canSeeFinancials && <MetasDaEquipe />}
