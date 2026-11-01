@@ -8,7 +8,15 @@
  * contam por ele), então `os_id` manda.
  */
 
-export type ColunaDoQuadro = "rascunho" | "enviado" | "aprovado" | "os" | "rejeitado" | "expirado";
+export type ColunaDoQuadro =
+  | "rascunho"
+  | "enviado"
+  | "em_negociacao"
+  | "aceite_verbal"
+  | "aprovado"
+  | "os"
+  | "rejeitado"
+  | "expirado";
 
 export interface OrcamentoDoQuadro {
   id: string;
@@ -20,6 +28,10 @@ export interface OrcamentoDoQuadro {
   cliente_nome?: string | null;
   contato_nome?: string | null;
   created_at?: string | null;
+  /** Em que pé está a conversa enquanto o orçamento está "enviado" (ver `orcamentos.etapa_comercial`). */
+  etapa_comercial?: string | null;
+  enviado_em?: string | null;
+  validade_dias?: number | null;
 }
 
 export interface DefinicaoDeColuna {
@@ -34,16 +46,31 @@ export interface DefinicaoDeColuna {
 export const COLUNAS_DO_QUADRO: readonly DefinicaoDeColuna[] = [
   { id: "rascunho", titulo: "Rascunhos", dica: "Ainda em montagem, nada foi ao cliente.", aberta: true },
   { id: "enviado", titulo: "Enviados", dica: "Com o cliente, esperando resposta.", aberta: true },
+  {
+    id: "em_negociacao",
+    titulo: "Em negociação",
+    dica: "O cliente respondeu e estão acertando preço, prazo ou arte.",
+    aberta: true,
+  },
+  {
+    id: "aceite_verbal",
+    titulo: "Aceite verbal",
+    dica: "O cliente disse sim. Falta a aprovação formal e o sinal.",
+    aberta: true,
+  },
   { id: "aprovado", titulo: "Aprovados", dica: "O cliente aprovou e falta converter em OS.", aberta: true },
   { id: "os", titulo: "Viraram OS", dica: "Já estão na produção.", aberta: false },
   { id: "rejeitado", titulo: "Rejeitados", dica: "O cliente recusou ou pediu ajuste.", aberta: false },
   { id: "expirado", titulo: "Expirados", dica: "Passou a validade sem resposta.", aberta: false },
 ];
 
-export function colunaDoOrcamento(o: Pick<OrcamentoDoQuadro, "status" | "os_id">): ColunaDoQuadro {
+export function colunaDoOrcamento(o: Pick<OrcamentoDoQuadro, "status" | "os_id" | "etapa_comercial">): ColunaDoQuadro {
   if (o.os_id || o.status === "convertido") return "os";
   switch (o.status) {
     case "enviado":
+      // A etapa só vale enquanto o orçamento está enviado; o banco a limpa quando o status sai daí.
+      if (o.etapa_comercial === "em_negociacao") return "em_negociacao";
+      if (o.etapa_comercial === "aceite_verbal") return "aceite_verbal";
       return "enviado";
     case "aprovado":
       return "aprovado";
@@ -80,6 +107,54 @@ export function montarQuadro(lista: OrcamentoDoQuadro[], opcoes: { mostrarValore
       total: opcoes.mostrarValores ? itens.reduce((soma, o) => soma + valorDe(o), 0) : null,
     };
   });
+}
+
+/** As três etapas de um orçamento enviado, na ordem da conversa. */
+export type EtapaDoEnviado = "enviado" | "em_negociacao" | "aceite_verbal";
+
+export const ETAPAS_DO_ENVIADO: ReadonlyArray<{ id: EtapaDoEnviado; rotulo: string }> = [
+  { id: "enviado", rotulo: "Enviado, sem resposta" },
+  { id: "em_negociacao", rotulo: "Em negociação" },
+  { id: "aceite_verbal", rotulo: "Aceite verbal" },
+];
+
+/** Colunas do quadro onde o orçamento ainda é um "enviado": é nelas que a etapa se muda. */
+export const COLUNAS_DO_ENVIADO: readonly ColunaDoQuadro[] = ["enviado", "em_negociacao", "aceite_verbal"];
+
+/** O que gravar em `etapa_comercial` para cada etapa: "enviado" é a ausência de etapa. */
+export function etapaParaGravar(etapa: EtapaDoEnviado): "em_negociacao" | "aceite_verbal" | null {
+  return etapa === "enviado" ? null : etapa;
+}
+
+export interface ValidadeDoOrcamento {
+  /** Dias até vencer; negativo quando já venceu. */
+  dias: number;
+  vencido: boolean;
+  /** Vence hoje ou nos próximos 3 dias, ou já venceu: pede atenção. */
+  urgente: boolean;
+}
+
+/**
+ * Quando o orçamento enviado perde a validade: a data do envio mais `validade_dias`. Sem data de
+ * envio ou sem validade não há o que dizer (`null`), em vez de inventar um prazo.
+ */
+export function validadeDoOrcamento(
+  o: Pick<OrcamentoDoQuadro, "enviado_em" | "validade_dias">,
+  agora: Date,
+): ValidadeDoOrcamento | null {
+  if (!o.enviado_em || !Number.isFinite(Number(o.validade_dias)) || Number(o.validade_dias) <= 0) return null;
+  const envio = new Date(o.enviado_em).getTime();
+  if (!Number.isFinite(envio)) return null;
+  const vence = envio + Number(o.validade_dias) * 86_400_000;
+  const dias = Math.ceil((vence - agora.getTime()) / 86_400_000);
+  return { dias, vencido: dias < 0, urgente: dias <= 3 };
+}
+
+export function rotuloDaValidade(v: ValidadeDoOrcamento | null): string | null {
+  if (!v) return null;
+  if (v.dias < 0) return v.dias === -1 ? "venceu ontem" : `venceu há ${Math.abs(v.dias)} dias`;
+  if (v.dias === 0) return "vence hoje";
+  return v.dias === 1 ? "vence amanhã" : `vence em ${v.dias} dias`;
 }
 
 /** Dias inteiros desde a criação; `null` se a data não existe ou não lê. */

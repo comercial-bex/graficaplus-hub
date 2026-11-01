@@ -2,10 +2,15 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  COLUNAS_DO_ENVIADO,
+  ETAPAS_DO_ENVIADO,
   idadeEmDias,
   montarQuadro,
   rotuloDaIdade,
+  rotuloDaValidade,
+  validadeDoOrcamento,
   type ColunaDoQuadro,
+  type EtapaDoEnviado,
   type OrcamentoDoQuadro,
 } from "@/domain/orcamentos/quadro";
 
@@ -13,6 +18,8 @@ import {
 const FAIXA: Record<ColunaDoQuadro, string> = {
   rascunho: "border-t-[color:var(--muted-foreground)]",
   enviado: "border-t-[color:var(--bex-cyan)]",
+  em_negociacao: "border-t-[color:var(--bex-cyan)]",
+  aceite_verbal: "border-t-primary",
   aprovado: "border-t-[color:var(--bex-lime)]",
   os: "border-t-[color:var(--bex-lime)]",
   rejeitado: "border-t-[color:var(--bex-magenta)]",
@@ -20,6 +27,59 @@ const FAIXA: Record<ColunaDoQuadro, string> = {
 };
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/**
+ * O que o orçamento enviado ainda tem de dizer: até quando vale e em que pé está a conversa. A
+ * etapa é um seletor de verdade (leitor de tela e teclado), não arrastar. Só quem pode editar
+ * orçamento vê o seletor.
+ */
+function EtapaDoEnviado({
+  o,
+  coluna,
+  agora,
+  podeMover,
+  aoMoverEtapa,
+}: {
+  o: OrcamentoDoQuadro;
+  coluna: ColunaDoQuadro;
+  agora: Date;
+  podeMover: boolean;
+  aoMoverEtapa?: (o: OrcamentoDoQuadro, etapa: EtapaDoEnviado) => void;
+}) {
+  const validade = validadeDoOrcamento(o, agora);
+  const rotuloValidade = rotuloDaValidade(validade);
+  return (
+    <>
+      {rotuloValidade && (
+        <p
+          data-validade={validade?.urgente ? "urgente" : "ok"}
+          className={cn("mt-2 text-sm", validade?.urgente ? "font-semibold text-foreground" : "text-muted-foreground")}
+        >
+          Validade: {rotuloValidade}
+        </p>
+      )}
+      {podeMover && aoMoverEtapa && (
+        <div className="mt-2">
+          <label className="sr-only" htmlFor={`etapa-${o.id}`}>
+            Etapa do orçamento {o.numero}
+          </label>
+          <select
+            id={`etapa-${o.id}`}
+            value={coluna as EtapaDoEnviado}
+            onChange={(e) => aoMoverEtapa(o, e.target.value as EtapaDoEnviado)}
+            className="h-10 w-full rounded-md border border-input bg-card px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {ETAPAS_DO_ENVIADO.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.rotulo}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </>
+  );
+}
 
 /**
  * Quadro de orçamentos: uma coluna por estado, com o total em dinheiro e a
@@ -30,16 +90,21 @@ export function QuadroDeOrcamentos({
   orcamentos,
   mostrarValores,
   podeConverter,
+  podeMover = false,
   agora = new Date(),
   aoAbrir,
   aoConverter,
+  aoMoverEtapa,
 }: {
   orcamentos: OrcamentoDoQuadro[];
   mostrarValores: boolean;
   podeConverter: boolean;
+  /** Pode mudar a etapa de um orçamento enviado (a mesma permissão que o banco cobra para editar). */
+  podeMover?: boolean;
   agora?: Date;
   aoAbrir: (id: string) => void;
   aoConverter: (o: OrcamentoDoQuadro) => void;
+  aoMoverEtapa?: (o: OrcamentoDoQuadro, etapa: EtapaDoEnviado) => void;
 }) {
   const colunas = montarQuadro(orcamentos, { mostrarValores });
   return (
@@ -91,6 +156,9 @@ export function QuadroDeOrcamentos({
                       {idade && <span className="text-muted-foreground">{idade}</span>}
                     </span>
                   </button>
+                  {COLUNAS_DO_ENVIADO.includes(c.id) && (
+                    <EtapaDoEnviado o={o} coluna={c.id} agora={agora} podeMover={podeMover} aoMoverEtapa={aoMoverEtapa} />
+                  )}
                   {c.id === "aprovado" && podeConverter && (
                     <Button size="sm" className="mt-3 h-10 w-full text-sm" onClick={() => aoConverter(o)}>
                       Converter em OS <ArrowRight className="ml-1 h-3 w-3" />

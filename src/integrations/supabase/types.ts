@@ -7930,6 +7930,7 @@ export type Database = {
           descricao: string | null
           endereco_entrega: Json | null
           enviado_em: string | null
+          etapa_comercial: string | null
           id: string
           lead_id: string | null
           margem_estimada: number | null
@@ -7985,6 +7986,7 @@ export type Database = {
           descricao?: string | null
           endereco_entrega?: Json | null
           enviado_em?: string | null
+          etapa_comercial?: string | null
           id?: string
           lead_id?: string | null
           margem_estimada?: number | null
@@ -8040,6 +8042,7 @@ export type Database = {
           descricao?: string | null
           endereco_entrega?: Json | null
           enviado_em?: string | null
+          etapa_comercial?: string | null
           id?: string
           lead_id?: string | null
           margem_estimada?: number | null
