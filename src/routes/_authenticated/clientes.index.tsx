@@ -40,7 +40,27 @@ import { Plus, Upload, Search } from "lucide-react";
 import { toast } from "sonner";
 import { CampoDocumento } from "@/components/campo-documento";
 import { NovoClienteEmPassos } from "@/components/cliente/novo-cliente-em-passos";
-import { chaveWhatsApp, formatarCEP, formatarTelefone, recebeWhatsApp } from "@/domain/documentos";
+import {
+  apenasDigitos,
+  chaveWhatsApp,
+  formatarCEP,
+  formatarTelefone,
+  recebeWhatsApp,
+  validarDocumento,
+} from "@/domain/documentos";
+import {
+  CamposDeCanais,
+  CamposDeInscricao,
+  CampoDeOrigem,
+  SecaoRecolhivel,
+} from "@/components/cliente/campos-da-ficha";
+import {
+  FICHA_VAZIA,
+  camposDaFichaParaGravar,
+  problemaDaFicha,
+  type CamposDaFicha,
+} from "@/domain/clientes/ficha-do-cliente";
+import { ORIGENS, rotuloDaOrigem } from "@/domain/crm/origens";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 import { mensagemErro } from "@/lib/erros";
 
@@ -67,9 +87,10 @@ type FormState = {
   vendedor_id: string;
   observacoes: string;
   logo_url: string;
-};
+} & CamposDaFicha;
 
 const emptyForm: FormState = {
+  ...FICHA_VAZIA,
   tipo: "pj",
   nome: "",
   razao_social: "",
@@ -92,6 +113,7 @@ function ClientesPage() {
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "pf" | "pj">("todos");
   const [filtroAtivo, setFiltroAtivo] = useState<"todos" | "ativos" | "inativos">("ativos");
   const [filtroVendedor, setFiltroVendedor] = useState<string>("todos");
+  const [filtroOrigem, setFiltroOrigem] = useState<string>("todas");
   const [open, setOpen] = useState(false);
   const [passosAberto, setPassosAberto] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -105,13 +127,15 @@ function ClientesPage() {
   });
 
   const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ["clientes", filtroTipo, filtroAtivo, filtroVendedor],
+    queryKey: ["clientes", filtroTipo, filtroAtivo, filtroVendedor, filtroOrigem],
     queryFn: async () => {
       let q = supabase.from("clientes").select("*").order("created_at", { ascending: false });
       if (filtroTipo !== "todos") q = q.eq("tipo", filtroTipo);
       if (filtroAtivo === "ativos") q = q.eq("ativo", true);
       if (filtroAtivo === "inativos") q = q.eq("ativo", false);
       if (filtroVendedor !== "todos") q = q.eq("vendedor_id", filtroVendedor);
+      if (filtroOrigem === "sem") q = q.is("origem", null);
+      else if (filtroOrigem !== "todas") q = q.eq("origem", filtroOrigem);
       const { data, error } = await q;
       if (error) throw error;
       return data;
@@ -228,7 +252,23 @@ function ClientesPage() {
         description: "Abra o cadastro que já existe em vez de criar outro.",
       });
     }
-    const payload: any = { ...form };
+    // Documento preenchido tem de ser válido: o campo já avisa em vermelho, e aqui o botão recusa.
+    const docDigitos = apenasDigitos(form.documento);
+    const rotuloDoDoc = form.tipo === "pj" ? "CNPJ" : "CPF";
+    if (docDigitos && !validarDocumento(docDigitos, form.tipo === "pj" ? "cnpj" : "cpf")) {
+      return toast.error(`${rotuloDoDoc} inválido`, {
+        description: "Confira os dígitos ou deixe o campo vazio.",
+      });
+    }
+    const problema = problemaDaFicha(form);
+    if (problema) return toast.error(problema);
+    const payload: any = { ...form, ...camposDaFichaParaGravar(form) };
+    // Inscrição é coisa de empresa: quem trocou para pessoa física depois de preencher não leva a sobra.
+    if (form.tipo === "pf") {
+      payload.possui_inscricao_estadual = "nao_informado";
+      payload.inscricao_estadual = null;
+      payload.inscricao_municipal = null;
+    }
     if (!payload.vendedor_id) delete payload.vendedor_id;
     setSalvando(true);
     try {
@@ -413,6 +453,12 @@ function ClientesPage() {
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                     />
                   </div>
+                  <div className="md:col-span-2">
+                    <CampoDeOrigem
+                      valor={form.origem}
+                      onChange={(origem) => setForm((atual) => ({ ...atual, origem }))}
+                    />
+                  </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label>Endereço</Label>
                     <Input
@@ -454,6 +500,30 @@ function ClientesPage() {
                         onChange={(e) => setForm({ ...form, cep: e.target.value })}
                       />
                     </div>
+                  </div>
+                  {form.tipo === "pj" && (
+                    <div className="md:col-span-2">
+                      <SecaoRecolhivel
+                        titulo="Documentos fiscais"
+                        dica="Inscrição estadual e municipal, para a nota fiscal."
+                      >
+                        <CamposDeInscricao
+                          valor={form}
+                          onChange={(p) => setForm((atual) => ({ ...atual, ...p }))}
+                        />
+                      </SecaoRecolhivel>
+                    </div>
+                  )}
+                  <div className="md:col-span-2">
+                    <SecaoRecolhivel
+                      titulo="Outros contatos"
+                      dica="Telefones extras, e-mail da nota e do boleto, site."
+                    >
+                      <CamposDeCanais
+                        valor={form}
+                        onChange={(p) => setForm((atual) => ({ ...atual, ...p }))}
+                      />
+                    </SecaoRecolhivel>
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label>Observações</Label>
@@ -537,6 +607,20 @@ function ClientesPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={filtroOrigem} onValueChange={setFiltroOrigem}>
+              <SelectTrigger className="w-[190px]" aria-label="Filtrar por origem do cliente">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as origens</SelectItem>
+                <SelectItem value="sem">Sem origem informada</SelectItem>
+                {ORIGENS.map((o) => (
+                  <SelectItem key={o} value={o}>
+                    {o}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </>
         }
       >
@@ -549,20 +633,21 @@ function ClientesPage() {
               <TableHead>Documento</TableHead>
               <TableHead>Contato</TableHead>
               <TableHead>Cidade/UF</TableHead>
+              <TableHead>Origem</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="py-2">
+                <TableCell colSpan={8} className="py-2">
                   <Carregando />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Nenhum cliente
                 </TableCell>
               </TableRow>
@@ -601,6 +686,9 @@ function ClientesPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {c.cidade ? `${c.cidade}/${c.estado || ""}` : "—"}
+                </TableCell>
+                <TableCell className={c.origem ? "" : "text-muted-foreground"}>
+                  {rotuloDaOrigem(c.origem)}
                 </TableCell>
                 <TableCell>
                   <StatusChip

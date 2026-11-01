@@ -73,6 +73,22 @@ import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { formatBRL } from "@/lib/produtos-catalogo";
 import { Carregando } from "@/components/bex/Carregando";
+import { CampoDocumento } from "@/components/campo-documento";
+import {
+  CamposDeCanais,
+  CamposDeInscricao,
+  CampoDeOrigem,
+  SecaoRecolhivel,
+} from "@/components/cliente/campos-da-ficha";
+import { apenasDigitos, formatarCEP, formatarTelefone, validarDocumento } from "@/domain/documentos";
+import {
+  camposDaFichaParaGravar,
+  preencherSoOQueFalta,
+  problemaDaFicha,
+  rotuloDaInscricaoEstadual,
+} from "@/domain/clientes/ficha-do-cliente";
+import { rotuloDaOrigem } from "@/domain/crm/origens";
+import type { DadosCNPJ } from "@/lib/api/cnpj.server";
 export const Route = createFileRoute("/_authenticated/clientes/$id")({
   head: () => ({ meta: [{ title: "Cliente — BEX PRINT OS" }] }),
   component: ClienteDetailPage,
@@ -416,16 +432,38 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
 
   async function save() {
     if (!form.nome?.trim()) return toast.error("Nome é obrigatório");
+    // Documento alterado tem de ser válido. O que já estava gravado e não foi mexido passa,
+    // para um cadastro antigo com número errado não impedir de corrigir o telefone.
+    const docNovo = apenasDigitos(form.documento ?? "");
+    const docAntigo = apenasDigitos(cliente.documento ?? "");
+    const ehPj = form.tipo === "pj";
+    if (docNovo && docNovo !== docAntigo && !validarDocumento(docNovo, ehPj ? "cnpj" : "cpf")) {
+      return toast.error(`${ehPj ? "CNPJ" : "CPF"} inválido`, {
+        description: "Confira os dígitos ou deixe o campo vazio.",
+      });
+    }
+    const problema = problemaDaFicha(form);
+    if (problema) return toast.error(problema);
     // Envia apenas colunas editáveis: campos gerados pelo banco (ex.: telefone_normalizado)
     // ou de controle (id/created_at) fazem o update falhar.
     const camposEditaveis = [
       "tipo", "nome", "razao_social", "nome_fantasia", "documento", "cpf_cnpj",
       "email", "telefone", "whatsapp_principal", "endereco", "bairro", "cidade",
       "estado", "cep", "observacoes", "logo_url", "origem", "status", "tipo_cliente", "ativo",
+      "possui_inscricao_estadual", "inscricao_estadual", "inscricao_municipal", "telefone_2",
+      "telefone_3", "email_nota_fiscal", "email_boleto", "site",
     ] as const;
     const payload: Record<string, unknown> = { vendedor_id: form.vendedor_id || null };
     for (const campo of camposEditaveis) {
       if (campo in form) payload[campo] = form[campo] ?? null;
+    }
+    // Texto vazio vira nulo, site ganha https:// e a inscrição estadual só vale com "sim".
+    Object.assign(payload, camposDaFichaParaGravar(form));
+    // Inscrição é coisa de empresa: quem virou pessoa física não leva a sobra.
+    if (form.tipo === "pf") {
+      payload.possui_inscricao_estadual = "nao_informado";
+      payload.inscricao_estadual = null;
+      payload.inscricao_municipal = null;
     }
     const { error } = await supabase.from("clientes").update(payload as any).eq("id", cliente.id);
 
@@ -515,11 +553,23 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
               />
             </div>
             <div className="space-y-2">
-              <Label>Documento</Label>
-              <Input
-                maxLength={20}
-                value={form.documento || ""}
-                onChange={(e) => setForm({ ...form, documento: e.target.value })}
+              <CampoDocumento
+                tipo={form.tipo === "pj" ? "cnpj" : "cpf"}
+                // Tipo e documento andam juntos: trocar um limpa o outro (tamanhos diferentes).
+                onTipoChange={(t) =>
+                  setForm((atual: any) => ({
+                    ...atual,
+                    tipo: t === "cnpj" ? "pj" : "pf",
+                    documento: "",
+                  }))
+                }
+                valor={form.documento || ""}
+                onValorChange={(v) => setForm((atual: any) => ({ ...atual, documento: v }))}
+                onDadosEncontrados={(dados: DadosCNPJ) =>
+                  setForm((atual: any) =>
+                    preencherSoOQueFalta(atual, dados, { cep: formatarCEP, telefone: formatarTelefone }),
+                  )
+                }
               />
             </div>
             <div className="space-y-2">
@@ -573,6 +623,40 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
                 />
               </div>
             </div>
+            <div className="md:col-span-2">
+              <CampoDeOrigem
+                valor={form.origem}
+                onChange={(origem) => setForm((atual: any) => ({ ...atual, origem }))}
+              />
+            </div>
+            {form.tipo === "pj" && (
+              <div className="md:col-span-2">
+                <SecaoRecolhivel
+                  titulo="Documentos fiscais"
+                  dica="Inscrição estadual e municipal, para a nota fiscal."
+                  abertaDeInicio={form.possui_inscricao_estadual === "sim" || !!form.inscricao_municipal}
+                >
+                  <CamposDeInscricao
+                    valor={form}
+                    onChange={(p) => setForm((atual: any) => ({ ...atual, ...p }))}
+                  />
+                </SecaoRecolhivel>
+              </div>
+            )}
+            <div className="md:col-span-2">
+              <SecaoRecolhivel
+                titulo="Outros contatos"
+                dica="Telefones extras, e-mail da nota e do boleto, site."
+                abertaDeInicio={
+                  !!(form.telefone_2 || form.telefone_3 || form.email_nota_fiscal || form.email_boleto || form.site)
+                }
+              >
+                <CamposDeCanais
+                  valor={form}
+                  onChange={(p) => setForm((atual: any) => ({ ...atual, ...p }))}
+                />
+              </SecaoRecolhivel>
+            </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Observações</Label>
               <Textarea
@@ -620,6 +704,47 @@ function DadosTab({ cliente }: { cliente: any }) {
         <div>
           <Label className="text-xs text-muted-foreground">CEP</Label>
           <div>{cliente.cep || "—"}</div>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Origem do cliente</Label>
+          <div className={cliente.origem ? "" : "text-muted-foreground"}>{rotuloDaOrigem(cliente.origem)}</div>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Inscrição estadual</Label>
+          <div>{rotuloDaInscricaoEstadual(cliente.possui_inscricao_estadual, cliente.inscricao_estadual)}</div>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Inscrição municipal</Label>
+          <div>{cliente.inscricao_municipal || "—"}</div>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Telefones adicionais</Label>
+          <div>{[cliente.telefone_2, cliente.telefone_3].filter(Boolean).join(" · ") || "—"}</div>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">E-mail para nota fiscal</Label>
+          <div>{cliente.email_nota_fiscal || "—"}</div>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">E-mail para boleto</Label>
+          <div>{cliente.email_boleto || "—"}</div>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Site</Label>
+          <div>
+            {cliente.site ? (
+              <a
+                href={cliente.site}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-link underline-offset-2 hover:underline"
+              >
+                {cliente.site}
+              </a>
+            ) : (
+              "—"
+            )}
+          </div>
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Cadastrado em</Label>

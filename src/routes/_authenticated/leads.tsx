@@ -42,6 +42,7 @@ import { mensagemErro } from "@/lib/erros";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { Carregando } from "@/components/bex/Carregando";
+import { ORIGENS } from "@/domain/crm/origens";
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({ meta: [{ title: "Leads — BEX PRINT OS" }] }),
   component: LeadsPage,
@@ -69,16 +70,7 @@ const ESTAGIOS = [
 // quebra por origem do Funil não servia para nada. Lista curta e editável de
 // verdade, porque a pergunta "de onde veio esse cliente" é a que decide onde
 // gastar em divulgação.
-const ORIGENS = [
-  "Indicação",
-  "Instagram",
-  "Facebook",
-  "Google",
-  "WhatsApp",
-  "Balcão",
-  "Cliente antigo",
-  "Outra",
-];
+// A lista mora em src/domain/crm/origens.ts: é a mesma do cadastro de clientes.
 
 const funilMeta = [
   { key: "novo", etapa: "Novos", cor: "bg-blue-500" },
