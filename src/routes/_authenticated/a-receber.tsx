@@ -1,7 +1,7 @@
 import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -40,6 +40,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Carregando } from "@/components/bex/Carregando";
+import {
+  AvisoDeFiltro,
+  CampoDeBusca,
+  GrupoDeChips,
+  RodapeDeTotais,
+} from "@/components/financeiro/lista-financeira";
+import { periodosDaLista } from "@/domain/financeiro/lista-de-contas";
+import {
+  CHIPS_A_RECEBER,
+  FILTRO_A_RECEBER_VAZIO,
+  clientesDasContas,
+  contarSituacoesAReceber,
+  filtrarPorPeriodoBuscaClienteEOrigem,
+  filtrarPorSituacaoAReceber,
+  origensDasContas,
+  totaisAReceber,
+  type FiltroAReceber,
+} from "@/domain/financeiro/contas-a-receber-filtros";
 
 export const Route = createFileRoute("/_authenticated/a-receber")({
   head: () => ({ meta: [{ title: "Contas a receber — BEX PRINT OS" }] }),
@@ -71,6 +89,8 @@ type Conta = {
   os_titulo: string | null;
   cliente_id: string | null;
   cliente: string | null;
+  /** Origem gravada na ficha do cliente (Instagram, indicação, balcão...). */
+  cliente_origem?: string | null;
   vencimento_mais_antigo: string | null;
   recebido: number;
   a_receber: number;
@@ -145,6 +165,7 @@ function AReceberPage() {
   const podeDarBaixa = hasPermission("pagamentos.confirm");
 
   const [incluirQuitadas, setIncluirQuitadas] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroAReceber>(FILTRO_A_RECEBER_VAZIO);
 
   // Parcela escolhida para baixa + a conta dela (para o diálogo mostrar de quem é).
   const [baixa, setBaixa] = useState<{ conta: Conta; parcela: Parcela } | null>(null);
@@ -186,6 +207,30 @@ function AReceberPage() {
       };
     },
   });
+
+  // Filtros da lista (Onda 3): busca, situação, período do vencimento, cliente e origem do
+  // cliente. Os hooks ficam aqui em cima porque a tela sem visão financeira sai mais abaixo.
+  const hojeDaTela = resumo?.hoje ?? hojeISO();
+  const todasAsContas = useMemo(() => resumo?.contas ?? [], [resumo]);
+  const periodos = useMemo(() => periodosDaLista(hojeDaTela), [hojeDaTela]);
+  const clientesDaLista = useMemo(() => clientesDasContas(todasAsContas), [todasAsContas]);
+  const origensDaLista = useMemo(() => origensDasContas(todasAsContas), [todasAsContas]);
+  const antesDaSituacao = useMemo(
+    () => filtrarPorPeriodoBuscaClienteEOrigem(todasAsContas, filtro, hojeDaTela),
+    [todasAsContas, filtro, hojeDaTela],
+  );
+  const contagens = useMemo(() => contarSituacoesAReceber(antesDaSituacao), [antesDaSituacao]);
+  const visiveis = useMemo(
+    () => filtrarPorSituacaoAReceber(antesDaSituacao, filtro.situacao),
+    [antesDaSituacao, filtro.situacao],
+  );
+  const totaisDaTela = useMemo(() => totaisAReceber(visiveis), [visiveis]);
+  const filtrando =
+    filtro.situacao !== "tudo" ||
+    filtro.periodo !== "todos" ||
+    filtro.busca.trim() !== "" ||
+    filtro.clienteId !== "todos" ||
+    filtro.origem !== "todas";
 
   const confirmar = useMutation({
     mutationFn: async (v: {
@@ -290,7 +335,10 @@ function AReceberPage() {
               size="sm"
               variant={incluirQuitadas ? "ghost" : "secondary"}
               className="min-h-11 md:min-h-9"
-              onClick={() => setIncluirQuitadas(false)}
+              onClick={() => {
+                setIncluirQuitadas(false);
+                setFiltro((f) => (f.situacao === "recebida" ? { ...f, situacao: "tudo" } : f));
+              }}
             >
               Em aberto
             </Button>
@@ -390,18 +438,105 @@ function AReceberPage() {
             </div>
           )}
 
+          <Card>
+            <div className="space-y-3 p-4">
+              <CampoDeBusca
+                rotulo="Buscar conta a receber"
+                placeholder="Buscar por cliente, número ou título da OS"
+                valor={filtro.busca}
+                onChange={(busca) => setFiltro((f) => ({ ...f, busca }))}
+              />
+              <GrupoDeChips
+                rotulo="Situação"
+                // Recebida só existe quando a lista traz as quitadas (botão Todas, no alto).
+                opcoes={CHIPS_A_RECEBER.filter((c) => incluirQuitadas || c.id !== "recebida").map((c) => ({
+                  ...c,
+                  quantidade: contagens[c.id],
+                }))}
+                valor={filtro.situacao}
+                onChange={(situacao) => setFiltro((f) => ({ ...f, situacao }))}
+              />
+              <GrupoDeChips
+                rotulo="Período do vencimento"
+                opcoes={periodos.map((p) => ({ id: p.id, rotulo: p.rotulo }))}
+                valor={filtro.periodo}
+                onChange={(periodo) => setFiltro((f) => ({ ...f, periodo }))}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="filtro-cliente">Cliente</Label>
+                  <Select
+                    value={filtro.clienteId}
+                    onValueChange={(clienteId) => setFiltro((f) => ({ ...f, clienteId }))}
+                  >
+                    <SelectTrigger id="filtro-cliente" className="h-11 text-base md:h-10 md:text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os clientes</SelectItem>
+                      {clientesDaLista.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="filtro-origem">Origem do cliente</Label>
+                  <Select
+                    value={filtro.origem}
+                    onValueChange={(origem) => setFiltro((f) => ({ ...f, origem }))}
+                  >
+                    <SelectTrigger id="filtro-origem" className="h-11 text-base md:h-10 md:text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas as origens</SelectItem>
+                      <SelectItem value="sem">Sem origem informada</SelectItem>
+                      {origensDaLista.map((o) => (
+                        <SelectItem key={o} value={o}>
+                          {o}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {filtrando && (
+                <AvisoDeFiltro
+                  mostrando={visiveis.length}
+                  total={contas.length}
+                  onLimpar={() => setFiltro(FILTRO_A_RECEBER_VAZIO)}
+                />
+              )}
+            </div>
+          </Card>
+
           <div className="space-y-3">
             {/* A ordem vem da função: quem tem a parcela em aberto mais antiga
                 aparece primeiro, porque é quem precisa de cobrança antes. */}
-            {contas.map((c) => (
-              <ContaCard
-                key={c.conta_id}
-                conta={c}
-                podeDarBaixa={podeDarBaixa}
-                onBaixa={(p) => abrirBaixa(c, p)}
-              />
-            ))}
+            {visiveis.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Nenhuma conta com esses filtros
+                </CardContent>
+              </Card>
+            ) : (
+              visiveis.map((c) => (
+                <ContaCard
+                  key={c.conta_id}
+                  conta={c}
+                  podeDarBaixa={podeDarBaixa}
+                  onBaixa={(p) => abrirBaixa(c, p)}
+                />
+              ))
+            )}
           </div>
+
+          <Card className="overflow-hidden">
+            <RodapeDeTotais totais={totaisDaTela} rotuloPagas="Recebidas" />
+          </Card>
         </>
       )}
 
