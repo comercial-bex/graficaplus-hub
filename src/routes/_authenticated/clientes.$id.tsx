@@ -83,12 +83,15 @@ import {
 import { apenasDigitos, formatarCEP, formatarTelefone, validarDocumento } from "@/domain/documentos";
 import {
   camposDaFichaParaGravar,
+  preencherEnderecoDoCep,
   preencherSoOQueFalta,
   problemaDaFicha,
   rotuloDaInscricaoEstadual,
 } from "@/domain/clientes/ficha-do-cliente";
 import { rotuloDaOrigem } from "@/domain/crm/origens";
 import { CampoDeTelefoneComPais, SeletorDePais } from "@/components/cliente/campo-de-pais";
+import { CampoDeCep } from "@/components/cliente/campo-de-cep";
+import { HistoricoDoCliente } from "@/components/cliente/historico-do-cliente";
 import { bandeira, ehBrasil, paisPorCodigo, trocarDePais } from "@/domain/clientes/paises";
 import { recebeWhatsApp } from "@/domain/documentos";
 import type { DadosCNPJ } from "@/lib/api/cnpj.server";
@@ -245,6 +248,7 @@ function ClienteDetailPage() {
         <TabsList>
           <TabsTrigger value="resumo">Dados</TabsTrigger>
           <TabsTrigger value="contatos">Responsáveis</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="os">OS</TabsTrigger>
           <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
@@ -252,6 +256,9 @@ function ClienteDetailPage() {
         </TabsList>
         <TabsContent value="resumo">
           <DadosTab cliente={cliente} />
+        </TabsContent>
+        <TabsContent value="historico">
+          <HistoricoDoCliente clienteId={id} cadastradoEm={cliente.created_at} />
         </TabsContent>
         <TabsContent value="contatos">
           <ContatosTab clienteId={id} />
@@ -642,14 +649,23 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
                   onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>CEP</Label>
-                <Input
-                  maxLength={10}
-                  value={form.cep || ""}
-                  onChange={(e) => setForm({ ...form, cep: e.target.value })}
+              {ehBrasil(form.pais) ? (
+                <CampoDeCep
+                  id="cliente-cep"
+                  valor={form.cep || ""}
+                  onValorChange={(cep) => setForm((atual: any) => ({ ...atual, cep }))}
+                  onEncontrado={(d) => setForm((atual: any) => preencherEnderecoDoCep(atual, d))}
                 />
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Código postal</Label>
+                  <Input
+                    maxLength={12}
+                    value={form.cep || ""}
+                    onChange={(e) => setForm({ ...form, cep: e.target.value })}
+                  />
+                </div>
+              )}
             </div>
             <div className="md:col-span-2">
               <CampoDeOrigem

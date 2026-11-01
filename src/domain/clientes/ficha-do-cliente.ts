@@ -161,3 +161,32 @@ export function preencherSoOQueFalta<T extends CadastroComContato>(
     email: vazio(atual.email) ? (dados.email ?? atual.email ?? "") : atual.email,
   };
 }
+
+interface EnderecoDoCliente {
+  endereco?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+}
+
+interface DadosDoCep {
+  endereco: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+}
+
+/**
+ * O CEP preenche rua, bairro, cidade e estado, mas só onde está vazio: quem já escreveu o endereço
+ * do jeito do cliente (com número e complemento) não perde nada. O número a pessoa digita depois.
+ */
+export function preencherEnderecoDoCep<T extends EnderecoDoCliente>(atual: T, dados: DadosDoCep): T {
+  const vazio = (v: string | null | undefined) => !(v ?? "").trim();
+  return {
+    ...atual,
+    endereco: vazio(atual.endereco) ? (dados.endereco ?? atual.endereco ?? "") : atual.endereco,
+    bairro: vazio(atual.bairro) ? (dados.bairro ?? atual.bairro ?? "") : atual.bairro,
+    cidade: vazio(atual.cidade) ? (dados.cidade ?? atual.cidade ?? "") : atual.cidade,
+    estado: vazio(atual.estado) ? (dados.estado ?? atual.estado ?? "") : atual.estado,
+  };
+}
