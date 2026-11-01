@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FunilDoOrcamento } from "@/components/orcamento/funil-do-orcamento";
+import { QuadroDeOrcamentos } from "@/components/orcamento/quadro-de-orcamentos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { chaveWhatsApp } from "@/domain/documentos";
 import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
@@ -33,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, ArrowRight, FileText } from "lucide-react";
+import { Plus, ArrowRight, FileText, LayoutGrid, List } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
@@ -85,6 +86,24 @@ function OrcamentosPage() {
   // Cascas (25/10/2026): 26 orçamentos antigos, rejeitados ou expirados, sem nenhum valor — sobras
   // do botão que criava um orçamento por clique. Ficam escondidos; o botão abaixo mostra de novo.
   const [mostrarCascas, setMostrarCascas] = useState(false);
+  // Lista ou quadro (31/10/2026): o quadro mostra o dinheiro de cada etapa, como o Painel de
+  // Negociação do Holdprint. A escolha fica guardada neste navegador.
+  const [visao, setVisao] = useState<"lista" | "quadro">("lista");
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("bexprint:orcamentos:visao") === "quadro") setVisao("quadro");
+    } catch {
+      /* sem armazenamento: segue na lista */
+    }
+  }, []);
+  const escolherVisao = (v: "lista" | "quadro") => {
+    setVisao(v);
+    try {
+      window.localStorage.setItem("bexprint:orcamentos:visao", v);
+    } catch {
+      /* ignora */
+    }
+  };
 
   const [form, setForm] = useState({
     cliente_id: "",
@@ -485,6 +504,27 @@ function OrcamentosPage() {
         busca={busca}
         onBusca={setBusca}
         placeholder="Buscar orçamento..."
+        filtros={
+          <div role="group" aria-label="Como ver os orçamentos" className="inline-flex rounded-lg border border-border bg-background p-0.5">
+            {([
+              ["lista", "Lista", List],
+              ["quadro", "Quadro", LayoutGrid],
+            ] as const).map(([id, rotulo, Icone]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={visao === id}
+                onClick={() => escolherVisao(id)}
+                className={
+                  "inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+                  (visao === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")
+                }
+              >
+                <Icone className="h-4 w-4" aria-hidden="true" /> {rotulo}
+              </button>
+            ))}
+          </div>
+        }
         rodape={
           <>
             <span>
@@ -503,6 +543,15 @@ function OrcamentosPage() {
           </>
         }
       >
+        {visao === "quadro" ? (
+          <QuadroDeOrcamentos
+            orcamentos={filtrados}
+            mostrarValores={canSeePrices}
+            podeConverter={podeConverter}
+            aoAbrir={(id) => navigate({ to: "/orcamentos/$id", params: { id } })}
+            aoConverter={(o) => converterEmOS(o)}
+          />
+        ) : (
         <Table>
           <TableHeader>
             <TableRow>
@@ -595,6 +644,7 @@ function OrcamentosPage() {
             })}
           </TableBody>
         </Table>
+        )}
       </DataPanel>
     </div>
   );
