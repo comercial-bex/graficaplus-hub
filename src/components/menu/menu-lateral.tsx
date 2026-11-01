@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Download, HandCoins, House, LogOut, Search, UserRound, X } from "lucide-react";
+import { ChevronDown, Download, HandCoins, House, LogOut, Search, Star, UserRound, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Sidebar, useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -61,6 +61,27 @@ function lembrarRecolhidos(chaves: string[]) {
   }
 }
 
+/** As telas que a pessoa marcou com a estrela, neste aparelho (a chave leva o e-mail: dois logins no mesmo computador não dividem). */
+const chaveDosFavoritos = (email: string | null | undefined) => `bexprint:menu:favoritos:${email ?? "sem-email"}`;
+
+function lerFavoritos(chave: string): string[] {
+  try {
+    const bruto = window.localStorage.getItem(chave);
+    const lista: unknown = bruto ? JSON.parse(bruto) : [];
+    return Array.isArray(lista) ? lista.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function lembrarFavoritos(chave: string, urls: string[]) {
+  try {
+    window.localStorage.setItem(chave, JSON.stringify(urls));
+  } catch {
+    /* sem armazenamento a estrela só não fica para a próxima vez */
+  }
+}
+
 function lembrarModulo(id: IdDoModulo) {
   try {
     window.localStorage.setItem(CHAVE_MODULO, id);
@@ -117,7 +138,7 @@ type Entrada = {
   marca: "item" | "topo" | "atalho";
 };
 
-type Secao = { label: string | null; entradas: Entrada[] };
+type Secao = { label: string | null; entradas: Entrada[]; /** O que dizer quando a seção está vazia (só os favoritos usam). */ vazio?: string };
 
 export type PropsDoMenuLateral = {
   areas: AreaVisivel[];
@@ -187,6 +208,21 @@ export function MenuLateral({
     setRecolhidos((atual) => {
       const novo = atual.includes(chave) ? atual.filter((c) => c !== chave) : [...atual, chave];
       lembrarRecolhidos(novo);
+      return novo;
+    });
+  // Favoritos: começa sem nenhum e sem a seção (igual no servidor e no cliente) e lê o que a pessoa
+  // marcou depois de montar. `favoritosLidos` diz que já leu, e só então a seção aparece, vazia ou não.
+  const chaveFav = chaveDosFavoritos(pessoa.email);
+  const [favoritos, setFavoritos] = useState<string[]>([]);
+  const [favoritosLidos, setFavoritosLidos] = useState(false);
+  useEffect(() => {
+    setFavoritos(lerFavoritos(chaveFav));
+    setFavoritosLidos(true);
+  }, [chaveFav]);
+  const alternarFavorito = (url: string) =>
+    setFavoritos((atual) => {
+      const novo = atual.includes(url) ? atual.filter((u) => u !== url) : [...atual, url];
+      lembrarFavoritos(chaveFav, novo);
       return novo;
     });
   const daRota = moduloDaRota(pathname);
@@ -268,7 +304,7 @@ export function MenuLateral({
   // pessoa (os atalhos); nas áreas, os subgrupos da árvore.
   const areaAtiva = areas.find((a) => a.id === ativo) ?? null;
   const atalhos = atalhosDoCelular(areas);
-  const secoes: Secao[] = areaAtiva
+  const secoesDoModulo: Secao[] = areaAtiva
     ? areaAtiva.subgrupos.map((s) => ({
         label: mostraTituloDoSubgrupo(areaAtiva, s) ? s.label : null,
         entradas: s.itens.map((i) => entradaDoItem(i, "item")),
@@ -295,8 +331,25 @@ export function MenuLateral({
           ? [{ label: "Sua rotina", entradas: atalhos.map((i) => entradaDoItem(i, "atalho")) }]
           : []),
       ];
+  // Favoritos: as telas marcadas, de qualquer área, no alto do painel de qualquer módulo. Só entra
+  // o que a pessoa ainda pode ver (a árvore já vem filtrada por permissão).
+  const todosOsItens = areas.flatMap((a) => a.subgrupos.flatMap((s) => s.itens));
+  const entradasFavoritas = favoritos
+    .map((url) => todosOsItens.find((i) => i.url === url))
+    .filter((i): i is ItemVisivel => !!i)
+    .map((i) => entradaDoItem(i, "item"));
+  const secoes: Secao[] = favoritosLidos
+    ? [
+        {
+          label: "Favoritos",
+          entradas: entradasFavoritas,
+          vazio: "Toque na estrela de uma tela e ela aparece aqui, em qualquer módulo.",
+        },
+        ...secoesDoModulo,
+      ]
+    : secoesDoModulo;
   const moduloAtivo = modulos.find((m) => m.id === ativo);
-  const nEntradas = secoes.reduce((n, s) => n + s.entradas.length, 0);
+  const nEntradas = secoesDoModulo.reduce((n, s) => n + s.entradas.length, 0);
   const pendentes = areaAtiva ? somaDaArea(areaAtiva) : 0;
   const ativa = (e: Entrada) => estaNaRota(pathname, e.url);
 
@@ -535,7 +588,7 @@ export function MenuLateral({
                         [`data-${e.marca}`]: e.marca === "item" ? e.url : e.link,
                       };
                       return (
-                        <li key={e.url}>
+                        <li key={e.url} className="relative">
                           <Dica texto={e.dica} lado="right" className="w-full">
                             <Link
                               to={e.link}
@@ -543,7 +596,7 @@ export function MenuLateral({
                               {...marcas}
                               data-active={ehAtiva}
                               aria-current={ehAtiva ? "page" : undefined}
-                              className="group/item flex h-11 w-full items-center gap-3 rounded-lg px-3 text-base font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[active=true]:bg-[var(--sidebar-trilho)] data-[active=true]:font-bold data-[active=true]:text-[var(--sidebar-trilho-foreground)] md:h-9"
+                              className="group/item flex h-11 w-full items-center gap-3 rounded-lg px-3 text-base font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[active=true]:bg-[var(--sidebar-trilho)] data-[active=true]:font-bold data-[active=true]:text-[var(--sidebar-trilho-foreground)] md:h-9 pr-11"
                             >
                               <e.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                               <span className="min-w-0 flex-1 truncate">{e.title}</span>
@@ -553,10 +606,31 @@ export function MenuLateral({
                               />
                             </Link>
                           </Dica>
+                          {e.marca !== "topo" && (
+                            <button
+                              type="button"
+                              data-favorito=""
+                              aria-pressed={favoritos.includes(e.url)}
+                              aria-label={`${favoritos.includes(e.url) ? "Tirar dos favoritos" : "Pôr nos favoritos"}: ${e.title}`}
+                              onClick={() => alternarFavorito(e.url)}
+                              className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                            >
+                              <Star
+                                aria-hidden="true"
+                                className={cn(
+                                  "h-4 w-4",
+                                  favoritos.includes(e.url) && "fill-[var(--sidebar-marca)] text-[var(--sidebar-marca)]",
+                                )}
+                              />
+                            </button>
+                          )}
                         </li>
                       );
                     })}
                   </ul>
+                  {sec.vazio && sec.entradas.length === 0 && !recolhida && (
+                    <p className="px-3 pb-1 text-sm text-sidebar-foreground/70">{sec.vazio}</p>
+                  )}
                 </div>
                 );
               })}
