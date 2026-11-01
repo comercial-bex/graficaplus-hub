@@ -22,7 +22,7 @@ function aplicarTema(tema: Tema) {
 }
 
 /** Alterna somente a área de conteúdo; os tokens da barra lateral são sempre escuros. */
-export function ThemeToggle() {
+export function ThemeToggle({ noTopo = false }: { noTopo?: boolean } = {}) {
   const [tema, setTema] = useState<Tema>("dark");
 
   useEffect(() => setTema(temaAtual()), []);
@@ -41,7 +41,12 @@ export function ThemeToggle() {
           aplicarTema(proximoTema);
           setTema(proximoTema);
         }}
-        className="h-9 w-9 rounded-full border border-border bg-background/70 text-muted-foreground shadow-sm hover:text-foreground"
+        className={
+          noTopo
+            ? // Sobre a barra azul-marinho: letra clara e fundo translúcido.
+              "h-9 w-9 rounded-full border border-white/25 bg-white/10 text-topbar-foreground shadow-sm hover:bg-white/20 hover:text-white"
+            : "h-9 w-9 rounded-full border border-border bg-background/70 text-muted-foreground shadow-sm hover:text-foreground"
+        }
       >
         {tema === "dark" ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
       </Button>
