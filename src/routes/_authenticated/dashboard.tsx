@@ -797,8 +797,8 @@ function PainelCompleto({
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
               <Tooltip {...chartTooltipStyle} />
               <Area type="monotone" dataKey="faturamento" stroke={CMYK.cyan} strokeWidth={2} fill="url(#fatGrad)" />
             </AreaChart>
@@ -821,8 +821,8 @@ function PainelCompleto({
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={lucroPrevistoRealMensal}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
               <Tooltip {...chartTooltipStyle} />
               <Legend wrapperStyle={{ fontSize: "11px", fontFamily: "var(--font-mono)" }} />
               <Bar dataKey="previsto" fill="var(--muted-foreground)" radius={[3, 3, 0, 0]} />
@@ -888,8 +888,8 @@ function PainelCompleto({
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={tempoMedioPorEtapa}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="etapa" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
-              <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+              <XAxis dataKey="etapa" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
               <Tooltip {...chartTooltipStyle} />
               <Line type="monotone" dataKey="horas" stroke={CMYK.magenta} strokeWidth={2} dot={{ fill: CMYK.magenta }} />
             </LineChart>
@@ -903,8 +903,8 @@ function PainelCompleto({
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={produtosMaisVendidos} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis type="number" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-              <YAxis dataKey="produto" type="category" width={110} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+              <XAxis type="number" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+              <YAxis dataKey="produto" type="category" width={110} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
               <Tooltip {...chartTooltipStyle} />
               <Bar dataKey="qtd" fill={CMYK.cyan} radius={[0, 3, 3, 0]} />
             </BarChart>
@@ -915,8 +915,8 @@ function PainelCompleto({
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={producaoPorMaquina}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="maquina" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+              <XAxis dataKey="maquina" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
               <Tooltip {...chartTooltipStyle} />
               <Bar dataKey="horas" fill={CMYK.amber} radius={[3, 3, 0, 0]} />
             </BarChart>
@@ -954,8 +954,8 @@ function PainelCompleto({
                   <ResponsiveContainer width="100%" height={160}>
                     <BarChart data={retrabalhoPorSetor}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="setor" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-                      <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} allowDecimals={false} />
+                      <XAxis dataKey="setor" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
+                      <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} allowDecimals={false} />
                       <Tooltip {...chartTooltipStyle} />
                       <Bar dataKey="qtd" fill={CMYK.magenta} radius={[3, 3, 0, 0]} />
                     </BarChart>

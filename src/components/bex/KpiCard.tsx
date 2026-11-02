@@ -63,7 +63,7 @@ export function KpiCard({
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-1.5">
-            <p className="truncate text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className="line-clamp-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
             <DicaIcone texto={hint} rotulo={label} />
           </div>
           {Icon && <Icon className={cn("h-4 w-4", a.text)} />}

@@ -38,7 +38,7 @@ const TOM: Record<Pendencia["severidade"], string> = {
 };
 
 const TEXTO: Record<Pendencia["severidade"], string> = {
-  critico: "text-[color:var(--bex-magenta)]",
+  critico: "text-[color:var(--status-magenta)]",
   atencao: "text-[color:var(--bex-amber)]",
   ok: "text-[color:var(--bex-cyan)]",
 };
@@ -82,7 +82,7 @@ export function PendenciasDoMeuPapel({ className }: { className?: string }) {
             </Badge>
           ))}
           {criticas > 0 && (
-            <span className="flex items-center gap-1 text-xs font-normal text-[color:var(--bex-magenta)]">
+            <span className="flex items-center gap-1 text-xs font-normal text-[color:var(--status-magenta)]">
               <AlertTriangle className="h-3.5 w-3.5" />
               {criticas} {criticas === 1 ? "trava o trabalho" : "travam o trabalho"}
             </span>
