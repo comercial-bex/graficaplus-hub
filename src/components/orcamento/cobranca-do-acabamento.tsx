@@ -112,7 +112,14 @@ export function CobrancaDoAcabamento({
     if (!servico || jaNoOrcamento.has(servico.id)) continue;
     if (quantidadeDoAcabamento(regra.medida, peca) > 0) linhas.push({ regra, servico });
   }
+  const [escolhido, setEscolhido] = useState<string | null>(null);
   if (linhas.length === 0) return null;
+  // Lona aceita seis acabamentos: uma escolha por vez, para a tela não virar uma parede de cartões.
+  const padrao = acabamentos.find((a) => a.padrao)?.nome;
+  const atual =
+    linhas.find((l) => l.regra.acabamento === escolhido) ??
+    linhas.find((l) => l.regra.acabamento === padrao) ??
+    linhas[0];
 
   return (
     <div
@@ -120,17 +127,31 @@ export function CobrancaDoAcabamento({
       data-testid="cobranca-do-acabamento"
     >
       <p className="text-sm font-medium">Cobrar o acabamento à parte</p>
-      {linhas.map(({ regra, servico }) => (
-        <LinhaDeCobranca
-          key={servico.id}
-          regra={regra}
-          servico={servico}
-          peca={peca}
-          nomeDoProduto={nomeDoProduto}
-          desabilitado={desabilitado}
-          onAdicionar={onAdicionar}
-        />
-      ))}
+      {linhas.length > 1 && (
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Qual acabamento cobrar">
+          {linhas.map(({ regra }) => (
+            <Button
+              key={regra.acabamento}
+              type="button"
+              size="sm"
+              variant={regra.acabamento === atual.regra.acabamento ? "default" : "outline"}
+              aria-pressed={regra.acabamento === atual.regra.acabamento}
+              onClick={() => setEscolhido(regra.acabamento)}
+            >
+              {regra.acabamento}
+            </Button>
+          ))}
+        </div>
+      )}
+      <LinhaDeCobranca
+        key={atual.servico.id}
+        regra={atual.regra}
+        servico={atual.servico}
+        peca={peca}
+        nomeDoProduto={nomeDoProduto}
+        desabilitado={desabilitado}
+        onAdicionar={onAdicionar}
+      />
       <p className="text-xs text-muted-foreground">
         A linha entra como um item comum: dá para mudar a quantidade depois ou apagar.
       </p>
@@ -156,7 +177,7 @@ function LinhaDeCobranca({
   const [lados, setLados] = useState<LadosDaBainha>(() => ladosSugeridos(nomeDoProduto));
   const preco = Number(servico.preco_base);
   const temPreco = Number.isFinite(preco) && preco > 0;
-  const unidade = regra.medida === "perimetro" ? "m" : "m²";
+  const unidade = regra.medida === "perimetro" ? "m" : regra.medida === "peca" ? "un" : "m²";
   const valorDe = (q: number) => brl(Math.round(q * preco * 100) / 100);
   const quantidade = quantidadeDoAcabamento(regra.medida, peca, lados);
 

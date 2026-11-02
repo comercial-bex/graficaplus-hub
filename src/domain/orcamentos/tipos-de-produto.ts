@@ -95,7 +95,7 @@ export const TIPOS_DE_PRODUTO: readonly TipoDeProduto[] = [
     icone: "Image",
     descricao: "Lona, banner, faixa e fachada em lona. Vende por m².",
     unidadePadrao: "m2",
-    acabamentos: ["bainha + ilhós", "bastão e corda", "refile", "ilhós a cada 50 cm"],
+    acabamentos: ["bainha + ilhós", "só bainha", "só ilhós", "bastão e corda", "refile", "colagem da borda"],
     tamanhosComuns: TAMANHOS_LONA,
   },
   {

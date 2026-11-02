@@ -5,13 +5,14 @@
  * como a gráfica os cobra. Esta lista liga o acabamento ao produto de serviço e diz em que medida
  * ele é cobrado:
  *   - "perimetro": metros do contorno de cada peça × quantidade (bainha e ilhós correm ao redor);
- *   - "area": m² da peça × quantidade (laminação cobre a peça inteira).
+ *   - "area": m² da peça × quantidade (laminação cobre a peça inteira);
+ *   - "peca": uma por peça (bastão e corda).
  *
  * A quantidade calculada só ESCREVE a linha: depois de adicionada, é uma linha comum, e a equipe
  * muda a quantidade quando a peça leva bainha só em dois lados, por exemplo.
  */
 
-export type MedidaCobrada = "perimetro" | "area";
+export type MedidaCobrada = "perimetro" | "area" | "peca";
 
 export type AcabamentoCobravel = {
   /** nome em `acabamentos.nome` */
@@ -27,6 +28,11 @@ export const ACABAMENTOS_COBRAVEIS: readonly AcabamentoCobravel[] = [
     servico: "Acabamento de lona (bainha + ilhós)",
     medida: "perimetro",
   },
+  { acabamento: "Só bainha", servico: "Bainha na lona", medida: "perimetro" },
+  { acabamento: "Só ilhós", servico: "Ilhós na lona", medida: "perimetro" },
+  { acabamento: "Bastão e corda", servico: "Bastão e corda", medida: "peca" },
+  { acabamento: "Refile", servico: "Refile de lona", medida: "perimetro" },
+  { acabamento: "Colagem da borda", servico: "Colagem da borda", medida: "perimetro" },
   { acabamento: "Laminação de adesivo", servico: "Laminação de adesivo", medida: "area" },
 ];
 
@@ -70,6 +76,7 @@ export function quantidadeDoAcabamento(
   const a = Number(peca.altura);
   if (!(l > 0) || !(a > 0)) return 0;
   const qtd = Number(peca.quantidade) > 0 ? Number(peca.quantidade) : 1;
+  if (medida === "peca") return qtd;
   if (medida === "area") return arred(l * a * qtd, 3);
   const metros =
     lados === "maiores"

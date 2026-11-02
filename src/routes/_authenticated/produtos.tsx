@@ -99,6 +99,7 @@ import { dicaCampo, dicaTela } from "@/lib/dicas";
 import { percentual } from "@/lib/percentual";
 import { Carregando } from "@/components/bex/Carregando";
 import { NovoProdutoEmPassos } from "@/components/produtos/novo-produto-em-passos";
+import { ModelosDoMercado } from "@/components/produtos/modelos-do-mercado";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -158,6 +159,7 @@ function ProdutosPage() {
 
   const [open, setOpen] = useState(false);
   const [passosAberto, setPassosAberto] = useState(false);
+  const [modelosAberto, setModelosAberto] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState<Produto | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -483,6 +485,11 @@ function ProdutosPage() {
             <Upload className="h-4 w-4 mr-2" />
             Importar CSV
           </Button>
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={() => setModelosAberto(true)}>
+              Modelos do mercado
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={exportar}>
             <Download className="h-4 w-4 mr-2" />
             Exportar
@@ -771,6 +778,18 @@ function ProdutosPage() {
         </div>
       )}
 
+      <ModelosDoMercado
+        aberto={modelosAberto}
+        aoFechar={() => setModelosAberto(false)}
+        produtos={produtos}
+        aoTrazer={(produtoId) => {
+          setModelosAberto(false);
+          void (async () => {
+            const { data } = await fromFinancialView("produtos", nivelDeVisao).select("*").eq("id", produtoId).maybeSingle();
+            if (data) abrirEdicao(data as unknown as Produto);
+          })();
+        }}
+      />
       <NovoProdutoEmPassos
         aberto={passosAberto}
         onFechar={() => setPassosAberto(false)}

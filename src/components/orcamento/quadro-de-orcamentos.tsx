@@ -17,6 +17,7 @@ import {
 /** Faixa de cor no topo de cada coluna: o estado se lê sem ler a palavra. */
 const FAIXA: Record<ColunaDoQuadro, string> = {
   rascunho: "border-t-[color:var(--muted-foreground)]",
+  emitido: "border-t-[color:var(--muted-foreground)]",
   enviado: "border-t-[color:var(--bex-cyan)]",
   em_negociacao: "border-t-[color:var(--bex-cyan)]",
   aceite_verbal: "border-t-primary",
