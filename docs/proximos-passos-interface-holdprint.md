@@ -32,7 +32,7 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 | Banner 440 g | Produto próprio `BAN-440`, R$ 89,90/m² (decisão do dono). A pergunta "Em qual lona?" saiu do Banner 280 g. Sem preço de parceiro: vale o do nível | Migração `20261102130000` aplicada; só banco, sem publicar |
 | Conta dupla do serviço | Serviço sem receita e com custo digitado deixou de somar tempo e rateio por cima (7 produtos mudaram, nenhum item de orçamento os usava). O cartão da pasta só mostra o acabamento à parte quando o custo conta pela velocidade da máquina; o simulador zera o tempo do serviço | Migração `20261102120500` aplicada |
 | 2b | Menu em coluna única com grupos e favoritos | Quase pronta: nome no trilho e subgrupos recolhíveis (#322) e favoritos com estrela (#325); a coluna única só se o dono pedir |
-| 3 | Padrão de lista financeira (chips, período com atalhos, Ações em lote, rodapé de totais) | Quase pronta: Contas a pagar (#316) e Contas a receber (#320, com filtro de origem do cliente) mescladas; falta Ações em lote, total dos selecionados e as listas de compras, materiais e clientes |
+| 3 | Padrão de lista financeira (chips, período com atalhos, Ações em lote, rodapé de totais) | Quase pronta: Contas a pagar (#316) e Contas a receber (#320) mescladas; seleção por linha, total dos selecionados, Copiar resumo, Baixar CSV e Visões salvas em #392. Falta dar baixa em lote (depende do dono), Colunas e as listas de compras, materiais e clientes |
 | 6 | Filtros do WhatsApp ao lado da conversa | Quase pronta: a caixa já tem abas de status, filtro de setor e busca; falta só filtro por responsável |
 | 7b, 7c | Tela do operador por máquina e linha do tempo | Falta |
 | 8 | Regras do dinheiro: plano de contas, centro de custo, compra que gera conta a pagar, liquidar completo | Falta |
@@ -95,7 +95,8 @@ O dono mandou as telas API/MCP e Integrações do Holdprint e a documentação (
 ### Onda 3: padrão de lista financeira
 - **Feito (#316):** `src/domain/financeiro/lista-de-contas.ts` guarda a conta (situação, períodos, busca, totais em centavos) e `src/components/financeiro/lista-financeira.tsx` as peças (chips, busca, aviso de recorte, rodapé). Já aplicados na aba Contas a pagar da tela de Caixa.
 - **Feito (#320):** Contas a receber com busca, chips, atalhos de período (a conta passa se alguma parcela vence no período), filtro por cliente, filtro por origem do cliente e rodapé de totais. `contas_a_receber` passou a devolver `cliente_origem`.
-- **Falta:** `compras.tsx`, `materiais.tsx`; menu Ações em lote e total dos selecionados; "Visões" (filtros salvos) e "Colunas" como no Holdprint.
+- **Feito (#392):** seleção por linha (caixa de 24 px, alvo de 44 px), cabeçalho que marca as que aparecem, barra com contagem e total dos selecionados por situação, Copiar resumo, Baixar CSV (Excel em português: BOM, ponto e vírgula, vírgula decimal, apóstrofo contra fórmula) e Visões: o filtro de agora guardado com nome, até 12 por tela, por pessoa, no aparelho (`bexprint:visoes:<tela>:<email>`). A seleção sobrevive à mudança de filtro e avisa as escondidas. Um teste garante que as peças novas não falam com o banco.
+- **Falta:** `compras.tsx` e `materiais.tsx` com as mesmas peças; "Colunas" como no Holdprint; **dar baixa, pagar ou excluir em lote, que ficou de fora de propósito**: movimenta dinheiro registrado e pede lista e total na frente de quem confirma, então espera a decisão do dono.
 - **Não copiar do Holdprint:** lista que começa no mês atual e esconde o pago; o lançamento de novembro parece "não salvo". Mostrar "mostrando outubro, 2 em novembro".
 - **Conferir:** soma dos selecionados e atalhos de período com a data de hoje passada de fora (regra de teste com "hoje").
 
