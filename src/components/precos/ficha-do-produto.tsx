@@ -18,6 +18,7 @@ import {
   margemSobreVenda,
   PARTES_DO_CUSTO,
   posicaoNoMercado,
+  servicoComCustoInteiro,
   sugestoesDePreco,
   type Marcador,
   type Sugestao,
@@ -169,6 +170,9 @@ export function FichaDoProduto({
                       <span className="font-mono">{brl(linha.cheio)}</span>
                     </li>
                   </ul>
+                  {servicoComCustoInteiro({ tipo: p.tipo, temReceita: linha.receita.length > 0, custo: linha.composicao?.material ?? null }) && (
+                    <p className="mt-2 text-xs text-muted-foreground">Serviço: o valor digitado já inclui o tempo e o rateio.</p>
+                  )}
                 </>
               ) : (
                 <p className="mt-3 rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">

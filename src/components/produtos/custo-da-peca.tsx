@@ -4,7 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
-import { custoDasEtapasDeAcabamento } from "@/domain/catalogo/pasta-do-produto";
+import { acabamentoFicaForaDoCusto, custoDasEtapasDeAcabamento } from "@/domain/catalogo/pasta-do-produto";
 import {
   composicaoMaisRecente,
   custoCheio,
@@ -12,6 +12,7 @@ import {
   fatiasDoCusto,
   margemSobreVenda,
   PARTES_DO_CUSTO,
+  servicoComCustoInteiro,
   type Composicao,
 } from "@/domain/precos/tabela-de-precos";
 
@@ -41,7 +42,7 @@ export function CustoDaPeca(p: {
   const dados = useQuery({
     queryKey: ["pasta-custo", p.produtoId],
     queryFn: async () => {
-      const [comp, receita, etapas, casa] = await Promise.all([
+      const [comp, receita, etapas, casa, produto] = await Promise.all([
         (supabase as any)
           .from("produto_precificacao")
           .select("produto_id, custo_material, custo_maquina, custo_mao_obra, custo_indireto, updated_at")
@@ -62,8 +63,13 @@ export function CustoDaPeca(p: {
           .select("codigo, valor")
           .eq("ativo", true)
           .in("codigo", ["mo_custo_hora", "mo_encargos_pct", "custo_admin_hora"]),
+        (supabase as any)
+          .from("produtos")
+          .select("maquinas:maquina_padrao_id(base_cobranca, velocidade_m2_h)")
+          .eq("id", p.produtoId)
+          .maybeSingle(),
       ]);
-      for (const r of [comp, receita, etapas, casa]) if (r.error) throw r.error;
+      for (const r of [comp, receita, etapas, casa, produto]) if (r.error) throw r.error;
       const ids = (receita.data ?? []).map((r: any) => r.material_id);
       const mats = ids.length
         ? await fromFinancialView("materiais", "financeiro")
@@ -100,6 +106,10 @@ export function CustoDaPeca(p: {
       return {
         composicao,
         receita: receitaDoProduto,
+        maquina: (produto.data?.maquinas ?? null) as {
+          base_cobranca: string | null;
+          velocidade_m2_h: number | null;
+        } | null,
         etapas: (etapas.data ?? []).flatMap((e: any) => (e.processos ? [e.processos] : [])),
         horaDaPessoa:
           valor("mo_custo_hora") * (1 + valor("mo_encargos_pct") / 100) + valor("custo_admin_hora"),
@@ -115,7 +125,7 @@ export function CustoDaPeca(p: {
       </p>
     );
   }
-  const { composicao, receita, etapas, horaDaPessoa } = dados.data;
+  const { composicao, receita, etapas, horaDaPessoa, maquina } = dados.data;
   const cheio = custoCheio(composicao);
   const fatias = fatiasDoCusto(composicao);
   const margem = margemSobreVenda(p.preco, cheio);
@@ -128,8 +138,13 @@ export function CustoDaPeca(p: {
     temMaquina: p.temMaquina,
     composicao,
   });
+  const inteiro = servicoComCustoInteiro({
+    tipo: p.tipo,
+    temReceita: receita.length > 0,
+    custo: composicao?.material ?? null,
+  });
   const acabamento = custoDasEtapasDeAcabamento(
-    etapas,
+    acabamentoFicaForaDoCusto({ tipo: p.tipo, unidade: p.unidade, maquina }) ? etapas : [],
     { largura: p.largura, altura: p.altura },
     horaDaPessoa,
     { familia: p.familia },
@@ -148,7 +163,24 @@ export function CustoDaPeca(p: {
         <CardTitle className="text-base">Do que a peça é feita, por {p.unidade ?? "unidade"}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {fatias.length > 0 ? (
+        {inteiro ? (
+          <ul className="space-y-1.5 text-sm">
+            <li className="flex items-center justify-between gap-2 font-semibold">
+              <span>Custo do serviço</span>
+              <span className="font-mono">{cheio != null ? brl(cheio) : "—"}</span>
+            </li>
+            <li className="text-xs text-muted-foreground">O valor digitado já inclui o tempo e o rateio.</li>
+            {margem != null && (
+              <li className="flex items-center justify-between gap-2">
+                <span>
+                  Margem no preço de venda
+                  {p.margemMinima != null ? ` (mínima de ${pct(p.margemMinima)})` : ""}
+                </span>
+                <span className={`font-mono ${abaixo ? "text-destructive" : ""}`}>{pct(margem)}</span>
+              </li>
+            )}
+          </ul>
+        ) : fatias.length > 0 ? (
           <>
             <div
               className="flex h-3 overflow-hidden rounded-full bg-muted"

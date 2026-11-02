@@ -255,6 +255,24 @@ export function faltaNaArea(linhas: { pronto: boolean }[]): {
   };
 }
 
+/**
+ * O custo cheio deixa o acabamento de fora só quando conta o tempo pela velocidade da máquina. Com
+ * tempo cadastrado, os minutos já são a peça inteira; no serviço, o acabamento é o próprio produto.
+ * Fora do caso da velocidade, somar as etapas contaria o mesmo tempo duas vezes.
+ */
+export function acabamentoFicaForaDoCusto(a: {
+  tipo: string | null;
+  unidade: string | null;
+  maquina: { base_cobranca: string | null; velocidade_m2_h: number | null } | null;
+}): boolean {
+  if (a.tipo === "servico" || !a.maquina) return false;
+  return (
+    a.maquina.base_cobranca === "area" &&
+    Number(a.maquina.velocidade_m2_h ?? 0) > 0 &&
+    (a.unidade ?? "").toLowerCase().replace("²", "2") === "m2"
+  );
+}
+
 export type EtapaParaCusto = ProcessoParaTempo & { nome: string; etapa: string | null };
 
 export type CustoDasEtapas = {
