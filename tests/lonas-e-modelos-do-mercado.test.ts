@@ -51,6 +51,7 @@ describe("modelos do mercado", () => {
     expect(parecidoNoCatalogo("Lona Back Light com Impressão Digital", [{ nome: "Lona Back Light" }])).toBe("Lona Back Light");
     expect(parecidoNoCatalogo("Adesivo Perfurado Impresso", nossos)).toBe("Adesivo perfurado (one way)");
     expect(parecidoNoCatalogo("Toldo fixo em tecido", nossos)).toBeNull();
+    expect(parecidoNoCatalogo("Lona Back Light com Impressão Digital", nossos)).toBe("Lona backlight");
   });
   it("busca sem acento e por família", () => {
     const m = [{ familia: "Toldos", nome: "Toldo fixo em lona" }, { familia: "Lonas", nome: "Lona Perfurada" }];

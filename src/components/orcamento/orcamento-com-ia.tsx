@@ -147,6 +147,7 @@ export function OrcamentoComIa() {
                       {i.largura_m && i.altura_m
                         ? ` · ${i.largura_m.toLocaleString("pt-BR")} × ${i.altura_m.toLocaleString("pt-BR")} m`
                         : ""}
+                      {i.acabamentos.length > 0 ? ` · ${i.acabamentos.join(", ")}` : ""}
                       {i.observacao ? ` · ${i.observacao}` : ""}
                     </div>
                   </div>

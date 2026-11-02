@@ -5,12 +5,14 @@ import {
   FERRAMENTA_DO_ORCAMENTO,
   interpretarLeitura,
   linhaDoItem,
+  linhasDoAcabamento,
   montarPerguntaDoOrcamento,
   observacaoDoRascunho,
   precoDeTabela,
   type ItemDaIa,
   type LeituraDoPedido,
   type ProdutoParaIa,
+  type ServicoDoAcabamento,
 } from "@/domain/orcamentos/orcamento-com-ia";
 
 /**
@@ -136,6 +138,15 @@ export const lerPedidoDoCliente = createServerFn({ method: "POST" })
       .eq("ia_habilitado", true)
       .eq("produtos.ativo", true);
     if (error) throw new Error("Não foi possível ler os roteiros dos produtos.");
+    const { data: ligacoes, error: erroLigacoes } = await (context.supabase as any)
+      .from("produto_acabamentos")
+      .select("produto_id, acabamentos!inner(nome, ativo)")
+      .eq("acabamentos.ativo", true);
+    if (erroLigacoes) throw new Error("Não foi possível ler os acabamentos dos produtos.");
+    const acabamentosDe = (produtoId: string) =>
+      ((ligacoes ?? []) as { produto_id: string; acabamentos: { nome: string } }[])
+        .filter((l) => l.produto_id === produtoId)
+        .map((l) => l.acabamentos.nome);
     const produtos: ProdutoParaIa[] = ((linhas ?? []) as any[]).map((l) => ({
       id: l.produto_id,
       nome: l.produtos.nome,
@@ -144,6 +155,7 @@ export const lerPedidoDoCliente = createServerFn({ method: "POST" })
       personalidade: l.ia_personalidade,
       como_medir: l.ia_como_medir,
       perguntas: l.ia_perguntas,
+      acabamentos: acabamentosDe(l.produto_id),
     }));
     return lerPedidoComIa(data.pedido, produtos, motorDaIa());
   });
@@ -204,6 +216,31 @@ export const criarRascunhoDaIa = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const falharam: string[] = [];
+    // O serviço de cada acabamento pedido, com o preço da tabela.
+    const nomesPedidos = [...new Set(itens.flatMap((i) => i.acabamentos ?? []))];
+    let servicos: ServicoDoAcabamento[] = [];
+    if (nomesPedidos.length > 0) {
+      const { data: acab } = await db
+        .from("acabamentos")
+        .select("nome, produto_servico_id")
+        .in("nome", nomesPedidos);
+      const linhasDeAcab = (acab ?? []) as { nome: string; produto_servico_id: string | null }[];
+      const { data: prods } = await db
+        .from("produtos_comercial")
+        .select("id, nome, unidade, preco_base")
+        .in("id", linhasDeAcab.map((a) => a.produto_servico_id).filter(Boolean));
+      const listaDeProdutos = (prods ?? []) as {
+        id: string;
+        nome: string;
+        unidade: string | null;
+        preco_base: number | null;
+      }[];
+      servicos = linhasDeAcab.flatMap((a) => {
+        const p = listaDeProdutos.find((x) => x.id === a.produto_servico_id);
+        return p ? [{ acabamento: a.nome, id: p.id, nome: p.nome, unidade: p.unidade, preco: p.preco_base }] : [];
+      });
+    }
+    let proximaOrdem = itens.length;
     for (const [ordem, item] of itens.entries()) {
       const { data: linha, error: erroItem } = await db
         .from("orcamento_itens")
@@ -213,6 +250,15 @@ export const criarRascunhoDaIa = createServerFn({ method: "POST" })
         })
         .select("id");
       if (erroItem || !linha || linha.length === 0) falharam.push(item.nome);
+      const { linhas: dosAcabamentos, pendentes } = linhasDoAcabamento(item, servicos);
+      falharam.push(...pendentes);
+      for (const l of dosAcabamentos) {
+        const { data: criada, error: erroLinha } = await db
+          .from("orcamento_itens")
+          .insert({ orcamento_id: criado.id, ordem: proximaOrdem++, ...l })
+          .select("id");
+        if (erroLinha || !criada || criada.length === 0) falharam.push(l.descricao);
+      }
     }
     return { orcamento_id: criado.id, falharam };
   });

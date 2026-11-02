@@ -74,9 +74,9 @@ export function quantidadeDoAcabamento(
 ): number {
   const l = Number(peca.largura);
   const a = Number(peca.altura);
-  if (!(l > 0) || !(a > 0)) return 0;
   const qtd = Number(peca.quantidade) > 0 ? Number(peca.quantidade) : 1;
   if (medida === "peca") return qtd;
+  if (!(l > 0) || !(a > 0)) return 0;
   if (medida === "area") return arred(l * a * qtd, 3);
   const metros =
     lados === "maiores"

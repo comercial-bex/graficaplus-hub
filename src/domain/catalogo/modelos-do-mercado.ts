@@ -50,7 +50,8 @@ function palavras(texto: string): Set<string> {
     texto
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\b(back|front) light\b/g, "$1light")
       .split(/[^a-z0-9]+/)
       .filter((p) => p.length >= 3 && !PALAVRAS_VAZIAS.has(p)),
   );
