@@ -7581,6 +7581,7 @@ export type Database = {
           desconto: number
           descricao: string
           especificacao: string | null
+          respostas: Json
           id: string
           largura: number | null
           margem_prevista: number | null
@@ -7611,6 +7612,7 @@ export type Database = {
           desconto?: number
           descricao: string
           especificacao?: string | null
+          respostas?: Json
           id?: string
           largura?: number | null
           margem_prevista?: number | null
@@ -7641,6 +7643,7 @@ export type Database = {
           desconto?: number
           descricao?: string
           especificacao?: string | null
+          respostas?: Json
           id?: string
           largura?: number | null
           margem_prevista?: number | null
@@ -16829,6 +16832,7 @@ export type Database = {
           created_at: string | null
           descricao: string | null
           especificacao: string | null
+          respostas: Json
           id: string | null
           largura: number | null
           orcamento_id: string | null
@@ -16933,6 +16937,7 @@ export type Database = {
           custo_unitario: number | null
           descricao: string | null
           especificacao: string | null
+          respostas: Json
           id: string | null
           largura: number | null
           orcamento_id: string | null
@@ -17036,6 +17041,7 @@ export type Database = {
           created_at: string | null
           descricao: string | null
           especificacao: string | null
+          respostas: Json
           id: string | null
           largura: number | null
           orcamento_id: string | null
@@ -17056,6 +17062,7 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           especificacao?: string | null
+          respostas?: Json
           id?: string | null
           largura?: number | null
           orcamento_id?: string | null
@@ -17076,6 +17083,7 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           especificacao?: string | null
+          respostas?: Json
           id?: string | null
           largura?: number | null
           orcamento_id?: string | null

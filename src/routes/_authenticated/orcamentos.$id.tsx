@@ -82,6 +82,8 @@ import { DetalhesOpcionais } from "@/components/orcamento/detalhes-opcionais";
 import { UnidadeDoItem } from "@/components/orcamento/unidade-do-item";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
+import { PerguntasDoItem, usePerguntasDoProduto } from "@/components/orcamento/perguntas-do-item";
+import { normalizarRespostas, pendenciasDasRespostas, type RespostaDoItem } from "@/domain/orcamentos/perguntas-do-item";
 import { EscolhaDeMaterial } from "@/components/orcamento/escolha-de-material";
 import {
   CobrancaDoAcabamento,
@@ -201,6 +203,8 @@ const itemVazio = {
   largura: "",
   altura: "",
   acabamento: "",
+  // Perguntas do produto (Checklist) respondidas neste item.
+  respostas: [] as RespostaDoItem[],
   tipo_produto: "",
   especificacao: "",
   preco_m2: "",
@@ -804,6 +808,7 @@ function OrcamentoDetailPage() {
       largura: i.largura != null ? String(i.largura) : "",
       altura: i.altura != null ? String(i.altura) : "",
       acabamento: String(i.acabamento ?? ""),
+      respostas: normalizarRespostas(i.respostas),
       tipo_produto: String(i.tipo_produto ?? ""),
       especificacao: String(i.especificacao ?? ""),
       preco_m2: precoM2 && precoM2 > 0 ? String(precoM2) : "",
@@ -823,6 +828,10 @@ function OrcamentoDetailPage() {
   }
 
   const acabamentosDoProduto = useAcabamentosDoProduto(form.produto_id);
+  // As perguntas do produto (Checklist da pasta): respondidas aqui, gravadas no item.
+  const perguntasDoItem = usePerguntasDoProduto(form.produto_id);
+  const [mostrarPendencias, setMostrarPendencias] = useState(false);
+  useEffect(() => setMostrarPendencias(false), [form.produto_id, editando?.id]);
   // O acabamento padrão do produto já vem marcado (bainha e ilhós na lona): quem vende não precisa
   // lembrar. Só preenche item NOVO e vazio; editar um item nunca troca o que a pessoa escreveu.
   const padraoDoProduto = (acabamentosDoProduto.data ?? []).filter((a) => a.padrao).map((a) => a.nome).join(", ");
@@ -857,6 +866,16 @@ function OrcamentoDetailPage() {
 
   async function salvarItem() {
     if (!form.descricao.trim()) return toast.error("Escreva a descrição do item.");
+    // Pergunta obrigatória do produto sem resposta segura o item: é o que o Checklist combinou.
+    const perguntasPendentes = pendenciasDasRespostas(perguntasDoItem.data ?? [], form.respostas);
+    if (perguntasPendentes.length > 0) {
+      setMostrarPendencias(true);
+      return toast.error(
+        perguntasPendentes.length === 1
+          ? `Responda "${perguntasPendentes[0].pergunta}" antes de adicionar o item.`
+          : `Responda as ${perguntasPendentes.length} perguntas obrigatórias do produto antes de adicionar o item.`,
+      );
+    }
     if (vendidoPorArea && areaUnitaria(dimensoesForm) <= 0) {
       return toast.error("Largura e altura devem ser maiores que zero.");
     }
@@ -870,6 +889,7 @@ function OrcamentoDetailPage() {
       largura: vendidoPorArea ? dimensoesForm.largura : null,
       altura: vendidoPorArea ? dimensoesForm.altura : null,
       acabamento: form.acabamento.trim() || null,
+      respostas: form.respostas,
       tipo_produto: form.tipo_produto.trim() || null,
       especificacao: form.especificacao.trim() || null,
       produto_id: form.produto_id,
@@ -1027,6 +1047,7 @@ function OrcamentoDetailPage() {
           acabamento: item.acabamento,
           tipo_produto: item.tipo_produto ?? null,
           especificacao: item.especificacao ?? null,
+      respostas: item.respostas ?? [],
           valor_unitario: canSeePrices ? item.valor_unitario : 0,
           ordem: itens.length + n,
           produto_id: item.produto_id,
@@ -1055,6 +1076,7 @@ function OrcamentoDetailPage() {
       acabamento: item.acabamento,
       tipo_produto: item.tipo_produto ?? null,
       especificacao: item.especificacao ?? null,
+      respostas: item.respostas ?? [],
       valor_unitario: canSeePrices ? item.valor_unitario : 0,
       ordem: itens.length,
       produto_id: item.produto_id,
@@ -1931,6 +1953,15 @@ function OrcamentoDetailPage() {
                         />
                       </div>
                     </div>
+
+                    <PerguntasDoItem
+                      produtoId={form.produto_id}
+                      respostas={form.respostas}
+                      acabamento={form.acabamento}
+                      mostrarPendencias={mostrarPendencias}
+                      desabilitado={salvandoItem}
+                      onMudar={({ respostas, acabamento }) => setForm((f) => ({ ...f, respostas, acabamento }))}
+                    />
 
                     {canSeePrices && vendidoPorArea && (
                       <CobrancaDoAcabamento
