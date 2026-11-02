@@ -81,7 +81,7 @@ describe("token e janela", () => {
 
 describe("a migração, a rota e a tela", () => {
   it("o banco guarda só o hash, lê como a pessoa e só o servidor consulta", () => {
-    const m = ler("supabase/migrations/20261102120000_api_tokens_e_consulta.sql");
+    const m = ler("supabase/migrations/20261102143000_api_tokens_e_consulta.sql");
     expect(m.includes("hash text NOT NULL UNIQUE")).toBe(true);
     expect(m.includes("encode(digest(v_token, 'sha256'), 'hex')")).toBe(true);
     expect(m.includes("SET LOCAL ROLE authenticated;")).toBe(true);
