@@ -91,6 +91,12 @@ describe("o contrato", () => {
     expect(servidor).toContain("gerado_por_item_id: linha[0].id");
     expect(servidor).toContain("informe a quantidade no item");
   });
+  it("o que a resposta já cobrou não entra de novo como acabamento", () => {
+    expect(servidor).toContain("dosAcabamentos.filter((d) => !cobrados.has(d.produto_id))");
+  });
+  it("o corte do acrílico não vira acabamento", () => {
+    expect(ler("supabase/migrations/20261102160000_laser_nao_cobra_corte_de_novo.sql")).toContain("nunca marque Corte a laser como acabamento");
+  });
   it("a tela da pasta edita a instrução, e a gravação é conferida", () => {
     const pasta = ler("src/routes/_authenticated/produtos_.$id.tsx");
     expect(pasta).toContain("<InstrucaoDaIa");

@@ -336,6 +336,7 @@ export const criarRascunhoDaIa = createServerFn({ method: "POST" })
         continue;
       }
       linhasDoOrcamento.push(linha[0]);
+      const cobrados = new Set<string>();
       for (const c of cobrancasDasRespostas({
         perguntas: perguntasDoItem,
         respostas,
@@ -362,11 +363,15 @@ export const criarRascunhoDaIa = createServerFn({ method: "POST" })
           })
           .select("id, produto_id, gerado_por_item_id");
         if (erroCobranca || !cobrada || cobrada.length === 0) falharam.push(c.nome);
-        else linhasDoOrcamento.push(cobrada[0]);
+        else {
+          linhasDoOrcamento.push(cobrada[0]);
+          cobrados.add(c.servico!.id);
+        }
       }
       const { linhas: dosAcabamentos, pendentes } = linhasDoAcabamento(item, servicos);
       falharam.push(...pendentes);
-      for (const l of dosAcabamentos) {
+      // A IA pode marcar laminação como acabamento e também responder a pergunta: é uma cobrança só.
+      for (const l of dosAcabamentos.filter((d) => !cobrados.has(d.produto_id))) {
         const { data: criada, error: erroLinha } = await db
           .from("orcamento_itens")
           .insert({ orcamento_id: criado.id, ordem: proximaOrdem++, ...l })
