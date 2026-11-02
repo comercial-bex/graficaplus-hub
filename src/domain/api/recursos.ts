@@ -14,7 +14,7 @@ export const LIMITE_MAXIMO = 100;
 export const REQUISICOES_POR_MINUTO = 100;
 export const DIAS_DE_VALIDADE = [30, 90, 180, 365] as const;
 
-export type FiltroDaApi = "busca" | "status" | "desde" | "ate" | "limite" | "deslocamento";
+export type FiltroDaApi = "busca" | "status" | "cliente_id" | "desde" | "ate" | "limite" | "deslocamento";
 
 export type RecursoDaApi = {
   chave: string;
@@ -39,17 +39,19 @@ export const RECURSOS: readonly RecursoDaApi[] = [
   {
     chave: "orcamentos",
     titulo: "Orçamentos",
-    descricao: "Orçamentos, do mais novo ao mais antigo, sem valores nesta onda. `status`: rascunho, enviado, aprovado, rejeitado, expirado, convertido.",
-    campos: ["id", "numero", "titulo", "status", "cliente_id", "contato_nome", "validade_dias", "enviado_em", "aprovado_em", "prazo", "created_at"],
-    filtros: ["busca", "status", "desde", "ate", "limite", "deslocamento"],
+    descricao:
+      "Orçamentos, do mais novo ao mais antigo. `valor_total` só vem para quem vê preços (a chave some para os outros). `busca` acha pelo título, pelo número e pelo nome do cliente. `status`: rascunho, enviado, aprovado, rejeitado, expirado, convertido.",
+    campos: ["id", "numero", "titulo", "status", "etapa_comercial", "cliente_id", "cliente_nome", "contato_nome", "valor_total", "validade_dias", "enviado_em", "aprovado_em", "prazo", "created_at"],
+    filtros: ["busca", "status", "cliente_id", "desde", "ate", "limite", "deslocamento"],
     dataDoFiltro: "created_at",
   },
   {
     chave: "os",
     titulo: "Ordens de serviço",
-    descricao: "Ordens de serviço, da mais nova à mais antiga, sem valores nesta onda.",
-    campos: ["id", "numero", "titulo", "status", "cliente_id", "prazo_entrega", "setor_atual", "prioridade", "created_at"],
-    filtros: ["busca", "status", "desde", "ate", "limite", "deslocamento"],
+    descricao:
+      "Ordens de serviço, da mais nova à mais antiga. `valor_total` só vem para quem vê preços (a chave some para os outros). `busca` acha pelo título, pelo número e pelo nome do cliente.",
+    campos: ["id", "numero", "titulo", "status", "cliente_id", "cliente_nome", "prazo_entrega", "setor_atual", "prioridade", "valor_total", "created_at"],
+    filtros: ["busca", "status", "cliente_id", "desde", "ate", "limite", "deslocamento"],
     dataDoFiltro: "created_at",
   },
   {
@@ -107,6 +109,11 @@ export function filtrosDaUrl(params: URLSearchParams, recurso: RecursoDaApi): Fi
       const n = Number(valor);
       if (chave === "limite" && (n < 1 || n > LIMITE_MAXIMO)) return { ok: false, erro: `"limite" vai de 1 a ${LIMITE_MAXIMO}.` };
       filtros[chave] = n;
+      continue;
+    }
+    if (chave === "cliente_id") {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valor)) return { ok: false, erro: '"cliente_id" tem de ser um id (uuid).' };
+      filtros[chave] = valor;
       continue;
     }
     if (chave === "desde" || chave === "ate") {

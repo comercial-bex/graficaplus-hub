@@ -26,6 +26,7 @@ export type FerramentaMcp = {
 const FILTROS_COMUNS = {
   busca: { type: "string", description: "Texto para procurar no nome, título ou número (até 80 letras)." },
   status: { type: "string", description: "Situação exata, como 'enviado' ou 'pago'. Veja os valores em bexprint_descrever." },
+  cliente_id: { type: "string", description: "Id do cliente (campo id de bexprint_consultar clientes). Só orcamentos e os." },
   desde: { type: "string", description: "Data inicial AAAA-MM-DD." },
   ate: { type: "string", description: "Data final AAAA-MM-DD." },
 } as const;
@@ -75,12 +76,13 @@ export const FERRAMENTAS: readonly FerramentaMcp[] = [
   {
     name: "bexprint_somar",
     description:
-      "Soma o campo valor de contas_receber ou contas_pagar com filtros (status, desde, ate). Percorre até 1.000 linhas; avisa se houve mais.",
+      "Soma dinheiro com filtros: o campo valor de contas_receber e contas_pagar, e o valor_total de orcamentos e os (só para quem vê preços; use status para não somar rascunho com enviado). Percorre até 1.000 linhas; avisa se houve mais.",
     inputSchema: {
       type: "object",
       properties: {
-        recurso: { type: "string", enum: ["contas_receber", "contas_pagar"] },
+        recurso: { type: "string", enum: ["contas_receber", "contas_pagar", "orcamentos", "os"] },
         status: FILTROS_COMUNS.status,
+        cliente_id: FILTROS_COMUNS.cliente_id,
         desde: FILTROS_COMUNS.desde,
         ate: FILTROS_COMUNS.ate,
       },
@@ -182,6 +184,17 @@ export const EXEMPLOS = [
     passos: [{ ferramenta: "bexprint_somar", argumentos: { recurso: "contas_receber", status: "pendente" } }],
   },
   {
+    pedido: "Quanto está parado em orçamentos enviados esperando resposta?",
+    passos: [{ ferramenta: "bexprint_somar", argumentos: { recurso: "orcamentos", status: "enviado" } }],
+  },
+  {
+    pedido: "Quantos orçamentos um cliente já pediu?",
+    passos: [
+      { ferramenta: "bexprint_consultar", argumentos: { recurso: "clientes", busca: "parte do nome", limite: 5 } },
+      { ferramenta: "bexprint_contar", argumentos: { recurso: "orcamentos", cliente_id: "id do cliente achado acima" } },
+    ],
+  },
+  {
     pedido: "Quantas OS entraram este mês?",
     passos: [{ ferramenta: "bexprint_contar", argumentos: { recurso: "os", desde: "AAAA-MM-01", ate: "AAAA-MM-31" } }],
   },
@@ -195,10 +208,28 @@ export const EXEMPLOS = [
   },
 ] as const;
 
+/** Em qual campo cada recurso guarda o dinheiro que `bexprint_somar` soma. */
+export const CAMPO_DA_SOMA: Record<string, string> = {
+  contas_receber: "valor",
+  contas_pagar: "valor",
+  orcamentos: "valor_total",
+  os: "valor_total",
+};
+
+/** Soma de um campo numérico das linhas; lixo e vazio contam zero. Arredonda a centavos no fim. */
+export function somarCampo(itens: readonly Record<string, unknown>[], campo: string): number {
+  let soma = 0;
+  for (const i of itens) {
+    const n = Number(i[campo] ?? 0);
+    if (Number.isFinite(n)) soma += n;
+  }
+  return Math.round(soma * 100) / 100;
+}
+
 /** Argumentos da ferramenta viram os mesmos filtros da URL da API, para a mesma validação. */
 export function argumentosParaFiltros(args: Record<string, unknown> | undefined): URLSearchParams {
   const p = new URLSearchParams();
-  for (const chave of ["busca", "status", "desde", "ate", "limite", "deslocamento"]) {
+  for (const chave of ["busca", "status", "cliente_id", "desde", "ate", "limite", "deslocamento"]) {
     const v = args?.[chave];
     if (v === undefined || v === null || v === "") continue;
     p.set(chave, String(v));

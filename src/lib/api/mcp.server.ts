@@ -1,6 +1,7 @@
 import { tokenDoCabecalho } from "@/domain/api/recursos";
 import {
   argumentosParaFiltros,
+  CAMPO_DA_SOMA,
   conteudoDaFerramenta,
   descobrir,
   descrever,
@@ -10,6 +11,7 @@ import {
   INFO_DO_SERVIDOR,
   PAGINAS_DA_SOMA,
   respostaJsonRpc,
+  somarCampo,
   VERSAO_DO_PROTOCOLO,
   type RequisicaoJsonRpc,
 } from "@/domain/api/mcp";
@@ -81,10 +83,11 @@ async function chamarFerramenta(nome: string, args: Record<string, unknown>, tok
     }
     case "bexprint_somar": {
       const recurso = String(args.recurso ?? "");
-      if (recurso !== "contas_receber" && recurso !== "contas_pagar") {
-        return conteudoDaFerramenta({ erro: "recurso_invalido", mensagem: "Somar vale para contas_receber e contas_pagar." }, true);
+      const campo = CAMPO_DA_SOMA[recurso];
+      if (!campo) {
+        return conteudoDaFerramenta({ erro: "recurso_invalido", mensagem: `Somar vale para ${Object.keys(CAMPO_DA_SOMA).join(", ")}.` }, true);
       }
-      const base = argumentosParaFiltros({ status: args.status, desde: args.desde, ate: args.ate });
+      const base = argumentosParaFiltros({ status: args.status, cliente_id: args.cliente_id, desde: args.desde, ate: args.ate });
       let soma = 0;
       let linhas = 0;
       let total = 0;
@@ -95,16 +98,20 @@ async function chamarFerramenta(nome: string, args: Record<string, unknown>, tok
         p.set("deslocamento", String(pagina * 100));
         const leitura = await lerRecurso(token, recurso, p);
         if (!leitura.ok) return conteudoDaFerramenta({ erro: leitura.codigo, mensagem: leitura.mensagem }, true);
-        const itens = (leitura.corpo.itens ?? []) as { valor?: number | string | null }[];
+        // Orçamento e OS só têm valor para quem vê preços: soma vazia seria mentira, não zero.
+        if (campo === "valor_total" && leitura.corpo.ve_valores === false) {
+          return conteudoDaFerramenta({ erro: "sem_valores", mensagem: "A pessoa dona do token não vê valores de orçamento e OS. Use bexprint_contar." }, true);
+        }
+        const itens = (leitura.corpo.itens ?? []) as Record<string, unknown>[];
         total = Number(leitura.corpo.total ?? 0);
-        for (const i of itens) soma += Number(i.valor ?? 0) || 0;
+        soma += somarCampo(itens, campo);
         linhas += itens.length;
         if (linhas >= total || itens.length === 0) break;
         if (pagina === PAGINAS_DA_SOMA - 1) parcial = linhas < total;
       }
       return conteudoDaFerramenta({
         recurso,
-        campo: "valor",
+        campo,
         filtros: Object.fromEntries(base.entries()),
         soma: Math.round(soma * 100) / 100,
         linhas_somadas: linhas,
