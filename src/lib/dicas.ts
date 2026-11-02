@@ -426,6 +426,10 @@ export const dicas = {
     menu: "Problemas registrados durante os trabalhos.",
     tela: "Registro de problemas: atraso, retrabalho, reclamação. Ajuda a entender o que mais trava a produção.",
   },
+  "/processos": {
+    menu: "O passo a passo de que os produtos são feitos.",
+    tela: "Catálogo dos processos da casa, com etapa, preparação, pessoas e produtividade. O tempo de cada produto sai daqui.",
+  },
   "/produtos": {
     menu: "Catálogo de produtos e serviços com preço.",
     tela: "Catálogo que abastece os orçamentos. Cada produto guarda unidade, custo médio e margem, e pode ter uma receita de materiais.",

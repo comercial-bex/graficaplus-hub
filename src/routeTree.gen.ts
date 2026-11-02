@@ -66,6 +66,7 @@ import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authe
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
+import { Route as AuthenticatedProcessosRouteImport } from './routes/_authenticated/processos'
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedProdutividade3dRouteImport } from './routes/_authenticated/produtividade-3d'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
@@ -100,6 +101,7 @@ import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
 import { Route as AuthenticatedOsIndexRouteImport } from './routes/_authenticated/os.index'
 import { Route as AuthenticatedOsIdRouteImport } from './routes/_authenticated/os.$id'
+import { Route as AuthenticatedProdutosIdRouteImport } from './routes/_authenticated/produtos_.$id'
 import { Route as ApiCatalogoCotacaoRouteImport } from './routes/api.catalogo.cotacao'
 import { Route as ApiCatalogoVitrineRouteImport } from './routes/api.catalogo.vitrine'
 import { Route as ApiPortalArquivoRouteImport } from './routes/api.portal.arquivo'
@@ -425,6 +427,11 @@ const AuthenticatedPrecificacaoRoute =
     path: '/precificacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProcessosRoute = AuthenticatedProcessosRouteImport.update({
+  id: '/processos',
+  path: '/processos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProducao3dRoute = AuthenticatedProducao3dRouteImport.update({
   id: '/producao-3d',
   path: '/producao-3d',
@@ -609,6 +616,11 @@ const AuthenticatedOsIdRoute = AuthenticatedOsIdRouteImport.update({
   path: '/os/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProdutosIdRoute = AuthenticatedProdutosIdRouteImport.update({
+  id: '/produtos_/$id',
+  path: '/produtos/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiCatalogoCotacaoRoute = ApiCatalogoCotacaoRouteImport.update({
   id: '/api/catalogo/cotacao',
   path: '/api/catalogo/cotacao',
@@ -752,6 +764,7 @@ export interface FileRoutesByFullPath {
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/processos': typeof AuthenticatedProcessosRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -782,6 +795,7 @@ export interface FileRoutesByFullPath {
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/produtos/$id': typeof AuthenticatedProdutosIdRoute
   '/api/catalogo/cotacao': typeof ApiCatalogoCotacaoRoute
   '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
@@ -860,6 +874,7 @@ export interface FileRoutesByTo {
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/processos': typeof AuthenticatedProcessosRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/produtos': typeof AuthenticatedProdutosRoute
@@ -890,6 +905,7 @@ export interface FileRoutesByTo {
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
+  '/produtos/$id': typeof AuthenticatedProdutosIdRoute
   '/api/catalogo/cotacao': typeof ApiCatalogoCotacaoRoute
   '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
@@ -971,6 +987,7 @@ export interface FileRoutesById {
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/_authenticated/processos': typeof AuthenticatedProcessosRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
   '/_authenticated/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
@@ -1001,6 +1018,7 @@ export interface FileRoutesById {
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
+  '/_authenticated/produtos_/$id': typeof AuthenticatedProdutosIdRoute
   '/api/catalogo/cotacao': typeof ApiCatalogoCotacaoRoute
   '/api/catalogo/vitrine': typeof ApiCatalogoVitrineRoute
   '/api/portal/arquivo': typeof ApiPortalArquivoRoute
@@ -1082,6 +1100,7 @@ export interface FileRouteTypes {
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
+    | '/processos'
     | '/producao-3d'
     | '/produtividade-3d'
     | '/produtos'
@@ -1112,6 +1131,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/produtos/$id'
     | '/api/catalogo/cotacao'
     | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
@@ -1190,6 +1210,7 @@ export interface FileRouteTypes {
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
+    | '/processos'
     | '/producao-3d'
     | '/produtividade-3d'
     | '/produtos'
@@ -1220,6 +1241,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
+    | '/produtos/$id'
     | '/api/catalogo/cotacao'
     | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
@@ -1300,6 +1322,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
     | '/_authenticated/precificacao'
+    | '/_authenticated/processos'
     | '/_authenticated/producao-3d'
     | '/_authenticated/produtividade-3d'
     | '/_authenticated/produtos'
@@ -1330,6 +1353,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
+    | '/_authenticated/produtos_/$id'
     | '/api/catalogo/cotacao'
     | '/api/catalogo/vitrine'
     | '/api/portal/arquivo'
@@ -1787,6 +1811,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/processos': {
+      id: '/_authenticated/processos'
+      path: '/processos'
+      fullPath: '/processos'
+      preLoaderRoute: typeof AuthenticatedProcessosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/producao-3d': {
       id: '/_authenticated/producao-3d'
       path: '/producao-3d'
@@ -2025,6 +2056,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/produtos_/$id': {
+      id: '/_authenticated/produtos_/$id'
+      path: '/produtos/$id'
+      fullPath: '/produtos/$id'
+      preLoaderRoute: typeof AuthenticatedProdutosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/catalogo/cotacao': {
       id: '/api/catalogo/cotacao'
       path: '/api/catalogo/cotacao'
@@ -2197,6 +2235,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
+  AuthenticatedProcessosRoute: typeof AuthenticatedProcessosRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
   AuthenticatedProdutividade3dRoute: typeof AuthenticatedProdutividade3dRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
@@ -2217,6 +2256,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrcamento3dIdRoute: typeof AuthenticatedOrcamento3dIdRoute
   AuthenticatedOrcamentosIdRoute: typeof AuthenticatedOrcamentosIdRoute
   AuthenticatedOsIdRoute: typeof AuthenticatedOsIdRoute
+  AuthenticatedProdutosIdRoute: typeof AuthenticatedProdutosIdRoute
   AuthenticatedCatalogosIndexRoute: typeof AuthenticatedCatalogosIndexRoute
   AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
   AuthenticatedOrcamentosIndexRoute: typeof AuthenticatedOrcamentosIndexRoute
@@ -2274,6 +2314,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
+  AuthenticatedProcessosRoute: AuthenticatedProcessosRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
   AuthenticatedProdutividade3dRoute: AuthenticatedProdutividade3dRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
@@ -2294,6 +2335,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrcamento3dIdRoute: AuthenticatedOrcamento3dIdRoute,
   AuthenticatedOrcamentosIdRoute: AuthenticatedOrcamentosIdRoute,
   AuthenticatedOsIdRoute: AuthenticatedOsIdRoute,
+  AuthenticatedProdutosIdRoute: AuthenticatedProdutosIdRoute,
   AuthenticatedCatalogosIndexRoute: AuthenticatedCatalogosIndexRoute,
   AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
   AuthenticatedOrcamentosIndexRoute: AuthenticatedOrcamentosIndexRoute,
@@ -2358,13 +2400,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
