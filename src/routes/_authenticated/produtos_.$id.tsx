@@ -37,6 +37,8 @@ import {
 import { percentual } from "@/lib/percentual";
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 import { baseDeCalculo, rotuloDaUnidade } from "@/domain/catalogo/familias-da-lista";
+import { entradaDaNota, fraseDaNota, notaDaPasta } from "@/domain/catalogo/pronto-para-ia";
+import { NotaProntoParaIa } from "@/components/produtos/nota-pronto-para-ia";
 import { lerParametros, type LinhaDeParametro } from "@/domain/precificacao/parametros";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
@@ -178,6 +180,23 @@ function PastaDoProduto() {
       );
     },
   });
+  // As contagens para a nota "Pronto para a IA" deste produto (fase 6 do plano de 02/11).
+  const satelites = useQuery({
+    queryKey: ["pasta-satelites", id],
+    queryFn: async () => {
+      const [processos, perguntas, formulas] = await Promise.all([
+        (supabase as any).from("produto_processos").select("produto_id").eq("produto_id", id),
+        (supabase as any).from("produto_perguntas").select("produto_id, finalidade").eq("produto_id", id),
+        (supabase as any).from("produto_formulas").select("produto_id").eq("produto_id", id),
+      ]);
+      return {
+        processos: (processos.data ?? []) as { produto_id: string }[],
+        perguntas: (perguntas.data ?? []) as { produto_id: string; finalidade?: string | null }[],
+        formulas: (formulas.data ?? []) as { produto_id: string }[],
+      };
+    },
+  });
+
   // O método de cálculo da casa (markup e taxas), como o "Preço" do Holdprint mostra. Só o nível financeiro.
   const parametros = useQuery({
     queryKey: ["parametros-da-casa"],
@@ -340,6 +359,35 @@ function PastaDoProduto() {
       Só administrador e gestor alteram a pasta do produto.
     </p>
   );
+  const nota = notaDaPasta(
+    entradaDaNota(
+      {
+        id,
+        tipo: cadastro.tipo,
+        unidade: cadastro.unidade,
+        imagem_url: cadastro.imagem_url,
+        descricao: cadastro.descricao,
+        material_principal_id: cadastro.material_principal_id,
+      },
+      cadastro.familia,
+      {
+        fichas: ficha.data
+          ? [
+              {
+                produto_id: id,
+                largura_padrao_m: form.largura_padrao_m,
+                altura_padrao_m: form.altura_padrao_m,
+                ia_como_medir: form.ia_como_medir,
+                ia_revisado_em: ficha.data.ia_revisado_em ?? null,
+              },
+            ]
+          : [],
+        processos: satelites.data?.processos ?? [],
+        perguntas: satelites.data?.perguntas ?? [],
+        formulas: satelites.data?.formulas ?? [],
+      },
+    ),
+  );
   const margem = calcMargem(Number(cadastro.custo_medio) || 0, Number(cadastro.preco_base) || 0);
   const markup = calcMarkup(Number(cadastro.custo_medio) || 0, Number(cadastro.preco_base) || 0);
   const situacao = margemStatus(margem, Number(cadastro.margem_minima) || 0);
@@ -359,11 +407,18 @@ function PastaDoProduto() {
           </>
         }
       />
-      <Button asChild variant="ghost" size="sm">
-        <Link to="/produtos">
-          <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar para a lista
-        </Link>
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/produtos">
+            <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar para a lista
+          </Link>
+        </Button>
+        {/* A nota diz o que ainda falta para a IA orçar este produto sozinha. */}
+        <p className="flex flex-wrap items-center gap-2 text-sm" data-testid="pronto-para-ia">
+          <NotaProntoParaIa nota={nota} compacta />
+          <span className="text-muted-foreground">{fraseDaNota(nota)}</span>
+        </p>
+      </div>
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as AbaDaPasta)}>
         <div className="overflow-x-auto pb-1">

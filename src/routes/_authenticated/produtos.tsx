@@ -103,6 +103,8 @@ import { NovoProdutoEmPassos } from "@/components/produtos/novo-produto-em-passo
 import { ModelosDoMercado } from "@/components/produtos/modelos-do-mercado";
 import { EditarFamilias, FamiliasDaLista } from "@/components/produtos/familias-da-lista";
 import { familiasDaLista, filtrarPorFamiliaDaLista } from "@/domain/catalogo/familias-da-lista";
+import { NotaProntoParaIa, useLinhasParaNota } from "@/components/produtos/nota-pronto-para-ia";
+import { entradaDaNota, notaDaPasta } from "@/domain/catalogo/pronto-para-ia";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -277,6 +279,13 @@ function ProdutosPage() {
     () => familiasDaLista(produtos, familiaDe, { mostrarInativos }),
     [produtos, familiaDe, mostrarInativos],
   );
+
+  // "Pronto para a IA": a nota de cada pasta, pelas tabelas satélites (fase 6 do plano de 02/11).
+  const linhasParaNota = useLinhasParaNota();
+  const notaDe = (p: Produto) =>
+    notaDaPasta(
+      entradaDaNota(p, familiaDe.get(p.id), linhasParaNota.data ?? { fichas: [], processos: [], perguntas: [], formulas: [] }),
+    );
 
   const stats = useMemo(() => {
     const total = produtos.length;
@@ -619,6 +628,7 @@ function ProdutosPage() {
                   <TableHead>Item</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead className="text-center">Un</TableHead>
+                  <TableHead>Pronto para a IA</TableHead>
                   {canSeeFinancials && (
                     <TableHead className="text-right">Custo</TableHead>
                   )}
@@ -684,6 +694,9 @@ function ProdutosPage() {
                       </TableCell>
                       <TableCell className="text-center text-sm text-muted-foreground">
                         {p.unidade}
+                      </TableCell>
+                      <TableCell>
+                        <NotaProntoParaIa nota={notaDe(p)} />
                       </TableCell>
                       {canSeeFinancials && (
                         <TableCell className="text-right font-mono text-sm">
@@ -764,6 +777,10 @@ function ProdutosPage() {
                     </Badge>
                     {!p.ativo && <Badge variant="secondary">Inativo</Badge>}
                     {isAdmin && <BotaoAtivarProduto produto={p} />}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>Pronto para a IA</span>
+                    <NotaProntoParaIa nota={notaDe(p)} compacta />
                   </div>
                   {canSeePrices && (
                     <div className="flex justify-between items-end pt-2 border-t">
