@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star, Smile, Meh, Frown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
+import { Carregando } from "@/components/bex/Carregando";
 
 export const Route = createFileRoute("/_authenticated/pos-venda")({
   head: () => ({ meta: [{ title: "Pós-venda / NPS — BEX PRINT OS" }] }),
@@ -28,7 +29,7 @@ function PosVendaPage() {
   const [nota, setNota] = useState<number | null>(null);
   const [comentario, setComentario] = useState("");
 
-  const { data: pesquisas = [] } = useQuery({
+  const { data: pesquisas = [], isLoading: carregandoPesquisas } = useQuery({
     queryKey: ["pos-venda-pesquisas"],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -40,7 +41,7 @@ function PosVendaPage() {
     },
   });
 
-  const { data: respostas = [] } = useQuery({
+  const { data: respostas = [], isLoading: carregandoRespostas } = useQuery({
     queryKey: ["pos-venda-respostas"],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -130,7 +131,9 @@ function PosVendaPage() {
             <CardTitle className="text-base">Pesquisas agendadas / a enviar</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {pesquisas.length === 0 ? (
+            {carregandoPesquisas ? (
+              <Carregando />
+            ) : pesquisas.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
                 Nenhuma pesquisa. Elas são criadas automaticamente ao fechar OS.
               </p>
@@ -248,6 +251,8 @@ function PosVendaPage() {
                   </Button>
                 </div>
               </div>
+            ) : carregandoRespostas ? (
+              <Carregando />
             ) : respostas.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
                 Sem respostas registradas.

@@ -31,6 +31,7 @@ import {
 import { Activity, Cuboid, Clock, Plus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
+import { Carregando } from "@/components/bex/Carregando";
 import { UsoDasImpressoras } from "@/components/producao/uso-das-impressoras";
 
 export const Route = createFileRoute("/_authenticated/producao-3d")({
@@ -66,7 +67,7 @@ function Producao3DPage() {
   const [novoTempo, setNovoTempo] = useState<string>("");
   const [novoEnergia, setNovoEnergia] = useState<string>("");
 
-  const { data: jobs = [] } = useQuery({
+  const { data: jobs = [], isLoading: carregandoJobs } = useQuery({
     queryKey: ["producao-3d-jobs-full"],
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -79,7 +80,7 @@ function Producao3DPage() {
     },
   });
 
-  const { data: apontamentos = [] } = useQuery({
+  const { data: apontamentos = [], isLoading: carregandoApontamentos } = useQuery({
     queryKey: ["producao-3d-apontamentos", selectedJob],
     enabled: !!selectedJob,
     queryFn: async () => {
@@ -188,7 +189,9 @@ function Producao3DPage() {
             <CardTitle className="text-base">Jobs de produção</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {jobs.length === 0 ? (
+            {carregandoJobs ? (
+              <Carregando />
+            ) : jobs.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
                 Nenhum job de impressão 3D. Crie um orçamento 3D e converta em OS.
               </p>
@@ -317,6 +320,8 @@ function Producao3DPage() {
               <p className="text-sm text-muted-foreground text-center py-8">
                 Clique em um job à esquerda para ver seus apontamentos.
               </p>
+            ) : carregandoApontamentos ? (
+              <Carregando />
             ) : apontamentos.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
                 Sem apontamentos ainda.
