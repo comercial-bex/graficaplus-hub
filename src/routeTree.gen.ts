@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ParceiroRouteImport } from './routes/parceiro'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SejaParceiroRouteImport } from './routes/seja-parceiro'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -142,6 +143,11 @@ const LoginRoute = LoginRouteImport.update({
 const ParceiroRoute = ParceiroRouteImport.update({
   id: '/parceiro',
   path: '/parceiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -744,6 +750,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/parceiro': typeof ParceiroRouteWithChildren
+  '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
@@ -859,6 +866,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
@@ -977,6 +985,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/parceiro': typeof ParceiroRouteWithChildren
+  '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
@@ -1095,6 +1104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/parceiro'
+    | '/privacidade'
     | '/reset-password'
     | '/seja-parceiro'
     | '/signup'
@@ -1210,6 +1220,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/privacidade'
     | '/reset-password'
     | '/seja-parceiro'
     | '/signup'
@@ -1327,6 +1338,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/parceiro'
+    | '/privacidade'
     | '/reset-password'
     | '/seja-parceiro'
     | '/signup'
@@ -1445,6 +1457,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   ParceiroRoute: typeof ParceiroRouteWithChildren
+  PrivacidadeRoute: typeof PrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SejaParceiroRoute: typeof SejaParceiroRoute
   SignupRoute: typeof SignupRoute
@@ -1503,6 +1516,13 @@ declare module '@tanstack/react-router' {
       path: '/parceiro'
       fullPath: '/parceiro'
       preLoaderRoute: typeof ParceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -2476,6 +2496,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   ParceiroRoute: ParceiroRouteWithChildren,
+  PrivacidadeRoute: PrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SejaParceiroRoute: SejaParceiroRoute,
   SignupRoute: SignupRoute,
