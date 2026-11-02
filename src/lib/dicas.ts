@@ -615,6 +615,10 @@ export const dicas = {
     menu: "Histórico de quem fez o quê no sistema.",
     tela: "Auditoria: registro de alterações importantes, com autor, data e o que mudou.",
   },
+  "/configuracoes-api": {
+    menu: "Token pessoal para ler os dados da gráfica de fora do sistema.",
+    tela: "Gere um token pessoal para Claude, planilha ou outro programa ler clientes, orçamentos, OS e contas. É só leitura e vale com a sua permissão. O token aparece uma vez, na hora de gerar: guarde como senha. Revogar vale na hora.",
+  },
   "/configuracoes-empresa": {
     menu: "Dados da empresa usados nos documentos.",
     tela: "Nome, CNPJ, endereço, telefones e logotipo que aparecem no orçamento e na ordem de serviço impressos.",
