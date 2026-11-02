@@ -133,7 +133,7 @@ export const lerPedidoDoCliente = createServerFn({ method: "POST" })
     const { data: linhas, error } = await (context.supabase as any)
       .from("produto_ficha")
       .select(
-        "produto_id, ia_personalidade, ia_como_medir, ia_perguntas, produtos!inner(nome, unidade, tipo, ativo)",
+        "produto_id, apelidos, ia_personalidade, ia_como_medir, ia_perguntas, produtos!inner(nome, unidade, tipo, ativo)",
       )
       .eq("ia_habilitado", true)
       .eq("produtos.ativo", true);
@@ -147,6 +147,18 @@ export const lerPedidoDoCliente = createServerFn({ method: "POST" })
       ((ligacoes ?? []) as { produto_id: string; acabamentos: { nome: string } }[])
         .filter((l) => l.produto_id === produtoId)
         .map((l) => l.acabamentos.nome);
+    const [tamanhos, definidas] = await Promise.all([
+      (context.supabase as any)
+        .from("produto_tamanhos")
+        .select("produto_id, nome, largura, altura, quando_usar")
+        .order("ordem"),
+      (context.supabase as any)
+        .from("produto_perguntas")
+        .select("produto_id, pergunta, resposta_padrao")
+        .eq("nao_perguntar", true),
+    ]);
+    if (tamanhos.error || definidas.error)
+      throw new Error("Não foi possível ler os tamanhos e as perguntas dos produtos.");
     const produtos: ProdutoParaIa[] = ((linhas ?? []) as any[]).map((l) => ({
       id: l.produto_id,
       nome: l.produtos.nome,
@@ -156,6 +168,18 @@ export const lerPedidoDoCliente = createServerFn({ method: "POST" })
       como_medir: l.ia_como_medir,
       perguntas: l.ia_perguntas,
       acabamentos: acabamentosDe(l.produto_id),
+      apelidos: l.apelidos ?? [],
+      tamanhos: ((tamanhos.data ?? []) as any[])
+        .filter((t) => t.produto_id === l.produto_id)
+        .map((t) => ({
+          nome: t.nome,
+          largura: Number(t.largura),
+          altura: Number(t.altura),
+          quando_usar: t.quando_usar ?? null,
+        })),
+      ja_definido: ((definidas.data ?? []) as any[])
+        .filter((q) => q.produto_id === l.produto_id)
+        .map((q) => ({ pergunta: q.pergunta, resposta: q.resposta_padrao })),
     }));
     return lerPedidoComIa(data.pedido, produtos, motorDaIa());
   });

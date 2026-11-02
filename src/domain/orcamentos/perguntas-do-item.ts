@@ -27,6 +27,10 @@ export type PerguntaDoProduto = {
   /** "Se a resposta for X, acrescenta o processo Y". */
   acoes: { resposta: string; processo_id: string }[];
   ordem: number;
+  /** A resposta que já vem marcada (Holdprint: "SEMPRE defina essa resposta como X"). */
+  resposta_padrao?: string | null;
+  /** A casa já decidiu: ninguém responde, a resposta entra sozinha e aparece como definida. */
+  nao_perguntar?: boolean;
 };
 
 export type RespostaDoItem = {
@@ -56,6 +60,8 @@ export function perguntaDaLinha(l: Record<string, unknown>): PerguntaDoProduto {
     respostas,
     acoes,
     ordem: Number(l.ordem ?? 0) || 0,
+    resposta_padrao: textoLimpo(l.resposta_padrao) || null,
+    nao_perguntar: l.nao_perguntar === true && textoLimpo(l.resposta_padrao) !== "",
   };
 }
 
@@ -96,12 +102,28 @@ export function responder(
   return respondida(nova) ? [...semEla, nova] : semEla;
 }
 
-/** As obrigatórias ainda sem resposta, na ordem do cadastro. */
+/** As obrigatórias ainda sem resposta, na ordem do cadastro. A que não se pergunta não segura ninguém. */
 export function pendenciasDasRespostas(
   perguntas: readonly PerguntaDoProduto[],
   respostas: readonly RespostaDoItem[],
 ): PerguntaDoProduto[] {
-  return perguntas.filter((p) => p.obrigatoria && !respondida(respostaDe(respostas, p.id)));
+  return perguntas.filter((p) => p.obrigatoria && !p.nao_perguntar && !respondida(respostaDe(respostas, p.id)));
+}
+
+/**
+ * As respostas com o padrão de cada pergunta ainda sem resposta. O que alguém
+ * já respondeu fica; sem nada a acrescentar devolve a mesma lista.
+ */
+export function comRespostasPadrao(
+  perguntas: readonly PerguntaDoProduto[],
+  respostas: RespostaDoItem[],
+): RespostaDoItem[] {
+  let saida = respostas;
+  for (const p of perguntas) {
+    if (!p.resposta_padrao || respondida(respostaDe(saida, p.id))) continue;
+    saida = responder(saida, p, p.tipo_resposta === "multipla" ? [p.resposta_padrao] : p.resposta_padrao);
+  }
+  return saida;
 }
 
 /** Os processos que as respostas dadas acrescentam (ids, sem repetir). */

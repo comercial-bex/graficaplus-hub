@@ -25,6 +25,12 @@ export type ProdutoParaIa = {
   perguntas: string | null;
   /** Os acabamentos que o produto aceita (`produto_acabamentos`). */
   acabamentos?: string[];
+  /** Como o cliente também chama o produto. */
+  apelidos?: string[];
+  /** Tamanhos prontos e quando cada um serve. */
+  tamanhos?: { nome: string; largura: number; altura: number; quando_usar: string | null }[];
+  /** Perguntas que a casa já respondeu: não se pergunta ao cliente. */
+  ja_definido?: { pergunta: string; resposta: string }[];
 };
 
 export type ItemDaIa = {
@@ -108,6 +114,9 @@ export function montarPerguntaDoOrcamento(pedido: string, produtos: ProdutoParaI
     como_medir: p.como_medir,
     perguntar: p.perguntas,
     acabamentos: p.acabamentos ?? [],
+    tambem_conhecido_como: p.apelidos ?? [],
+    tamanhos: p.tamanhos ?? [],
+    ja_definido: p.ja_definido ?? [],
   }));
   return [
     {
@@ -119,6 +128,9 @@ export function montarPerguntaDoOrcamento(pedido: string, produtos: ProdutoParaI
         "Quando o pedido não diz a quantidade, use 1 e inclua a pergunta em perguntas_que_faltam.",
         "Use o roteiro de cada produto escolhido para listar o que ainda falta perguntar. Não repita o que o pedido já respondeu.",
         "Marque acabamento só quando o cliente pediu, com o nome exato da lista do produto (ilhós e bainha = Bainha + ilhós). Se o produto aceita acabamento e o cliente não falou, inclua a pergunta em perguntas_que_faltam.",
+        "O cliente pode chamar o produto por um nome de tambem_conhecido_como: é o mesmo produto.",
+        "Nunca coloque em perguntas_que_faltam o que está em ja_definido. A casa já decidiu aquilo.",
+        "Tamanho de tamanhos só vale se o cliente pediu ou confirmou; serve para sugerir na pergunta, não para preencher a medida.",
         "O que não existir na lista vai em sem_produto.",
       ].join("\n"),
     },

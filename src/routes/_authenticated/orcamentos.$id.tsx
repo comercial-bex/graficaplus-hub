@@ -237,6 +237,7 @@ type TamanhoProduto = {
   largura: number;
   altura: number;
   padrao: boolean;
+  quando_usar: string | null;
 };
 
 const statusTone: Record<string, "cyan" | "magenta" | "lime" | "amber" | "muted"> = {
@@ -501,7 +502,7 @@ function OrcamentoDetailPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("produto_tamanhos")
-        .select("id, produto_id, nome, largura, altura, padrao")
+        .select("id, produto_id, nome, largura, altura, padrao, quando_usar")
         .eq("produto_id", form.produto_id)
         .order("ordem");
       if (error) throw error;
@@ -633,7 +634,7 @@ function OrcamentoDetailPage() {
   // Tamanhos prontos: os do produto; sem eles, os comuns do tipo.
   const tamanhosParaOferecer =
     tamanhos.length > 0
-      ? tamanhos.map((t) => ({ nome: t.nome, largura: Number(t.largura), altura: Number(t.altura) }))
+      ? tamanhos.map((t) => ({ nome: t.nome, largura: Number(t.largura), altura: Number(t.altura), quando_usar: t.quando_usar }))
       : (tipoDoItem?.tamanhosComuns ?? tipoPelaChave("outros").tamanhosComuns);
 
   // Faixa de preço por quantidade e o próximo degrau (argumento de venda).

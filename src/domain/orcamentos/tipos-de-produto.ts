@@ -37,7 +37,7 @@ export type IconeDoTipo =
   | "Box"
   | "Shapes";
 
-export type TamanhoComum = { nome: string; largura: number; altura: number };
+export type TamanhoComum = { nome: string; largura: number; altura: number; quando_usar?: string | null };
 
 export type TipoDeProduto = {
   chave: ChaveDoTipo;
