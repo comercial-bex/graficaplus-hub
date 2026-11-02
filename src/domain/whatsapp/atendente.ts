@@ -88,7 +88,14 @@ const INSTRUCOES = [
 ].join("\n");
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-const palavras = (t: string) => semAcento(t).split(/[^a-z0-9]+/).filter((p) => p.length >= 3);
+// "copos térmicos" é o mesmo que "copo térmico": sem isso o roteiro do produto não ia para a IA, e ela não avisava
+// que logo colorido não sai colorido (achado no ensaio de 02/11/2026).
+const noSingular = (p: string) => (p.length > 3 && p.endsWith("s") ? p.slice(0, -1) : p);
+const palavras = (t: string) =>
+  semAcento(t)
+    .split(/[^a-z0-9]+/)
+    .filter((p) => p.length >= 3)
+    .map(noSingular);
 
 /**
  * Só os produtos de que a conversa fala vão com o roteiro inteiro; os outros vão só com o nome. É o que deixa a IA
