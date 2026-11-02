@@ -22,8 +22,9 @@ import { cn } from "@/lib/utils";
 /**
  * As perguntas do produto no item do orçamento (02/11/2026). Só aparecem quando
  * o produto tem perguntas no Checklist da pasta dele; sem perguntas, nada muda
- * na tela. A resposta que acrescenta um processo entra no acabamento do item,
- * e a obrigatória sem resposta segura o botão de adicionar.
+ * na tela. A resposta que acrescenta um processo entra no acabamento do item
+ * e, se o processo tem serviço com preço, vira cobrança (`cobranca-das-respostas`).
+ * A obrigatória sem resposta segura o botão de adicionar.
  */
 
 /** As perguntas do produto, na ordem do cadastro. Só consulta com produto. */

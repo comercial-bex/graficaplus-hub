@@ -8,10 +8,8 @@ import { alternarAcabamento, temAcabamento } from "@/domain/orcamentos/tipos-de-
  * respondidas e a resposta fica gravada no item (`orcamento_itens.respostas`).
  *
  * Uma ação "se a resposta for X, acrescenta o processo Y" entra no texto de
- * acabamento do item, que já vai para a OS e para o PDF. Ela NÃO mexe no preço
- * por enquanto: a produtividade dos processos está vazia de propósito (número
- * de palpite faz orçar errado), então o que a resposta faz é avisar a produção
- * e lembrar quem vende de cobrar o serviço no item.
+ * acabamento do item, que já vai para a OS e para o PDF. O preço sai de
+ * `cobranca-das-respostas.ts`, quando o processo tem serviço com preço.
  */
 
 export type TipoDeResposta = "unica" | "multipla" | "numero" | "texto";
