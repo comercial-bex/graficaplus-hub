@@ -177,7 +177,7 @@
 }
 
 .dark {
-  /* Tema escuro "Neon Cyber" (21st.dev/@gustavo.raimundo, 02/11/2026): so as cores; fonte e raio ficam. --muted-foreground e
+  /* Tema escuro "Neon Cyber" (21st.dev/@gustavo.raimundo, 02/11/2026): so as cores; fonte e raio ficam. Menu e topo seguem azul-marinho, iguais nos dois temas (regra dos testes). --muted-foreground e
      --sidebar-foreground clareados (o original #777 dava 3,3:1; com opacidade /70 do menu pedia #d4d4d8). Contra o card escuro #0d0d0d. Daltonismo fica na faixa 6–8: a legenda,
      o vão entre barras e a ordem fixa (recebidas à esquerda) completam. */
   --wa-recebidas: #0a9cb5;
@@ -216,17 +216,17 @@
   --status-magenta: #ff5aae;
   --status-amber: #f5d90a;
   --status-positive: #45d4a0;
-  --sidebar: #020202;
-  --sidebar-foreground: #d4d4d8;
-  --sidebar-primary: #bc13fe;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1a1a;
-  --sidebar-accent-foreground: #00ff9f;
-  --sidebar-border: #222222;
+  --sidebar: #212e57;
+  --sidebar-foreground: #e2e8f0;
+  --sidebar-primary: #00d3f2;
+  --sidebar-primary-foreground: #050506;
+  --sidebar-accent: #215168;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #34447a;
   /* Barra do topo: azul-marinho mais escuro que o menu, nos dois temas. */
-  --topbar: #020202;
-  --topbar-foreground: #d4d4d8;
-  --sidebar-ring: #00b8ff;
+  --topbar: #121f3b;
+  --topbar-foreground: #e2e8f0;
+  --sidebar-ring: #00d3f2;
   --sidebar-trilho: #00a9c6;
   --sidebar-trilho-foreground: #050506;
   --sidebar-marca: #00d3f2;
