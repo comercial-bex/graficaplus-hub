@@ -539,9 +539,9 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
               />
             </div>
             <div className="space-y-2">
-              <Label>Tipo</Label>
+              <Label htmlFor="cliente-edit-tipo">Tipo</Label>
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                <SelectTrigger>
+                <SelectTrigger id="cliente-edit-tipo">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -551,12 +551,12 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Vendedor</Label>
+              <Label htmlFor="cliente-edit-vendedor">Vendedor</Label>
               <Select
                 value={form.vendedor_id || "none"}
                 onValueChange={(v) => setForm({ ...form, vendedor_id: v === "none" ? null : v })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="cliente-edit-vendedor">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -570,16 +570,16 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
               </Select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Nome *</Label>
-              <Input
+              <Label htmlFor="cliente-edit-nome">Nome *</Label>
+              <Input id="cliente-edit-nome"
                 maxLength={200}
                 value={form.nome || ""}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Razão social</Label>
-              <Input
+              <Label htmlFor="cliente-edit-razao-social">Razão social</Label>
+              <Input id="cliente-edit-razao-social"
                 maxLength={200}
                 value={form.razao_social || ""}
                 onChange={(e) => setForm({ ...form, razao_social: e.target.value })}
@@ -616,8 +616,8 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
               invalido={!!(form.telefone || "").trim() && !recebeWhatsApp(form.telefone)}
             />
             <div className="space-y-2 md:col-span-2">
-              <Label>E-mail</Label>
-              <Input
+              <Label htmlFor="cliente-edit-email">E-mail</Label>
+              <Input id="cliente-edit-email"
                 type="email"
                 maxLength={150}
                 value={form.email || ""}
@@ -625,16 +625,16 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Endereço</Label>
-              <Input
+              <Label htmlFor="cliente-edit-endereco">Endereço</Label>
+              <Input id="cliente-edit-endereco"
                 maxLength={250}
                 value={form.endereco || ""}
                 onChange={(e) => setForm({ ...form, endereco: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label>Cidade</Label>
-              <Input
+              <Label htmlFor="cliente-edit-cidade">Cidade</Label>
+              <Input id="cliente-edit-cidade"
                 maxLength={100}
                 value={form.cidade || ""}
                 onChange={(e) => setForm({ ...form, cidade: e.target.value })}
@@ -642,8 +642,8 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
-                <Label>UF</Label>
-                <Input
+                <Label htmlFor="cliente-edit-uf">UF</Label>
+                <Input id="cliente-edit-uf"
                   maxLength={2}
                   value={form.estado || ""}
                   onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })}
@@ -658,8 +658,8 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
                 />
               ) : (
                 <div className="space-y-2">
-                  <Label>Código postal</Label>
-                  <Input
+                  <Label htmlFor="cliente-edit-cep">Código postal</Label>
+                  <Input id="cliente-edit-cep"
                     maxLength={12}
                     value={form.cep || ""}
                     onChange={(e) => setForm({ ...form, cep: e.target.value })}
@@ -702,8 +702,8 @@ function EditClienteDialog({ cliente }: { cliente: any }) {
               </SecaoRecolhivel>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Observações</Label>
-              <Textarea
+              <Label htmlFor="cliente-edit-observacoes">Observações</Label>
+              <Textarea id="cliente-edit-observacoes"
                 rows={3}
                 maxLength={1000}
                 value={form.observacoes || ""}
