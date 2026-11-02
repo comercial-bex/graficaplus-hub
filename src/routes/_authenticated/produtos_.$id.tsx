@@ -23,6 +23,21 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Carregando } from "@/components/bex/Carregando";
 import { BotaoAtivarProduto } from "@/components/produtos/botao-ativar-produto";
 import { CustoDaPeca } from "@/components/produtos/custo-da-peca";
+import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
+import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
+import {
+  CATEGORIAS,
+  FAMILIAS,
+  TIPOS,
+  UNIDADES,
+  calcMargem,
+  calcMarkup,
+  margemStatus,
+} from "@/lib/produtos-catalogo";
+import { percentual } from "@/lib/percentual";
+import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
+import { baseDeCalculo, rotuloDaUnidade } from "@/domain/catalogo/familias-da-lista";
+import { lerParametros, type LinhaDeParametro } from "@/domain/precificacao/parametros";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { useAuth } from "@/lib/auth-context";
@@ -32,12 +47,15 @@ import {
   abasDaPasta,
   avaliarFormula,
   frasesDoHistorico,
+  payloadDoCadastro,
   pendenciaDaPergunta,
   respostasDoTexto,
   tempoDoProcesso,
+  CADASTRO_VAZIO,
   ROTULO_DO_TIPO,
   VARIAVEIS_DA_FORMULA,
   type AbaDaPasta,
+  type Cadastro,
   type AcaoDaResposta,
   type TempoDoProcesso,
   type TipoDeResposta,
@@ -99,11 +117,12 @@ const FICHA_VAZIA: Ficha = {
 
 function PastaDoProduto() {
   const { id } = Route.useParams();
-  const { canSeePrices, nivelDeVisao, hasRole } = useAuth();
+  const { canSeePrices, canSeeFinancials, nivelDeVisao, hasRole } = useAuth();
   const podeEditar = hasRole("admin") || hasRole("gestor");
   const qc = useQueryClient();
   const [aba, setAba] = useState<AbaDaPasta>("descricao");
   const [form, setForm] = useState<Ficha>(FICHA_VAZIA);
+  const [cadastro, setCadastro] = useState<Cadastro>(CADASTRO_VAZIO);
 
   const produto = useQuery({
     queryKey: ["pasta-produto", id, nivelDeVisao],
@@ -123,13 +142,99 @@ function PastaDoProduto() {
       const { data, error } = await (supabase as any)
         .from("produtos")
         .select(
-          "id, familia, maquinas:maquina_padrao_id(nome), materiais:material_principal_id(nome)",
+          "id, familia, maquina_padrao_id, material_principal_id, maquinas:maquina_padrao_id(nome), materiais:material_principal_id(nome)",
         )
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       return data as any;
     },
+  });
+
+  // Máquinas, materiais e famílias para os seletores da pasta. Falha aqui só deixa a lista vazia.
+  const maquinas = useQuery({
+    queryKey: ["maquinas-para-produto"],
+    queryFn: async () => {
+      const { data } = await supabase.from("maquinas").select("id, nome").eq("ativa", true).order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+  const materiaisDaCasa = useQuery({
+    queryKey: ["materiais-para-produto"],
+    queryFn: async () => {
+      const { data } = await supabase.from("materiais").select("id, nome, unidade").order("nome");
+      return (data ?? []) as { id: string; nome: string; unidade: string }[];
+    },
+  });
+  const familiasEmUso = useQuery({
+    queryKey: ["produtos", "familias"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("produtos").select("id, familia");
+      if (error) throw error;
+      return new Map<string, string>(
+        ((data ?? []) as Array<{ id: string; familia: string | null }>)
+          .filter((r) => r.familia)
+          .map((r) => [r.id, r.familia as string]),
+      );
+    },
+  });
+  // O método de cálculo da casa (markup e taxas), como o "Preço" do Holdprint mostra. Só o nível financeiro.
+  const parametros = useQuery({
+    queryKey: ["parametros-da-casa"],
+    enabled: nivelDeVisao === "financeiro",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("custos_tabela")
+        .select("id, codigo, descricao, unidade, valor")
+        .eq("ativo", true);
+      if (error) throw error;
+      return lerParametros((data ?? []) as unknown as LinhaDeParametro[]);
+    },
+  });
+
+  useEffect(() => {
+    const p = produto.data;
+    const e = extras.data;
+    if (!p) return;
+    const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+    setCadastro({
+      nome: txt(p.nome),
+      descricao: txt(p.descricao),
+      familia: txt(e?.familia),
+      categoria: txt(p.categoria) || "outros",
+      tipo: p.tipo === "servico" ? "servico" : "produto",
+      unidade: txt(p.unidade) || "un",
+      imagem_url: txt(p.imagem_url),
+      custo_medio: txt(p.custo_medio),
+      preco_base: txt(p.preco_base),
+      margem_minima: txt(p.margem_minima),
+      area_minima_cobrada: txt(p.area_minima_cobrada),
+      tempo_producao_min: txt(p.tempo_producao_min),
+      maquina_padrao_id: txt(e?.maquina_padrao_id ?? p.maquina_padrao_id),
+      material_principal_id: txt(e?.material_principal_id ?? p.material_principal_id),
+      observacoes_internas: txt(p.observacoes_internas),
+    });
+  }, [produto.data, extras.data]);
+
+  const salvarCadastro = useMutation({
+    mutationFn: async () => {
+      if (!cadastro.nome.trim()) throw new Error("O produto precisa de um nome.");
+      const { data, error } = await (supabase as any)
+        .from("produtos")
+        .update(payloadDoCadastro(cadastro, { canSeePrices, canSeeFinancials }))
+        .eq("id", id)
+        .select("id");
+      if (error) throw error;
+      confereGravou(data);
+    },
+    onSuccess: () => {
+      toast.success("Cadastro do produto salvo.");
+      void qc.invalidateQueries({ queryKey: ["pasta-produto", id] });
+      void qc.invalidateQueries({ queryKey: ["pasta-produto-extras", id] });
+      void qc.invalidateQueries({ queryKey: ["produtos"] });
+      void qc.invalidateQueries({ queryKey: ["pasta-historico", id] });
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
   });
 
   const ficha = useQuery({
@@ -217,10 +322,17 @@ function PastaDoProduto() {
   }
   const p = produto.data;
   const set = (parte: Partial<Ficha>) => setForm((f) => ({ ...f, ...parte }));
+  const setC = (parte: Partial<Cadastro>) => setCadastro((c) => ({ ...c, ...parte }));
+  const salvando = salvarFicha.isPending || salvarCadastro.isPending;
+  // Um "Salvar" só: o cadastro (`produtos`) e a pasta (`produto_ficha`) gravam juntos.
+  const salvarTudo = async () => {
+    await salvarCadastro.mutateAsync();
+    await salvarFicha.mutateAsync();
+  };
   const botaoSalvar = podeEditar ? (
     <div className="flex justify-end">
-      <Button disabled={salvarFicha.isPending} onClick={() => salvarFicha.mutate()}>
-        {salvarFicha.isPending ? "Salvando..." : "Salvar"}
+      <Button disabled={salvando || !cadastro.nome.trim()} onClick={() => void salvarTudo()}>
+        {salvando ? "Salvando..." : "Salvar"}
       </Button>
     </div>
   ) : (
@@ -228,6 +340,10 @@ function PastaDoProduto() {
       Só administrador e gestor alteram a pasta do produto.
     </p>
   );
+  const margem = calcMargem(Number(cadastro.custo_medio) || 0, Number(cadastro.preco_base) || 0);
+  const markup = calcMarkup(Number(cadastro.custo_medio) || 0, Number(cadastro.preco_base) || 0);
+  const situacao = margemStatus(margem, Number(cadastro.margem_minima) || 0);
+  const casa = parametros.data?.valores;
 
   return (
     <div className="space-y-4">
@@ -261,9 +377,45 @@ function PastaDoProduto() {
         </div>
 
         <TabsContent value="descricao" className="space-y-4 pt-2">
+          {/* Como a Descrição do Holdprint: nome, descrição, família, o modelo da conta e a unidade na proposta. */}
           <Card>
             <CardContent className="grid gap-4 pt-6 md:grid-cols-3">
-              <Dado rotulo="Família" valor={extras.data?.familia} />
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="pasta-nome">Nome</Label>
+                <Input
+                  id="pasta-nome"
+                  value={cadastro.nome}
+                  disabled={!podeEditar}
+                  onChange={(e) => setC({ nome: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pasta-familia">Família</Label>
+                <Input
+                  id="pasta-familia"
+                  value={cadastro.familia}
+                  disabled={!podeEditar}
+                  list="pasta-familias-do-catalogo"
+                  placeholder="Ex.: Lonas frontlight"
+                  onChange={(e) => setC({ familia: e.target.value })}
+                />
+                <datalist id="pasta-familias-do-catalogo">
+                  {[...new Set([...FAMILIAS, ...(familiasEmUso.data?.values() ?? [])])].map((f) => (
+                    <option key={f} value={f} />
+                  ))}
+                </datalist>
+              </div>
+              <div className="space-y-1.5 md:col-span-3">
+                <Label htmlFor="pasta-descricao">Descrição</Label>
+                <Textarea
+                  id="pasta-descricao"
+                  rows={3}
+                  value={cadastro.descricao}
+                  disabled={!podeEditar}
+                  placeholder="O que o cliente lê no orçamento"
+                  onChange={(e) => setC({ descricao: e.target.value })}
+                />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="pasta-subfamilia">Subfamília</Label>
                 <Input
@@ -274,17 +426,72 @@ function PastaDoProduto() {
                   onChange={(e) => set({ subfamilia: e.target.value })}
                 />
               </div>
-              <Dado rotulo="Unidade" valor={p.unidade} />
-              <div className="md:col-span-3">
-                <Dado rotulo="Descrição" valor={p.descricao} />
+              <div className="space-y-1.5">
+                <Label htmlFor="pasta-categoria">Categoria</Label>
+                <Select value={cadastro.categoria} disabled={!podeEditar} onValueChange={(v) => setC({ categoria: v })}>
+                  <SelectTrigger id="pasta-categoria">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIAS.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <p className="text-xs text-muted-foreground md:col-span-3">
-                Nome, descrição e unidade se editam na{" "}
-                <Link to="/produtos" className="underline">
-                  lista de produtos
-                </Link>
-                .
-              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="pasta-tipo">Tipo</Label>
+                <Select
+                  value={cadastro.tipo}
+                  disabled={!podeEditar}
+                  onValueChange={(v) => setC({ tipo: v === "servico" ? "servico" : "produto" })}
+                >
+                  <SelectTrigger id="pasta-tipo">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIPOS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pasta-unidade">Unidade na proposta</Label>
+                <Select value={cadastro.unidade} disabled={!podeEditar} onValueChange={(v) => setC({ unidade: v })}>
+                  <SelectTrigger id="pasta-unidade">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[...new Set([...UNIDADES, cadastro.unidade])].filter(Boolean).map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {rotuloDaUnidade(u)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <Dado rotulo="Como se calcula" valor={baseDeCalculo(cadastro.unidade)} />
+              </div>
+              <div className="space-y-1.5 md:col-span-3">
+                <p className="text-sm font-medium">Foto</p>
+                <FotoDoProduto
+                  valor={cadastro.imagem_url}
+                  onChange={(url) => setC({ imagem_url: url })}
+                  produto={{
+                    id,
+                    nome: cadastro.nome,
+                    descricao: cadastro.descricao,
+                    familia: cadastro.familia,
+                    categoria: cadastro.categoria,
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
           {botaoSalvar}
@@ -294,10 +501,58 @@ function PastaDoProduto() {
           <TabsContent value="preco" className="space-y-4 pt-2">
             <Card>
               <CardContent className="grid gap-4 pt-6 md:grid-cols-3">
-                <Dado
-                  rotulo="Preço de venda"
-                  valor={p.preco_base != null ? brl(Number(p.preco_base)) : null}
-                />
+                {canSeeFinancials ? (
+                  <>
+                    <Campo
+                      rotulo={`Preço de venda (R$/${rotuloDaUnidade(cadastro.unidade)})`}
+                      valor={cadastro.preco_base}
+                      desativado={!podeEditar}
+                      aoMudar={(v) => setC({ preco_base: v })}
+                    />
+                    <Campo
+                      rotulo="Custo do cadastro"
+                      valor={cadastro.custo_medio}
+                      desativado={!podeEditar}
+                      aoMudar={(v) => setC({ custo_medio: v })}
+                    />
+                    <Campo
+                      rotulo="Margem mínima (%)"
+                      valor={cadastro.margem_minima}
+                      desativado={!podeEditar}
+                      aoMudar={(v) => setC({ margem_minima: v })}
+                    />
+                    {ehUnidadeDeArea(cadastro.unidade) && (
+                      <Campo
+                        rotulo="Área mínima cobrada (m²), vazio cobra a área real"
+                        valor={cadastro.area_minima_cobrada}
+                        desativado={!podeEditar}
+                        aoMudar={(v) => setC({ area_minima_cobrada: v })}
+                      />
+                    )}
+                    <Dado
+                      rotulo="Margem com este preço"
+                      valor={
+                        margem === null
+                          ? null
+                          : `${percentual(margem)}${situacao === "ruim" ? " (abaixo do mínimo)" : situacao === "alerta" ? " (perto do mínimo)" : ""}`
+                      }
+                    />
+                    <Dado rotulo="Markup" valor={markup ? `${markup.toFixed(2)}x` : null} />
+                  </>
+                ) : (
+                  <>
+                    <Dado
+                      rotulo="Preço de venda"
+                      valor={p.preco_base != null ? brl(Number(p.preco_base)) : null}
+                    />
+                    {p.margem_minima != null && (
+                      <Dado rotulo="Margem mínima" valor={`${Number(p.margem_minima)}%`} />
+                    )}
+                    {p.custo_medio != null && (
+                      <Dado rotulo="Custo do cadastro" valor={brl(Number(p.custo_medio))} />
+                    )}
+                  </>
+                )}
                 <Dado
                   rotulo="Preço sugerido"
                   valor={p.preco_sugerido != null ? brl(Number(p.preco_sugerido)) : null}
@@ -306,18 +561,8 @@ function PastaDoProduto() {
                   rotulo="Preço público"
                   valor={p.preco_publico != null ? brl(Number(p.preco_publico)) : null}
                 />
-                {p.margem_minima != null && (
-                  <Dado rotulo="Margem mínima" valor={`${Number(p.margem_minima)}%`} />
-                )}
-                {p.custo_medio != null && (
-                  <Dado rotulo="Custo do cadastro" valor={brl(Number(p.custo_medio))} />
-                )}
                 <p className="text-xs text-muted-foreground md:col-span-3">
-                  Preço e margem se editam na{" "}
-                  <Link to="/produtos" className="underline">
-                    lista de produtos
-                  </Link>
-                  ; as faixas ficam na{" "}
+                  As faixas por quantidade ficam na{" "}
                   <Link to="/tabela-de-precos" className="underline">
                     tabela de preços
                   </Link>
@@ -325,6 +570,28 @@ function PastaDoProduto() {
                 </p>
               </CardContent>
             </Card>
+            {canSeeFinancials && botaoSalvar}
+            {nivelDeVisao === "financeiro" && casa && (
+              // O "Método de cálculo" e os "Impostos" do Holdprint: os números da casa, lidos da Planilha de custos.
+              <Card data-testid="metodo-de-calculo-da-casa">
+                <CardHeader>
+                  <CardTitle className="text-base">Método de cálculo da casa</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                  <Dado rotulo="Markup de varejo" valor={casa.markup_padrao != null ? `${casa.markup_padrao}%` : null} />
+                  <Dado rotulo="Markup de atacado" valor={casa.markup_atacado != null ? `${casa.markup_atacado}%` : null} />
+                  <Dado rotulo="Impostos sobre a venda" valor={casa.impostos_venda != null ? `${casa.impostos_venda}%` : null} />
+                  <Dado rotulo="Taxa do cartão" valor={casa.taxa_cartao != null ? `${casa.taxa_cartao}%` : null} />
+                  <p className="text-xs text-muted-foreground sm:col-span-2 md:col-span-4">
+                    Valem para todos os produtos e se mudam na{" "}
+                    <Link to="/planilha-custos" className="underline">
+                      planilha de custos
+                    </Link>
+                    .
+                  </p>
+                </CardContent>
+              </Card>
+            )}
             {nivelDeVisao === "financeiro" && (
               <CustoDaPeca
                 produtoId={id}
@@ -369,13 +636,87 @@ function PastaDoProduto() {
               />
             </CardContent>
           </Card>
+          {/* "Mídia de impressão" e a máquina, como nos Parâmetros do Holdprint; antes eram só leitura aqui. */}
           <Card>
-            <CardContent className="grid gap-4 pt-6 md:grid-cols-2">
-              <Dado rotulo="Material principal" valor={extras.data?.materiais?.nome} />
-              <Dado rotulo="Máquina padrão" valor={extras.data?.maquinas?.nome} />
+            <CardHeader>
+              <CardTitle className="text-base">Máquina e material principal</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="pasta-maquina">Máquina padrão</Label>
+                <Select
+                  value={cadastro.maquina_padrao_id || "nenhuma"}
+                  disabled={!podeEditar}
+                  onValueChange={(v) => setC({ maquina_padrao_id: v === "nenhuma" ? "" : v })}
+                >
+                  <SelectTrigger id="pasta-maquina">
+                    <SelectValue placeholder="Nenhuma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhuma">Nenhuma</SelectItem>
+                    {(maquinas.data ?? []).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Onde a peça é feita: é daqui que sai a largura da bobina no orçamento.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pasta-material">Material principal (mídia)</Label>
+                <Select
+                  value={cadastro.material_principal_id || "nenhum"}
+                  disabled={!podeEditar}
+                  onValueChange={(v) => setC({ material_principal_id: v === "nenhum" ? "" : v })}
+                >
+                  <SelectTrigger id="pasta-material">
+                    <SelectValue placeholder="Nenhum" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Nenhum</SelectItem>
+                    {(materiaisDaCasa.data ?? []).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.nome} ({m.unidade})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  O insumo que domina o custo. Os materiais abaixo dão o consumo exato.
+                </p>
+              </div>
+              <Campo
+                rotulo={`Tempo estimado (min por ${rotuloDaUnidade(cadastro.unidade)})`}
+                valor={cadastro.tempo_producao_min}
+                desativado={!podeEditar}
+                aoMudar={(v) => setC({ tempo_producao_min: v })}
+              />
+              <TextoLongo
+                rotulo="Observações internas (não aparecem para o cliente)"
+                valor={cadastro.observacoes_internas}
+                desativado={!podeEditar}
+                aoMudar={(v) => setC({ observacoes_internas: v })}
+              />
             </CardContent>
           </Card>
           {botaoSalvar}
+          <AbaTamanhos produtoId={id} podeEditar={podeEditar} />
+          {/* "Insira os materiais deste produto": a ficha de materiais, que morava só na janela da lista. */}
+          {cadastro.tipo === "produto" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Materiais deste produto</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProdutoMateriaisEditor produtoId={id} produtoUnidade={cadastro.unidade} />
+              </CardContent>
+            </Card>
+          ) : (
+            <p className="text-sm text-muted-foreground">Serviço não consome material.</p>
+          )}
         </TabsContent>
 
         <TabsContent value="processos" className="pt-2">
@@ -781,6 +1122,131 @@ function AbaProcessos({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Tamanhos prontos ("Medidas do trabalho" do Holdprint): os tamanhos que o
+ * orçamento oferece de atalho para este produto, com "quando usar" para quem atende.
+ */
+function AbaTamanhos({ produtoId, podeEditar }: { produtoId: string; podeEditar: boolean }) {
+  const qc = useQueryClient();
+  const [nome, setNome] = useState("");
+  const [largura, setLargura] = useState("");
+  const [altura, setAltura] = useState("");
+  const [quandoUsar, setQuandoUsar] = useState("");
+  const chave = ["pasta-tamanhos", produtoId];
+  const lista = useQuery({
+    queryKey: chave,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_tamanhos")
+        .select("id, nome, largura, altura, padrao, quando_usar, ordem")
+        .eq("produto_id", produtoId)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+  const atualizar = () => {
+    void qc.invalidateQueries({ queryKey: chave });
+    void qc.invalidateQueries({ queryKey: ["pasta-historico", produtoId] });
+  };
+  const l = Number(largura.replace(",", "."));
+  const a = Number(altura.replace(",", "."));
+  const pendencia = !nome.trim()
+    ? "Dê um nome ao tamanho."
+    : !(l > 0) || !(a > 0)
+      ? "Largura e altura em metros, maiores que zero."
+      : null;
+  const adicionar = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_tamanhos")
+        .insert({
+          produto_id: produtoId,
+          nome: nome.trim(),
+          largura: l,
+          altura: a,
+          quando_usar: quandoUsar.trim() || null,
+          ordem: (lista.data ?? []).length,
+        })
+        .select("id");
+      if (error) throw error;
+      confereGravou(data);
+    },
+    onSuccess: () => {
+      setNome("");
+      setLargura("");
+      setAltura("");
+      setQuandoUsar("");
+      atualizar();
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+  const remover = useMutation({
+    mutationFn: async (linhaId: string) => {
+      const { data, error } = await (supabase as any)
+        .from("produto_tamanhos")
+        .delete()
+        .eq("id", linhaId)
+        .select("id");
+      if (error) throw error;
+      confereGravou(data);
+    },
+    onSuccess: atualizar,
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+  const metros = (n: unknown) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  return (
+    <Card data-testid="tamanhos-prontos">
+      <CardHeader>
+        <CardTitle className="text-base">Tamanhos prontos</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {podeEditar && (
+          <div className="grid items-end gap-3 md:grid-cols-[1fr_120px_120px_1fr_auto]">
+            <Campo rotulo="Nome" valor={nome} desativado={false} aoMudar={setNome} />
+            <Campo rotulo="Largura (m)" valor={largura} desativado={false} aoMudar={setLargura} />
+            <Campo rotulo="Altura (m)" valor={altura} desativado={false} aoMudar={setAltura} />
+            <Campo rotulo="Quando usar (opcional)" valor={quandoUsar} desativado={false} aoMudar={setQuandoUsar} />
+            <Button disabled={!!pendencia || adicionar.isPending} onClick={() => adicionar.mutate()}>
+              <Plus className="mr-1.5 h-4 w-4" /> Acrescentar
+            </Button>
+            {pendencia && (nome || largura || altura) && (
+              <p className="text-xs text-destructive md:col-span-5">{pendencia}</p>
+            )}
+          </div>
+        )}
+        {lista.isLoading && <Carregando />}
+        {!lista.isLoading && (lista.data ?? []).length === 0 && (
+          <p className="py-2 text-center text-sm text-muted-foreground">
+            Nenhum tamanho pronto: o orçamento pede a medida a cada item.
+          </p>
+        )}
+        {(lista.data ?? []).map((t) => (
+          <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-3">
+            <div className="min-w-0">
+              <div className="font-medium">
+                {t.nome}: {metros(t.largura)} × {metros(t.altura)} m{t.padrao ? " (padrão)" : ""}
+              </div>
+              {t.quando_usar && <div className="text-xs text-muted-foreground">{t.quando_usar}</div>}
+            </div>
+            {podeEditar && (
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={remover.isPending}
+                aria-label={`Tirar o tamanho ${t.nome}`}
+                onClick={() => remover.mutate(t.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 

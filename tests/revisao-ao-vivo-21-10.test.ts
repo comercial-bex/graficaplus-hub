@@ -71,10 +71,12 @@ describe("3. item por área conta peças", () => {
   });
 });
 
-describe("4. o nome do produto abre a ficha; o ⋮ tem nome", () => {
+describe("4. o nome do produto abre a pasta; o ⋮ tem nome", () => {
   const P = readFileSync("src/routes/_authenticated/produtos.tsx", "utf8");
-  it("nome é botão (tabela e cartão) e o menu de ações se apresenta", () => {
-    expect(P.match(/onClick=\{\(\) => abrirEdicao\(p\)\}/g)?.length).toBeGreaterThanOrEqual(2);
+  it("nome é link para a pasta (tabela e cartão); a janela antiga segue no ⋮ como Edição rápida", () => {
+    // 02/11/2026: o nome abria a janela de edição; agora abre a pasta com as abas do Holdprint.
+    expect(P.match(/to="\/produtos\/\$id"\s+params=\{\{ id: p\.id \}\}/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(P).toContain("Edição rápida");
     expect(P).toContain("aria-label={`Ações de ${produto.nome}`}");
   });
 });
