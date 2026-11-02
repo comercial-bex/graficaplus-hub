@@ -151,13 +151,42 @@ export function avaliarFormula(script: string, v: VariaveisDaFormula): Resultado
   }
 }
 
+export type BaseDeProdutividade = "m2_h" | "m_h" | "tempo_do_produto";
+
+export const ROTULO_DA_BASE: Record<BaseDeProdutividade, string> = {
+  m2_h: "m²/h",
+  m_h: "metros de contorno/h",
+  tempo_do_produto: "tempo do produto",
+};
+
+export type OrigemDaProdutividade =
+  | "cadastro_maquina"
+  | "referencia_mercado"
+  | "medido"
+  | "nao_se_aplica";
+
+export const ROTULO_DA_ORIGEM: Record<OrigemDaProdutividade, string> = {
+  cadastro_maquina: "Do cadastro da máquina",
+  referencia_mercado: "Referência do setor",
+  medido: "Medido na oficina",
+  nao_se_aplica: "Vem do produto",
+};
+
 export type LinhaDeProdutividade = { familias: string[]; produtividade_m2_h: number };
 
 export type ProcessoParaTempo = {
+  base_produtividade?: BaseDeProdutividade | null;
   setup_min: number | null;
   produtividade_m2_h: number | null;
+  produtividade_m_h?: number | null;
   produtividade_por_familia?: LinhaDeProdutividade[] | null;
 };
+
+/** O número geral do processo, na unidade da base dele. */
+function produtividadeGeral(p: ProcessoParaTempo): number | null {
+  const n = p.base_produtividade === "m_h" ? p.produtividade_m_h : p.produtividade_m2_h;
+  return n && n > 0 ? Number(n) : null;
+}
 
 /** A produtividade da família do material vale mais que a geral do processo. */
 export function produtividadeDe(
@@ -174,22 +203,56 @@ export function produtividadeDe(
     );
     if (linha && linha.produtividade_m2_h > 0) return linha.produtividade_m2_h;
   }
-  return p.produtividade_m2_h && p.produtividade_m2_h > 0 ? p.produtividade_m2_h : null;
+  return produtividadeGeral(p);
 }
 
+export type TempoDoProcesso =
+  | { tipo: "minutos"; minutos: number }
+  /** Laser, recorte, 3D, instalação: depende do desenho, o número mora no produto ou no fatiador. */
+  | { tipo: "do_produto"; minutos: number | null }
+  /** Devia ter número e não tem. Dizer "0 min" esconderia a falta. */
+  | { tipo: "falta" };
+
 /**
- * Minutos de um processo para uma área: o setup mais a área dividida pela
- * produtividade. Sem produtividade devolve null: dizer "0 min" esconderia que
- * falta o número, e o orçamento pareceria mais rápido do que é.
+ * O tempo de um processo para uma peça: a preparação mais a área (ou o contorno)
+ * dividida pela produtividade. Refile, bainha e ilhós andam pelo contorno; a
+ * impressão anda pela área.
  */
-export function minutosDoProcesso(
+export function tempoDoProcesso(
   p: ProcessoParaTempo,
-  areaM2: number,
-  familia?: string | null,
-): number | null {
-  const prod = produtividadeDe(p, familia);
-  if (prod === null) return null;
-  return Math.round(((p.setup_min ?? 0) + (Math.max(areaM2, 0) / prod) * 60) * 10) / 10;
+  peca: { largura: number; altura: number; copias?: number },
+  opcoes: { familia?: string | null; tempoDoProduto?: number | null } = {},
+): TempoDoProcesso {
+  if (p.base_produtividade === "tempo_do_produto") {
+    const t = opcoes.tempoDoProduto;
+    return { tipo: "do_produto", minutos: t && t > 0 ? t : null };
+  }
+  const prod = produtividadeDe(p, opcoes.familia);
+  if (prod === null) return { tipo: "falta" };
+  const copias = Math.max(peca.copias ?? 1, 1);
+  const medida =
+    p.base_produtividade === "m_h"
+      ? 2 * (peca.largura + peca.altura) * copias
+      : peca.largura * peca.altura * copias;
+  const minutos = (p.setup_min ?? 0) + (Math.max(medida, 0) / prod) * 60;
+  return { tipo: "minutos", minutos: Math.round(minutos * 10) / 10 };
+}
+
+/** O que cada área ainda tem para preencher: a conta do painel de cobrança. */
+export function faltaNaArea(linhas: { pronto: boolean }[]): {
+  total: number;
+  prontos: number;
+  falta: number;
+  pct: number;
+} {
+  const total = linhas.length;
+  const prontos = linhas.filter((l) => l.pronto).length;
+  return {
+    total,
+    prontos,
+    falta: total - prontos,
+    pct: total === 0 ? 100 : Math.round((prontos / total) * 100),
+  };
 }
 
 export type TipoDeResposta = "unica" | "multipla" | "numero" | "texto";

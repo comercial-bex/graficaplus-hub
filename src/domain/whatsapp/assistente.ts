@@ -165,7 +165,43 @@ export type ContextoDaConversa = {
   os: OsNoContexto[];
   historico: { de: "cliente" | "grafica"; texto: string }[];
   grafica: { endereco: string | null; horario: string | null };
+  /** O roteiro dos produtos de que a conversa fala (`roteirosDaConversa`). */
+  roteiros?: RoteiroNoContexto[];
 };
+
+export type RoteiroNoContexto = { produto: string; como_medir: string | null; perguntas: string | null };
+
+const PALAVRAS_VAZIAS = new Set(["para", "com", "por", "sem", "dos", "das", "impressa", "impresso", "personalizada", "personalizado"]);
+
+function palavrasDe(texto: string): string[] {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter((p) => p.length >= 3 && !PALAVRAS_VAZIAS.has(p));
+}
+
+/**
+ * Até 3 roteiros, dos produtos cujo nome aparece na conversa. Mandar os 55 a cada
+ * mensagem gastaria saldo à toa, e a IA só precisa do produto de que se fala.
+ */
+export function roteirosDaConversa(
+  conversa: string,
+  roteiros: (RoteiroNoContexto & { nome: string })[],
+  limite = 3,
+): RoteiroNoContexto[] {
+  const falado = new Set(palavrasDe(conversa));
+  return roteiros
+    .map((r) => {
+      const nome = palavrasDe(r.nome);
+      return { r, pontos: nome.filter((p) => falado.has(p)).length };
+    })
+    .filter((x) => x.pontos > 0)
+    .sort((a, b) => b.pontos - a.pontos || a.r.nome.localeCompare(b.r.nome))
+    .slice(0, limite)
+    .map(({ r }) => ({ produto: r.produto, como_medir: r.como_medir, perguntas: r.perguntas }));
+}
 
 /** Status em que o valor do orçamento já é do cliente — rascunho não é. */
 const ORCAMENTO_COM_VALOR_PUBLICO = new Set(["enviado", "aprovado", "convertido"]);
@@ -225,6 +261,7 @@ const INSTRUCOES = (assinatura: string) =>
     "Você conversa pelo WhatsApp com clientes. Escreva em português do Brasil, curto (até 3 frases), cordial, sem gírias e sem emojis em excesso.",
     "Use SOMENTE os dados do bloco DADOS. Nunca invente preço, valor, prazo, data, desconto, condição de pagamento ou disponibilidade.",
     "Você PODE: cumprimentar; dizer a situação de um orçamento ou de uma ordem de serviço que está nos DADOS (com o valor e o prazo exatamente como aparecem lá); informar endereço e horário da gráfica se estiverem nos DADOS; pedir o que falta para um orçamento (produto, medidas, quantidade, se a arte está pronta).",
+    "Se o bloco DADOS trouxer roteiros de produto, use-os para escolher o que perguntar ao cliente, uma ou duas perguntas por vez. Eles nunca autorizam dar preço.",
     "Você NÃO PODE: falar de pagamento, Pix, boleto, parcelamento ou desconto; prometer prazo; dar preço de algo que não está nos DADOS.",
     "Escolha acao='transferir' quando: o cliente pede para falar com uma pessoa; demonstra irritação ou reclamação; o pedido de orçamento já tem produto, medida e quantidade (a equipe precisa orçar); o assunto é financeiro; ou você não tem certeza.",
     "Classifique a intenção: orcamento (quer preço ou pedir um serviço), acompanhamento_os (pergunta de pedido em andamento), financeiro (pagamento, nota, boleto), administrativo (fornecedor, currículo, outros assuntos da empresa) ou outro.",
@@ -267,6 +304,7 @@ export function montarPergunta(
     orcamentos: contexto.orcamentos,
     ordens_de_servico: contexto.os,
     grafica: contexto.grafica,
+    ...(contexto.roteiros && contexto.roteiros.length > 0 ? { roteiros_de_produto: contexto.roteiros } : {}),
   };
   const historico = contexto.historico
     .map((h) => `${h.de === "cliente" ? "Cliente" : "Bex Print"}: ${h.texto}`)

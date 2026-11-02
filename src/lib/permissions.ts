@@ -180,6 +180,8 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/design", permissions: ["arquivos.read", "arquivos.approve"] },
   { path: "/produtos", permissions: ["custos.read"] },
   { path: "/processos", permissions: ["custos.read"] },
+  // A cobrança da pasta do produto chega a cada área: produção, atendimento, financeiro e gerência.
+  { path: "/preencher-pastas", permissions: ["os.read", "orcamentos.read", "financeiro.read", "custos.read"] },
   { path: "/aprovacoes", permissions: ["orcamentos.read", "arquivos.approve"] },
   // Metragem por cliente é número de venda (Vendas › Números de venda): pede
   // leitura de orçamento. Com os.read ela chegava ao operador (06/10/2026).

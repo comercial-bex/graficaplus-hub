@@ -57,6 +57,36 @@ export interface GuiaPendencia {
 }
 
 export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
+  processo_produtividade_a_confirmar: {
+    acao: 'Preencher',
+    passos: [
+      'Abra Preencher as pastas, na parte da produção.',
+      'Cronometre o processo na oficina e divida os metros feitos pelas horas.',
+      'Digite a produtividade e a preparação e toque em Confirmar medido.',
+    ],
+  },
+  roteiro_ia_a_revisar: {
+    acao: 'Revisar',
+    passos: [
+      'Abra Preencher as pastas, na parte do atendimento.',
+      'Leia o roteiro do produto e ajuste o que não é assim na nossa loja.',
+      'Toque em Revisado: a IA passa a perguntar desse jeito.',
+    ],
+  },
+  produto_sem_ncm: {
+    acao: 'Preencher',
+    passos: [
+      'Pegue com a contabilidade o NCM de cada produto.',
+      'Abra Preencher as pastas, na parte do financeiro, e digite o código.',
+    ],
+  },
+  pasta_do_produto_incompleta: {
+    acao: 'Ver quem falta',
+    passos: [
+      'Abra Preencher as pastas e veja a porcentagem de cada área.',
+      'Cobre de quem está atrás: produção, atendimento ou financeiro.',
+    ],
+  },
   os_prazo_vencido: {
     acao: 'Abrir o quadro',
     passos: [

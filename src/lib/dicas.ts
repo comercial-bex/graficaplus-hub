@@ -426,6 +426,10 @@ export const dicas = {
     menu: "Problemas registrados durante os trabalhos.",
     tela: "Registro de problemas: atraso, retrabalho, reclamação. Ajuda a entender o que mais trava a produção.",
   },
+  "/preencher-pastas": {
+    menu: "O que falta preencher nas pastas dos produtos.",
+    tela: "Cada área tem a sua parte: a produção confirma a produtividade, o atendimento revisa o roteiro da IA e o financeiro preenche o NCM.",
+  },
   "/processos": {
     menu: "O passo a passo de que os produtos são feitos.",
     tela: "Catálogo dos processos da casa, com etapa, preparação, pessoas e produtividade. O tempo de cada produto sai daqui.",

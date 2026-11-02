@@ -66,6 +66,7 @@ import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authe
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
+import { Route as AuthenticatedPreencherPastasRouteImport } from './routes/_authenticated/preencher-pastas'
 import { Route as AuthenticatedProcessosRouteImport } from './routes/_authenticated/processos'
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
 import { Route as AuthenticatedProdutividade3dRouteImport } from './routes/_authenticated/produtividade-3d'
@@ -427,6 +428,12 @@ const AuthenticatedPrecificacaoRoute =
     path: '/precificacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPreencherPastasRoute =
+  AuthenticatedPreencherPastasRouteImport.update({
+    id: '/preencher-pastas',
+    path: '/preencher-pastas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProcessosRoute = AuthenticatedProcessosRouteImport.update({
   id: '/processos',
   path: '/processos',
@@ -764,6 +771,7 @@ export interface FileRoutesByFullPath {
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/preencher-pastas': typeof AuthenticatedPreencherPastasRoute
   '/processos': typeof AuthenticatedProcessosRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
@@ -874,6 +882,7 @@ export interface FileRoutesByTo {
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/preencher-pastas': typeof AuthenticatedPreencherPastasRoute
   '/processos': typeof AuthenticatedProcessosRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
   '/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
@@ -987,6 +996,7 @@ export interface FileRoutesById {
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/_authenticated/preencher-pastas': typeof AuthenticatedPreencherPastasRoute
   '/_authenticated/processos': typeof AuthenticatedProcessosRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
   '/_authenticated/produtividade-3d': typeof AuthenticatedProdutividade3dRoute
@@ -1100,6 +1110,7 @@ export interface FileRouteTypes {
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
+    | '/preencher-pastas'
     | '/processos'
     | '/producao-3d'
     | '/produtividade-3d'
@@ -1210,6 +1221,7 @@ export interface FileRouteTypes {
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
+    | '/preencher-pastas'
     | '/processos'
     | '/producao-3d'
     | '/produtividade-3d'
@@ -1322,6 +1334,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
     | '/_authenticated/precificacao'
+    | '/_authenticated/preencher-pastas'
     | '/_authenticated/processos'
     | '/_authenticated/producao-3d'
     | '/_authenticated/produtividade-3d'
@@ -1811,6 +1824,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/preencher-pastas': {
+      id: '/_authenticated/preencher-pastas'
+      path: '/preencher-pastas'
+      fullPath: '/preencher-pastas'
+      preLoaderRoute: typeof AuthenticatedPreencherPastasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/processos': {
       id: '/_authenticated/processos'
       path: '/processos'
@@ -2235,6 +2255,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
+  AuthenticatedPreencherPastasRoute: typeof AuthenticatedPreencherPastasRoute
   AuthenticatedProcessosRoute: typeof AuthenticatedProcessosRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
   AuthenticatedProdutividade3dRoute: typeof AuthenticatedProdutividade3dRoute
@@ -2314,6 +2335,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
+  AuthenticatedPreencherPastasRoute: AuthenticatedPreencherPastasRoute,
   AuthenticatedProcessosRoute: AuthenticatedProcessosRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,
   AuthenticatedProdutividade3dRoute: AuthenticatedProdutividade3dRoute,
@@ -2400,3 +2422,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
