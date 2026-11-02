@@ -83,6 +83,8 @@ import { UnidadeDoItem } from "@/components/orcamento/unidade-do-item";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
 import { PerguntasDoItem, usePerguntasDoProduto } from "@/components/orcamento/perguntas-do-item";
+import { MaterialPorFormula, useCustoDosMateriais, useFormulasDoProduto } from "@/components/orcamento/material-por-formula";
+import { custoDasFormulas, materiaisPorFormula, medidasDoItem } from "@/domain/orcamentos/material-por-formula";
 import {
   CobrancaDasRespostas,
   gravarLinhasDasRespostas,
@@ -562,7 +564,7 @@ function OrcamentoDetailPage() {
     // financeira. Pedir a coluna à view comercial faz o PostgREST devolver erro
     // e `atuais` vem vazio — o total voltaria a zero em silêncio.
     const { data: atuais, error } = await fromFinancialView("orcamento_itens", nivelDeVisao)
-      .select(canSeeFinancials ? "valor_total, custo_unitario, quantidade" : "valor_total, quantidade")
+      .select(canSeeFinancials ? "valor_total, custo_unitario, custo_formulas, quantidade" : "valor_total, quantidade")
       .eq("orcamento_id", id);
     if (error) {
       toast.error(mensagemErro(error, "Não foi possível recalcular o total"));
@@ -571,11 +573,13 @@ function OrcamentoDetailPage() {
     const lista = (atuais ?? []) as {
       valor_total: number | null;
       custo_unitario?: number | null;
+      custo_formulas?: number | null;
       quantidade: number | null;
     }[];
     const subtotal = lista.reduce((s, i) => s + Number(i.valor_total ?? 0), 0);
+    // O custo do item é o do produto mais o material por fórmula (migração 20261102220000).
     const custo = lista.reduce(
-      (s, i) => s + Number(i.custo_unitario ?? 0) * Number(i.quantidade ?? 0),
+      (s, i) => s + (Number(i.custo_unitario ?? 0) + Number(i.custo_formulas ?? 0)) * Number(i.quantidade ?? 0),
       0,
     );
     // Quem só vê preço não enxerga custo nenhum: gravar custo_estimado aqui
@@ -643,6 +647,21 @@ function OrcamentoDetailPage() {
       ? tamanhos.map((t) => ({ nome: t.nome, largura: Number(t.largura), altura: Number(t.altura), quando_usar: t.quando_usar }))
       : (tipoDoItem?.tamanhosComuns ?? tipoPelaChave("outros").tamanhosComuns);
 
+  // Material por fórmula (aba Fórmulas da pasta, 02/11/2026): a quantidade por peça vai gravada
+  // no item; o custo em reais, só para quem vê custo, e quem o grava é o banco.
+  const formulasDoItem = useFormulasDoProduto(form.produto_id);
+  const calculoDasFormulas = materiaisPorFormula(
+    formulasDoItem.data ?? [],
+    medidasDoItem({ largura: dimensoesForm.largura, altura: dimensoesForm.altura, quantidade: paraNumero(form.quantidade) }),
+  );
+  const custoDosMateriaisDasFormulas = useCustoDosMateriais(
+    calculoDasFormulas.validas.map((v) => v.material_id),
+    canSeeFinancials,
+  );
+  const custoFormulasForm = canSeeFinancials
+    ? custoDasFormulas(calculoDasFormulas.validas, custoDosMateriaisDasFormulas.data ?? new Map<string, number>())
+    : null;
+
   // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
   const quantidadeForm = paraNumero(form.quantidade) || 1;
   const itemEscolhido = !!form.produto_id || itemLivre || !!editando;
@@ -678,9 +697,10 @@ function OrcamentoDetailPage() {
     form.custo_m2.trim() !== ""
       ? form.custo_m2
       : String(custoM2Implicito(dimensoesForm, paraNumero(form.custo_unitario), form.area_minima) ?? "");
+  // A margem na hora conta o material por fórmula junto: é o que o banco vai somar ao custo do item.
   const margemItem =
     valorUnitarioEfetivo > 0
-      ? ((valorUnitarioEfetivo - custoUnitarioForm) / valorUnitarioEfetivo) * 100
+      ? ((valorUnitarioEfetivo - custoUnitarioForm - (custoFormulasForm?.total ?? 0)) / valorUnitarioEfetivo) * 100
       : null;
   const margemMinimaItem = form.margem_minima ?? null;
   const margemAbaixoDoMinimo =
@@ -930,6 +950,8 @@ function OrcamentoDetailPage() {
       altura: vendidoPorArea ? dimensoesForm.altura : null,
       acabamento: form.acabamento.trim() || null,
       respostas: form.respostas,
+      // Só quantidade por peça: o custo das fórmulas quem calcula é o gatilho do banco.
+      materiais_por_formula: calculoDasFormulas.validas,
       tipo_produto: form.tipo_produto.trim() || null,
       especificacao: form.especificacao.trim() || null,
       produto_id: form.produto_id,
@@ -2052,6 +2074,8 @@ function OrcamentoDetailPage() {
                       desabilitado={salvandoItem}
                       onMudar={({ respostas, acabamento }) => setForm((f) => ({ ...f, respostas, acabamento }))}
                     />
+
+                    <MaterialPorFormula linhas={calculoDasFormulas.linhas} custo={custoFormulasForm} />
 
                     <CobrancaDasRespostas
                       cobrancas={cobrancasDoItem}
