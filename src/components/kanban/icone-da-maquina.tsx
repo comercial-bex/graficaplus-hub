@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Crosshair, Cuboid, Factory, Printer, Scissors, Sun, Zap } from "lucide-react";
 import { DicaIcone } from "@/components/bex/Dica";
 import type { IdentidadeMaquina } from "@/domain/producao/identidade-da-maquina";
@@ -30,12 +31,14 @@ export function IconeDaMaquina({
 export function SeloDaMaquina({ identidade }: { identidade: IdentidadeMaquina }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium"
-      style={{
-        color: identidade.cor,
-        borderColor: `${identidade.cor}55`,
-        backgroundColor: `${identidade.cor}1a`,
-      }}
+      className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium text-[color:color-mix(in_srgb,var(--cor)_40%,var(--card-foreground))] dark:text-[color:var(--cor)]"
+      style={
+        {
+          "--cor": identidade.cor,
+          borderColor: `${identidade.cor}55`,
+          backgroundColor: `${identidade.cor}1a`,
+        } as CSSProperties
+      }
     >
       <IconeDaMaquina identidade={identidade} />
       {identidade.curto}
