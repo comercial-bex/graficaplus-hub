@@ -213,12 +213,12 @@ export function AutomacaoDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Quando</Label>
+            <Label htmlFor="automacao-3-quando">Quando</Label>
             <Select
               value={form.gatilho || undefined}
               onValueChange={(v) => trocarGatilho(v as Gatilho)}
             >
-              <SelectTrigger aria-label="Quando a automação dispara">
+              <SelectTrigger id="automacao-3-quando" aria-label="Quando a automação dispara">
                 <SelectValue placeholder="Escolha o evento" />
               </SelectTrigger>
               <SelectContent>
@@ -418,12 +418,12 @@ export function AutomacaoDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Não repetir para {alvo} antes de</Label>
+              <Label htmlFor="automacao-2-nao-repetir-para-antes-de">Não repetir para {alvo} antes de</Label>
               <Select
                 value={String(form.intervaloSegundos)}
                 onValueChange={(v) => setForm({ ...form, intervaloSegundos: Number(v) })}
               >
-                <SelectTrigger aria-label="Intervalo mínimo entre dois avisos">
+                <SelectTrigger id="automacao-2-nao-repetir-para-antes-de" aria-label="Intervalo mínimo entre dois avisos">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -439,12 +439,12 @@ export function AutomacaoDialog({
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Enviar</Label>
+              <Label htmlFor="automacao-1-enviar">Enviar</Label>
               <Select
                 value={String(form.esperaSegundos)}
                 onValueChange={(v) => setForm({ ...form, esperaSegundos: Number(v) })}
               >
-                <SelectTrigger aria-label="Quanto esperar antes de enviar">
+                <SelectTrigger id="automacao-1-enviar" aria-label="Quanto esperar antes de enviar">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

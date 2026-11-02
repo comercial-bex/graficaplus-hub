@@ -579,9 +579,9 @@ function Simulador() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Tabela</Label>
+                  <Label htmlFor="preco-4-tabela">Tabela</Label>
                   <Select value={tabela} onValueChange={(v) => setTabela(v as Tabela)}>
-                    <SelectTrigger className="h-11 md:h-9">
+                    <SelectTrigger id="preco-4-tabela" className="h-11 md:h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -591,9 +591,9 @@ function Simulador() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Como o cliente paga</Label>
+                  <Label htmlFor="preco-3-como-o-cliente-paga">Como o cliente paga</Label>
                   <Select value={pagamento} onValueChange={(v) => setPagamento(v as Pagamento)}>
-                    <SelectTrigger className="h-11 md:h-9">
+                    <SelectTrigger id="preco-3-como-o-cliente-paga" className="h-11 md:h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -653,12 +653,12 @@ function Simulador() {
                           className="grid grid-cols-2 gap-2 rounded-md border border-border/60 p-2 sm:grid-cols-[minmax(0,1fr)_110px_120px_100px_36px] sm:items-end"
                         >
                           <div className="col-span-2 space-y-1 sm:col-span-1">
-                            <Label className="text-xs text-muted-foreground">Material</Label>
+                            <Label htmlFor="preco-2-material" className="text-xs text-muted-foreground">Material</Label>
                             {l.semFicha ? (
                               <div className="flex h-11 items-center text-sm md:h-9">{l.nome}</div>
                             ) : (
                               <Select value={l.material_id ?? ""} onValueChange={(v) => trocarMaterial(l.chave, v)}>
-                                <SelectTrigger className="h-11 md:h-9">
+                                <SelectTrigger id="preco-2-material" className="h-11 md:h-9">
                                   <SelectValue placeholder="Escolha o material" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -738,9 +738,9 @@ function Simulador() {
               <CardContent className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_150px]">
                   <div className="space-y-1.5">
-                    <Label>Máquina</Label>
+                    <Label htmlFor="preco-1-maquina">Máquina</Label>
                     <Select value={maquinaId} onValueChange={setMaquinaId}>
-                      <SelectTrigger className="h-11 md:h-9">
+                      <SelectTrigger id="preco-1-maquina" className="h-11 md:h-9">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

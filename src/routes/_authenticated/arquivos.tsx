@@ -107,16 +107,16 @@ function ArquivosPage() {
         <CardHeader><CardTitle className="text-base">Filtros</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
           <div className="space-y-2">
-            <Label>Buscar</Label>
+            <Label htmlFor="arquivo-3-buscar">Buscar</Label>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Nome ou observação" value={busca} onChange={(e) => setBusca(e.target.value)} />
+              <Input id="arquivo-3-buscar" className="pl-9" placeholder="Nome ou observação" value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Tipo</Label>
+            <Label htmlFor="arquivo-2-tipo">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="arquivo-2-tipo"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 {TIPOS.map((item) => <SelectItem key={item} value={item}>{label(item)}</SelectItem>)}
@@ -124,9 +124,9 @@ function ArquivosPage() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Status</Label>
+            <Label htmlFor="arquivo-1-status">Status</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="arquivo-1-status"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 {STATUS.map((item) => <SelectItem key={item} value={item}>{label(item)}</SelectItem>)}

@@ -557,9 +557,9 @@ function AReceberPage() {
 
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label className="text-xs">Valor recebido</Label>
+              <Label htmlFor="areceber-4-valor-recebido" className="text-xs">Valor recebido</Label>
               {/* text-base no celular: abaixo de 16px o iOS dá zoom ao focar. */}
-              <Input
+              <Input id="areceber-4-valor-recebido"
                 type="number"
                 inputMode="decimal"
                 step="0.01"
@@ -574,9 +574,9 @@ function AReceberPage() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Como o cliente pagou</Label>
+              <Label htmlFor="areceber-3-como-o-cliente-pagou" className="text-xs">Como o cliente pagou</Label>
               <Select value={meio} onValueChange={setMeio}>
-                <SelectTrigger className="h-11 text-base md:h-9 md:text-sm">
+                <SelectTrigger id="areceber-3-como-o-cliente-pagou" className="h-11 text-base md:h-9 md:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -590,8 +590,8 @@ function AReceberPage() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Dia em que o dinheiro entrou</Label>
-              <Input
+              <Label htmlFor="areceber-2-dia-em-que-o-dinheiro-entrou" className="text-xs">Dia em que o dinheiro entrou</Label>
+              <Input id="areceber-2-dia-em-que-o-dinheiro-entrou"
                 type="date"
                 className="h-11 text-base md:h-9 md:text-sm"
                 value={data}
@@ -600,8 +600,8 @@ function AReceberPage() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Referência (opcional)</Label>
-              <Input
+              <Label htmlFor="areceber-1-referencia-opcional" className="text-xs">Referência (opcional)</Label>
+              <Input id="areceber-1-referencia-opcional"
                 className="h-11 text-base md:h-9 md:text-sm"
                 placeholder="Número do comprovante, fim do Pix, maquininha…"
                 value={referencia}

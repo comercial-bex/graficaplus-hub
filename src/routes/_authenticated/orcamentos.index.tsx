@@ -386,7 +386,7 @@ function OrcamentosPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
+                  <Label htmlFor="orcl-5-cliente" className="flex items-center gap-1.5">
                     Cliente
                     <DicaIcone texto={dicaCampo("/orcamentos", "Cliente")} rotulo="Cliente" />
                   </Label>
@@ -396,7 +396,7 @@ function OrcamentosPage() {
                       setForm({ ...form, cliente_id: v === "__avulso" ? "" : v })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="orcl-5-cliente">
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
                     <SelectContent>
@@ -415,25 +415,25 @@ function OrcamentosPage() {
                 {!form.cliente_id && (
                   <div className="grid gap-3 sm:grid-cols-3 rounded-lg border border-border/60 bg-card/40 p-3">
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5">
+                      <Label htmlFor="orcl-4-nome-do-contato" className="flex items-center gap-1.5">
                         Nome do contato *
                         <DicaIcone
                           texto={dicaCampo("/orcamentos", "Nome do contato *")}
                           rotulo="Nome do contato *"
                         />
                       </Label>
-                      <Input
+                      <Input id="orcl-4-nome-do-contato"
                         value={form.contato_nome}
                         onChange={(e) => setForm({ ...form, contato_nome: e.target.value })}
                         placeholder="Ex.: Marina (Instagram)"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5">
+                      <Label htmlFor="orcl-3-telefone" className="flex items-center gap-1.5">
                         Telefone
                         <DicaIcone texto={dicaCampo("/orcamentos", "Telefone")} rotulo="Telefone" />
                       </Label>
-                      <Input
+                      <Input id="orcl-3-telefone"
                         value={form.contato_telefone}
                         onChange={(e) => setForm({ ...form, contato_telefone: e.target.value })}
                         placeholder="(00) 00000-0000"
@@ -445,11 +445,11 @@ function OrcamentosPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5">
+                      <Label htmlFor="orcl-2-e-mail" className="flex items-center gap-1.5">
                         E-mail
                         <DicaIcone texto={dicaCampo("/orcamentos", "E-mail")} rotulo="E-mail" />
                       </Label>
-                      <Input
+                      <Input id="orcl-2-e-mail"
                         value={form.contato_email}
                         onChange={(e) => setForm({ ...form, contato_email: e.target.value })}
                         placeholder="contato@email.com"
@@ -466,11 +466,11 @@ function OrcamentosPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
+                  <Label htmlFor="orcl-1-titulo" className="flex items-center gap-1.5">
                     Título *
                     <DicaIcone texto={dicaCampo("/orcamentos", "Título *")} rotulo="Título *" />
                   </Label>
-                  <Input
+                  <Input id="orcl-1-titulo"
                     value={form.titulo}
                     onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                   />

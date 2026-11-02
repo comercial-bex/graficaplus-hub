@@ -834,26 +834,26 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
         <div className="grid gap-3 md:grid-cols-[160px_1fr_1fr_2fr_auto] md:items-end">
           <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} />
           <div className="space-y-2">
-            <Label>Tipo</Label>
+            <Label htmlFor="os-7-tipo">Tipo</Label>
             <Select value={uploadMeta.tipo} onValueChange={(tipo) => setUploadMeta({ ...uploadMeta, tipo })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="os-7-tipo"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {['arte','briefing','referencia','producao','orcamento','comprovante','outro'].map((t) => <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Tarefa</Label>
+            <Label htmlFor="os-6-tarefa">Tarefa</Label>
             <Select value={uploadMeta.tarefa_id} onValueChange={(tarefa_id) => setUploadMeta({ ...uploadMeta, tarefa_id })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="os-6-tarefa"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="sem-tarefa">Sem tarefa</SelectItem>
                 {tarefas.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.titulo}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2"><Label>Conversa ID</Label><Input value={uploadMeta.conversa_id} onChange={(e) => setUploadMeta({ ...uploadMeta, conversa_id: e.target.value })} placeholder="Opcional" /></div>
-          <div className="space-y-2"><Label>Observação</Label><Input value={uploadMeta.observacao} onChange={(e) => setUploadMeta({ ...uploadMeta, observacao: e.target.value })} placeholder="Contexto do arquivo" /></div>
+          <div className="space-y-2"><Label htmlFor="os-5-conversa-id">Conversa ID</Label><Input id="os-5-conversa-id" value={uploadMeta.conversa_id} onChange={(e) => setUploadMeta({ ...uploadMeta, conversa_id: e.target.value })} placeholder="Opcional" /></div>
+          <div className="space-y-2"><Label htmlFor="os-4-observacao">Observação</Label><Input id="os-4-observacao" value={uploadMeta.observacao} onChange={(e) => setUploadMeta({ ...uploadMeta, observacao: e.target.value })} placeholder="Contexto do arquivo" /></div>
           <Button onClick={() => { setSubstituir(null); fileRef.current?.click(); }} disabled={uploading}>
             <Upload className="h-4 w-4 mr-2" /> {uploading ? "Enviando..." : "Enviar arquivo"}
           </Button>
@@ -931,16 +931,16 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">Arquivo: <strong>{aprovar?.nome}</strong> v{aprovar?.versao}</div>
             <div className="space-y-2">
-              <Label>Canal</Label>
+              <Label htmlFor="os-3-canal">Canal</Label>
               <Select value={aprovacao.canal} onValueChange={(canal) => setAprovacao({ ...aprovacao, canal })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="os-3-canal"><SelectValue /></SelectTrigger>
                 <SelectContent>{['sistema','whatsapp','email','presencial','telefone'].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Cliente/contato</Label>
+              <Label htmlFor="os-2-cliente-contato">Cliente/contato</Label>
               <Select value={aprovacao.cliente_contato_id} onValueChange={(cliente_contato_id) => setAprovacao({ ...aprovacao, cliente_contato_id })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="os-2-cliente-contato"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sem-contato">Sem contato específico</SelectItem>
                   {contatos.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
@@ -948,8 +948,8 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Observação</Label>
-              <Textarea
+              <Label htmlFor="os-1-observacao">Observação</Label>
+              <Textarea id="os-1-observacao"
                 value={aprovacao.observacao}
                 onChange={(e) => setAprovacao({ ...aprovacao, observacao: e.target.value })}
                 placeholder="Para um ajuste, diga o que mudar — sem isso o designer não sabe o que corrigir."

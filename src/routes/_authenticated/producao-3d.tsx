@@ -262,9 +262,9 @@ function Producao3DPage() {
                   </DialogHeader>
                   <div className="space-y-3">
                     <div>
-                      <Label>Resultado</Label>
+                      <Label htmlFor="prod3d-4-resultado">Resultado</Label>
                       <Select value={novoResultado} onValueChange={setNovoResultado}>
-                        <SelectTrigger>
+                        <SelectTrigger id="prod3d-4-resultado">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -277,16 +277,16 @@ function Producao3DPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label>Tempo (minutos)</Label>
-                        <Input
+                        <Label htmlFor="prod3d-3-tempo-minutos">Tempo (minutos)</Label>
+                        <Input id="prod3d-3-tempo-minutos"
                           type="number"
                           value={novoTempo}
                           onChange={(e) => setNovoTempo(e.target.value)}
                         />
                       </div>
                       <div>
-                        <Label>Energia (kWh)</Label>
-                        <Input
+                        <Label htmlFor="prod3d-2-energia-kwh">Energia (kWh)</Label>
+                        <Input id="prod3d-2-energia-kwh"
                           type="number"
                           step="0.01"
                           value={novoEnergia}
@@ -295,8 +295,8 @@ function Producao3DPage() {
                       </div>
                     </div>
                     <div>
-                      <Label>Observações</Label>
-                      <Textarea
+                      <Label htmlFor="prod3d-1-observacoes">Observações</Label>
+                      <Textarea id="prod3d-1-observacoes"
                         value={novoObs}
                         onChange={(e) => setNovoObs(e.target.value)}
                         rows={3}

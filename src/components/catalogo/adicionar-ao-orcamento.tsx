@@ -225,7 +225,7 @@ export function AdicionarAoOrcamentoDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Em qual orçamento</Label>
+              <Label htmlFor="addorc-2-em-qual-orcamento">Em qual orçamento</Label>
               {rascunhos.isError ? (
                 <FalhaDeConsulta
                   titulo="Não deu para carregar os orçamentos em rascunho"
@@ -234,7 +234,7 @@ export function AdicionarAoOrcamentoDialog({
                 />
               ) : (
                 <Select value={destino} onValueChange={setDestino} disabled={rascunhos.isLoading}>
-                  <SelectTrigger className="h-11">
+                  <SelectTrigger id="addorc-2-em-qual-orcamento" className="h-11">
                     <SelectValue placeholder={rascunhos.isLoading ? "Carregando…" : "Escolha o orçamento"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -269,7 +269,7 @@ export function AdicionarAoOrcamentoDialog({
             {destino === NOVO && (
               <div className="space-y-3 rounded-md border border-dashed border-border p-3">
                 <div className="space-y-1.5">
-                  <Label>Cliente</Label>
+                  <Label htmlFor="addorc-1-cliente">Cliente</Label>
                   {clientes.isError ? (
                     <FalhaDeConsulta
                       titulo="Não deu para carregar os clientes"
@@ -278,7 +278,7 @@ export function AdicionarAoOrcamentoDialog({
                     />
                   ) : (
                     <Select value={clienteId} onValueChange={setClienteId} disabled={clientes.isLoading}>
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger id="addorc-1-cliente" className="h-11">
                         <SelectValue placeholder={clientes.isLoading ? "Carregando…" : "Escolha o cliente"} />
                       </SelectTrigger>
                       <SelectContent>

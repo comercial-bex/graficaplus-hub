@@ -222,9 +222,9 @@ function FinanceiroPage() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">OS *<DicaIcone texto={dicaCampo("/financeiro", "OS *")} rotulo="OS *" /></Label>
+                <Label htmlFor="fin-6-os" className="flex items-center gap-1.5">OS *<DicaIcone texto={dicaCampo("/financeiro", "OS *")} rotulo="OS *" /></Label>
                 <Select value={form.os_id} onValueChange={(v) => setForm({ ...form, os_id: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="fin-6-os">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -238,8 +238,8 @@ function FinanceiroPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Valor (R$) *<DicaIcone texto={dicaCampo("/financeiro", "Valor (R$) *")} rotulo="Valor (R$) *" /></Label>
-                  <Input
+                  <Label htmlFor="fin-5-valor-r" className="flex items-center gap-1.5">Valor (R$) *<DicaIcone texto={dicaCampo("/financeiro", "Valor (R$) *")} rotulo="Valor (R$) *" /></Label>
+                  <Input id="fin-5-valor-r"
                     type="number"
                     step="0.01"
                     value={form.valor}
@@ -247,8 +247,8 @@ function FinanceiroPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Vencimento<DicaIcone texto={dicaCampo("/financeiro", "Vencimento")} rotulo="Vencimento" /></Label>
-                  <Input
+                  <Label htmlFor="fin-4-vencimento" className="flex items-center gap-1.5">Vencimento<DicaIcone texto={dicaCampo("/financeiro", "Vencimento")} rotulo="Vencimento" /></Label>
+                  <Input id="fin-4-vencimento"
                     type="date"
                     value={form.data_vencimento}
                     onChange={(e) => setForm({ ...form, data_vencimento: e.target.value })}
@@ -257,12 +257,12 @@ function FinanceiroPage() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Forma<DicaIcone texto={dicaCampo("/financeiro", "Forma")} rotulo="Forma" /></Label>
+                  <Label htmlFor="fin-3-forma" className="flex items-center gap-1.5">Forma<DicaIcone texto={dicaCampo("/financeiro", "Forma")} rotulo="Forma" /></Label>
                   <Select
                     value={form.forma_pagamento}
                     onValueChange={(v) => setForm({ ...form, forma_pagamento: v })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="fin-3-forma">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -275,8 +275,8 @@ function FinanceiroPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Parcela<DicaIcone texto={dicaCampo("/financeiro", "Parcela")} rotulo="Parcela" /></Label>
-                  <Input
+                  <Label htmlFor="fin-2-parcela" className="flex items-center gap-1.5">Parcela<DicaIcone texto={dicaCampo("/financeiro", "Parcela")} rotulo="Parcela" /></Label>
+                  <Input id="fin-2-parcela"
                     type="number"
                     min="1"
                     value={form.parcela}
@@ -284,8 +284,8 @@ function FinanceiroPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">Total parcelas<DicaIcone texto={dicaCampo("/financeiro", "Total parcelas")} rotulo="Total parcelas" /></Label>
-                  <Input
+                  <Label htmlFor="fin-1-total-parcelas" className="flex items-center gap-1.5">Total parcelas<DicaIcone texto={dicaCampo("/financeiro", "Total parcelas")} rotulo="Total parcelas" /></Label>
+                  <Input id="fin-1-total-parcelas"
                     type="number"
                     min="1"
                     value={form.total_parcelas}
