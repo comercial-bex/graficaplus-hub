@@ -12,6 +12,7 @@ import {
   montarPergunta,
   orcamentoParaContexto,
   portaoDoAssistente,
+  roteirosDaConversa,
   textoDaMensagem,
   type ConfigAssistente,
   type ContextoDaConversa,
@@ -176,8 +177,24 @@ async function montarContexto(
       texto: (m.texto ?? m.legenda ?? `[${m.tipo}]`).slice(0, 500),
     }));
 
+  // O roteiro do produto de que a conversa fala. Falha aqui não pode calar a assistente.
+  const { data: fichas } = await db
+    .from("produto_ficha")
+    .select("ia_como_medir, ia_perguntas, produtos!inner(nome, ativo)")
+    .eq("ia_habilitado", true)
+    .eq("produtos.ativo", true);
+  const { data: nova } = await db.from("whatsapp_mensagens").select("texto, legenda").eq("id", mensagemId).maybeSingle();
+  const novaMensagem = nova as { texto?: string | null; legenda?: string | null } | null;
+  const roteiros = roteirosDaConversa(
+    [...historico.map((h) => h.texto), novaMensagem?.texto ?? "", novaMensagem?.legenda ?? ""].join(" "),
+    ((fichas ?? []) as { ia_como_medir: string | null; ia_perguntas: string | null; produtos: { nome: string } }[]).map(
+      (f) => ({ nome: f.produtos.nome, produto: f.produtos.nome, como_medir: f.ia_como_medir, perguntas: f.ia_perguntas }),
+    ),
+  );
+
   return {
     cliente,
+    roteiros,
     orcamentos: ((orcs ?? []) as Parameters<typeof orcamentoParaContexto>[0][]).map(orcamentoParaContexto),
     os,
     historico,

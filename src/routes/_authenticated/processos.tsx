@@ -30,6 +30,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
+import {
+  ROTULO_DA_BASE,
+  ROTULO_DA_ORIGEM,
+  type BaseDeProdutividade,
+  type OrigemDaProdutividade,
+} from "@/domain/catalogo/pasta-do-produto";
 
 export const Route = createFileRoute("/_authenticated/processos")({
   head: () => ({ meta: [{ title: "Processos — BEX PRINT OS" }] }),
@@ -54,7 +60,9 @@ type Form = {
   etapa: string;
   setup_min: string;
   pessoas: string;
-  produtividade_m2_h: string;
+  base_produtividade: BaseDeProdutividade;
+  produtividade: string;
+  produtividade_original?: string;
   familias: LinhaFamilia[];
   sobra: { superior: string; inferior: string; esquerda: string; direita: string };
 };
@@ -64,7 +72,8 @@ const VAZIO: Form = {
   etapa: "producao",
   setup_min: "0",
   pessoas: "1",
-  produtividade_m2_h: "",
+  base_produtividade: "m2_h",
+  produtividade: "",
   familias: [],
   sobra: { superior: "", inferior: "", esquerda: "", direita: "" },
 };
@@ -79,7 +88,7 @@ const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v));
  */
 function ProcessosPage() {
   const { hasRole } = useAuth();
-  const podeEditar = hasRole("admin") || hasRole("gestor");
+  const podeEditar = hasRole("admin") || hasRole("gestor") || hasRole("operador");
   const qc = useQueryClient();
   const [form, setForm] = useState<Form | null>(null);
 
@@ -99,7 +108,15 @@ function ProcessosPage() {
         etapa: f.etapa,
         setup_min: numero(f.setup_min) ?? 0,
         pessoas: numero(f.pessoas) ?? 1,
-        produtividade_m2_h: numero(f.produtividade_m2_h),
+        base_produtividade: f.base_produtividade,
+        produtividade_m2_h: f.base_produtividade === "m2_h" ? numero(f.produtividade) : null,
+        produtividade_m_h: f.base_produtividade === "m_h" ? numero(f.produtividade) : null,
+        // Só mudar o nome não transforma referência em medição: quem digita um número novo é que mede.
+        ...(f.base_produtividade === "tempo_do_produto"
+          ? { produtividade_origem: "nao_se_aplica", medido_em: null }
+          : f.produtividade !== f.produtividade_original
+            ? { produtividade_origem: "medido", medido_em: new Date().toISOString() }
+            : {}),
         produtividade_por_familia: f.familias
           .map((l) => ({
             familias: l.familias
@@ -140,7 +157,13 @@ function ProcessosPage() {
       etapa: p.etapa,
       setup_min: txt(p.setup_min),
       pessoas: txt(p.pessoas),
-      produtividade_m2_h: txt(p.produtividade_m2_h),
+      base_produtividade: p.base_produtividade,
+      produtividade: txt(
+        p.base_produtividade === "m_h" ? p.produtividade_m_h : p.produtividade_m2_h,
+      ),
+      produtividade_original: txt(
+        p.base_produtividade === "m_h" ? p.produtividade_m_h : p.produtividade_m2_h,
+      ),
       familias: ((p.produtividade_por_familia ?? []) as any[]).map((l) => ({
         familias: (l.familias ?? []).join(", "),
         produtividade: txt(l.produtividade_m2_h),
@@ -154,7 +177,7 @@ function ProcessosPage() {
     });
 
   const semNumero = (lista.data ?? []).filter(
-    (p) => !p.produtividade_m2_h && (p.produtividade_por_familia ?? []).length === 0,
+    (p) => p.base_produtividade !== "tempo_do_produto" && p.produtividade_origem !== "medido",
   ).length;
 
   return (
@@ -168,8 +191,8 @@ function ProcessosPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {semNumero > 0
-            ? `${semNumero} processo(s) sem produtividade: o tempo do produto não aparece enquanto faltar.`
-            : "Todos os processos têm produtividade."}
+            ? `${semNumero} processo(s) ainda com número de referência: meça na oficina e confirme.`
+            : "Todos os processos foram medidos na oficina."}
         </p>
         {podeEditar && (
           <Button onClick={() => setForm({ ...VAZIO })}>
@@ -191,9 +214,11 @@ function ProcessosPage() {
               <span className="font-medium">{p.nome}</span>
               <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="outline">{ETAPAS[p.etapa] ?? p.etapa}</Badge>
-                {p.produtividade_m2_h
-                  ? `${Number(p.produtividade_m2_h).toLocaleString("pt-BR")} m²/h`
-                  : "sem produtividade"}
+                {p.base_produtividade === "tempo_do_produto"
+                  ? "tempo do produto"
+                  : `${Number(p.base_produtividade === "m_h" ? p.produtividade_m_h : p.produtividade_m2_h).toLocaleString("pt-BR")} ${ROTULO_DA_BASE[p.base_produtividade as BaseDeProdutividade]}`}
+                {" · "}
+                {ROTULO_DA_ORIGEM[p.produtividade_origem as OrigemDaProdutividade]}
                 {Number(p.setup_min) > 0 && ` · preparação ${Number(p.setup_min)} min`}
               </span>
             </button>
@@ -254,13 +279,37 @@ function ProcessosPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="proc-prod">Produtividade (m²/h)</Label>
+                  <Label htmlFor="proc-prod">
+                    Produtividade ({ROTULO_DA_BASE[form.base_produtividade]})
+                  </Label>
                   <Input
                     id="proc-prod"
-                    value={form.produtividade_m2_h}
-                    onChange={(e) => setForm({ ...form, produtividade_m2_h: e.target.value })}
+                    disabled={form.base_produtividade === "tempo_do_produto"}
+                    value={form.produtividade}
+                    onChange={(e) => setForm({ ...form, produtividade: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Como o tempo é medido</Label>
+                <Select
+                  value={form.base_produtividade}
+                  onValueChange={(v) =>
+                    setForm({ ...form, base_produtividade: v as BaseDeProdutividade })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="m2_h">Pela área: m²/h</SelectItem>
+                    <SelectItem value="m_h">Pelo contorno: metros/h</SelectItem>
+                    <SelectItem value="tempo_do_produto">
+                      Pelo tempo do produto ou do fatiador
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2 rounded border p-3">

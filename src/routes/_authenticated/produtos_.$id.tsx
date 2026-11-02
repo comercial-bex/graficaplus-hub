@@ -30,13 +30,14 @@ import {
   abasDaPasta,
   avaliarFormula,
   frasesDoHistorico,
-  minutosDoProcesso,
   pendenciaDaPergunta,
   respostasDoTexto,
+  tempoDoProcesso,
   ROTULO_DO_TIPO,
   VARIAVEIS_DA_FORMULA,
   type AbaDaPasta,
   type AcaoDaResposta,
+  type TempoDoProcesso,
   type TipoDeResposta,
 } from "@/domain/catalogo/pasta-do-produto";
 
@@ -356,6 +357,7 @@ function PastaDoProduto() {
             podeEditar={podeEditar}
             largura={Number(form.largura_padrao_m) || 1}
             altura={Number(form.altura_padrao_m) || 1}
+            tempoDoProduto={p.tempo_producao_min == null ? null : Number(p.tempo_producao_min)}
           />
         </TabsContent>
 
@@ -394,11 +396,13 @@ function PastaDoProduto() {
                   disabled={!podeEditar}
                   onCheckedChange={(v) => set({ ia_habilitado: v })}
                 />
-                Roteiro revisado e liberado para o orçamento com IA
+                Liberado para o orçamento com IA
               </label>
               <p className="text-xs text-muted-foreground">
-                O texto veio do próprio cadastro (descrição, tamanhos e acabamentos). Revise antes
-                de liberar. O orçamento com IA ainda não usa este roteiro.
+                {ficha.data?.ia_revisado_em
+                  ? `Revisado por quem atende em ${new Date(ficha.data.ia_revisado_em).toLocaleDateString("pt-BR")}.`
+                  : "Ainda sem revisão de quem atende. A revisão se marca em Preencher as pastas."}{" "}
+                O orçamento com IA, na tela de orçamentos, lê este roteiro.
               </p>
             </CardContent>
           </Card>
@@ -526,13 +530,24 @@ function TextoLongo({
   );
 }
 
+function fraseDoTempo(t: TempoDoProcesso, largura: number, altura: number): string {
+  const peca = `${largura.toLocaleString("pt-BR")} × ${altura.toLocaleString("pt-BR")} m`;
+  if (t.tipo === "falta") return "Falta a produtividade deste processo";
+  if (t.tipo === "minutos") return `${t.minutos.toLocaleString("pt-BR")} min numa peça de ${peca}`;
+  return t.minutos === null
+    ? "O tempo vem do produto: falta preencher o tempo de produção na lista de produtos"
+    : `${t.minutos.toLocaleString("pt-BR")} min, do tempo de produção do produto`;
+}
+
 function useProcessos() {
   return useQuery({
     queryKey: ["processos-ativos"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("processos")
-        .select("id, nome, etapa, setup_min, produtividade_m2_h, produtividade_por_familia")
+        .select(
+          "id, nome, etapa, base_produtividade, setup_min, produtividade_m2_h, produtividade_m_h, produtividade_por_familia",
+        )
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
@@ -547,12 +562,14 @@ function AbaProcessos({
   podeEditar,
   largura,
   altura,
+  tempoDoProduto,
 }: {
   produtoId: string;
   familia: string | null;
   podeEditar: boolean;
   largura: number;
   altura: number;
+  tempoDoProduto: number | null;
 }) {
   const qc = useQueryClient();
   const catalogo = useProcessos();
@@ -564,7 +581,7 @@ function AbaProcessos({
       const { data, error } = await (supabase as any)
         .from("produto_processos")
         .select(
-          "id, ordem, processo_id, processos(id, nome, etapa, setup_min, produtividade_m2_h, produtividade_por_familia)",
+          "id, ordem, processo_id, processos(id, nome, etapa, base_produtividade, setup_min, produtividade_m2_h, produtividade_m_h, produtividade_por_familia)",
         )
         .eq("produto_id", produtoId)
         .order("ordem");
@@ -626,10 +643,13 @@ function AbaProcessos({
 
   const itens = lista.data ?? [];
   const usados = new Set(itens.map((l) => l.processo_id));
-  const area = largura * altura;
-  const tempos = itens.map((l) => minutosDoProcesso(l.processos, area, familia));
-  const faltaNumero = tempos.some((t) => t === null);
-  const total = tempos.reduce<number>((s, t) => s + (t ?? 0), 0);
+  const tempos = itens.map((l) =>
+    tempoDoProcesso(l.processos, { largura, altura }, { familia, tempoDoProduto }),
+  );
+  const semNumero = tempos.some(
+    (t) => t.tipo === "falta" || (t.tipo === "do_produto" && t.minutos === null),
+  );
+  const total = tempos.reduce<number>((s, t) => s + (t.tipo === "falta" ? 0 : (t.minutos ?? 0)), 0);
 
   return (
     <div className="space-y-4">
@@ -678,9 +698,7 @@ function AbaProcessos({
               <div className="min-w-0">
                 <div className="font-medium">{l.processos?.nome}</div>
                 <div className="text-xs text-muted-foreground">
-                  {tempos[i] === null
-                    ? "Falta a produtividade deste processo"
-                    : `${tempos[i]} min para ${area.toLocaleString("pt-BR")} m²`}
+                  {fraseDoTempo(tempos[i], largura, altura)}
                 </div>
               </div>
               {podeEditar && (
@@ -718,9 +736,9 @@ function AbaProcessos({
           ))}
           {itens.length > 0 && (
             <p className="pt-1 text-sm text-muted-foreground">
-              {faltaNumero
-                ? "O tempo total só aparece quando todos os processos tiverem produtividade."
-                : `Tempo total: ${total.toLocaleString("pt-BR")} min, com setup, para a medida padrão.`}
+              {semNumero
+                ? "O tempo total só aparece quando todos os processos tiverem tempo."
+                : `Tempo total: ${total.toLocaleString("pt-BR")} min, com a preparação, para uma peça de ${largura.toLocaleString("pt-BR")} × ${altura.toLocaleString("pt-BR")} m.`}
             </p>
           )}
         </CardContent>

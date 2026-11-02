@@ -6,6 +6,7 @@ import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FunilDoOrcamento } from "@/components/orcamento/funil-do-orcamento";
+import { OrcamentoComIa } from "@/components/orcamento/orcamento-com-ia";
 import { QuadroDeOrcamentos } from "@/components/orcamento/quadro-de-orcamentos";
 import { ETAPAS_DO_ENVIADO, etapaParaGravar, type EtapaDoEnviado } from "@/domain/orcamentos/quadro";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -355,6 +356,8 @@ function OrcamentosPage() {
         title="Orçamentos"
         description="Propostas comerciais e conversão em Ordens de Serviço."
         actions={
+          <div className="flex flex-wrap items-center gap-2">
+          <OrcamentoComIa />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -475,6 +478,7 @@ function OrcamentosPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         }
       />
 
