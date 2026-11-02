@@ -691,12 +691,12 @@ function MateriaisPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Unidade</Label>
+              <Label htmlFor="material-11-unidade">Unidade</Label>
               <Select
                 value={form.unidade}
                 onValueChange={(v) => setForm({ ...form, unidade: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="material-11-unidade">
                   <SelectValue placeholder="Escolha a unidade" />
                 </SelectTrigger>
                 <SelectContent>
@@ -709,8 +709,8 @@ function MateriaisPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Estoque inicial</Label>
-              <Input
+              <Label htmlFor="material-10-estoque-inicial">Estoque inicial</Label>
+              <Input id="material-10-estoque-inicial"
                 type="number"
                 step="0.01"
                 value={form.estoque}
@@ -718,14 +718,14 @@ function MateriaisPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">
+              <Label htmlFor="material-9-estoque-minimo" className="flex items-center gap-1.5">
                 Estoque mínimo
                 <DicaIcone
                   texto="Abaixo desse número o material aparece como 'Repor'."
                   rotulo="Estoque mínimo"
                 />
               </Label>
-              <Input
+              <Input id="material-9-estoque-minimo"
                 type="number"
                 step="0.01"
                 value={form.estoque_minimo}
@@ -733,22 +733,22 @@ function MateriaisPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Fornecedor</Label>
-              <Input
+              <Label htmlFor="material-8-fornecedor">Fornecedor</Label>
+              <Input id="material-8-fornecedor"
                 value={form.fornecedor}
                 onChange={(e) => setForm({ ...form, fornecedor: e.target.value })}
               />
             </div>
             {canSeeFinancials && (
               <div className="space-y-2 sm:col-span-2">
-                <Label className="flex items-center gap-1.5">
+                <Label htmlFor="material-7-custo-unitario-r" className="flex items-center gap-1.5">
                   Custo unitário (R$)
                   <DicaIcone
                     texto="Custo de compra por unidade. É esse valor que entra no custo da OS e na conta do desperdício."
                     rotulo="Custo unitário"
                   />
                 </Label>
-                <Input
+                <Input id="material-7-custo-unitario-r"
                   type="number"
                   step="0.0001"
                   value={form.custo_unitario}
@@ -803,12 +803,12 @@ function MateriaisPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label>Material *</Label>
+              <Label htmlFor="material-6-material">Material *</Label>
               <Select
                 value={mov.material_id}
                 onValueChange={(v) => setMov({ ...mov, material_id: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="material-6-material">
                   <SelectValue placeholder="Escolha o material" />
                 </SelectTrigger>
                 <SelectContent>
@@ -821,12 +821,12 @@ function MateriaisPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Tipo</Label>
+              <Label htmlFor="material-5-tipo">Tipo</Label>
               <Select
                 value={mov.tipo}
                 onValueChange={(v) => setMov({ ...mov, tipo: v as MovForm["tipo"] })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="material-5-tipo">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -836,8 +836,8 @@ function MateriaisPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Quantidade *</Label>
-              <Input
+              <Label htmlFor="material-4-quantidade">Quantidade *</Label>
+              <Input id="material-4-quantidade"
                 type="number"
                 step="0.01"
                 value={mov.quantidade}
@@ -846,14 +846,14 @@ function MateriaisPage() {
             </div>
             {canSeeFinancials && (
               <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
+                <Label htmlFor="material-3-custo-unitario-r" className="flex items-center gap-1.5">
                   Custo unitário (R$)
                   <DicaIcone
                     texto="Na entrada, esse valor recalcula o custo médio do material."
                     rotulo="Custo unitário"
                   />
                 </Label>
-                <Input
+                <Input id="material-3-custo-unitario-r"
                   type="number"
                   step="0.0001"
                   value={mov.custo_unitario}
@@ -863,16 +863,16 @@ function MateriaisPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Motivo</Label>
-              <Input
+              <Label htmlFor="material-2-motivo">Motivo</Label>
+              <Input id="material-2-motivo"
                 value={mov.motivo}
                 onChange={(e) => setMov({ ...mov, motivo: e.target.value })}
                 placeholder="compra, ajuste, devolução..."
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label>Observação</Label>
-              <Textarea
+              <Label htmlFor="material-1-observacao">Observação</Label>
+              <Textarea id="material-1-observacao"
                 rows={2}
                 value={mov.observacao}
                 onChange={(e) => setMov({ ...mov, observacao: e.target.value })}
