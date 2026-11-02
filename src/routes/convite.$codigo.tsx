@@ -7,6 +7,23 @@ import { BexLogo } from "@/components/bex/BexLogo";
 import { BexBackground } from "@/components/bex/BexBackground";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { mensagemErro } from "@/lib/erros";
+import { cadastroParceiroConcluidoMeta, lerOrigemDaUrl, META_PIXEL_ID } from "@/lib/metaPixel";
+import { useEffect } from "react";
+
+/** Máscara (XX) XXXXX-XXXX / (XX) XXXX-XXXX. */
+function mascaraWhatsapp(v: string): string {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  const ddd = d.slice(0, 2), r = d.slice(2);
+  if (r.length <= 4) return `(${ddd}) ${r}`;
+  if (d.length === 11) return `(${ddd}) ${r.slice(0, 5)}-${r.slice(5)}`;
+  return `(${ddd}) ${r.slice(0, 4)}-${r.slice(4)}`;
+}
+
+function whatsappValido(v: string): boolean {
+  const n = v.replace(/\D/g, "").length;
+  return n === 10 || n === 11;
+}
 
 /**
  * Cadastro de revendedor por convite de outro revendedor.
@@ -49,6 +66,10 @@ const inputCls =
 
 function Moldura({ children }: { children: React.ReactNode }) {
   return (
+    <>
+    <noscript>
+      <img height="1" width="1" style={{ display: "none" }} alt="" src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`} />
+    </noscript>
     <BexBackground className="min-h-screen flex items-center justify-center p-6">
       <div className="relative w-full max-w-[460px]">
         <div className="mb-8 flex flex-col items-center">
@@ -59,6 +80,7 @@ function Moldura({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </BexBackground>
+    </>
   );
 }
 
@@ -86,10 +108,16 @@ function ConvitePage() {
   const [senha, setSenha] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [pronto, setPronto] = useState(false);
+  const [origem, setOrigem] = useState<Record<string, string> | null>(null);
+  useEffect(() => {
+    setOrigem(lerOrigemDaUrl(window.location.search));
+  }, []);
+  const daCasa = codigo.trim().toUpperCase() === "BEXPRINT";
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
     if (!empresa.trim()) return toast.error("Diga o nome da sua empresa.");
+    if (!whatsappValido(telefone)) return toast.error("Informe um WhatsApp válido com DDD: (XX) XXXXX-XXXX.");
     if (senha.length < 6) return toast.error("A senha precisa de pelo menos 6 caracteres.");
 
     setEnviando(true);
@@ -119,6 +147,7 @@ function ConvitePage() {
         p_email: email.trim().toLowerCase() || null,
         p_cidade: cidade.trim() || null,
         p_estado: estado.trim().toUpperCase() || null,
+        p_origem: origem,
       });
       // A conta já existe neste ponto. Se o vínculo falhar, a pessoa precisa
       // saber que a senha dela vale — e a gráfica precisa saber que houve uma
@@ -131,6 +160,7 @@ function ConvitePage() {
       }
 
       setPronto(true);
+      cadastroParceiroConcluidoMeta();
     } catch (err) {
       toast.error(mensagemErro(err));
     } finally {
@@ -200,7 +230,9 @@ function ConvitePage() {
           Convite de parceiro
         </p>
         <h1 className="text-xl font-semibold text-foreground">
-          {convite.data.convidado_por} te indicou para o clube de revendedores
+          {daCasa
+            ? "Seja parceiro revendedor da Bex Print"
+            : `${convite.data.convidado_por} te indicou para o clube de revendedores`}
         </h1>
         <p className="text-sm text-muted-foreground">
           Preço de revendedor, orçamento com a sua marca e crédito a cada compra. Cadastre sua
@@ -240,9 +272,12 @@ function ConvitePage() {
         </div>
         <input
           className={inputCls}
-          placeholder="WhatsApp"
+          placeholder="WhatsApp *"
+          type="tel"
+          inputMode="numeric"
+          required
           value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
+          onChange={(e) => setTelefone(mascaraWhatsapp(e.target.value))}
         />
         <input
           className={inputCls}

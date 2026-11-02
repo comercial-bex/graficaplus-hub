@@ -36,6 +36,13 @@
       "when": 1793121880569,
       "tag": "0004_arquivos_tipo_pelo_caminho",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793641187753,
+      "tag": "0005_parceiro_origem_e_whatsapp_obrigatorio",
+      "breakpoints": true
     }
   ]
 }

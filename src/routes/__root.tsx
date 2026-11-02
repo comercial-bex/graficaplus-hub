@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -17,6 +18,7 @@ import { Toaster } from "../components/ui/sonner";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { supabase } from "../integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { pageViewMeta } from "../lib/metaPixel";
 import { trocouDeConta, type DonoDaSessao } from "../domain/acesso/sessao";
 
 function NotFoundComponent() {
@@ -128,10 +130,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "Bex Print" },
       { title: "BEX PRINT OS" },
       { name: "description", content: "ERP de Gráfica, Comunicação Visual e Produção" },
-      { property: "og:title", content: "BEX PRINT OS" },
-      { name: "twitter:title", content: "BEX PRINT OS" },
-      { property: "og:description", content: "ERP de Gráfica, Comunicação Visual e Produção" },
-      { name: "twitter:description", content: "ERP de Gráfica, Comunicação Visual e Produção" },
+      { property: "og:title", content: "Bex Print — Gráfica, Personalizados e Impressão 3D" },
+      { name: "twitter:title", content: "Bex Print — Gráfica, Personalizados e Impressão 3D" },
+      { property: "og:description", content: "Seja parceiro revendedor: preço de parceiro, orçamento com a sua marca e produção rápida em Macapá." },
+      { name: "twitter:description", content: "Seja parceiro revendedor: preço de parceiro, orçamento com a sua marca e produção rápida em Macapá." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/364d017d-fa85-467d-8559-3c62ce5818c2/id-preview-2e273d89--ac34095e-c679-402e-90c7-5e6cc505cfc3.lovable.app-1780249271256.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/364d017d-fa85-467d-8559-3c62ce5818c2/id-preview-2e273d89--ac34095e-c679-402e-90c7-5e6cc505cfc3.lovable.app-1780249271256.png" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -195,6 +197,15 @@ function AuthInvalidator() {
   return null;
 }
 
+/** Meta Pixel só nas páginas públicas de marketing (ver src/lib/metaPixel.ts). */
+function PixelPublico() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    pageViewMeta(pathname);
+  }, [pathname]);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   // Vite avisa quando um chunk de hash antigo falha ao carregar (deploy novo com
@@ -216,6 +227,7 @@ function RootComponent() {
       <TooltipProvider delayDuration={200} skipDelayDuration={300}>
         <AuthProvider>
           <AuthInvalidator />
+          <PixelPublico />
           <Outlet />
           <Toaster richColors position="top-right" />
         </AuthProvider>

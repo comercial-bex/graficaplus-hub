@@ -11269,6 +11269,7 @@ export type Database = {
           marca_rodape: string | null
           marca_telefone: string | null
           nivel_fixo_id: string | null
+          origem_cadastro: Json | null
           responsavel_id: string | null
           status: string
           ultimo_acesso_em: string | null
@@ -11294,6 +11295,7 @@ export type Database = {
           marca_rodape?: string | null
           marca_telefone?: string | null
           nivel_fixo_id?: string | null
+          origem_cadastro?: Json | null
           responsavel_id?: string | null
           status?: string
           ultimo_acesso_em?: string | null
@@ -11319,6 +11321,7 @@ export type Database = {
           marca_rodape?: string | null
           marca_telefone?: string | null
           nivel_fixo_id?: string | null
+          origem_cadastro?: Json | null
           responsavel_id?: string | null
           status?: string
           ultimo_acesso_em?: string | null
@@ -21599,6 +21602,7 @@ export type Database = {
           p_email?: string
           p_estado?: string
           p_marca_nome: string
+          p_origem?: Json
           p_telefone?: string
           p_usuario_id: string
         }
