@@ -18398,6 +18398,7 @@ export type Database = {
           categoria: Database["public"]["Enums"]["categoria_produto"] | null
           created_at: string | null
           descricao: string | null
+          familia: string | null
           espacamento_pecas_m: number | null
           exigencias: string | null
           id: string | null
@@ -18477,6 +18478,7 @@ export type Database = {
           created_at: string | null
           custo_medio: number | null
           descricao: string | null
+          familia: string | null
           exigencias: string | null
           id: string | null
           imagem_url: string | null
@@ -18557,6 +18559,7 @@ export type Database = {
           categoria: Database["public"]["Enums"]["categoria_produto"] | null
           created_at: string | null
           descricao: string | null
+          familia: string | null
           espacamento_pecas_m: number | null
           exigencias: string | null
           id: string | null

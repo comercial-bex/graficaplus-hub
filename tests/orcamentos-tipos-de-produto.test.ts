@@ -361,7 +361,8 @@ describe("a tela", () => {
   });
 
   it("cartões e chips têm 44 px no toque e andam com as setas", () => {
-    expect(ESCOLHA).toContain("min-h-20");
+    // Cartão de tipo com ilustração (01/11): mais alto que os 44 px do toque.
+    expect(ESCOLHA).toContain("min-h-32");
     expect(ESCOLHA).toContain("min-h-[4.5rem]");
     expect(ESCOLHA).toContain('role="radiogroup"');
     expect(ESCOLHA).toContain("onKeyDown={moverFocoNaGrade}");
