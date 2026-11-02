@@ -286,8 +286,9 @@ function MaquinasPage() {
 
   const field = (key: keyof Form, label: string, placeholder?: string, type = "text") => (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label htmlFor={`maquina-${String(key)}`}>{label}</Label>
       <Input
+        id={`maquina-${String(key)}`}
         type={type}
         value={form[key] as string}
         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}

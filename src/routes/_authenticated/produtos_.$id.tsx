@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, Trash2 } from "lucide-react";
@@ -532,10 +532,11 @@ function Campo({
   desativado: boolean;
   aoMudar: (v: string) => void;
 }) {
+  const id = useId();
   return (
     <div className="space-y-1.5">
-      <Label>{rotulo}</Label>
-      <Input value={valor} disabled={desativado} onChange={(e) => aoMudar(e.target.value)} />
+      <Label htmlFor={id}>{rotulo}</Label>
+      <Input id={id} value={valor} disabled={desativado} onChange={(e) => aoMudar(e.target.value)} />
     </div>
   );
 }
@@ -551,10 +552,12 @@ function TextoLongo({
   desativado: boolean;
   aoMudar: (v: string) => void;
 }) {
+  const id = useId();
   return (
     <div className="space-y-1.5">
-      <Label>{rotulo}</Label>
+      <Label htmlFor={id}>{rotulo}</Label>
       <Textarea
+        id={id}
         rows={6}
         value={valor}
         disabled={desativado}

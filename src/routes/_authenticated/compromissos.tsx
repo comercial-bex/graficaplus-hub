@@ -390,8 +390,9 @@ function CompromissosPage() {
     tipo = "text",
   ) => (
     <div className="space-y-1">
-      <Label className="text-xs">{rotulo}</Label>
+      <Label htmlFor={`compromisso-${String(chave)}`} className="text-xs">{rotulo}</Label>
       <Input
+        id={`compromisso-${String(chave)}`}
         type={tipo}
         className={tipo === "number" ? "font-mono" : ""}
         placeholder={placeholder}
