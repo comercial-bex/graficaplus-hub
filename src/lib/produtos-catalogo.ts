@@ -1,3 +1,4 @@
+import { neutralizarFormula } from "@/lib/csv-seguro";
 export const CATEGORIAS = [
   { value: "impressao_grande_formato", label: "Impressão grande formato" },
   { value: "adesivos", label: "Adesivos & recorte" },
@@ -134,8 +135,8 @@ export function toCSV(rows: Produto[]) {
     "ativo",
   ];
   const esc = (v: unknown) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    const s = neutralizarFormula(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const body = rows
     .map((r) =>
