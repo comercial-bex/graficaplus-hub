@@ -611,7 +611,7 @@ function ClientesPage() {
         filtros={
           <>
             <Select value={filtroTipo} onValueChange={(v: any) => setFiltroTipo(v)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger aria-label="Filtrar por tipo de cliente" className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -621,7 +621,7 @@ function ClientesPage() {
               </SelectContent>
             </Select>
             <Select value={filtroAtivo} onValueChange={(v: any) => setFiltroAtivo(v)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger aria-label="Filtrar por situação" className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -631,7 +631,7 @@ function ClientesPage() {
               </SelectContent>
             </Select>
             <Select value={filtroVendedor} onValueChange={setFiltroVendedor}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger aria-label="Filtrar por vendedor" className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

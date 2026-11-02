@@ -921,7 +921,7 @@ function EscolherProduto({
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={aberto} className="h-11 w-full justify-between md:h-9">
+        <Button variant="outline" role="combobox" aria-expanded={aberto} aria-label="Produto do catálogo" className="h-11 w-full justify-between md:h-9">
           <span className="truncate">{produto ? produto.nome : `Escolher entre ${produtos.length} produtos ativos…`}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
