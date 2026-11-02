@@ -83,6 +83,12 @@ import { UnidadeDoItem } from "@/components/orcamento/unidade-do-item";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
 import { PerguntasDoItem, usePerguntasDoProduto } from "@/components/orcamento/perguntas-do-item";
+import {
+  CobrancaDasRespostas,
+  gravarLinhasDasRespostas,
+  useProcessosDasPerguntas,
+} from "@/components/orcamento/cobranca-das-respostas";
+import { cobrancasDasRespostas, planoDasLinhas, totalDasCobrancas } from "@/domain/orcamentos/cobranca-das-respostas";
 import { normalizarRespostas, pendenciasDasRespostas, type RespostaDoItem } from "@/domain/orcamentos/perguntas-do-item";
 import { EscolhaDeMaterial } from "@/components/orcamento/escolha-de-material";
 import {
@@ -781,6 +787,7 @@ function OrcamentoDetailPage() {
     setMedidasAbertas(false);
     setDetalhesManual(null);
     setPassoDoDetalhe(3);
+    setQuantidadesInformadas({});
   }
 
   /**
@@ -823,6 +830,7 @@ function OrcamentoDetailPage() {
     setTipoEscolhido(tipoDoItemGravado(i, catalogo.produtos));
     setItemLivre(!i.produto_id);
     setMedidasAbertas(false);
+    setQuantidadesAoEditar(i.id as string);
     setEditando({ id: i.id as string, numero });
     setPassoDoDetalhe(3);
     setNovoItemAberto(true);
@@ -831,6 +839,35 @@ function OrcamentoDetailPage() {
   const acabamentosDoProduto = useAcabamentosDoProduto(form.produto_id);
   // As perguntas do produto (Checklist da pasta): respondidas aqui, gravadas no item.
   const perguntasDoItem = usePerguntasDoProduto(form.produto_id);
+  // O que as respostas cobram: linhas do orçamento presas ao item (migração 20261102140000).
+  const processosDasPerguntas = useProcessosDasPerguntas(perguntasDoItem.data ?? []);
+  const [quantidadesInformadas, setQuantidadesInformadas] = useState<Record<string, number>>({});
+  const [quantidadesAoEditar, setQuantidadesAoEditar] = useState<string | null>(null);
+  // Ao abrir um item gravado, horas e km voltam das linhas que ele já criou.
+  useEffect(() => {
+    if (!quantidadesAoEditar || !processosDasPerguntas.data) return;
+    const dele = (itens as any[]).filter((l) => l.gerado_por_item_id === quantidadesAoEditar);
+    const lidas: Record<string, number> = {};
+    for (const p of processosDasPerguntas.data) {
+      const linha = dele.find((l) => l.produto_id === p.produto_servico_id);
+      if (linha && p.medida_cobrada === "informar") lidas[p.id] = Number(linha.quantidade);
+    }
+    setQuantidadesInformadas(lidas);
+    setQuantidadesAoEditar(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quantidadesAoEditar, processosDasPerguntas.data]);
+  const cobrancasDoItem = canSeePrices
+    ? cobrancasDasRespostas({
+        perguntas: perguntasDoItem.data ?? [],
+        respostas: form.respostas,
+        processos: processosDasPerguntas.data ?? [],
+        servicos: catalogo.produtos.map((p) => ({ ...p, unidade: p.unidade ?? "un" })),
+        peca: { ...dimensoesForm, quantidade: paraNumero(form.quantidade) || 1 },
+        informadas: quantidadesInformadas,
+        linhasDoOrcamento: itens as any[],
+        itemAtualId: editando?.id ?? null,
+      })
+    : [];
   const [mostrarPendencias, setMostrarPendencias] = useState(false);
   useEffect(() => setMostrarPendencias(false), [form.produto_id, editando?.id]);
   // O acabamento padrão do produto já vem marcado (bainha e ilhós na lona): quem vende não precisa
@@ -846,6 +883,8 @@ function OrcamentoDetailPage() {
   for (const i of itens as { produto_id?: string | null }[]) {
     if (i.produto_id) produtosJaNoOrcamento.add(i.produto_id);
   }
+  // O serviço que a resposta já vai cobrar não aparece de novo em "Cobrar o acabamento à parte".
+  for (const c of cobrancasDoItem) if (c.estado === "cobra" && c.servico) produtosJaNoOrcamento.add(c.servico.id);
 
   /** Acrescenta o serviço de acabamento como uma linha comum do orçamento. */
   async function adicionarCobrancaDeAcabamento(c: CobrancaPronta) {
@@ -903,7 +942,9 @@ function OrcamentoDetailPage() {
 
     setSalvandoItem(true);
     try {
+      let itemSalvoId: string;
       if (editando) {
+        itemSalvoId = editando.id;
         // Na edição, custo só vai quando quem edita enxerga custo: o vendedor
         // gravaria 0 por cima do custo que o financeiro calculou.
         if (canSeeFinancials) {
@@ -940,12 +981,34 @@ function OrcamentoDetailPage() {
           .select("id")
           .single();
         if (error) throw error;
+        itemSalvoId = (novo as { id: string }).id;
         try {
           await vincularLayouts((novo as { id: string }).id, layoutsRascunho);
         } catch (e) {
           toast.error(mensagemErro(e, "O item entrou, mas as artes não foram ligadas a ele. Anexe de novo pela linha do item."));
         }
         toast.success("Item adicionado");
+      }
+      // Quem não vê preço não calcula cobrança: as linhas que o item já tem ficam como estão.
+      if (canSeePrices) {
+        try {
+          await gravarLinhasDasRespostas({
+            orcamentoId: id,
+            itemId: itemSalvoId,
+            descricaoDoItem: form.descricao,
+            plano: planoDasLinhas(
+              cobrancasDoItem,
+              (itens as any[]).filter((l) => l.gerado_por_item_id === itemSalvoId),
+            ),
+            ordem: itens.length + 1,
+          });
+          const faltando = cobrancasDoItem.filter((c) => c.estado === "falta_quantidade" || c.estado === "falta_medida");
+          if (faltando.length > 0) {
+            toast.warning(`${faltando.map((c) => c.nome).join(" e ")} ficou de fora do orçamento: falta a quantidade.`);
+          }
+        } catch (e) {
+          toast.error(mensagemErro(e, "O item foi salvo, mas a cobrança das respostas não entrou. Confira as linhas do orçamento."));
+        }
       }
       limparFormulario();
       setNovoItemAberto(continuarLancando.current);
@@ -1091,6 +1154,28 @@ function OrcamentoDetailPage() {
       .select("id")
       .single();
     if (error) return toast.error(mensagemErro(error));
+    // A cobrança que a peça gerou vai junto: a cópia responde igual e custa igual.
+    const dele = (itens as any[]).filter((l) => l.gerado_por_item_id === item.id);
+    if (dele.length > 0) {
+      const { data: copiadas, error: erroCobranca } = await (supabase as any)
+        .from("orcamento_itens")
+        .insert(
+          dele.map((l, n) => ({
+            orcamento_id: id,
+            produto_id: l.produto_id,
+            descricao: l.descricao,
+            unidade: l.unidade,
+            quantidade: l.quantidade,
+            valor_unitario: canSeePrices ? l.valor_unitario : 0,
+            ordem: itens.length + 1 + n,
+            gerado_por_item_id: novo.id,
+          })),
+        )
+        .select("id");
+      if (erroCobranca || (copiadas ?? []).length !== dele.length) {
+        toast.error(mensagemErro(erroCobranca, "O item foi copiado sem a cobrança das respostas. Confira as linhas do orçamento."));
+      }
+    }
     const { data: vinculos, error: erroVinculos } = await (supabase as any)
       .from("orcamento_item_arquivos")
       .select("arquivo_id, capa, ordem")
@@ -1964,6 +2049,15 @@ function OrcamentoDetailPage() {
                       onMudar={({ respostas, acabamento }) => setForm((f) => ({ ...f, respostas, acabamento }))}
                     />
 
+                    <CobrancaDasRespostas
+                      cobrancas={cobrancasDoItem}
+                      informadas={quantidadesInformadas}
+                      desabilitado={salvandoItem}
+                      onInformar={(processoId, quantidade) =>
+                        setQuantidadesInformadas((q) => ({ ...q, [processoId]: quantidade }))
+                      }
+                    />
+
                     {canSeePrices && vendidoPorArea && (
                       <CobrancaDoAcabamento
                         acabamentos={acabamentosDoProduto.data ?? []}
@@ -2285,6 +2379,9 @@ function OrcamentoDetailPage() {
                         <span className="mr-auto text-sm">
                           <span className="text-muted-foreground">Total do item </span>
                           <strong className="tabular-nums">{brl(totalDaLinhaForm)}</strong>
+                          {totalDasCobrancas(cobrancasDoItem) > 0 && (
+                            <span className="text-muted-foreground"> + {brl(totalDasCobrancas(cobrancasDoItem))} das respostas</span>
+                          )}
                         </span>
                       )}
                       <Button
