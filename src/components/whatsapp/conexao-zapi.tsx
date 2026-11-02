@@ -79,6 +79,10 @@ export function ConexaoZapi() {
   const origem = typeof window !== "undefined" ? window.location.origin : "";
   const origemValida = origemServeParaWebhook(origem);
 
+  function trocarEndereco(zapiInstanceId: string) {
+    return gerarEndereco({ zapiInstanceId, trocarSegredo: true });
+  }
+
   async function gerarEndereco(dados: {
     zapiInstanceId: string;
     nome?: string;
@@ -165,7 +169,7 @@ export function ConexaoZapi() {
                 titulo="Gerar um novo endereço do webhook?"
                 descricao="O endereço atual para de funcionar. Você vai precisar colar o novo no painel do Z-API."
                 rotuloConfirmar="Gerar novo endereço"
-                aoConfirmar={() => gerarEndereco({ zapiInstanceId: i.zapi_instance_id, trocarSegredo: true })}
+                aoConfirmar={() => trocarEndereco(i.zapi_instance_id)}
               >
                 <Button variant="outline" size="sm" className="mt-3" disabled={salvando}>
                   <Link2 className="mr-1.5 h-3.5 w-3.5" /> Gerar novo endereço do webhook

@@ -93,7 +93,8 @@ function aberturasDeBotao(fonte: string): { abertura: string; antes: string }[] 
 function botaoAge({ abertura, antes }: { abertura: string; antes: string }): boolean {
   return (
     /\bonClick=|type="submit"|\basChild\b|\bdisabled(?![=\w])/.test(abertura) ||
-    /Trigger asChild>\s*$/.test(antes)
+    /Trigger asChild>\s*$/.test(antes) ||
+    /\baoConfirmar=\{[^\n]*\}\s*>\s*$/.test(antes)
   );
 }
 
@@ -114,6 +115,10 @@ describe("nenhum botão sem ação", () => {
     expect(botaoAge({ abertura: '<Button disabled className="w-full">', antes: "" })).toBe(true);
     expect(
       botaoAge({ abertura: '<Button variant="outline">', antes: "<PopoverTrigger asChild>\n  " }),
+    ).toBe(true);
+    // Dentro do ConfirmarAcao (AlertDialogTrigger asChild por baixo) o clique abre a confirmação.
+    expect(
+      botaoAge({ abertura: '<Button variant="outline">', antes: "aoConfirmar={() => gerar({ a: 1 })}\n>\n  " }),
     ).toBe(true);
   });
 
