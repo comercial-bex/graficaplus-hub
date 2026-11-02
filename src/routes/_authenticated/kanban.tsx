@@ -869,7 +869,7 @@ function Coluna({
           <h3 className="min-w-0 break-words font-mono text-xs uppercase leading-tight tracking-[0.12em] text-foreground/80 md:text-xs">
             {ROTULO_ETAPA[etapa]}
           </h3>
-          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-xs text-muted-foreground/80 md:text-xs">
+          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-xs text-muted-foreground md:text-xs">
             {itens.length.toString().padStart(2, "0")}
           </span>
         </div>

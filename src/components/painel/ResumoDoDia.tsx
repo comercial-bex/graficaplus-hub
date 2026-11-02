@@ -15,7 +15,7 @@ const TOM = {
 const TEXTO = {
   critico: "text-[color:var(--status-magenta)]",
   atencao: "text-[color:var(--status-amber)]",
-  ok: "text-[color:var(--bex-cyan)]",
+  ok: "text-[color:var(--status-cyan)]",
 } as const;
 
 /**

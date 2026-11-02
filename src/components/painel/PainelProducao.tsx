@@ -455,7 +455,7 @@ function KpiCompacto({
   const cor = {
     magenta: "text-[color:var(--status-magenta)]",
     amber: "text-[color:var(--status-amber)]",
-    cyan: "text-[color:var(--bex-cyan)]",
+    cyan: "text-[color:var(--status-cyan)]",
     muted: "text-foreground",
   }[tone];
   return (
