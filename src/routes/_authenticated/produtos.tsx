@@ -1005,16 +1005,16 @@ function ProdutoFormDialog({
           <TabsContent value="dados" className="space-y-3 pt-2">
             <div className="grid grid-cols-3 items-end gap-3">
               <div className="col-span-2 space-y-1.5">
-                <Label className="flex items-center gap-1.5">Nome *<DicaIcone texto={dicaCampo("/produtos", "Nome *")} rotulo="Nome *" /></Label>
-                <Input
+                <Label htmlFor="produto-12-nome" className="flex items-center gap-1.5">Nome *<DicaIcone texto={dicaCampo("/produtos", "Nome *")} rotulo="Nome *" /></Label>
+                <Input id="produto-12-nome"
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   placeholder="Banner lona 440g"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5">SKU<DicaIcone texto={dicaCampo("/produtos", "SKU")} rotulo="SKU" /></Label>
-                <Input
+                <Label htmlFor="produto-11-sku" className="flex items-center gap-1.5">SKU<DicaIcone texto={dicaCampo("/produtos", "SKU")} rotulo="SKU" /></Label>
+                <Input id="produto-11-sku"
                   value={form.sku}
                   onChange={(e) => setForm({ ...form, sku: e.target.value })}
                   placeholder="IGF-LONA-440"
@@ -1023,8 +1023,8 @@ function ProdutoFormDialog({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5">Família</Label>
-              <Input
+              <Label htmlFor="produto-10-familia" className="flex items-center gap-1.5">Família</Label>
+              <Input id="produto-10-familia"
                 value={form.familia}
                 onChange={(e) => setForm({ ...form, familia: e.target.value })}
                 placeholder="Lonas frontlight"
@@ -1039,12 +1039,12 @@ function ProdutoFormDialog({
             </div>
             <div className="grid grid-cols-3 items-end gap-3">
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/produtos", "Categoria")} rotulo="Categoria" /></Label>
+                <Label htmlFor="produto-9-categoria" className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/produtos", "Categoria")} rotulo="Categoria" /></Label>
                 <Select
                   value={form.categoria}
                   onValueChange={(v) => setForm({ ...form, categoria: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="produto-9-categoria">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1057,14 +1057,14 @@ function ProdutoFormDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5">Tipo<DicaIcone texto={dicaCampo("/produtos", "Tipo")} rotulo="Tipo" /></Label>
+                <Label htmlFor="produto-8-tipo" className="flex items-center gap-1.5">Tipo<DicaIcone texto={dicaCampo("/produtos", "Tipo")} rotulo="Tipo" /></Label>
                 <Select
                   value={form.tipo}
                   onValueChange={(v: "produto" | "servico") =>
                     setForm({ ...form, tipo: v })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="produto-8-tipo">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1077,12 +1077,12 @@ function ProdutoFormDialog({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5">Unidade<DicaIcone texto={dicaCampo("/produtos", "Unidade")} rotulo="Unidade" /></Label>
+                <Label htmlFor="produto-7-unidade" className="flex items-center gap-1.5">Unidade<DicaIcone texto={dicaCampo("/produtos", "Unidade")} rotulo="Unidade" /></Label>
                 <Select
                   value={form.unidade}
                   onValueChange={(v) => setForm({ ...form, unidade: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="produto-7-unidade">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1104,8 +1104,8 @@ function ProdutoFormDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5">Descrição<DicaIcone texto={dicaCampo("/produtos", "Descrição")} rotulo="Descrição" /></Label>
-              <Textarea
+              <Label htmlFor="produto-6-descricao" className="flex items-center gap-1.5">Descrição<DicaIcone texto={dicaCampo("/produtos", "Descrição")} rotulo="Descrição" /></Label>
+              <Textarea id="produto-6-descricao"
                 value={form.descricao}
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                 placeholder="Detalhes técnicos visíveis no orçamento"
@@ -1123,8 +1123,8 @@ function ProdutoFormDialog({
             <TabsContent value="preco" className="space-y-3 pt-2">
               <div className="grid grid-cols-3 items-end gap-3">
                 <div className="space-y-1.5">
-                  <Label>Custo médio (R$/{form.unidade})</Label>
-                  <Input
+                  <Label htmlFor="produto-5-custo-medio-r">Custo médio (R$/{form.unidade})</Label>
+                  <Input id="produto-5-custo-medio-r"
                     type="number"
                     step="0.01"
                     value={form.custo_medio}
@@ -1134,8 +1134,8 @@ function ProdutoFormDialog({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Preço de venda (R$/{form.unidade})</Label>
-                  <Input
+                  <Label htmlFor="produto-4-preco-de-venda-r">Preço de venda (R$/{form.unidade})</Label>
+                  <Input id="produto-4-preco-de-venda-r"
                     type="number"
                     step="0.01"
                     value={form.preco_base}
@@ -1145,8 +1145,8 @@ function ProdutoFormDialog({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5">Margem mínima (%)<DicaIcone texto={dicaCampo("/produtos", "Margem mínima (%)")} rotulo="Margem mínima (%)" /></Label>
-                  <Input
+                  <Label htmlFor="produto-3-margem-minima" className="flex items-center gap-1.5">Margem mínima (%)<DicaIcone texto={dicaCampo("/produtos", "Margem mínima (%)")} rotulo="Margem mínima (%)" /></Label>
+                  <Input id="produto-3-margem-minima"
                     type="number"
                     step="0.1"
                     value={form.margem_minima}
@@ -1273,8 +1273,8 @@ function ProdutoFormDialog({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Tempo estimado (min / {form.unidade})</Label>
-                <Input
+                <Label htmlFor="produto-2-tempo-estimado-min">Tempo estimado (min / {form.unidade})</Label>
+                <Input id="produto-2-tempo-estimado-min"
                   type="number"
                   value={form.tempo_producao_min}
                   onChange={(e) =>
@@ -1285,8 +1285,8 @@ function ProdutoFormDialog({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5">Observações internas<DicaIcone texto={dicaCampo("/produtos", "Observações internas")} rotulo="Observações internas" /></Label>
-              <Textarea
+              <Label htmlFor="produto-1-observacoes-internas" className="flex items-center gap-1.5">Observações internas<DicaIcone texto={dicaCampo("/produtos", "Observações internas")} rotulo="Observações internas" /></Label>
+              <Textarea id="produto-1-observacoes-internas"
                 value={form.observacoes_internas}
                 onChange={(e) =>
                   setForm({ ...form, observacoes_internas: e.target.value })
