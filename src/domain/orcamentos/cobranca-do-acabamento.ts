@@ -47,6 +47,24 @@ const arred = (n: number, casas: number) => {
   return Math.round((n + Number.EPSILON) * f) / f;
 };
 
+/**
+ * Os campos da linha cobrada por área. Sem medida, o banco cobra no mínimo 1 unidade
+ * (`tg_item_precificar_por_area`): 0,25 m² de laminação saíam R$ 28,00 com a tela dizendo R$ 7,00. Com largura,
+ * altura e preço por m², preço e custo saem da área exata, no orçamento e na OS.
+ */
+export function camposDaLinhaPorArea(
+  peca: { largura: number; altura: number; quantidade: number },
+  precoM2: number,
+) {
+  return {
+    unidade: "m2",
+    quantidade: Number(peca.quantidade) > 0 ? Number(peca.quantidade) : 1,
+    largura: Number(peca.largura),
+    altura: Number(peca.altura),
+    preco_m2: precoM2,
+  };
+}
+
 /** Quais lados da peça levam bainha e ilhós. */
 export type LadosDaBainha = "contorno" | "maiores" | "menores";
 

@@ -122,7 +122,7 @@ describe("o Banner e a migração (02/11/2026)", () => {
 });
 
 describe("a conta dupla do serviço (02/11/2026)", () => {
-  const m = ler("supabase/migrations/20261102120000_servico_com_custo_digitado_nao_soma_tempo.sql");
+  const m = ler("supabase/migrations/20261102120500_servico_com_custo_digitado_nao_soma_tempo.sql");
   const plotter = { base_cobranca: "area", velocidade_m2_h: 14 };
 
   it("o digitado do serviço é o custo inteiro; o do brinde, não", () => {

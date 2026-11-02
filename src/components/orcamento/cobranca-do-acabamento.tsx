@@ -6,6 +6,7 @@ import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-d
 import { Button } from "@/components/ui/button";
 import {
   acabamentoCobravel,
+  camposDaLinhaPorArea,
   ladosSugeridos,
   OPCOES_DE_LADOS,
   quantidadeDoAcabamento,
@@ -24,6 +25,7 @@ export type CobrancaPronta = {
   acabamento: AcabamentoCobravel;
   servico: ProdutoDeServico;
   quantidade: number;
+  peca?: { largura: number; altura: number; quantidade: number };
 };
 
 /** Os acabamentos que o produto aceita (tabela `produto_acabamentos`, só leitura). */
@@ -66,9 +68,9 @@ export async function inserirLinhaDeAcabamento(
     orcamento_id: orcamentoId,
     produto_id: c.servico.id,
     descricao: c.servico.nome,
-    unidade: c.servico.unidade,
-    quantidade: c.quantidade,
-    valor_unitario: Number(c.servico.preco_base) || 0,
+    ...(c.acabamento.medida === "area" && c.peca
+      ? camposDaLinhaPorArea(c.peca, Number(c.servico.preco_base) || 0)
+      : { unidade: c.servico.unidade, quantidade: c.quantidade, valor_unitario: Number(c.servico.preco_base) || 0 }),
     ordem,
   });
   if (error) throw error;
@@ -224,7 +226,7 @@ function LinhaDeCobranca({
           variant="outline"
           className="h-9"
           disabled={desabilitado}
-          onClick={() => onAdicionar({ acabamento: regra, servico, quantidade })}
+          onClick={() => onAdicionar({ acabamento: regra, servico, quantidade, peca })}
         >
           <Plus className="h-4 w-4" /> Adicionar ao orçamento
         </Button>

@@ -1,5 +1,6 @@
 import { faixaAplicada, type FaixaPreco } from "@/domain/orcamentos/faixas";
 import {
+  camposDaLinhaPorArea,
   acabamentoCobravel,
   ladosSugeridos,
   quantidadeDoAcabamento,
@@ -225,6 +226,9 @@ export function linhasDoAcabamento(i: ItemDaIa, servicos: ServicoDoAcabamento[])
     quantidade: number;
     valor_unitario: number;
     origem_calculo: string;
+    largura?: number;
+    altura?: number;
+    preco_m2?: number;
   }[] = [];
   const pendentes: string[] = [];
   for (const nome of i.acabamentos) {
@@ -250,6 +254,9 @@ export function linhasDoAcabamento(i: ItemDaIa, servicos: ServicoDoAcabamento[])
       quantidade,
       valor_unitario: servico.preco ?? 0,
       origem_calculo: "ia",
+      ...(regra.medida === "area"
+        ? camposDaLinhaPorArea({ largura: i.largura_m ?? 0, altura: i.altura_m ?? 0, quantidade: i.quantidade }, servico.preco ?? 0)
+        : {}),
     });
   }
   return { linhas, pendentes };
