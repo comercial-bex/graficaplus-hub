@@ -1,3 +1,4 @@
+import { neutralizarFormula } from "@/lib/csv-seguro";
 import { mesBr } from "@/lib/hoje-br";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +38,7 @@ function limitesDoMes(mes: string): { inicio: string; fim: string } {
 
 const csv = (linhas: (string | number | null)[][]) =>
   linhas
-    .map((l) => l.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+    .map((l) => l.map((c) => `"${neutralizarFormula(c).replace(/"/g, '""')}"`).join(";"))
     .join("\r\n");
 
 export function ContadorTab() {

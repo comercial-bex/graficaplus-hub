@@ -1,3 +1,4 @@
+import { neutralizarFormula } from "@/lib/csv-seguro";
 /**
  * CSV de ida e volta para a planilha de custos.
  *
@@ -135,7 +136,8 @@ export function escreverNumero(valor: number | null | undefined, casas = 4): str
   return valor.toFixed(casas).replace(".", ",");
 }
 
-function escapar(valor: string): string {
+function escapar(bruto: string): string {
+  const valor = neutralizarFormula(bruto);
   return /[";\n\r]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor;
 }
 

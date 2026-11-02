@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { neutralizarFormula } from "@/lib/csv-seguro";
 import { hojeBr, diasAntesDeHojeBr } from "@/lib/hoje-br";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -220,7 +221,7 @@ function formatMinutes(value: number | null | undefined) {
 }
 
 function csvEscape(value: string | number | null | undefined) {
-  const text = value === null || value === undefined ? "" : String(value);
+  const text = neutralizarFormula(value);
   return `"${text.replace(/"/g, '""')}"`;
 }
 
