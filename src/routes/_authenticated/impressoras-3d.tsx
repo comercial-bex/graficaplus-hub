@@ -1,3 +1,4 @@
+import { ConfirmarAcao } from "@/components/bex/ConfirmarAcao";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -371,15 +372,16 @@ function ImpressorasPage() {
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(m)}>
                     <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (confirm("Remover esta impressora?")) remove.mutate(m.maquina_id);
-                    }}
+                  <ConfirmarAcao
+                    titulo="Remover esta impressora?"
+                    rotuloConfirmar="Remover"
+                    destrutivo
+                    aoConfirmar={() => remove.mutate(m.maquina_id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                    <Button variant="outline" size="sm" aria-label="Remover impressora">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </ConfirmarAcao>
                 </div>
               </CardContent>
             </Card>
