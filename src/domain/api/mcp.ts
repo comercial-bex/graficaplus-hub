@@ -1,4 +1,5 @@
 import { RECURSOS, recursoPorChave, type RecursoDaApi } from "@/domain/api/recursos";
+import { ACOES } from "@/domain/api/acoes";
 
 /**
  * O MCP do Bex Print (02/11/2026), Onda 2 do "API/MCP", no padrão que o dono
@@ -90,6 +91,25 @@ export const FERRAMENTAS: readonly FerramentaMcp[] = [
     name: "bexprint_exemplos",
     description: "Jornadas prontas: quais ferramentas chamar, com argumentos, para pedidos comuns da gráfica.",
     inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "bexprint_acoes",
+    description: "Lista as ações disponíveis (renovar orçamento vencido, mover etapa comercial, registrar nota do cliente), com os argumentos de cada uma. Toda ação roda em ensaio por padrão.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "bexprint_executar",
+    description:
+      "Executa uma ação em nome da pessoa dona do token. Sem confirmado=true é só ENSAIO: devolve antes e depois e não grava nada. Mostre o ensaio à pessoa e só repita com confirmado=true quando ela disser que sim.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        acao: { type: "string", enum: ACOES.map((a) => a.chave) },
+        argumentos: { type: "object", description: "Os argumentos da ação, como bexprint_acoes descreve." },
+        confirmado: { type: "boolean", description: "false (padrão) = ensaio, nada gravado. true = grava.", default: false },
+      },
+      required: ["acao", "argumentos"],
+    },
   },
 ];
 

@@ -14,6 +14,8 @@ import {
   type RequisicaoJsonRpc,
 } from "@/domain/api/mcp";
 import { lerRecurso } from "@/lib/api/v1.server";
+import { ACOES, ehConfirmado } from "@/domain/api/acoes";
+import { executarAcao } from "@/lib/api/acoes.server";
 
 /**
  * POST /api/mcp — o servidor MCP do Bex Print pelo transporte HTTP, sem
@@ -48,6 +50,21 @@ async function chamarFerramenta(nome: string, args: Record<string, unknown>, tok
     }
     case "bexprint_exemplos":
       return conteudoDaFerramenta({ exemplos: EXEMPLOS });
+    case "bexprint_acoes":
+      return conteudoDaFerramenta({
+        regra: "Toda ação roda em ensaio por padrão: bexprint_executar sem confirmado=true devolve antes e depois e não grava. Nenhuma ação manda mensagem ao cliente nem mexe em dinheiro.",
+        acoes: ACOES,
+      });
+    case "bexprint_executar": {
+      const execucao = await executarAcao(
+        token,
+        String(args.acao ?? ""),
+        (args.argumentos ?? {}) as Record<string, unknown>,
+        ehConfirmado(args.confirmado),
+      );
+      if (!execucao.ok) return conteudoDaFerramenta({ erro: execucao.codigo, mensagem: execucao.mensagem, ...(execucao.detalhe ?? {}) }, true);
+      return conteudoDaFerramenta(execucao.corpo);
+    }
     case "bexprint_consultar":
     case "bexprint_contar": {
       const parametros = argumentosParaFiltros(args);
@@ -116,7 +133,7 @@ async function atenderUma(req: RequisicaoJsonRpc, token: string | null): Promise
         capabilities: { tools: { listChanged: false } },
         serverInfo: INFO_DO_SERVIDOR,
         instructions:
-          "MCP de leitura do Bex Print. Comece por bexprint_descobrir, depois bexprint_descrever e bexprint_consultar. Todas as chamadas de ferramenta exigem o token pessoal no cabeçalho Authorization: Bearer ou x-api-key. Só leitura; quem lê é a pessoa dona do token.",
+          "MCP do Bex Print. Leitura: comece por bexprint_descobrir, depois bexprint_descrever e bexprint_consultar. Ações: bexprint_acoes lista; bexprint_executar roda em ensaio por padrão e só grava com confirmado=true, depois que a pessoa disser que sim. Todas as chamadas de ferramenta exigem o token pessoal no cabeçalho Authorization: Bearer ou x-api-key. Quem lê e quem age é a pessoa dona do token.",
       });
     case "ping":
       return respostaJsonRpc(id, {});
