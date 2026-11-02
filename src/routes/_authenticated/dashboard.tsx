@@ -824,7 +824,7 @@ function PainelCompleto({
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
               <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
               <Tooltip {...chartTooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: "12px", fontFamily: "var(--font-mono)" }} />
+              <Legend wrapperStyle={{ fontSize: "12px", fontFamily: "var(--font-mono)" }} formatter={(v) => <span style={{ color: "var(--foreground)" }}>{v}</span>} />
               <Bar dataKey="previsto" fill="var(--muted-foreground)" radius={[3, 3, 0, 0]} />
               <Bar dataKey="real" fill={CMYK.lime} radius={[3, 3, 0, 0]} />
             </BarChart>

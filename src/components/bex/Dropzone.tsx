@@ -133,7 +133,7 @@ export function Dropzone({
                     e.stopPropagation();
                     onFile(null);
                   }}
-                  className="inline-flex items-center gap-1 text-xs text-[color:var(--bex-magenta)] hover:underline"
+                  className="inline-flex items-center gap-1 text-xs text-[color:var(--status-magenta)] hover:underline"
                 >
                   <X className="h-3 w-3" /> Remover
                 </button>
@@ -159,7 +159,7 @@ export function Dropzone({
                   e.stopPropagation();
                   onFile(null);
                 }}
-                className="mt-2 inline-flex items-center gap-1 text-xs text-[color:var(--bex-magenta)] hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-xs text-[color:var(--status-magenta)] hover:underline"
               >
                 <X className="h-3 w-3" /> Remover
               </button>
@@ -201,15 +201,15 @@ function StatusBadge({ status }: { status: DropzoneStatus }) {
   const map = {
     loading: {
       icon: <Loader2 className="h-3 w-3 animate-spin" />,
-      cls: "border-[color:var(--bex-cyan)]/40 text-[color:var(--bex-cyan)] bg-[color:var(--bex-cyan)]/10",
+      cls: "border-[color:var(--bex-cyan)]/40 text-[color:var(--status-cyan)] bg-[color:var(--bex-cyan)]/10",
     },
     ok: {
       icon: <Check className="h-3 w-3" />,
-      cls: "border-[color:var(--bex-lime)]/40 text-[color:var(--bex-lime)] bg-[color:var(--bex-lime)]/10",
+      cls: "border-[color:var(--bex-lime)]/40 text-[color:var(--status-positive)] bg-[color:var(--bex-lime)]/10",
     },
     error: {
       icon: <AlertTriangle className="h-3 w-3" />,
-      cls: "border-[color:var(--bex-magenta)]/40 text-[color:var(--bex-magenta)] bg-[color:var(--bex-magenta)]/10",
+      cls: "border-[color:var(--bex-magenta)]/40 text-[color:var(--status-magenta)] bg-[color:var(--bex-magenta)]/10",
     },
   } as const;
   const s = map[status.kind];

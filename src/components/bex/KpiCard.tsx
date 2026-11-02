@@ -7,22 +7,22 @@ type Tone = "cyan" | "magenta" | "lime" | "amber" | "muted";
 const accent: Record<Tone, { border: string; text: string; glow: string }> = {
   cyan: {
     border: "border-l-[color:var(--bex-cyan)]",
-    text: "text-[color:var(--bex-cyan)]",
+    text: "text-[color:var(--status-cyan)]",
     glow: "bg-[color:var(--bex-cyan)]/5",
   },
   magenta: {
     border: "border-l-[color:var(--bex-magenta)]",
-    text: "text-[color:var(--bex-magenta)]",
+    text: "text-[color:var(--status-magenta)]",
     glow: "bg-[color:var(--bex-magenta)]/5",
   },
   lime: {
     border: "border-l-[color:var(--bex-amber)]",
-    text: "text-[color:var(--bex-amber)]",
+    text: "text-[color:var(--status-amber)]",
     glow: "bg-[color:var(--bex-amber)]/5",
   },
   amber: {
     border: "border-l-[color:var(--bex-amber)]",
-    text: "text-[color:var(--bex-amber)]",
+    text: "text-[color:var(--status-amber)]",
     glow: "bg-[color:var(--bex-amber)]/5",
   },
   muted: {
