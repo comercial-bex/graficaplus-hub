@@ -55,9 +55,25 @@ import {
   filtrarPorPeriodoBuscaClienteEOrigem,
   filtrarPorSituacaoAReceber,
   origensDasContas,
+  situacaoDaContaAReceber,
   totaisAReceber,
   type FiltroAReceber,
 } from "@/domain/financeiro/contas-a-receber-filtros";
+import {
+  BarraDaSelecao,
+  BarraDeVisoes,
+  CabecalhoDaSelecao,
+  CaixaDeSelecao,
+} from "@/components/financeiro/selecao-de-contas";
+import { useSelecaoDeContas, useVisoesSalvas } from "@/components/financeiro/use-selecao-e-visoes";
+import { csvDeLinhas, dataBr, nomeDoArquivoCsv, resumoDaSelecao } from "@/domain/financeiro/selecao-de-contas";
+import { ajustarVisaoAReceber, validarFiltroAReceber, visaoAtiva } from "@/domain/financeiro/visoes-salvas";
+import { baixarTexto, copiarTexto } from "@/lib/arquivos-no-navegador";
+
+/** Estável (fora do componente): a seleção poda e conta por este id. */
+const idDaContaAReceber = (c: { conta_id: string }) => c.conta_id;
+const TELA_A_RECEBER = { singular: "conta a receber", plural: "contas a receber", rotuloPagas: "Recebidas" };
+const ROTULO_DA_SITUACAO_A_RECEBER: Record<string, string> = { a_vencer: "A vencer", vencida: "Vencida", recebida: "Recebida" };
 
 export const Route = createFileRoute("/_authenticated/a-receber")({
   head: () => ({ meta: [{ title: "Contas a receber — BEX PRINT OS" }] }),
@@ -231,6 +247,41 @@ function AReceberPage() {
     filtro.busca.trim() !== "" ||
     filtro.clienteId !== "todos" ||
     filtro.origem !== "todas";
+
+  // Seleção e visões (02/11): total dos marcados, resumo para copiar, CSV e filtros guardados.
+  // Nada aqui mexe em dinheiro: dar baixa em lote fica para quando o dono decidir.
+  const marcacao = useSelecaoDeContas(todasAsContas, visiveis, idDaContaAReceber);
+  const totaisDaSelecao = useMemo(() => totaisAReceber(marcacao.selecionadas), [marcacao.selecionadas]);
+  const visoes = useVisoesSalvas<FiltroAReceber>("contas-a-receber", validarFiltroAReceber);
+  const visaoDeAgora = visaoAtiva(visoes.visoes, filtro);
+
+  async function copiarResumoDaSelecao() {
+    const ok = await copiarTexto(resumoDaSelecao(TELA_A_RECEBER, totaisDaSelecao));
+    if (ok) toast.success("Resumo copiado. Cole no WhatsApp ou no e-mail.");
+    else toast.error("Não consegui copiar. Baixe o CSV ou selecione o texto à mão.");
+  }
+
+  function baixarCsvDaSelecao() {
+    const linhas = marcacao.selecionadas.map((c) => [
+      c.cliente ?? "Cliente sem nome",
+      c.os_numero == null ? "" : String(c.os_numero),
+      c.os_titulo,
+      c.cliente_origem,
+      c.valor_total,
+      c.recebido,
+      c.a_receber,
+      c.vencido,
+      dataBr(c.vencimento_mais_antigo),
+      ROTULO_DA_SITUACAO_A_RECEBER[situacaoDaContaAReceber(c)] ?? "",
+    ]);
+    const csv = csvDeLinhas(
+      ["Cliente", "OS", "Título da OS", "Origem do cliente", "Total da conta", "Recebido", "A receber", "Vencido", "Vencimento mais antigo", "Situação"],
+      linhas,
+    );
+    if (baixarTexto(nomeDoArquivoCsv("contas a receber selecionadas", hojeDaTela), csv)) {
+      toast.success(`${linhas.length} ${linhas.length === 1 ? "conta baixada" : "contas baixadas"} em CSV.`);
+    }
+  }
 
   const confirmar = useMutation({
     mutationFn: async (v: {
@@ -503,6 +554,15 @@ function AReceberPage() {
                   </Select>
                 </div>
               </div>
+              <BarraDeVisoes
+                visoes={visoes.visoes}
+                ativaId={visaoDeAgora?.id ?? null}
+                podeGuardar={filtrando}
+                // Cliente e origem que sumiram da lista voltam ao padrão: filtro apontando para o vazio esconderia tudo.
+                onAplicar={(v) => setFiltro(ajustarVisaoAReceber(v.filtro, clientesDaLista, origensDaLista))}
+                onGuardar={(nome) => visoes.guardar(nome, filtro)}
+                onRemover={visoes.remover}
+              />
               {filtrando && (
                 <AvisoDeFiltro
                   mostrando={visiveis.length}
@@ -512,6 +572,23 @@ function AReceberPage() {
               )}
             </div>
           </Card>
+
+          {visiveis.length > 0 && (
+            <Card className="overflow-hidden">
+              {marcacao.selecionadas.length > 0 && (
+                <BarraDaSelecao
+                  totais={totaisDaSelecao}
+                  tela={TELA_A_RECEBER}
+                  rotuloPagas={TELA_A_RECEBER.rotuloPagas}
+                  foraDoFiltro={marcacao.fora}
+                  onCopiar={() => void copiarResumoDaSelecao()}
+                  onBaixarCsv={baixarCsvDaSelecao}
+                  onLimpar={marcacao.limpar}
+                />
+              )}
+              <CabecalhoDaSelecao estado={marcacao.estado} aparecem={visiveis.length} onAlternar={marcacao.alternarCabecalho} />
+            </Card>
+          )}
 
           <div className="space-y-3">
             {/* A ordem vem da função: quem tem a parcela em aberto mais antiga
@@ -529,6 +606,8 @@ function AReceberPage() {
                   conta={c}
                   podeDarBaixa={podeDarBaixa}
                   onBaixa={(p) => abrirBaixa(c, p)}
+                  selecionada={marcacao.selecao.has(c.conta_id)}
+                  onSelecionar={() => marcacao.alternarConta(c.conta_id)}
                 />
               ))
             )}
@@ -660,16 +739,26 @@ function ContaCard({
   conta,
   podeDarBaixa,
   onBaixa,
+  selecionada,
+  onSelecionar,
 }: {
   conta: Conta;
   podeDarBaixa: boolean;
   onBaixa: (p: Parcela) => void;
+  selecionada: boolean;
+  onSelecionar: () => void;
 }) {
   const total = conta.parcelas.length;
   return (
-    <Card>
+    <Card className={selecionada ? "border-primary" : undefined}>
       <CardContent className="space-y-4 p-4 md:p-5">
         <div className="flex flex-wrap items-start gap-3">
+          <CaixaDeSelecao
+            className="-ml-2 -mt-1"
+            marcada={selecionada}
+            onChange={onSelecionar}
+            rotulo={`Selecionar a conta de ${conta.cliente ?? "cliente sem nome"}`}
+          />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-semibold">{conta.cliente ?? "Cliente sem nome"}</h3>

@@ -120,14 +120,17 @@ const CELULAS: ReadonlyArray<{ chave: keyof Omit<TotaisDaLista, "quantidade">; r
 export function RodapeDeTotais({
   totais,
   rotuloPagas = "Pagas",
+  rotulo = "Totais da lista",
 }: {
   totais: TotaisDaLista;
   /** Na lista de contas a receber o dinheiro que entrou se chama "Recebidas". */
   rotuloPagas?: string;
+  /** O que o leitor de tela anuncia: "Totais da lista" ou, na seleção, "Totais da seleção". */
+  rotulo?: string;
 }) {
   return (
     <dl
-      aria-label="Totais da lista"
+      aria-label={rotulo}
       className="grid grid-cols-2 gap-px border-t border-border bg-border sm:grid-cols-4"
     >
       {CELULAS.map((c) => (

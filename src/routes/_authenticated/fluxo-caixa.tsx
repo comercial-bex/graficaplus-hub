@@ -58,15 +58,31 @@ import {
   RodapeDeTotais,
 } from "@/components/financeiro/lista-financeira";
 import {
+  BarraDaSelecao,
+  BarraDeVisoes,
+  CabecalhoDaSelecao,
+  CaixaDeSelecao,
+} from "@/components/financeiro/selecao-de-contas";
+import { useSelecaoDeContas, useVisoesSalvas } from "@/components/financeiro/use-selecao-e-visoes";
+import {
   CHIPS_DE_SITUACAO,
   FILTRO_VAZIO,
   contarPorSituacao,
   filtrarPorPeriodoEBusca,
   filtrarPorSituacao,
   periodosDaLista,
+  situacaoDaConta,
   totaisDaLista,
   type FiltroDaLista,
 } from "@/domain/financeiro/lista-de-contas";
+import { csvDeLinhas, dataBr, nomeDoArquivoCsv, resumoDaSelecao } from "@/domain/financeiro/selecao-de-contas";
+import { validarFiltroAPagar, visaoAtiva } from "@/domain/financeiro/visoes-salvas";
+import { baixarTexto, copiarTexto } from "@/lib/arquivos-no-navegador";
+
+/** Estável (fora do componente): a seleção poda e conta por este id. */
+const idDaContaAPagar = (c: { id: string }) => c.id;
+const TELA_A_PAGAR = { singular: "conta a pagar", plural: "contas a pagar", rotuloPagas: "Pagas" };
+const ROTULO_DA_SITUACAO: Record<string, string> = { a_vencer: "A vencer", vencida: "Vencida", paga: "Paga", cancelada: "Cancelada" };
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({
   head: () => ({
     meta: [
@@ -196,6 +212,37 @@ function FluxoCaixaPage() {
   const totaisDaTela = useMemo(() => totaisDaLista(visiveis, hojeDaLista), [visiveis, hojeDaLista]);
   const filtrando =
     filtro.situacao !== "tudo" || filtro.periodo !== "todos" || filtro.busca.trim() !== "";
+
+  // Seleção e visões (02/11): total dos marcados, resumo para copiar, CSV e filtros guardados.
+  // Nada aqui mexe em dinheiro: dar baixa em lote fica para quando o dono decidir.
+  const marcacao = useSelecaoDeContas(contas, visiveis, idDaContaAPagar);
+  const totaisDaSelecao = useMemo(
+    () => totaisDaLista(marcacao.selecionadas, hojeDaLista),
+    [marcacao.selecionadas, hojeDaLista],
+  );
+  const visoes = useVisoesSalvas<FiltroDaLista>("contas-a-pagar", validarFiltroAPagar);
+  const visaoDeAgora = visaoAtiva(visoes.visoes, filtro);
+
+  async function copiarResumoDaSelecao() {
+    const ok = await copiarTexto(resumoDaSelecao(TELA_A_PAGAR, totaisDaSelecao));
+    if (ok) toast.success("Resumo copiado. Cole no WhatsApp ou no e-mail.");
+    else toast.error("Não consegui copiar. Baixe o CSV ou selecione o texto à mão.");
+  }
+
+  function baixarCsvDaSelecao() {
+    const linhas = marcacao.selecionadas.map((c) => [
+      c.descricao,
+      c.fornecedor,
+      c.categoria,
+      dataBr(c.vencimento),
+      ROTULO_DA_SITUACAO[situacaoDaConta(c, hojeDaLista)] ?? "",
+      Number(c.valor ?? 0),
+    ]);
+    const csv = csvDeLinhas(["Descrição", "Fornecedor", "Categoria", "Vencimento", "Situação", "Valor"], linhas);
+    if (baixarTexto(nomeDoArquivoCsv("contas a pagar selecionadas", hojeDaLista), csv)) {
+      toast.success(`${linhas.length} ${linhas.length === 1 ? "conta baixada" : "contas baixadas"} em CSV.`);
+    }
+  }
 
   const { data: movimentos = [] } = useQuery({
     queryKey: ["caixa-movimentos"],
@@ -513,6 +560,14 @@ function FluxoCaixaPage() {
                   valor={filtro.periodo}
                   onChange={(periodo) => setFiltro((f) => ({ ...f, periodo }))}
                 />
+                <BarraDeVisoes
+                  visoes={visoes.visoes}
+                  ativaId={visaoDeAgora?.id ?? null}
+                  podeGuardar={filtrando}
+                  onAplicar={(v) => setFiltro(v.filtro)}
+                  onGuardar={(nome) => visoes.guardar(nome, filtro)}
+                  onRemover={visoes.remover}
+                />
                 {filtrando && (
                   <AvisoDeFiltro
                     mostrando={visiveis.length}
@@ -521,6 +576,20 @@ function FluxoCaixaPage() {
                   />
                 )}
               </div>
+            )}
+            {marcacao.selecionadas.length > 0 && (
+              <BarraDaSelecao
+                totais={totaisDaSelecao}
+                tela={TELA_A_PAGAR}
+                rotuloPagas={TELA_A_PAGAR.rotuloPagas}
+                foraDoFiltro={marcacao.fora}
+                onCopiar={() => void copiarResumoDaSelecao()}
+                onBaixarCsv={baixarCsvDaSelecao}
+                onLimpar={marcacao.limpar}
+              />
+            )}
+            {!isLoading && visiveis.length > 0 && (
+              <CabecalhoDaSelecao estado={marcacao.estado} aparecem={visiveis.length} onAlternar={marcacao.alternarCabecalho} />
             )}
             <CardContent className="p-0">
               {isLoading ? (
@@ -541,9 +610,14 @@ function FluxoCaixaPage() {
                     return (
                       <div
                         key={c.id}
-                        className="flex flex-wrap items-center justify-between gap-3 p-4"
+                        className="flex flex-wrap items-center justify-between gap-3 p-4 pl-2"
                       >
-                        <div className="min-w-0">
+                        <CaixaDeSelecao
+                          marcada={marcacao.selecao.has(c.id)}
+                          onChange={() => marcacao.alternarConta(c.id)}
+                          rotulo={`Selecionar ${c.descricao}`}
+                        />
+                        <div className="min-w-0 flex-1">
                           <div className="font-medium truncate">{c.descricao}</div>
                           <div className="text-xs text-muted-foreground">
                             {c.fornecedor || "sem fornecedor"} · {c.categoria} · vence{" "}
