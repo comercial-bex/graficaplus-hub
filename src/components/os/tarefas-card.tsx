@@ -224,7 +224,7 @@ export function TarefasDaOS({ osId }: { osId: string }) {
               <div>
                 <Label className="text-xs">Setor</Label>
                 <Select value={setor} onValueChange={setSetor}>
-                  <SelectTrigger><SelectValue placeholder="Qualquer" /></SelectTrigger>
+                  <SelectTrigger aria-label="Qualquer"><SelectValue placeholder="Qualquer" /></SelectTrigger>
                   <SelectContent>
                     {SETORES.map((s) => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -235,7 +235,7 @@ export function TarefasDaOS({ osId }: { osId: string }) {
               <div>
                 <Label className="text-xs">Responsável</Label>
                 <Select value={responsavel} onValueChange={setResponsavel}>
-                  <SelectTrigger><SelectValue placeholder="Sem responsável" /></SelectTrigger>
+                  <SelectTrigger aria-label="Sem responsável"><SelectValue placeholder="Sem responsável" /></SelectTrigger>
                   <SelectContent>
                     {equipe.map((u: any) => (
                       <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>

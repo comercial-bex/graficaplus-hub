@@ -170,7 +170,7 @@ export function NovoParceiroDialog({
           <div className="space-y-2">
             <Label>Atendente na gráfica</Label>
             <Select value={responsavel} onValueChange={setResponsavel}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Escolha">
                 <SelectValue placeholder="Escolha" />
               </SelectTrigger>
               <SelectContent>

@@ -341,7 +341,7 @@ export function RegraDeVendaPainel({
             value=""
             onValueChange={(id) => mudar({ secoes: { ...form.secoes, [id]: { margem: "", frete: "" } } })}
           >
-            <SelectTrigger className="h-11 sm:w-96">
+            <SelectTrigger aria-label="+ Exceção para uma seção" className="h-11 sm:w-96">
               <SelectValue placeholder="+ Exceção para uma seção" />
             </SelectTrigger>
             <SelectContent>

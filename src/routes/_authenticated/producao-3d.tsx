@@ -223,6 +223,7 @@ function Producao3DPage() {
                         onValueChange={(v) => updateJobStatus(j.id, v)}
                       >
                         <SelectTrigger
+                          aria-label={`Status do trabalho ${j.status}`}
                           className="h-7 w-[140px] text-xs"
                           onClick={(e) => e.stopPropagation()}
                         >
