@@ -41,6 +41,7 @@ import {
   type TempoDoProcesso,
   type TipoDeResposta,
 } from "@/domain/catalogo/pasta-do-produto";
+import { ROTULO_DO_MODO_DA_IA, type ModoDaIa } from "@/domain/orcamentos/perguntas-do-item";
 
 export const Route = createFileRoute("/_authenticated/produtos_/$id")({
   head: () => ({ meta: [{ title: "Pasta do produto — BEX PRINT OS" }] }),
@@ -945,6 +946,105 @@ function AbaFormulas({ produtoId, podeEditar }: { produtoId: string; podeEditar:
   );
 }
 
+/** Como a IA trata esta pergunta. Só a IA: quem atende continua vendo a pergunta no item. */
+function InstrucaoDaIa({
+  pergunta,
+  podeEditar,
+  aoSalvar,
+}: {
+  pergunta: any;
+  podeEditar: boolean;
+  aoSalvar: () => void;
+}) {
+  const [modo, setModo] = useState<ModoDaIa>((pergunta.ia_modo as ModoDaIa) ?? "perguntar");
+  const [resposta, setResposta] = useState<string>(pergunta.ia_resposta ?? "");
+  const [instrucao, setInstrucao] = useState<string>(pergunta.ia_instrucao ?? "");
+  const opcoes = (pergunta.respostas ?? []) as string[];
+  const falta = modo === "definir" && !resposta.trim() ? "Diga qual resposta a IA marca." : null;
+  const mudou =
+    modo !== (pergunta.ia_modo ?? "perguntar") ||
+    resposta !== (pergunta.ia_resposta ?? "") ||
+    instrucao !== (pergunta.ia_instrucao ?? "");
+  const salvar = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_perguntas")
+        .update({
+          ia_modo: modo,
+          ia_resposta: modo === "definir" ? resposta.trim() || null : null,
+          ia_instrucao: instrucao.trim() || null,
+        })
+        .eq("id", pergunta.id)
+        .select("id");
+      if (error) throw error;
+      confereGravou(data);
+    },
+    onSuccess: () => {
+      toast.success("Instrução da IA salva.");
+      aoSalvar();
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+  return (
+    <div className="mt-2 space-y-2 rounded border border-dashed p-2" data-testid="instrucao-da-ia">
+      <div className="grid gap-2 md:grid-cols-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Na IA</Label>
+          <Select value={modo} disabled={!podeEditar} onValueChange={(v) => setModo(v as ModoDaIa)}>
+            <SelectTrigger aria-label="Como a IA trata esta pergunta">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(ROTULO_DO_MODO_DA_IA) as ModoDaIa[]).map((m) => (
+                <SelectItem key={m} value={m}>
+                  {ROTULO_DO_MODO_DA_IA[m]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {modo === "definir" &&
+          (opcoes.length > 0 ? (
+            <div className="space-y-1">
+              <Label className="text-xs">Resposta que a IA marca</Label>
+              <Select value={resposta} disabled={!podeEditar} onValueChange={setResposta}>
+                <SelectTrigger aria-label="Resposta que a IA marca">
+                  <SelectValue placeholder="Escolha" />
+                </SelectTrigger>
+                <SelectContent>
+                  {opcoes.map((o) => (
+                    <SelectItem key={o} value={o}>
+                      {o}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <Campo
+              rotulo="Resposta que a IA marca"
+              valor={resposta}
+              desativado={!podeEditar}
+              aoMudar={setResposta}
+            />
+          ))}
+      </div>
+      <Campo
+        rotulo="Instrução para a IA (opcional)"
+        valor={instrucao}
+        desativado={!podeEditar}
+        aoMudar={setInstrucao}
+      />
+      {falta && <p className="text-xs text-destructive">{falta}</p>}
+      {podeEditar && mudou && (
+        <Button size="sm" variant="outline" disabled={!!falta || salvar.isPending} onClick={() => salvar.mutate()}>
+          {salvar.isPending ? "Salvando..." : "Salvar instrução"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar: boolean }) {
   const qc = useQueryClient();
   const catalogo = useProcessos();
@@ -962,7 +1062,9 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("produto_perguntas")
-        .select("id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, resposta_padrao, nao_perguntar")
+        .select(
+          "id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, resposta_padrao, nao_perguntar, ia_modo, ia_resposta, ia_instrucao",
+        )
         .eq("produto_id", produtoId)
         .order("ordem");
       if (error) throw error;
@@ -1190,6 +1292,7 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
                     {nomeDoProcesso.get(a.processo_id) ?? "processo removido"}.
                   </div>
                 ))}
+                <InstrucaoDaIa pergunta={q} podeEditar={podeEditar} aoSalvar={atualizar} />
               </div>
               {podeEditar && (
                 <Button

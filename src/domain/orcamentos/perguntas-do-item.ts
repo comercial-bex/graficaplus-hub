@@ -29,6 +29,25 @@ export type PerguntaDoProduto = {
   resposta_padrao?: string | null;
   /** A casa já decidiu: ninguém responde, a resposta entra sozinha e aparece como definida. */
   nao_perguntar?: boolean;
+  ia_modo?: ModoDaIa;
+  /** A resposta que a IA marca no modo definir. */
+  ia_resposta?: string | null;
+  /** Orientação para a IA: quando perguntar, o que explicar, de que resposta depende. */
+  ia_instrucao?: string | null;
+};
+
+/**
+ * Como a IA trata a pergunta. Vale só para a IA: quem atende continua vendo a pergunta no item.
+ *   perguntar:      entra no que falta perguntar ao cliente, se o pedido não respondeu.
+ *   seguir_cliente: marca só se o cliente falou disso; se não falou, não pergunta.
+ *   definir:        marca sozinha, sem mencionar ao cliente.
+ */
+export type ModoDaIa = "perguntar" | "seguir_cliente" | "definir";
+
+export const ROTULO_DO_MODO_DA_IA: Record<ModoDaIa, string> = {
+  perguntar: "Perguntar ao cliente",
+  seguir_cliente: "Marcar só se o cliente falar",
+  definir: "Definir sem perguntar",
 };
 
 export type RespostaDoItem = {
@@ -60,7 +79,17 @@ export function perguntaDaLinha(l: Record<string, unknown>): PerguntaDoProduto {
     ordem: Number(l.ordem ?? 0) || 0,
     resposta_padrao: textoLimpo(l.resposta_padrao) || null,
     nao_perguntar: l.nao_perguntar === true && textoLimpo(l.resposta_padrao) !== "",
+    ia_modo: (["perguntar", "seguir_cliente", "definir"].includes(String(l.ia_modo)) ? l.ia_modo : "perguntar") as ModoDaIa,
+    ia_resposta: textoLimpo(l.ia_resposta) || null,
+    ia_instrucao: textoLimpo(l.ia_instrucao) || null,
   };
+}
+
+/** A resposta que a IA marca sem perguntar; nula quando a pergunta não está definida para ela. */
+export function respostaDefinidaParaIa(p: PerguntaDoProduto): string | null {
+  if (p.nao_perguntar) return p.resposta_padrao ?? null;
+  if (p.ia_modo !== "definir") return null;
+  return p.ia_resposta ?? p.resposta_padrao ?? null;
 }
 
 /** O que veio gravado no item; qualquer coisa fora do formato vira lista vazia. */

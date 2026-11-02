@@ -24,6 +24,7 @@ import {
   type ResultadoDaLeitura,
 } from "@/lib/api/orcamento-ia.functions";
 import { itemSemMedida, type LeituraDoPedido } from "@/domain/orcamentos/orcamento-com-ia";
+import { resumoDasRespostas } from "@/domain/orcamentos/perguntas-do-item";
 
 const FRASE_DA_FALHA: Record<string, string> = {
   sem_ia: "A IA não está ligada neste projeto: falta a chave no servidor.",
@@ -150,6 +151,11 @@ export function OrcamentoComIa() {
                       {i.acabamentos.length > 0 ? ` · ${i.acabamentos.join(", ")}` : ""}
                       {i.observacao ? ` · ${i.observacao}` : ""}
                     </div>
+                    {(i.respostas ?? []).length > 0 && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {resumoDasRespostas(i.respostas ?? [])}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {leitura.perguntas_que_faltam.length > 0 && (
