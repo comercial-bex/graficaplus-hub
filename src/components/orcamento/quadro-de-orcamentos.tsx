@@ -1,6 +1,7 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { podeRenovar } from "@/domain/orcamentos/renovacao";
 import {
   COLUNAS_DO_ENVIADO,
   ETAPAS_DO_ENVIADO,
@@ -96,6 +97,7 @@ export function QuadroDeOrcamentos({
   aoAbrir,
   aoConverter,
   aoMoverEtapa,
+  aoRenovar,
 }: {
   orcamentos: OrcamentoDoQuadro[];
   mostrarValores: boolean;
@@ -106,6 +108,8 @@ export function QuadroDeOrcamentos({
   aoAbrir: (id: string) => void;
   aoConverter: (o: OrcamentoDoQuadro) => void;
   aoMoverEtapa?: (o: OrcamentoDoQuadro, etapa: EtapaDoEnviado) => void;
+  /** Expirado ou enviado vencido: volta a Enviado com validade nova e abre para reenviar. */
+  aoRenovar?: (o: OrcamentoDoQuadro) => void;
 }) {
   const colunas = montarQuadro(orcamentos, { mostrarValores });
   return (
@@ -159,6 +163,17 @@ export function QuadroDeOrcamentos({
                   </button>
                   {COLUNAS_DO_ENVIADO.includes(c.id) && (
                     <EtapaDoEnviado o={o} coluna={c.id} agora={agora} podeMover={podeMover} aoMoverEtapa={aoMoverEtapa} />
+                  )}
+                  {podeMover && aoRenovar && podeRenovar(o, agora) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 h-10 w-full text-sm"
+                      onClick={() => aoRenovar(o)}
+                      data-testid="renovar-orcamento"
+                    >
+                      <RefreshCw className="mr-1 h-3.5 w-3.5" aria-hidden="true" /> Renovar e reenviar
+                    </Button>
                   )}
                   {c.id === "aprovado" && podeConverter && (
                     <Button size="sm" className="mt-3 h-10 w-full text-sm" onClick={() => aoConverter(o)}>

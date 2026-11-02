@@ -9,6 +9,7 @@ import { FunilDoOrcamento } from "@/components/orcamento/funil-do-orcamento";
 import { OrcamentoComIa } from "@/components/orcamento/orcamento-com-ia";
 import { QuadroDeOrcamentos } from "@/components/orcamento/quadro-de-orcamentos";
 import { ETAPAS_DO_ENVIADO, etapaParaGravar, type EtapaDoEnviado } from "@/domain/orcamentos/quadro";
+import { camposDaRenovacao } from "@/domain/orcamentos/renovacao";
 import { Checkbox } from "@/components/ui/checkbox";
 import { chaveWhatsApp } from "@/domain/documentos";
 import { recebeWhatsApp } from "@/domain/documentos";
@@ -326,6 +327,21 @@ function OrcamentosPage() {
     toast.success(`Orçamento #${orc.numero}: ${rotulo.toLowerCase()}`);
   }
 
+  // Expirado ou enviado vencido: volta a Enviado com a validade contando de novo e abre o
+  // orçamento para mandar ao cliente pelo botão de sempre. Nada é enviado daqui.
+  async function renovarOrcamento(orc: { id: string; numero?: unknown }) {
+    const { data, error } = await supabase
+      .from("orcamentos")
+      .update(camposDaRenovacao(new Date()))
+      .eq("id", orc.id)
+      .select("id");
+    if (error) return toast.error(mensagemErro(error));
+    if (!data || data.length === 0) return toast.error("Seu perfil não pode alterar este orçamento.");
+    qc.invalidateQueries({ queryKey: ["orcamentos"] });
+    toast.success(`Orçamento #${orc.numero}: validade renovada. Agora mande ao cliente pelo botão Enviar.`);
+    navigate({ to: "/orcamentos/$id", params: { id: orc.id } });
+  }
+
   async function converterEmOS(orc: any) {
     if (!orc.cliente_id)
       return toast.error(
@@ -570,6 +586,7 @@ function OrcamentosPage() {
             aoAbrir={(id) => navigate({ to: "/orcamentos/$id", params: { id } })}
             aoConverter={(o) => converterEmOS(o)}
             aoMoverEtapa={(o, etapa) => moverEtapa(o, etapa)}
+            aoRenovar={(o) => renovarOrcamento(o)}
           />
         ) : (
         <Table>
