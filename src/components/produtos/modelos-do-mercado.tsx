@@ -125,7 +125,7 @@ export function ModelosDoMercado({
                   </div>
                 </div>
                 {m.produto_id ? (
-                  <Badge variant="outline">Já trazido</Badge>
+                  <Badge variant="outline">Já no catálogo</Badge>
                 ) : (
                   <Button size="sm" variant="outline" disabled={trazer.isPending} onClick={() => trazer.mutate(m)}>
                     <Plus className="mr-1 h-4 w-4" /> Trazer
