@@ -640,27 +640,27 @@ function FluxoCaixaPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-2">
-              <Label className="flex items-center gap-1.5">Descrição *<DicaIcone texto={dicaCampo("/fluxo-caixa", "Descrição *")} rotulo="Descrição *" /></Label>
-              <Input
+              <Label htmlFor="fluxo-10-descricao" className="flex items-center gap-1.5">Descrição *<DicaIcone texto={dicaCampo("/fluxo-caixa", "Descrição *")} rotulo="Descrição *" /></Label>
+              <Input id="fluxo-10-descricao"
                 value={conta.descricao}
                 onChange={(e) => setConta((c) => ({ ...c, descricao: e.target.value }))}
                 placeholder="Bobina de lona 440g"
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Fornecedor<DicaIcone texto={dicaCampo("/fluxo-caixa", "Fornecedor")} rotulo="Fornecedor" /></Label>
-              <Input
+              <Label htmlFor="fluxo-9-fornecedor" className="flex items-center gap-1.5">Fornecedor<DicaIcone texto={dicaCampo("/fluxo-caixa", "Fornecedor")} rotulo="Fornecedor" /></Label>
+              <Input id="fluxo-9-fornecedor"
                 value={conta.fornecedor}
                 onChange={(e) => setConta((c) => ({ ...c, fornecedor: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/fluxo-caixa", "Categoria")} rotulo="Categoria" /></Label>
+              <Label htmlFor="fluxo-8-categoria" className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/fluxo-caixa", "Categoria")} rotulo="Categoria" /></Label>
               <Select
                 value={conta.categoria}
                 onValueChange={(v) => setConta((c) => ({ ...c, categoria: v }))}
               >
-                <SelectTrigger>
+                <SelectTrigger id="fluxo-8-categoria">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -673,16 +673,16 @@ function FluxoCaixaPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Valor (R$)<DicaIcone texto={dicaCampo("/fluxo-caixa", "Valor (R$)")} rotulo="Valor (R$)" /></Label>
-              <Input
+              <Label htmlFor="fluxo-7-valor-r" className="flex items-center gap-1.5">Valor (R$)<DicaIcone texto={dicaCampo("/fluxo-caixa", "Valor (R$)")} rotulo="Valor (R$)" /></Label>
+              <Input id="fluxo-7-valor-r"
                 type="number"
                 value={conta.valor}
                 onChange={(e) => setConta((c) => ({ ...c, valor: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Vencimento<DicaIcone texto={dicaCampo("/fluxo-caixa", "Vencimento")} rotulo="Vencimento" /></Label>
-              <Input
+              <Label htmlFor="fluxo-6-vencimento" className="flex items-center gap-1.5">Vencimento<DicaIcone texto={dicaCampo("/fluxo-caixa", "Vencimento")} rotulo="Vencimento" /></Label>
+              <Input id="fluxo-6-vencimento"
                 type="date"
                 value={conta.vencimento}
                 onChange={(e) => setConta((c) => ({ ...c, vencimento: e.target.value }))}
@@ -707,9 +707,9 @@ function FluxoCaixaPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Tipo<DicaIcone texto={dicaCampo("/fluxo-caixa", "Tipo")} rotulo="Tipo" /></Label>
+              <Label htmlFor="fluxo-5-tipo" className="flex items-center gap-1.5">Tipo<DicaIcone texto={dicaCampo("/fluxo-caixa", "Tipo")} rotulo="Tipo" /></Label>
               <Select value={mov.tipo} onValueChange={(v) => setMov((m) => ({ ...m, tipo: v }))}>
-                <SelectTrigger>
+                <SelectTrigger id="fluxo-5-tipo">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -719,30 +719,30 @@ function FluxoCaixaPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Data<DicaIcone texto={dicaCampo("/fluxo-caixa", "Data")} rotulo="Data" /></Label>
-              <Input
+              <Label htmlFor="fluxo-4-data" className="flex items-center gap-1.5">Data<DicaIcone texto={dicaCampo("/fluxo-caixa", "Data")} rotulo="Data" /></Label>
+              <Input id="fluxo-4-data"
                 type="date"
                 value={mov.data}
                 onChange={(e) => setMov((m) => ({ ...m, data: e.target.value }))}
               />
             </div>
             <div className="sm:col-span-2 space-y-2">
-              <Label className="flex items-center gap-1.5">Descrição *<DicaIcone texto={dicaCampo("/fluxo-caixa", "Descrição *")} rotulo="Descrição *" /></Label>
-              <Input
+              <Label htmlFor="fluxo-3-descricao" className="flex items-center gap-1.5">Descrição *<DicaIcone texto={dicaCampo("/fluxo-caixa", "Descrição *")} rotulo="Descrição *" /></Label>
+              <Input id="fluxo-3-descricao"
                 value={mov.descricao}
                 onChange={(e) => setMov((m) => ({ ...m, descricao: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/fluxo-caixa", "Categoria")} rotulo="Categoria" /></Label>
-              <Input
+              <Label htmlFor="fluxo-2-categoria" className="flex items-center gap-1.5">Categoria<DicaIcone texto={dicaCampo("/fluxo-caixa", "Categoria")} rotulo="Categoria" /></Label>
+              <Input id="fluxo-2-categoria"
                 value={mov.categoria}
                 onChange={(e) => setMov((m) => ({ ...m, categoria: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Valor (R$)<DicaIcone texto={dicaCampo("/fluxo-caixa", "Valor (R$)")} rotulo="Valor (R$)" /></Label>
-              <Input
+              <Label htmlFor="fluxo-1-valor-r" className="flex items-center gap-1.5">Valor (R$)<DicaIcone texto={dicaCampo("/fluxo-caixa", "Valor (R$)")} rotulo="Valor (R$)" /></Label>
+              <Input id="fluxo-1-valor-r"
                 type="number"
                 value={mov.valor}
                 onChange={(e) => setMov((m) => ({ ...m, valor: e.target.value }))}

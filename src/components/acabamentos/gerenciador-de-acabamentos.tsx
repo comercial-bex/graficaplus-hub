@@ -309,21 +309,21 @@ export function GerenciadorDeAcabamentos({ aberto, aoFechar }: { aberto: boolean
             }}
           >
             <div className="space-y-1.5">
-              <Label>Nome *</Label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Corte a laser (CNC Laser)" />
+              <Label htmlFor="acabamento-11-nome">Nome *</Label>
+              <Input id="acabamento-11-nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Corte a laser (CNC Laser)" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Processo</Label>
+                <Label htmlFor="acabamento-10-processo">Processo</Label>
                 <Select value={form.processo} onValueChange={(v) => setForm({ ...form, processo: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="acabamento-10-processo"><SelectValue /></SelectTrigger>
                   <SelectContent>{PROCESSOS.map((p) => <SelectItem key={p.valor} value={p.valor}>{p.rotulo}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Máquina</Label>
+                <Label htmlFor="acabamento-9-maquina">Máquina</Label>
                 <Select value={form.maquina_id || "nenhuma"} onValueChange={(v) => setForm({ ...form, maquina_id: v === "nenhuma" ? "" : v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="acabamento-9-maquina"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="nenhuma">Sem máquina (manual)</SelectItem>
                     {(maquinas.data ?? []).map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
@@ -333,26 +333,26 @@ export function GerenciadorDeAcabamentos({ aberto, aoFechar }: { aberto: boolean
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>Cobrado</Label>
+                <Label htmlFor="acabamento-8-cobrado">Cobrado</Label>
                 <Select value={form.base} onValueChange={(v) => setForm({ ...form, base: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="acabamento-8-cobrado"><SelectValue /></SelectTrigger>
                   <SelectContent>{BASES.map((b) => <SelectItem key={b.valor} value={b.valor}>{b.rotulo}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Min. de máquina / {unidadeDaBase(form.base)}</Label>
-                <Input inputMode="decimal" value={form.minutos_maquina} onChange={(e) => setForm({ ...form, minutos_maquina: e.target.value })} />
+                <Label htmlFor="acabamento-7-min-de-maquina">Min. de máquina / {unidadeDaBase(form.base)}</Label>
+                <Input id="acabamento-7-min-de-maquina" inputMode="decimal" value={form.minutos_maquina} onChange={(e) => setForm({ ...form, minutos_maquina: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Min. de gente / {unidadeDaBase(form.base)}</Label>
-                <Input inputMode="decimal" value={form.minutos_mao_de_obra} onChange={(e) => setForm({ ...form, minutos_mao_de_obra: e.target.value })} />
+                <Label htmlFor="acabamento-6-min-de-gente">Min. de gente / {unidadeDaBase(form.base)}</Label>
+                <Input id="acabamento-6-min-de-gente" inputMode="decimal" value={form.minutos_mao_de_obra} onChange={(e) => setForm({ ...form, minutos_mao_de_obra: e.target.value })} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1.5">
-                <Label>Material gasto (opcional)</Label>
+                <Label htmlFor="acabamento-5-material-gasto-opcional">Material gasto (opcional)</Label>
                 <Select value={form.material_id || "nenhum"} onValueChange={(v) => setForm({ ...form, material_id: v === "nenhum" ? "" : v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="acabamento-5-material-gasto-opcional"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="nenhum">Nenhum</SelectItem>
                     {(materiais.data ?? []).map((m) => <SelectItem key={m.id} value={m.id}>{m.nome} ({m.unidade})</SelectItem>)}
@@ -360,23 +360,23 @@ export function GerenciadorDeAcabamentos({ aberto, aoFechar }: { aberto: boolean
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Qtd / {unidadeDaBase(form.base)}</Label>
-                <Input inputMode="decimal" value={form.material_qtd} disabled={!form.material_id} onChange={(e) => setForm({ ...form, material_qtd: e.target.value })} />
+                <Label htmlFor="acabamento-4-qtd">Qtd / {unidadeDaBase(form.base)}</Label>
+                <Input id="acabamento-4-qtd" inputMode="decimal" value={form.material_qtd} disabled={!form.material_id} onChange={(e) => setForm({ ...form, material_qtd: e.target.value })} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Preço de venda / {unidadeDaBase(form.base)} (R$)</Label>
-                <Input inputMode="decimal" value={form.preco_venda} onChange={(e) => setForm({ ...form, preco_venda: e.target.value })} placeholder="vazio = sem preço" />
+                <Label htmlFor="acabamento-3-preco-de-venda-r">Preço de venda / {unidadeDaBase(form.base)} (R$)</Label>
+                <Input id="acabamento-3-preco-de-venda-r" inputMode="decimal" value={form.preco_venda} onChange={(e) => setForm({ ...form, preco_venda: e.target.value })} placeholder="vazio = sem preço" />
               </div>
               <div className="space-y-1.5">
-                <Label>Preço de parceiro (R$)</Label>
-                <Input inputMode="decimal" value={form.preco_parceiro} onChange={(e) => setForm({ ...form, preco_parceiro: e.target.value })} placeholder="vazio = sem preço" />
+                <Label htmlFor="acabamento-2-preco-de-parceiro-r">Preço de parceiro (R$)</Label>
+                <Input id="acabamento-2-preco-de-parceiro-r" inputMode="decimal" value={form.preco_parceiro} onChange={(e) => setForm({ ...form, preco_parceiro: e.target.value })} placeholder="vazio = sem preço" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Observação</Label>
-              <Textarea rows={2} value={form.observacao} onChange={(e) => setForm({ ...form, observacao: e.target.value })} />
+              <Label htmlFor="acabamento-1-observacao">Observação</Label>
+              <Textarea id="acabamento-1-observacao" rows={2} value={form.observacao} onChange={(e) => setForm({ ...form, observacao: e.target.value })} />
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} id="acabamento-ativo" />

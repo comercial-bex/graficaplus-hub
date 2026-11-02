@@ -455,31 +455,31 @@ function ContasBancariasPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label className="flex items-center gap-1.5">
+              <Label htmlFor="conta-7-nome-da-conta" className="flex items-center gap-1.5">
                 Nome da conta *
                 <DicaIcone
                   texto="Como você chama essa conta no dia a dia, ex.: Itaú Movimento."
                   rotulo="Nome da conta"
                 />
               </Label>
-              <Input
+              <Input id="conta-7-nome-da-conta"
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 placeholder="Itaú movimento"
               />
             </div>
             <div className="space-y-2">
-              <Label>Banco</Label>
-              <Input
+              <Label htmlFor="conta-6-banco">Banco</Label>
+              <Input id="conta-6-banco"
                 value={form.banco}
                 onChange={(e) => setForm({ ...form, banco: e.target.value })}
                 placeholder="Itaú"
               />
             </div>
             <div className="space-y-2">
-              <Label>Tipo</Label>
+              <Label htmlFor="conta-5-tipo">Tipo</Label>
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                <SelectTrigger>
+                <SelectTrigger id="conta-5-tipo">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -491,28 +491,28 @@ function ContasBancariasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Agência</Label>
-              <Input
+              <Label htmlFor="conta-4-agencia">Agência</Label>
+              <Input id="conta-4-agencia"
                 value={form.agencia}
                 onChange={(e) => setForm({ ...form, agencia: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label>Conta</Label>
-              <Input
+              <Label htmlFor="conta-3-conta">Conta</Label>
+              <Input id="conta-3-conta"
                 value={form.conta}
                 onChange={(e) => setForm({ ...form, conta: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">
+              <Label htmlFor="conta-2-saldo-de-partida-r" className="flex items-center gap-1.5">
                 Saldo de partida (R$)
                 <DicaIcone
                   texto="Saldo que a conta tinha na data abaixo. O extrato importado soma a partir daqui."
                   rotulo="Saldo de partida"
                 />
               </Label>
-              <Input
+              <Input id="conta-2-saldo-de-partida-r"
                 type="number"
                 step="0.01"
                 value={form.saldo_inicial}
@@ -520,8 +520,8 @@ function ContasBancariasPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Data do saldo</Label>
-              <Input
+              <Label htmlFor="conta-1-data-do-saldo">Data do saldo</Label>
+              <Input id="conta-1-data-do-saldo"
                 type="date"
                 value={form.saldo_inicial_data}
                 onChange={(e) => setForm({ ...form, saldo_inicial_data: e.target.value })}

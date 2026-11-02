@@ -162,17 +162,17 @@ function FilamentosPage() {
             </DialogHeader>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2 col-span-2">
-                <Label>Nome *</Label>
-                <Input
+                <Label htmlFor="filamento-8-nome">Nome *</Label>
+                <Input id="filamento-8-nome"
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   placeholder="PLA 3DX Natural"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tipo *</Label>
+                <Label htmlFor="filamento-7-tipo">Tipo *</Label>
                 <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="filamento-7-tipo">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -185,20 +185,20 @@ function FilamentosPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Marca</Label>
-                <Input
+                <Label htmlFor="filamento-6-marca">Marca</Label>
+                <Input id="filamento-6-marca"
                   value={form.marca}
                   onChange={(e) => setForm({ ...form, marca: e.target.value })}
                   placeholder="3DX / eSUN / Voolt"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Cor</Label>
-                <Input value={form.cor} onChange={(e) => setForm({ ...form, cor: e.target.value })} placeholder="Natural" />
+                <Label htmlFor="filamento-5-cor">Cor</Label>
+                <Input id="filamento-5-cor" value={form.cor} onChange={(e) => setForm({ ...form, cor: e.target.value })} placeholder="Natural" />
               </div>
               <div className="space-y-2">
-                <Label>Diâmetro (mm)</Label>
-                <Input
+                <Label htmlFor="filamento-4-diametro-mm">Diâmetro (mm)</Label>
+                <Input id="filamento-4-diametro-mm"
                   type="number"
                   step="0.01"
                   value={form.diametro}
@@ -206,8 +206,8 @@ function FilamentosPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Valor por kg (R$) *</Label>
-                <Input
+                <Label htmlFor="filamento-3-valor-por-kg-r">Valor por kg (R$) *</Label>
+                <Input id="filamento-3-valor-por-kg-r"
                   type="number"
                   step="0.01"
                   value={form.custo_por_kg}
@@ -216,8 +216,8 @@ function FilamentosPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Peso do carretel (kg)</Label>
-                <Input
+                <Label htmlFor="filamento-2-peso-do-carretel-kg">Peso do carretel (kg)</Label>
+                <Input id="filamento-2-peso-do-carretel-kg"
                   type="number"
                   step="0.01"
                   value={form.peso_kg}
@@ -225,8 +225,8 @@ function FilamentosPage() {
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label>Fator de aproveitamento (0–1)</Label>
-                <Input
+                <Label htmlFor="filamento-1-fator-de-aproveitamento-01">Fator de aproveitamento (0–1)</Label>
+                <Input id="filamento-1-fator-de-aproveitamento-01"
                   type="number"
                   step="0.01"
                   value={form.fator_aproveitamento}
