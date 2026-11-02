@@ -130,6 +130,18 @@ Cada fase é um PR a partir de `origin/main`, com `npx tsc --noEmit` e `TZ=UTC n
 
 Ordem de execução nesta sessão: 1, 2, 5 (parte de dados, não depende de tela), 4, 3, 6; a 7 espera a decisão.
 
+## 4.1 Estado na noite de 02/11
+
+| Fase | Estado |
+|---|---|
+| 1. A pasta vira a tela do produto | Mesclada (#399) e NO AR (deploy 810670ea, 10 marcadores provados nos arquivos `produtos-*` e `produtos_._id-*`) |
+| 2. Aba Campos | Mesclada (#400) e NO AR (deploy ba4386e7, 7 marcadores); migração `20261102210000` aplicada; 18 campos opcionais semeados em placas, letreiros, brindes e acrílico (desfazer: `DELETE FROM produto_perguntas WHERE finalidade='informacao' AND created_at::date='2026-11-02'`) |
+| 3. Custos manuais e terceirizados | Materiais da ficha já estão na pasta (fase 1). Horas de gente por processo e a tabela de terceirizados esperam a resposta do dono sobre o que a gráfica terceiriza |
+| 4. Fórmulas no custo | Mesclada (#402); migração `20261102220000` aplicada e ensaiada; publicação em andamento ao fim da sessão |
+| 5. Preencher | Catálogo do Holdprint atualizado em `catalogo_modelos` (33 nomes novos, 442 no total; só nome, sem produto). Campos semeados (fase 2). Fotos por IA dependem de alguém logado clicar "Gerar fotos que faltam" (o modelo de imagem ainda não foi confirmado). Subfamília não foi semeada: a família já faz esse papel |
+| 6. Pronto para a IA | Mesclada (#404): nota de 0 a 10 na lista e no alto da pasta, com o que falta pelo nome |
+| 7. Menu | Espera o OK do dono para a proposta da seção 3 |
+
 ## 5. Decisões do dono
 
 1. Menu: a proposta da seção 3 serve? O hub Custeio no Financeiro ou como área própria?
