@@ -211,7 +211,7 @@ export function MetaDoMes({ className }: { className?: string }) {
           </CardTitle>
           <Link
             to="/meta"
-            className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[color:var(--bex-cyan)] underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[color:var(--status-cyan)] underline-offset-4 hover:underline"
           >
             ver a conta
             <ArrowRight className="h-4 w-4" />
