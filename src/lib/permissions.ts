@@ -213,6 +213,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   // prefixo, então "/configuracoes-empresa" precisa ser avaliado antes de
   // "/configuracoes" para não depender do detalhe da barra no startsWith.
   { path: "/configuracoes-empresa", permissions: ["configuracoes.manage"] },
+  { path: "/configuracoes-api", permissions: ["configuracoes.manage"] },
   // Lista vazia = qualquer conta com papel: é o "Meu perfil" de cada um. A
   // seção da empresa, dentro da tela, continua pedindo configuracoes.manage.
   { path: "/configuracoes", permissions: [] },
