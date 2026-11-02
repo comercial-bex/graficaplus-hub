@@ -53,6 +53,24 @@ describe("campos com nome", () => {
   });
 });
 
+describe("editor do orçamento em 390 px (medido ao vivo em 02/11/2026: coluna de 428 px cortava o resumo)", () => {
+  const EDITOR = ler("src/components/parceiro/editor-de-orcamento.tsx");
+  const BARRA = ler("src/components/parceiro/barra-de-passos.tsx");
+  const MENU = ler("src/components/parceiro/menu-do-parceiro.tsx");
+  const CONVITE = ler("src/components/parceiro/convite-card.tsx");
+  it("os filhos da grade têm min-w-0 e a barra de passos só mostra o nome do passo atual no celular", () => {
+    expect(EDITOR).toContain('<div className="min-w-0 space-y-5">');
+    expect(EDITOR).toContain('<aside className="h-fit min-w-0 space-y-3 lg:sticky lg:top-28">');
+    expect(BARRA).toContain('!ativo && "hidden sm:inline"');
+    expect(BARRA).toContain("w-full min-w-0 flex-col");
+  });
+  it("a barra de baixo usa nome curto e o link de convite ocupa a linha inteira no celular", () => {
+    expect(MENU).toContain('curto: "Tabela"');
+    expect(CASCA).toContain("{item.curto}");
+    expect(CONVITE).toContain("basis-full");
+  });
+});
+
 describe("andamento do pedido no celular", () => {
   it("os cinco nomes só aparecem a partir de sm; no celular o passo atual é dito por extenso", () => {
     expect(PEDIDOS).toContain('"hidden truncate text-xs sm:block"');

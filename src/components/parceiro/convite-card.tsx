@@ -61,7 +61,8 @@ export function ConviteCard({ painel }: { painel: PainelDoParceiro }) {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <code className="min-w-0 flex-1 truncate rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs">
+        {/* No celular o link ocupa a linha inteira: dividindo com os botões sobrava "https:…" */}
+        <code className="min-w-0 basis-full truncate rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs sm:flex-1 sm:basis-auto">
           {link}
         </code>
         <Button variant="outline" size="sm" onClick={copiar}>

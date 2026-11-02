@@ -83,7 +83,8 @@ function OrcamentosDoParceiro() {
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1" role="tablist">
+        {/* as abas rolam de lado no celular; a barra de rolagem visível por baixo delas era só ruído */}
+        <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 [scrollbar-width:none]" role="tablist">
           {FILTROS.map((f) => (
             <button
               key={f.chave}

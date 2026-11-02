@@ -89,8 +89,8 @@ export function Casca({
                 selecionado ? "text-status-cyan" : "text-muted-foreground",
               )}
             >
-              <item.icone className="h-5 w-5" />
-              {item.rotulo}
+              <item.icone className="h-5 w-5" aria-hidden="true" />
+              {item.curto}
             </Link>
           );
         })}
