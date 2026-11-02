@@ -14,12 +14,21 @@ import { alternarAcabamento, temAcabamento } from "@/domain/orcamentos/tipos-de-
 
 export type TipoDeResposta = "unica" | "multipla" | "numero" | "texto";
 
+/**
+ * Para que a pergunta existe (aba Campos, 02/11/2026). `cobranca` é a pergunta
+ * do Checklist: pode acrescentar processo e cobrar. `informacao` é o campo da
+ * aba Campos: só informa a produção e a arte (texto da placa, cor, nome no
+ * brinde) e nunca acrescenta processo.
+ */
+export type FinalidadeDaPergunta = "cobranca" | "informacao";
+
 export type PerguntaDoProduto = {
   id: string;
   pergunta: string;
   descricao: string | null;
   obrigatoria: boolean;
   tipo_resposta: TipoDeResposta;
+  finalidade: FinalidadeDaPergunta;
   /** Opções, para `unica` e `multipla`. */
   respostas: string[];
   /** "Se a resposta for X, acrescenta o processo Y". */
@@ -68,14 +77,17 @@ export function perguntaDaLinha(l: Record<string, unknown>): PerguntaDoProduto {
         .map((a) => ({ resposta: textoLimpo((a as { resposta?: unknown })?.resposta), processo_id: textoLimpo((a as { processo_id?: unknown })?.processo_id) }))
         .filter((a) => a.resposta && a.processo_id)
     : [];
+  const informacao = l.finalidade === "informacao";
   return {
     id: String(l.id ?? ""),
     pergunta: textoLimpo(l.pergunta),
     descricao: textoLimpo(l.descricao) || null,
     obrigatoria: l.obrigatoria !== false,
     tipo_resposta: (["unica", "multipla", "numero", "texto"].includes(tipo) ? tipo : "unica") as TipoDeResposta,
+    finalidade: informacao ? "informacao" : "cobranca",
     respostas,
-    acoes,
+    // Campo de informação nunca acrescenta processo, mesmo que alguém grave uma ação por fora.
+    acoes: informacao ? [] : acoes,
     ordem: Number(l.ordem ?? 0) || 0,
     resposta_padrao: textoLimpo(l.resposta_padrao) || null,
     nao_perguntar: l.nao_perguntar === true && textoLimpo(l.resposta_padrao) !== "",
@@ -182,6 +194,17 @@ export function acabamentoAjustado(
   for (const n of nomesAntes) if (!nomesDepois.includes(n) && temAcabamento(texto, n)) texto = alternarAcabamento(texto, n);
   for (const n of nomesDepois) if (!temAcabamento(texto, n)) texto = alternarAcabamento(texto, n);
   return texto;
+}
+
+/** As perguntas do Checklist e os campos da aba Campos, cada grupo na ordem do cadastro. */
+export function perguntasPorFinalidade(perguntas: readonly PerguntaDoProduto[]): {
+  cobranca: PerguntaDoProduto[];
+  informacao: PerguntaDoProduto[];
+} {
+  return {
+    cobranca: perguntas.filter((p) => p.finalidade !== "informacao"),
+    informacao: perguntas.filter((p) => p.finalidade === "informacao"),
+  };
 }
 
 /** "Aplicado por nós: Sim · Embalagem: Caixa", para o resumo do item. */

@@ -136,7 +136,7 @@ export async function exigeQuemOrca(context: { supabase: any; userId: string }) 
 }
 
 export const COLUNAS_DA_PERGUNTA =
-  "id, produto_id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, ordem, resposta_padrao, nao_perguntar, ia_modo, ia_resposta, ia_instrucao";
+  "id, produto_id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, ordem, resposta_padrao, nao_perguntar, ia_modo, ia_resposta, ia_instrucao, finalidade";
 
 /** Os produtos liberados para a IA, com roteiro, acabamentos, tamanhos e checklist. */
 export async function produtosParaIa(db: any): Promise<ProdutoParaIa[]> {

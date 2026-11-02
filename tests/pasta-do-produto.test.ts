@@ -17,7 +17,7 @@ const conta = (s: string) => avaliarFormula(s, medidas);
 describe("a pasta do produto (01/11/2026)", () => {
   it("as abas: preço só para quem vê preço", () => {
     expect(abasDaPasta({ canSeePrices: true }).map((a) => a.id)).toEqual([
-      "descricao", "preco", "parametros", "processos", "formulas", "checklist", "ia", "info", "historico",
+      "descricao", "preco", "parametros", "processos", "formulas", "checklist", "ia", "info", "campos", "historico",
     ]);
     expect(abasDaPasta({ canSeePrices: false }).map((a) => a.id)).not.toContain("preco");
   });

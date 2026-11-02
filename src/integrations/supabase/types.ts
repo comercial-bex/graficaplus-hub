@@ -13944,6 +13944,7 @@ export type Database = {
           acoes: Json
           created_at: string
           descricao: string | null
+          finalidade: string
           ia_instrucao: string | null
           ia_modo: string
           ia_resposta: string | null
@@ -13961,6 +13962,7 @@ export type Database = {
           acoes?: Json
           created_at?: string
           descricao?: string | null
+          finalidade?: string
           ia_instrucao?: string | null
           ia_modo?: string
           ia_resposta?: string | null
@@ -13978,6 +13980,7 @@ export type Database = {
           acoes?: Json
           created_at?: string
           descricao?: string | null
+          finalidade?: string
           ia_instrucao?: string | null
           ia_modo?: string
           ia_resposta?: string | null

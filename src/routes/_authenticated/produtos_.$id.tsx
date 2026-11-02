@@ -845,6 +845,10 @@ function PastaDoProduto() {
           {botaoSalvar}
         </TabsContent>
 
+        <TabsContent value="campos" className="pt-2">
+          <AbaChecklist produtoId={id} podeEditar={podeEditar} finalidade="informacao" />
+        </TabsContent>
+
         <TabsContent value="historico" className="pt-2">
           <AbaHistorico produtoId={id} />
         </TabsContent>
@@ -1521,9 +1525,24 @@ function InstrucaoDaIa({
   );
 }
 
-function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar: boolean }) {
+/**
+ * A aba Checklist (perguntas que guiam o orçamento e podem cobrar) e a aba
+ * Campos (o que a produção e a arte precisam saber, sem mexer no preço) são a
+ * mesma tela com finalidades diferentes: a mesma tabela, o mesmo item do
+ * orçamento, a mesma gravação em `orcamento_itens.respostas`.
+ */
+function AbaChecklist({
+  produtoId,
+  podeEditar,
+  finalidade = "cobranca",
+}: {
+  produtoId: string;
+  podeEditar: boolean;
+  finalidade?: "cobranca" | "informacao";
+}) {
   const qc = useQueryClient();
   const catalogo = useProcessos();
+  const ehCampo = finalidade === "informacao";
   const [pergunta, setPergunta] = useState("");
   const [descricao, setDescricao] = useState("");
   const [obrigatoria, setObrigatoria] = useState(true);
@@ -1532,16 +1551,17 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
   const [acoes, setAcoes] = useState<AcaoDaResposta[]>([]);
   const [respostaPadrao, setRespostaPadrao] = useState("");
   const [naoPerguntar, setNaoPerguntar] = useState(false);
-  const chave = ["pasta-perguntas", produtoId];
+  const chave = ["pasta-perguntas", produtoId, finalidade];
   const lista = useQuery({
     queryKey: chave,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("produto_perguntas")
         .select(
-          "id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, resposta_padrao, nao_perguntar, ia_modo, ia_resposta, ia_instrucao",
+          "id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, resposta_padrao, nao_perguntar, ia_modo, ia_resposta, ia_instrucao, finalidade",
         )
         .eq("produto_id", produtoId)
+        .eq("finalidade", finalidade)
         .order("ordem");
       if (error) throw error;
       return (data ?? []) as any[];
@@ -1556,6 +1576,7 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
     acoes,
     resposta_padrao: respostaPadrao,
     nao_perguntar: naoPerguntar,
+    finalidade,
   });
   const nomeDoProcesso = useMemo(
     () => new Map((catalogo.data ?? []).map((c) => [c.id, c.nome])),
@@ -1581,6 +1602,7 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
           ordem: (lista.data ?? []).length,
           resposta_padrao: respostaPadrao.trim() || null,
           nao_perguntar: naoPerguntar,
+          finalidade,
         })
         .select("id");
       if (error) throw error;
@@ -1616,10 +1638,23 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
       {podeEditar && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Nova pergunta para guiar o orçamento</CardTitle>
+            <CardTitle className="text-base">
+              {ehCampo ? "Novo campo para a produção e a arte" : "Nova pergunta para guiar o orçamento"}
+            </CardTitle>
+            {ehCampo && (
+              <p className="text-sm text-muted-foreground">
+                O item do orçamento pergunta e a resposta vai para a produção: texto da placa, cor,
+                nome no brinde. Não mexe no preço.
+              </p>
+            )}
           </CardHeader>
           <CardContent className="space-y-3">
-            <Campo rotulo="Pergunta" valor={pergunta} desativado={false} aoMudar={setPergunta} />
+            <Campo
+              rotulo={ehCampo ? "Nome do campo" : "Pergunta"}
+              valor={pergunta}
+              desativado={false}
+              aoMudar={setPergunta}
+            />
             <Campo
               rotulo="Explicação (opcional)"
               valor={descricao}
@@ -1666,7 +1701,7 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
                 já decidiu
               </label>
             </div>
-            {comLista && (
+            {comLista && !ehCampo && (
               <div className="space-y-2 rounded border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium">O que cada resposta acrescenta</span>
@@ -1736,16 +1771,18 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
               disabled={!!pendencia || adicionar.isPending}
               onClick={() => adicionar.mutate()}
             >
-              <Plus className="mr-1.5 h-4 w-4" /> Acrescentar pergunta
+              <Plus className="mr-1.5 h-4 w-4" /> {ehCampo ? "Acrescentar campo" : "Acrescentar pergunta"}
             </Button>
           </CardContent>
         </Card>
       )}
-      <Card>
+      <Card data-testid={ehCampo ? "campos-do-produto" : "checklist-do-produto"}>
         <CardContent className="space-y-2 pt-6">
           {(lista.data ?? []).length === 0 && !lista.isLoading && (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              Nenhuma pergunta neste produto.
+              {ehCampo
+                ? "Nenhum campo neste produto: a produção recebe só o acabamento e a descrição do item."
+                : "Nenhuma pergunta neste produto."}
             </p>
           )}
           {(lista.data ?? []).map((q) => (
