@@ -113,7 +113,7 @@ export function QuadroDeOrcamentos({
 }) {
   const colunas = montarQuadro(orcamentos, { mostrarValores });
   return (
-    <div className="flex gap-4 overflow-x-auto p-4" role="list" aria-label="Quadro de orçamentos">
+    <div className="relative flex gap-4 overflow-x-auto p-4" role="list" aria-label="Quadro de orçamentos">
       {colunas.map((c) => (
         <section
           key={c.id}
