@@ -39,6 +39,8 @@ import { ProgramaTab } from "@/components/parceiros/programa-tab";
 import { RecompensasTab } from "@/components/parceiros/recompensas-tab";
 import { ContadorTab } from "@/components/parceiros/contador-tab";
 import { ComoComecar } from "@/components/parceiros/como-comecar";
+import { RamoDoParceiroLinha, type RamoDoParceiro } from "@/components/parceiros/ramo-do-parceiro";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { dicaAcao, dicaCampo, dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
@@ -74,6 +76,18 @@ function ParceirosPage() {
     queryKey: ["parceiros-resumo"],
     queryFn: resumoDosParceiros,
   });
+
+  const { data: ramos = [] } = useQuery({
+    queryKey: ["parceiros-ramo"],
+    queryFn: async (): Promise<RamoDoParceiro[]> => {
+      const { data, error: erro } = await supabase
+        .from("parceiros")
+        .select("id, ramo_atuacao, ramo_outro, comprovacao_url, validado_em");
+      if (erro) throw erro;
+      return (data ?? []) as RamoDoParceiro[];
+    },
+  });
+  const ramoPorId = useMemo(() => new Map(ramos.map((r) => [r.id, r])), [ramos]);
 
   const comSinal = useMemo(
     () =>
@@ -247,6 +261,7 @@ function ParceirosPage() {
                         {p.responsavel_nome ? ` · atende ${p.responsavel_nome}` : " · sem atendente"}
                         {p.usuario_email ? ` · login ${p.usuario_email}` : " · sem login"}
                       </p>
+                      <RamoDoParceiroLinha dados={ramoPorId.get(p.id)} podeValidar={podeEditar} />
                     </div>
                     {podeEditar ? (
                       <DropdownMenu>

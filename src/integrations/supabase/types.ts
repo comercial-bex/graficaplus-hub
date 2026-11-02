@@ -11253,6 +11253,7 @@ export type Database = {
         Row: {
           cliente_id: string
           codigo_convite: string | null
+          comprovacao_url: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -11270,15 +11271,19 @@ export type Database = {
           marca_telefone: string | null
           nivel_fixo_id: string | null
           origem_cadastro: Json | null
+          ramo_atuacao: string | null
+          ramo_outro: string | null
           responsavel_id: string | null
           status: string
           ultimo_acesso_em: string | null
           updated_at: string
           usuario_id: string | null
+          validado_em: string | null
         }
         Insert: {
           cliente_id: string
           codigo_convite?: string | null
+          comprovacao_url?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -11296,15 +11301,19 @@ export type Database = {
           marca_telefone?: string | null
           nivel_fixo_id?: string | null
           origem_cadastro?: Json | null
+          ramo_atuacao?: string | null
+          ramo_outro?: string | null
           responsavel_id?: string | null
           status?: string
           ultimo_acesso_em?: string | null
           updated_at?: string
           usuario_id?: string | null
+          validado_em?: string | null
         }
         Update: {
           cliente_id?: string
           codigo_convite?: string | null
+          comprovacao_url?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -11322,11 +11331,14 @@ export type Database = {
           marca_telefone?: string | null
           nivel_fixo_id?: string | null
           origem_cadastro?: Json | null
+          ramo_atuacao?: string | null
+          ramo_outro?: string | null
           responsavel_id?: string | null
           status?: string
           ultimo_acesso_em?: string | null
           updated_at?: string
           usuario_id?: string | null
+          validado_em?: string | null
         }
         Relationships: [
           {
@@ -21598,11 +21610,14 @@ export type Database = {
         Args: {
           p_cidade?: string
           p_codigo: string
+          p_comprovacao?: string
           p_documento?: string
           p_email?: string
           p_estado?: string
           p_marca_nome: string
           p_origem?: Json
+          p_ramo?: string
+          p_ramo_outro?: string
           p_telefone?: string
           p_usuario_id: string
         }

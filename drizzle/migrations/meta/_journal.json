@@ -43,6 +43,13 @@
       "when": 1793641187753,
       "tag": "0005_parceiro_origem_e_whatsapp_obrigatorio",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793646441107,
+      "tag": "0006_parceiro_ramo_e_comprovacao",
+      "breakpoints": true
     }
   ]
 }

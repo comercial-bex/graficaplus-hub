@@ -9,6 +9,7 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { mensagemErro } from "@/lib/erros";
 import { cadastroParceiroConcluidoMeta, lerOrigemDaUrl, META_PIXEL_ID } from "@/lib/metaPixel";
 import { useEffect } from "react";
+import { RAMOS, normalizarComprovacao } from "@/domain/parceiros/ramo";
 
 /** Máscara (XX) XXXXX-XXXX / (XX) XXXX-XXXX. */
 function mascaraWhatsapp(v: string): string {
@@ -105,6 +106,9 @@ function ConvitePage() {
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
   const [email, setEmail] = useState("");
+  const [ramo, setRamo] = useState("");
+  const [ramoOutro, setRamoOutro] = useState("");
+  const [comprovacao, setComprovacao] = useState("");
   const [senha, setSenha] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [pronto, setPronto] = useState(false);
@@ -118,6 +122,10 @@ function ConvitePage() {
     e.preventDefault();
     if (!empresa.trim()) return toast.error("Diga o nome da sua empresa.");
     if (!whatsappValido(telefone)) return toast.error("Informe um WhatsApp válido com DDD: (XX) XXXXX-XXXX.");
+    if (!ramo) return toast.error("Escolha o seu ramo de atuação.");
+    if (ramo === "outro" && !ramoOutro.trim()) return toast.error("Diga qual é o seu ramo.");
+    const comprovacaoUrl = normalizarComprovacao(comprovacao);
+    if (comprovacaoUrl.length < 3) return toast.error("Informe o Instagram ou site do seu negócio.");
     if (senha.length < 6) return toast.error("A senha precisa de pelo menos 6 caracteres.");
 
     setEnviando(true);
@@ -148,6 +156,9 @@ function ConvitePage() {
         p_cidade: cidade.trim() || null,
         p_estado: estado.trim().toUpperCase() || null,
         p_origem: origem,
+        p_ramo: ramo,
+        p_ramo_outro: ramo === "outro" ? ramoOutro.trim() : null,
+        p_comprovacao: comprovacaoUrl,
       });
       // A conta já existe neste ponto. Se o vínculo falhar, a pessoa precisa
       // saber que a senha dela vale — e a gráfica precisa saber que houve uma
@@ -234,6 +245,9 @@ function ConvitePage() {
             ? "Seja parceiro revendedor da Bex Print"
             : `${convite.data.convidado_por} te indicou para o clube de revendedores`}
         </h1>
+        <p className="text-sm font-medium text-foreground">
+          Programa exclusivo para quem trabalha com impressão e comunicação visual.
+        </p>
         <p className="text-sm text-muted-foreground">
           Preço de revendedor, orçamento com a sua marca e crédito a cada compra. Cadastre sua
           empresa abaixo — o acesso ao painel é liberado na hora.
@@ -279,6 +293,39 @@ function ConvitePage() {
           value={telefone}
           onChange={(e) => setTelefone(mascaraWhatsapp(e.target.value))}
         />
+        <select
+          className={inputCls}
+          aria-label="Qual o seu ramo?"
+          value={ramo}
+          onChange={(e) => setRamo(e.target.value)}
+          required
+        >
+          <option value="" disabled>Qual o seu ramo? *</option>
+          {RAMOS.map((r) => (
+            <option key={r.valor} value={r.valor}>{r.rotulo}</option>
+          ))}
+        </select>
+        {ramo === "outro" && (
+          <input
+            className={inputCls}
+            placeholder="Qual? *"
+            value={ramoOutro}
+            onChange={(e) => setRamoOutro(e.target.value)}
+            maxLength={120}
+            required
+          />
+        )}
+        <div>
+          <input
+            className={inputCls}
+            placeholder="Instagram ou site do seu negócio *"
+            value={comprovacao}
+            onChange={(e) => setComprovacao(e.target.value)}
+            maxLength={300}
+            required
+          />
+          <p className="mt-1 px-1 text-xs text-muted-foreground">Usamos para confirmar que você trabalha no ramo.</p>
+        </div>
         <input
           className={inputCls}
           type="email"
