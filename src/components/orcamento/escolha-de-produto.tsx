@@ -23,8 +23,21 @@ import { Input } from "@/components/ui/input";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
 import { brl } from "@/domain/orcamentos/acordo";
 import type { Produto } from "@/lib/produtos-catalogo";
+import { IlustracaoDoTipo } from "@/components/orcamento/ilustracoes-de-tipo";
+import {
+  alternarFavorito,
+  chaveDosFavoritosDeProduto,
+  gravarFavoritosDeProduto,
+  lerFavoritosDeProduto,
+} from "@/domain/orcamentos/favoritos-de-produto";
+import {
+  familiasDoGrupo,
+  filtrarPorFamilia,
+  mostrarFiltroDeFamilia,
+} from "@/domain/orcamentos/familias-na-escolha";
 import {
   agruparPorTipo,
   camposDaUnidade,
@@ -70,6 +83,8 @@ export type ProdutoDaEscolha = Pick<
   > & {
     /** Preço de parceiro (terceirizado); nulo = o produto não tem. */
     preco_parceiro?: number | null;
+    /** Família do catálogo ("Adesivos de carroceria"): vira filtro dentro do tipo. */
+    familia?: string | null;
   };
 
 export type AtalhoDeProdutos = {
@@ -200,8 +215,25 @@ export function EscolhaDeProduto({
   const [trocando, setTrocando] = useState(false);
   // O tipo que a pessoa está olhando. Só vira o tipo do item ao confirmar.
   const [tipoExplorado, setTipoExplorado] = useState<ChaveDoTipo | null>(tipo);
+  // Família marcada dentro do tipo (só filtro; some ao trocar de tipo).
+  const [familiaFiltro, setFamiliaFiltro] = useState<string | null>(null);
+  useEffect(() => setFamiliaFiltro(null), [tipoExplorado]);
   const gradeDeTipos = useColunas();
   const gradeDeProdutos = useColunas();
+
+  // Favoritos de quem está vendendo: lidos do aparelho depois de montar (nada no servidor).
+  const { user } = useAuth();
+  const chaveDosFavoritos = chaveDosFavoritosDeProduto(user?.email);
+  const [favoritos, setFavoritos] = useState<string[]>([]);
+  useEffect(() => {
+    setFavoritos(lerFavoritosDeProduto(chaveDosFavoritos, typeof window === "undefined" ? null : window.localStorage));
+  }, [chaveDosFavoritos]);
+  const alternarEstrela = (id: string) =>
+    setFavoritos((atual) => {
+      const nova = alternarFavorito(atual, id);
+      gravarFavoritosDeProduto(chaveDosFavoritos, nova, typeof window === "undefined" ? null : window.localStorage);
+      return nova;
+    });
 
   const porId = useMemo(() => new Map(produtos.map((p) => [p.id, p])), [produtos]);
   // O "Impressão 3D (serviço)" do catálogo é só a prateleira do tipo: com a calculadora ligada,
@@ -269,6 +301,12 @@ export function EscolhaDeProduto({
   }, [produtos, termo]);
 
   const grupoAtual = tipoAtual ? (grupos.find((g) => g.tipo.chave === tipoAtual.chave) ?? null) : null;
+  const produtosDoGrupo = grupoAtual ? grupoAtual.produtos.filter((p) => !ocultar(p)) : [];
+  const familias = mostrarFiltroDeFamilia(produtosDoGrupo) ? familiasDoGrupo(produtosDoGrupo) : [];
+  const produtosNaGrade = termo ? resultadosDaBusca : filtrarPorFamilia(produtosDoGrupo, familiaFiltro);
+  // Os favoritos entram como o primeiro atalho, antes dos que o orçamento manda.
+  const atalhosComFavoritos: AtalhoDeProdutos[] =
+    favoritos.length > 0 ? [{ titulo: "Favoritos", icone: "Star", ids: favoritos }, ...atalhos] : atalhos;
 
   const escolher = (p: ProdutoDaEscolha) => {
     onEscolherProduto(p);
@@ -277,7 +315,6 @@ export function EscolhaDeProduto({
   };
 
   if (!aberto) {
-    const Icone = tipoConfirmado ? ICONES[tipoConfirmado.icone] : Pencil;
     const preco = produtoAtual && verPreco ? precoLegivel(produtoAtual) : null;
     return (
       <div
@@ -290,9 +327,11 @@ export function EscolhaDeProduto({
             alt=""
             className="h-11 w-11 shrink-0 rounded-md object-cover"
           />
+        ) : tipoConfirmado ? (
+          <IlustracaoDoTipo chave={tipoConfirmado.chave} tamanho={44} marcado />
         ) : (
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary/10 text-link">
-            <Icone className="h-6 w-6" aria-hidden="true" />
+            <Pencil className="h-6 w-6" aria-hidden="true" />
           </span>
         )}
         <div className="min-w-0 flex-1">
@@ -356,7 +395,7 @@ export function EscolhaDeProduto({
       {/* Passo 1 concluído: o tipo vira uma linha curta e a grade fecha. */}
       {tipoAtual && !termo ? (
         <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm" data-testid="tipo-escolhido">
-          <IconeDoTipo icone={tipoAtual.icone} className="h-4 w-4 text-link" />
+          <IlustracaoDoTipo chave={tipoAtual.chave} tamanho={32} marcado />
           <span className="min-w-0 flex-1 truncate font-medium">{tipoAtual.rotulo}</span>
           <Button type="button" variant="ghost" size="sm" className="h-7" disabled={desabilitado} onClick={() => setTipoExplorado(null)}>
             Trocar tipo
@@ -377,7 +416,6 @@ export function EscolhaDeProduto({
             ))
           : grupos.map(({ tipo: t, produtos: lista }, indice) => {
               const marcado = tipoAtual?.chave === t.chave;
-              const Icone = ICONES[t.icone];
               return (
                 <button
                   key={t.chave}
@@ -394,20 +432,15 @@ export function EscolhaDeProduto({
                     if (t.chave === "impressao_3d" && onCalcularPeca3d) onCalcularPeca3d();
                   }}
                   className={cn(
-                    "flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-center transition-colors",
+                    "flex min-h-32 flex-col items-center justify-start gap-1.5 rounded-xl border px-2 pb-2 pt-3 text-center transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     marcado
                       ? "border-primary bg-primary/10 text-foreground shadow-sm"
-                      : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                      : "border-border bg-card text-foreground hover:border-primary/50",
                   )}
                 >
-                  <Icone className={cn("h-6 w-6", marcado ? "text-link" : "")} aria-hidden="true" />
-                  <span className="text-xs font-medium leading-tight">{t.rotulo}</span>
-                  {t.descricao && (
-                    <span className="hidden line-clamp-2 text-xs leading-tight text-muted-foreground sm:block">
-                      {t.descricao}
-                    </span>
-                  )}
+                  <IlustracaoDoTipo chave={t.chave} tamanho={56} marcado={marcado} />
+                  <span className="text-sm font-semibold leading-tight">{t.rotulo}</span>
                   <span className="text-xs leading-none text-muted-foreground">
                     {t.chave === "impressao_3d" && onCalcularPeca3d
                       ? "calculadora"
@@ -434,9 +467,9 @@ export function EscolhaDeProduto({
       </div>}
 
       {/* Atalhos: só antes de escolher tipo ou digitar. */}
-      {!termo && !tipoAtual && atalhos.some((a) => a.ids.some((id) => porId.has(id))) && (
+      {!termo && !tipoAtual && atalhosComFavoritos.some((a) => a.ids.some((id) => porId.has(id))) && (
         <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-          {atalhos.map((a) => {
+          {atalhosComFavoritos.map((a) => {
             const lista = a.ids.map((id) => porId.get(id)).filter((p): p is ProdutoDaEscolha => !!p && !ocultar(p));
             if (lista.length === 0) return null;
             const Icone = ICONES_DOS_ATALHOS[a.icone];
@@ -473,61 +506,103 @@ export function EscolhaDeProduto({
                 : `Encontrados (${resultadosDaBusca.length})`
               : `2. Qual ${grupoAtual!.tipo.rotulo.toLowerCase()}?`}
           </h3>
+          {/* Famílias do tipo como filtro (só quando o tipo é grande): corta a grade sem passo a mais. */}
+          {!termo && familias.length > 0 && (
+            <div role="group" aria-label="Família" className="flex flex-wrap gap-1.5" data-testid="filtro-de-familia">
+              {[{ familia: null as string | null, rotulo: `Todas (${produtosDoGrupo.length})` }, ...familias.map((f) => ({ familia: f.familia as string | null, rotulo: `${f.familia} (${f.quantidade})` }))].map((f) => {
+                const ativo = familiaFiltro === f.familia;
+                return (
+                  <button
+                    key={f.familia ?? "todas"}
+                    type="button"
+                    aria-pressed={ativo}
+                    disabled={desabilitado}
+                    onClick={() => setFamiliaFiltro(f.familia)}
+                    className={cn(
+                      "inline-flex min-h-11 items-center rounded-full border px-3 text-sm font-medium transition-colors sm:min-h-9",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      ativo ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-foreground hover:border-primary/50",
+                    )}
+                  >
+                    {f.rotulo}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div
             ref={gradeDeProdutos.ref}
             role="group"
             aria-label={termo ? "Produtos encontrados" : `Produtos de ${grupoAtual!.tipo.rotulo}`}
             data-colunas={gradeDeProdutos.colunas}
             onKeyDown={moverFocoNaGrade}
-            className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"
+            className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
           >
-            {(termo ? resultadosDaBusca : grupoAtual!.produtos.filter((p) => !ocultar(p))).map((p, indice) => {
+            {produtosNaGrade.map((p, indice) => {
               const t = tipoDoProduto(p);
               const marcado = p.id === produtoId;
+              const favorito = favoritos.includes(p.id);
               const preco = verPreco ? precoLegivel(p) : null;
               const campos = camposDaUnidade(p.unidade);
               return (
-                <button
-                  key={p.id}
-                  type="button"
-                  data-cartao
-                  aria-pressed={marcado}
-                  tabIndex={marcado || (!produtoId && indice === 0) ? 0 : -1}
-                  disabled={desabilitado}
-                  onClick={() => escolher(p)}
-                  className={cn(
-                    "flex min-h-[4.5rem] items-center gap-3 rounded-lg border p-2 text-left transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    marcado
-                      ? "border-primary bg-primary/10 shadow-sm"
-                      : "border-border bg-card hover:border-primary/50",
-                  )}
-                >
-                  {p.imagem_url ? (
-                    <img src={p.imagem_url} alt="" className="h-14 w-14 shrink-0 rounded-md object-cover" />
-                  ) : (
-                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-link">
-                      <IconeDoTipo icone={t.icone} className="h-7 w-7" />
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{p.nome}</span>
-                    {p.descricao && (
-                      <span className="line-clamp-2 text-xs text-muted-foreground">{p.descricao}</span>
+                <div key={p.id} className="relative">
+                  <button
+                    type="button"
+                    data-cartao
+                    aria-pressed={marcado}
+                    tabIndex={marcado || (!produtoId && indice === 0) ? 0 : -1}
+                    disabled={desabilitado}
+                    onClick={() => escolher(p)}
+                    className={cn(
+                      "flex h-full w-full flex-col gap-2 rounded-xl border p-2 text-left transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      marcado
+                        ? "border-primary bg-primary/10 shadow-sm"
+                        : "border-border bg-card hover:border-primary/50",
                     )}
-                    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                      <span className="rounded border px-1.5 py-px font-mono text-xs text-muted-foreground">
-                        {campos.medidas ? "por m²" : `por ${campos.unidadeLegivel}`}
+                  >
+                    {/* Foto do catálogo em cima, como vitrine; sem foto, o desenho do tipo no lugar. */}
+                    {p.imagem_url ? (
+                      <img src={p.imagem_url} alt="" className="aspect-square w-full rounded-lg object-cover" />
+                    ) : (
+                      <span className="grid aspect-square w-full place-items-center rounded-lg bg-muted/40" data-testid="sem-foto">
+                        <IlustracaoDoTipo chave={t.chave} tamanho={56} />
                       </span>
-                      {termo && <span className="text-muted-foreground">{t.rotulo}</span>}
-                      {preco ? (
-                        <span className="font-mono font-medium tabular-nums">{preco}</span>
-                      ) : verPreco ? (
-                        <span className="text-muted-foreground">preço no item</span>
-                      ) : null}
+                    )}
+                    <span className="min-w-0">
+                      <span className="line-clamp-2 text-sm font-semibold leading-snug">{p.nome}</span>
+                      {p.descricao && (
+                        <span className="line-clamp-2 text-xs text-muted-foreground">{p.descricao}</span>
+                      )}
+                      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                        <span className="rounded border px-1.5 py-px font-mono text-xs text-muted-foreground">
+                          {campos.medidas ? "por m²" : `por ${campos.unidadeLegivel}`}
+                        </span>
+                        {termo && <span className="text-muted-foreground">{t.rotulo}</span>}
+                        {preco ? (
+                          <span className="font-mono font-medium tabular-nums">{preco}</span>
+                        ) : verPreco ? (
+                          <span className="text-muted-foreground">preço no item</span>
+                        ) : null}
+                      </span>
                     </span>
-                  </span>
-                </button>
+                  </button>
+                  {/* Estrela fora do cartão (botão dentro de botão não vale): favorito de quem vende. */}
+                  <button
+                    type="button"
+                    aria-pressed={favorito}
+                    aria-label={favorito ? `Tirar ${p.nome} dos favoritos` : `Pôr ${p.nome} nos favoritos`}
+                    disabled={desabilitado}
+                    onClick={() => alternarEstrela(p.id)}
+                    className={cn(
+                      "absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border bg-card/95 shadow-sm transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      favorito ? "border-amber-500 text-amber-600" : "border-border text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Star className={cn("h-4 w-4", favorito && "fill-amber-400")} aria-hidden="true" />
+                  </button>
+                </div>
               );
             })}
 
@@ -540,7 +615,7 @@ export function EscolhaDeProduto({
                 tabIndex={-1}
                 disabled={desabilitado}
                 onClick={onCalcularPeca3d}
-                className="flex min-h-[4.5rem] items-center gap-3 rounded-lg border border-primary/50 bg-primary/5 p-2 text-left transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-span-2 lg:col-span-3"
+                className="col-span-full flex min-h-[4.5rem] items-center gap-3 rounded-lg border border-primary/50 bg-primary/5 p-2 text-left transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-primary/10 text-link">
                   <Box className="h-7 w-7" aria-hidden="true" />
@@ -565,7 +640,7 @@ export function EscolhaDeProduto({
                   onItemLivre(grupoAtual!.tipo);
                   setTrocando(false);
                 }}
-                className="flex min-h-[4.5rem] items-center gap-3 rounded-lg border border-dashed p-2 text-left text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="col-span-full flex min-h-[4.5rem] items-center gap-3 rounded-lg border border-dashed p-2 text-left text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-muted">
                   <Pencil className="h-6 w-6" aria-hidden="true" />

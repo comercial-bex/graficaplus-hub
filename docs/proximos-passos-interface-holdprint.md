@@ -18,6 +18,10 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 | Cadastro 4 | CEP que preenche o endereço e aba Histórico com notas do cliente | Mesclada (#327), migração já aplicada |
 | Caixa | Pix contado em dobro: conciliação do extrato com os pagamentos, automática a cada importação | Mesclada (#324): 9 Pix, R$ 3.197,24 a menos nas entradas |
 | Orçamento | Funil de negociação: Em negociação e Aceite verbal no quadro, validade à vista | Mesclada (#326), migração já aplicada |
+| Seletor F1 | Tipo com desenho no estilo do Holdprint, família como filtro, foto grande no cartão, estrela de favorito e atalho Favoritos | Em PR, migração `20261101230000` (família nas views) |
+| Seletor F2 | Botão "Gerar foto" no produto pela IA do Lovable, fundo branco e marca Bex Print; foto real enviada substitui | Falta |
+| Seletor F3 | Perguntas do produto que puxam acabamento e serviço para o preço | Falta, depende da lista de perguntas do dono |
+| Seletor F4 | Relatórios em cartões com desenho, favoritos e categorias | Falta |
 | 2b | Menu em coluna única com grupos e favoritos | Quase pronta: nome no trilho e subgrupos recolhíveis (#322) e favoritos com estrela (#325); a coluna única só se o dono pedir |
 | 3 | Padrão de lista financeira (chips, período com atalhos, Ações em lote, rodapé de totais) | Quase pronta: Contas a pagar (#316) e Contas a receber (#320, com filtro de origem do cliente) mescladas; falta Ações em lote, total dos selecionados e as listas de compras, materiais e clientes |
 | 6 | Filtros do WhatsApp ao lado da conversa | Quase pronta: a caixa já tem abas de status, filtro de setor e busca; falta só filtro por responsável |
@@ -29,6 +33,22 @@ Documento vivo para quem pegar o trabalho depois. Começou em 31/10/2026, a pedi
 | PDV | Venda de balcão | Plano abaixo, depende de prints |
 
 **Publicação:** as Ondas 1, 2, 4, 5 e 7a foram publicadas em 31/10/2026 com o OK do dono. O site responde em bexprint.com.br e bexprint.lovable.app redireciona para lá. Provado no bundle: `--topbar` e `#0ebfa6` no CSS, `vencimentos_por_janela` no chunk do painel e "Quadro de orçamentos" no chunk de orçamentos. Em 01/11/2026 foram publicadas também a Onda 3 em Contas a pagar (#316) e em Contas a receber (#320), a ficha do cliente (#319), a origem no cadastro guiado (#321) e o menu com o nome sempre visível e os subgrupos recolhíveis (#322). Provado nos arquivos do site: `fluxo-caixa`, `a-receber` (`filtro-origem`), `clientes.index` (Documentos fiscais), `clientes._id` (Outros contatos), `campos-da-ficha` (Possui inscrição estadual) e `route` (menu: `subgrupos-recolhidos`). Na noite de 01/11/2026 foram publicados também o cliente de fora com país e WhatsApp internacional, o documento obrigatório e o Pix conciliado (#324), os favoritos do menu (#325), o funil de negociação do orçamento (#326), o CEP que preenche o endereço e a aba Histórico (#327), no deploy c3de7ad0 sobre o commit 34db728. Provado nos arquivos do site, uma vez cada: "Código do país do telefone" e "Buscar o endereço pelo CEP" (`campo-de-cep`), "Aceite verbal" e "Em negociação" (`orcamentos.index`), `bexprint:menu:favoritos` e "Pôr nos favoritos" (`route`), "O que a equipe precisa saber sobre este cliente" (`clientes._id`), `conciliar_extrato_com_pagamentos` (`contas-bancarias`) e "Sem CPF/CNPJ" (`clientes.index`). A correção do funil (#315) é só banco e já vale. Ordem de sempre: migração aplicada antes do front, esperar o Lovable sincronizar o commit da `main` (`get_project.latest_commit_sha`), publicar, provar no bundle com `curl -L` e avisar o dono para recarregar com Ctrl+Shift+R, por causa do service worker.
+
+## Seletor de produto, fotos e relatórios (01/11, noite)
+
+O dono mandou 14 capturas do orçamento e dos relatórios do Holdprint (resumo em [catalogo-do-holdprint-visto-em-01-11.md](catalogo-do-holdprint-visto-em-01-11.md)) e pediu nota cognitiva de 0 a 100. **Nota: 35.** A estrutura do Bex Print é boa; falta o que o olho pega primeiro.
+
+| Tela | Bex Print em 01/11 | Nota |
+|---|---|---|
+| Escolher o produto | 2 passos (tipo e produto), 9 tipos com ícone pequeno, busca e 3 atalhos | 45 |
+| Fotos de produto | 0 de 55 produtos com foto; o envio existe (`produtos-fotos`) e ninguém usou | 0 |
+| Perguntas guiadas | acabamento em cartões por tipo com texto livre; 5 produtos com exigência legal | 35 |
+| Medidas | quantidade, largura e altura, tamanhos prontos, prévia, aproveitamento | 70 |
+| Custos do item | custo cheio e barra de composição | 55 |
+| Relatórios | 10 relatórios em tabelas numa página só | 40 |
+| Favoritos de produto | não tem | 0 |
+
+Ondas F1 a F4 na tabela de estado. Dados usados: 55 produtos ativos em 8 categorias e 17 famílias, 5 acabamentos ligados a 15 produtos, 83 itens de orçamento em 90 dias usando 19 produtos. A F1 não muda o que o banco grava: `tipo_produto` e `produto_id` seguem iguais; os favoritos ficam no aparelho (`localStorage`, por e-mail), como os do menu.
 
 ## O que o dono precisa decidir
 

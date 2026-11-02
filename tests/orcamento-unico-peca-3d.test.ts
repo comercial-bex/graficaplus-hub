@@ -70,7 +70,7 @@ describe("o produto de prateleira da impressão 3D fica escondido quando a calcu
   it("some dos atalhos, da busca e da lista; o tipo mostra 'calculadora'", () => {
     expect(escolha).toContain('const ocultar = (p: ProdutoDaEscolha) => !!onCalcularPeca3d && tipoDoProduto(p).chave === "impressao_3d";');
     expect(escolha).toContain(".filter((p): p is ProdutoDaEscolha => !!p && !ocultar(p))");
-    expect(escolha).toContain("grupoAtual!.produtos.filter((p) => !ocultar(p))");
+    expect(escolha).toContain("grupoAtual.produtos.filter((p) => !ocultar(p))");
     expect(escolha).toContain('? "calculadora"');
   });
 });
