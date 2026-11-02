@@ -156,6 +156,48 @@ export type Database = {
           },
         ]
       }
+      api_tokens: {
+        Row: {
+          criado_em: string
+          escopo: string
+          expira_em: string
+          hash: string
+          id: string
+          nome: string
+          prefixo: string
+          revogado_em: string | null
+          ultimo_uso_em: string | null
+          user_id: string
+          usos: number
+        }
+        Insert: {
+          criado_em?: string
+          escopo?: string
+          expira_em: string
+          hash: string
+          id?: string
+          nome: string
+          prefixo: string
+          revogado_em?: string | null
+          ultimo_uso_em?: string | null
+          user_id: string
+          usos?: number
+        }
+        Update: {
+          criado_em?: string
+          escopo?: string
+          expira_em?: string
+          hash?: string
+          id?: string
+          nome?: string
+          prefixo?: string
+          revogado_em?: string | null
+          ultimo_uso_em?: string | null
+          user_id?: string
+          usos?: number
+        }
+        Relationships: []
+      }
       apontamentos_producao: {
         Row: {
           agenda_id: string | null
@@ -972,6 +1014,85 @@ export type Database = {
           },
         ]
       }
+      atendente_ensaios: {
+        Row: {
+          acao: string
+          avaliacao: string | null
+          confianca: number | null
+          conversa_id: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          itens: Json
+          mensagem_cliente: string
+          motivo: string | null
+          observacao: string | null
+          ordem: number
+          resposta_equipe: string | null
+          resposta_ia: string
+          tipo_mensagem: string
+          valor: number | null
+        }
+        Insert: {
+          acao: string
+          avaliacao?: string | null
+          confianca?: number | null
+          conversa_id: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          itens?: Json
+          mensagem_cliente: string
+          motivo?: string | null
+          observacao?: string | null
+          ordem: number
+          resposta_equipe?: string | null
+          resposta_ia: string
+          tipo_mensagem?: string
+          valor?: number | null
+        }
+        Update: {
+          acao?: string
+          avaliacao?: string | null
+          confianca?: number | null
+          conversa_id?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          itens?: Json
+          mensagem_cliente?: string
+          motivo?: string | null
+          observacao?: string | null
+          ordem?: number
+          resposta_equipe?: string | null
+          resposta_ia?: string
+          tipo_mensagem?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendente_ensaios_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "atendente_ensaios_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "atendente_ensaios_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automacao_execucoes: {
         Row: {
           automacao_id: string
@@ -1508,6 +1629,66 @@ export type Database = {
           },
         ]
       }
+      catalogo_modelos: {
+        Row: {
+          created_at: string
+          familia: string
+          id: string
+          nome: string
+          produto_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          familia: string
+          id?: string
+          nome: string
+          produto_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          familia?: string
+          id?: string
+          nome?: string
+          produto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_modelos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "catalogo_modelos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_modelos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_modelos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogo_modelos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_itens_modelo: {
         Row: {
           created_at: string
@@ -1829,6 +2010,45 @@ export type Database = {
           },
           {
             foreignKeyName: "cliente_contatos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_metragem_cliente"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
+      }
+      cliente_notas: {
+        Row: {
+          autor_id: string
+          cliente_id: string
+          created_at: string
+          id: string
+          texto: string
+        }
+        Insert: {
+          autor_id?: string
+          cliente_id: string
+          created_at?: string
+          id?: string
+          texto: string
+        }
+        Update: {
+          autor_id?: string
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_notas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_notas_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "vw_metragem_cliente"
@@ -7581,7 +7801,7 @@ export type Database = {
           desconto: number
           descricao: string
           especificacao: string | null
-          respostas: Json
+          gerado_por_item_id: string | null
           id: string
           largura: number | null
           margem_prevista: number | null
@@ -7593,6 +7813,7 @@ export type Database = {
           produto_id: string | null
           produto_snapshot: Json
           quantidade: number
+          respostas: Json
           tipo_produto: string | null
           unidade: string
           valor_total: number
@@ -7612,7 +7833,7 @@ export type Database = {
           desconto?: number
           descricao: string
           especificacao?: string | null
-          respostas?: Json
+          gerado_por_item_id?: string | null
           id?: string
           largura?: number | null
           margem_prevista?: number | null
@@ -7624,6 +7845,7 @@ export type Database = {
           produto_id?: string | null
           produto_snapshot?: Json
           quantidade?: number
+          respostas?: Json
           tipo_produto?: string | null
           unidade?: string
           valor_total?: number
@@ -7643,7 +7865,7 @@ export type Database = {
           desconto?: number
           descricao?: string
           especificacao?: string | null
-          respostas?: Json
+          gerado_por_item_id?: string | null
           id?: string
           largura?: number | null
           margem_prevista?: number | null
@@ -7655,6 +7877,7 @@ export type Database = {
           produto_id?: string | null
           produto_snapshot?: Json
           quantidade?: number
+          respostas?: Json
           tipo_produto?: string | null
           unidade?: string
           valor_total?: number
@@ -7666,6 +7889,34 @@ export type Database = {
             columns: ["arquivo_id"]
             isOneToOne: false
             referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -7949,6 +8200,7 @@ export type Database = {
           preco_modo: string
           preco_parceiro_confirmado_em: string | null
           preco_parceiro_confirmado_por: string | null
+          sem_os_motivo: string | null
           status: Database["public"]["Enums"]["status_orcamento"]
           titulo: string
           token_publico: string | null
@@ -8005,6 +8257,7 @@ export type Database = {
           preco_modo?: string
           preco_parceiro_confirmado_em?: string | null
           preco_parceiro_confirmado_por?: string | null
+          sem_os_motivo?: string | null
           status?: Database["public"]["Enums"]["status_orcamento"]
           titulo: string
           token_publico?: string | null
@@ -8061,6 +8314,7 @@ export type Database = {
           preco_modo?: string
           preco_parceiro_confirmado_em?: string | null
           preco_parceiro_confirmado_por?: string | null
+          sem_os_motivo?: string | null
           status?: Database["public"]["Enums"]["status_orcamento"]
           titulo?: string
           token_publico?: string | null
@@ -12559,6 +12813,111 @@ export type Database = {
         }
         Relationships: []
       }
+      processos: {
+        Row: {
+          ativo: boolean
+          base_produtividade: string
+          created_at: string
+          descricao: string | null
+          etapa: string
+          id: string
+          medida_cobrada: string | null
+          medido_em: string | null
+          nome: string
+          pessoas: number
+          produtividade_fonte: string | null
+          produtividade_m_h: number | null
+          produtividade_m2_h: number | null
+          produtividade_origem: string
+          produtividade_por_familia: Json
+          produto_servico_id: string | null
+          setup_min: number
+          sobra_cm: Json
+          tipo_maquina: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          base_produtividade?: string
+          created_at?: string
+          descricao?: string | null
+          etapa?: string
+          id?: string
+          medida_cobrada?: string | null
+          medido_em?: string | null
+          nome: string
+          pessoas?: number
+          produtividade_fonte?: string | null
+          produtividade_m_h?: number | null
+          produtividade_m2_h?: number | null
+          produtividade_origem?: string
+          produtividade_por_familia?: Json
+          produto_servico_id?: string | null
+          setup_min?: number
+          sobra_cm?: Json
+          tipo_maquina?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          base_produtividade?: string
+          created_at?: string
+          descricao?: string | null
+          etapa?: string
+          id?: string
+          medida_cobrada?: string | null
+          medido_em?: string | null
+          nome?: string
+          pessoas?: number
+          produtividade_fonte?: string | null
+          produtividade_m_h?: number | null
+          produtividade_m2_h?: number | null
+          produtividade_origem?: string
+          produtividade_por_familia?: Json
+          produto_servico_id?: string | null
+          setup_min?: number
+          sobra_cm?: Json
+          tipo_maquina?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processos_produto_servico_id_fkey"
+            columns: ["produto_servico_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "processos_produto_servico_id_fkey"
+            columns: ["produto_servico_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_produto_servico_id_fkey"
+            columns: ["produto_servico_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_produto_servico_id_fkey"
+            columns: ["produto_servico_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_produto_servico_id_fkey"
+            columns: ["produto_servico_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       producao_3d_apontamentos: {
         Row: {
           apontamento_id: string | null
@@ -13234,6 +13593,202 @@ export type Database = {
           },
         ]
       }
+      produto_ficha: {
+        Row: {
+          altura_padrao_m: number | null
+          apelidos: string[]
+          copias_padrao: number | null
+          cst_ipi: string | null
+          disponivel_pdv: boolean
+          gera_comissao: boolean
+          ia_como_medir: string | null
+          ia_habilitado: boolean
+          ia_perguntas: string | null
+          ia_personalidade: string | null
+          ia_revisado_em: string | null
+          ia_revisado_por: string | null
+          ipi_percentual: number | null
+          largura_padrao_m: number | null
+          ncm: string | null
+          prazo_producao_dias: number | null
+          produto_id: string
+          subfamilia: string | null
+          updated_at: string
+        }
+        Insert: {
+          altura_padrao_m?: number | null
+          apelidos?: string[]
+          copias_padrao?: number | null
+          cst_ipi?: string | null
+          disponivel_pdv?: boolean
+          gera_comissao?: boolean
+          ia_como_medir?: string | null
+          ia_habilitado?: boolean
+          ia_perguntas?: string | null
+          ia_personalidade?: string | null
+          ia_revisado_em?: string | null
+          ia_revisado_por?: string | null
+          ipi_percentual?: number | null
+          largura_padrao_m?: number | null
+          ncm?: string | null
+          prazo_producao_dias?: number | null
+          produto_id: string
+          subfamilia?: string | null
+          updated_at?: string
+        }
+        Update: {
+          altura_padrao_m?: number | null
+          apelidos?: string[]
+          copias_padrao?: number | null
+          cst_ipi?: string | null
+          disponivel_pdv?: boolean
+          gera_comissao?: boolean
+          ia_como_medir?: string | null
+          ia_habilitado?: boolean
+          ia_perguntas?: string | null
+          ia_personalidade?: string | null
+          ia_revisado_em?: string | null
+          ia_revisado_por?: string | null
+          ipi_percentual?: number | null
+          largura_padrao_m?: number | null
+          ncm?: string | null
+          prazo_producao_dias?: number | null
+          produto_id?: string
+          subfamilia?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_ficha_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_ficha_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_ficha_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_ficha_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_ficha_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_formulas: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          material_id: string
+          ordem: number
+          produto_id: string
+          script: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          material_id: string
+          ordem?: number
+          produto_id: string
+          script: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          material_id?: string
+          ordem?: number
+          produto_id?: string
+          script?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_formulas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_materiais: {
         Row: {
           created_at: string
@@ -13321,6 +13876,96 @@ export type Database = {
           },
           {
             foreignKeyName: "produto_materiais_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_perguntas: {
+        Row: {
+          acoes: Json
+          created_at: string
+          descricao: string | null
+          ia_instrucao: string | null
+          ia_modo: string
+          ia_resposta: string | null
+          id: string
+          nao_perguntar: boolean
+          obrigatoria: boolean
+          ordem: number
+          pergunta: string
+          produto_id: string
+          resposta_padrao: string | null
+          respostas: Json
+          tipo_resposta: string
+        }
+        Insert: {
+          acoes?: Json
+          created_at?: string
+          descricao?: string | null
+          ia_instrucao?: string | null
+          ia_modo?: string
+          ia_resposta?: string | null
+          id?: string
+          nao_perguntar?: boolean
+          obrigatoria?: boolean
+          ordem?: number
+          pergunta: string
+          produto_id: string
+          resposta_padrao?: string | null
+          respostas?: Json
+          tipo_resposta?: string
+        }
+        Update: {
+          acoes?: Json
+          created_at?: string
+          descricao?: string | null
+          ia_instrucao?: string | null
+          ia_modo?: string
+          ia_resposta?: string | null
+          id?: string
+          nao_perguntar?: boolean
+          obrigatoria?: boolean
+          ordem?: number
+          pergunta?: string
+          produto_id?: string
+          resposta_padrao?: string | null
+          respostas?: Json
+          tipo_resposta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_perguntas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_perguntas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_perguntas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_perguntas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_perguntas_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos_operacional"
@@ -13548,6 +14193,73 @@ export type Database = {
           },
         ]
       }
+      produto_processos: {
+        Row: {
+          created_at: string
+          id: string
+          ordem: number
+          processo_id: string
+          produto_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordem?: number
+          processo_id: string
+          produto_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordem?: number
+          processo_id?: string
+          produto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_processos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_processos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_processos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_processos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_processos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_processos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_tamanhos: {
         Row: {
           altura: number
@@ -13558,6 +14270,7 @@ export type Database = {
           ordem: number
           padrao: boolean
           produto_id: string
+          quando_usar: string | null
         }
         Insert: {
           altura: number
@@ -13568,6 +14281,7 @@ export type Database = {
           ordem?: number
           padrao?: boolean
           produto_id: string
+          quando_usar?: string | null
         }
         Update: {
           altura?: number
@@ -13578,6 +14292,7 @@ export type Database = {
           ordem?: number
           padrao?: boolean
           produto_id?: string
+          quando_usar?: string | null
         }
         Relationships: [
           {
@@ -16832,13 +17547,14 @@ export type Database = {
           created_at: string | null
           descricao: string | null
           especificacao: string | null
-          respostas: Json
+          gerado_por_item_id: string | null
           id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
           produto_id: string | null
           quantidade: number | null
+          respostas: Json | null
           tipo_produto: string | null
           unidade: string | null
           valor_total: number | null
@@ -16850,6 +17566,34 @@ export type Database = {
             columns: ["arquivo_id"]
             isOneToOne: false
             referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -16937,13 +17681,14 @@ export type Database = {
           custo_unitario: number | null
           descricao: string | null
           especificacao: string | null
-          respostas: Json
+          gerado_por_item_id: string | null
           id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
           produto_id: string | null
           quantidade: number | null
+          respostas: Json | null
           tipo_produto: string | null
           unidade: string | null
           valor_total: number | null
@@ -16955,6 +17700,34 @@ export type Database = {
             columns: ["arquivo_id"]
             isOneToOne: false
             referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -17041,13 +17814,14 @@ export type Database = {
           created_at: string | null
           descricao: string | null
           especificacao: string | null
-          respostas: Json
+          gerado_por_item_id: string | null
           id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
           produto_id: string | null
           quantidade: number | null
+          respostas: Json | null
           tipo_produto: string | null
           unidade: string | null
         }
@@ -17062,13 +17836,14 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           especificacao?: string | null
-          respostas?: Json
+          gerado_por_item_id?: string | null
           id?: string | null
           largura?: number | null
           orcamento_id?: string | null
           ordem?: number | null
           produto_id?: string | null
           quantidade?: number | null
+          respostas?: Json | null
           tipo_produto?: string | null
           unidade?: string | null
         }
@@ -17083,13 +17858,14 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           especificacao?: string | null
-          respostas?: Json
+          gerado_por_item_id?: string | null
           id?: string | null
           largura?: number | null
           orcamento_id?: string | null
           ordem?: number | null
           produto_id?: string | null
           quantidade?: number | null
+          respostas?: Json | null
           tipo_produto?: string | null
           unidade?: string | null
         }
@@ -17099,6 +17875,34 @@ export type Database = {
             columns: ["arquivo_id"]
             isOneToOne: false
             referencedRelation: "arquivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
+            columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -17561,6 +18365,8 @@ export type Database = {
           data_entrega_real: string | null
           designer_id: string | null
           estoque_baixado: boolean | null
+          fechamento_estimado: boolean | null
+          fechamento_estimativas: Json | null
           id: string | null
           maquina_id: string | null
           numero: number | null
@@ -17736,6 +18542,8 @@ export type Database = {
           custo_real: number | null
           data_entrega_real: string | null
           designer_id: string | null
+          fechamento_estimado: boolean | null
+          fechamento_estimativas: Json | null
           id: string | null
           maquina_id: string | null
           margem_real: number | null
@@ -17911,6 +18719,8 @@ export type Database = {
           data_entrega_real: string | null
           designer_id: string | null
           estoque_baixado: boolean | null
+          fechamento_estimado: boolean | null
+          fechamento_estimativas: Json | null
           id: string | null
           maquina_id: string | null
           numero: number | null
@@ -18406,9 +19216,9 @@ export type Database = {
           categoria: Database["public"]["Enums"]["categoria_produto"] | null
           created_at: string | null
           descricao: string | null
-          familia: string | null
           espacamento_pecas_m: number | null
           exigencias: string | null
+          familia: string | null
           id: string | null
           imagem_url: string | null
           maquina_padrao_id: string | null
@@ -18486,8 +19296,8 @@ export type Database = {
           created_at: string | null
           custo_medio: number | null
           descricao: string | null
-          familia: string | null
           exigencias: string | null
+          familia: string | null
           id: string | null
           imagem_url: string | null
           maquina_padrao_id: string | null
@@ -18567,9 +19377,9 @@ export type Database = {
           categoria: Database["public"]["Enums"]["categoria_produto"] | null
           created_at: string | null
           descricao: string | null
-          familia: string | null
           espacamento_pecas_m: number | null
           exigencias: string | null
+          familia: string | null
           id: string | null
           imagem_url: string | null
           maquina_padrao_id: string | null
@@ -18591,6 +19401,7 @@ export type Database = {
           descricao?: string | null
           espacamento_pecas_m?: number | null
           exigencias?: string | null
+          familia?: string | null
           id?: string | null
           imagem_url?: string | null
           maquina_padrao_id?: string | null
@@ -18612,6 +19423,7 @@ export type Database = {
           descricao?: string | null
           espacamento_pecas_m?: number | null
           exigencias?: string | null
+          familia?: string | null
           id?: string | null
           imagem_url?: string | null
           maquina_padrao_id?: string | null
@@ -19832,6 +20644,10 @@ export type Database = {
         }
         Returns: Json
       }
+      api_consultar: {
+        Args: { p_filtros?: Json; p_recurso: string; p_token: string }
+        Returns: Json
+      }
       aplicar_custo_hora_sugerido: {
         Args: { p_maquina_id: string }
         Returns: Json
@@ -19882,6 +20698,8 @@ export type Database = {
           endereco_entrega: Json | null
           estoque_baixado: boolean
           estoque_baixado_em: string | null
+          fechamento_estimado: boolean
+          fechamento_estimativas: Json
           finalidade: string
           id: string
           local_mostruario: string | null
@@ -20108,6 +20926,10 @@ export type Database = {
           valor: number
         }[]
       }
+      conciliar_extrato_com_pagamentos: {
+        Args: { p_aplicar?: boolean }
+        Returns: Json
+      }
       conciliar_transacao: {
         Args: { p_caixa_movimento_id: string; p_transacao_id: string }
         Returns: Json
@@ -20190,6 +21012,10 @@ export type Database = {
         Args: { p_incluir_quitadas?: boolean }
         Returns: Json
       }
+      conversa_recebe_whatsapp: {
+        Args: { p_telefone: string }
+        Returns: boolean
+      }
       converter_aprovado_pelo_cliente: {
         Args: { p_orcamento_id: string }
         Returns: Json
@@ -20213,6 +21039,10 @@ export type Database = {
           convidado_por: string
           valido: boolean
         }[]
+      }
+      criar_api_token: {
+        Args: { p_dias?: number; p_nome: string }
+        Returns: Json
       }
       criar_eventos_automacoes_recorrentes: { Args: never; Returns: number }
       criar_jobs_3d_da_os: {
@@ -20512,6 +21342,7 @@ export type Database = {
         Returns: boolean
       }
       hash_token_aprovacao: { Args: { p_token: string }; Returns: string }
+      hoje_br: { Args: never; Returns: string }
       hoje_local: { Args: never; Returns: string }
       identificacao_legal_os: { Args: { p_os_id: string }; Returns: string }
       importar_extrato: {
@@ -20551,6 +21382,10 @@ export type Database = {
         }
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      itens_que_impedem_a_os: {
+        Args: { p_orcamento_id: string }
+        Returns: string[]
+      }
       lembrete_orcamentos_aprovados_sem_os: { Args: never; Returns: Json }
       lembretes_da_equipe: { Args: never; Returns: Json }
       ler_item_3d: { Args: { p_orcamento_3d_id: string }; Returns: Json }
@@ -21186,6 +22021,10 @@ export type Database = {
         Args: { p_itens: Json; p_nota?: string; p_pedido_id: string }
         Returns: Json
       }
+      redistribuir_jobs_3d_da_os: {
+        Args: { p_maquinas?: string[]; p_os_id: string }
+        Returns: Json
+      }
       reembolso_cancelar: { Args: { p_id: string }; Returns: Json }
       reembolso_decidir: {
         Args: { p_aprovar: boolean; p_id: string; p_motivo?: string }
@@ -21207,6 +22046,10 @@ export type Database = {
       }
       reembolso_semaforo: {
         Args: { p_ignorar?: string; p_os_id: string; p_valor: number }
+        Returns: Json
+      }
+      registrar_aceite_da_arte: {
+        Args: { p_canal?: string; p_observacao?: string; p_os_id: string }
         Returns: Json
       }
       registrar_aprovacao_interna: {
@@ -21343,6 +22186,7 @@ export type Database = {
         Args: { p_chave: string; p_resposta?: string }
         Returns: undefined
       }
+      revogar_api_token: { Args: { p_id: string }; Returns: undefined }
       rip_decidir_vinculo: {
         Args: {
           p_acao: string
@@ -21489,6 +22333,7 @@ export type Database = {
         }[]
       }
       tarefas_que_bloqueiam_os: { Args: { p_os_id: string }; Returns: number }
+      telefone_estrangeiro: { Args: { p_telefone: string }; Returns: boolean }
       telefone_recebe_whatsapp: {
         Args: { p_telefone: string }
         Returns: boolean
@@ -21612,6 +22457,7 @@ export type Database = {
         }[]
       }
       usuario_desativado: { Args: { _user_id: string }; Returns: boolean }
+      vencimentos_por_janela: { Args: never; Returns: Json }
       veredito_qualidade_os: { Args: { p_os_id: string }; Returns: string }
       vincular_cliente_do_contato: {
         Args: { p_orcamento_id: string }
