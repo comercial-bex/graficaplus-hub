@@ -39,7 +39,7 @@ const TOM: Record<Pendencia["severidade"], string> = {
 
 const TEXTO: Record<Pendencia["severidade"], string> = {
   critico: "text-[color:var(--status-magenta)]",
-  atencao: "text-[color:var(--bex-amber)]",
+  atencao: "text-[color:var(--status-amber)]",
   ok: "text-[color:var(--bex-cyan)]",
 };
 
