@@ -101,6 +101,8 @@ import { percentual } from "@/lib/percentual";
 import { Carregando } from "@/components/bex/Carregando";
 import { NovoProdutoEmPassos } from "@/components/produtos/novo-produto-em-passos";
 import { ModelosDoMercado } from "@/components/produtos/modelos-do-mercado";
+import { EditarFamilias, FamiliasDaLista } from "@/components/produtos/familias-da-lista";
+import { familiasDaLista, filtrarPorFamiliaDaLista } from "@/domain/catalogo/familias-da-lista";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -165,6 +167,9 @@ function ProdutosPage() {
   const [confirmDelete, setConfirmDelete] = useState<Produto | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [acabamentosAberto, setAcabamentosAberto] = useState(false);
+  // A família escolhida na coluna da esquerda, como no Custeio do Holdprint; nulo é todas.
+  const [familiaEscolhida, setFamiliaEscolhida] = useState<string | null>(null);
+  const [familiasAberto, setFamiliasAberto] = useState(false);
 
   const { data: produtos = [], isLoading } = useQuery({
     queryKey: ["produtos", nivelDeVisao],
@@ -254,7 +259,7 @@ function ProdutosPage() {
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return produtos.filter((p) => {
+    return filtrarPorFamiliaDaLista(produtos, familiaDe, familiaEscolhida).filter((p) => {
       if (!mostrarInativos && !p.ativo) return false;
       if (filtroCategoria !== "todas" && p.categoria !== filtroCategoria) return false;
       if (filtroTipo !== "todos" && p.tipo !== filtroTipo) return false;
@@ -266,7 +271,12 @@ function ProdutosPage() {
         (p.descricao ?? "").toLowerCase().includes(q)
       );
     });
-  }, [produtos, busca, filtroCategoria, filtroTipo, mostrarInativos, familiaDe]);
+  }, [produtos, busca, filtroCategoria, filtroTipo, mostrarInativos, familiaDe, familiaEscolhida]);
+
+  const familiasDaTela = useMemo(
+    () => familiasDaLista(produtos, familiaDe, { mostrarInativos }),
+    [produtos, familiaDe, mostrarInativos],
+  );
 
   const stats = useMemo(() => {
     const total = produtos.length;
@@ -462,67 +472,71 @@ function ProdutosPage() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setAcabamentosAberto(true)}>
-            <Scissors className="h-4 w-4 mr-2" />
-            Acabamentos
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Importar CSV
-          </Button>
+        {/* Como no Custeio do Holdprint: dois botões à vista; o resto fica em "Mais". */}
+        <div className="flex flex-wrap items-center gap-2">
           {isAdmin && (
-            <Button variant="outline" size="sm" onClick={() => setModelosAberto(true)}>
-              Modelos do mercado
-            </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={exportar}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
-          {canSeeFinancials && (
-            <Button variant="outline" size="sm" onClick={abrirNovo}>
-              Cadastro completo
+            <Button variant="outline" size="sm" onClick={() => setFamiliasAberto(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Editar famílias
             </Button>
           )}
           <Button onClick={() => (canSeeFinancials ? setPassosAberto(true) : abrirNovo())}>
             <Plus className="h-4 w-4 mr-2" />
-            Novo item
+            Inserir produto
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" aria-label="Mais ações do catálogo">
+                <MoreVertical className="h-4 w-4 mr-2" />
+                Mais
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setAcabamentosAberto(true)}>
+                <Scissors className="h-4 w-4 mr-2" />
+                Acabamentos
+              </DropdownMenuItem>
+              {canSeeFinancials && (
+                <DropdownMenuItem onClick={abrirNovo}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Cadastro completo
+                </DropdownMenuItem>
+              )}
+              {isAdmin && (
+                <DropdownMenuItem onClick={() => setModelosAberto(true)}>
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Modelos do mercado
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Importar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportar}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">Itens no catálogo</div>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.ativos} ativos
-            </div>
-          </CardContent>
-        </Card>
-        {canSeeFinancials && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">Margem média do catálogo</div>
-              <div className="text-2xl font-bold">
-                {percentual(stats.mediaMargem)}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">Categorias ativas</div>
-            <div className="text-2xl font-bold">
-              {new Set(produtos.filter((p) => p.ativo).map((p) => p.categoria)).size}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Os números do catálogo numa linha: os três cartões tomavam a altura de uma família inteira. */}
+      <p className="text-sm text-muted-foreground" data-testid="numeros-do-catalogo">
+        {stats.total} {stats.total === 1 ? "item" : "itens"}, {stats.ativos} ativos,{" "}
+        {new Set(produtos.filter((p) => p.ativo).map((p) => p.categoria)).size} categorias
+        {canSeeFinancials && `, margem média ${percentual(stats.mediaMargem)}`}.
+      </p>
 
+      <div className="grid gap-4 md:grid-cols-[232px_minmax(0,1fr)]">
+        <FamiliasDaLista
+          familias={familiasDaTela}
+          escolhida={familiaEscolhida}
+          total={produtos.filter((p) => mostrarInativos || p.ativo).length}
+          aoEscolher={setFamiliaEscolhida}
+        />
+        <div className="min-w-0 space-y-4">
       {/* Filtros */}
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3 items-center">
@@ -628,10 +642,10 @@ function ProdutosPage() {
                   return (
                     <TableRow key={p.id} className={!p.ativo ? "opacity-50" : ""}>
                       <TableCell>
-                        {/* Clicar no nome não fazia nada: só o ⋮, sem nome, abria a edição. */}
-                        <button type="button" className="text-left font-medium hover:underline" onClick={() => abrirEdicao(p)}>
+                        {/* O nome abre a pasta do produto (as abas do Holdprint); a janela antiga é a "Edição rápida" do ⋮. */}
+                        <Link to="/produtos/$id" params={{ id: p.id }} className="text-left font-medium hover:underline">
                           {p.nome}
-                        </button>
+                        </Link>
                         <div className="text-xs text-muted-foreground flex gap-2">
                           {p.sku && <span className="font-mono">{p.sku}</span>}
                           {p.tipo === "servico" && <Badge variant="outline" className="text-xs h-5">serviço</Badge>}
@@ -723,13 +737,13 @@ function ProdutosPage() {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <button
-                        type="button"
+                      <Link
+                        to="/produtos/$id"
+                        params={{ id: p.id }}
                         className="text-left font-medium leading-tight hover:underline"
-                        onClick={() => abrirEdicao(p)}
                       >
                         {p.nome}
-                      </button>
+                      </Link>
                       {p.sku && (
                         <div className="text-xs text-muted-foreground font-mono">
                           {p.sku}
@@ -768,7 +782,14 @@ function ProdutosPage() {
           })}
         </div>
       )}
+        </div>
+      </div>
 
+      <EditarFamilias
+        aberto={familiasAberto}
+        aoFechar={() => setFamiliasAberto(false)}
+        familias={familiasDaTela}
+      />
       <ModelosDoMercado
         aberto={modelosAberto}
         aoFechar={() => setModelosAberto(false)}
@@ -885,7 +906,7 @@ function RowActions({
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onEdit(produto)}>
           <Pencil className="h-4 w-4 mr-2" />
-          Editar
+          Edição rápida
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onDuplicar(produto)}>
           <Copy className="h-4 w-4 mr-2" />

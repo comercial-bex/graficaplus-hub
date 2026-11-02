@@ -33,6 +33,78 @@ export function abasDaPasta(a: { canSeePrices: boolean }): { id: AbaDaPasta; tit
   return abas;
 }
 
+/**
+ * O cadastro do produto (tabela `produtos`) editado na própria pasta, como na
+ * ficha do Holdprint (02/11/2026): antes, nome, família, preço e máquina só se
+ * mudavam na janela da lista, e a pasta mandava a pessoa voltar. Preço e custo
+ * entram no que se grava só para quem os vê: quem lê a view operacional
+ * carrega "0" e gravaria R$ 0 por cima do preço real.
+ */
+export type Cadastro = {
+  nome: string;
+  descricao: string;
+  familia: string;
+  categoria: string;
+  tipo: "produto" | "servico";
+  unidade: string;
+  imagem_url: string;
+  custo_medio: string;
+  preco_base: string;
+  margem_minima: string;
+  area_minima_cobrada: string;
+  tempo_producao_min: string;
+  maquina_padrao_id: string;
+  material_principal_id: string;
+  observacoes_internas: string;
+};
+
+export const CADASTRO_VAZIO: Cadastro = {
+  nome: "",
+  descricao: "",
+  familia: "",
+  categoria: "outros",
+  tipo: "produto",
+  unidade: "un",
+  imagem_url: "",
+  custo_medio: "",
+  preco_base: "",
+  margem_minima: "",
+  area_minima_cobrada: "",
+  tempo_producao_min: "",
+  maquina_padrao_id: "",
+  material_principal_id: "",
+  observacoes_internas: "",
+};
+
+/** O que vai para `produtos`: preço e custo só de quem os vê; vazio vira nulo onde o banco aceita. */
+export function payloadDoCadastro(
+  c: Cadastro,
+  visao: { canSeePrices: boolean; canSeeFinancials: boolean },
+): Record<string, unknown> {
+  const numero = (s: string) => Number(String(s).replace(",", "."));
+  const payload: Record<string, unknown> = {
+    nome: c.nome.trim(),
+    descricao: c.descricao.trim() || null,
+    familia: c.familia.trim() || null,
+    categoria: c.categoria,
+    tipo: c.tipo,
+    unidade: c.unidade,
+    imagem_url: c.imagem_url.trim() || null,
+    tempo_producao_min: c.tempo_producao_min.trim() ? numero(c.tempo_producao_min) : null,
+    maquina_padrao_id: c.maquina_padrao_id || null,
+    material_principal_id: c.material_principal_id || null,
+    observacoes_internas: c.observacoes_internas.trim() || null,
+  };
+  if (visao.canSeePrices) payload.preco_base = numero(c.preco_base) || 0;
+  if (visao.canSeeFinancials) {
+    payload.custo_medio = numero(c.custo_medio) || 0;
+    payload.margem_minima = numero(c.margem_minima) || 0;
+    // Vazio = sem mínimo; nunca 0, que o CHECK recusa e significaria outra coisa.
+    payload.area_minima_cobrada = numero(c.area_minima_cobrada) || null;
+  }
+  return payload;
+}
+
 /** O que a fórmula enxerga: as medidas do item que está sendo orçado. */
 export type VariaveisDaFormula = {
   largura: number;
