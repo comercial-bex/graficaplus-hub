@@ -68,7 +68,7 @@ import {
   proximaColuna,
   type ColunaAlvo,
 } from "@/domain/kanban/navegacao-teclado";
-import { useState, useMemo, useRef, useCallback } from "react";
+import { type CSSProperties, useState, useMemo, useRef, useCallback } from "react";
 import { Search, AlertTriangle, X, Pause, SlidersHorizontal } from "lucide-react";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
@@ -889,8 +889,8 @@ function Coluna({
             {legendaDeMaquinas().map((m) => (
               <span
                 key={m.chave}
-                className="flex items-center gap-0.5 text-xs"
-                style={{ color: m.cor }}
+                className="flex items-center gap-0.5 text-xs text-[color:color-mix(in_srgb,var(--cor)_40%,var(--card-foreground))] dark:text-[color:var(--cor)]"
+                style={{ "--cor": m.cor } as CSSProperties}
               >
                 <IconeDaMaquina identidade={m} className="h-2.5 w-2.5" />
                 {m.curto}
@@ -946,7 +946,7 @@ function Coluna({
           </div>
         )}
         {itens.length === 0 && !carregando && (
-          <div className="py-6 text-center font-mono text-xs text-muted-foreground/60 md:text-xs">
+          <div className="py-6 text-center font-mono text-xs text-muted-foreground md:text-xs">
             — vazio —
           </div>
         )}
