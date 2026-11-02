@@ -945,9 +945,9 @@ function CompromissosPage() {
             {campo("credor_documento", "CNPJ / CPF", "00.000.000/0001-00")}
 
             <div className="space-y-1">
-              <Label className="text-xs">Tipo</Label>
+              <Label htmlFor="compromisso-tipo" className="text-xs">Tipo</Label>
               <Select value={form.tipo} onValueChange={(v) => setForm((f) => ({ ...f, tipo: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="compromisso-tipo"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TIPOS.map(([v, r]) => <SelectItem key={v} value={v}>{r}</SelectItem>)}
                 </SelectContent>
@@ -957,8 +957,9 @@ function CompromissosPage() {
 
             {campo("valor_parcela", "Valor da parcela", "1750.38", "number")}
             <div className="space-y-1">
-              <Label className="text-xs">Total de parcelas</Label>
+              <Label htmlFor="compromisso-total_parcelas" className="text-xs">Total de parcelas</Label>
               <Input
+                id="compromisso-total_parcelas"
                 type="number"
                 className="font-mono"
                 placeholder="36 — deixe vazio se não tem fim"
@@ -973,9 +974,9 @@ function CompromissosPage() {
 
             {campo("primeira_parcela", "Vencimento da 1ª parcela", "", "date")}
             <div className="space-y-1">
-              <Label className="text-xs">Periodicidade</Label>
+              <Label htmlFor="compromisso-periodicidade" className="text-xs">Periodicidade</Label>
               <Select value={form.periodicidade} onValueChange={(v) => setForm((f) => ({ ...f, periodicidade: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="compromisso-periodicidade"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PERIODICIDADES.map(([v, r]) => <SelectItem key={v} value={v}>{r}</SelectItem>)}
                 </SelectContent>
@@ -984,9 +985,9 @@ function CompromissosPage() {
 
             {campo("valor_entrada", "Entrada / sinal já pago", "0", "number")}
             <div className="space-y-1">
-              <Label className="text-xs">Máquina (se paga um equipamento)</Label>
+              <Label htmlFor="compromisso-maquina_id" className="text-xs">Máquina (se paga um equipamento)</Label>
               <Select value={form.maquina_id} onValueChange={(v) => setForm((f) => ({ ...f, maquina_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                <SelectTrigger id="compromisso-maquina_id"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                 <SelectContent>
                   {maquinas.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
                 </SelectContent>
