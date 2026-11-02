@@ -536,7 +536,7 @@ function ProdutosPage() {
             />
           </div>
           <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-            <SelectTrigger className="w-[220px]">
+            <SelectTrigger aria-label="Filtrar por categoria" className="w-[220px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -549,7 +549,7 @@ function ProdutosPage() {
             </SelectContent>
           </Select>
           <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger aria-label="Filtrar por tipo" className="w-[150px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

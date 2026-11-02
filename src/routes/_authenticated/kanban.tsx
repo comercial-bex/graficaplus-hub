@@ -537,7 +537,7 @@ function KanbanPage() {
   const selectsDeFiltro = (largura: { cliente: string; resp: string; prio: string }) => (
     <>
       <Select value={fCliente} onValueChange={setFCliente}>
-        <SelectTrigger className={`h-11 md:h-9 ${largura.cliente}`}>
+        <SelectTrigger aria-label="Filtrar por cliente" className={`h-11 md:h-9 ${largura.cliente}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -550,7 +550,7 @@ function KanbanPage() {
         </SelectContent>
       </Select>
       <Select value={fResp} onValueChange={setFResp}>
-        <SelectTrigger className={`h-11 md:h-9 ${largura.resp}`}>
+        <SelectTrigger aria-label="Filtrar por responsável" className={`h-11 md:h-9 ${largura.resp}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -563,7 +563,7 @@ function KanbanPage() {
         </SelectContent>
       </Select>
       <Select value={fPrio} onValueChange={setFPrio}>
-        <SelectTrigger className={`h-11 md:h-9 ${largura.prio}`}>
+        <SelectTrigger aria-label="Filtrar por prioridade" className={`h-11 md:h-9 ${largura.prio}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
