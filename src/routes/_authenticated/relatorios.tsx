@@ -27,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DicaIcone } from "@/components/bex/Dica";
+import { CartoesDeRelatorio } from "@/components/relatorios/cartoes-de-relatorio";
 import { dicaTela } from "@/lib/dicas";
 import {
   coberturaDoCusto,
@@ -553,6 +554,8 @@ function RelatPage() {
         />
       </div>
 
+      <CartoesDeRelatorio verFinanceiro={canSeeFinancials} />
+
       {isLoading && <div className="text-sm text-muted-foreground">Carregando relatórios...</div>}
 
       {canSeeFinancials && data?.financeiro && (
@@ -587,7 +590,7 @@ function RelatPage() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
-            <Card>
+            <Card id="relatorio-faturamento" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Faturamento por período</CardTitle>
               </CardHeader>
@@ -619,7 +622,7 @@ function RelatPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="relatorio-lucro-por-os" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Lucro por OS</CardTitle>
               </CardHeader>
@@ -653,7 +656,7 @@ function RelatPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="relatorio-previsto-x-realizado" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Previsto × realizado</CardTitle>
                 <p className="text-sm text-muted-foreground">
@@ -734,7 +737,7 @@ function RelatPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="relatorio-margem-por-produto" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Margem por produto</CardTitle>
               </CardHeader>
@@ -803,7 +806,7 @@ function RelatPage() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <Card>
+            <Card id="relatorio-os-atrasadas" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>OS atrasadas</CardTitle>
               </CardHeader>
@@ -835,7 +838,7 @@ function RelatPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="relatorio-retrabalho" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Retrabalho por setor</CardTitle>
               </CardHeader>
@@ -871,7 +874,7 @@ function RelatPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="relatorio-producao-por-maquina" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Produção por máquina</CardTitle>
               </CardHeader>
@@ -907,7 +910,7 @@ function RelatPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="relatorio-tempo-por-etapa" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Tempo médio por etapa</CardTitle>
               </CardHeader>
@@ -943,7 +946,7 @@ function RelatPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="relatorio-conversas-abertas" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Conversas WhatsApp abertas</CardTitle>
               </CardHeader>
@@ -982,7 +985,7 @@ function RelatPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card id="relatorio-tempo-de-resposta" className="scroll-mt-24">
               <CardHeader>
                 <CardTitle>Tempo médio de resposta</CardTitle>
               </CardHeader>
