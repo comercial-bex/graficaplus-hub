@@ -318,11 +318,10 @@ export const criarRascunhoDaIa = createServerFn({ method: "POST" })
         const p = processos.find((x) => x.id === id);
         return p ? [p.nome] : [];
       });
-      const base = linhaDoItem(
-        { ...item, respostas },
-        precoDeTabela(item, precoDe.get(item.produto_id) ?? null, faixasDe(item.produto_id)),
-        ordem,
-      );
+      const precoDoItem = precoDeTabela(item, precoDe.get(item.produto_id) ?? null, faixasDe(item.produto_id));
+      // Sem preço vigente o item entra zerado: faixa vencida, quantidade abaixo da faixa ou peça da calculadora 3D.
+      if (precoDoItem == null) falharam.push(`${item.nome}: sem preço de tabela para ${item.quantidade.toLocaleString("pt-BR")} ${item.unidade ?? "un"}`);
+      const base = linhaDoItem({ ...item, respostas }, precoDoItem, ordem);
       const { data: linha, error: erroItem } = await db
         .from("orcamento_itens")
         .insert({

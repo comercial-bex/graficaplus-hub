@@ -97,6 +97,15 @@ describe("o contrato", () => {
   it("o corte do acrílico não vira acabamento", () => {
     expect(ler("supabase/migrations/20261102160000_laser_nao_cobra_corte_de_novo.sql")).toContain("nunca marque Corte a laser como acabamento");
   });
+  it("item sem preço de tabela é dito ao criar o rascunho", () => {
+    expect(servidor).toContain("sem preço de tabela para");
+  });
+  it("os produtos de medida fixa têm o recorte na sequência e o limite no roteiro", () => {
+    const f = ler("supabase/migrations/20261102180000_limites_dos_produtos_de_medida_fixa.sql");
+    expect(f).toContain("pr.nome = 'Recorte eletrônico'");
+    expect(f).toContain("ia_resposta = 'Veículo'");
+    for (const sku of ["ADE-PRG07", "ADE-PRG10", "ADE-PGA15", "ADE-PGA30", "ADE-BOL33", "ADE-BLO48", "ADE-TES90", "ADE-P9033", "ADE-P9050", "FAC-LUM"]) expect(f).toContain(sku);
+  });
   it("a tela da pasta edita a instrução, e a gravação é conferida", () => {
     const pasta = ler("src/routes/_authenticated/produtos_.$id.tsx");
     expect(pasta).toContain("<InstrucaoDaIa");
