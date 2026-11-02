@@ -62,11 +62,12 @@ describe("em que coluna cai cada orçamento", () => {
 });
 
 describe("totais do quadro", () => {
-  it("cada orçamento aparece em uma coluna só e as oito colunas vêm na ordem do fluxo", () => {
+  it("cada orçamento aparece em uma coluna só e as nove colunas vêm na ordem do fluxo", () => {
     const q = montarQuadro(LISTA, { mostrarValores: true });
     // Em negociação e Aceite verbal (01/11/2026) ficam entre Enviados e Aprovados, como no Holdprint.
     expect(q.map((c) => c.id)).toEqual([
       "rascunho",
+      "emitido",
       "enviado",
       "em_negociacao",
       "aceite_verbal",
@@ -78,6 +79,7 @@ describe("totais do quadro", () => {
     expect(q.reduce((n, c) => n + c.quantidade, 0)).toBe(LISTA.length);
     expect(COLUNAS_DO_QUADRO.filter((c) => c.aberta).map((c) => c.id)).toEqual([
       "rascunho",
+      "emitido",
       "enviado",
       "em_negociacao",
       "aceite_verbal",
@@ -102,10 +104,10 @@ describe("totais do quadro", () => {
 
   it("valor ausente, texto ou inválido vale zero, nunca NaN", () => {
     const q = montarQuadro(
-      [o({ id: "x", status: "rascunho", valor_total: null }), o({ id: "y", status: "rascunho", valor_total: "12.5" }), o({ id: "z", status: "rascunho", valor_total: "abc" })],
+      [o({ id: "x", status: "enviado", valor_total: null }), o({ id: "y", status: "enviado", valor_total: "12.5" }), o({ id: "z", status: "enviado", valor_total: "abc" })],
       { mostrarValores: true },
     );
-    expect(q[0].total).toBe(12.5);
+    expect(q.find((c) => c.id === "enviado")!.total).toBe(12.5);
   });
 
   it("a idade usa a data de hoje que vem de fora (teste não congela o relógio)", () => {

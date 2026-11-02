@@ -10,6 +10,7 @@
 
 export type ColunaDoQuadro =
   | "rascunho"
+  | "emitido"
   | "enviado"
   | "em_negociacao"
   | "aceite_verbal"
@@ -45,6 +46,12 @@ export interface DefinicaoDeColuna {
 
 export const COLUNAS_DO_QUADRO: readonly DefinicaoDeColuna[] = [
   { id: "rascunho", titulo: "Rascunhos", dica: "Ainda em montagem, nada foi ao cliente.", aberta: true },
+  {
+    id: "emitido",
+    titulo: "Emitidos",
+    dica: "Pronto: tem cliente e valor. Só falta enviar.",
+    aberta: true,
+  },
   { id: "enviado", titulo: "Enviados", dica: "Com o cliente, esperando resposta.", aberta: true },
   {
     id: "em_negociacao",
@@ -64,7 +71,10 @@ export const COLUNAS_DO_QUADRO: readonly DefinicaoDeColuna[] = [
   { id: "expirado", titulo: "Expirados", dica: "Passou a validade sem resposta.", aberta: false },
 ];
 
-export function colunaDoOrcamento(o: Pick<OrcamentoDoQuadro, "status" | "os_id" | "etapa_comercial">): ColunaDoQuadro {
+export function colunaDoOrcamento(
+  o: Pick<OrcamentoDoQuadro, "status" | "os_id" | "etapa_comercial"> &
+    Partial<Pick<OrcamentoDoQuadro, "valor_total" | "cliente_nome" | "contato_nome">>,
+): ColunaDoQuadro {
   if (o.os_id || o.status === "convertido") return "os";
   switch (o.status) {
     case "enviado":
@@ -78,6 +88,9 @@ export function colunaDoOrcamento(o: Pick<OrcamentoDoQuadro, "status" | "os_id" 
       return "rejeitado";
     case "expirado":
       return "expirado";
+    case "rascunho":
+      // Emitido não é um status novo: é o rascunho que já tem o que precisa para ir ao cliente.
+      return Number(o.valor_total ?? 0) > 0 && (o.cliente_nome || o.contato_nome) ? "emitido" : "rascunho";
     default:
       return "rascunho";
   }
