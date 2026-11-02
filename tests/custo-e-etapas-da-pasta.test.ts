@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { casaComABusca } from "../src/domain/catalogo/busca-do-produto";
-import { custoDasEtapasDeAcabamento, pendenciaDaPergunta } from "../src/domain/catalogo/pasta-do-produto";
+import { acabamentoFicaForaDoCusto, custoDasEtapasDeAcabamento, pendenciaDaPergunta } from "../src/domain/catalogo/pasta-do-produto";
+import { fichaDoProduto, servicoComCustoInteiro } from "../src/domain/precos/tabela-de-precos";
+import { materiaisDoProduto } from "../src/domain/precificacao/simulador";
 import {
   comRespostasPadrao,
   pendenciasDasRespostas,
@@ -115,5 +117,49 @@ describe("o Banner e a migração (02/11/2026)", () => {
     expect(ler("src/components/orcamento/perguntas-do-item.tsx")).toContain("resposta_padrao, nao_perguntar");
     expect(ler("src/lib/api/orcamento-ia.functions.ts")).toContain("produto_id, apelidos, ia_personalidade");
     expect(ler("src/routes/_authenticated/orcamentos.$id.tsx")).toContain("padrao, quando_usar");
+  });
+});
+
+describe("a conta dupla do serviço (02/11/2026)", () => {
+  const m = ler("supabase/migrations/20261102120000_servico_com_custo_digitado_nao_soma_tempo.sql");
+  const plotter = { base_cobranca: "area", velocidade_m2_h: 14 };
+
+  it("o digitado do serviço é o custo inteiro; o do brinde, não", () => {
+    expect(servicoComCustoInteiro({ tipo: "servico", temReceita: false, custo: 0.24 })).toBe(true);
+    expect(servicoComCustoInteiro({ tipo: "produto", temReceita: false, custo: 30 })).toBe(false);
+    expect(servicoComCustoInteiro({ tipo: "servico", temReceita: true, custo: 4 })).toBe(false);
+    expect(servicoComCustoInteiro({ tipo: "servico", temReceita: false, custo: 0 })).toBe(false);
+  });
+
+  it("a ficha não acusa falta de mão de obra no serviço inteiro", () => {
+    const f = fichaDoProduto({ tipo: "servico", categoria: "acabamento", temReceita: false, minutos: 1, temMaquina: false, composicao: { material: 0.24, maquina: 0, maoDeObra: 0, indireto: 0 } });
+    expect(f).toEqual({ nivel: "completa", faltas: [] });
+  });
+
+  it("o cartão só soma o acabamento quando o custo conta pela velocidade da máquina", () => {
+    expect(acabamentoFicaForaDoCusto({ tipo: "produto", unidade: "m2", maquina: plotter })).toBe(true);
+    expect(acabamentoFicaForaDoCusto({ tipo: "produto", unidade: "m²", maquina: plotter })).toBe(true);
+    expect(acabamentoFicaForaDoCusto({ tipo: "servico", unidade: "m2", maquina: plotter })).toBe(false);
+    expect(acabamentoFicaForaDoCusto({ tipo: "produto", unidade: "m2", maquina: { base_cobranca: "tempo", velocidade_m2_h: null } })).toBe(false);
+    expect(acabamentoFicaForaDoCusto({ tipo: "produto", unidade: "un", maquina: plotter })).toBe(false);
+    expect(acabamentoFicaForaDoCusto({ tipo: "produto", unidade: "m2", maquina: null })).toBe(false);
+  });
+
+  it("o simulador diz que a linha do serviço já traz o tempo", () => {
+    const r = materiaisDoProduto({ unidade: "m", custo_medio: "0.24", tipo: "servico" }, [], [], () => "c");
+    expect(r.linhas[0].nome).toContain("já com tempo e rateio");
+    expect(ler("src/routes/_authenticated/precificacao.tsx")).toContain('r.origem === "custo_do_produto" && produto.tipo === "servico"');
+  });
+
+  it("a função zera as somas só do serviço inteiro, e as horas ficam", () => {
+    expect(m).toContain("v_servico_inteiro := p.tipo = 'servico';");
+    expect(m).toContain("v_maquina := 0; v_mao := 0; v_indireto := 0;");
+    expect(m).toContain("'horas_mao_obra', round(v_h_mo, 4)");
+    expect(m).toContain("SELECT public.sincronizar_precificacao_do_produto(p.id)");
+  });
+
+  it("a view continua com o digitado no material e não acusa o serviço inteiro", () => {
+    expect(m).toContain("COALESCE(NULLIF(pp.custo_material, (0)::numeric), pr.custo_medio, (0)::numeric) AS custo_material");
+    expect(m).toContain("AND NOT inteiro.servico) AS sem_mao_de_obra");
   });
 });

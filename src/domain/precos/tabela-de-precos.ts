@@ -180,6 +180,15 @@ export function fatiasDoCusto(c: Composicao | null): Array<{ chave: keyof Compos
   return PARTES_DO_CUSTO.map(({ chave }) => ({ chave, valor: centavos(c[chave]), pct: Math.round((c[chave] / total) * 1000) / 10 })).filter((f) => f.valor > 0);
 }
 
+/**
+ * Serviço sem receita e com custo digitado: o digitado já é o custo inteiro, com tempo e rateio
+ * (Refile: 0,6 min × R$ 24,17/h = R$ 0,24). Na composição ele mora em material, como no banco
+ * (`custo_cheio_do_produto`, migração 20261102120000), e nada se soma por cima.
+ */
+export function servicoComCustoInteiro(a: { tipo: string | null; temReceita: boolean; custo: number | null }): boolean {
+  return a.tipo === "servico" && !a.temReceita && (a.custo ?? 0) > 0;
+}
+
 export type NivelDaFicha = "completa" | "parcial" | "sem_ficha";
 export type FichaDoProduto = { nivel: NivelDaFicha; faltas: string[] };
 
@@ -201,6 +210,9 @@ export function fichaDoProduto(a: {
   const faltas: string[] = [];
   const servico = a.tipo === "servico";
   const revenda = a.categoria === "brindes" || a.categoria === "outros";
+  if (servicoComCustoInteiro({ tipo: a.tipo, temReceita: a.temReceita, custo: a.composicao?.material ?? null })) {
+    return { nivel: "completa", faltas };
+  }
   if (!servico && !a.temReceita) faltas.push(revenda ? "custo digitado à mão (sem matéria-prima na receita)" : "sem matéria-prima na receita");
   if (!(a.minutos && a.minutos > 0)) faltas.push("sem tempo de produção");
   if (!servico && !revenda && !a.temMaquina) faltas.push("sem máquina padrão");

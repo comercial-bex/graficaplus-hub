@@ -135,6 +135,7 @@ type ProdutoFinanceiro = {
   sku: string | null;
   unidade: string | null;
   categoria: string | null;
+  tipo: string | null;
   tempo_producao_min: number | null;
   maquina_padrao_id: string | null;
   preco_base: number | string | null;
@@ -215,7 +216,7 @@ function Simulador() {
     queryFn: async (): Promise<ProdutoFinanceiro[]> => {
       const { data, error } = await fromFinancialView("produtos", "financeiro")
         .select(
-          "id, nome, sku, unidade, categoria, tempo_producao_min, maquina_padrao_id, preco_base, custo_medio, margem_minima",
+          "id, nome, sku, unidade, categoria, tipo, tempo_producao_min, maquina_padrao_id, preco_base, custo_medio, margem_minima",
         )
         .eq("ativo", true)
         .order("nome");
@@ -342,6 +343,11 @@ function Simulador() {
     const r = materiaisDoProduto(produto, ficha.data ?? [], materiais.data ?? [], novaChave);
     setLinhas(r.linhas);
     setOrigem(r.origem);
+    // O custo digitado do serviço já é o custo inteiro: tempo e máquina por cima contariam duas vezes.
+    if (r.origem === "custo_do_produto" && produto.tipo === "servico") {
+      setMinutos("");
+      setMaquinaId("nenhuma");
+    }
   }, [produto, ficha.isSuccess, ficha.data, materiais.isSuccess, materiais.data]);
 
   function escolherProduto(p: ProdutoFinanceiro | null) {

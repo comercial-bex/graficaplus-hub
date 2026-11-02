@@ -259,7 +259,7 @@ export type OrigemDoMaterial = "ficha" | "custo_do_produto" | "nenhuma";
  * peça parecer de graça.
  */
 export function materiaisDoProduto(
-  produto: { unidade: string | null; custo_medio: number | string | null },
+  produto: { unidade: string | null; custo_medio: number | string | null; tipo?: string | null },
   ficha: LinhaDaFicha[],
   catalogo: MaterialDoCatalogo[],
   novaChave: () => string,
@@ -289,7 +289,7 @@ export function materiaisDoProduto(
         {
           chave: novaChave(),
           material_id: null,
-          nome: "Material (custo digitado no produto)",
+          nome: produto.tipo === "servico" ? "Serviço (custo digitado, já com tempo e rateio)" : "Material (custo digitado no produto)",
           unidade: produto.unidade ?? "un",
           porUnidade: 1,
           custoUnitario: custo,
