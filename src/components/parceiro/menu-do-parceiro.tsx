@@ -18,11 +18,12 @@ import { cn } from "@/lib/utils";
 
 export const LARGURA_DO_MENU_DO_PARCEIRO = "17rem";
 
+/** `curto` é o nome na barra de baixo do celular: "Tabela de preços" quebrava em duas linhas. */
 export const NAVEGACAO_DO_PARCEIRO = [
-  { to: "/parceiro", rotulo: "Início", icone: Home, exato: true },
-  { to: "/parceiro/orcamentos", rotulo: "Orçamentos", icone: FileText, exato: false },
-  { to: "/parceiro/tabela", rotulo: "Tabela de preços", icone: Tags, exato: false },
-  { to: "/parceiro/marca", rotulo: "Minha marca", icone: Palette, exato: false },
+  { to: "/parceiro", rotulo: "Início", curto: "Início", icone: Home, exato: true },
+  { to: "/parceiro/orcamentos", rotulo: "Orçamentos", curto: "Orçamentos", icone: FileText, exato: false },
+  { to: "/parceiro/tabela", rotulo: "Tabela de preços", curto: "Tabela", icone: Tags, exato: false },
+  { to: "/parceiro/marca", rotulo: "Minha marca", curto: "Marca", icone: Palette, exato: false },
 ] as const;
 
 export function estaNaTela(pathname: string, to: string, exato: boolean) {

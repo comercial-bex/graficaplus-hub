@@ -45,11 +45,13 @@ export function BarraDePassosDoOrcamento({
               <StepperTrigger
                 aria-current={ativo ? "step" : undefined}
                 className={cn(
-                  "flex min-h-12 w-full flex-col items-start gap-0.5 rounded-xl border px-2.5 py-2 text-left transition-colors",
+                  "flex min-h-12 w-full min-w-0 flex-col items-start gap-0.5 rounded-xl border px-2.5 py-2 text-left transition-colors",
                   ativo ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted",
                 )}
               >
-                <span className="flex items-center gap-1.5">
+                {/* Abaixo de sm os quatro nomes não cabem lado a lado (a coluna estourava para
+                    428 px em 390): ali só o passo atual mostra o nome; os outros ficam no número. */}
+                <span className="flex min-w-0 items-center gap-1.5">
                   <StepperIndicator
                     className={cn(
                       "size-6 text-xs",
@@ -69,7 +71,9 @@ export function BarraDePassosDoOrcamento({
                       e.n
                     )}
                   </StepperIndicator>
-                  <StepperTitle className="text-xs font-semibold leading-tight md:text-sm">
+                  <StepperTitle
+                    className={cn("truncate text-xs font-semibold leading-tight md:text-sm", !ativo && "hidden sm:inline")}
+                  >
                     {e.titulo}
                   </StepperTitle>
                 </span>

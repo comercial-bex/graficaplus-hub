@@ -535,8 +535,10 @@ export function EditorDeOrcamento({ id }: { id: string }) {
         </div>
       )}
 
+      {/* min-w-0 nos dois filhos: sem isso a barra de passos (4 botões sem quebra) alargava a coluna
+          para 428 px num celular de 390 e cortava o resumo e o botão de pedido à direita (02/11/2026). */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <BarraDePassosDoOrcamento atual={passo} estados={estados} onIr={irParaPasso} />
 
           {passo === 1 && (
@@ -707,7 +709,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
           </div>
         </div>
 
-        <aside className="h-fit space-y-3 lg:sticky lg:top-28">
+        <aside className="h-fit min-w-0 space-y-3 lg:sticky lg:top-28">
           <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
             <h2 className="font-semibold">Resumo</h2>
             <dl className="mt-3 space-y-2 text-sm">
