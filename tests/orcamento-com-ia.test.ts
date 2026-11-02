@@ -6,6 +6,7 @@ import {
   linhaDoItem,
   montarPerguntaDoOrcamento,
   observacaoDoRascunho,
+  precoDeTabela,
   type ProdutoParaIa,
 } from "../src/domain/orcamentos/orcamento-com-ia";
 import { roteirosDaConversa } from "../src/domain/whatsapp/assistente";
@@ -60,6 +61,18 @@ describe("orçamento com IA (01/11/2026)", () => {
     const unidade = { ...semMedida, produto_id: "p2", unidade: "un", quantidade: 200 };
     expect(itemSemMedida(unidade)).toBe(false);
     expect(linhaDoItem(unidade, 5, 1)).toMatchObject({ preco_m2: null, valor_unitario: 5, quantidade: 200, ordem: 1 });
+  });
+
+  it("o preço respeita a faixa de quantidade: 200 chaveiros não custam o preço de 1", () => {
+    const faixas = [
+      { id: "a", quantidade_minima: 50, preco_unitario: 5.5 },
+      { id: "b", quantidade_minima: 100, preco_unitario: 4.9 },
+      { id: "c", quantidade_minima: 500, preco_unitario: 4.45 },
+    ];
+    expect(precoDeTabela({ unidade: "un", quantidade: 200 }, 6.5, faixas)).toBe(4.9);
+    expect(precoDeTabela({ unidade: "un", quantidade: 10 }, 6.5, faixas)).toBe(6.5);
+    expect(precoDeTabela({ unidade: "un", quantidade: 200 }, 6.5, [])).toBe(6.5);
+    expect(precoDeTabela({ unidade: "m2", quantidade: 200 }, 45, [{ id: "d", quantidade_minima: 100, preco_unitario: 1, preco_m2_referencia: 39 }])).toBe(39);
   });
 
   it("o rascunho guarda o pedido e o que falta perguntar", () => {

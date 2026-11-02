@@ -1,11 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { FaixaPreco } from "@/domain/orcamentos/faixas";
 import {
   FERRAMENTA_DO_ORCAMENTO,
   interpretarLeitura,
   linhaDoItem,
   montarPerguntaDoOrcamento,
   observacaoDoRascunho,
+  precoDeTabela,
   type ItemDaIa,
   type LeituraDoPedido,
   type ProdutoParaIa,
@@ -179,6 +181,13 @@ export const criarRascunhoDaIa = createServerFn({ method: "POST" })
         p.preco_base,
       ]),
     );
+    const { data: linhasDeFaixa, error: erroFaixas } = await db
+      .from("produto_faixas_preco")
+      .select("id, produto_id, quantidade_minima, preco_unitario, preco_m2_referencia, vigencia_inicio, vigencia_fim")
+      .in("produto_id", itens.map((i) => i.produto_id));
+    if (erroFaixas) throw new Error("Não foi possível ler as faixas de preço.");
+    const faixasDe = (produtoId: string) =>
+      ((linhasDeFaixa ?? []) as (FaixaPreco & { produto_id: string })[]).filter((f) => f.produto_id === produtoId);
 
     const { data: criado, error } = await db
       .from("orcamentos")
@@ -200,7 +209,7 @@ export const criarRascunhoDaIa = createServerFn({ method: "POST" })
         .from("orcamento_itens")
         .insert({
           orcamento_id: criado.id,
-          ...linhaDoItem(item, precoDe.get(item.produto_id) ?? null, ordem),
+          ...linhaDoItem(item, precoDeTabela(item, precoDe.get(item.produto_id) ?? null, faixasDe(item.produto_id)), ordem),
         })
         .select("id");
       if (erroItem || !linha || linha.length === 0) falharam.push(item.nome);

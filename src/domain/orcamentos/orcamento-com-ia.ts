@@ -1,3 +1,5 @@
+import { faixaAplicada, type FaixaPreco } from "@/domain/orcamentos/faixas";
+
 /**
  * O orçamento com IA (01/11/2026): a pessoa cola o pedido do cliente e a IA
  * monta o rascunho, lendo o roteiro da pasta de cada produto.
@@ -178,6 +180,17 @@ const UNIDADES_DE_AREA = ["m2", "m²"];
 /** Produto vendido por m² sem medida fica sem preço: é pergunta, não é zero escondido. */
 export function itemSemMedida(i: Pick<ItemDaIa, "unidade" | "largura_m" | "altura_m">): boolean {
   return UNIDADES_DE_AREA.includes((i.unidade ?? "").toLowerCase()) && !(i.largura_m && i.altura_m);
+}
+
+/**
+ * O preço de tabela para esta quantidade: 200 chaveiros não custam o preço de 1.
+ * A faixa é a mesma regra da tela do orçamento (`faixaAplicada`).
+ */
+export function precoDeTabela(i: Pick<ItemDaIa, "unidade" | "quantidade">, precoBase: number | null, faixas: FaixaPreco[]): number | null {
+  const faixa = faixaAplicada(faixas, i.quantidade);
+  if (!faixa) return precoBase;
+  const area = UNIDADES_DE_AREA.includes((i.unidade ?? "").toLowerCase());
+  return area ? (faixa.preco_m2_referencia ?? precoBase) : faixa.preco_unitario;
 }
 
 /** A linha que vai para `orcamento_itens`: quem calcula o total é o gatilho do banco. */
