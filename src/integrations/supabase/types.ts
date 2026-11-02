@@ -7777,6 +7777,7 @@ export type Database = {
       orcamento_item_custos: {
         Row: {
           custo_unitario: number
+          custo_formulas: number
           orcamento_item_id: string
           updated_at: string
           valor_total: number
@@ -7784,6 +7785,7 @@ export type Database = {
         }
         Insert: {
           custo_unitario?: number
+          custo_formulas?: number
           orcamento_item_id: string
           updated_at?: string
           valor_total?: number
@@ -7791,6 +7793,7 @@ export type Database = {
         }
         Update: {
           custo_unitario?: number
+          custo_formulas?: number
           orcamento_item_id?: string
           updated_at?: string
           valor_total?: number
@@ -7843,6 +7846,8 @@ export type Database = {
           descricao: string
           especificacao: string | null
           gerado_por_item_id: string | null
+          materiais_por_formula: Json
+          custo_formulas: number
           id: string
           largura: number | null
           margem_prevista: number | null
@@ -7875,6 +7880,8 @@ export type Database = {
           descricao: string
           especificacao?: string | null
           gerado_por_item_id?: string | null
+          materiais_por_formula?: Json
+          custo_formulas?: number
           id?: string
           largura?: number | null
           margem_prevista?: number | null
@@ -7907,6 +7914,8 @@ export type Database = {
           descricao?: string
           especificacao?: string | null
           gerado_por_item_id?: string | null
+          materiais_por_formula?: Json
+          custo_formulas?: number
           id?: string
           largura?: number | null
           margem_prevista?: number | null
@@ -17741,6 +17750,7 @@ export type Database = {
           descricao: string | null
           especificacao: string | null
           gerado_por_item_id: string | null
+          custo_formulas: number | null
           id: string | null
           largura: number | null
           orcamento_id: string | null

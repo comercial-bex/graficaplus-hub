@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { acabamentoFicaForaDoCusto, custoDasEtapasDeAcabamento } from "@/domain/catalogo/pasta-do-produto";
+import { custoDasFormulas, materiaisPorFormula, type FormulaDoProduto } from "@/domain/orcamentos/material-por-formula";
 import {
   composicaoMaisRecente,
   custoCheio,
@@ -70,7 +71,19 @@ export function CustoDaPeca(p: {
           .maybeSingle(),
       ]);
       for (const r of [comp, receita, etapas, casa, produto]) if (r.error) throw r.error;
-      const ids = (receita.data ?? []).map((r: any) => r.material_id);
+      // As fórmulas da pasta (02/11/2026): material calculado na medida padrão, com o custo de compra.
+      const formulas = await (supabase as any)
+        .from("produto_formulas")
+        .select("id, material_id, script, descricao, material:material_id(nome, unidade)")
+        .eq("produto_id", p.produtoId)
+        .order("ordem");
+      if (formulas.error) throw formulas.error;
+      const ids = [
+        ...new Set<string>([
+          ...(receita.data ?? []).map((r: any) => r.material_id as string),
+          ...((formulas.data ?? []) as FormulaDoProduto[]).map((f) => f.material_id),
+        ]),
+      ];
       const mats = ids.length
         ? await fromFinancialView("materiais", "financeiro")
             .select("id, nome, unidade, custo_medio, custo_unitario")
@@ -106,6 +119,10 @@ export function CustoDaPeca(p: {
       return {
         composicao,
         receita: receitaDoProduto,
+        formulas: (formulas.data ?? []) as FormulaDoProduto[],
+        custoDoMaterial: new Map<string, number>(
+          (mats.data ?? []).map((m: any) => [m.id as string, Number(m.custo_medio ?? m.custo_unitario ?? 0)]),
+        ),
         maquina: (produto.data?.maquinas ?? null) as {
           base_cobranca: string | null;
           velocidade_m2_h: number | null;
@@ -125,7 +142,9 @@ export function CustoDaPeca(p: {
       </p>
     );
   }
-  const { composicao, receita, etapas, horaDaPessoa, maquina } = dados.data;
+  const { composicao, receita, etapas, horaDaPessoa, maquina, formulas, custoDoMaterial } = dados.data;
+  const porFormula = materiaisPorFormula(formulas, { largura: p.largura, altura: p.altura, copias: 1, quantidade: 1 });
+  const custoPorFormula = custoDasFormulas(porFormula.validas, custoDoMaterial);
   const cheio = custoCheio(composicao);
   const fatias = fatiasDoCusto(composicao);
   const margem = margemSobreVenda(p.preco, cheio);
@@ -235,6 +254,37 @@ export function CustoDaPeca(p: {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {porFormula.linhas.length > 0 && (
+          <section data-testid="custo-por-formula">
+            <h3 className="text-sm font-semibold">
+              Material por fórmula, numa peça de{" "}
+              {p.largura.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ×{" "}
+              {p.altura.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} m
+            </h3>
+            <ul className="mt-1.5 space-y-1 text-sm">
+              {porFormula.linhas.map((l) => (
+                <li key={l.formula_id} className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate">
+                    {l.nome} <span className="font-mono text-xs text-muted-foreground">{l.script}</span>
+                  </span>
+                  {l.erro ? (
+                    <span className="shrink-0 text-xs text-destructive">{l.erro}</span>
+                  ) : (
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                      {l.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 4 })} {l.unidade} ×{" "}
+                      {brl(custoDoMaterial.get(l.material_id) ?? 0)} ={" "}
+                      <strong className="text-foreground">{brl(l.quantidade * (custoDoMaterial.get(l.material_id) ?? 0))}</strong>
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Entra no custo de cada item do orçamento, calculado na medida do item: {brl(custoPorFormula.total)} por peça neste tamanho.
+            </p>
           </section>
         )}
 

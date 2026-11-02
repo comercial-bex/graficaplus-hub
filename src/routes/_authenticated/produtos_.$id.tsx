@@ -1417,8 +1417,9 @@ function AbaFormulas({ produtoId, podeEditar }: { produtoId: string; podeEditar:
               )}
             </div>
           ))}
-          <p className="pt-1 text-xs text-muted-foreground">
-            As fórmulas ainda não entram no custo do orçamento.
+          <p className="pt-1 text-xs text-muted-foreground" data-testid="formulas-entram-no-custo">
+            As fórmulas entram no custo do item do orçamento: a quantidade sai da medida do item e o
+            banco multiplica pelo custo de compra do material.
           </p>
         </CardContent>
       </Card>
