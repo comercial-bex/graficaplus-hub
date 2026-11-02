@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { casaComABusca } from "../src/domain/catalogo/busca-do-produto";
 import { acabamentoFicaForaDoCusto, custoDasEtapasDeAcabamento, pendenciaDaPergunta } from "../src/domain/catalogo/pasta-do-produto";
+import { tipoDoProduto } from "../src/domain/orcamentos/tipos-de-produto";
 import { fichaDoProduto, servicoComCustoInteiro } from "../src/domain/precos/tabela-de-precos";
 import { materiaisDoProduto } from "../src/domain/precificacao/simulador";
 import {
@@ -161,5 +162,25 @@ describe("a conta dupla do serviço (02/11/2026)", () => {
   it("a view continua com o digitado no material e não acusa o serviço inteiro", () => {
     expect(m).toContain("COALESCE(NULLIF(pp.custo_material, (0)::numeric), pr.custo_medio, (0)::numeric) AS custo_material");
     expect(m).toContain("AND NOT inteiro.servico) AS sem_mao_de_obra");
+  });
+});
+
+describe("o Banner em lona 440g (02/11/2026)", () => {
+  const m = ler("supabase/migrations/20261102130000_banner_em_lona_440g.sql");
+  it("é produto próprio a R$ 89,90, com a lona certa", () => {
+    expect(m).toContain("21.23, 89.90");
+    expect(m).toContain("('Lona 440g reforçada', 1.0, false)");
+    expect(m).toContain("AND q.pergunta = 'Em qual lona?'");
+  });
+  it("não se oferece a todo cliente", () => {
+    expect(m).toContain("Ofereça só quando o cliente pedir mais resistência");
+    const aposDelete = m.slice(m.indexOf("-- O Banner 280 g aponta"));
+    expect(aposDelete).not.toContain("Quer a lona comum");
+  });
+  it("cai no tipo Lona e banner, como o de 280 g", () => {
+    const base = { categoria: "comunicacao_visual", familia: "Banners", unidade: "m2" };
+    const novo = tipoDoProduto({ ...base, nome: "Banner com bastão e corda (lona 440g)" } as Parameters<typeof tipoDoProduto>[0]);
+    const atual = tipoDoProduto({ ...base, nome: "Banner com bastão e corda" } as Parameters<typeof tipoDoProduto>[0]);
+    expect(novo.chave).toBe(atual.chave);
   });
 });
