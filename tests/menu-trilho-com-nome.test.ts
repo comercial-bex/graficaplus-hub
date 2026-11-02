@@ -39,7 +39,7 @@ describe("subgrupos do painel que recolhem", () => {
 
   it("o subgrupo da tela em que a pessoa está nunca fecha, e por isso nem tem o botão", () => {
     expect(MENU).toContain("const temTelaAtiva = sec.entradas.some(ativa);");
-    expect(MENU).toContain("const recolhida = !!sec.label && !temTelaAtiva && recolhidos.includes(chave);");
+    expect(MENU).toContain("const recolhida = !!sec.label && !temTelaAtiva && !abertos.includes(chave);");
     expect(MENU).toContain("{!temTelaAtiva && (");
   });
 
@@ -48,11 +48,15 @@ describe("subgrupos do painel que recolhem", () => {
     expect(MENU).toContain('aria-label={`${recolhida ? "Abrir" : "Recolher"} ${sec.label}`}');
   });
 
-  it("lembra neste aparelho o que foi recolhido, sem divergir do servidor: começa tudo aberto e lê depois de montar", () => {
-    expect(MENU).toContain('const CHAVE_RECOLHIDOS = "bexprint:menu:subgrupos-recolhidos";');
+  it("como no Holdprint (02/11/2026): o grupo começa fechado e abre no toque; lembra neste aparelho o que foi aberto, sem divergir do servidor", () => {
+    expect(MENU).toContain('const CHAVE_ABERTOS = "bexprint:menu:subgrupos-abertos";');
     expect(MENU).toContain("useState<string[]>([])");
-    expect(MENU).toContain("setRecolhidos(lerRecolhidos());");
+    expect(MENU).toContain("setAbertos(lerAbertos());");
+    // a linha inteira do grupo abre: o botão cobre a linha, e o título segue no <h3>
+    expect(MENU).toContain('className="absolute inset-0 flex w-full items-center justify-end rounded-lg pr-3');
+    // os itens abertos ficam recuados com a guia à esquerda
+    expect(MENU).toContain('sec.label && "ml-4 border-l border-sidebar-border pl-2"');
     // armazenamento bloqueado (navegação privada) não derruba o menu
-    expect(MENU.slice(MENU.indexOf("function lerRecolhidos"), MENU.indexOf("function lembrarModulo"))).toContain("catch");
+    expect(MENU.slice(MENU.indexOf("function lerAbertos"), MENU.indexOf("function lembrarModulo"))).toContain("catch");
   });
 });

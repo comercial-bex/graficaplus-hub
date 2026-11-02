@@ -141,22 +141,23 @@
   /* Sidebar permanece escura nos dois temas, agora azul-marinho: menu #212e57
      e item ativo #215168 (cores do Holdprint aprovadas pelo dono, 31/10/2026).
      O bloco .dark repete os mesmos valores. */
-  --sidebar: #212e57;
+  --sidebar: #151f39;
   --sidebar-foreground: #e2e8f0;
   --sidebar-primary: #00d3f2;
   --sidebar-primary-foreground: #050506;
-  --sidebar-accent: #215168;
+  --sidebar-accent: #1f3550;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #34447a;
-  /* Barra do topo: azul-marinho mais escuro que o menu, nos dois temas. */
+  --sidebar-border: #26335a;
+  /* Barra lateral escura da marca (02/11/2026): painel #151f39, trilho #0f172e, neon ciano so no ativo,
+     na marca e nos selos; igual nos dois temas. Barra do topo: azul-marinho, nos dois temas. */
   --topbar: #121f3b;
   --topbar-foreground: #e2e8f0;
   --sidebar-ring: #00d3f2;
   /* O trilho dos módulos (coluna estreita à esquerda do menu) é da cor da
      marca; o ícone do módulo ativo fica num quadrado escuro. Para o trilho
      roxo da empresa (#7B2E8B): trilho #7B2E8B, ícone #ffffff, marca #c084fc. */
-  --sidebar-trilho: #00a9c6;
-  --sidebar-trilho-foreground: #050506;
+  --sidebar-trilho: #0f172e;
+  --sidebar-trilho-foreground: #e2e8f0;
   --sidebar-marca: #00d3f2;
   --sidebar-online: #45d4a0;
 
@@ -216,19 +217,19 @@
   --status-magenta: #ff5aae;
   --status-amber: #f5d90a;
   --status-positive: #45d4a0;
-  --sidebar: #212e57;
+  --sidebar: #151f39;
   --sidebar-foreground: #e2e8f0;
   --sidebar-primary: #00d3f2;
   --sidebar-primary-foreground: #050506;
-  --sidebar-accent: #215168;
+  --sidebar-accent: #1f3550;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #34447a;
+  --sidebar-border: #26335a;
   /* Barra do topo: azul-marinho mais escuro que o menu, nos dois temas. */
   --topbar: #121f3b;
   --topbar-foreground: #e2e8f0;
   --sidebar-ring: #00d3f2;
-  --sidebar-trilho: #00a9c6;
-  --sidebar-trilho-foreground: #050506;
+  --sidebar-trilho: #0f172e;
+  --sidebar-trilho-foreground: #e2e8f0;
   --sidebar-marca: #00d3f2;
   --sidebar-online: #45d4a0;
 }

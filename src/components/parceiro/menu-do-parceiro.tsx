@@ -118,7 +118,7 @@ export function MenuDoParceiro({ painel, onSair }: { painel: PainelDoParceiro; o
                 aria-current={ativo ? "page" : undefined}
                 className={cn(
                   "group/item flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring md:h-9",
-                  "data-[active=true]:bg-[var(--sidebar-trilho)] data-[active=true]:font-bold data-[active=true]:text-[var(--sidebar-trilho-foreground)]",
+                  "data-[active=true]:bg-sidebar-accent data-[active=true]:font-bold data-[active=true]:text-sidebar-accent-foreground",
                 )}
               >
                 <item.icone className="h-4 w-4 shrink-0" aria-hidden />
