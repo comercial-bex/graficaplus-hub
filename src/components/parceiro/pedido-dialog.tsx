@@ -81,7 +81,7 @@ export function PedidoDialog({
         {enviado ? (
           <>
             <DialogHeader>
-              <CheckCircle2 className="mb-2 h-10 w-10 text-[color:var(--bex-cyan)]" />
+              <CheckCircle2 className="mb-2 h-10 w-10 text-status-cyan" aria-hidden="true" />
               <DialogTitle className="text-xl">Pedido nº {enviado.numero} enviado</DialogTitle>
               <DialogDescription>
                 A gráfica recebeu {enviado.itens} {enviado.itens === 1 ? "item" : "itens"} no valor de{" "}
@@ -170,8 +170,10 @@ export function PedidoDialog({
                   </Label>
                 </div>
                 {usarCredito && (
-                  <div className="flex items-center gap-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="valor-credito">Quanto usar (até {brl(maximo)})</Label>
                     <Input
+                      id="valor-credito"
                       type="number"
                       inputMode="decimal"
                       min={0}
@@ -180,9 +182,7 @@ export function PedidoDialog({
                       value={valorCredito}
                       onChange={(e) => setValorCredito(Number(e.target.value))}
                       className="w-40"
-                      aria-label="Valor de crédito a usar"
                     />
-                    <span className="text-xs text-muted-foreground">até {brl(maximo)}</span>
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">

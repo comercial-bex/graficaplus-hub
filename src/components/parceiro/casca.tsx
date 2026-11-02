@@ -52,7 +52,8 @@ export function Casca({
       <div className="flex min-h-screen w-full bg-background text-foreground">
         <MenuDoParceiro painel={painel} onSair={onSair} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 relative flex h-14 items-center gap-2 border-b border-border bg-card/90 px-2 shadow-sm backdrop-blur-xl md:gap-3 md:px-4">
+          {/* sticky já posiciona a faixa absoluta de baixo; "relative" junto disputava o position */}
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-card/90 px-2 shadow-sm backdrop-blur-xl md:gap-3 md:px-4">
             <SidebarTrigger className="h-11 w-11 md:h-7 md:w-7" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold">{atual?.rotulo ?? "Painel do parceiro"}</p>
@@ -85,7 +86,7 @@ export function Casca({
               to={item.to}
               className={cn(
                 "flex flex-col items-center gap-1 py-2.5 text-xs font-medium",
-                selecionado ? "text-[color:var(--bex-cyan)]" : "text-muted-foreground",
+                selecionado ? "text-status-cyan" : "text-muted-foreground",
               )}
             >
               <item.icone className="h-5 w-5" />

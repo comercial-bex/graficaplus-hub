@@ -17,7 +17,7 @@ export function Pedidos({ painel }: { painel: PainelDoParceiro }) {
   return (
     <section className="space-y-3">
       <h2 className="flex items-center gap-2 text-lg font-semibold">
-        <Package className="h-5 w-5 text-[color:var(--bex-cyan)]" />
+        <Package className="h-5 w-5 text-status-cyan" aria-hidden="true" />
         Seus pedidos
       </h2>
       {pedidos.length === 0 ? (
@@ -65,26 +65,34 @@ function PedidoLinha({ pedido }: { pedido: PedidoDoParceiro }) {
         <StatusChip label={s.rotulo} tone={s.tom} />
       </div>
       {s.passo !== null && (
-        <ol className="mt-3 grid grid-cols-5 gap-1" aria-label="Andamento do pedido">
-          {PASSOS_DO_PEDIDO.map((passo, i) => (
-            <li key={passo} className="space-y-1">
-              <div
-                className={cn(
-                  "h-1.5 rounded-full",
-                  i <= (s.passo ?? -1) ? "bg-[color:var(--bex-cyan)]" : "bg-foreground/10",
-                )}
-              />
-              <p
-                className={cn(
-                  "truncate text-xs",
-                  i === s.passo ? "font-medium text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {passo}
-              </p>
-            </li>
-          ))}
-        </ol>
+        <>
+          {/* Cinco colunas num celular de 375 px dão ~60 px cada: os nomes dos
+              passos saíam cortados ("Receb…"). Ali ficam só as barras, e o passo
+              atual é dito por extenso embaixo; a partir de sm os nomes voltam. */}
+          <ol className="mt-3 grid grid-cols-5 gap-1" aria-label="Andamento do pedido">
+            {PASSOS_DO_PEDIDO.map((passo, i) => (
+              <li key={passo} className="space-y-1">
+                <div
+                  className={cn(
+                    "h-1.5 rounded-full",
+                    i <= (s.passo ?? -1) ? "bg-[color:var(--bex-cyan)]" : "bg-foreground/10",
+                  )}
+                />
+                <p
+                  className={cn(
+                    "hidden truncate text-xs sm:block",
+                    i === s.passo ? "font-medium text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {passo}
+                </p>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-1.5 text-xs text-muted-foreground sm:hidden">
+            Agora: <span className="font-medium text-foreground">{PASSOS_DO_PEDIDO[s.passo]}</span>
+          </p>
+        </>
       )}
     </li>
   );

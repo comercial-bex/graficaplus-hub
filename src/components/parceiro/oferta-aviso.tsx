@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Zap } from "lucide-react";
 import {
@@ -20,17 +20,47 @@ import { ofertasParaAvisar, resumoDaOferta, type PainelDoParceiro } from "@/doma
  * Uma de cada vez, e só uma vez: fechar marca como vista no banco. O aviso que
  * volta toda vez que a pessoa abre o painel vira ruído e ela aprende a fechar sem
  * ler — que é o contrário do que a oferta precisa.
+ *
+ * Nunca por cima de outro diálogo (02/11/2026): o aviso mora na casca e abria
+ * sozinho em qualquer tela — inclusive em cima de "Novo orçamento" ou de
+ * "Fazer pedido", com dois modais empilhados. Agora só abre no Início e só
+ * quando não há outro diálogo aberto; se houver, espera ele fechar.
  */
+const SELETOR_DE_DIALOGO_ABERTO = '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]';
+
 export function OfertaAviso({ painel }: { painel: PainelDoParceiro }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const noInicio = pathname === "/parceiro" || pathname === "/parceiro/";
   const [fechando, setFechando] = useState(false);
   // Fecha na hora, sem esperar o cache voltar: quem desenha o aviso pode estar
   // segurando uma cópia antiga do painel.
   const [dispensadas, setDispensadas] = useState<string[]>([]);
   const oferta = ofertasParaAvisar(painel.ofertas).find((o) => !dispensadas.includes(o.id));
+  const ofertaId = oferta?.id ?? null;
 
-  if (!oferta) return null;
+  // "Livre" = nenhum outro diálogo aberto. Depois que o aviso abre, para de
+  // conferir: senão ele acharia a si mesmo e se fecharia.
+  const [livre, setLivre] = useState(false);
+  useEffect(() => {
+    if (!ofertaId || !noInicio) {
+      setLivre(false);
+      return;
+    }
+    if (livre) return;
+    const conferir = () => {
+      if (!document.querySelector(SELETOR_DE_DIALOGO_ABERTO)) setLivre(true);
+    };
+    const primeira = window.setTimeout(conferir, 600);
+    const depois = window.setInterval(conferir, 1000);
+    return () => {
+      window.clearTimeout(primeira);
+      window.clearInterval(depois);
+    };
+  }, [ofertaId, noInicio, livre]);
+
+  if (!oferta || !noInicio || !livre) return null;
 
   async function fechar(irParaTabela: boolean) {
     if (!oferta || fechando) return;
@@ -60,7 +90,7 @@ export function OfertaAviso({ painel }: { painel: PainelDoParceiro }) {
             <Zap className="h-5 w-5" />
           </div>
           <DialogTitle className="text-xl">{oferta.titulo}</DialogTitle>
-          <DialogDescription className="text-base text-foreground/80 whitespace-pre-line">
+          <DialogDescription className="text-base text-foreground whitespace-pre-line">
             {oferta.mensagem}
           </DialogDescription>
         </DialogHeader>
