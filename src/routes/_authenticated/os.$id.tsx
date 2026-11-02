@@ -1325,7 +1325,7 @@ function FinanceiroTab({ osId, userId, os }: { osId: string; userId?: string; os
               value={custo.categoria}
               onValueChange={(v) => setCusto({ ...custo, categoria: v })}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Categoria">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>

@@ -330,7 +330,7 @@ export function ApontamentoDaOS({ osId }: { osId: string }) {
             <div className="min-w-[200px] flex-1">
               <Label className="text-xs">Máquina</Label>
               <Select value={maquina} onValueChange={setMaquina}>
-                <SelectTrigger><SelectValue placeholder="Escolha a máquina" /></SelectTrigger>
+                <SelectTrigger aria-label="Escolha a máquina"><SelectValue placeholder="Escolha a máquina" /></SelectTrigger>
                 <SelectContent>
                   {maquinas.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
@@ -352,7 +352,7 @@ export function ApontamentoDaOS({ osId }: { osId: string }) {
             <div className="w-48">
               <Label className="text-xs">Etapa (opcional)</Label>
               <Select value={etapa} onValueChange={setEtapa}>
-                <SelectTrigger><SelectValue placeholder="Padrão da máquina" /></SelectTrigger>
+                <SelectTrigger aria-label="Padrão da máquina"><SelectValue placeholder="Padrão da máquina" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ETAPA_PADRAO}>Padrão da máquina</SelectItem>
                   {ETAPAS.map((e) => (

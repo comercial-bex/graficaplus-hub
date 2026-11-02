@@ -92,7 +92,7 @@ export function QuemTrouxeAVenda({
         {rotulo}
       </Dica>
       <Select value={vendedorId ?? "none"} onValueChange={mudar}>
-        <SelectTrigger className="h-8 w-56 text-sm">
+        <SelectTrigger aria-label="Escolher" className="h-8 w-56 text-sm">
           <SelectValue placeholder="Escolher" />
         </SelectTrigger>
         <SelectContent>

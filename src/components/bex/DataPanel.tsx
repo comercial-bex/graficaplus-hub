@@ -42,6 +42,7 @@ export function DataPanel({
                 value={busca ?? ""}
                 onChange={(e) => onBusca(e.target.value)}
                 placeholder={placeholder}
+                aria-label={placeholder?.replace(/\.{3}$|…$/, "") || "Buscar"}
                 className="h-10 md:h-9 w-full bg-background pl-9 text-base md:text-xs"
               />
             </div>

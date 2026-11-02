@@ -696,7 +696,7 @@ function AbaProcessos({
             <div className="min-w-[240px] flex-1 space-y-1.5">
               <Label>Acrescentar processo</Label>
               <Select value={novo} onValueChange={setNovo}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Escolha o processo">
                   <SelectValue placeholder="Escolha o processo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -869,7 +869,7 @@ function AbaFormulas({ produtoId, podeEditar }: { produtoId: string; podeEditar:
               <div className="space-y-1.5">
                 <Label>Material</Label>
                 <Select value={material} onValueChange={setMaterial}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Escolha o material">
                     <SelectValue placeholder="Escolha o material" />
                   </SelectTrigger>
                   <SelectContent>

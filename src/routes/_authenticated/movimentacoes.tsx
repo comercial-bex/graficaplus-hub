@@ -247,7 +247,7 @@ function MovimentacoesPage() {
         <CardContent className="p-4 space-y-4">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
+            <Input aria-label="Buscar material, OS, motivo ou responsável"
               className="pl-9"
               placeholder="Buscar material, OS, motivo ou responsável…"
               value={busca}

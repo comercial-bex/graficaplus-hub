@@ -183,7 +183,7 @@ export function CadastroDialog({
           <div className="space-y-1.5">
             <Label>Atendente na gráfica</Label>
             <Select value={responsavel} onValueChange={setResponsavel} disabled={!carregado}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Sem atendente">
                 <SelectValue placeholder="Sem atendente" />
               </SelectTrigger>
               <SelectContent>

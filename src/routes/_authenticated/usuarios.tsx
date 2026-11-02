@@ -326,7 +326,7 @@ function EquipePage() {
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+              <Input aria-label="Buscar por nome ou e-mail"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar por nome ou e-mail"
@@ -334,7 +334,7 @@ function EquipePage() {
               />
             </div>
             <Select value={filtroPerfil} onValueChange={setFiltroPerfil}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger aria-label="Perfil" className="w-44">
                 <SelectValue placeholder="Perfil" />
               </SelectTrigger>
               <SelectContent>
@@ -347,7 +347,7 @@ function EquipePage() {
               </SelectContent>
             </Select>
             <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-              <SelectTrigger className="w-36">
+              <SelectTrigger aria-label="Status" className="w-36">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -459,7 +459,7 @@ function EquipePage() {
                             value={novoRole[u.id] ?? ""}
                             onValueChange={(v: AppRole) => setNovoRole({ ...novoRole, [u.id]: v })}
                           >
-                            <SelectTrigger className="h-7 w-28 text-xs">
+                            <SelectTrigger aria-label="+ perfil" className="h-7 w-28 text-xs">
                               <SelectValue placeholder="+ perfil" />
                             </SelectTrigger>
                             <SelectContent>
