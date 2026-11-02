@@ -27,6 +27,12 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { getRoutePermissions, type Permission } from "@/lib/permissions";
 import { podeAbrirRota } from "@/lib/menu";
+import { CalendarClock } from "lucide-react";
+import {
+  fraseDaValidade,
+  resumoDaValidade,
+  type OrcamentoParaValidade,
+} from "@/domain/orcamentos/validade-no-painel";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { PendenciasDoMeuPapel } from "@/components/painel/PendenciasDoMeuPapel";
 import { ResumoDoDia } from "@/components/painel/ResumoDoDia";
@@ -214,6 +220,23 @@ function PainelCompleto({
       return count ?? 0;
     },
   });
+
+  // Orçamentos enviados para vencer (02/11/2026). O quadro mostra "vence em N
+  // dias" em cada cartão, mas o dia começa pelo painel. Só os enviados contam;
+  // a validade é enviado_em + validade_dias, a mesma conta do quadro.
+  const orcamentosVencendo = useQuery({
+    queryKey: ["dash-orcamentos-vencendo"],
+    refetchInterval: 120_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orcamentos")
+        .select("id, status, enviado_em, validade_dias")
+        .eq("status", "enviado");
+      if (error) throw error;
+      return resumoDaValidade((data ?? []) as OrcamentoParaValidade[], new Date());
+    },
+  });
+  const fraseDeValidade = orcamentosVencendo.data ? fraseDaValidade(orcamentosVencendo.data) : null;
 
   // Dinheiro que ENTROU (24/10/2026). O "Faturamento" abaixo é o valor das OS
   // vendidas; dar baixa numa parcela não mexia em nada do painel. Reage às
@@ -531,6 +554,21 @@ function PainelCompleto({
             </strong>{" "}
             Arte pronta, serviço concluído e orçamento aprovado ficaram na fila sem canal
             de envio configurado. Abra para avisar à mão ou dar baixa.
+          </span>
+        </Link>
+      )}
+
+      {/* Orçamento enviado perto de vencer: avisar antes é mais barato que reenviar depois. */}
+      {fraseDeValidade && podeAbrirRota("/orcamentos", hasPermission) && (
+        <Link
+          to="/orcamentos"
+          data-testid="aviso-validade-orcamentos"
+          className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm hover:bg-amber-500/15"
+        >
+          <CalendarClock className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-600" />
+          <span>
+            <strong>{fraseDeValidade}.</strong> Abra o quadro, coluna Enviado: cada cartão diz em quantos
+            dias vence. Ligue para o cliente ou reenvie antes de vencer.
           </span>
         </Link>
       )}
