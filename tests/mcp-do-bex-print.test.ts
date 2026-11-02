@@ -40,7 +40,7 @@ describe("as seis ferramentas", () => {
     }
     const consultar = FERRAMENTAS.find((f) => f.name === "bexprint_consultar")!;
     const props = Object.keys((consultar.inputSchema as { properties: Record<string, unknown> }).properties);
-    expect(props.sort()).toEqual(["ate", "busca", "desde", "deslocamento", "limite", "recurso", "status"].sort());
+    expect(props.sort()).toEqual(["ate", "busca", "cliente_id", "desde", "deslocamento", "limite", "recurso", "status"].sort());
     const recursoEnum = ((consultar.inputSchema as { properties: { recurso: { enum: string[] } } }).properties.recurso.enum);
     expect(recursoEnum).toEqual(RECURSOS.map((r) => r.chave));
   });
