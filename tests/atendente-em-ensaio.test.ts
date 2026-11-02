@@ -110,6 +110,12 @@ describe("o que vai para a IA", () => {
     expect(m[1].content).not.toMatch(/preco|custo/i);
   });
 
+  it("o plural acha o produto: copos térmicos é o copo térmico", () => {
+    const copo = { ...chaveiro, id: "cop", nome: "COPO TERMICO 500ML" };
+    expect(produtosDaConversa("preciso de 20 copos térmicos", [copo, banner]).map((p) => p.id)).toEqual(["cop"]);
+    expect(produtosDaConversa("2 banners", [copo, banner]).map((p) => p.id)).toEqual(["ban"]);
+  });
+
   it("telefone, e-mail e documento saem mascarados", () => {
     expect(mascararDados("meu zap 96 99123-4567")).toBe("meu zap [telefone]");
     expect(mascararDados("email joao@x.com.br")).toBe("email [e-mail]");
