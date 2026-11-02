@@ -1,5 +1,11 @@
 import { faixaAplicada, type FaixaPreco } from "@/domain/orcamentos/faixas";
 import {
+  respostaDefinidaParaIa,
+  responder,
+  type PerguntaDoProduto,
+  type RespostaDoItem,
+} from "@/domain/orcamentos/perguntas-do-item";
+import {
   camposDaLinhaPorArea,
   acabamentoCobravel,
   ladosSugeridos,
@@ -32,6 +38,8 @@ export type ProdutoParaIa = {
   tamanhos?: { nome: string; largura: number; altura: number; quando_usar: string | null }[];
   /** Perguntas que a casa já respondeu: não se pergunta ao cliente. */
   ja_definido?: { pergunta: string; resposta: string }[];
+  /** O checklist do produto, com o modo e a instrução de cada pergunta. */
+  checklist?: PerguntaDoProduto[];
 };
 
 export type ItemDaIa = {
@@ -43,6 +51,8 @@ export type ItemDaIa = {
   altura_m: number | null;
   observacao: string | null;
   acabamentos: string[];
+  /** As respostas do checklist: as que o cliente deu e as que a casa definiu. */
+  respostas?: RespostaDoItem[];
 };
 
 export type LeituraDoPedido = {
@@ -82,12 +92,24 @@ export const FERRAMENTA_DO_ORCAMENTO = {
                 items: { type: "string" },
                 description: "Só os que o cliente pediu, com o nome exato da lista de acabamentos do produto.",
               },
+              respostas: {
+                type: "array",
+                description: "As perguntas do checklist do produto que o pedido já responde.",
+                items: {
+                  type: "object",
+                  properties: {
+                    pergunta_id: { type: "string", description: "O id, exatamente como está no checklist." },
+                    resposta: { type: "string", description: "Uma das opções da pergunta, com o texto exato." },
+                  },
+                  required: ["pergunta_id", "resposta"],
+                },
+              },
               observacao: {
                 type: ["string", "null"],
                 description: "Acabamento, cor ou detalhe que o cliente disse.",
               },
             },
-            required: ["produto_id", "quantidade", "largura_m", "altura_m", "observacao", "acabamentos"],
+            required: ["produto_id", "quantidade", "largura_m", "altura_m", "observacao", "acabamentos", "respostas"],
           },
         },
         perguntas_que_faltam: {
@@ -118,6 +140,15 @@ export function montarPerguntaDoOrcamento(pedido: string, produtos: ProdutoParaI
     tambem_conhecido_como: p.apelidos ?? [],
     tamanhos: p.tamanhos ?? [],
     ja_definido: p.ja_definido ?? [],
+    checklist: (p.checklist ?? [])
+      .filter((q) => respostaDefinidaParaIa(q) === null)
+      .map((q) => ({
+        id: q.id,
+        pergunta: q.pergunta,
+        opcoes: q.respostas,
+        como: q.ia_modo ?? "perguntar",
+        instrucao: q.ia_instrucao ?? null,
+      })),
   }));
   return [
     {
@@ -131,6 +162,9 @@ export function montarPerguntaDoOrcamento(pedido: string, produtos: ProdutoParaI
         "Marque acabamento só quando o cliente pediu, com o nome exato da lista do produto (ilhós e bainha = Bainha + ilhós). Se o produto aceita acabamento e o cliente não falou, inclua a pergunta em perguntas_que_faltam.",
         "O cliente pode chamar o produto por um nome de tambem_conhecido_como: é o mesmo produto.",
         "Nunca coloque em perguntas_que_faltam o que está em ja_definido. A casa já decidiu aquilo.",
+        "Cada pergunta do checklist diz como tratá-la em 'como'. 'perguntar': se o pedido já responde, registre em respostas; se não, coloque o texto da pergunta em perguntas_que_faltam, seguindo a instrucao. 'seguir_cliente': registre só se o cliente falou disso; nunca coloque em perguntas_que_faltam.",
+        "Em respostas, use o texto exato de uma das opcoes. Se a instrucao disser que a pergunta depende de outra resposta, respeite: não pergunte enquanto a outra não estiver respondida.",
+        "Se o pedido pede algo que a máquina ou o produto não fazem, segundo o o_que_e e o como_medir, avise em perguntas_que_faltam em vez de aceitar.",
         "Tamanho de tamanhos só vale se o cliente pediu ou confirmou; serve para sugerir na pergunta, não para preencher a medida.",
         "O que não existir na lista vai em sem_produto.",
       ].join("\n"),
@@ -151,6 +185,30 @@ const textos = (v: unknown): string[] =>
   Array.isArray(v)
     ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim())
     : [];
+
+/**
+ * As respostas do item: o que a casa definiu entra sempre; o que veio da IA só entra se a pergunta existe no
+ * produto e a resposta é uma das opções. Resposta inventada não vira cobrança.
+ */
+export function respostasDaIa(p: ProdutoParaIa, brutas: unknown): RespostaDoItem[] {
+  const checklist = p.checklist ?? [];
+  let respostas: RespostaDoItem[] = [];
+  const lista = Array.isArray(brutas) ? (brutas as { pergunta_id?: unknown; resposta?: unknown }[]) : [];
+  for (const q of checklist) {
+    const definida = respostaDefinidaParaIa(q);
+    if (definida !== null) {
+      respostas = responder(respostas, q, q.tipo_resposta === "multipla" ? [definida] : definida);
+      continue;
+    }
+    const bruta = lista.find((b) => b?.pergunta_id === q.id)?.resposta;
+    const texto = typeof bruta === "number" ? String(bruta) : typeof bruta === "string" ? bruta.trim() : "";
+    if (!texto) continue;
+    const comLista = q.tipo_resposta === "unica" || q.tipo_resposta === "multipla";
+    if (comLista && !q.respostas.includes(texto)) continue;
+    respostas = responder(respostas, q, q.tipo_resposta === "multipla" ? [texto] : texto);
+  }
+  return respostas;
+}
 
 /** Confere a resposta da IA: produto fora da lista não entra, e o que não entrou é dito. */
 export function interpretarLeitura(
@@ -188,6 +246,7 @@ export function interpretarLeitura(
           ? bruto.observacao.trim()
           : null,
       acabamentos: textos(bruto.acabamentos).filter((x) => (p.acabamentos ?? []).includes(x)),
+      respostas: respostasDaIa(p, bruto.respostas),
     });
   }
   return {
@@ -307,6 +366,7 @@ export function linhaDoItem(i: ItemDaIa, precoBase: number | null, ordem: number
     preco_m2: area && i.largura_m && i.altura_m ? precoBase : null,
     valor_unitario: area ? 0 : (precoBase ?? 0),
     acabamento: textoDoAcabamento(i),
+    respostas: i.respostas ?? [],
     origem_calculo: "ia",
   };
 }

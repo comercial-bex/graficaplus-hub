@@ -2,6 +2,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { FaixaPreco } from "@/domain/orcamentos/faixas";
 import {
+  camposDaCobranca,
+  cobrancasDasRespostas,
+  descricaoDaLinha,
+  type LinhaDoOrcamento,
+  type ProcessoDaResposta,
+} from "@/domain/orcamentos/cobranca-das-respostas";
+import {
+  acabamentoAjustado,
+  normalizarRespostas,
+  perguntaDaLinha,
+  processosDasRespostas,
+  respostaDefinidaParaIa,
+  type PerguntaDoProduto,
+} from "@/domain/orcamentos/perguntas-do-item";
+import {
   FERRAMENTA_DO_ORCAMENTO,
   interpretarLeitura,
   linhaDoItem,
@@ -120,6 +135,9 @@ async function exigeQuemOrca(context: { supabase: any; userId: string }) {
   if (!data) throw new Error("O orçamento com IA é de quem cria orçamentos.");
 }
 
+const COLUNAS_DA_PERGUNTA =
+  "id, produto_id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, ordem, resposta_padrao, nao_perguntar, ia_modo, ia_resposta, ia_instrucao";
+
 export const lerPedidoDoCliente = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { pedido: string }) => ({
@@ -147,18 +165,20 @@ export const lerPedidoDoCliente = createServerFn({ method: "POST" })
       ((ligacoes ?? []) as { produto_id: string; acabamentos: { nome: string } }[])
         .filter((l) => l.produto_id === produtoId)
         .map((l) => l.acabamentos.nome);
-    const [tamanhos, definidas] = await Promise.all([
+    const [tamanhos, perguntas] = await Promise.all([
       (context.supabase as any)
         .from("produto_tamanhos")
         .select("produto_id, nome, largura, altura, quando_usar")
         .order("ordem"),
       (context.supabase as any)
         .from("produto_perguntas")
-        .select("produto_id, pergunta, resposta_padrao")
-        .eq("nao_perguntar", true),
+        .select(COLUNAS_DA_PERGUNTA)
+        .order("ordem"),
     ]);
-    if (tamanhos.error || definidas.error)
+    if (tamanhos.error || perguntas.error)
       throw new Error("Não foi possível ler os tamanhos e as perguntas dos produtos.");
+    const checklistDe = (produtoId: string) =>
+      ((perguntas.data ?? []) as any[]).filter((q) => q.produto_id === produtoId).map(perguntaDaLinha);
     const produtos: ProdutoParaIa[] = ((linhas ?? []) as any[]).map((l) => ({
       id: l.produto_id,
       nome: l.produtos.nome,
@@ -177,9 +197,11 @@ export const lerPedidoDoCliente = createServerFn({ method: "POST" })
           altura: Number(t.altura),
           quando_usar: t.quando_usar ?? null,
         })),
-      ja_definido: ((definidas.data ?? []) as any[])
-        .filter((q) => q.produto_id === l.produto_id)
-        .map((q) => ({ pergunta: q.pergunta, resposta: q.resposta_padrao })),
+      checklist: checklistDe(l.produto_id),
+      ja_definido: checklistDe(l.produto_id).flatMap((q) => {
+        const resposta = respostaDefinidaParaIa(q);
+        return resposta === null ? [] : [{ pergunta: q.pergunta, resposta }];
+      }),
     }));
     return lerPedidoComIa(data.pedido, produtos, motorDaIa());
   });
@@ -264,16 +286,84 @@ export const criarRascunhoDaIa = createServerFn({ method: "POST" })
         return p ? [{ acabamento: a.nome, id: p.id, nome: p.nome, unidade: p.unidade, preco: p.preco_base }] : [];
       });
     }
+    // O checklist vem do banco: a resposta que voltou da tela só vale se a pergunta é mesmo do produto.
+    const { data: linhasDePergunta, error: erroPerguntas } = await db
+      .from("produto_perguntas")
+      .select(COLUNAS_DA_PERGUNTA)
+      .in("produto_id", itens.map((i) => i.produto_id));
+    if (erroPerguntas) throw new Error("Não foi possível ler as perguntas dos produtos.");
+    const perguntasDe = (produtoId: string): PerguntaDoProduto[] =>
+      ((linhasDePergunta ?? []) as any[]).filter((q) => q.produto_id === produtoId).map(perguntaDaLinha);
+    const idsDeProcesso = [
+      ...new Set(((linhasDePergunta ?? []) as any[]).flatMap((q) => ((q.acoes ?? []) as any[]).map((a) => a.processo_id))),
+    ].filter(Boolean);
+    const { data: linhasDeProcesso, error: erroProcessos } = idsDeProcesso.length
+      ? await db.from("processos").select("id, nome, medida_cobrada, produto_servico_id").in("id", idsDeProcesso)
+      : { data: [], error: null };
+    if (erroProcessos) throw new Error("Não foi possível ler os processos das perguntas.");
+    const processos = (linhasDeProcesso ?? []) as ProcessoDaResposta[];
+    const idsDeServico = processos.map((p) => p.produto_servico_id).filter(Boolean);
+    const { data: servicosDasRespostas, error: erroServicos } = idsDeServico.length
+      ? await db.from("produtos_comercial").select("id, nome, unidade, preco_base").in("id", idsDeServico)
+      : { data: [], error: null };
+    if (erroServicos) throw new Error("Não foi possível ler os preços dos serviços.");
+
     let proximaOrdem = itens.length;
+    const linhasDoOrcamento: LinhaDoOrcamento[] = [];
     for (const [ordem, item] of itens.entries()) {
+      const perguntasDoItem = perguntasDe(item.produto_id);
+      const ids = new Set(perguntasDoItem.map((q) => q.id));
+      const respostas = normalizarRespostas(item.respostas).filter((r) => ids.has(r.pergunta_id));
+      const nomesDosProcessos = processosDasRespostas(perguntasDoItem, respostas).flatMap((id) => {
+        const p = processos.find((x) => x.id === id);
+        return p ? [p.nome] : [];
+      });
+      const base = linhaDoItem(
+        { ...item, respostas },
+        precoDeTabela(item, precoDe.get(item.produto_id) ?? null, faixasDe(item.produto_id)),
+        ordem,
+      );
       const { data: linha, error: erroItem } = await db
         .from("orcamento_itens")
         .insert({
           orcamento_id: criado.id,
-          ...linhaDoItem(item, precoDeTabela(item, precoDe.get(item.produto_id) ?? null, faixasDe(item.produto_id)), ordem),
+          ...base,
+          acabamento: acabamentoAjustado(base.acabamento ?? "", [], nomesDosProcessos) || null,
         })
-        .select("id");
-      if (erroItem || !linha || linha.length === 0) falharam.push(item.nome);
+        .select("id, produto_id");
+      if (erroItem || !linha || linha.length === 0) {
+        falharam.push(item.nome);
+        continue;
+      }
+      linhasDoOrcamento.push(linha[0]);
+      for (const c of cobrancasDasRespostas({
+        perguntas: perguntasDoItem,
+        respostas,
+        processos,
+        servicos: (servicosDasRespostas ?? []) as { id: string; nome: string; unidade: string }[],
+        peca: { largura: item.largura_m ?? 0, altura: item.altura_m ?? 0, quantidade: item.quantidade },
+        informadas: {},
+        linhasDoOrcamento,
+        itemAtualId: null,
+      })) {
+        if (c.estado === "falta_quantidade") falharam.push(`${c.nome} em ${item.nome}: informe a quantidade no item`);
+        if (c.estado === "falta_medida") falharam.push(`${c.nome} em ${item.nome}: falta a medida para cobrar`);
+        if (c.estado !== "cobra") continue;
+        const { data: cobrada, error: erroCobranca } = await db
+          .from("orcamento_itens")
+          .insert({
+            orcamento_id: criado.id,
+            produto_id: c.servico!.id,
+            descricao: descricaoDaLinha(c, item.nome),
+            ...camposDaCobranca(c),
+            ordem: proximaOrdem++,
+            origem_calculo: "ia",
+            gerado_por_item_id: linha[0].id,
+          })
+          .select("id, produto_id, gerado_por_item_id");
+        if (erroCobranca || !cobrada || cobrada.length === 0) falharam.push(c.nome);
+        else linhasDoOrcamento.push(cobrada[0]);
+      }
       const { linhas: dosAcabamentos, pendentes } = linhasDoAcabamento(item, servicos);
       falharam.push(...pendentes);
       for (const l of dosAcabamentos) {
