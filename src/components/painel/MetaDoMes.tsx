@@ -103,7 +103,7 @@ function PorQueZero({
       <p className="text-sm leading-relaxed text-foreground">{texto}</p>
       <Link
         to={para}
-        className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-[color:var(--bex-cyan)] underline-offset-4 hover:underline"
+        className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-[color:var(--status-cyan)] underline-offset-4 hover:underline"
       >
         {acao}
         <ArrowRight className="h-4 w-4" />
@@ -211,7 +211,7 @@ export function MetaDoMes({ className }: { className?: string }) {
           </CardTitle>
           <Link
             to="/meta"
-            className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[color:var(--bex-cyan)] underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[color:var(--status-cyan)] underline-offset-4 hover:underline"
           >
             ver a conta
             <ArrowRight className="h-4 w-4" />
@@ -368,7 +368,7 @@ export function MetaDoMes({ className }: { className?: string }) {
               <div
                 className={cn(
                   "flex items-start gap-2 text-sm",
-                  atrasado ? "text-amber-500" : "text-emerald-500",
+                  atrasado ? "text-status-amber" : "text-status-positive",
                 )}
               >
                 {atrasado ? (

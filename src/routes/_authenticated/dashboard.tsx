@@ -825,7 +825,7 @@ function PainelCompleto({
               <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
               <Tooltip {...chartTooltipStyle} />
               <Legend wrapperStyle={{ fontSize: "11px", fontFamily: "var(--font-mono)" }} />
-              <Bar dataKey="previsto" fill="#334155" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="previsto" fill="var(--muted-foreground)" radius={[3, 3, 0, 0]} />
               <Bar dataKey="real" fill={CMYK.lime} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

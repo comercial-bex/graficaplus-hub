@@ -146,7 +146,7 @@ export function CartaoOs({
         {/* O que impede de avançar, tudo na mesma linha e em palavras curtas. O texto
             completo e o "como resolver" de cada uma estão na ficha (e no leitor de tela). */}
         {bloqueios.length > 0 && (
-          <div className="flex items-start gap-1.5 text-xs text-[color:var(--bex-amber)] md:text-xs">
+          <div className="flex items-start gap-1.5 text-xs text-[color:var(--status-amber)] md:text-xs">
             <Lock className="mt-px h-3 w-3 shrink-0" aria-hidden />
             <span className="line-clamp-2" aria-hidden>
               Falta: {faltaEmPalavras(bloqueios)}
