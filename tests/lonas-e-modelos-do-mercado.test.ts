@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { acabamentoCobravel, quantidadeDoAcabamento } from "../src/domain/orcamentos/cobranca-do-acabamento";
 import { colunaDoOrcamento } from "../src/domain/orcamentos/quadro";
+import { textoDoAcabamento } from "../src/domain/orcamentos/orcamento-com-ia";
 import { filtrarModelos, parecidoNoCatalogo, produtoDoModelo } from "../src/domain/catalogo/modelos-do-mercado";
 
 describe("os acabamentos de lona (01/11/2026)", () => {
@@ -58,5 +59,26 @@ describe("modelos do mercado", () => {
     expect(filtrarModelos(m, "Lonas", "")).toHaveLength(1);
     expect(filtrarModelos(m, null, "lona").map((x) => x.nome)).toEqual(["Toldo fixo em lona", "Lona Perfurada"]);
     expect(filtrarModelos(m, null, "perfurada")).toHaveLength(1);
+  });
+});
+
+describe("mais lonas (01/11/2026)", () => {
+  const sql = readFileSync("supabase/migrations/20261101330000_mais_lonas.sql", "utf8");
+  it("o que ainda não foi comprado leva a tag que o aviso cobra", () => {
+    for (const sku of ["LON-DUP", "LON-PER", "LON-TEX", "LON-LIS", "LON-ADE", "LON-CAV"]) expect(sql).toContain(sku);
+    expect(sql.match(/PROVISÓRIOS \(01\/11\/2026\)/g)).toHaveLength(5);
+    expect(sql).toContain("NÃO COMPRADO");
+  });
+  it("os modelos que já existem apontam para o produto, para não duplicar", () => {
+    expect(sql).toContain("UPDATE public.catalogo_modelos c SET produto_id");
+  });
+});
+
+describe("texto do acabamento", () => {
+  it("não repete o que já foi marcado, e guarda o que é novo", () => {
+    expect(textoDoAcabamento({ acabamentos: ["Bainha + ilhós"], observacao: "Bainha e ilhós" })).toBe("Bainha + ilhós");
+    expect(textoDoAcabamento({ acabamentos: ["Bainha + ilhós"], observacao: "cor azul" })).toBe("Bainha + ilhós, cor azul");
+    expect(textoDoAcabamento({ acabamentos: [], observacao: null })).toBeNull();
+    expect(textoDoAcabamento({ acabamentos: [], observacao: "fosco" })).toBe("fosco");
   });
 });

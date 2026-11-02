@@ -259,6 +259,21 @@ export function precoDeTabela(i: Pick<ItemDaIa, "unidade" | "quantidade">, preco
   return area ? (faixa.preco_m2_referencia ?? precoBase) : faixa.preco_unitario;
 }
 
+/**
+ * O texto do acabamento do item. A IA às vezes repete na observação o que já marcou
+ * ("Bainha + ilhós" e "Bainha e ilhós"): a repetição não entra.
+ */
+export function textoDoAcabamento(i: Pick<ItemDaIa, "acabamentos" | "observacao">): string | null {
+  const palavras = (t: string) =>
+    t
+      .toLowerCase()
+      .split(/[^a-zà-ú0-9]+/)
+      .filter((p) => p.length >= 3);
+  const marcadas = new Set(i.acabamentos.flatMap(palavras));
+  const repetida = !!i.observacao && palavras(i.observacao).every((p) => marcadas.has(p));
+  return [...i.acabamentos, ...(i.observacao && !repetida ? [i.observacao] : [])].join(", ") || null;
+}
+
 /** A linha que vai para `orcamento_itens`: quem calcula o total é o gatilho do banco. */
 export function linhaDoItem(i: ItemDaIa, precoBase: number | null, ordem: number) {
   const area = UNIDADES_DE_AREA.includes((i.unidade ?? "").toLowerCase());
@@ -272,7 +287,7 @@ export function linhaDoItem(i: ItemDaIa, precoBase: number | null, ordem: number
     altura: i.altura_m,
     preco_m2: area && i.largura_m && i.altura_m ? precoBase : null,
     valor_unitario: area ? 0 : (precoBase ?? 0),
-    acabamento: [...i.acabamentos, ...(i.observacao ? [i.observacao] : [])].join(", ") || null,
+    acabamento: textoDoAcabamento(i),
     origem_calculo: "ia",
   };
 }
