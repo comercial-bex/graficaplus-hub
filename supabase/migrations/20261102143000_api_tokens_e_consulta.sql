@@ -117,7 +117,6 @@ AS $$
 DECLARE
   v_papel text := current_user;
   v_tok public.api_tokens%ROWTYPE;
-  v_email text;
   v_limite integer;
   v_desloc integer;
   v_busca text;
@@ -154,11 +153,10 @@ BEGIN
 
   -- Uso registrado ainda como dono da função (a pessoa não escreve em api_tokens).
   UPDATE public.api_tokens SET ultimo_uso_em = now(), usos = usos + 1 WHERE id = v_tok.id;
-  SELECT email INTO v_email FROM auth.users WHERE id = v_tok.user_id;
-
-  -- Daqui em diante, a leitura é COMO A PESSOA: a RLS decide.
+  -- Daqui em diante, a leitura é COMO A PESSOA: a RLS decide. Sem ler auth.users
+  -- (service_role não enxerga essa tabela): a RLS só precisa do `sub`.
   PERFORM set_config('request.jwt.claims',
-    jsonb_build_object('sub', v_tok.user_id, 'role', 'authenticated', 'email', coalesce(v_email, ''))::text, true);
+    jsonb_build_object('sub', v_tok.user_id, 'role', 'authenticated')::text, true);
   PERFORM set_config('request.jwt.claim.sub', v_tok.user_id::text, true);
   PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
   SET LOCAL ROLE authenticated;
@@ -229,7 +227,7 @@ BEGIN
   EXECUTE format('SET LOCAL ROLE %I', v_papel);
   RETURN jsonb_build_object(
     'recurso', p_recurso, 'total', v_total, 'limite', v_limite, 'deslocamento', v_desloc,
-    'itens', v_itens, 'usuario', v_email
+    'itens', v_itens, 'usuario_id', v_tok.user_id
   );
 END;
 $$;
