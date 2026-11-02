@@ -290,8 +290,8 @@ function ConfiguracoesApiPage() {
         <CardContent className="space-y-3 text-sm">
           <p>
             Endereço MCP <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{base}{CAMINHO_DO_MCP}</code>, com o mesmo token desta página no cabeçalho{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono">Authorization: Bearer</code>. Seis ferramentas, só leitura:{" "}
-            {FERRAMENTAS.map((f) => f.name).join(", ")}.
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono">Authorization: Bearer</code>. Oito ferramentas, seis de leitura e duas de ação:{" "}
+            {FERRAMENTAS.map((f) => f.name).join(", ")}. Toda ação roda em ensaio e só grava quando você confirma; nenhuma mexe em dinheiro nem fala com o cliente.
           </p>
           <div className="space-y-1.5">
             <p className="font-medium">Claude Code</p>

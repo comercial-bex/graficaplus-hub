@@ -31,6 +31,8 @@ describe("as seis ferramentas", () => {
       "bexprint_contar",
       "bexprint_somar",
       "bexprint_exemplos",
+      "bexprint_acoes",
+      "bexprint_executar",
     ]);
     for (const f of FERRAMENTAS) {
       expect(f.description.length).toBeGreaterThan(20);
