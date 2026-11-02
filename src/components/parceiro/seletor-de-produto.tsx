@@ -85,7 +85,7 @@ export function SeletorDeProduto({
       </PopoverTrigger>
       <PopoverContent className="w-[min(92vw,420px)] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar produto da tabela…" />
+          <CommandInput placeholder="Buscar produto da tabela…" aria-label="Buscar produto da tabela" />
           <CommandList className="max-h-[50vh]">
             <CommandEmpty>Nenhum produto com esse nome.</CommandEmpty>
             <CommandGroup>

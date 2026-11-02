@@ -209,7 +209,10 @@
   --positive: #45d4a0;
   --positive-foreground: #050506;
   --border: #333333;
-  --input: #0d0d0d;
+  /* Igual à borda, nunca igual ao cartão (#0d0d0d): o <Input> é bg-card com
+     borda --input, e com as duas cores iguais um campo vazio sumia dentro do
+     cartão — e o interruptor desligado (bg-input) sumia junto. 02/11/2026. */
+  --input: #333333;
   --ring: #bc13fe;
   --surface-raised: #141414;
   --surface-subtle: #0a0a0a;
