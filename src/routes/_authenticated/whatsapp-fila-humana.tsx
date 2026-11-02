@@ -91,12 +91,17 @@ function FilaHumanaPage() {
         description={`Clientes esperando resposta. Âmbar passa de ${ESPERA_ATENCAO_MIN} min; vermelho, de ${ESPERA_ATRASADA_MIN / 60} h.`}
         className="mb-2"
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link to="/whatsapp" aria-label="Abrir a caixa de entrada">
-              <MessageCircle className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Caixa de entrada</span>
-            </Link>
-          </Button>
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/atendente-ensaio">Ensaio do atendente</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/whatsapp" aria-label="Abrir a caixa de entrada">
+                <MessageCircle className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Caixa de entrada</span>
+              </Link>
+            </Button>
+          </>
         }
       />
 

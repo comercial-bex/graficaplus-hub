@@ -20,6 +20,7 @@ import { Route as Tv2RouteImport } from './routes/tv2'
 import { Route as AuthenticatedAReceberRouteImport } from './routes/_authenticated/a-receber'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
+import { Route as AuthenticatedAtendenteEnsaioRouteImport } from './routes/_authenticated/atendente-ensaio'
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated/automacoes'
 import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated/avisos'
 import { Route as AuthenticatedBreakdown3dRouteImport } from './routes/_authenticated/breakdown-3d'
@@ -177,6 +178,12 @@ const AuthenticatedArquivosRoute = AuthenticatedArquivosRouteImport.update({
   path: '/arquivos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAtendenteEnsaioRoute =
+  AuthenticatedAtendenteEnsaioRouteImport.update({
+    id: '/atendente-ensaio',
+    path: '/atendente-ensaio',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAutomacoesRoute = AuthenticatedAutomacoesRouteImport.update({
   id: '/automacoes',
   path: '/automacoes',
@@ -738,6 +745,7 @@ export interface FileRoutesByFullPath {
   '/a-receber': typeof AuthenticatedAReceberRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
+  '/atendente-ensaio': typeof AuthenticatedAtendenteEnsaioRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
@@ -851,6 +859,7 @@ export interface FileRoutesByTo {
   '/a-receber': typeof AuthenticatedAReceberRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
+  '/atendente-ensaio': typeof AuthenticatedAtendenteEnsaioRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
@@ -967,6 +976,7 @@ export interface FileRoutesById {
   '/_authenticated/a-receber': typeof AuthenticatedAReceberRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
+  '/_authenticated/atendente-ensaio': typeof AuthenticatedAtendenteEnsaioRoute
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
   '/_authenticated/avisos': typeof AuthenticatedAvisosRoute
   '/_authenticated/breakdown-3d': typeof AuthenticatedBreakdown3dRoute
@@ -1083,6 +1093,7 @@ export interface FileRouteTypes {
     | '/a-receber'
     | '/aprovacoes'
     | '/arquivos'
+    | '/atendente-ensaio'
     | '/automacoes'
     | '/avisos'
     | '/breakdown-3d'
@@ -1196,6 +1207,7 @@ export interface FileRouteTypes {
     | '/a-receber'
     | '/aprovacoes'
     | '/arquivos'
+    | '/atendente-ensaio'
     | '/automacoes'
     | '/avisos'
     | '/breakdown-3d'
@@ -1311,6 +1323,7 @@ export interface FileRouteTypes {
     | '/_authenticated/a-receber'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/arquivos'
+    | '/_authenticated/atendente-ensaio'
     | '/_authenticated/automacoes'
     | '/_authenticated/avisos'
     | '/_authenticated/breakdown-3d'
@@ -1526,6 +1539,13 @@ declare module '@tanstack/react-router' {
       path: '/arquivos'
       fullPath: '/arquivos'
       preLoaderRoute: typeof AuthenticatedArquivosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/atendente-ensaio': {
+      id: '/_authenticated/atendente-ensaio'
+      path: '/atendente-ensaio'
+      fullPath: '/atendente-ensaio'
+      preLoaderRoute: typeof AuthenticatedAtendenteEnsaioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/automacoes': {
@@ -2249,6 +2269,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAReceberRoute: typeof AuthenticatedAReceberRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedArquivosRoute: typeof AuthenticatedArquivosRoute
+  AuthenticatedAtendenteEnsaioRoute: typeof AuthenticatedAtendenteEnsaioRoute
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
   AuthenticatedAvisosRoute: typeof AuthenticatedAvisosRoute
   AuthenticatedBreakdown3dRoute: typeof AuthenticatedBreakdown3dRoute
@@ -2329,6 +2350,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAReceberRoute: AuthenticatedAReceberRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedArquivosRoute: AuthenticatedArquivosRoute,
+  AuthenticatedAtendenteEnsaioRoute: AuthenticatedAtendenteEnsaioRoute,
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
   AuthenticatedAvisosRoute: AuthenticatedAvisosRoute,
   AuthenticatedBreakdown3dRoute: AuthenticatedBreakdown3dRoute,
@@ -2465,14 +2487,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-  ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

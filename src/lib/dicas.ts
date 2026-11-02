@@ -426,6 +426,10 @@ export const dicas = {
     menu: "Problemas registrados durante os trabalhos.",
     tela: "Registro de problemas: atraso, retrabalho, reclamação. Ajuda a entender o que mais trava a produção.",
   },
+  "/atendente-ensaio": {
+    menu: "O atendente automático em teste, sem falar com cliente.",
+    tela: "Escreva como um cliente e veja o que o atendente responderia, o que entendeu e a conta da tabela. A réplica passa as conversas reais por ele e mostra ao lado o que a equipe respondeu. Nada sai pelo WhatsApp.",
+  },
   "/preencher-pastas": {
     menu: "O que falta preencher nas pastas dos produtos.",
     tela: "Cada área tem a sua parte: a produção confirma a produtividade, o atendimento revisa o roteiro da IA e o financeiro preenche o NCM.",

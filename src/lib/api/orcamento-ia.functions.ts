@@ -53,9 +53,9 @@ export type ResultadoDaLeitura =
   | { estado: "sem_saldo" }
   | { estado: "falhou"; detalhe: string };
 
-type Motor = { url: string; chave: string; modelo: string };
+export type Motor = { url: string; chave: string; modelo: string };
 
-function motorDaIa(): Motor | null {
+export function motorDaIa(): Motor | null {
   const openai = (process.env.OPENAI_API_KEY ?? "").trim();
   if (openai) {
     return {
@@ -126,7 +126,7 @@ export async function lerPedidoComIa(
   return { estado: "ok", leitura };
 }
 
-async function exigeQuemOrca(context: { supabase: any; userId: string }) {
+export async function exigeQuemOrca(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_permission", {
     _user_id: context.userId,
     _permission: "orcamentos.create",
@@ -135,8 +135,68 @@ async function exigeQuemOrca(context: { supabase: any; userId: string }) {
   if (!data) throw new Error("O orçamento com IA é de quem cria orçamentos.");
 }
 
-const COLUNAS_DA_PERGUNTA =
+export const COLUNAS_DA_PERGUNTA =
   "id, produto_id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, ordem, resposta_padrao, nao_perguntar, ia_modo, ia_resposta, ia_instrucao";
+
+/** Os produtos liberados para a IA, com roteiro, acabamentos, tamanhos e checklist. */
+export async function produtosParaIa(db: any): Promise<ProdutoParaIa[]> {
+  const { data: linhas, error } = await db
+    .from("produto_ficha")
+    .select(
+      "produto_id, apelidos, ia_personalidade, ia_como_medir, ia_perguntas, produtos!inner(nome, unidade, tipo, ativo)",
+    )
+    .eq("ia_habilitado", true)
+    .eq("produtos.ativo", true);
+  if (error) throw new Error("Não foi possível ler os roteiros dos produtos.");
+  const { data: ligacoes, error: erroLigacoes } = await db
+    .from("produto_acabamentos")
+    .select("produto_id, acabamentos!inner(nome, ativo)")
+    .eq("acabamentos.ativo", true);
+  if (erroLigacoes) throw new Error("Não foi possível ler os acabamentos dos produtos.");
+  const acabamentosDe = (produtoId: string) =>
+    ((ligacoes ?? []) as { produto_id: string; acabamentos: { nome: string } }[])
+      .filter((l) => l.produto_id === produtoId)
+      .map((l) => l.acabamentos.nome);
+  const [tamanhos, perguntas] = await Promise.all([
+    db
+      .from("produto_tamanhos")
+      .select("produto_id, nome, largura, altura, quando_usar")
+      .order("ordem"),
+    db
+      .from("produto_perguntas")
+      .select(COLUNAS_DA_PERGUNTA)
+      .order("ordem"),
+  ]);
+  if (tamanhos.error || perguntas.error)
+    throw new Error("Não foi possível ler os tamanhos e as perguntas dos produtos.");
+  const checklistDe = (produtoId: string) =>
+    ((perguntas.data ?? []) as any[]).filter((q) => q.produto_id === produtoId).map(perguntaDaLinha);
+  const produtos: ProdutoParaIa[] = ((linhas ?? []) as any[]).map((l) => ({
+    id: l.produto_id,
+    nome: l.produtos.nome,
+    unidade: l.produtos.unidade,
+    tipo: l.produtos.tipo,
+    personalidade: l.ia_personalidade,
+    como_medir: l.ia_como_medir,
+    perguntas: l.ia_perguntas,
+    acabamentos: acabamentosDe(l.produto_id),
+    apelidos: l.apelidos ?? [],
+    tamanhos: ((tamanhos.data ?? []) as any[])
+      .filter((t) => t.produto_id === l.produto_id)
+      .map((t) => ({
+        nome: t.nome,
+        largura: Number(t.largura),
+        altura: Number(t.altura),
+        quando_usar: t.quando_usar ?? null,
+      })),
+    checklist: checklistDe(l.produto_id),
+    ja_definido: checklistDe(l.produto_id).flatMap((q) => {
+      const resposta = respostaDefinidaParaIa(q);
+      return resposta === null ? [] : [{ pergunta: q.pergunta, resposta }];
+    }),
+  }));
+  return produtos;
+}
 
 export const lerPedidoDoCliente = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -148,61 +208,7 @@ export const lerPedidoDoCliente = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ResultadoDaLeitura> => {
     await exigeQuemOrca(context as any);
     if (data.pedido.length < 5) return { estado: "falhou", detalhe: "Cole o pedido do cliente." };
-    const { data: linhas, error } = await (context.supabase as any)
-      .from("produto_ficha")
-      .select(
-        "produto_id, apelidos, ia_personalidade, ia_como_medir, ia_perguntas, produtos!inner(nome, unidade, tipo, ativo)",
-      )
-      .eq("ia_habilitado", true)
-      .eq("produtos.ativo", true);
-    if (error) throw new Error("Não foi possível ler os roteiros dos produtos.");
-    const { data: ligacoes, error: erroLigacoes } = await (context.supabase as any)
-      .from("produto_acabamentos")
-      .select("produto_id, acabamentos!inner(nome, ativo)")
-      .eq("acabamentos.ativo", true);
-    if (erroLigacoes) throw new Error("Não foi possível ler os acabamentos dos produtos.");
-    const acabamentosDe = (produtoId: string) =>
-      ((ligacoes ?? []) as { produto_id: string; acabamentos: { nome: string } }[])
-        .filter((l) => l.produto_id === produtoId)
-        .map((l) => l.acabamentos.nome);
-    const [tamanhos, perguntas] = await Promise.all([
-      (context.supabase as any)
-        .from("produto_tamanhos")
-        .select("produto_id, nome, largura, altura, quando_usar")
-        .order("ordem"),
-      (context.supabase as any)
-        .from("produto_perguntas")
-        .select(COLUNAS_DA_PERGUNTA)
-        .order("ordem"),
-    ]);
-    if (tamanhos.error || perguntas.error)
-      throw new Error("Não foi possível ler os tamanhos e as perguntas dos produtos.");
-    const checklistDe = (produtoId: string) =>
-      ((perguntas.data ?? []) as any[]).filter((q) => q.produto_id === produtoId).map(perguntaDaLinha);
-    const produtos: ProdutoParaIa[] = ((linhas ?? []) as any[]).map((l) => ({
-      id: l.produto_id,
-      nome: l.produtos.nome,
-      unidade: l.produtos.unidade,
-      tipo: l.produtos.tipo,
-      personalidade: l.ia_personalidade,
-      como_medir: l.ia_como_medir,
-      perguntas: l.ia_perguntas,
-      acabamentos: acabamentosDe(l.produto_id),
-      apelidos: l.apelidos ?? [],
-      tamanhos: ((tamanhos.data ?? []) as any[])
-        .filter((t) => t.produto_id === l.produto_id)
-        .map((t) => ({
-          nome: t.nome,
-          largura: Number(t.largura),
-          altura: Number(t.altura),
-          quando_usar: t.quando_usar ?? null,
-        })),
-      checklist: checklistDe(l.produto_id),
-      ja_definido: checklistDe(l.produto_id).flatMap((q) => {
-        const resposta = respostaDefinidaParaIa(q);
-        return resposta === null ? [] : [{ pergunta: q.pergunta, resposta }];
-      }),
-    }));
+    const produtos = await produtosParaIa(context.supabase as any);
     return lerPedidoComIa(data.pedido, produtos, motorDaIa());
   });
 
