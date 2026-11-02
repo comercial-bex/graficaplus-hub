@@ -317,7 +317,7 @@ function LinhaOS({
                 </span>
               ))}
               {rodando.length > 1 && (
-                <span className="text-[color:var(--bex-amber)]">
+                <span className="text-[color:var(--status-amber)]">
                   aberta em {rodando.length} máquinas
                 </span>
               )}
@@ -326,14 +326,14 @@ function LinhaOS({
           {/* Máquina aberta e a OS ainda na fila: alguém apontou pela ficha
               da OS, que não muda o status. Quem aponta acerta num toque. */}
           {naFila && rodando.length > 0 && (
-            <p className="mt-1.5 text-xs text-[color:var(--bex-amber)]">
+            <p className="mt-1.5 text-xs text-[color:var(--status-amber)]">
               máquina apontada, mas a OS ainda está na fila
             </p>
           )}
           {/* Em produção e sem apontamento: entrou pelo caminho antigo ou pelo
               Kanban. A parede não acende até alguém dizer a máquina. */}
           {emProducao && rodando.length === 0 && !maquinaDesconhecida && (
-            <p className="mt-1.5 text-xs text-[color:var(--bex-amber)]">
+            <p className="mt-1.5 text-xs text-[color:var(--status-amber)]">
               sem máquina apontada — o tempo não está contando
             </p>
           )}
@@ -343,7 +343,7 @@ function LinhaOS({
           className={cn(
             "shrink-0 font-mono text-xs tabular-nums",
             atrasada && "text-[color:var(--status-magenta)]",
-            hoje && "text-[color:var(--bex-amber)]",
+            hoje && "text-[color:var(--status-amber)]",
             !atrasada && !hoje && "text-muted-foreground",
           )}
         >
@@ -377,13 +377,13 @@ function LinhaOS({
           </Button>
           {/* O motivo em texto visível: no celular não existe hover para ler um title. */}
           {travada && (
-            <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--bex-amber)]">
+            <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--status-amber)]">
               <Lock className="mt-0.5 h-3 w-3 shrink-0" />
               <span>{bloqueios.map((b) => b.titulo).join(" · ")}</span>
             </p>
           )}
           {!travada && passos?.impedimento && (
-            <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--bex-amber)]">
+            <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--status-amber)]">
               <Lock className="mt-0.5 h-3 w-3 shrink-0" />
               <span>{passos.impedimento}</span>
             </p>
@@ -454,7 +454,7 @@ function KpiCompacto({
 }) {
   const cor = {
     magenta: "text-[color:var(--status-magenta)]",
-    amber: "text-[color:var(--bex-amber)]",
+    amber: "text-[color:var(--status-amber)]",
     cyan: "text-[color:var(--bex-cyan)]",
     muted: "text-foreground",
   }[tone];
@@ -721,7 +721,7 @@ export function PainelProducao() {
               {/* Sem esta consulta o cartão não sabe a máquina. Dizer isso é
                   melhor do que escrever "sem máquina apontada" em tudo. */}
               {apontamentos.isError && (
-                <p role="alert" className="text-xs text-[color:var(--bex-amber)]">
+                <p role="alert" className="text-xs text-[color:var(--status-amber)]">
                   Não deu para ler em que máquina cada OS está ({mensagemErro(apontamentos.error)}).
                   Os botões continuam funcionando.
                 </p>
@@ -729,7 +729,7 @@ export function PainelProducao() {
               {/* Sem a lista de travas todo botão aparece livre. Não é verdade
                   que nada trava: só não deu para conferir antes do toque. */}
               {travas.isError && (
-                <p role="alert" className="text-xs text-[color:var(--bex-amber)]">
+                <p role="alert" className="text-xs text-[color:var(--status-amber)]">
                   Não deu para conferir as travas ({mensagemErro(travas.error)}). Os botões
                   aparecem livres, mas o banco confere de novo no toque.
                 </p>

@@ -334,7 +334,7 @@ export function SeletorDeMaquina({
                       </span>
                       {/* O motivo NÃO esmaece junto com o botão: é o que há para ler. */}
                       {motivo ? (
-                        <span className="mt-0.5 block text-sm font-medium leading-snug text-[color:var(--bex-amber)]">
+                        <span className="mt-0.5 block text-sm font-medium leading-snug text-[color:var(--status-amber)]">
                           {motivo}
                         </span>
                       ) : (

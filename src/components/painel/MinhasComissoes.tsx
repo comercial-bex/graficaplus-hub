@@ -50,7 +50,7 @@ export function MinhasComissoes({ className }: { className?: string }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-border p-3">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">A receber</div>
-            <div className="font-mono text-xl font-bold tabular-nums text-[color:var(--bex-amber)]">{brl(Number(data.a_pagar))}</div>
+            <div className="font-mono text-xl font-bold tabular-nums text-[color:var(--status-amber)]">{brl(Number(data.a_pagar))}</div>
           </div>
           <div className="rounded-lg border border-border p-3">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Recebido no ano</div>
