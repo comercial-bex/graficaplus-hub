@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, BadgePercent, Eye, EyeOff, FileText, Gift, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { BexLogo } from "@/components/bex/BexLogo";
-import { BexBackground } from "@/components/bex/BexBackground";
-import { NeonButton } from "@/components/bex/NeonButton";
+import { CampoDeAcesso } from "@/components/acesso/CampoDeAcesso";
+import { BANNER_DO_CONVITE, LOGO_FUNDO_ESCURO } from "@/lib/marca";
 import { mensagemErro } from "@/lib/erros";
+import { cn } from "@/lib/utils";
 import { cadastroParceiroConcluidoMeta, lerOrigemDaUrl, META_PIXEL_ID } from "@/lib/metaPixel";
-import { useEffect } from "react";
 import { RAMOS, normalizarComprovacao } from "@/domain/parceiros/ramo";
 
 /** Máscara (XX) XXXXX-XXXX / (XX) XXXX-XXXX. */
@@ -27,11 +27,27 @@ function whatsappValido(v: string): boolean {
 }
 
 /**
+ * No tema escuro os tokens de campo e de cartão são a mesma cor (#0d0d0d): um
+ * campo vazio e sem placeholder sumia dentro do cartão. Aqui o campo fica no
+ * fundo da página (bg-background) com a borda comum, visível nos dois temas.
+ */
+const campoCls = "border-border bg-background";
+
+/** O <select> nativo vestido como o <Input> do CampoDeAcesso (mesma altura, borda e fundo). */
+const selectCls =
+  "flex h-12 w-full rounded-lg border border-border bg-background px-4 text-base shadow-none transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 md:text-sm";
+
+/**
  * Cadastro de revendedor por convite de outro revendedor.
  *
  * O laço é o do começo das redes sociais: cada parceiro tem um link só dele e
  * manda para quem quiser; quem entra por ali fica ligado a quem convidou, e
  * esse vínculo é o que permite pagar o bônus de indicação depois.
+ *
+ * A página roda no Instagram e em link direto (02/11/2026): por isso é escura
+ * da marca nos dois temas (tokens da barra lateral, como a tela de entrada),
+ * leva o banner da campanha e tem os dados do link (og:image) para a prévia
+ * sair com o banner quando o link é colado numa conversa.
  *
  * Duas coisas que esta tela NÃO faz, de propósito:
  *
@@ -57,33 +73,91 @@ function erroDoCadastro(msg: string): string {
   return msg;
 }
 
+const DESCRICAO = "Preço de revendedor, orçamento com a sua marca e crédito a cada compra. Cadastre-se e o painel é liberado na hora.";
+
 export const Route = createFileRoute("/convite/$codigo")({
-  head: () => ({ meta: [{ title: "Convite de parceiro — BEX PRINT" }] }),
+  head: () => ({
+    meta: [
+      { title: "Seja revendedor — BEX PRINT" },
+      { name: "description", content: DESCRICAO },
+      { property: "og:title", content: "Seja revendedor da Bex Print" },
+      { property: "og:description", content: DESCRICAO },
+      { property: "og:image", content: `https://bexprint.com.br${BANNER_DO_CONVITE}` },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: ConvitePage,
 });
 
-const inputCls =
-  "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-[color:var(--bex-cyan)]/50 focus:ring-1 focus:ring-[color:var(--bex-cyan)]/30";
+/** O que o revendedor ganha, em três linhas: é o argumento da página, acima do formulário. */
+const GANHOS = [
+  { icone: BadgePercent, texto: "Preço de revendedor, abaixo do balcão" },
+  { icone: FileText, texto: "Orçamento em PDF com a sua marca" },
+  { icone: Gift, texto: "Crédito a cada pedido pago" },
+];
 
+/**
+ * A moldura: banner da campanha de um lado, o cartão do outro, tudo sobre o
+ * fundo escuro da marca. No celular o banner vira a faixa de cima e a página
+ * rola; o cartão segue o tema (branco no claro, escuro no escuro).
+ */
 function Moldura({ children }: { children: React.ReactNode }) {
   return (
-    <>
-    <noscript>
-      <img height="1" width="1" style={{ display: "none" }} alt="" src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`} />
-    </noscript>
-    <BexBackground className="min-h-screen flex items-center justify-center p-6">
-      <div className="relative w-full max-w-[460px]">
-        <div className="mb-8 flex flex-col items-center">
-          <BexLogo size="xl" showTagline />
-        </div>
-        <div className="rounded-2xl border border-border bg-card/60 p-8 shadow-2xl backdrop-blur-xl">
-          {children}
-        </div>
+    <div className="relative flex min-h-dvh flex-col bg-sidebar text-sidebar-foreground lg:flex-row">
+      {/* Meta Pixel sem JavaScript: o PageView da campanha ainda conta. */}
+      <noscript>
+        <img height="1" width="1" style={{ display: "none" }} alt="" src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`} />
+      </noscript>
+      <div aria-hidden="true" className="absolute inset-x-0 top-0 z-10 h-1" style={{ background: "var(--gradient-cmyk)" }} />
+      {/* Os brilhos passam da borda: a caixa deles os corta, para a página não ganhar rolagem a mais
+          (overflow-hidden na página inteira desligaria o cartaz fixo). */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -bottom-32 right-0 h-80 w-80 rounded-full bg-bex-magenta/20 blur-3xl" />
+        <div className="absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-bex-cyan/20 blur-3xl" />
       </div>
-    </BexBackground>
-    </>
+
+      {/*
+        O banner inteiro, sempre: no celular é a faixa de cima, na largura da tela;
+        no computador é o cartaz da esquerda, fixo enquanto o formulário rola.
+        Cortar o banner esconderia a moça ou o texto — por isso ele nunca é recortado.
+      */}
+      {/* self-start: sem isso o flex estica o cartaz à altura do formulário e o sticky não tem onde grudar */}
+      <aside className="relative lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-[54%] lg:max-w-3xl lg:flex-col lg:items-center lg:justify-center lg:self-start lg:p-10">
+        <img
+          src={BANNER_DO_CONVITE}
+          alt="Bex Print — suas ideias em grandes resultados. Gráfica, personalizados e impressão 3D."
+          width={1478}
+          height={1064}
+          fetchPriority="high"
+          className="h-auto w-full object-contain object-left lg:max-h-full lg:w-auto lg:max-w-full lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-sidebar-foreground/10"
+        />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-sidebar to-transparent lg:hidden" />
+        <p className="absolute bottom-4 left-10 hidden text-xs text-sidebar-foreground/80 lg:block">Bex Print · Macapá, Amapá</p>
+      </aside>
+
+      <main className="relative flex flex-1 flex-col">
+        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-4 pb-10 pt-2 sm:px-8 lg:px-10 lg:py-12">
+          <div className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-2xl sm:p-8">{children}</div>
+          <p className="mt-6 text-center text-sm text-sidebar-foreground/80">
+            Já é parceiro?{" "}
+            <Link
+              to="/login"
+              search={{ como: "parceiro" }}
+              className="rounded-sm font-medium text-sidebar-accent-foreground underline decoration-sidebar-border underline-offset-4 hover:decoration-[var(--sidebar-marca)]"
+            >
+              Entrar no meu painel
+            </Link>
+          </p>
+        </div>
+      </main>
+    </div>
   );
 }
+
+/** Link dentro do cartão: segue o tema do cartão, não o do fundo escuro. */
+const linkNoCartao =
+  "inline-block rounded-sm pt-2 font-medium text-card-foreground underline decoration-border underline-offset-4 hover:decoration-bex-cyan";
 
 function ConvitePage() {
   const { codigo } = Route.useParams();
@@ -110,12 +184,15 @@ function ConvitePage() {
   const [ramoOutro, setRamoOutro] = useState("");
   const [comprovacao, setComprovacao] = useState("");
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [pronto, setPronto] = useState(false);
+  // UTM de onde a pessoa veio (anúncio, story, link direto): vai junto no cadastro.
   const [origem, setOrigem] = useState<Record<string, string> | null>(null);
   useEffect(() => {
     setOrigem(lerOrigemDaUrl(window.location.search));
   }, []);
+  /** O código da casa (BEXPRINT) não é indicação de ninguém: o título muda. */
   const daCasa = codigo.trim().toUpperCase() === "BEXPRINT";
 
   async function enviar(e: FormEvent) {
@@ -182,7 +259,10 @@ function ConvitePage() {
   if (convite.isLoading) {
     return (
       <Moldura>
-        <p className="text-center text-sm text-muted-foreground">Conferindo o convite...</p>
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          Conferindo o convite...
+        </p>
       </Moldura>
     );
   }
@@ -191,17 +271,13 @@ function ConvitePage() {
     return (
       <Moldura>
         <div className="space-y-3 text-center">
-          <h1 className="text-xl font-semibold text-foreground">Convite não encontrado</h1>
+          <h1 className="text-xl font-semibold">Convite não encontrado</h1>
           <p className="text-sm text-muted-foreground">
             Este link não está mais valendo, ou foi digitado com algum caractere trocado. Peça um
             link novo a quem te indicou.
           </p>
-          <Link
-            to="/login"
-            search={{ como: "parceiro" }}
-            className="inline-block pt-2 font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-[color:var(--bex-cyan)]"
-          >
-            Entrar no meu painel
+          <Link to="/seja-parceiro" className={linkNoCartao}>
+            Conhecer a parceria
           </Link>
         </div>
       </Moldura>
@@ -212,21 +288,18 @@ function ConvitePage() {
     return (
       <Moldura>
         <div className="space-y-3 text-center">
-          <h1 className="text-xl font-semibold text-foreground">Cadastro feito — acesso liberado</h1>
+          <ShieldCheck className="mx-auto h-10 w-10 text-bex-cyan" aria-hidden="true" />
+          <h1 className="text-xl font-semibold">Cadastro feito — acesso liberado</h1>
           <p className="text-sm text-muted-foreground">
-            Bem-vindo, <strong className="text-foreground">{empresa.trim()}</strong>. Seu cadastro
+            Bem-vindo, <strong className="text-card-foreground">{empresa.trim()}</strong>. Seu cadastro
             de revendedor está pronto e o seu painel já está liberado.
           </p>
           <p className="text-sm text-muted-foreground">
             Entre com o e-mail e a senha que acabou de escolher (se pedirmos a confirmação do
-            e-mail, confirme primeiro). Lá você já recebe o <strong className="text-foreground">seu próprio link de convite</strong> para
+            e-mail, confirme primeiro). Lá você já recebe o <strong className="text-card-foreground">seu próprio link de convite</strong> para
             indicar outros revendedores.
           </p>
-          <Link
-            to="/login"
-            search={{ como: "parceiro" }}
-            className="inline-block pt-2 font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-[color:var(--bex-cyan)]"
-          >
+          <Link to="/login" search={{ como: "parceiro" }} className={linkNoCartao}>
             Entrar no meu painel
           </Link>
         </div>
@@ -236,128 +309,190 @@ function ConvitePage() {
 
   return (
     <Moldura>
-      <div className="mb-6 space-y-1">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-[color:var(--bex-cyan)]">
-          Convite de parceiro
-        </p>
-        <h1 className="text-xl font-semibold text-foreground">
+      <header className="mb-6">
+        <img src={LOGO_FUNDO_ESCURO} alt="" width={1165} height={532} className="mb-4 hidden h-auto w-24 dark:block" />
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-status-cyan">Convite de parceiro</p>
+        <h1 className="mt-1 text-balance text-2xl font-semibold leading-tight tracking-tight">
           {daCasa
             ? "Seja parceiro revendedor da Bex Print"
             : `${convite.data.convidado_por} te indicou para o clube de revendedores`}
         </h1>
-        <p className="text-sm font-medium text-foreground">
+        <p className="mt-2 text-sm text-muted-foreground">
           Programa exclusivo para quem trabalha com impressão e comunicação visual.
         </p>
-        <p className="text-sm text-muted-foreground">
-          Preço de revendedor, orçamento com a sua marca e crédito a cada compra. Cadastre sua
-          empresa abaixo — o acesso ao painel é liberado na hora.
-        </p>
-      </div>
+        <ul className="mt-4 space-y-2 text-sm">
+          {GANHOS.map((g) => (
+            <li key={g.texto} className="flex items-center gap-2.5">
+              <g.icone className="h-4 w-4 shrink-0 text-bex-cyan" aria-hidden="true" />
+              {g.texto}
+            </li>
+          ))}
+        </ul>
+      </header>
 
-      <form onSubmit={enviar} className="space-y-3">
-        <input
-          className={inputCls}
-          placeholder="Nome da sua empresa *"
+      {/* noValidate: a conferência é nossa, com aviso no canto; o campo marca o que é obrigatório. */}
+      <form onSubmit={enviar} noValidate className="space-y-4">
+        <CampoDeAcesso
+          id="convite-empresa"
+          className={campoCls}
+          rotulo="Nome da sua empresa"
+          placeholder="Como o seu cliente te conhece"
+          autoComplete="organization"
+          required
           value={empresa}
           onChange={(e) => setEmpresa(e.target.value)}
-          required
-          autoFocus
         />
-        <input
-          className={inputCls}
-          placeholder="CNPJ ou CPF"
+        <CampoDeAcesso
+          id="convite-documento"
+          className={campoCls}
+          rotulo="CNPJ ou CPF (opcional)"
+          inputMode="numeric"
+          autoComplete="off"
           value={documento}
           onChange={(e) => setDocumento(e.target.value)}
         />
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            className={inputCls}
-            placeholder="Cidade"
+        <div className="grid grid-cols-[1fr_5.5rem] gap-3">
+          <CampoDeAcesso
+            id="convite-cidade"
+            className={campoCls}
+            rotulo="Cidade"
+            autoComplete="address-level2"
             value={cidade}
             onChange={(e) => setCidade(e.target.value)}
           />
-          <input
-            className={inputCls}
-            placeholder="UF"
+          <CampoDeAcesso
+            id="convite-uf"
+            rotulo="UF"
             maxLength={2}
+            autoCapitalize="characters"
+            autoComplete="address-level1"
+            className={cn(campoCls, "uppercase")}
             value={estado}
             onChange={(e) => setEstado(e.target.value)}
           />
         </div>
-        <input
-          className={inputCls}
-          placeholder="WhatsApp *"
+        <CampoDeAcesso
+          id="convite-whatsapp"
+          className={campoCls}
+          rotulo="WhatsApp"
           type="tel"
           inputMode="numeric"
+          autoComplete="tel"
+          placeholder="(96) 99999-9999"
           required
           value={telefone}
           onChange={(e) => setTelefone(mascaraWhatsapp(e.target.value))}
         />
-        <select
-          className={inputCls}
-          aria-label="Qual o seu ramo?"
-          value={ramo}
-          onChange={(e) => setRamo(e.target.value)}
-          required
-        >
-          <option value="" disabled>Qual o seu ramo? *</option>
-          {RAMOS.map((r) => (
-            <option key={r.valor} value={r.valor}>{r.rotulo}</option>
-          ))}
-        </select>
+        {/* Ramo e comprovação (desde 02/11/2026): o programa é só para quem é do setor gráfico. */}
+        <div className="space-y-1.5">
+          <label htmlFor="convite-ramo" className="block text-sm font-medium text-foreground">
+            Qual o seu ramo?
+          </label>
+          <select
+            id="convite-ramo"
+            className={selectCls}
+            required
+            value={ramo}
+            onChange={(e) => setRamo(e.target.value)}
+          >
+            <option value="" disabled>Escolha o ramo</option>
+            {RAMOS.map((r) => (
+              <option key={r.valor} value={r.valor}>{r.rotulo}</option>
+            ))}
+          </select>
+        </div>
         {ramo === "outro" && (
-          <input
-            className={inputCls}
-            placeholder="Qual? *"
-            value={ramoOutro}
-            onChange={(e) => setRamoOutro(e.target.value)}
+          <CampoDeAcesso
+            id="convite-ramo-outro"
+            className={campoCls}
+            rotulo="Qual é o seu ramo?"
             maxLength={120}
             required
+            value={ramoOutro}
+            onChange={(e) => setRamoOutro(e.target.value)}
           />
         )}
         <div>
-          <input
-            className={inputCls}
-            placeholder="Instagram ou site do seu negócio *"
-            value={comprovacao}
-            onChange={(e) => setComprovacao(e.target.value)}
+          <CampoDeAcesso
+            id="convite-comprovacao"
+            className={campoCls}
+            rotulo="Instagram ou site do seu negócio"
+            placeholder="@suaempresa ou suaempresa.com.br"
+            inputMode="url"
+            autoCapitalize="none"
+            spellCheck={false}
             maxLength={300}
             required
+            value={comprovacao}
+            onChange={(e) => setComprovacao(e.target.value)}
           />
-          <p className="mt-1 px-1 text-xs text-muted-foreground">Usamos para confirmar que você trabalha no ramo.</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">Usamos para confirmar que você trabalha no ramo.</p>
         </div>
-        <input
-          className={inputCls}
+        <CampoDeAcesso
+          id="convite-email"
+          className={campoCls}
+          rotulo="Seu e-mail"
           type="email"
-          placeholder="Seu e-mail *"
+          inputMode="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
         />
-        <input
-          className={inputCls}
-          type="password"
-          placeholder="Crie uma senha *"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
+        <CampoDeAcesso
+          id="convite-senha"
+          className={campoCls}
+          rotulo="Crie uma senha"
+          type={mostrarSenha ? "text" : "password"}
+          autoComplete="new-password"
+          placeholder="Pelo menos 6 caracteres"
           required
           minLength={6}
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+          acao={
+            <button
+              type="button"
+              onClick={() => setMostrarSenha((v) => !v)}
+              aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              aria-pressed={mostrarSenha}
+              className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {mostrarSenha ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+            </button>
+          }
         />
 
-        <NeonButton type="submit" className="w-full justify-center" disabled={enviando}>
-          {enviando ? "Enviando..." : "Quero ser revendedor"}
-        </NeonButton>
+        {/* Botão sólido ciano com letra preta (7:1): no fundo escuro a borda neon some. */}
+        <button
+          type="submit"
+          disabled={enviando}
+          aria-busy={enviando}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-bex-cyan text-base font-bold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {enviando ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              Enviando...
+            </>
+          ) : (
+            <>
+              Quero ser revendedor <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </>
+          )}
+        </button>
 
         <p className="text-center text-xs text-muted-foreground">
           Ao se cadastrar, você concorda com a nossa{" "}
-          <Link to="/privacidade" target="_blank" className="text-[color:var(--bex-cyan)] underline underline-offset-2">
+          <Link to="/privacidade" target="_blank" className="rounded-sm font-medium text-card-foreground underline decoration-border underline-offset-4 hover:decoration-bex-cyan">
             Política de Privacidade
           </Link>
           .
         </p>
-
-        <p className="pt-1 text-center text-xs text-muted-foreground">
-          Sem taxa de adesão e sem compra obrigatória.
+        <p className="text-center text-sm text-muted-foreground">
+          Sem taxa de adesão e sem compra obrigatória. O painel é liberado na hora.
         </p>
       </form>
     </Moldura>

@@ -25,6 +25,15 @@ export const LOGO_FUNDO_CLARO = "/marca/bex-print-fundo-claro.png";
  */
 export const LOGO_FUNDO_ESCURO = "/marca/bex-print-fundo-escuro.png";
 
+/**
+ * BANNER DA CAMPANHA DE REVENDEDORES (1478 × 1064), que o dono mandou em
+ * 02/11/2026 para a página do convite (/convite/:codigo). O texto está na
+ * metade esquerda: ao cortar, cortar pela direita. É também a imagem da
+ * prévia do link (og:image) quando o convite é colado no Instagram ou no
+ * WhatsApp.
+ */
+export const BANNER_DO_CONVITE = "/marca/convite-parceiro.jpg";
+
 /** Largura ÷ altura do arquivo (1165 × 533), para reservar o espaço sem esticar. */
 export const PROPORCAO_DA_LOGO = 1165 / 533;
 
