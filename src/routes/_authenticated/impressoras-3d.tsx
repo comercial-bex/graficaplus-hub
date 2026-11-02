@@ -192,33 +192,33 @@ function ImpressorasPage() {
             </DialogHeader>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2 col-span-2">
-                <Label>Nome *</Label>
-                <Input
+                <Label htmlFor="impressora3d-11-nome">Nome *</Label>
+                <Input id="impressora3d-11-nome"
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   placeholder="Bambu Lab A1 — Bancada 1"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Fabricante</Label>
-                <Input
+                <Label htmlFor="impressora3d-10-fabricante">Fabricante</Label>
+                <Input id="impressora3d-10-fabricante"
                   value={form.fabricante}
                   onChange={(e) => setForm({ ...form, fabricante: e.target.value })}
                   placeholder="BambuLab"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Modelo</Label>
-                <Input
+                <Label htmlFor="impressora3d-9-modelo">Modelo</Label>
+                <Input id="impressora3d-9-modelo"
                   value={form.modelo}
                   onChange={(e) => setForm({ ...form, modelo: e.target.value })}
                   placeholder="A1"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tecnologia</Label>
+                <Label htmlFor="impressora3d-8-tecnologia">Tecnologia</Label>
                 <Select value={form.tecnologia} onValueChange={(v) => setForm({ ...form, tecnologia: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="impressora3d-8-tecnologia">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -231,8 +231,8 @@ function ImpressorasPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Potência média (W)</Label>
-                <Input
+                <Label htmlFor="impressora3d-7-potencia-media-w">Potência média (W)</Label>
+                <Input id="impressora3d-7-potencia-media-w"
                   type="number"
                   step="1"
                   value={form.potencia_media_w}
@@ -246,8 +246,8 @@ function ImpressorasPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Potência aquecimento (W)</Label>
-                <Input
+                <Label htmlFor="impressora3d-6-potencia-aquecimento-w">Potência aquecimento (W)</Label>
+                <Input id="impressora3d-6-potencia-aquecimento-w"
                   type="number"
                   step="1"
                   value={form.potencia_aquecimento_w}
@@ -256,8 +256,8 @@ function ImpressorasPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Potência standby (W)</Label>
-                <Input
+                <Label htmlFor="impressora3d-5-potencia-standby-w">Potência standby (W)</Label>
+                <Input id="impressora3d-5-potencia-standby-w"
                   type="number"
                   step="1"
                   value={form.potencia_standby_w}
@@ -266,8 +266,8 @@ function ImpressorasPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Valor da máquina (R$)</Label>
-                <Input
+                <Label htmlFor="impressora3d-4-valor-da-maquina-r">Valor da máquina (R$)</Label>
+                <Input id="impressora3d-4-valor-da-maquina-r"
                   type="number"
                   step="0.01"
                   value={form.custo_aquisicao}
@@ -276,8 +276,8 @@ function ImpressorasPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Valor residual (R$)</Label>
-                <Input
+                <Label htmlFor="impressora3d-3-valor-residual-r">Valor residual (R$)</Label>
+                <Input id="impressora3d-3-valor-residual-r"
                   type="number"
                   step="0.01"
                   value={form.valor_residual}
@@ -285,8 +285,8 @@ function ImpressorasPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Vida útil (horas)</Label>
-                <Input
+                <Label htmlFor="impressora3d-2-vida-util-horas">Vida útil (horas)</Label>
+                <Input id="impressora3d-2-vida-util-horas"
                   type="number"
                   step="1"
                   value={form.vida_util_horas}
@@ -294,8 +294,8 @@ function ImpressorasPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Manutenção por hora (R$)</Label>
-                <Input
+                <Label htmlFor="impressora3d-1-manutencao-por-hora-r">Manutenção por hora (R$)</Label>
+                <Input id="impressora3d-1-manutencao-por-hora-r"
                   type="number"
                   step="0.01"
                   value={form.manutencao_por_hora}

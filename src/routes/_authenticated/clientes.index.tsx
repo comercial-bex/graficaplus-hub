@@ -364,12 +364,12 @@ function ClientesPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Tipo</Label>
+                    <Label htmlFor="cliente-novo-11-tipo">Tipo</Label>
                     <Select
                       value={form.tipo}
                       onValueChange={(v: "pf" | "pj") => setForm({ ...form, tipo: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="cliente-novo-11-tipo">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -379,14 +379,14 @@ function ClientesPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Vendedor responsável</Label>
+                    <Label htmlFor="cliente-novo-10-vendedor-responsavel">Vendedor responsável</Label>
                     <Select
                       value={form.vendedor_id || "none"}
                       onValueChange={(v) =>
                         setForm({ ...form, vendedor_id: v === "none" ? "" : v })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="cliente-novo-10-vendedor-responsavel">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -400,8 +400,8 @@ function ClientesPage() {
                     </Select>
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Nome fantasia *</Label>
-                    <Input
+                    <Label htmlFor="cliente-novo-9-nome-fantasia">Nome fantasia *</Label>
+                    <Input id="cliente-novo-9-nome-fantasia"
                       maxLength={200}
                       value={form.nome}
                       onChange={(e) => setForm({ ...form, nome: e.target.value })}
@@ -409,8 +409,8 @@ function ClientesPage() {
                   </div>
                   {form.tipo === "pj" && (
                     <div className="space-y-2 md:col-span-2">
-                      <Label>Razão social</Label>
-                      <Input
+                      <Label htmlFor="cliente-novo-8-razao-social">Razão social</Label>
+                      <Input id="cliente-novo-8-razao-social"
                         maxLength={200}
                         value={form.razao_social}
                         onChange={(e) => setForm({ ...form, razao_social: e.target.value })}
@@ -472,8 +472,8 @@ function ClientesPage() {
                     )}
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>E-mail</Label>
-                    <Input
+                    <Label htmlFor="cliente-novo-7-e-mail">E-mail</Label>
+                    <Input id="cliente-novo-7-e-mail"
                       type="email"
                       maxLength={150}
                       value={form.email}
@@ -487,24 +487,24 @@ function ClientesPage() {
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Endereço</Label>
-                    <Input
+                    <Label htmlFor="cliente-novo-6-endereco">Endereço</Label>
+                    <Input id="cliente-novo-6-endereco"
                       maxLength={250}
                       value={form.endereco}
                       onChange={(e) => setForm({ ...form, endereco: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Bairro</Label>
-                    <Input
+                    <Label htmlFor="cliente-novo-5-bairro">Bairro</Label>
+                    <Input id="cliente-novo-5-bairro"
                       maxLength={100}
                       value={form.bairro}
                       onChange={(e) => setForm({ ...form, bairro: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Cidade</Label>
-                    <Input
+                    <Label htmlFor="cliente-novo-4-cidade">Cidade</Label>
+                    <Input id="cliente-novo-4-cidade"
                       maxLength={100}
                       value={form.cidade}
                       onChange={(e) => setForm({ ...form, cidade: e.target.value })}
@@ -512,8 +512,8 @@ function ClientesPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-2">
-                      <Label>UF</Label>
-                      <Input
+                      <Label htmlFor="cliente-novo-3-uf">UF</Label>
+                      <Input id="cliente-novo-3-uf"
                         maxLength={2}
                         value={form.estado}
                         onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })}
@@ -528,8 +528,8 @@ function ClientesPage() {
                       />
                     ) : (
                       <div className="space-y-2">
-                        <Label>Código postal</Label>
-                        <Input
+                        <Label htmlFor="cliente-novo-2-codigo-postal">Código postal</Label>
+                        <Input id="cliente-novo-2-codigo-postal"
                           maxLength={12}
                           value={form.cep}
                           onChange={(e) => setForm({ ...form, cep: e.target.value })}
@@ -562,8 +562,8 @@ function ClientesPage() {
                     </SecaoRecolhivel>
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Observações</Label>
-                    <Textarea
+                    <Label htmlFor="cliente-novo-1-observacoes">Observações</Label>
+                    <Textarea id="cliente-novo-1-observacoes"
                       rows={3}
                       maxLength={1000}
                       value={form.observacoes}

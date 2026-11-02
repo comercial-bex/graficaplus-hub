@@ -349,9 +349,9 @@ function PerdasPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">OS<DicaIcone texto={dicaCampo("/perdas", "OS")} rotulo="OS" /></Label>
+              <Label htmlFor="perda-7-os" className="flex items-center gap-1.5">OS<DicaIcone texto={dicaCampo("/perdas", "OS")} rotulo="OS" /></Label>
               <Select value={form.os_id} onValueChange={(v) => setForm((f) => ({ ...f, os_id: v }))}>
-                <SelectTrigger>
+                <SelectTrigger id="perda-7-os">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -364,9 +364,9 @@ function PerdasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Motivo *<DicaIcone texto={dicaCampo("/perdas", "Motivo *")} rotulo="Motivo *" /></Label>
+              <Label htmlFor="perda-6-motivo" className="flex items-center gap-1.5">Motivo *<DicaIcone texto={dicaCampo("/perdas", "Motivo *")} rotulo="Motivo *" /></Label>
               <Select value={form.motivo} onValueChange={(v) => setForm((f) => ({ ...f, motivo: v as Motivo }))}>
-                <SelectTrigger>
+                <SelectTrigger id="perda-6-motivo">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -379,7 +379,7 @@ function PerdasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Material<DicaIcone texto={dicaCampo("/perdas", "Material")} rotulo="Material" /></Label>
+              <Label htmlFor="perda-5-material" className="flex items-center gap-1.5">Material<DicaIcone texto={dicaCampo("/perdas", "Material")} rotulo="Material" /></Label>
               <Select
                 value={form.material_id}
                 onValueChange={(v) => {
@@ -395,7 +395,7 @@ function PerdasPage() {
                   }));
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger id="perda-5-material">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -408,12 +408,12 @@ function PerdasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Máquina<DicaIcone texto={dicaCampo("/perdas", "Máquina")} rotulo="Máquina" /></Label>
+              <Label htmlFor="perda-4-maquina" className="flex items-center gap-1.5">Máquina<DicaIcone texto={dicaCampo("/perdas", "Máquina")} rotulo="Máquina" /></Label>
               <Select
                 value={form.maquina_id}
                 onValueChange={(v) => setForm((f) => ({ ...f, maquina_id: v }))}
               >
-                <SelectTrigger>
+                <SelectTrigger id="perda-4-maquina">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -426,8 +426,8 @@ function PerdasPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">Quantidade perdida<DicaIcone texto={dicaCampo("/perdas", "Quantidade perdida")} rotulo="Quantidade perdida" /></Label>
-              <Input
+              <Label htmlFor="perda-3-quantidade-perdida" className="flex items-center gap-1.5">Quantidade perdida<DicaIcone texto={dicaCampo("/perdas", "Quantidade perdida")} rotulo="Quantidade perdida" /></Label>
+              <Input id="perda-3-quantidade-perdida"
                 type="number"
                 step="0.01"
                 value={form.quantidade}
@@ -436,8 +436,8 @@ function PerdasPage() {
             </div>
             {canSeeFinancials ? (
               <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">Custo unitário (R$)<DicaIcone texto={dicaCampo("/perdas", "Custo unitário (R$)")} rotulo="Custo unitário (R$)" /></Label>
-                <Input
+                <Label htmlFor="perda-2-custo-unitario-r" className="flex items-center gap-1.5">Custo unitário (R$)<DicaIcone texto={dicaCampo("/perdas", "Custo unitário (R$)")} rotulo="Custo unitário (R$)" /></Label>
+                <Input id="perda-2-custo-unitario-r"
                   type="number"
                   step="0.01"
                   value={form.custo_unitario}
@@ -453,8 +453,8 @@ function PerdasPage() {
               </div>
             )}
             <div className="sm:col-span-2 space-y-2">
-              <Label className="flex items-center gap-1.5">Observações<DicaIcone texto={dicaCampo("/perdas", "Observações")} rotulo="Observações" /></Label>
-              <Textarea
+              <Label htmlFor="perda-1-observacoes" className="flex items-center gap-1.5">Observações<DicaIcone texto={dicaCampo("/perdas", "Observações")} rotulo="Observações" /></Label>
+              <Textarea id="perda-1-observacoes"
                 value={form.observacoes}
                 onChange={(e) => setForm((f) => ({ ...f, observacoes: e.target.value }))}
                 placeholder="O que aconteceu e como evitar da próxima vez"

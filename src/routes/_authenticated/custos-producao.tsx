@@ -384,24 +384,24 @@ function CustosProducaoPage() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-2">
-              <Label>Função *</Label>
-              <Input
+              <Label htmlFor="custo-6-funcao">Função *</Label>
+              <Input id="custo-6-funcao"
                 value={form.funcao}
                 onChange={(e) => setForm((f) => ({ ...f, funcao: e.target.value }))}
                 placeholder="Operador de impressora"
               />
             </div>
             <div className="space-y-2">
-              <Label>Setor</Label>
-              <Input
+              <Label htmlFor="custo-5-setor">Setor</Label>
+              <Input id="custo-5-setor"
                 value={form.setor}
                 onChange={(e) => setForm((f) => ({ ...f, setor: e.target.value }))}
                 placeholder="Impressão"
               />
             </div>
             <div className="space-y-2">
-              <Label>Salário mensal (R$)</Label>
-              <Input
+              <Label htmlFor="custo-4-salario-mensal-r">Salário mensal (R$)</Label>
+              <Input id="custo-4-salario-mensal-r"
                 type="number"
                 step="0.01"
                 placeholder="1621"
@@ -410,16 +410,16 @@ function CustosProducaoPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Horas por mês</Label>
-              <Input
+              <Label htmlFor="custo-3-horas-por-mes">Horas por mês</Label>
+              <Input id="custo-3-horas-por-mes"
                 type="number"
                 value={form.horas_mensais}
                 onChange={(e) => setForm((f) => ({ ...f, horas_mensais: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label>Custo/hora (R$)</Label>
-              <Input
+              <Label htmlFor="custo-2-custo-hora-r">Custo/hora (R$)</Label>
+              <Input id="custo-2-custo-hora-r"
                 type="number"
                 step="0.0001"
                 disabled={Number(form.salario_mensal) > 0}
@@ -431,8 +431,8 @@ function CustosProducaoPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Encargos (0,8 = 80%)</Label>
-              <Input
+              <Label htmlFor="custo-1-encargos-0-8-80">Encargos (0,8 = 80%)</Label>
+              <Input id="custo-1-encargos-0-8-80"
                 type="number"
                 step="0.01"
                 value={form.encargos_pct}
