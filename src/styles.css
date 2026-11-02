@@ -177,24 +177,25 @@
 }
 
 .dark {
-  /* Contra o card escuro #12131a. Daltonismo fica na faixa 6–8: a legenda,
+  /* Tema escuro "Neon Cyber" (21st.dev/@gustavo.raimundo, 02/11/2026): so as cores; fonte e raio ficam. --muted-foreground e
+     --sidebar-foreground clareados (o original #777 dava 3,3:1; com opacidade /70 do menu pedia #d4d4d8). Contra o card escuro #0d0d0d. Daltonismo fica na faixa 6–8: a legenda,
      o vão entre barras e a ordem fixa (recebidas à esquerda) completam. */
   --wa-recebidas: #0a9cb5;
   --wa-enviadas: #e32686;
-  --background: #0a0b10;
-  --foreground: #e2e8f0;
-  --card: #171925;
-  --card-foreground: #e2e8f0;
-  --popover: #171925;
-  --popover-foreground: #e2e8f0;
-  --primary: #00d3f2;
-  --primary-foreground: #050506;
-  --secondary: #1f2230;
-  --secondary-foreground: #e2e8f0;
-  --muted: #1f2230;
-  --muted-foreground: #8b94a7;
-  --accent: #f5d90a;
-  --accent-foreground: #050506;
+  --background: #050505;
+  --foreground: #00ff9f;
+  --card: #0d0d0d;
+  --card-foreground: #ffffff;
+  --popover: #050505;
+  --popover-foreground: #00ff9f;
+  --primary: #bc13fe;
+  --primary-foreground: #ffffff;
+  --secondary: #00b8ff;
+  --secondary-foreground: #050505;
+  --muted: #1a1a1a;
+  --muted-foreground: #a1a1aa;
+  --accent: #ff0055;
+  --accent-foreground: #ffffff;
   --link: #00d3f2;
   --destructive: #ff2d9b;
   --destructive-foreground: #050506;
@@ -206,26 +207,26 @@
   --info-foreground: #050506;
   --positive: #45d4a0;
   --positive-foreground: #050506;
-  --border: #313547;
-  --input: #1f2230;
-  --ring: #00d3f2;
-  --surface-raised: #1d2030;
-  --surface-subtle: #0e1016;
+  --border: #333333;
+  --input: #0d0d0d;
+  --ring: #bc13fe;
+  --surface-raised: #141414;
+  --surface-subtle: #0a0a0a;
   --status-cyan: #00d3f2;
   --status-magenta: #ff5aae;
   --status-amber: #f5d90a;
   --status-positive: #45d4a0;
-  --sidebar: #212e57;
-  --sidebar-foreground: #e2e8f0;
-  --sidebar-primary: #00d3f2;
-  --sidebar-primary-foreground: #050506;
-  --sidebar-accent: #215168;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #34447a;
+  --sidebar: #020202;
+  --sidebar-foreground: #d4d4d8;
+  --sidebar-primary: #bc13fe;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #00ff9f;
+  --sidebar-border: #222222;
   /* Barra do topo: azul-marinho mais escuro que o menu, nos dois temas. */
-  --topbar: #121f3b;
-  --topbar-foreground: #e2e8f0;
-  --sidebar-ring: #00d3f2;
+  --topbar: #020202;
+  --topbar-foreground: #d4d4d8;
+  --sidebar-ring: #00b8ff;
   --sidebar-trilho: #00a9c6;
   --sidebar-trilho-foreground: #050506;
   --sidebar-marca: #00d3f2;

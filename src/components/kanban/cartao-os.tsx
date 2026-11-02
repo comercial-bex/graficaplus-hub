@@ -177,7 +177,7 @@ export function CartaoOs({
               )}
             </div>
             {canSeePrices && Number(os.valor_total) > 0 && (
-              <span className="font-mono text-xs text-[color:var(--bex-lime)]">{brl(Number(os.valor_total))}</span>
+              <span className="font-mono text-xs text-[color:var(--status-positive)]">{brl(Number(os.valor_total))}</span>
             )}
           </div>
         )}

@@ -68,7 +68,7 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
             <span
               className={cn(
                 "relative z-10 flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold",
-                feita && "border-[color:var(--bex-lime)]/60 bg-[color:var(--bex-lime)]/20 text-[color:var(--bex-lime)]",
+                feita && "border-[color:var(--bex-lime)]/60 bg-[color:var(--bex-lime)]/20 text-[color:var(--status-positive)]",
                 aqui && "border-[color:var(--bex-cyan)] bg-[color:var(--bex-cyan)] text-black",
                 !feita && !aqui && "border-border bg-card text-muted-foreground/60",
               )}
