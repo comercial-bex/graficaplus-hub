@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 import { Carregando } from "@/components/bex/Carregando";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaTela } from "@/lib/dicas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -122,6 +124,7 @@ function ConfiguracoesApiPage() {
         <div className="flex items-center gap-2">
           <Plug className="h-6 w-6 text-link" aria-hidden="true" />
           <h1 className="text-2xl font-bold tracking-tight">API e MCP</h1>
+          <DicaIcone texto={dicaTela("/configuracoes-api")} rotulo="API e MCP" lado="bottom" className="h-5 w-5" />
         </div>
         <p className="text-muted-foreground">
           Conecte Claude, planilha ou outro programa aos dados da gráfica. Token pessoal, só leitura, com a sua permissão.
