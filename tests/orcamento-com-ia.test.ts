@@ -4,6 +4,7 @@ import {
   interpretarLeitura,
   itemSemMedida,
   linhaDoItem,
+  linhasDoAcabamento,
   montarPerguntaDoOrcamento,
   observacaoDoRascunho,
   precoDeTabela,
@@ -52,7 +53,7 @@ describe("orçamento com IA (01/11/2026)", () => {
   });
 
   it("produto por m² sem medida fica sem preço, e o banco faz a conta do resto", () => {
-    const semMedida = { produto_id: "p1", nome: "Lona", unidade: "m2", quantidade: 2, largura_m: null, altura_m: null, observacao: null };
+    const semMedida = { produto_id: "p1", nome: "Lona", unidade: "m2", quantidade: 2, largura_m: null, altura_m: null, observacao: null, acabamentos: [] as string[] };
     expect(itemSemMedida(semMedida)).toBe(true);
     expect(linhaDoItem(semMedida, 40, 0)).toMatchObject({ preco_m2: null, valor_unitario: 0 });
     const comMedida = { ...semMedida, largura_m: 1.2, altura_m: 0.8 };
@@ -73,6 +74,36 @@ describe("orçamento com IA (01/11/2026)", () => {
     expect(precoDeTabela({ unidade: "un", quantidade: 10 }, 6.5, faixas)).toBe(6.5);
     expect(precoDeTabela({ unidade: "un", quantidade: 200 }, 6.5, [])).toBe(6.5);
     expect(precoDeTabela({ unidade: "m2", quantidade: 200 }, 45, [{ id: "d", quantidade_minima: 100, preco_unitario: 1, preco_m2_referencia: 39 }])).toBe(39);
+  });
+
+  it("o acabamento pedido vira linha com o contorno certo; fora da lista do produto não entra", () => {
+    const comAcab = { ...lona, acabamentos: ["Bainha + ilhós", "Bastão e corda"] };
+    const l = interpretarLeitura(
+      { titulo: "x", itens: [{ produto_id: "p1", quantidade: 2, largura_m: 3, altura_m: 0.7, acabamentos: ["Bainha + ilhós", "Laminação", "Bastão e corda"] }] },
+      [comAcab],
+    );
+    expect(l?.itens[0].acabamentos).toEqual(["Bainha + ilhós", "Bastão e corda"]);
+    const servicos = [
+      { acabamento: "Bainha + ilhós", id: "s1", nome: "Acabamento de lona", unidade: "m", preco: 9 },
+      { acabamento: "Bastão e corda", id: "s2", nome: "Bastão e corda", unidade: "un", preco: 12 },
+    ];
+    const r = linhasDoAcabamento(l!.itens[0], servicos);
+    expect(r.pendentes).toEqual([]);
+    expect(r.linhas).toEqual([
+      expect.objectContaining({ produto_id: "s1", quantidade: 14.8, valor_unitario: 9 }),
+      expect.objectContaining({ produto_id: "s2", quantidade: 2, valor_unitario: 12 }),
+    ]);
+  });
+
+  it("acabamento sem medida vira pendência, e por peça não precisa de medida", () => {
+    const item = { produto_id: "p1", nome: "Lona", unidade: "m2", quantidade: 2, largura_m: null, altura_m: null, observacao: null, acabamentos: ["Bainha + ilhós", "Bastão e corda"] };
+    const servicos = [
+      { acabamento: "Bainha + ilhós", id: "s1", nome: "A", unidade: "m", preco: 9 },
+      { acabamento: "Bastão e corda", id: "s2", nome: "B", unidade: "un", preco: 12 },
+    ];
+    const r = linhasDoAcabamento(item, servicos);
+    expect(r.pendentes[0]).toContain("falta a medida");
+    expect(r.linhas.map((x) => x.produto_id)).toEqual(["s2"]);
   });
 
   it("o rascunho guarda o pedido e o que falta perguntar", () => {

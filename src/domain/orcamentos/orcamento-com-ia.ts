@@ -1,4 +1,9 @@
 import { faixaAplicada, type FaixaPreco } from "@/domain/orcamentos/faixas";
+import {
+  acabamentoCobravel,
+  ladosSugeridos,
+  quantidadeDoAcabamento,
+} from "@/domain/orcamentos/cobranca-do-acabamento";
 
 /**
  * O orçamento com IA (01/11/2026): a pessoa cola o pedido do cliente e a IA
@@ -18,6 +23,8 @@ export type ProdutoParaIa = {
   personalidade: string | null;
   como_medir: string | null;
   perguntas: string | null;
+  /** Os acabamentos que o produto aceita (`produto_acabamentos`). */
+  acabamentos?: string[];
 };
 
 export type ItemDaIa = {
@@ -28,6 +35,7 @@ export type ItemDaIa = {
   largura_m: number | null;
   altura_m: number | null;
   observacao: string | null;
+  acabamentos: string[];
 };
 
 export type LeituraDoPedido = {
@@ -62,12 +70,17 @@ export const FERRAMENTA_DO_ORCAMENTO = {
                 type: ["number", "null"],
                 description: "Em metros. Null se o cliente não disse.",
               },
+              acabamentos: {
+                type: "array",
+                items: { type: "string" },
+                description: "Só os que o cliente pediu, com o nome exato da lista de acabamentos do produto.",
+              },
               observacao: {
                 type: ["string", "null"],
                 description: "Acabamento, cor ou detalhe que o cliente disse.",
               },
             },
-            required: ["produto_id", "quantidade", "largura_m", "altura_m", "observacao"],
+            required: ["produto_id", "quantidade", "largura_m", "altura_m", "observacao", "acabamentos"],
           },
         },
         perguntas_que_faltam: {
@@ -94,6 +107,7 @@ export function montarPerguntaDoOrcamento(pedido: string, produtos: ProdutoParaI
     o_que_e: p.personalidade,
     como_medir: p.como_medir,
     perguntar: p.perguntas,
+    acabamentos: p.acabamentos ?? [],
   }));
   return [
     {
@@ -104,6 +118,7 @@ export function montarPerguntaDoOrcamento(pedido: string, produtos: ProdutoParaI
         "Converta as medidas para metros (80 cm = 0,8). Não chute medida nem quantidade: medida que o cliente não disse fica null.",
         "Quando o pedido não diz a quantidade, use 1 e inclua a pergunta em perguntas_que_faltam.",
         "Use o roteiro de cada produto escolhido para listar o que ainda falta perguntar. Não repita o que o pedido já respondeu.",
+        "Marque acabamento só quando o cliente pediu, com o nome exato da lista do produto (ilhós e bainha = Bainha + ilhós). Se o produto aceita acabamento e o cliente não falou, inclua a pergunta em perguntas_que_faltam.",
         "O que não existir na lista vai em sem_produto.",
       ].join("\n"),
     },
@@ -159,6 +174,7 @@ export function interpretarLeitura(
         typeof bruto.observacao === "string" && bruto.observacao.trim()
           ? bruto.observacao.trim()
           : null,
+      acabamentos: textos(bruto.acabamentos).filter((x) => (p.acabamentos ?? []).includes(x)),
     });
   }
   return {
@@ -176,6 +192,56 @@ export function interpretarLeitura(
 }
 
 const UNIDADES_DE_AREA = ["m2", "m²"];
+
+export type ServicoDoAcabamento = {
+  acabamento: string;
+  id: string;
+  nome: string;
+  unidade: string | null;
+  preco: number | null;
+};
+
+/**
+ * As linhas de acabamento que o pedido já traz: bainha e ilhós viram linha com o
+ * contorno certo, como na tela. Sem medida não dá para calcular, e isso vira pergunta.
+ */
+export function linhasDoAcabamento(i: ItemDaIa, servicos: ServicoDoAcabamento[]) {
+  const linhas: {
+    produto_id: string;
+    descricao: string;
+    unidade: string | null;
+    quantidade: number;
+    valor_unitario: number;
+    origem_calculo: string;
+  }[] = [];
+  const pendentes: string[] = [];
+  for (const nome of i.acabamentos) {
+    const regra = acabamentoCobravel(nome);
+    const servico = servicos.find((s) => s.acabamento === nome);
+    if (!regra || !servico) {
+      pendentes.push(`${nome}: cobrar à mão, não há serviço ligado.`);
+      continue;
+    }
+    const quantidade = quantidadeDoAcabamento(
+      regra.medida,
+      { largura: i.largura_m ?? 0, altura: i.altura_m ?? 0, quantidade: i.quantidade },
+      ladosSugeridos(i.nome),
+    );
+    if (quantidade <= 0) {
+      pendentes.push(`${nome} em ${i.nome}: falta a medida para calcular.`);
+      continue;
+    }
+    linhas.push({
+      produto_id: servico.id,
+      descricao: servico.nome,
+      unidade: servico.unidade,
+      quantidade,
+      valor_unitario: servico.preco ?? 0,
+      origem_calculo: "ia",
+    });
+  }
+  return { linhas, pendentes };
+}
 
 /** Produto vendido por m² sem medida fica sem preço: é pergunta, não é zero escondido. */
 export function itemSemMedida(i: Pick<ItemDaIa, "unidade" | "largura_m" | "altura_m">): boolean {
@@ -206,7 +272,7 @@ export function linhaDoItem(i: ItemDaIa, precoBase: number | null, ordem: number
     altura: i.altura_m,
     preco_m2: area && i.largura_m && i.altura_m ? precoBase : null,
     valor_unitario: area ? 0 : (precoBase ?? 0),
-    acabamento: i.observacao,
+    acabamento: [...i.acabamentos, ...(i.observacao ? [i.observacao] : [])].join(", ") || null,
     origem_calculo: "ia",
   };
 }
