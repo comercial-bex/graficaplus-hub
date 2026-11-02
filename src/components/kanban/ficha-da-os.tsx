@@ -172,7 +172,7 @@ export function FichaDaOs({
           <DialogDescription>
             {interna ? (os.local_mostruario ?? "Trabalho interno") : (os.cliente_nome ?? "Sem cliente vinculado")}
             {canSeePrices && Number(os.valor_total) > 0 && (
-              <span className="ml-2 font-mono text-[color:var(--bex-lime)]">{brl(Number(os.valor_total))}</span>
+              <span className="ml-2 font-mono text-[color:var(--status-positive)]">{brl(Number(os.valor_total))}</span>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -191,7 +191,7 @@ export function FichaDaOs({
                     <div className="truncate font-medium text-foreground">{arquivo.nome}</div>
                     <div className="text-muted-foreground">
                       {arquivo.final_producao ? (
-                        <span className="text-[color:var(--bex-lime)]">Arquivo final de produção</span>
+                        <span className="text-[color:var(--status-positive)]">Arquivo final de produção</span>
                       ) : (
                         "Ainda não marcado como final de produção"
                       )}
@@ -320,7 +320,7 @@ export function FichaDaOs({
               )}
               {certas.length > 0 && (
                 <p className={cn("flex items-start gap-1.5 text-xs text-muted-foreground", pendentes > 0 && "mt-2")}>
-                  <Check className="mt-px h-3.5 w-3.5 shrink-0 text-[color:var(--bex-lime)]" aria-hidden />
+                  <Check className="mt-px h-3.5 w-3.5 shrink-0 text-[color:var(--status-positive)]" aria-hidden />
                   <span>
                     <span className="sr-only">Já está certo: </span>
                     {certas.map((c) => c.rotulo).join(" · ")}
