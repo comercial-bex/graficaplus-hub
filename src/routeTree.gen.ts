@@ -29,6 +29,7 @@ import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCompromissosRouteImport } from './routes/_authenticated/compromissos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
+import { Route as AuthenticatedConfiguracoesApiRouteImport } from './routes/_authenticated/configuracoes-api'
 import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConflitosAgendaRouteImport } from './routes/_authenticated/conflitos-agenda'
 import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_authenticated/contas-bancarias'
@@ -113,6 +114,7 @@ import { Route as ApiPortalPainelRouteImport } from './routes/api.portal.painel'
 import { Route as ApiTvPainelRouteImport } from './routes/api.tv.painel'
 import { Route as ApiTvParearRouteImport } from './routes/api.tv.parear'
 import { Route as ApiTvPinRouteImport } from './routes/api.tv.pin'
+import { Route as ApiV1RecursoRouteImport } from './routes/api.v1.$recurso'
 import { Route as ApiWhatsappAgenteRouteImport } from './routes/api.whatsapp.agente'
 import { Route as ApiWhatsappDespacharRouteImport } from './routes/api.whatsapp.despachar'
 import { Route as ApiWhatsappEnviarRouteImport } from './routes/api.whatsapp.enviar'
@@ -222,6 +224,12 @@ const AuthenticatedConfiguracoes3dRoute =
   AuthenticatedConfiguracoes3dRouteImport.update({
     id: '/configuracoes-3d',
     path: '/configuracoes-3d',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesApiRoute =
+  AuthenticatedConfiguracoesApiRouteImport.update({
+    id: '/configuracoes-api',
+    path: '/configuracoes-api',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedConfiguracoesEmpresaRoute =
@@ -678,6 +686,11 @@ const ApiTvPinRoute = ApiTvPinRouteImport.update({
   path: '/api/tv/pin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1RecursoRoute = ApiV1RecursoRouteImport.update({
+  id: '/api/v1/$recurso',
+  path: '/api/v1/$recurso',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWhatsappAgenteRoute = ApiWhatsappAgenteRouteImport.update({
   id: '/api/whatsapp/agente',
   path: '/api/whatsapp/agente',
@@ -734,6 +747,7 @@ export interface FileRoutesByFullPath {
   '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
@@ -814,6 +828,7 @@ export interface FileRoutesByFullPath {
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
+  '/api/v1/$recurso': typeof ApiV1RecursoRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
@@ -845,6 +860,7 @@ export interface FileRoutesByTo {
   '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
@@ -925,6 +941,7 @@ export interface FileRoutesByTo {
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
+  '/api/v1/$recurso': typeof ApiV1RecursoRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
@@ -959,6 +976,7 @@ export interface FileRoutesById {
   '/_authenticated/compromissos': typeof AuthenticatedCompromissosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/_authenticated/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/_authenticated/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/_authenticated/contas-bancarias': typeof AuthenticatedContasBancariasRoute
@@ -1039,6 +1057,7 @@ export interface FileRoutesById {
   '/api/tv/painel': typeof ApiTvPainelRoute
   '/api/tv/parear': typeof ApiTvParearRoute
   '/api/tv/pin': typeof ApiTvPinRoute
+  '/api/v1/$recurso': typeof ApiV1RecursoRoute
   '/api/whatsapp/agente': typeof ApiWhatsappAgenteRoute
   '/api/whatsapp/despachar': typeof ApiWhatsappDespacharRoute
   '/api/whatsapp/enviar': typeof ApiWhatsappEnviarRoute
@@ -1073,6 +1092,7 @@ export interface FileRouteTypes {
     | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-api'
     | '/configuracoes-empresa'
     | '/conflitos-agenda'
     | '/contas-bancarias'
@@ -1153,6 +1173,7 @@ export interface FileRouteTypes {
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/tv/pin'
+    | '/api/v1/$recurso'
     | '/api/whatsapp/agente'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
@@ -1184,6 +1205,7 @@ export interface FileRouteTypes {
     | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-api'
     | '/configuracoes-empresa'
     | '/conflitos-agenda'
     | '/contas-bancarias'
@@ -1264,6 +1286,7 @@ export interface FileRouteTypes {
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/tv/pin'
+    | '/api/v1/$recurso'
     | '/api/whatsapp/agente'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
@@ -1297,6 +1320,7 @@ export interface FileRouteTypes {
     | '/_authenticated/compromissos'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
+    | '/_authenticated/configuracoes-api'
     | '/_authenticated/configuracoes-empresa'
     | '/_authenticated/conflitos-agenda'
     | '/_authenticated/contas-bancarias'
@@ -1377,6 +1401,7 @@ export interface FileRouteTypes {
     | '/api/tv/painel'
     | '/api/tv/parear'
     | '/api/tv/pin'
+    | '/api/v1/$recurso'
     | '/api/whatsapp/agente'
     | '/api/whatsapp/despachar'
     | '/api/whatsapp/enviar'
@@ -1416,6 +1441,7 @@ export interface RootRouteChildren {
   ApiTvPainelRoute: typeof ApiTvPainelRoute
   ApiTvParearRoute: typeof ApiTvParearRoute
   ApiTvPinRoute: typeof ApiTvPinRoute
+  ApiV1RecursoRoute: typeof ApiV1RecursoRoute
   ApiWhatsappAgenteRoute: typeof ApiWhatsappAgenteRoute
   ApiWhatsappDespacharRoute: typeof ApiWhatsappDespacharRoute
   ApiWhatsappEnviarRoute: typeof ApiWhatsappEnviarRoute
@@ -1563,6 +1589,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes-3d'
       fullPath: '/configuracoes-3d'
       preLoaderRoute: typeof AuthenticatedConfiguracoes3dRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/configuracoes-api': {
+      id: '/_authenticated/configuracoes-api'
+      path: '/configuracoes-api'
+      fullPath: '/configuracoes-api'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesApiRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes-empresa': {
@@ -2153,6 +2186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTvPinRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/$recurso': {
+      id: '/api/v1/$recurso'
+      path: '/api/v1/$recurso'
+      fullPath: '/api/v1/$recurso'
+      preLoaderRoute: typeof ApiV1RecursoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/whatsapp/agente': {
       id: '/api/whatsapp/agente'
       path: '/api/whatsapp/agente'
@@ -2218,6 +2258,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompromissosRoute: typeof AuthenticatedCompromissosRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
+  AuthenticatedConfiguracoesApiRoute: typeof AuthenticatedConfiguracoesApiRoute
   AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
   AuthenticatedConflitosAgendaRoute: typeof AuthenticatedConflitosAgendaRoute
   AuthenticatedContasBancariasRoute: typeof AuthenticatedContasBancariasRoute
@@ -2297,6 +2338,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompromissosRoute: AuthenticatedCompromissosRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
+  AuthenticatedConfiguracoesApiRoute: AuthenticatedConfiguracoesApiRoute,
   AuthenticatedConfiguracoesEmpresaRoute:
     AuthenticatedConfiguracoesEmpresaRoute,
   AuthenticatedConflitosAgendaRoute: AuthenticatedConflitosAgendaRoute,
@@ -2413,6 +2455,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTvPainelRoute: ApiTvPainelRoute,
   ApiTvParearRoute: ApiTvParearRoute,
   ApiTvPinRoute: ApiTvPinRoute,
+  ApiV1RecursoRoute: ApiV1RecursoRoute,
   ApiWhatsappAgenteRoute: ApiWhatsappAgenteRoute,
   ApiWhatsappDespacharRoute: ApiWhatsappDespacharRoute,
   ApiWhatsappEnviarRoute: ApiWhatsappEnviarRoute,
@@ -2421,6 +2464,7 @@ const rootRouteChildren: RootRouteChildren = {
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'

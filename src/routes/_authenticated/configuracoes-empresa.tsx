@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Plug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -249,16 +250,24 @@ function ConfiguracoesEmpresaPage() {
         title="Dados da empresa"
         description="Aparecem no cabeçalho dos orçamentos e ordens de serviço enviados ao cliente"
         actions={
-          podeEditar ? (
-            <Button onClick={salvar} disabled={salvando}>
-              {salvando ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-1" />
-              )}
-              Salvar
+          <div className="flex flex-wrap items-center gap-2">
+            {/* API e MCP (02/11): token pessoal de leitura. Fora do menu de propósito; abre por aqui. */}
+            <Button asChild variant="outline">
+              <Link to="/configuracoes-api">
+                <Plug className="h-4 w-4 mr-1" aria-hidden="true" /> API e MCP
+              </Link>
             </Button>
-          ) : undefined
+            {podeEditar && (
+              <Button onClick={salvar} disabled={salvando}>
+                {salvando ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-1" />
+                )}
+                Salvar
+              </Button>
+            )}
+          </div>
         }
       />
 
