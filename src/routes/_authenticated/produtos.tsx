@@ -59,6 +59,7 @@ import {
   Copy,
   Trash2,
   Pencil,
+  FolderOpen,
   Upload,
   Download,
   MoreVertical,
@@ -866,6 +867,12 @@ function RowActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link to="/produtos/$id" params={{ id: produto.id }}>
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Abrir a pasta
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onEdit(produto)}>
           <Pencil className="h-4 w-4 mr-2" />
           Editar

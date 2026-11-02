@@ -94,7 +94,7 @@ function rotasEmDisco(): string[] {
         .replace(/\.tsx$/, "")
         .replace(/\.index$/, "")
         .split(".")
-        .map((parte) => (parte.startsWith("$") ? "123" : parte))
+        .map((parte) => (parte.startsWith("$") ? "123" : parte.replace(/_$/, "")))
         .join("/"),
     )
     .map((r) => `/${r}`);

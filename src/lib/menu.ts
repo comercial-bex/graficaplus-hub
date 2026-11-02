@@ -386,6 +386,10 @@ export const AREAS: AreaDoMenu[] = [
  * que o cabeçalho mostra quando a pessoa está nela.
  */
 export const FORA_DO_MENU: Record<string, { titulo: string; motivo: string }> = {
+  "/processos": {
+    titulo: "Processos",
+    motivo: "abre pela pasta do produto (aba Processos): o menu é o que o dono aprovou no cenário B",
+  },
   "/dashboard": {
     titulo: "Início",
     motivo: "é o Início: link fixo no topo do menu, fora das áreas",
