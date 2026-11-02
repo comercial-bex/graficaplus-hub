@@ -8,7 +8,7 @@ import { join } from "node:path";
  *
  * O dono enxerga mal. O sistema tinha letra de 10 a 12 px em mais de 1.400
  * lugares e menu de 13 px sobre um fundo quase preto. O Holdprint, que ele
- * aprovou, usa menu azul-marinho (#212e57), fundo cinza-azulado (#f2f4f7) e
+ * aprovou, usa fundo cinza-azulado (#f2f4f7) e menu escuro da marca (#151f39, desde 02/11/2026) e
  * letra maior. Aqui ficam travadas as medidas que importam:
  *
  * - nenhuma letra fixa abaixo de 12 px, e a escala xs = 13 px, sm = 15 px;
@@ -154,9 +154,12 @@ describe("a barra lateral azul-marinho", () => {
     for (const n of nomes) expect(token(".dark", n), n).toBe(token(":root", n));
   });
 
-  it("usa o azul-marinho e o verde-petróleo do Holdprint", () => {
-    expect(token(":root", "sidebar")).toBe("#212e57");
-    expect(token(":root", "sidebar-accent")).toBe("#215168");
+  it("é escura, da marca: painel quase preto azulado, trilho mais escuro e a pílula do ativo (02/11/2026)", () => {
+    expect(token(":root", "sidebar")).toBe("#151f39");
+    expect(token(":root", "sidebar-trilho")).toBe("#0f172e");
+    expect(token(":root", "sidebar-accent")).toBe("#1f3550");
+    // o neon ciano da marca fica só no ativo, na marca e nos selos
+    expect(token(":root", "sidebar-marca")).toBe("#00d3f2");
   });
 
   it("a letra do menu lê bem inclusive nas opacidades que o menu usa (80, 75, 70 e 60%)", () => {
