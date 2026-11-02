@@ -127,23 +127,23 @@ export function ItensDaOS({
             </div>
             <div className="grid grid-cols-12 gap-2 items-end">
               <div className="col-span-5">
-                <Label>Descrição</Label>
-                <Input
+                <Label htmlFor="itemos-5-descricao">Descrição</Label>
+                <Input id="itemos-5-descricao"
                   value={form.descricao}
                   onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                 />
               </div>
               <div className="col-span-1">
-                <Label>Qtd</Label>
-                <Input
+                <Label htmlFor="itemos-4-qtd">Qtd</Label>
+                <Input id="itemos-4-qtd"
                   type="number"
                   value={form.quantidade}
                   onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
                 />
               </div>
               <div className="col-span-1">
-                <Label>Un</Label>
-                <Input
+                <Label htmlFor="itemos-3-un">Un</Label>
+                <Input id="itemos-3-un"
                   value={form.unidade}
                   onChange={(e) => setForm({ ...form, unidade: e.target.value })}
                 />
@@ -151,8 +151,8 @@ export function ItensDaOS({
               {/* Valor un. é preço (vendedor vê); Custo un. é custo (só financeiro). */}
               {canSeePrices && (
                 <div className="col-span-2">
-                  <Label>Valor un.</Label>
-                  <Input
+                  <Label htmlFor="itemos-2-valor-un">Valor un.</Label>
+                  <Input id="itemos-2-valor-un"
                     type="number"
                     step="0.01"
                     value={form.valor_unitario}
@@ -162,8 +162,8 @@ export function ItensDaOS({
               )}
               {canSeeFinancials && (
                 <div className="col-span-2">
-                  <Label>Custo un.</Label>
-                  <Input
+                  <Label htmlFor="itemos-1-custo-un">Custo un.</Label>
+                  <Input id="itemos-1-custo-un"
                     type="number"
                     step="0.01"
                     value={form.custo_unitario}

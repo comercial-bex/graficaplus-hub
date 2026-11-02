@@ -237,12 +237,12 @@ function OSPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Cliente *</Label>
+                  <Label htmlFor="oslista-7-cliente">Cliente *</Label>
                   <Select
                     value={form.cliente_id}
                     onValueChange={(v) => setForm({ ...form, cliente_id: v })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="oslista-7-cliente">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
@@ -255,15 +255,15 @@ function OSPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Título *</Label>
-                  <Input
+                  <Label htmlFor="oslista-6-titulo">Título *</Label>
+                  <Input id="oslista-6-titulo"
                     value={form.titulo}
                     onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Briefing</Label>
-                  <Textarea
+                  <Label htmlFor="oslista-5-briefing">Briefing</Label>
+                  <Textarea id="oslista-5-briefing"
                     rows={3}
                     value={form.briefing}
                     onChange={(e) => setForm({ ...form, briefing: e.target.value })}
@@ -271,20 +271,20 @@ function OSPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>Prazo entrega</Label>
-                    <Input
+                    <Label htmlFor="oslista-4-prazo-entrega">Prazo entrega</Label>
+                    <Input id="oslista-4-prazo-entrega"
                       type="date"
                       value={form.prazo_entrega}
                       onChange={(e) => setForm({ ...form, prazo_entrega: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Prioridade</Label>
+                    <Label htmlFor="oslista-3-prioridade">Prioridade</Label>
                     <Select
                       value={form.prioridade}
                       onValueChange={(v) => setForm({ ...form, prioridade: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="oslista-3-prioridade">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -302,12 +302,12 @@ function OSPage() {
                     entrega vazia. Rádio obriga a escolha e já começa no caso
                     mais comum da casa, que é o cliente buscar no balcão. */}
                 <div className="space-y-2">
-                  <Label>Como a peça sai *</Label>
+                  <Label htmlFor="oslista-2-como-a-peca-sai">Como a peça sai *</Label>
                   <Select
                     value={form.saida}
                     onValueChange={(v: any) => setForm({ ...form, saida: v })}
                   >
-                    <SelectTrigger className="h-11 md:h-10">
+                    <SelectTrigger id="oslista-2-como-a-peca-sai" className="h-11 md:h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -331,8 +331,8 @@ function OSPage() {
                 </div>
                 {canSeePrices && (
                   <div className="space-y-2">
-                    <Label>Valor total (R$)</Label>
-                    <Input
+                    <Label htmlFor="oslista-1-valor-total-r">Valor total (R$)</Label>
+                    <Input id="oslista-1-valor-total-r"
                       type="number"
                       step="0.01"
                       value={form.valor_total}

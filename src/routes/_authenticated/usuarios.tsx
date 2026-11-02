@@ -593,16 +593,16 @@ function EquipePage() {
           {form && (
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Label className="flex items-center gap-1.5">Nome completo<DicaIcone texto={dicaCampo("/usuarios", "Nome completo")} rotulo="Nome completo" /></Label>
-                <Input
+                <Label htmlFor="usuario-6-nome-completo" className="flex items-center gap-1.5">Nome completo<DicaIcone texto={dicaCampo("/usuarios", "Nome completo")} rotulo="Nome completo" /></Label>
+                <Input id="usuario-6-nome-completo"
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   placeholder="Ex.: Maria Souza"
                 />
               </div>
               <div>
-                <Label className="flex items-center gap-1.5">E-mail<DicaIcone texto={dicaCampo("/usuarios", "E-mail")} rotulo="E-mail" /></Label>
-                <Input
+                <Label htmlFor="usuario-5-e-mail" className="flex items-center gap-1.5">E-mail<DicaIcone texto={dicaCampo("/usuarios", "E-mail")} rotulo="E-mail" /></Label>
+                <Input id="usuario-5-e-mail"
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -610,16 +610,16 @@ function EquipePage() {
                 />
               </div>
               <div>
-                <Label className="flex items-center gap-1.5">Telefone<DicaIcone texto={dicaCampo("/usuarios", "Telefone")} rotulo="Telefone" /></Label>
-                <Input
+                <Label htmlFor="usuario-4-telefone" className="flex items-center gap-1.5">Telefone<DicaIcone texto={dicaCampo("/usuarios", "Telefone")} rotulo="Telefone" /></Label>
+                <Input id="usuario-4-telefone"
                   value={form.telefone}
                   onChange={(e) => setForm({ ...form, telefone: e.target.value })}
                   placeholder="(00) 00000-0000"
                 />
               </div>
               <div>
-                <Label className="flex items-center gap-1.5">Cargo<DicaIcone texto={dicaCampo("/usuarios", "Cargo")} rotulo="Cargo" /></Label>
-                <Input
+                <Label htmlFor="usuario-3-cargo" className="flex items-center gap-1.5">Cargo<DicaIcone texto={dicaCampo("/usuarios", "Cargo")} rotulo="Cargo" /></Label>
+                <Input id="usuario-3-cargo"
                   value={form.cargo}
                   onChange={(e) => setForm({ ...form, cargo: e.target.value })}
                   placeholder="Ex.: Designer"
@@ -627,12 +627,12 @@ function EquipePage() {
               </div>
               {!form.id && (
                 <div>
-                  <Label className="flex items-center gap-1.5">Perfil inicial<DicaIcone texto={dicaCampo("/usuarios", "Perfil inicial")} rotulo="Perfil inicial" /></Label>
+                  <Label htmlFor="usuario-2-perfil-inicial" className="flex items-center gap-1.5">Perfil inicial<DicaIcone texto={dicaCampo("/usuarios", "Perfil inicial")} rotulo="Perfil inicial" /></Label>
                   <Select
                     value={form.role}
                     onValueChange={(v: AppRole) => setForm({ ...form, role: v })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="usuario-2-perfil-inicial">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
@@ -647,9 +647,9 @@ function EquipePage() {
               )}
               {!form.id && (
                 <div className="sm:col-span-2">
-                  <Label className="flex items-center gap-1.5">Senha inicial<DicaIcone texto={dicaCampo("/usuarios", "Senha inicial")} rotulo="Senha inicial" /></Label>
+                  <Label htmlFor="usuario-1-senha-inicial" className="flex items-center gap-1.5">Senha inicial<DicaIcone texto={dicaCampo("/usuarios", "Senha inicial")} rotulo="Senha inicial" /></Label>
                   <div className="flex gap-2">
-                    <Input
+                    <Input id="usuario-1-senha-inicial"
                       value={form.senha}
                       onChange={(e) => setForm({ ...form, senha: e.target.value })}
                       placeholder="Mínimo 8 caracteres"

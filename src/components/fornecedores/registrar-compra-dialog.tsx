@@ -250,7 +250,7 @@ export function RegistrarCompraDialog({
 
             {form.tipo === "devolucao" && (
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Venda que esta devolução desfaz</Label>
+                <Label htmlFor="compra-3-venda-que-esta-devolucao-des">Venda que esta devolução desfaz</Label>
                 {vendas.length === 0 ? (
                   <p className="text-sm text-destructive">Nenhuma venda registrada neste fornecedor para devolver.</p>
                 ) : (
@@ -258,7 +258,7 @@ export function RegistrarCompraDialog({
                     value={form.devolve_compra_id ?? undefined}
                     onValueChange={(v) => muda("devolve_compra_id", v)}
                   >
-                    <SelectTrigger className="h-11 md:h-9">
+                    <SelectTrigger id="compra-3-venda-que-esta-devolucao-des" className="h-11 md:h-9">
                       <SelectValue placeholder="Escolha a venda" />
                     </SelectTrigger>
                     <SelectContent>
@@ -449,9 +449,9 @@ export function RegistrarCompraDialog({
                       </span>
                     </div>
                     <div className="space-y-1 sm:col-span-2">
-                      <Label className="text-xs">Para quê</Label>
+                      <Label htmlFor="compra-2-para-que" className="text-xs">Para quê</Label>
                       <Select value={l.finalidade} onValueChange={(v) => mudaLinha(i, { finalidade: v as Finalidade })}>
-                        <SelectTrigger className="h-11 md:h-9">
+                        <SelectTrigger id="compra-2-para-que" className="h-11 md:h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -464,9 +464,9 @@ export function RegistrarCompraDialog({
                       </Select>
                     </div>
                     <div className="space-y-1 sm:col-span-2">
-                      <Label className="text-xs">Material do estoque (opcional)</Label>
+                      <Label htmlFor="compra-1-material-do-estoque-opcional" className="text-xs">Material do estoque (opcional)</Label>
                       <Select value={l.material_id ?? NENHUM} onValueChange={(v) => escolherMaterial(i, v)}>
-                        <SelectTrigger className="h-11 md:h-9">
+                        <SelectTrigger id="compra-1-material-do-estoque-opcional" className="h-11 md:h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
