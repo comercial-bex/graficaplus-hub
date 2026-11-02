@@ -301,6 +301,14 @@ function ConvitePage() {
           {enviando ? "Enviando..." : "Quero ser revendedor"}
         </NeonButton>
 
+        <p className="text-center text-xs text-muted-foreground">
+          Ao se cadastrar, você concorda com a nossa{" "}
+          <Link to="/privacidade" target="_blank" className="text-[color:var(--bex-cyan)] underline underline-offset-2">
+            Política de Privacidade
+          </Link>
+          .
+        </p>
+
         <p className="pt-1 text-center text-xs text-muted-foreground">
           Sem taxa de adesão e sem compra obrigatória.
         </p>
