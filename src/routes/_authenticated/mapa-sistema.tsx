@@ -4,6 +4,7 @@ import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { Card, CardContent } from "@/components/ui/card";
 import { mapaNodes, mapaEdges, perfisAtividades, type MapaNode } from "@/lib/system-map";
+import { AREAS, FORA_DO_MENU, telasDoItem } from "@/lib/menu";
 
 export const Route = createFileRoute("/_authenticated/mapa-sistema")({
   head: () => ({
@@ -179,6 +180,45 @@ function MapaSistemaPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Todas as telas, lidas do próprio menu: nunca fica atrás do que existe */}
+      <h2 className="mt-10 mb-1 text-lg font-black tracking-tight">Todas as telas, como estão no menu</h2>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Esta lista é lida do próprio menu, então não envelhece: tela nova no menu aparece aqui sozinha.
+      </p>
+      <div className="grid gap-4 md:grid-cols-2" data-testid="mapa-telas-do-menu">
+        {AREAS.map((area) => (
+          <Card key={area.id}>
+            <CardContent className="p-5">
+              <div className="mb-2 text-base font-black tracking-tight">{area.label}</div>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                {area.subgrupos.flatMap((sub) =>
+                  sub.itens.map((i) => (
+                    <li key={i.url}>
+                      <span className="text-foreground">{i.title}</span>
+                      {telasDoItem(i).length > 1 && (
+                        <span> — {telasDoItem(i).map((t) => t.title).join(", ")}</span>
+                      )}
+                    </li>
+                  )),
+                )}
+              </ul>
+            </CardContent>
+          </Card>
+        ))}
+        <Card>
+          <CardContent className="p-5">
+            <div className="mb-2 text-base font-black tracking-tight">Abrem por outro caminho</div>
+            <ul className="space-y-1 text-sm text-muted-foreground">
+              {Object.entries(FORA_DO_MENU).map(([url, f]) => (
+                <li key={url}>
+                  <span className="text-foreground">{f.titulo}</span> — {f.motivo.split(":")[0]}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
