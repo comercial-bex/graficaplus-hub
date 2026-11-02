@@ -1,3 +1,4 @@
+import { ConfirmarAcao } from "@/components/bex/ConfirmarAcao";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -77,6 +78,10 @@ export function ConexaoZapi() {
 
   const origem = typeof window !== "undefined" ? window.location.origin : "";
   const origemValida = origemServeParaWebhook(origem);
+
+  function trocarEndereco(zapiInstanceId: string) {
+    return gerarEndereco({ zapiInstanceId, trocarSegredo: true });
+  }
 
   async function gerarEndereco(dados: {
     zapiInstanceId: string;
@@ -160,23 +165,16 @@ export function ConexaoZapi() {
                 : "nenhum até agora"}
             </div>
             {podeGerenciar && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                disabled={salvando}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Gerar um novo endereço faz o atual parar de funcionar. Você vai precisar colar o novo no painel do Z-API. Continuar?",
-                    )
-                  ) {
-                    gerarEndereco({ zapiInstanceId: i.zapi_instance_id, trocarSegredo: true });
-                  }
-                }}
+              <ConfirmarAcao
+                titulo="Gerar um novo endereço do webhook?"
+                descricao="O endereço atual para de funcionar. Você vai precisar colar o novo no painel do Z-API."
+                rotuloConfirmar="Gerar novo endereço"
+                aoConfirmar={() => trocarEndereco(i.zapi_instance_id)}
               >
-                <Link2 className="mr-1.5 h-3.5 w-3.5" /> Gerar novo endereço do webhook
-              </Button>
+                <Button variant="outline" size="sm" className="mt-3" disabled={salvando}>
+                  <Link2 className="mr-1.5 h-3.5 w-3.5" /> Gerar novo endereço do webhook
+                </Button>
+              </ConfirmarAcao>
             )}
           </div>
         ))}

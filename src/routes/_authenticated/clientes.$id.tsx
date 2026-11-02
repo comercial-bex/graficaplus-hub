@@ -173,7 +173,7 @@ function ClienteDetailPage() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div className="flex items-start gap-3">
           <Link to="/clientes">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Voltar para clientes">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
@@ -215,7 +215,7 @@ function ClienteDetailPage() {
           {canDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" aria-label="Excluir cliente">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </AlertDialogTrigger>
@@ -929,6 +929,7 @@ function ContatosTab({ clienteId }: { clienteId: string }) {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
+                    aria-label={`Remover contato ${c.nome ?? ""}`.trim()}
                     onClick={() => remove(c.id)}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />

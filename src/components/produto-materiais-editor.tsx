@@ -260,6 +260,7 @@ export function ProdutoMateriaisEditor({
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
+                        aria-label="Tirar material do produto"
                         onClick={() => remover(pm.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5 text-destructive" />

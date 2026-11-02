@@ -1,3 +1,4 @@
+import { ConfirmarAcao } from "@/components/bex/ConfirmarAcao";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,7 +165,6 @@ export function TarefasDaOS({ osId }: { osId: string }) {
 
   const cancelar = useMutation({
     mutationFn: async (t: Tarefa) => {
-      if (!window.confirm(`Cancelar a tarefa "${t.titulo}"?`)) return;
       const { data, error } = await (supabase as any)
         .from("os_tarefas")
         .update({ status: "cancelada" })
@@ -353,14 +353,16 @@ export function TarefasDaOS({ osId }: { osId: string }) {
                   )}
                   {!concluida && !cancelada && podeCriar && (
                     <Dica texto="Cancelar tarefa">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Cancelar ${t.titulo}`}
-                        onClick={() => cancelar.mutate(t)}
+                      <ConfirmarAcao
+                        titulo={`Cancelar a tarefa "${t.titulo}"?`}
+                        rotuloConfirmar="Cancelar tarefa"
+                        destrutivo
+                        aoConfirmar={() => cancelar.mutate(t)}
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                        <Button variant="ghost" size="icon" aria-label={`Cancelar ${t.titulo}`}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </ConfirmarAcao>
                     </Dica>
                   )}
                 </div>
