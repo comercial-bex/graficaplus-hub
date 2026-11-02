@@ -1,4 +1,8 @@
-import { quantidadeDoAcabamento, type MedidaCobrada } from "@/domain/orcamentos/cobranca-do-acabamento";
+import {
+  camposDaLinhaPorArea,
+  quantidadeDoAcabamento,
+  type MedidaCobrada,
+} from "@/domain/orcamentos/cobranca-do-acabamento";
 import {
   respondida,
   respostaDe,
@@ -35,6 +39,8 @@ export type LinhaDoOrcamento = {
   id: string;
   produto_id?: string | null;
   quantidade?: number | string | null;
+  largura?: number | string | null;
+  altura?: number | string | null;
   gerado_por_item_id?: string | null;
 };
 
@@ -56,9 +62,12 @@ export type CobrancaDaResposta = {
   estado: EstadoDaCobranca;
   medida: MedidaDaResposta | null;
   servico: ServicoDaResposta | null;
+  /** O que a tela mostra: m² de todas as peças, horas, km. */
   quantidade: number;
   preco: number;
   total: number;
+  /** A peça, para a linha cobrada por área. */
+  peca?: { largura: number; altura: number; quantidade: number };
 };
 
 const centavos = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -112,12 +121,21 @@ export function cobrancasDasRespostas(a: {
       saida.push({ ...base, preco, estado: "ja_no_orcamento" });
       continue;
     }
-    const quantidade =
+    const pedida =
       medida === "informar" ? Number(a.informadas[id] ?? 0) : quantidadeDoAcabamento(medida, a.peca);
-    if (!(quantidade > 0)) {
+    if (!(pedida > 0)) {
       saida.push({ ...base, preco, estado: medida === "informar" ? "falta_quantidade" : "falta_medida" });
       continue;
     }
+    if (medida === "area") {
+      // A conta do banco para a linha com medida: área exata da peça × peças × preço por m².
+      const pecas = Number(a.peca.quantidade) > 0 ? Number(a.peca.quantidade) : 1;
+      const area = Math.round(a.peca.largura * a.peca.altura * 1e6) / 1e6;
+      saida.push({ ...base, preco, quantidade: pedida, total: centavos(area * pecas * preco), peca: a.peca, estado: "cobra" });
+      continue;
+    }
+    // Linha sem medida cobra no mínimo 1 no banco: a tela mostra o que vai ser cobrado.
+    const quantidade = Math.max(pedida, 1);
     saida.push({ ...base, preco, quantidade, total: centavos(quantidade * preco), estado: "cobra" });
   }
   return saida;
@@ -127,9 +145,18 @@ export function totalDasCobrancas(c: readonly CobrancaDaResposta[]): number {
   return centavos(c.reduce((soma, l) => soma + (l.estado === "cobra" ? l.total : 0), 0));
 }
 
+type CamposDaArea = { largura: number; altura: number };
+
+/** Os campos que a linha grava para esta cobrança. */
+export function camposDaCobranca(c: CobrancaDaResposta) {
+  return c.peca
+    ? camposDaLinhaPorArea(c.peca, c.preco)
+    : { unidade: c.servico?.unidade ?? "un", quantidade: c.quantidade, valor_unitario: c.preco };
+}
+
 export type PlanoDasLinhas = {
   inserir: CobrancaDaResposta[];
-  atualizar: { id: string; quantidade: number }[];
+  atualizar: ({ id: string; quantidade: number } & Partial<CamposDaArea>)[];
   apagar: string[];
 };
 
@@ -148,7 +175,16 @@ export function planoDasLinhas(
       continue;
     }
     usadas.add(linha.id);
-    if (Number(linha.quantidade) !== c.quantidade) plano.atualizar.push({ id: linha.id, quantidade: c.quantidade });
+    if (c.peca) {
+      const f = camposDaLinhaPorArea(c.peca, c.preco);
+      const igual =
+        Number(linha.quantidade) === f.quantidade &&
+        Number(linha.largura) === f.largura &&
+        Number(linha.altura) === f.altura;
+      if (!igual) plano.atualizar.push({ id: linha.id, quantidade: f.quantidade, largura: f.largura, altura: f.altura });
+    } else if (Number(linha.quantidade) !== c.quantidade) {
+      plano.atualizar.push({ id: linha.id, quantidade: c.quantidade });
+    }
   }
   for (const l of linhasDoItem) if (!usadas.has(l.id)) plano.apagar.push(l.id);
   return plano;
@@ -158,6 +194,11 @@ export function planoDasLinhas(
 export function descricaoDaLinha(c: CobrancaDaResposta, descricaoDoItem: string): string {
   const nome = c.servico?.nome ?? c.nome;
   return c.medida === "informar" ? nome : `${nome}: ${descricaoDoItem.trim()}`;
+}
+
+/** A unidade como a tela escreve. */
+export function unidadeNaTela(unidade: string | null | undefined): string {
+  return (unidade ?? "").trim().toLowerCase() === "m2" ? "m²" : (unidade ?? "");
 }
 
 /** Como pedir a quantidade na tela, pela unidade do serviço. */

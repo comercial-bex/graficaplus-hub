@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   cobrancasDasRespostas,
   descricaoDaLinha,
+  camposDaCobranca,
   planoDasLinhas,
   rotuloDaQuantidade,
+  unidadeNaTela,
   totalDasCobrancas,
   type ProcessoDaResposta,
 } from "../src/domain/orcamentos/cobranca-das-respostas";
@@ -99,6 +101,35 @@ describe("o que a resposta cobra (02/11/2026)", () => {
   });
 });
 
+describe("linha abaixo de 1 unidade (achado no teste real, 02/11/2026)", () => {
+  it("0,25 m² de laminação cobram R$ 7,00, com a medida na linha", () => {
+    const [l] = conta({ respostas: [sim("laminar")], peca: { largura: 0.5, altura: 0.5, quantidade: 1 } });
+    expect(l).toMatchObject({ estado: "cobra", quantidade: 0.25, total: 7 });
+    expect(camposDaCobranca(l)).toEqual({ unidade: "m2", quantidade: 1, largura: 0.5, altura: 0.5, preco_m2: 28 });
+  });
+
+  it("a conta bate com a do banco, sem o arredondamento da tela", () => {
+    const [l] = conta({ respostas: [sim("laminar")], peca: { largura: 0.333, altura: 0.333, quantidade: 7 } });
+    expect(l.total).toBe(Math.round(0.110889 * 7 * 28 * 100) / 100);
+  });
+
+  it("hora abaixo de 1 mostra o que o banco cobra", () => {
+    const [i] = conta({ respostas: [sim("instalar")], informadas: { ins: 0.5, des: 10 } });
+    expect(i).toMatchObject({ quantidade: 1, total: 130 });
+    expect(camposDaCobranca(i)).toEqual({ unidade: "h", quantidade: 1, valor_unitario: 130 });
+  });
+
+  it("a tela escreve m²", () => {
+    expect(unidadeNaTela("m2")).toBe("m²");
+    expect(unidadeNaTela("h")).toBe("h");
+  });
+
+  it("o botão de acabamento e a IA também mandam a medida", () => {
+    expect(ler("src/components/orcamento/cobranca-do-acabamento.tsx")).toContain('c.acabamento.medida === "area" && c.peca');
+    expect(ler("src/domain/orcamentos/orcamento-com-ia.ts")).toContain('regra.medida === "area"');
+  });
+});
+
 describe("as linhas presas ao item", () => {
   const cobrando = conta({ respostas: [sim("laminar")] });
 
@@ -107,8 +138,15 @@ describe("as linhas presas ao item", () => {
   });
 
   it("medida mudou: atualiza; igual: não mexe", () => {
-    expect(planoDasLinhas(cobrando, [{ id: "a", produto_id: "s-lam", quantidade: 2 }]).atualizar).toEqual([{ id: "a", quantidade: 6 }]);
-    expect(planoDasLinhas(cobrando, [{ id: "a", produto_id: "s-lam", quantidade: "6" }])).toEqual({ inserir: [], atualizar: [], apagar: [] });
+    expect(planoDasLinhas(cobrando, [{ id: "a", produto_id: "s-lam", quantidade: 3, largura: 1, altura: 1 }]).atualizar).toEqual([
+      { id: "a", quantidade: 3, largura: 2, altura: 1 },
+    ]);
+    expect(planoDasLinhas(cobrando, [{ id: "a", produto_id: "s-lam", quantidade: "3", largura: "2.000", altura: "1" }])).toEqual({ inserir: [], atualizar: [], apagar: [] });
+  });
+
+  it("as horas mudaram: só a quantidade muda", () => {
+    const c = conta({ respostas: [sim("instalar")], informadas: { ins: 3 } }).filter((x) => x.processo_id === "ins");
+    expect(planoDasLinhas(c, [{ id: "a", produto_id: "s-ins", quantidade: 2 }]).atualizar).toEqual([{ id: "a", quantidade: 3 }]);
   });
 
   it("resposta virou 'Não': a cobrança sai", () => {

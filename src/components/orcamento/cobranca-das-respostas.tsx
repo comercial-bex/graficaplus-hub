@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  camposDaCobranca,
   descricaoDaLinha,
   rotuloDaQuantidade,
   totalDasCobrancas,
+  unidadeNaTela,
   type CobrancaDaResposta,
   type PlanoDasLinhas,
   type ProcessoDaResposta,
@@ -54,9 +56,7 @@ export async function gravarLinhasDasRespostas(a: {
         orcamento_id: a.orcamentoId,
         produto_id: c.servico!.id,
         descricao: descricaoDaLinha(c, a.descricaoDoItem),
-        unidade: c.servico!.unidade,
-        quantidade: c.quantidade,
-        valor_unitario: c.preco,
+        ...camposDaCobranca(c),
         ordem: a.ordem + n,
         gerado_por_item_id: a.itemId,
       })
@@ -64,11 +64,11 @@ export async function gravarLinhasDasRespostas(a: {
     if (error) throw error;
     if (!data?.length) throw new Error(`${c.nome} não entrou no orçamento.`);
   }
-  for (const l of a.plano.atualizar) {
+  for (const { id, ...campos } of a.plano.atualizar) {
     const { data, error } = await db
       .from("orcamento_itens")
-      .update({ quantidade: l.quantidade })
-      .eq("id", l.id)
+      .update(campos)
+      .eq("id", id)
       .select("id");
     if (error) throw error;
     if (!data?.length) throw new Error("A quantidade da cobrança não mudou.");
@@ -148,7 +148,7 @@ function Situacao({ c }: { c: CobrancaDaResposta }) {
     case "cobra":
       return (
         <span className="font-mono text-xs">
-          {num(c.quantidade)} {c.servico?.unidade} × {brl(c.preco)} = {brl(c.total)}
+          {num(c.quantidade)} {unidadeNaTela(c.servico?.unidade)} × {brl(c.preco)} = {brl(c.total)}
         </span>
       );
     case "falta_quantidade":

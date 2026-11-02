@@ -1166,6 +1166,10 @@ function OrcamentoDetailPage() {
             descricao: l.descricao,
             unidade: l.unidade,
             quantidade: l.quantidade,
+            largura: l.largura,
+            altura: l.altura,
+            // O preço por m² não vem nas views; sem ele a linha por área perderia a medida no preço e no custo.
+            preco_m2: l.largura ? (catalogo.produtos.find((p) => p.id === l.produto_id)?.preco_base ?? null) : null,
             valor_unitario: canSeePrices ? l.valor_unitario : 0,
             ordem: itens.length + 1 + n,
             gerado_por_item_id: novo.id,
