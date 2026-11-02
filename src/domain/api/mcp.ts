@@ -124,12 +124,26 @@ const SINONIMOS: Record<string, string[]> = {
 
 const normalizar = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-/** Os recursos que casam com o termo, do mais ao menos provável; sem termo, todos. */
+/** "orçamentos" e "orçamento" são a mesma palavra; palavra curta ("os") fica como está. */
+const raiz = (palavra: string) => (palavra.length > 3 && palavra.endsWith("s") ? palavra.slice(0, -1) : palavra);
+
+/**
+ * Os recursos que casam com o termo, do mais ao menos provável; sem termo, todos.
+ * Casa por PALAVRA inteira, não por pedaço: "os" (ordem de serviço) não pode
+ * casar com o fim de "orçamentos". Sinônimo de mais de uma palavra casa como frase.
+ */
 export function descobrir(termo?: string | null): { recurso: RecursoDaApi; motivo: string }[] {
   const t = normalizar((termo ?? "").trim());
   if (!t) return RECURSOS.map((recurso) => ({ recurso, motivo: recurso.descricao }));
+  const palavras = t.split(/[^a-z0-9]+/).filter(Boolean);
+  const raizes = new Set(palavras.map(raiz));
+  const frase = ` ${palavras.join(" ")} `;
+  const casa = (sinonimo: string) => {
+    const s = normalizar(sinonimo);
+    return s.includes(" ") ? frase.includes(` ${s} `) : raizes.has(raiz(s));
+  };
   const pontos = RECURSOS.map((recurso) => {
-    const batidas = (SINONIMOS[recurso.chave] ?? []).filter((s) => t.includes(normalizar(s)));
+    const batidas = (SINONIMOS[recurso.chave] ?? []).filter(casa);
     return { recurso, batidas };
   })
     .filter((x) => x.batidas.length > 0)

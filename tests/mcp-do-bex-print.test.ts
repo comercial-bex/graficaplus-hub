@@ -46,7 +46,13 @@ describe("as seis ferramentas", () => {
   });
 
   it("descobrir acha o recurso pelo jeito de falar e, sem termo, lista todos", () => {
-    expect(descobrir("quais orçamentos estão vencendo?").map((a) => a.recurso.chave)[0]).toBe("orcamentos");
+    // "os" (ordem de serviço) não casa com o fim de "orçamentos": casa por palavra, não por pedaço.
+    expect(descobrir("quais orçamentos estão vencendo?").map((a) => a.recurso.chave)).toEqual(["orcamentos"]);
+    expect(descobrir("orçamentos vencendo").map((a) => a.recurso.chave)).toEqual(["orcamentos"]);
+    expect(descobrir("quantas OS temos?").map((a) => a.recurso.chave)).toEqual(["os"]);
+    expect(descobrir("parcelas pendentes").map((a) => a.recurso.chave)).toEqual(["contas_receber"]);
+    // Sinônimo de duas palavras casa como frase.
+    expect(descobrir("entrada de dinheiro do mês").map((a) => a.recurso.chave)).toEqual(["contas_receber"]);
     expect(descobrir("contas a pagar de outubro").map((a) => a.recurso.chave)).toContain("contas_pagar");
     expect(descobrir("parcelas pendentes").map((a) => a.recurso.chave)[0]).toBe("contas_receber");
     expect(descobrir("telefone do cliente").map((a) => a.recurso.chave)[0]).toBe("clientes");
