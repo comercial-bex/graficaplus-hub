@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CAMINHO_DO_MCP, comandoClaudeCode, FERRAMENTAS } from "@/domain/api/mcp";
 import {
   CABECALHO_DO_TOKEN,
   CAMINHO_BASE,
@@ -286,8 +287,24 @@ function ConfiguracoesApiPage() {
         <CardHeader>
           <CardTitle className="text-base">Conectar MCP</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Próxima onda: um endereço MCP para o Claude e o ChatGPT perguntarem aos seus dados com as mesmas regras desta API. Por enquanto, use a API acima.
+        <CardContent className="space-y-3 text-sm">
+          <p>
+            Endereço MCP <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{base}{CAMINHO_DO_MCP}</code>, com o mesmo token desta página no cabeçalho{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono">Authorization: Bearer</code>. Seis ferramentas, só leitura:{" "}
+            {FERRAMENTAS.map((f) => f.name).join(", ")}.
+          </p>
+          <div className="space-y-1.5">
+            <p className="font-medium">Claude Code</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded bg-muted px-2 py-1.5 font-mono text-xs" data-testid="comando-mcp">{comandoClaudeCode(base)}</code>
+              <Button type="button" size="sm" variant="outline" onClick={() => void copiar(comandoClaudeCode(base), "Comando copiado. Troque SEU_TOKEN pelo token gerado aqui.")}>
+                <Copy className="mr-1 h-3.5 w-3.5" /> Copiar
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Cursor, ChatGPT e outros: servidor MCP remoto do tipo http no endereço acima, com o cabeçalho Authorization: Bearer SEU_TOKEN. Depois peça: "use as ferramentas bexprint para listar meus orçamentos enviados". Quem lê é a pessoa dona do token.
+          </p>
         </CardContent>
       </Card>
     </div>

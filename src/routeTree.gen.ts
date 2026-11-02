@@ -83,6 +83,7 @@ import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedWhatsappFilaHumanaRouteImport } from './routes/_authenticated/whatsapp-fila-humana'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
 import { Route as AuthenticatedWhatsappVisaoGeralRouteImport } from './routes/_authenticated/whatsapp-visao-geral'
+import { Route as ApiMcpRouteImport } from './routes/api.mcp'
 import { Route as AprovarTokenRouteImport } from './routes/aprovar.$token'
 import { Route as CatalogoTokenRouteImport } from './routes/catalogo.$token'
 import { Route as ConviteCodigoRouteImport } from './routes/convite.$codigo'
@@ -525,6 +526,11 @@ const AuthenticatedWhatsappVisaoGeralRoute =
     path: '/whatsapp-visao-geral',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiMcpRoute = ApiMcpRouteImport.update({
+  id: '/api/mcp',
+  path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AprovarTokenRoute = AprovarTokenRouteImport.update({
   id: '/aprovar/$token',
   path: '/aprovar/$token',
@@ -808,6 +814,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -922,6 +929,7 @@ export interface FileRoutesByTo {
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -1039,6 +1047,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
   '/_authenticated/whatsapp-visao-geral': typeof AuthenticatedWhatsappVisaoGeralRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/aprovar/$token': typeof AprovarTokenRoute
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
@@ -1156,6 +1165,7 @@ export interface FileRouteTypes {
     | '/whatsapp-fila-humana'
     | '/whatsapp-monitor'
     | '/whatsapp-visao-geral'
+    | '/api/mcp'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1270,6 +1280,7 @@ export interface FileRouteTypes {
     | '/whatsapp-fila-humana'
     | '/whatsapp-monitor'
     | '/whatsapp-visao-geral'
+    | '/api/mcp'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1386,6 +1397,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp-fila-humana'
     | '/_authenticated/whatsapp-monitor'
     | '/_authenticated/whatsapp-visao-geral'
+    | '/api/mcp'
     | '/aprovar/$token'
     | '/catalogo/$token'
     | '/convite/$codigo'
@@ -1437,6 +1449,7 @@ export interface RootRouteChildren {
   SejaParceiroRoute: typeof SejaParceiroRoute
   SignupRoute: typeof SignupRoute
   Tv2Route: typeof Tv2Route
+  ApiMcpRoute: typeof ApiMcpRoute
   AprovarTokenRoute: typeof AprovarTokenRoute
   CatalogoTokenRoute: typeof CatalogoTokenRoute
   ConviteCodigoRoute: typeof ConviteCodigoRoute
@@ -1982,6 +1995,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappVisaoGeralRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/mcp': {
+      id: '/api/mcp'
+      path: '/api/mcp'
+      fullPath: '/api/mcp'
+      preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/aprovar/$token': {
       id: '/aprovar/$token'
       path: '/aprovar/$token'
@@ -2460,6 +2480,7 @@ const rootRouteChildren: RootRouteChildren = {
   SejaParceiroRoute: SejaParceiroRoute,
   SignupRoute: SignupRoute,
   Tv2Route: Tv2Route,
+  ApiMcpRoute: ApiMcpRoute,
   AprovarTokenRoute: AprovarTokenRoute,
   CatalogoTokenRoute: CatalogoTokenRoute,
   ConviteCodigoRoute: ConviteCodigoRoute,
