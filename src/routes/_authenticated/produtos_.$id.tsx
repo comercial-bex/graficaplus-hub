@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Carregando } from "@/components/bex/Carregando";
+import { BotaoAtivarProduto } from "@/components/produtos/botao-ativar-produto";
 import { CustoDaPeca } from "@/components/produtos/custo-da-peca";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
@@ -235,6 +236,12 @@ function PastaDoProduto() {
         breadcrumb="Preço e custo · Produtos e serviços"
         title={p.nome}
         description="A pasta do produto: como se faz, o que perguntar ao orçar e o roteiro da IA."
+        actions={
+          <>
+            <Badge variant={p.ativo ? "default" : "secondary"}>{p.ativo ? "Ativo" : "Inativo"}</Badge>
+            {podeEditar && <BotaoAtivarProduto produto={p} rotuloCompleto />}
+          </>
+        }
       />
       <Button asChild variant="ghost" size="sm">
         <Link to="/produtos">

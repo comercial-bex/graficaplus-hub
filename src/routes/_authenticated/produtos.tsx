@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { BotaoAtivarProduto } from "@/components/produtos/botao-ativar-produto";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -340,21 +341,6 @@ function ProdutosPage() {
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
-  const toggleAtivo = useMutation({
-    mutationFn: async (p: Produto) => {
-      const { error } = await supabase
-        .from("produtos")
-        .update({ ativo: !p.ativo } as never)
-        .eq("id", p.id);
-      if (error) throw error;
-    },
-    onSuccess: (_d, p) => {
-      toast.success(p.ativo ? "Produto desativado" : "Produto ativado");
-      qc.invalidateQueries({ queryKey: ["produtos"] });
-    },
-    onError: (e: Error) => toast.error(mensagemErro(e)),
-  });
-
   const remover = useMutation({
     mutationFn: async (p: Produto) => {
       const { error } = await supabase.from("produtos").delete().eq("id", p.id);
@@ -574,7 +560,7 @@ function ProdutosPage() {
           </Select>
           <label className="flex items-center gap-2 text-sm">
             <Switch checked={mostrarInativos} onCheckedChange={setMostrarInativos} />
-            Mostrar inativos
+            Mostrar inativos ({produtos.filter((p) => !p.ativo).length})
           </label>
           <div className="ml-auto flex border rounded-md">
             <Button
@@ -701,9 +687,12 @@ function ProdutosPage() {
                         </TableCell>
                       )}
                       <TableCell>
-                        <Badge variant={p.ativo ? "default" : "secondary"}>
-                          {p.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={p.ativo ? "default" : "secondary"}>
+                            {p.ativo ? "Ativo" : "Inativo"}
+                          </Badge>
+                          {isAdmin && <BotaoAtivarProduto produto={p} />}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <RowActions
@@ -711,7 +700,6 @@ function ProdutosPage() {
                           isAdmin={isAdmin}
                           onEdit={abrirEdicao}
                           onDuplicar={duplicar}
-                          onToggle={(x) => toggleAtivo.mutate(x)}
                           onDelete={(x) => setConfirmDelete(x)}
                         />
                       </TableCell>
@@ -753,13 +741,16 @@ function ProdutosPage() {
                       isAdmin={isAdmin}
                       onEdit={abrirEdicao}
                       onDuplicar={duplicar}
-                      onToggle={(x) => toggleAtivo.mutate(x)}
                       onDelete={(x) => setConfirmDelete(x)}
                     />
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {categoriaLabel(p.categoria)}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {categoriaLabel(p.categoria)}
+                    </Badge>
+                    {!p.ativo && <Badge variant="secondary">Inativo</Badge>}
+                    {isAdmin && <BotaoAtivarProduto produto={p} />}
+                  </div>
                   {canSeePrices && (
                     <div className="flex justify-between items-end pt-2 border-t">
                       <div>
@@ -870,14 +861,12 @@ function RowActions({
   isAdmin,
   onEdit,
   onDuplicar,
-  onToggle,
   onDelete,
 }: {
   produto: Produto;
   isAdmin: boolean;
   onEdit: (p: Produto) => void;
   onDuplicar: (p: Produto) => void;
-  onToggle: (p: Produto) => void;
   onDelete: (p: Produto) => void;
 }) {
   return (
@@ -901,9 +890,6 @@ function RowActions({
         <DropdownMenuItem onClick={() => onDuplicar(produto)}>
           <Copy className="h-4 w-4 mr-2" />
           Duplicar
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onToggle(produto)}>
-          {produto.ativo ? "Desativar" : "Ativar"}
         </DropdownMenuItem>
         {isAdmin && (
           <>
