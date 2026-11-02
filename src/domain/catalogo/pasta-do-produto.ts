@@ -16,8 +16,10 @@ export type AbaDaPasta =
   | "checklist"
   | "ia"
   | "info"
+  | "campos"
   | "historico";
 
+/** As dez abas do Holdprint, na ordem dele; Preço só para quem vê preço. */
 export function abasDaPasta(a: { canSeePrices: boolean }): { id: AbaDaPasta; titulo: string }[] {
   const abas: { id: AbaDaPasta; titulo: string }[] = [
     { id: "descricao", titulo: "Descrição" },
@@ -27,6 +29,7 @@ export function abasDaPasta(a: { canSeePrices: boolean }): { id: AbaDaPasta; tit
     { id: "checklist", titulo: "Checklist" },
     { id: "ia", titulo: "Orç.IA" },
     { id: "info", titulo: "Info" },
+    { id: "campos", titulo: "Campos" },
     { id: "historico", titulo: "Histórico" },
   ];
   if (a.canSeePrices) abas.splice(1, 0, { id: "preco", titulo: "Preço" });
@@ -402,11 +405,15 @@ export type PerguntaEmEdicao = {
   acoes: AcaoDaResposta[];
   resposta_padrao?: string;
   nao_perguntar?: boolean;
+  /** Campo da aba Campos: só informa, nunca acrescenta processo. */
+  finalidade?: "cobranca" | "informacao";
 };
 
 /** Pendência vira frase; ação de uma resposta que saiu da lista não fica para trás. */
 export function pendenciaDaPergunta(p: PerguntaEmEdicao): string | null {
-  if (!p.pergunta.trim()) return "Escreva a pergunta.";
+  if (!p.pergunta.trim()) return p.finalidade === "informacao" ? "Escreva o nome do campo." : "Escreva a pergunta.";
+  if (p.finalidade === "informacao" && p.acoes.length > 0)
+    return "Campo de informação não acrescenta processo: o que cobra é pergunta do Checklist.";
   const comLista = p.tipo_resposta === "unica" || p.tipo_resposta === "multipla";
   if (comLista && p.respostas.filter((r) => r.trim()).length < 2)
     return "Dê pelo menos duas respostas.";

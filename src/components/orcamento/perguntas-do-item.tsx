@@ -10,6 +10,7 @@ import {
   acabamentoAjustado,
   pendenciasDasRespostas,
   perguntaDaLinha,
+  perguntasPorFinalidade,
   processosDasRespostas,
   respondida,
   responder,
@@ -36,7 +37,7 @@ export function usePerguntasDoProduto(produtoId: string | null) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("produto_perguntas")
-        .select("id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, ordem, resposta_padrao, nao_perguntar")
+        .select("id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, ordem, resposta_padrao, nao_perguntar, finalidade")
         .eq("produto_id", produtoId)
         .order("ordem")
         .order("created_at");
@@ -102,9 +103,7 @@ export function PerguntasDoItem({
   if (!produtoId || lista.length === 0) return null;
 
   const pendentes = new Set(pendenciasDasRespostas(lista, respostas).map((p) => p.id));
-  const visiveis = lista.filter((p) => !p.nao_perguntar);
-  const definidas = lista.filter((p) => p.nao_perguntar);
-  const respondidas = visiveis.filter((p) => respondida(respostaDe(respostas, p.id))).length;
+  const grupos = perguntasPorFinalidade(lista);
 
   const mudar = (pergunta: PerguntaDoProduto, valor: string | string[]) => {
     const antes = nomesDe(processosDasRespostas(lista, respostas));
@@ -113,12 +112,66 @@ export function PerguntasDoItem({
     onMudar({ respostas: novas, acabamento: acabamentoAjustado(acabamento, antes, depois) });
   };
 
+  // As perguntas do Checklist primeiro (podem cobrar); os campos da aba Campos depois (só informam).
   return (
-    <section className="space-y-3 rounded-lg border bg-muted/20 p-3" aria-label="Perguntas do produto" data-testid="perguntas-do-item">
+    <>
+      {grupos.cobranca.length > 0 && (
+        <GrupoDePerguntas
+          titulo="Perguntas do produto"
+          testid="perguntas-do-item"
+          perguntas={grupos.cobranca}
+          respostas={respostas}
+          pendentes={pendentes}
+          mostrarPendencias={mostrarPendencias}
+          desabilitado={desabilitado}
+          mudar={mudar}
+        />
+      )}
+      {grupos.informacao.length > 0 && (
+        <GrupoDePerguntas
+          titulo="Informações para a produção"
+          testid="campos-do-item"
+          perguntas={grupos.informacao}
+          respostas={respostas}
+          pendentes={pendentes}
+          mostrarPendencias={mostrarPendencias}
+          desabilitado={desabilitado}
+          mudar={mudar}
+        />
+      )}
+    </>
+  );
+}
+
+function GrupoDePerguntas({
+  titulo,
+  testid,
+  perguntas,
+  respostas,
+  pendentes,
+  mostrarPendencias,
+  desabilitado,
+  mudar,
+}: {
+  titulo: string;
+  testid: string;
+  perguntas: PerguntaDoProduto[];
+  respostas: RespostaDoItem[];
+  pendentes: Set<string>;
+  mostrarPendencias: boolean;
+  desabilitado: boolean;
+  mudar: (pergunta: PerguntaDoProduto, valor: string | string[]) => void;
+}) {
+  const visiveis = perguntas.filter((p) => !p.nao_perguntar);
+  const definidas = perguntas.filter((p) => p.nao_perguntar);
+  const respondidas = visiveis.filter((p) => respondida(respostaDe(respostas, p.id))).length;
+
+  return (
+    <section className="space-y-3 rounded-lg border bg-muted/20 p-3" aria-label={titulo} data-testid={testid}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-1.5 text-sm font-semibold">
           <CircleHelp className="h-4 w-4 text-link" aria-hidden="true" />
-          Perguntas do produto
+          {titulo}
         </h3>
         <span className="text-xs text-muted-foreground">
           {respondidas} de {visiveis.length} {visiveis.length === 1 ? "respondida" : "respondidas"}
