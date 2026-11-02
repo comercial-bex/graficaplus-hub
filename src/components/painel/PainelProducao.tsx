@@ -296,7 +296,7 @@ function LinhaOS({
             {os.prioridade === 1 && (
               <Badge
                 variant="outline"
-                className="border-[color:var(--bex-magenta)]/50 text-xs text-[color:var(--bex-magenta)]"
+                className="border-[color:var(--bex-magenta)]/50 text-xs text-[color:var(--status-magenta)]"
               >
                 urgente
               </Badge>
@@ -342,7 +342,7 @@ function LinhaOS({
         <span
           className={cn(
             "shrink-0 font-mono text-xs tabular-nums",
-            atrasada && "text-[color:var(--bex-magenta)]",
+            atrasada && "text-[color:var(--status-magenta)]",
             hoje && "text-[color:var(--bex-amber)]",
             !atrasada && !hoje && "text-muted-foreground",
           )}
@@ -453,7 +453,7 @@ function KpiCompacto({
   tone: "magenta" | "amber" | "cyan" | "muted";
 }) {
   const cor = {
-    magenta: "text-[color:var(--bex-magenta)]",
+    magenta: "text-[color:var(--status-magenta)]",
     amber: "text-[color:var(--bex-amber)]",
     cyan: "text-[color:var(--bex-cyan)]",
     muted: "text-foreground",

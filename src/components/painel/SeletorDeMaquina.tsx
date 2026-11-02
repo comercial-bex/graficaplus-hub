@@ -248,7 +248,7 @@ export function SeletorDeMaquina({
             role="alert"
             className="flex gap-2 rounded-lg border border-[color:var(--bex-magenta)]/50 bg-[color:var(--bex-magenta)]/10 p-3"
           >
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--bex-magenta)]" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--status-magenta)]" />
             <div className="min-w-0 space-y-0.5">
               <p className="text-base font-semibold leading-snug">{erro.titulo}</p>
               {erro.descricao && <p className="text-sm leading-snug">{erro.descricao}</p>}

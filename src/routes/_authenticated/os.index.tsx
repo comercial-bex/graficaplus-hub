@@ -423,7 +423,7 @@ function OSPage() {
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="truncate text-sm font-bold text-foreground">
-                    <span className="mr-2 font-mono text-xs font-normal text-[color:var(--bex-cyan)]">
+                    <span className="mr-2 font-mono text-xs font-normal text-[color:var(--status-cyan)]">
                       #{o.numero}
                     </span>
                     {o.titulo}
@@ -483,7 +483,7 @@ function OSPage() {
                     to="/os/$id"
                     params={{ id: o.id }}
                     onClick={(e) => e.stopPropagation()}
-                    className="font-mono text-xs text-[color:var(--bex-cyan)]"
+                    className="font-mono text-xs text-[color:var(--status-cyan)]"
                   >
                     #{o.numero}
                   </Link>
