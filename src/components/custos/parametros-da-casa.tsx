@@ -185,7 +185,7 @@ export function ParametrosDaCasa() {
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium">{p.descricao ?? p.codigo}</span>
                             {ENTRA_NA_META.has(p.codigo) && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--bex-lime)]/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[color:var(--bex-lime)]">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--bex-lime)]/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[color:var(--status-positive)]">
                                 <Percent className="h-2.5 w-2.5" />
                                 entra na meta
                               </span>

@@ -899,7 +899,7 @@ function Coluna({
           </div>
         )}
         {encalhe && encalhe !== "agora" && (
-          <p className="mt-0.5 font-mono text-xs text-muted-foreground/70 md:text-xs">
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground md:text-xs">
             mais antiga: {encalhe}
           </p>
         )}
