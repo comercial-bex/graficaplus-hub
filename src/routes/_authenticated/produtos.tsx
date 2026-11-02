@@ -87,6 +87,7 @@ import {
   toCSV,
 } from "@/lib/produtos-catalogo";
 import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
+import { GerarFotosQueFaltam } from "@/components/produtos/gerar-fotos-que-faltam";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { abasDoProduto, avisoDaFicha, sinalDoPreco, type AbaDoProduto } from "@/domain/catalogo/abas-do-produto";
@@ -442,6 +443,7 @@ function ProdutosPage() {
           <p className="text-muted-foreground">
             Catálogo da gráfica — base para orçamentos, OS e estoque
           </p>
+          {isAdmin && <GerarFotosQueFaltam produtos={produtos} />}
           {semReceita.length > 0 && (
             <div className="mt-2 flex items-start gap-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2 text-xs text-[color:var(--bex-amber)] max-w-xl">
               <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
@@ -1090,7 +1092,11 @@ function ProdutoFormDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Foto</Label>
-              <FotoDoProduto valor={form.imagem_url} onChange={(url) => setForm({ ...form, imagem_url: url })} />
+              <FotoDoProduto
+                valor={form.imagem_url}
+                onChange={(url) => setForm({ ...form, imagem_url: url })}
+                produto={{ id: form.id || null, nome: form.nome, descricao: form.descricao, familia: form.familia, categoria: form.categoria }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">Descrição<DicaIcone texto={dicaCampo("/produtos", "Descrição")} rotulo="Descrição" /></Label>
