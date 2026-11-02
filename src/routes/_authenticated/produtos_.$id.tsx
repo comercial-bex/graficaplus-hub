@@ -1274,7 +1274,7 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
           )}
           {(lista.data ?? []).map((q) => (
             <div key={q.id} className="flex items-start justify-between gap-2 rounded border p-3">
-              <div className="min-w-0 space-y-1">
+              <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2 font-medium">
                   {q.pergunta}
                   {q.obrigatoria && <Badge variant="outline">Obrigatória</Badge>}
@@ -1307,9 +1307,6 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
               )}
             </div>
           ))}
-          <p className="pt-1 text-xs text-muted-foreground">
-            As perguntas ainda não aparecem no orçamento.
-          </p>
         </CardContent>
       </Card>
     </div>
