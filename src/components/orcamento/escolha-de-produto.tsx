@@ -18,12 +18,15 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
+import { casaComABusca } from "@/domain/catalogo/busca-do-produto";
 import { brl } from "@/domain/orcamentos/acordo";
 import type { Produto } from "@/lib/produtos-catalogo";
 import { IlustracaoDoTipo } from "@/components/orcamento/ilustracoes-de-tipo";
@@ -288,17 +291,26 @@ export function EscolhaDeProduto({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, tipoAtual?.chave]);
   const termo = busca.trim().toLowerCase();
+  // "Também conhecido como", da pasta do produto: o cliente pede "faixa de rua" e acha a lona.
+  const apelidos = useQuery({
+    queryKey: ["produto-apelidos"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).from("produto_ficha").select("produto_id, apelidos");
+      if (error) throw error;
+      return new Map(((data ?? []) as { produto_id: string; apelidos: string[] | null }[]).map((l) => [l.produto_id, l.apelidos ?? []]));
+    },
+  });
   const resultadosDaBusca = useMemo(() => {
     if (!termo) return [];
     return produtos
       .filter((p) =>
-        `${p.nome} ${p.sku ?? ""} ${p.descricao ?? ""} ${tipoDoProduto(p).rotulo}`
-          .toLowerCase()
-          .includes(termo),
+        casaComABusca(`${p.nome} ${p.sku ?? ""} ${p.descricao ?? ""} ${tipoDoProduto(p).rotulo}`, apelidos.data?.get(p.id) ?? [], termo),
       )
       .filter((p) => !ocultar(p))
       .slice(0, 30);
-  }, [produtos, termo]);
+  }, [produtos, termo, apelidos.data]);
 
   const grupoAtual = tipoAtual ? (grupos.find((g) => g.tipo.chave === tipoAtual.chave) ?? null) : null;
   const produtosDoGrupo = grupoAtual ? grupoAtual.produtos.filter((p) => !ocultar(p)) : [];

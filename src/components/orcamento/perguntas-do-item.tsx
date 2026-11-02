@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-de-escolha";
 import {
+  comRespostasPadrao,
   acabamentoAjustado,
   pendenciasDasRespostas,
   perguntaDaLinha,
@@ -34,7 +35,7 @@ export function usePerguntasDoProduto(produtoId: string | null) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("produto_perguntas")
-        .select("id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, ordem")
+        .select("id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, ordem, resposta_padrao, nao_perguntar")
         .eq("produto_id", produtoId)
         .order("ordem")
         .order("created_at");
@@ -82,22 +83,27 @@ export function PerguntasDoItem({
   const nomes = useNomesDosProcessos(idsDeProcesso);
   const nomesDe = (ids: string[]) => ids.map((id) => nomes.data?.[id]).filter((n): n is string => !!n);
 
-  // Quando os nomes dos processos chegam depois das respostas (item em edição),
-  // o acabamento ganha o que falta sem apagar o que a pessoa escreveu.
-  const jaSincronizou = useRef(false);
+  // Uma vez por produto: as respostas já definidas entram, e quando os nomes dos processos chegam
+  // depois das respostas (item em edição) o acabamento ganha o que falta, sem apagar o que a pessoa
+  // escreveu. Uma vez só para quem desmarca um padrão não ver ele voltar.
+  const jaSincronizou = useRef<string | null>(null);
   useEffect(() => {
-    if (jaSincronizou.current || !nomes.data || lista.length === 0) return;
-    jaSincronizou.current = true;
-    const devidos = nomesDe(processosDasRespostas(lista, respostas));
+    if (!produtoId || jaSincronizou.current === produtoId || lista.length === 0) return;
+    if (idsDeProcesso.length > 0 && !nomes.data) return;
+    jaSincronizou.current = produtoId;
+    const novas = comRespostasPadrao(lista, respostas);
+    const devidos = nomesDe(processosDasRespostas(lista, novas));
     const ajustado = acabamentoAjustado(acabamento, [], devidos);
-    if (ajustado !== acabamento) onMudar({ respostas, acabamento: ajustado });
+    if (novas !== respostas || ajustado !== acabamento) onMudar({ respostas: novas, acabamento: ajustado });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nomes.data, lista.length]);
+  }, [produtoId, nomes.data, lista.length]);
 
   if (!produtoId || lista.length === 0) return null;
 
   const pendentes = new Set(pendenciasDasRespostas(lista, respostas).map((p) => p.id));
-  const respondidas = lista.filter((p) => respondida(respostaDe(respostas, p.id))).length;
+  const visiveis = lista.filter((p) => !p.nao_perguntar);
+  const definidas = lista.filter((p) => p.nao_perguntar);
+  const respondidas = visiveis.filter((p) => respondida(respostaDe(respostas, p.id))).length;
 
   const mudar = (pergunta: PerguntaDoProduto, valor: string | string[]) => {
     const antes = nomesDe(processosDasRespostas(lista, respostas));
@@ -114,11 +120,18 @@ export function PerguntasDoItem({
           Perguntas do produto
         </h3>
         <span className="text-xs text-muted-foreground">
-          {respondidas} de {lista.length} {lista.length === 1 ? "respondida" : "respondidas"}
+          {respondidas} de {visiveis.length} {visiveis.length === 1 ? "respondida" : "respondidas"}
         </span>
       </div>
 
-      {lista.map((p) => {
+      {definidas.length > 0 && (
+        <p className="text-xs text-muted-foreground" data-testid="respostas-definidas">
+          Já definido pela casa:{" "}
+          {definidas.map((p) => `${p.pergunta} ${p.resposta_padrao}`).join(" · ")}
+        </p>
+      )}
+
+      {visiveis.map((p) => {
         const atual = respostaDe(respostas, p.id);
         const pendente = mostrarPendencias && pendentes.has(p.id);
         const idDoCampo = `pergunta-${p.id}`;

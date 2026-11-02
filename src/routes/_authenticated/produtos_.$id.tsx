@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Carregando } from "@/components/bex/Carregando";
+import { CustoDaPeca } from "@/components/produtos/custo-da-peca";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { useAuth } from "@/lib/auth-context";
@@ -73,6 +74,7 @@ type Ficha = {
   ia_personalidade: string;
   ia_como_medir: string;
   ia_perguntas: string;
+  apelidos: string;
 };
 
 const FICHA_VAZIA: Ficha = {
@@ -90,6 +92,7 @@ const FICHA_VAZIA: Ficha = {
   ia_personalidade: "",
   ia_como_medir: "",
   ia_perguntas: "",
+  apelidos: "",
 };
 
 function PastaDoProduto() {
@@ -159,6 +162,7 @@ function PastaDoProduto() {
       ia_personalidade: txt(f.ia_personalidade),
       ia_como_medir: txt(f.ia_como_medir),
       ia_perguntas: txt(f.ia_perguntas),
+      apelidos: ((f.apelidos ?? []) as string[]).join(", "),
     });
   }, [ficha.data]);
 
@@ -182,6 +186,7 @@ function PastaDoProduto() {
           ia_personalidade: form.ia_personalidade.trim() || null,
           ia_como_medir: form.ia_como_medir.trim() || null,
           ia_perguntas: form.ia_perguntas.trim() || null,
+          apelidos: respostasDoTexto(form.apelidos),
         })
         .select("produto_id");
       if (error) throw error;
@@ -297,7 +302,7 @@ function PastaDoProduto() {
                   <Dado rotulo="Margem mínima" valor={`${Number(p.margem_minima)}%`} />
                 )}
                 {p.custo_medio != null && (
-                  <Dado rotulo="Custo" valor={brl(Number(p.custo_medio))} />
+                  <Dado rotulo="Custo do cadastro" valor={brl(Number(p.custo_medio))} />
                 )}
                 <p className="text-xs text-muted-foreground md:col-span-3">
                   Preço e margem se editam na{" "}
@@ -312,6 +317,21 @@ function PastaDoProduto() {
                 </p>
               </CardContent>
             </Card>
+            {nivelDeVisao === "financeiro" && (
+              <CustoDaPeca
+                produtoId={id}
+                unidade={p.unidade}
+                tipo={p.tipo}
+                categoria={p.categoria}
+                familia={extras.data?.familia ?? null}
+                preco={p.preco_base == null ? null : Number(p.preco_base)}
+                margemMinima={p.margem_minima == null ? null : Number(p.margem_minima)}
+                minutos={p.tempo_producao_min == null ? null : Number(p.tempo_producao_min)}
+                temMaquina={!!p.maquina_padrao_id}
+                largura={Number(form.largura_padrao_m) || 1}
+                altura={Number(form.altura_padrao_m) || 1}
+              />
+            )}
           </TabsContent>
         )}
 
@@ -372,6 +392,12 @@ function PastaDoProduto() {
         <TabsContent value="ia" className="space-y-4 pt-2">
           <Card>
             <CardContent className="space-y-4 pt-6">
+              <Campo
+                rotulo="Também conhecido como (separe com vírgula)"
+                valor={form.apelidos}
+                desativado={!podeEditar}
+                aoMudar={(v) => set({ apelidos: v })}
+              />
               <TextoLongo
                 rotulo="Personalidade e regras"
                 valor={form.ia_personalidade}
@@ -928,13 +954,15 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
   const [tipo, setTipo] = useState<TipoDeResposta>("unica");
   const [respostasTexto, setRespostasTexto] = useState("Sim, Não");
   const [acoes, setAcoes] = useState<AcaoDaResposta[]>([]);
+  const [respostaPadrao, setRespostaPadrao] = useState("");
+  const [naoPerguntar, setNaoPerguntar] = useState(false);
   const chave = ["pasta-perguntas", produtoId];
   const lista = useQuery({
     queryKey: chave,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("produto_perguntas")
-        .select("id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes")
+        .select("id, pergunta, descricao, obrigatoria, tipo_resposta, respostas, acoes, resposta_padrao, nao_perguntar")
         .eq("produto_id", produtoId)
         .order("ordem");
       if (error) throw error;
@@ -943,7 +971,14 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
   });
   const comLista = tipo === "unica" || tipo === "multipla";
   const respostas = comLista ? respostasDoTexto(respostasTexto) : [];
-  const pendencia = pendenciaDaPergunta({ pergunta, tipo_resposta: tipo, respostas, acoes });
+  const pendencia = pendenciaDaPergunta({
+    pergunta,
+    tipo_resposta: tipo,
+    respostas,
+    acoes,
+    resposta_padrao: respostaPadrao,
+    nao_perguntar: naoPerguntar,
+  });
   const nomeDoProcesso = useMemo(
     () => new Map((catalogo.data ?? []).map((c) => [c.id, c.nome])),
     [catalogo.data],
@@ -966,6 +1001,8 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
           respostas,
           acoes,
           ordem: (lista.data ?? []).length,
+          resposta_padrao: respostaPadrao.trim() || null,
+          nao_perguntar: naoPerguntar,
         })
         .select("id");
       if (error) throw error;
@@ -976,6 +1013,8 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
       setDescricao("");
       setAcoes([]);
       setRespostasTexto("Sim, Não");
+      setRespostaPadrao("");
+      setNaoPerguntar(false);
       atualizar();
     },
     onError: (e) => toast.error(mensagemErro(e)),
@@ -1037,6 +1076,18 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
             <label className="flex items-center gap-2 text-sm">
               <Switch checked={obrigatoria} onCheckedChange={setObrigatoria} /> Obrigatória
             </label>
+            <div className="grid items-end gap-3 md:grid-cols-2">
+              <Campo
+                rotulo="Resposta já marcada (opcional)"
+                valor={respostaPadrao}
+                desativado={false}
+                aoMudar={setRespostaPadrao}
+              />
+              <label className="flex items-center gap-2 pb-2 text-sm">
+                <Switch checked={naoPerguntar} onCheckedChange={setNaoPerguntar} /> Não perguntar: a casa
+                já decidiu
+              </label>
+            </div>
             {comLista && (
               <div className="space-y-2 rounded border p-3">
                 <div className="flex items-center justify-between gap-2">
@@ -1125,11 +1176,13 @@ function AbaChecklist({ produtoId, podeEditar }: { produtoId: string; podeEditar
                 <div className="flex flex-wrap items-center gap-2 font-medium">
                   {q.pergunta}
                   {q.obrigatoria && <Badge variant="outline">Obrigatória</Badge>}
+                  {q.nao_perguntar && <Badge variant="outline">Não pergunta</Badge>}
                 </div>
                 {q.descricao && <div className="text-xs text-muted-foreground">{q.descricao}</div>}
                 <div className="text-xs text-muted-foreground">
                   {ROTULO_DO_TIPO[q.tipo_resposta as TipoDeResposta]}
                   {(q.respostas ?? []).length > 0 && `: ${(q.respostas as string[]).join(", ")}`}
+                  {q.resposta_padrao && `. Já vem marcada: ${q.resposta_padrao}`}
                 </div>
                 {(q.acoes as AcaoDaResposta[]).map((a, i) => (
                   <div key={i} className="text-xs text-muted-foreground">

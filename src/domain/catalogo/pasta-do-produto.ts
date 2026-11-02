@@ -255,6 +255,44 @@ export function faltaNaArea(linhas: { pronto: boolean }[]): {
   };
 }
 
+export type EtapaParaCusto = ProcessoParaTempo & { nome: string; etapa: string | null };
+
+export type CustoDasEtapas = {
+  linhas: { nome: string; minutos: number; custo: number }[];
+  /** Etapa sem número próprio: somar o tempo inteiro do produto contaria a peça duas vezes. */
+  semNumero: string[];
+  total: number;
+};
+
+/**
+ * O que os acabamentos da sequência custam em gente numa peça. A impressão fica de fora porque o
+ * custo cheio já a conta (máquina e mão de obra pela velocidade); o acabamento, não.
+ */
+export function custoDasEtapasDeAcabamento(
+  etapas: EtapaParaCusto[],
+  peca: { largura: number; altura: number; copias?: number },
+  horaDaPessoa: number,
+  opcoes: { familia?: string | null } = {},
+): CustoDasEtapas {
+  const linhas: CustoDasEtapas["linhas"] = [];
+  const semNumero: string[] = [];
+  for (const e of etapas) {
+    if (e.etapa !== "acabamento") continue;
+    const t = tempoDoProcesso(e, peca, { familia: opcoes.familia });
+    if (t.tipo !== "minutos") {
+      semNumero.push(e.nome);
+      continue;
+    }
+    linhas.push({
+      nome: e.nome,
+      minutos: t.minutos,
+      custo: Math.round(((t.minutos / 60) * horaDaPessoa + Number.EPSILON) * 100) / 100,
+    });
+  }
+  const total = Math.round(linhas.reduce((s, l) => s + l.custo, 0) * 100) / 100;
+  return { linhas, semNumero, total };
+}
+
 export type TipoDeResposta = "unica" | "multipla" | "numero" | "texto";
 
 export const ROTULO_DO_TIPO: Record<TipoDeResposta, string> = {
@@ -272,6 +310,8 @@ export type PerguntaEmEdicao = {
   tipo_resposta: TipoDeResposta;
   respostas: string[];
   acoes: AcaoDaResposta[];
+  resposta_padrao?: string;
+  nao_perguntar?: boolean;
 };
 
 /** Pendência vira frase; ação de uma resposta que saiu da lista não fica para trás. */
@@ -283,6 +323,10 @@ export function pendenciaDaPergunta(p: PerguntaEmEdicao): string | null {
   const orfa = p.acoes.find((a) => !p.respostas.includes(a.resposta));
   if (orfa) return `A ação usa a resposta "${orfa.resposta}", que não está na lista.`;
   if (p.acoes.some((a) => !a.processo_id)) return "Escolha o processo de cada ação.";
+  const padrao = (p.resposta_padrao ?? "").trim();
+  if (p.nao_perguntar && !padrao) return "Sem perguntar, diga qual é a resposta.";
+  if (padrao && comLista && !p.respostas.includes(padrao))
+    return `A resposta já marcada, "${padrao}", não está na lista.`;
   return null;
 }
 

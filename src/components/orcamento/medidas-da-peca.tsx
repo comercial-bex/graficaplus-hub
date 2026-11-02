@@ -270,7 +270,7 @@ export function MedidasDaPeca({
                   key={`${t.nome}-${t.largura}x${t.altura}`}
                   ativo={ativo}
                   titulo={t.nome}
-                  detalhe={descricaoDoTamanho(t.largura, t.altura)}
+                  detalhe={[descricaoDoTamanho(t.largura, t.altura), t.quando_usar].filter(Boolean).join(" · ")}
                   icone={<PreviaDaPeca largura={t.largura} altura={t.altura} />}
                   desabilitado={desabilitado}
                   onEscolher={() => onAplicarTamanho(t)}
