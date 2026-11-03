@@ -33,7 +33,7 @@ export function StatusChip({
         // min-w-0 + max-w-full: ao lado de um vizinho apertado o selo encolhe (o rótulo
         // ganha reticências) em vez de passar por cima do que está ao lado.
         "inline-flex min-w-0 max-w-full items-center rounded border px-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap",
-        compacto ? "py-0.5" : "py-1.5 md:py-1",
+        compacto ? "px-1.5 py-0.5 tracking-normal" : "py-1.5 md:py-1",
         toneMap[tone] ?? toneMap.cyan,
         className,
       )}

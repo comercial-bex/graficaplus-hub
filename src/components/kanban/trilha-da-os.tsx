@@ -50,7 +50,7 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
   }
 
   return (
-    <div>
+    <div className="@container">
     <ol className="flex items-start" aria-label="Etapas da OS">
       {ETAPAS_QUADRO.map((e, i) => {
         const feita = i < atual;
@@ -77,10 +77,12 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
             >
               {feita ? <Check className="h-3 w-3" aria-hidden /> : i + 1}
             </span>
-            {/* No celular seis nomes não cabem lado a lado (os vizinhos se encostavam:
-                "ProduçãoAcabamento"): o nome da etapa atual vai numa linha só, abaixo dos
-                pontos, e os demais ficam só para o leitor de tela. */}
-            <span className={cn("px-0.5 text-xs leading-tight max-md:sr-only", aqui ? "font-semibold text-foreground" : "text-muted-foreground")}>
+            {/* Seis nomes só cabem lado a lado em um bloco de pelo menos 512 px (cerca de 85 px
+                por etapa). Abaixo disso os vizinhos se encostavam ("ProduçãoAcabamento"): o nome
+                da etapa atual vai numa linha só, abaixo dos pontos, e os demais ficam só para o
+                leitor de tela. A medida é a do PRÓPRIO bloco (container query), não a da tela: a
+                coluna da ficha tem ~436 px mesmo num monitor de 1440 px. */}
+            <span className={cn("px-0.5 text-xs leading-tight @max-lg:sr-only", aqui ? "font-semibold text-foreground" : "text-muted-foreground")}>
               {ROTULO_ETAPA[e]}
             </span>
           </li>
@@ -88,7 +90,7 @@ export function TrilhaDaOs({ status, compacta = false }: { status: string | null
       })}
     </ol>
     {!foraDoFluxo && (
-      <p className="mt-1.5 text-center text-xs font-semibold text-foreground md:hidden" aria-hidden>
+      <p className="mt-1.5 text-center text-xs font-semibold text-foreground @lg:hidden" aria-hidden>
         {atual + 1} de {ETAPAS_QUADRO.length} · {nomeAtual}
       </p>
     )}
