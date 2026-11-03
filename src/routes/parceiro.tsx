@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { carregarPainel, CHAVE_PAINEL, ehAcessoNegado } from "@/lib/parceiro-api";
 import { Casca } from "@/components/parceiro/casca";
+import { CompletarCadastro } from "@/components/parceiro/completar-cadastro";
+import { cadastroPendente } from "@/domain/parceiros/cadastro-rapido";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mensagemErro } from "@/lib/erros";
@@ -78,6 +80,12 @@ function LayoutDoParceiro() {
         tentarDeNovo={ehAcessoNegado(painel.error) ? undefined : () => painel.refetch()}
       />
     );
+  }
+
+  // Veio do convite curto e ainda não criou a senha nem completou o cadastro:
+  // essa tela vem antes de qualquer outra, uma vez só (03/11/2026).
+  if (cadastroPendente(user.user_metadata)) {
+    return <CompletarCadastro nome={painel.data.parceiro.nome} email={user.email ?? ""} onSair={signOut} />;
   }
 
   return (
