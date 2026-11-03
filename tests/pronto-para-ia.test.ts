@@ -21,23 +21,22 @@ const completa: EntradaDaNota = {
   temMaterialPrincipal: true,
   processos: 2,
   perguntas: 3,
-  formulas: 1,
   roteiroEscrito: true,
   roteiroRevisado: true,
 };
 
 describe("a nota pronto para a IA", () => {
-  it("produto por área completo dá 10; as dez checagens cabem", () => {
+  it("produto por área completo dá 10; as nove checagens cabem", () => {
     const n = notaDaPasta(completa);
-    expect(n).toMatchObject({ nota: 10, prontas: 10, cabem: 10, faltas: [] });
+    expect(n).toMatchObject({ nota: 10, prontas: 9, cabem: 9, faltas: [] });
     expect(fraseDaNota(n)).toBe("Pronto para a IA: 10 de 10. Nada falta.");
   });
 
   it("o que falta é dito pelo nome, e a nota é a proporção em décimos", () => {
-    const n = notaDaPasta({ ...completa, temFoto: false, formulas: 0, roteiroRevisado: false });
-    expect(n.nota).toBe(7);
-    expect(n.faltas).toEqual(["foto", "fórmula de material", "revisão do roteiro da IA"]);
-    expect(fraseDaNota(n)).toBe("Pronto para a IA: 7 de 10. Falta: foto, fórmula de material, revisão do roteiro da IA.");
+    const n = notaDaPasta({ ...completa, temFoto: false, roteiroRevisado: false });
+    expect(n.nota).toBe(8);
+    expect(n.faltas).toEqual(["foto", "revisão do roteiro da IA"]);
+    expect(fraseDaNota(n)).toBe("Pronto para a IA: 8 de 10. Falta: foto, revisão do roteiro da IA.");
   });
 
   it("roteiro em branco pede o roteiro, não a revisão", () => {
@@ -45,13 +44,27 @@ describe("a nota pronto para a IA", () => {
     expect(n.faltas).toEqual(["roteiro da IA"]);
   });
 
-  it("serviço: foto, material e fórmula não cabem e saem da conta; medida só cabe em produto por área", () => {
-    const servico = notaDaPasta({ ...completa, tipo: "servico", unidade: "hora", temFoto: false, temMaterialPrincipal: false, formulas: 0, temMedidaPadrao: false });
-    expect(servico.cabem).toBe(6);
+  it("serviço: foto, material, medida, fórmula e perguntas não cabem e saem da conta; medida só cabe em produto por área", () => {
+    const servico = notaDaPasta({
+      ...completa,
+      tipo: "servico",
+      unidade: "hora",
+      temFoto: false,
+      temMaterialPrincipal: false,
+      temMedidaPadrao: false,
+      perguntas: 0,
+    });
+    // Sobram descrição, família, unidade, processos e roteiro.
+    expect(servico.cabem).toBe(5);
     expect(servico.nota).toBe(10);
+    // Serviço vendido por m² (laminação) também não pede medida padrão: ela vem do item.
+    const porM2 = checagensDaPasta({ ...completa, tipo: "servico", unidade: "m2" });
+    expect(porM2.find((c) => c.chave === "medida")?.cabe).toBe(false);
+    expect(porM2.find((c) => c.chave === "perguntas")?.cabe).toBe(false);
     const porPeca = checagensDaPasta({ ...completa, unidade: "un" });
     expect(porPeca.find((c) => c.chave === "medida")?.cabe).toBe(false);
-    expect(porPeca.find((c) => c.chave === "formulas")?.cabe).toBe(false);
+    // A fórmula de material não entra na nota: ilhós e bastão já saem do acabamento e da ficha.
+    expect(checagensDaPasta(completa).map((c) => c.chave)).not.toContain("formulas");
   });
 
   it("a cor da barra acompanha a nota", () => {
@@ -72,7 +85,6 @@ describe("a nota pronto para a IA", () => {
           { produto_id: "p1", finalidade: "cobranca" },
           { produto_id: "p1", finalidade: "informacao" },
         ],
-        formulas: [],
       },
     );
     expect(e).toMatchObject({
@@ -83,11 +95,10 @@ describe("a nota pronto para a IA", () => {
       temMaterialPrincipal: true,
       processos: 1,
       perguntas: 1,
-      formulas: 0,
       roteiroEscrito: true,
       roteiroRevisado: false,
     });
-    expect(notaDaPasta(e).faltas).toEqual(["foto", "fórmula de material", "revisão do roteiro da IA"]);
+    expect(notaDaPasta(e).faltas).toEqual(["foto", "revisão do roteiro da IA"]);
   });
 });
 

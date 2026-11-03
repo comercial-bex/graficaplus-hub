@@ -10,7 +10,7 @@ import {
 
 /**
  * As linhas das tabelas satélites da pasta, para a nota "Pronto para a IA" de
- * todos os produtos de uma vez (quatro consultas leves; staff lê todas por RLS).
+ * todos os produtos de uma vez (três consultas leves; staff lê todas por RLS).
  * Falha numa delas vira lista vazia: a nota cai, a tela não.
  */
 export function useLinhasParaNota() {
@@ -19,17 +19,15 @@ export function useLinhasParaNota() {
     queryFn: async (): Promise<LinhasParaNota> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const s = supabase as any;
-      const [fichas, processos, perguntas, formulas] = await Promise.all([
+      const [fichas, processos, perguntas] = await Promise.all([
         s.from("produto_ficha").select("produto_id, largura_padrao_m, altura_padrao_m, ia_como_medir, ia_revisado_em"),
         s.from("produto_processos").select("produto_id"),
         s.from("produto_perguntas").select("produto_id, finalidade"),
-        s.from("produto_formulas").select("produto_id"),
       ]);
       return {
         fichas: fichas.data ?? [],
         processos: processos.data ?? [],
         perguntas: perguntas.data ?? [],
-        formulas: formulas.data ?? [],
       };
     },
   });
