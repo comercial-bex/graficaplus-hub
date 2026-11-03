@@ -105,7 +105,7 @@ function MetaCard({ campanha }: { campanha: Campanha }) {
       {campanha.descricao && <p className="mt-2 text-sm text-muted-foreground">{campanha.descricao}</p>}
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-foreground/10">
         <div
-          className="h-full rounded-full transition-[width] duration-700"
+          className="h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none"
           style={{
             width: `${p.pct}%`,
             background: p.conquistada ? "var(--bex-amber)" : "var(--bex-magenta)",

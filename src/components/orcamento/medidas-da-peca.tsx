@@ -155,8 +155,11 @@ export function MedidasDaPeca({
   onMudar,
   onAplicarTamanho,
   desabilitado = false,
+  idPrefixo = "item",
 }: {
   largura: string;
+  /** Prefixo dos ids dos campos: o editor do parceiro desenha vários itens na mesma página. */
+  idPrefixo?: string;
   altura: string;
   quantidade: number;
   /** Área mínima cobrada por peça, do cadastro do produto. */
@@ -194,7 +197,7 @@ export function MedidasDaPeca({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <CampoDeMedida
-              id="item-largura"
+              id={`${idPrefixo}-largura`}
               rotulo="Largura (X)"
               metros={largura}
               unidade={unidade}
@@ -202,7 +205,7 @@ export function MedidasDaPeca({
               onMudar={(m) => onMudar("largura", m)}
             />
             <CampoDeMedida
-              id="item-altura"
+              id={`${idPrefixo}-altura`}
               rotulo="Altura (Y)"
               metros={altura}
               unidade={unidade}

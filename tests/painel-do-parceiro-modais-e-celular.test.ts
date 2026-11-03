@@ -71,6 +71,33 @@ describe("editor do orçamento em 390 px (medido ao vivo em 02/11/2026: coluna d
   });
 });
 
+describe("o item do parceiro herda a estrutura do item da equipe (02/11/2026)", () => {
+  const EDITOR = ler("src/components/parceiro/editor-de-orcamento.tsx");
+  it("usa as mesmas peças: medidas, quantidade com − e +, acabamento", () => {
+    for (const peca of ["<MedidasDaPeca", "<QuantidadeDoItem", "<AcabamentoDoItem"]) expect(EDITOR).toContain(peca);
+    // cada item tem o próprio id nos campos compartilhados (vários cartões na mesma página)
+    expect(EDITOR).toContain("idPrefixo={`item-${item.id}`}");
+    expect(EDITOR).toContain("id={`item-${item.id}-qtd`}");
+    expect(EDITOR).toContain("id={`item-${item.id}-acabamento`}");
+  });
+  it("tem as mesmas ações da tabela da equipe, com os mesmos ícones e nomes", () => {
+    for (const acao of ["Subir o item", "Descer o item", "Duplicar o item", "Tirar o item"]) expect(EDITOR).toContain(acao);
+    expect(EDITOR).toContain('<Trash2 className="h-4 w-4 text-destructive" />');
+    expect(EDITOR).toContain("<AlertDialog open={aRemover !== null}");
+    expect(EDITOR).not.toContain("Remover item ${indice + 1}");
+  });
+  it("preço na grade da equipe e o bloco de ganho só do parceiro", () => {
+    expect(EDITOR).toContain('rotulo={porArea ? "Preço/m²" : "Valor un."}');
+    expect(EDITOR).toContain('rotulo="Total do item"');
+    for (const r of ["Cliente paga", "Você paga", "Seu ganho"]) expect(EDITOR).toContain(r);
+  });
+  it("as peças compartilhadas aceitam id por item sem mudar o padrão da equipe", () => {
+    expect(ler("src/components/orcamento/quantidade-do-item.tsx")).toContain('id = "item-qtd"');
+    expect(ler("src/components/orcamento/acabamento-do-item.tsx")).toContain('id = "item-acabamento"');
+    expect(ler("src/components/orcamento/medidas-da-peca.tsx")).toContain('idPrefixo = "item"');
+  });
+});
+
 describe("andamento do pedido no celular", () => {
   it("os cinco nomes só aparecem a partir de sm; no celular o passo atual é dito por extenso", () => {
     expect(PEDIDOS).toContain('"hidden truncate text-xs sm:block"');

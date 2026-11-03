@@ -16,7 +16,8 @@ export function NivelCard({ painel }: { painel: PainelDoParceiro }) {
   const [regua, setRegua] = useState(false);
   const { nivel, niveis } = painel;
   const progresso = progressoDoNivel(nivel, niveis);
-  const cor = nivel.cor ?? "#35c9ec";
+  // sem cor cadastrada no nível, o ciano da marca (token, não valor solto)
+  const cor = nivel.cor ?? "var(--bex-cyan)";
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
@@ -53,7 +54,7 @@ export function NivelCard({ painel }: { painel: PainelDoParceiro }) {
       <div className="relative mt-5">
         <div className="h-2.5 w-full overflow-hidden rounded-full bg-foreground/10">
           <div
-            className="h-full rounded-full transition-[width] duration-700"
+            className="h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none"
             style={{ width: `${progresso.pct}%`, background: cor }}
           />
         </div>

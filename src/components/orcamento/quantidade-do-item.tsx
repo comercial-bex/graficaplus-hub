@@ -16,8 +16,11 @@ export function QuantidadeDoItem({
   campos,
   onMudar,
   desabilitado = false,
+  id = "item-qtd",
 }: {
   valor: string;
+  /** Id do campo: o editor do parceiro tem vários itens na mesma página e precisa de um por item. */
+  id?: string;
   campos: CamposDoItem;
   onMudar: (valor: string) => void;
   desabilitado?: boolean;
@@ -31,7 +34,7 @@ export function QuantidadeDoItem({
 
   return (
     <div>
-      <Label htmlFor="item-qtd" className="flex items-center gap-1">
+      <Label htmlFor={id} className="flex items-center gap-1">
         {campos.rotuloQuantidade}
         <DicaIcone texto={dicaCampo("/orcamentos", "quantidade")} rotulo="Quantidade" className="h-5 w-5" />
       </Label>
@@ -46,7 +49,7 @@ export function QuantidadeDoItem({
           <Minus className="h-4 w-4" aria-hidden="true" />
         </button>
         <Input
-          id="item-qtd"
+          id={id}
           type="number"
           min="0"
           step={passo}

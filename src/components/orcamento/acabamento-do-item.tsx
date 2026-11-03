@@ -17,15 +17,18 @@ export function AcabamentoDoItem({
   opcoes,
   onMudar,
   desabilitado = false,
+  id = "item-acabamento",
 }: {
   valor: string;
+  /** Id do campo: o editor do parceiro tem vários itens na mesma página e precisa de um por item. */
+  id?: string;
   opcoes: string[];
   onMudar: (valor: string) => void;
   desabilitado?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor="item-acabamento" className="flex items-center gap-1">
+      <Label htmlFor={id} className="flex items-center gap-1">
         Acabamento
         <DicaIcone
           texto={dicaCampo("/orcamentos", "acabamento")}
@@ -48,7 +51,7 @@ export function AcabamentoDoItem({
         </GradeDeCartoes>
       )}
       <Input
-        id="item-acabamento"
+        id={id}
         placeholder="Refile, ilhós…"
         value={valor}
         disabled={desabilitado}
