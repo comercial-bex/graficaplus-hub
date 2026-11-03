@@ -293,7 +293,7 @@ function PlanilhaPage() {
   if (!canSeeFinancials) {
     return (
       <div>
-        <SectionHeader breadcrumb="Custos" title="Planilha de custos" />
+        <SectionHeader breadcrumb="Custeio · Planilha de custos" title="Planilha de custos" />
         <Card>
           <CardContent className="p-6 text-sm text-muted-foreground">
             Esta tela mostra custo de compra e mão de obra. Seu perfil não tem acesso a valores.
@@ -306,7 +306,7 @@ function PlanilhaPage() {
   return (
     <div>
       <SectionHeader
-        breadcrumb="Custos"
+        breadcrumb="Custeio · Planilha de custos"
         title="Planilha de custos"
         description="Tarifa de energia, mão de obra e custo de material num lugar só — o que alimenta orçamento e OS."
       />

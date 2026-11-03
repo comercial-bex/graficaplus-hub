@@ -41,7 +41,7 @@ export function ReembolsosDaOS({ osId }: { osId: string }) {
         <p className="text-xs text-muted-foreground">
           Decidir e pagar fica em{" "}
           <Link to="/reembolsos" className="underline underline-offset-2">
-            Financeiro › Reembolsos
+            Financeiro › Caixa e contas a pagar, aba Reembolsos
           </Link>
           .
         </p>

@@ -107,7 +107,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   catalogo_cotacao_sem_atendimento: {
     acao: 'Ver pedidos do catálogo',
     passos: [
-      'Abra Catálogos e entre em Pedidos.',
+      'Abra Vendas › Orçamentos, aba Catálogo de brindes, e entre em Pedidos.',
       'Veja os itens que o cliente escolheu e fale com ele no WhatsApp.',
       'Marque o pedido como atendido para sair desta lista.',
     ],

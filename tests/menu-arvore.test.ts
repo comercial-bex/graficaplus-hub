@@ -144,11 +144,11 @@ describe("a árvore cobre o mapa de rotas, e o mapa cobre a árvore", () => {
     ]);
   });
 
-  it("Catálogo de brindes é aba de Orçamentos, logo depois de Aprovações do cliente (menu enxuto de 02/11)", () => {
-    const orcamentos = AREAS[0].subgrupos
-      .flatMap((s) => s.itens)
-      .find((i) => i.url === "/orcamentos");
-    expect(orcamentos?.abas.map((a) => a.url)).toEqual(["/aprovacoes", "/catalogos", "/meta"]);
+  it("Catálogo de brindes é aba de Orçamentos; Aprovações do cliente segue item, logo depois (menu enxuto de 02/11)", () => {
+    const vendas = AREAS[0].subgrupos.flatMap((s) => s.itens);
+    const orcamentos = vendas.find((i) => i.url === "/orcamentos");
+    expect(orcamentos?.abas.map((a) => a.url)).toEqual(["/catalogos", "/meta"]);
+    expect(vendas[vendas.indexOf(orcamentos!) + 1]?.url).toBe("/aprovacoes");
     // Aparece para quem tem catalogo.read — no banco de 06/10, todo mundo menos o operador.
     for (const [papel, ve] of [
       ["admin", true],
@@ -164,9 +164,9 @@ describe("a árvore cobre o mapa de rotas, e o mapa cobre a árvore", () => {
     }
   });
 
-  it("o menu enxuto de 02/11: 25 itens para o admin, e o Custeio junta a tela de produtos com as de custo", () => {
+  it("o menu enxuto de 02/11: 26 itens para o admin, e o Custeio junta a tela de produtos com as de custo", () => {
     const { areas } = daPessoa(["admin"], banco);
-    expect(areas.reduce((n, a) => n + a.nItens, 0)).toBe(25);
+    expect(areas.reduce((n, a) => n + a.nItens, 0)).toBe(26);
     const custeio = areas
       .flatMap((a) => a.subgrupos.flatMap((s) => s.itens))
       .find((i) => i.title === "Custeio");
@@ -479,8 +479,7 @@ describe("contagens ao lado dos itens", () => {
     expect(itemDa("parcelasVencidas").url).toBe("/a-receber");
     expect(getRoutePermissions("/a-receber")).toEqual(["financeiro.read"]);
     expect(telasDoItem(itemDa("avisosPendentes")).map((t) => t.url)).toEqual(["/avisos"]);
-    // 02/11: Aprovações virou aba de Orçamentos; o selo de "pediu ajuste" subiu para o hub.
-    expect(itemDa("pediuAjuste").url).toBe("/orcamentos");
-    expect(telasDoItem(itemDa("pediuAjuste")).map((t) => t.url)).toContain("/aprovacoes");
+    // O selo de "pediu ajuste" leva à fila de aprovações, não à lista de orçamentos (revisão de 02/11).
+    expect(telasDoItem(itemDa("pediuAjuste")).map((t) => t.url)).toEqual(["/aprovacoes"]);
   });
 });

@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Cuboid,
   Factory,
+  FileCheck2,
   FileText,
   Funnel,
   HandCoins,
@@ -140,10 +141,9 @@ export const AREAS: AreaDoMenu[] = [
         ],
       },
       {
-        // 02/11/2026 (OK do dono ao plano do custeio): 39 itens viraram 25. Tela
-        // que é desdobramento de outra virou aba dela: Aprovações, Catálogo de
-        // brindes e Meta do mês moram no Orçamentos; Pós-venda e Metragem, no
-        // Clientes. O selo de "pediu ajuste" sobe para o hub.
+        // 02/11/2026 (OK do dono ao plano do custeio): 39 itens viraram 26. Tela
+        // que é desdobramento de outra virou aba dela: Catálogo de brindes e Meta
+        // do mês moram no Orçamentos; Pós-venda e Metragem, no Clientes.
         label: "Clientes e orçamentos",
         itens: [
           item(
@@ -151,14 +151,19 @@ export const AREAS: AreaDoMenu[] = [
             "/orcamentos",
             FileText,
             [
-              aba("Aprovações do cliente", "/aprovacoes", "Aprovações"),
               // Acrescentado pelo dono depois da proposta (06/10/2026): o catálogo
               // da LUGA é de onde sai o item de brinde que entra no orçamento.
               aba("Catálogo de brindes", "/catalogos", "Catálogos de fornecedores"),
               aba("Meta do mês", "/meta"),
             ],
-            { atalho: 1, badge: "pediuAjuste" },
+            { atalho: 1 },
           ),
+          // Continua item próprio (revisão de 02/11): o número de "pediu ajuste" tem
+          // de levar à fila de aprovações, não à lista de orçamentos.
+          item("Aprovações do cliente", "/aprovacoes", FileCheck2, [], {
+            badge: "pediuAjuste",
+            antes: "Aprovações",
+          }),
           item("Clientes", "/clientes", Users, [
             aba("Pós-venda", "/pos-venda", "Pós-venda / NPS"),
             aba("Metragem por cliente", "/metragem"),

@@ -360,8 +360,7 @@ describe("contagens no menu", () => {
     plantar();
     const l = ler(desenhar(["vendedor", "operador"], banco, "/orcamentos"));
     expect(l.itens.find((i) => i.href === "/avisos")?.selo).toBe("3");
-    // 02/11: Aprovações é aba de Orçamentos; o "pediu ajuste" aparece no hub.
-    expect(l.itens.find((i) => i.href === "/orcamentos")?.selo).toBe("1");
+    expect(l.itens.find((i) => i.href === "/aprovacoes")?.selo).toBe("1");
     expect(l.pendentes).toBe(4);
     expect(l.trilho.map((m) => m.soma)).toEqual([null, null, null]);
   });
