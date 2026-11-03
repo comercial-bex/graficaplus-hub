@@ -20,13 +20,21 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  *
  * O modelo vem de `LOVABLE_IMAGE_MODEL` quando o projeto define; sem isso a
  * função tenta a lista abaixo em ordem e para no primeiro que o gateway aceita.
+ *
+ * Os ids abaixo são os que o próprio gateway lista hoje (03/11/2026, perguntado ao
+ * agente do Lovable, que consultou a lista de modelos com a chave do projeto). Os
+ * dois ids "-preview" que estavam aqui deixaram de existir. Só entram os modelos
+ * que falam pelo endpoint de chat com `modalities`, que é o que esta função usa:
+ * os GPT Image e o Gemini 3.1 Flash Lite Image só atendem em /v1/images/generations.
  */
 
 export const GATEWAY_DE_IMAGEM = "https://ai.gateway.lovable.dev/v1/chat/completions";
 export const MODELOS_DE_IMAGEM = [
+  // Nano Banana 2: o que a documentação do Lovable indica para mockups.
+  "google/gemini-3.1-flash-image",
   "google/gemini-2.5-flash-image",
-  "google/gemini-2.5-flash-image-preview",
-  "google/gemini-3-pro-image-preview",
+  // Nano Banana Pro: o melhor com texto na imagem, e o mais caro; só entra se os outros falharem.
+  "google/gemini-3-pro-image",
 ] as const;
 export const BUCKET_DE_FOTOS = "produtos-fotos";
 export const PASTA_DAS_GERADAS = "ia";
@@ -167,7 +175,11 @@ export async function gerarImagemPeloGateway(
       return { estado: "falhou", detalhe: "resposta da IA ilegível" };
     }
     const url = urlDaImagemNaResposta(corpo);
-    if (!url) return { estado: "falhou", detalhe: "a IA respondeu sem imagem" };
+    if (!url) {
+      // O modelo respondeu só com texto (recusa, ou formato que este não devolve): vale o próximo.
+      ultimoDetalhe = "a IA respondeu sem imagem";
+      continue;
+    }
 
     let imagem = bytesDaDataUrl(url);
     if (!imagem && /^https?:\/\//i.test(url)) {

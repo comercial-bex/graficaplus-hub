@@ -9,11 +9,16 @@ import { gerarFotoDoProduto, mensagemDaFotoGerada } from "@/lib/api/produtos-fot
 /**
  * "Gerar fotos que faltam" (01/11/2026): o dono pediu o catálogo com foto em
  * todo produto, como no Holdprint. Em vez de abrir produto por produto, este
- * botão percorre os ativos sem foto, um de cada vez, até o lote de 8, e para
- * na hora se o saldo de IA acabar ou a pessoa mandar parar. Cada foto já fica
- * guardada no produto pelo servidor; aqui só se atualiza a lista.
+ * botão percorre os ativos sem foto, um de cada vez, e para na hora se o saldo
+ * de IA acabar ou a pessoa mandar parar. Cada foto já fica guardada no produto
+ * pelo servidor; aqui a lista se atualiza a cada foto, e as miniaturas vão
+ * aparecendo na tabela.
+ *
+ * 03/11/2026: o lote era de 8 por clique; o dono quis "clicar e ir gerando"
+ * até o fim. O teto agora é só de segurança (60 por clique), para uma aba
+ * esquecida aberta não gastar saldo sem fim.
  */
-export const LOTE_DE_FOTOS = 8;
+export const LOTE_DE_FOTOS = 60;
 
 type ProdutoDaLista = { id: string; nome: string; imagem_url?: string | null; ativo?: boolean | null };
 
@@ -42,8 +47,11 @@ export function GerarFotosQueFaltam({ produtos }: { produtos: readonly ProdutoDa
       setAndamento({ feitas, total: lote.length, atual: p.nome });
       try {
         const r = await gerarFotoDoProduto({ data: { produtoId: p.id } });
-        if (r.estado === "ok") geradas += 1;
-        else {
+        if (r.estado === "ok") {
+          geradas += 1;
+          // A miniatura aparece na tabela já nesta foto, sem esperar o lote acabar.
+          void fila.invalidateQueries({ queryKey: ["produtos"] });
+        } else {
           toast.error(`${p.nome}: ${mensagemDaFotoGerada(r)}`);
           // Sem IA, sem saldo ou no limite, insistir só repete o erro.
           if (r.estado !== "falhou") break;
@@ -83,7 +91,9 @@ export function GerarFotosQueFaltam({ produtos }: { produtos: readonly ProdutoDa
       {confirmando ? (
         <>
           <span>
-            Vai gerar {lote.length} {lote.length === 1 ? "foto" : "fotos"} agora pela IA do Lovable ({semFoto.length} sem foto). Pode levar uns minutos.
+            Vai gerar {lote.length} {lote.length === 1 ? "foto" : "fotos"} agora pela IA do Lovable
+            {semFoto.length > lote.length ? ` (${semFoto.length} sem foto; as primeiras ${lote.length} agora)` : ""}. Cada uma gasta um pouco do
+            saldo de IA do projeto e leva alguns segundos: deixe esta aba aberta. Dá para parar quando quiser.
           </span>
           <Button type="button" size="sm" onClick={() => void rodar()} data-testid="confirmar-lote-de-fotos">
             Confirmar

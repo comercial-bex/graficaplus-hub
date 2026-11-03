@@ -104,9 +104,30 @@ describe("gerarImagemPeloGateway", () => {
     expect(r).toEqual({ estado: "falhou", detalhe: "o serviço de IA respondeu HTTP 500" });
   });
 
-  it("resposta sem imagem é falha, não foto vazia", async () => {
+  it("resposta sem imagem em todos os modelos é falha, não foto vazia", async () => {
     const r = await gerarImagemPeloGateway("x", "k", async () => resposta(200, { choices: [{ message: { content: "não consigo" } }] }));
     expect(r).toEqual({ estado: "falhou", detalhe: "a IA respondeu sem imagem" });
+  });
+
+  it("modelo que responde só com texto cede a vez ao próximo (03/11/2026)", async () => {
+    const buscar = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const corpo = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      if (corpo.model === MODELOS_DE_IMAGEM[0]) return resposta(200, { choices: [{ message: { content: "não posso desenhar isto" } }] });
+      return resposta(200, { choices: [{ message: { images: [{ image_url: { url: `data:image/png;base64,${PNG_1PX}` } }] } }] });
+    }) as unknown as typeof fetch;
+    const r = await gerarImagemPeloGateway("x", "k", buscar);
+    expect(r.estado).toBe("ok");
+    if (r.estado === "ok") expect(r.modelo).toBe(MODELOS_DE_IMAGEM[1]);
+  });
+
+  it("os modelos são os que o gateway lista hoje: nenhum '-preview', todos Gemini de chat com imagem", () => {
+    // Conferido em 03/11/2026 com o agente do Lovable, pela lista de modelos do gateway com a chave do projeto.
+    expect([...MODELOS_DE_IMAGEM]).toEqual([
+      "google/gemini-3.1-flash-image",
+      "google/gemini-2.5-flash-image",
+      "google/gemini-3-pro-image",
+    ]);
+    for (const m of MODELOS_DE_IMAGEM) expect(m).not.toMatch(/preview/);
   });
 
   it("baixa a imagem quando o gateway devolve um endereço em vez do conteúdo", async () => {
@@ -139,7 +160,7 @@ describe("gerarImagemPeloGateway", () => {
 });
 
 describe("o lote de fotos que faltam", () => {
-  it("pega só ativo sem foto e respeita o lote", () => {
+  it("pega só ativo sem foto; o teto do lote é de segurança, não de 8 em 8", () => {
     const lista = [
       { id: "1", nome: "a", imagem_url: null, ativo: true },
       { id: "2", nome: "b", imagem_url: "https://x/y.png", ativo: true },
@@ -147,7 +168,16 @@ describe("o lote de fotos que faltam", () => {
       { id: "4", nome: "d", imagem_url: null, ativo: false },
     ];
     expect(produtosSemFoto(lista).map((p) => p.id)).toEqual(["1", "3"]);
-    expect(LOTE_DE_FOTOS).toBe(8);
+    // 03/11/2026: o dono quis "clicar e ir gerando" até o fim; 43 produtos sem foto cabem num clique.
+    expect(LOTE_DE_FOTOS).toBe(60);
+    expect(LOTE_DE_FOTOS).toBeGreaterThan(43);
+  });
+
+  it("a cada foto pronta a lista de produtos é atualizada, para as miniaturas irem aparecendo", () => {
+    const lote = ler("src/components/produtos/gerar-fotos-que-faltam.tsx");
+    expect(lote).toContain('void fila.invalidateQueries({ queryKey: ["produtos"] });');
+    expect(lote).toContain("deixe esta aba aberta");
+    expect(lote).toContain("Parar depois desta");
   });
 });
 
@@ -157,10 +187,19 @@ describe("as telas", () => {
     expect(foto.includes("Gerar foto com IA")).toBe(true);
     expect(foto.includes("Copiar pedido")).toBe(true);
     expect(foto.includes("Gerada pela IA")).toBe(true);
+    // O pedido que a IA recebe fica à vista, para o dono ver o que será desenhado antes de gerar (03/11/2026).
+    expect(foto.includes('data-testid="pedido-da-foto"')).toBe(true);
+    expect(foto.includes("Ver o pedido que a IA recebe")).toBe(true);
     expect(/\stitle=/.test(foto)).toBe(false);
     const produtos = ler("src/routes/_authenticated/produtos.tsx");
     expect(produtos.includes("{isAdmin && <GerarFotosQueFaltam produtos={produtos} />}")).toBe(true);
     expect(produtos.includes("produto={{ id: form.id || null")).toBe(true);
+    // A miniatura da foto na tabela e na grade: as fotos geradas vão aparecendo na lista.
+    expect(produtos.match(/<MiniaturaDoProduto url=\{p\.imagem_url\}/g)?.length).toBe(2);
+    const miniatura = ler("src/components/produtos/miniatura-do-produto.tsx");
+    expect(miniatura).toContain('alt=""');
+    expect(miniatura).toContain('loading="lazy"');
+    expect(/\stitle=/.test(miniatura)).toBe(false);
     const ficha = ler("src/components/precos/ficha-do-produto.tsx");
     expect(ficha.includes("produto={{ id: p.id, nome: p.nome, familia: linha?.familia ?? null, categoria: p.categoria }}")).toBe(true);
     const fn = ler("src/lib/api/produtos-foto-ia.functions.ts");

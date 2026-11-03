@@ -89,6 +89,7 @@ import {
 } from "@/lib/produtos-catalogo";
 import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
 import { GerarFotosQueFaltam } from "@/components/produtos/gerar-fotos-que-faltam";
+import { MiniaturaDoProduto } from "@/components/produtos/miniatura-do-produto";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { abasDoProduto, avisoDaFicha, sinalDoPreco, type AbaDoProduto } from "@/domain/catalogo/abas-do-produto";
@@ -652,6 +653,9 @@ function ProdutosPage() {
                   return (
                     <TableRow key={p.id} className={!p.ativo ? "opacity-50" : ""}>
                       <TableCell>
+                        <div className="flex items-center gap-3">
+                        <MiniaturaDoProduto url={p.imagem_url} />
+                        <div className="min-w-0">
                         {/* O nome abre a pasta do produto (as abas do Holdprint); a janela antiga é a "Edição rápida" do ⋮. */}
                         <Link to="/produtos/$id" params={{ id: p.id }} className="text-left font-medium hover:underline">
                           {p.nome}
@@ -687,6 +691,8 @@ function ProdutosPage() {
                               rotulo="Material sem custo"
                             />
                           )}
+                        </div>
+                        </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">
@@ -748,6 +754,7 @@ function ProdutosPage() {
             return (
               <Card key={p.id} className={!p.ativo ? "opacity-60" : ""}>
                 <CardContent className="p-4 space-y-3">
+                  <MiniaturaDoProduto url={p.imagem_url} className="h-28 w-full" />
                   <div className="flex justify-between items-start">
                     <div>
                       <Link
