@@ -80,3 +80,42 @@ export function validarComplemento(c: Complemento, ramosValidos: readonly string
   if (c.comprovacao.trim().length < 3) return { campo: "comprovacao", mensagem: "Informe o Instagram ou site do seu negócio." };
   return null;
 }
+
+/**
+ * O que a tela diz quando o auth recusa a troca de senha do primeiro acesso.
+ *
+ * O caso mais comum (03/11/2026, o primeiro parceiro real a se cadastrar): a
+ * pessoa copia a senha provisória do WhatsApp para o campo "Crie a sua senha".
+ * Ela passa na regra da tela (8 caracteres, letras e números) e o auth recusa
+ * com `same_password`. O texto antigo ("precisa ser diferente da provisória")
+ * aparecia como aviso no canto da tela, longe do campo, sem dizer o que fazer.
+ *
+ * O código do auth vem antes do texto em inglês, que muda de versão para
+ * versão. `limpar` diz se a tela deve esvaziar o campo da senha: quando a
+ * senha foi recusada, deixar o valor ali só convida a enviar o mesmo de novo.
+ */
+export type ErroDaTrocaDeSenha = { mensagem: string; limpar: boolean; sairDaConta: boolean };
+
+export function erroDaTrocaDeSenha(erro: { code?: string | null; message?: string | null }): ErroDaTrocaDeSenha | null {
+  const codigo = (erro.code ?? "").toLowerCase();
+  const texto = (erro.message ?? "").toLowerCase();
+  if (codigo === "same_password" || /different from the old password|should be different|same password/.test(texto))
+    return {
+      mensagem: "Essa é a mesma senha da sua conta (a provisória do WhatsApp). Crie uma senha nova, só sua.",
+      limpar: true,
+      sairDaConta: false,
+    };
+  if (codigo === "weak_password" || /weak|pwned|leaked|breach|at least|characters/.test(texto))
+    return {
+      mensagem: "Escolha uma senha mais forte: 8 ou mais caracteres, misturando letras e números, e que não seja comum.",
+      limpar: true,
+      sairDaConta: false,
+    };
+  if (codigo === "session_not_found" || codigo === "session_expired" || /session (missing|not found|expired)|jwt expired/.test(texto))
+    return {
+      mensagem: "Sua sessão expirou. Entre de novo com o seu e-mail e a senha provisória do WhatsApp.",
+      limpar: false,
+      sairDaConta: true,
+    };
+  return null;
+}

@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowRight, CircleAlert, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CampoDeAcesso } from "@/components/acesso/CampoDeAcesso";
@@ -9,13 +9,15 @@ import { mensagemErro } from "@/lib/erros";
 import { CHAVE_PAINEL } from "@/lib/parceiro-api";
 import { cn } from "@/lib/utils";
 import { RAMOS, normalizarComprovacao } from "@/domain/parceiros/ramo";
-import { CHAVE_CADASTRO_PENDENTE, validarComplemento } from "@/domain/parceiros/cadastro-rapido";
+import { CHAVE_CADASTRO_PENDENTE, cadastroPendente, erroDaTrocaDeSenha, validarComplemento } from "@/domain/parceiros/cadastro-rapido";
 
 /** O <select> nativo vestido como o <Input> do CampoDeAcesso (mesma altura, borda e fundo). */
 const selectCls =
   "flex h-12 w-full rounded-lg border border-border bg-background px-4 text-base shadow-none transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 md:text-sm";
 
 const campoCls = "border-border bg-background";
+
+type CampoComErro = "novaSenha" | "ramo" | "ramoOutro" | "comprovacao";
 
 /**
  * O primeiro acesso de quem se cadastrou pelo convite curto (03/11/2026).
@@ -40,6 +42,18 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
   const [estado, setEstado] = useState("");
   const [documento, setDocumento] = useState("");
   const [salvando, setSalvando] = useState(false);
+  // Um erro por vez, embaixo do campo a que ele se refere (o aviso no canto da
+  // tela ficava longe do campo e sumia em poucos segundos).
+  const [erro, setErro] = useState<{ campo: CampoComErro; mensagem: string } | null>(null);
+  const erroDe = (campo: CampoComErro) => (erro?.campo === campo ? erro.mensagem : undefined);
+  const limpaErro = (campo: CampoComErro) => setErro((e) => (e?.campo === campo ? null : e));
+
+  function mostrarErro(campo: CampoComErro, mensagem: string) {
+    setErro({ campo, mensagem });
+    const id = campo === "novaSenha" ? "acesso-senha" : campo === "ramoOutro" ? "acesso-ramo-outro" : `acesso-${campo}`;
+    // depois do desenho: o campo pode ter acabado de ser esvaziado
+    requestAnimationFrame(() => document.getElementById(id)?.focus());
+  }
 
   async function concluir(e: FormEvent) {
     e.preventDefault();
@@ -48,10 +62,10 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
       RAMOS.map((r) => r.valor),
     );
     if (falta) {
-      toast.error(falta.mensagem);
-      document.getElementById(`acesso-${falta.campo === "novaSenha" ? "senha" : falta.campo === "ramoOutro" ? "ramo-outro" : falta.campo}`)?.focus();
+      mostrarErro(falta.campo as CampoComErro, falta.mensagem);
       return;
     }
+    setErro(null);
     setSalvando(true);
     try {
       const { error: erroRpc } = await (supabase.rpc as any)("parceiro_completar_cadastro", {
@@ -71,12 +85,16 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
         data: { [CHAVE_CADASTRO_PENDENTE]: false },
       });
       if (erroSenha) {
-        const m = erroSenha.message.toLowerCase();
-        if (m.includes("same") || m.includes("different"))
-          throw new Error("A senha nova precisa ser diferente da provisória.");
-        if (m.includes("weak") || m.includes("pwned") || m.includes("least"))
-          throw new Error("Escolha uma senha mais forte: 8 ou mais caracteres, misturando letras e números.");
-        throw erroSenha;
+        const conhecido = erroDaTrocaDeSenha(erroSenha);
+        if (!conhecido) throw erroSenha;
+        if (conhecido.sairDaConta) {
+          toast.error(conhecido.mensagem);
+          onSair();
+          return;
+        }
+        if (conhecido.limpar) setNovaSenha("");
+        mostrarErro("novaSenha", conhecido.mensagem);
+        return;
       }
       qc.invalidateQueries({ queryKey: CHAVE_PAINEL });
       toast.success("Cadastro completo. Bem-vindo ao painel!");
@@ -86,6 +104,22 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
       setSalvando(false);
     }
   }
+
+  // A marca de "pendente" mora na sessão do aparelho. Quem já concluiu o cadastro
+  // em outro aparelho e abre este com a sessão antiga veria a tela de novo, e a
+  // senha que acabou de criar seria recusada como "igual à atual". Pergunta ao
+  // servidor uma vez; se já concluiu, grava o mesmo dado para a sessão daqui
+  // se atualizar e o painel abrir.
+  const conferiu = useRef(false);
+  useEffect(() => {
+    if (conferiu.current) return;
+    conferiu.current = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (data.user && !cadastroPendente(data.user.user_metadata)) {
+        void supabase.auth.updateUser({ data: { [CHAVE_CADASTRO_PENDENTE]: false } });
+      }
+    });
+  }, []);
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -108,11 +142,15 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
             rotulo="Crie a sua senha"
             type={mostrarSenha ? "text" : "password"}
             autoComplete="new-password"
-            placeholder="8 ou mais caracteres, letras e números"
+            placeholder="Nova senha: 8+ caracteres, letras e números"
             required
             minLength={8}
             value={novaSenha}
-            onChange={(e) => setNovaSenha(e.target.value)}
+            erro={erroDe("novaSenha")}
+            onChange={(e) => {
+              setNovaSenha(e.target.value);
+              limpaErro("novaSenha");
+            }}
             acao={
               <button
                 type="button"
@@ -126,7 +164,8 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
             }
           />
           <p className="-mt-2 text-xs text-muted-foreground">
-            A senha provisória que chegou no WhatsApp deixa de valer. Seu login continua sendo {email}.
+            Crie uma senha nova, <strong className="font-semibold text-foreground">diferente da provisória</strong> do WhatsApp:
+            a provisória deixa de valer. Seu login continua sendo {email}.
           </p>
 
           {/* Ramo e comprovação: o programa é só para quem é do setor gráfico. */}
@@ -134,12 +173,29 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
             <label htmlFor="acesso-ramo" className="block text-sm font-medium text-foreground">
               Qual o seu ramo?
             </label>
-            <select id="acesso-ramo" className={selectCls} required value={ramo} onChange={(e) => setRamo(e.target.value)}>
+            <select
+              id="acesso-ramo"
+              className={cn(selectCls, erroDe("ramo") && "border-status-magenta ring-2 ring-status-magenta/20")}
+              required
+              aria-invalid={erroDe("ramo") ? true : undefined}
+              aria-describedby={erroDe("ramo") ? "acesso-ramo-erro" : undefined}
+              value={ramo}
+              onChange={(e) => {
+                setRamo(e.target.value);
+                limpaErro("ramo");
+              }}
+            >
               <option value="" disabled>Escolha o ramo</option>
               {RAMOS.map((r) => (
                 <option key={r.valor} value={r.valor}>{r.rotulo}</option>
               ))}
             </select>
+            {erroDe("ramo") && (
+              <p id="acesso-ramo-erro" role="alert" className="flex items-start gap-1.5 text-sm text-status-magenta">
+                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{erroDe("ramo")}</span>
+              </p>
+            )}
           </div>
           {ramo === "outro" && (
             <CampoDeAcesso
@@ -149,7 +205,11 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
               maxLength={120}
               required
               value={ramoOutro}
-              onChange={(e) => setRamoOutro(e.target.value)}
+              erro={erroDe("ramoOutro")}
+              onChange={(e) => {
+                setRamoOutro(e.target.value);
+                limpaErro("ramoOutro");
+              }}
             />
           )}
           <div>
@@ -164,7 +224,11 @@ export function CompletarCadastro({ nome, email, onSair }: { nome: string; email
               maxLength={300}
               required
               value={comprovacao}
-              onChange={(e) => setComprovacao(e.target.value)}
+              erro={erroDe("comprovacao")}
+              onChange={(e) => {
+                setComprovacao(e.target.value);
+                limpaErro("comprovacao");
+              }}
             />
             <p className="mt-1.5 text-xs text-muted-foreground">Usamos para confirmar que você trabalha no ramo.</p>
           </div>
