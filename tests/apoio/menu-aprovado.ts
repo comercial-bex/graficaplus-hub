@@ -32,8 +32,38 @@ export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso
   if (decideReembolso) somarReembolsos(b);
   somarFornecedores(b);
   if (temCatalogo) somarCatalogo(b);
+  somarVendasDiretas(b);
   enxugarDeNovembro(b);
   return b;
+}
+
+/**
+ * "Vendas diretas" (03/11/2026, tela nova do portal do parceiro): as compras que o
+ * revendedor faz direto com a gráfica, aba de "Parceiros revendedores". A tela abre
+ * com orcamentos.read, a mesma porta de Orçamentos. Quem já via Parceiros
+ * revendedores (parceiros.read) ganha uma aba; quem só abre Orçamentos (o
+ * financeiro) ganha o item, que abre direto na aba. Ninguém ganha área nova.
+ */
+function somarVendasDiretas(b: ResumoDoMenu): void {
+  const subs = b.arvore.find((a) => a.area === "Vendas")?.subs;
+  if (!subs) return;
+  for (const s of subs) {
+    const i = s.itens.findIndex((t) => lerItem(t).titulo === "Parceiros revendedores");
+    if (i < 0) continue;
+    const l = lerItem(s.itens[i]);
+    l.n += 1;
+    s.itens[i] = escreverItem(l);
+    b.abas += 1;
+    return;
+  }
+  const abreOrcamentos = subs.some((s) => s.itens.some((t) => lerItem(t).titulo === "Orçamentos"));
+  const clientes = subs.find((s) => s.sub === "Clientes");
+  if (!abreOrcamentos || !clientes) return;
+  const posVenda = clientes.itens.findIndex((t) => lerItem(t).titulo === "Pós-venda");
+  const novo = escreverItem({ titulo: "Parceiros revendedores", n: 0, link: "/vendas-diretas" });
+  if (posVenda >= 0) clientes.itens.splice(posVenda, 0, novo);
+  else clientes.itens.push(novo);
+  b.itens += 1;
 }
 
 function somarCatalogo(b: ResumoDoMenu): void {
