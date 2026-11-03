@@ -78,6 +78,23 @@ export const dicas = {
       seu_ganho: "A diferença entre o que o seu cliente paga e o que você paga à gráfica.",
       validade: "Quantos dias o preço vale para o seu cliente. Sai impresso no PDF.",
       cobrar_por: "Unidade: por metro quadrado (usa largura × altura) ou por unidade.",
+      comprar_da_grafica:
+        "Compra direta: você mesmo compra da gráfica, com o preço do seu nível, sem cliente e sem PDF. Vira ordem de produção.",
+      comprado_no_mes: "Soma das suas compras diretas desde o dia 1º deste mês.",
+      saldo_a_pagar: "Estimativa: metade do valor das compras feitas com sinal de 50%. Confirme com a gráfica o que já foi quitado.",
+      orcar_com_marca: "Orçamento para o SEU cliente, com a sua logo no PDF. O cliente é seu: a gráfica não vê quem é.",
+      orcamentos_no_mes: "Quantos orçamentos você criou neste mês.",
+      em_aberto: "Orçamentos em rascunho, enviados ou aprovados pelo cliente que ainda não viraram pedido.",
+      viraram_pedido: "Orçamentos que você mandou para a gráfica produzir.",
+      pagamento:
+        "Sinal (50%): paga metade agora e o resto na entrega. À vista: paga tudo agora. A produção começa depois do pagamento confirmado.",
+      observacao_compra: "Recado para a gráfica: prazo, acabamento, entrega. Não é visto por ninguém de fora.",
+      situacoes:
+        "Rascunho: só você vê. Enviado: foi para o cliente. Cliente aprovou: falta virar pedido. Pedido feito: a gráfica recebeu. Perdido: o cliente não fechou.",
+      tabela: "Preços que você paga à gráfica, já com o desconto do seu nível. Mais quantidade no mesmo pedido, menor o preço por unidade.",
+      minha_marca: "Logo, nome, telefone e cor que saem no PDF dos seus orçamentos. A marca da gráfica não aparece.",
+      convite: "Indique outro revendedor pelo seu link. Quando ele comprar, você ganha crédito.",
+      pedidos: "O que você mandou produzir e em que etapa está na gráfica.",
     },
     acoes: {
       novo_orcamento: "Monta um orçamento com a sua marca para o seu cliente.",

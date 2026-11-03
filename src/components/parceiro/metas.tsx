@@ -24,6 +24,7 @@ export function Metas({ campanhas, conquistas }: { campanhas: Campanha[]; conqui
         <Target className="h-5 w-5 text-[color:var(--bex-magenta)]" />
         Metas
         <DicaIcone texto={dicaCampo("/parceiro", "metas")} rotulo="Metas" />
+        <DicaIcone texto={dicaCampo("/parceiro", "metas")} rotulo="Metas" />
       </h2>
 
       {campanhas.length > 0 ? (

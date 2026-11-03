@@ -6,6 +6,8 @@ import { brl } from "@/domain/parceiros/preco";
 import type { PainelDoParceiro } from "@/domain/parceiros/painel";
 import { cn } from "@/lib/utils";
 import { OfertaAviso } from "./oferta-aviso";
+import { HelpCircle } from "lucide-react";
+import { TourGuiado, EVENTO_REVER_TOUR } from "./tour-guiado";
 import {
   estaNaTela,
   LARGURA_DO_MENU_DO_PARCEIRO,
@@ -49,6 +51,7 @@ export function Casca({
 
   return (
     <SidebarProvider style={{ "--sidebar-width": LARGURA_DO_MENU_DO_PARCEIRO } as CSSProperties}>
+      <TourGuiado />
       <div className="flex min-h-screen w-full bg-background text-foreground">
         <MenuDoParceiro painel={painel} onSair={onSair} />
         <div className="flex min-w-0 flex-1 flex-col">
@@ -65,6 +68,15 @@ export function Casca({
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Seu crédito</p>
               <p className="text-sm font-semibold tabular-nums">{brl(painel.saldo_credito)}</p>
             </div>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(EVENTO_REVER_TOUR))}
+              aria-label="Rever a apresentação do painel"
+              title="Rever a apresentação"
+              className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </button>
             <ThemeToggle />
             <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: "var(--gradient-cmyk)" }} />
           </header>
@@ -75,6 +87,7 @@ export function Casca({
 
       {/* No celular a navegação fica no polegar */}
       <nav
+        data-tour="menu"
         className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
         aria-label="Painel do parceiro"
       >

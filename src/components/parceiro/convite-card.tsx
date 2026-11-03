@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { Check, Copy, Share2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -53,7 +55,7 @@ export function ConviteCard({ painel }: { painel: PainelDoParceiro }) {
       <div className="flex items-start gap-3">
         <UserPlus className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--bex-cyan)]" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold">Indique outro revendedor</h2>
+          <h2 className="text-lg font-semibold flex items-center gap-1">Indique outro revendedor <DicaIcone texto={dicaCampo("/parceiro", "convite")} rotulo="Indique" /></h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Mande seu link. Quando quem você indicou comprar, uma parte volta em crédito para você.
           </p>

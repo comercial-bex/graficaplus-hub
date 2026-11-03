@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { dicaCampo } from "@/lib/dicas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Download, ImagePlus, Palette, Save, Trash2 } from "lucide-react";
@@ -162,6 +163,7 @@ function MarcaDoParceiroPage() {
         <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight md:text-3xl">
           <Palette className="h-6 w-6 text-[color:var(--bex-magenta)]" />
           Minha marca
+          <DicaIcone texto={dicaCampo("/parceiro", "minha_marca")} rotulo="Minha marca" />
         </h1>
         <p className="text-sm text-muted-foreground">
           É o que o seu cliente vê no orçamento. O nome da gráfica não aparece em lugar nenhum do PDF.

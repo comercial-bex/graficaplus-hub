@@ -108,7 +108,7 @@ export function MenuDoParceiro({ painel, onSair }: { painel: PainelDoParceiro; o
           </div>
         </div>
 
-        <nav aria-label="Painel do parceiro" className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        <nav data-tour="menu" aria-label="Painel do parceiro" className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
           {NAVEGACAO_DO_PARCEIRO.map((item) => {
             const ativo = estaNaTela(pathname, item.to, item.exato);
             return (

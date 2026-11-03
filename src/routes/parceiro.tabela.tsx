@@ -117,6 +117,7 @@ function TabelaDoParceiro() {
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight md:text-3xl">
             <Tags className="h-6 w-6 text-[color:var(--bex-cyan)]" />
             Tabela de preços
+            <DicaIcone texto={dicaCampo("/parceiro", "tabela")} rotulo="Tabela de preços" />
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Preços de parceiro {painel?.nivel.nome ? `${painel.nivel.nome} ` : ""}para pedidos feitos à gráfica. Ofertas
