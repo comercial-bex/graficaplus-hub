@@ -3,7 +3,7 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { CheckCircle2, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -328,10 +328,12 @@ function ComprasDoParceiro() {
 }
 
 function Campo({ rotulo, valor, onChange }: { rotulo: string; valor: number | null; onChange: (v: number | null) => void }) {
+  const id = useId();
   return (
     <div className="space-y-1">
-      <Label className="text-xs">{rotulo}</Label>
+      <Label htmlFor={id} className="text-xs">{rotulo}</Label>
       <Input
+        id={id}
         type="number"
         inputMode="decimal"
         min={0}

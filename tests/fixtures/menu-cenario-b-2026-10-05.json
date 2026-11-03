@@ -14,7 +14,7 @@
       "Administração"
     ],
     "itens": 36,
-    "abas": 19,
+    "abas": 20,
     "linhas": 5,
     "atalhos": [
       "Início",
@@ -46,7 +46,7 @@
             "itens": [
               "Clientes",
               "Funil de vendas (+1 aba)",
-              "Parceiros revendedores",
+              "Parceiros revendedores (+1 aba)",
               "Pós-venda"
             ]
           },
@@ -171,7 +171,7 @@
       "Produção"
     ],
     "itens": 33,
-    "abas": 13,
+    "abas": 14,
     "linhas": 34,
     "atalhos": [
       "Início",
@@ -203,7 +203,7 @@
             "itens": [
               "Clientes",
               "Funil de vendas (+1 aba)",
-              "Parceiros revendedores",
+              "Parceiros revendedores (+1 aba)",
               "Pós-venda"
             ]
           },
@@ -452,7 +452,7 @@
       "Produção"
     ],
     "itens": 20,
-    "abas": 10,
+    "abas": 11,
     "linhas": 29,
     "atalhos": [
       "Início",
@@ -484,7 +484,7 @@
             "itens": [
               "Clientes",
               "Funil de vendas (+1 aba)",
-              "Parceiros revendedores",
+              "Parceiros revendedores (+1 aba)",
               "Pós-venda"
             ]
           },
