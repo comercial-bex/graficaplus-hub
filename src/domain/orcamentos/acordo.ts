@@ -262,6 +262,17 @@ export function condicaoCompleta(cru: unknown): boolean {
 const centavosDe = (v: unknown) => Math.round((Number(v) || 0) * 100);
 
 /**
+ * A condição combinada tem ENTRADA (valor para a aprovação maior que zero)? Decisão do dono
+ * (03/11/2026): a OS só nasce com entrada — à vista, 50% + 50% ou "Entrada + saldo" com valor.
+ * "Parcelado" puro e acordo antigo não têm. Espelha o bloco (b4b) de `converter_orcamento_em_os`.
+ * Pedido de valor zero não é barrado (o banco também não barra).
+ */
+export function condicaoTemEntrada(cru: unknown, total: number): boolean {
+  if (centavosDe(total) <= 0) return true;
+  return valorDaEntrada(total, lerCondicao(cru)) > 0;
+}
+
+/**
  * Quanto o cliente paga na aprovação, em R$, com a MESMA conta da conversão em
  * OS: `round(total × pct ÷ 100, 2)` em centavos inteiros; valor fixo nunca
  * passa do total. À vista é o total inteiro; parcelado e acordo antigo, zero.
@@ -489,6 +500,8 @@ export function conferenciaAntesDeConverter(o: {
   forma: string | null;
   /** Forma E divisão combinadas (`condicaoCompleta`); sem isto o banco não cria a OS. Ausente = só a forma. */
   condicaoCompleta?: boolean;
+  /** Há entrada combinada (`condicaoTemEntrada`); sem ela o banco não cria a OS. Ausente = a conferência não promete nada sobre ela. */
+  entradaCombinada?: boolean;
   pixRecebido: boolean;
   itensSemArte: number;
   descontoPendente: boolean;
@@ -529,6 +542,18 @@ export function conferenciaAntesDeConverter(o: {
         ? `${o.forma}: a conta a receber nasce com as parcelas combinadas.`
         : "Sem forma e divisão combinadas (à vista, 50% + 50%, entrada ou parcelado) a OS não é criada.",
     });
+    if (o.entradaCombinada !== undefined) {
+      lista.push({
+        chave: "entrada",
+        rotulo: "Entrada na aprovação",
+        ok: o.entradaCombinada,
+        nivel: "obrigatorio",
+        // Decisão do dono (03/11/2026): a OS só nasce com entrada; o saldo vem na entrega (ou tudo de uma vez).
+        detalhe: o.entradaCombinada
+          ? "O valor da entrada vira a 1ª parcela, com vencimento hoje."
+          : "Sem entrada a OS não é criada. Escolha à vista, 50% + 50% ou \"Entrada + saldo\" no quadro Pagamento.",
+      });
+    }
     if (o.forma && o.forma.toLowerCase() === "pix") {
       lista.push({
         chave: "pix",
