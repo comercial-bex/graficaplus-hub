@@ -567,6 +567,11 @@ export function Pagamento({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {completa && total > 0 && entradaAgora <= 0 && (
+          <p role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            Sem entrada a OS não é criada. Escolha à vista, 50% + 50% ou &quot;Entrada + saldo&quot; com o valor da entrada.
+          </p>
+        )}
         <div className="space-y-2">
           <Label className="text-xs">Forma</Label>
           {podeEditar && !formaGravada && ultima.data && (
