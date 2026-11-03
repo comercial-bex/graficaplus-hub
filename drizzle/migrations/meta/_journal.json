@@ -50,6 +50,20 @@
       "when": 1793646441107,
       "tag": "0006_parceiro_ramo_e_comprovacao",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793721383687,
+      "tag": "0007_venda_direta_do_parceiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793721476247,
+      "tag": "0008_venda_direta_total",
+      "breakpoints": true
     }
   ]
 }

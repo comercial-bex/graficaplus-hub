@@ -80,6 +80,7 @@ import { Route as AuthenticatedRespostasRapidasRouteImport } from './routes/_aut
 import { Route as AuthenticatedTabelaDePrecosRouteImport } from './routes/_authenticated/tabela-de-precos'
 import { Route as AuthenticatedTelasRouteImport } from './routes/_authenticated/telas'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedVendasDiretasRouteImport } from './routes/_authenticated/vendas-diretas'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWhatsappFilaHumanaRouteImport } from './routes/_authenticated/whatsapp-fila-humana'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
@@ -90,6 +91,7 @@ import { Route as CatalogoTokenRouteImport } from './routes/catalogo.$token'
 import { Route as ConviteCodigoRouteImport } from './routes/convite.$codigo'
 import { Route as OrcamentoPublicoTokenRouteImport } from './routes/orcamento-publico.$token'
 import { Route as ParceiroIndexRouteImport } from './routes/parceiro.index'
+import { Route as ParceiroComprasRouteImport } from './routes/parceiro.compras'
 import { Route as ParceiroMarcaRouteImport } from './routes/parceiro.marca'
 import { Route as ParceiroTabelaRouteImport } from './routes/parceiro.tabela'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
@@ -509,6 +511,12 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedVendasDiretasRoute =
+  AuthenticatedVendasDiretasRouteImport.update({
+    id: '/vendas-diretas',
+    path: '/vendas-diretas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
@@ -560,6 +568,11 @@ const OrcamentoPublicoTokenRoute = OrcamentoPublicoTokenRouteImport.update({
 const ParceiroIndexRoute = ParceiroIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ParceiroRoute,
+} as any)
+const ParceiroComprasRoute = ParceiroComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
   getParentRoute: () => ParceiroRoute,
 } as any)
 const ParceiroMarcaRoute = ParceiroMarcaRouteImport.update({
@@ -817,6 +830,7 @@ export interface FileRoutesByFullPath {
   '/tabela-de-precos': typeof AuthenticatedTabelaDePrecosRoute
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -826,6 +840,7 @@ export interface FileRoutesByFullPath {
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/compras': typeof ParceiroComprasRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
@@ -933,6 +948,7 @@ export interface FileRoutesByTo {
   '/tabela-de-precos': typeof AuthenticatedTabelaDePrecosRoute
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -942,6 +958,7 @@ export interface FileRoutesByTo {
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/compras': typeof ParceiroComprasRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
@@ -1052,6 +1069,7 @@ export interface FileRoutesById {
   '/_authenticated/tabela-de-precos': typeof AuthenticatedTabelaDePrecosRoute
   '/_authenticated/telas': typeof AuthenticatedTelasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/_authenticated/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -1061,6 +1079,7 @@ export interface FileRoutesById {
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/compras': typeof ParceiroComprasRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
@@ -1171,6 +1190,7 @@ export interface FileRouteTypes {
     | '/tabela-de-precos'
     | '/telas'
     | '/usuarios'
+    | '/vendas-diretas'
     | '/whatsapp'
     | '/whatsapp-fila-humana'
     | '/whatsapp-monitor'
@@ -1180,6 +1200,7 @@ export interface FileRouteTypes {
     | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
+    | '/parceiro/compras'
     | '/parceiro/marca'
     | '/parceiro/tabela'
     | '/publico/$token'
@@ -1287,6 +1308,7 @@ export interface FileRouteTypes {
     | '/tabela-de-precos'
     | '/telas'
     | '/usuarios'
+    | '/vendas-diretas'
     | '/whatsapp'
     | '/whatsapp-fila-humana'
     | '/whatsapp-monitor'
@@ -1296,6 +1318,7 @@ export interface FileRouteTypes {
     | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
+    | '/parceiro/compras'
     | '/parceiro/marca'
     | '/parceiro/tabela'
     | '/publico/$token'
@@ -1405,6 +1428,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tabela-de-precos'
     | '/_authenticated/telas'
     | '/_authenticated/usuarios'
+    | '/_authenticated/vendas-diretas'
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-fila-humana'
     | '/_authenticated/whatsapp-monitor'
@@ -1414,6 +1438,7 @@ export interface FileRouteTypes {
     | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
+    | '/parceiro/compras'
     | '/parceiro/marca'
     | '/parceiro/tabela'
     | '/publico/$token'
@@ -1987,6 +2012,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/vendas-diretas': {
+      id: '/_authenticated/vendas-diretas'
+      path: '/vendas-diretas'
+      fullPath: '/vendas-diretas'
+      preLoaderRoute: typeof AuthenticatedVendasDiretasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/whatsapp': {
       id: '/_authenticated/whatsapp'
       path: '/whatsapp'
@@ -2055,6 +2087,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/parceiro/'
       preLoaderRoute: typeof ParceiroIndexRouteImport
+      parentRoute: typeof ParceiroRoute
+    }
+    '/parceiro/compras': {
+      id: '/parceiro/compras'
+      path: '/compras'
+      fullPath: '/parceiro/compras'
+      preLoaderRoute: typeof ParceiroComprasRouteImport
       parentRoute: typeof ParceiroRoute
     }
     '/parceiro/marca': {
@@ -2368,6 +2407,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTabelaDePrecosRoute: typeof AuthenticatedTabelaDePrecosRoute
   AuthenticatedTelasRoute: typeof AuthenticatedTelasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
+  AuthenticatedVendasDiretasRoute: typeof AuthenticatedVendasDiretasRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappFilaHumanaRoute: typeof AuthenticatedWhatsappFilaHumanaRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
@@ -2450,6 +2490,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTabelaDePrecosRoute: AuthenticatedTabelaDePrecosRoute,
   AuthenticatedTelasRoute: AuthenticatedTelasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
+  AuthenticatedVendasDiretasRoute: AuthenticatedVendasDiretasRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappFilaHumanaRoute: AuthenticatedWhatsappFilaHumanaRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
@@ -2472,6 +2513,7 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface ParceiroRouteChildren {
+  ParceiroComprasRoute: typeof ParceiroComprasRoute
   ParceiroMarcaRoute: typeof ParceiroMarcaRoute
   ParceiroTabelaRoute: typeof ParceiroTabelaRoute
   ParceiroIndexRoute: typeof ParceiroIndexRoute
@@ -2480,6 +2522,7 @@ interface ParceiroRouteChildren {
 }
 
 const ParceiroRouteChildren: ParceiroRouteChildren = {
+  ParceiroComprasRoute: ParceiroComprasRoute,
   ParceiroMarcaRoute: ParceiroMarcaRoute,
   ParceiroTabelaRoute: ParceiroTabelaRoute,
   ParceiroIndexRoute: ParceiroIndexRoute,

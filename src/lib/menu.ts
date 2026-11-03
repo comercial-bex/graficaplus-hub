@@ -171,7 +171,7 @@ export const AREAS: AreaDoMenu[] = [
           item("Funil de vendas", "/funil", Funnel, [aba("Contatos novos", "/leads", "Leads")], {
             antes: "Funil",
           }),
-          item("Parceiros revendedores", "/parceiros", Handshake, [], { antes: "Parceiros" }),
+          item("Parceiros revendedores", "/parceiros", Handshake, [aba("Vendas diretas", "/vendas-diretas")], { antes: "Parceiros" }),
         ],
       },
     ],
