@@ -5,7 +5,18 @@ import { EscolhaDeMaterial } from "@/components/orcamento/escolha-de-material";
 import { MedidasDaPeca } from "@/components/orcamento/medidas-da-peca";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
-import { camposDaUnidade, type TamanhoComum } from "@/domain/orcamentos/tipos-de-produto";
+import {
+  camposDaUnidade,
+  tipoDoProduto,
+  unidadeAoEscolherTipo,
+  type ChaveDoTipo,
+  type TamanhoComum,
+  type TipoDeProduto,
+} from "@/domain/orcamentos/tipos-de-produto";
+// A escolha do produto em cartões (tipo → produto com foto), como a equipe.
+import { DialogoDeEscolhaDoProduto, LinhaDoProduto } from "./escolha-de-produto-do-parceiro";
+import { produtoDaEscolhaDoParceiro, unidadeDoParceiroParaOTipo } from "@/domain/parceiros/escolha";
+import type { ExtrasDoProduto } from "@/domain/parceiros/vitrine";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,7 +62,6 @@ import {
 import { StatusChip } from "@/components/bex/StatusChip";
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
-import { SeletorDeProduto } from "./seletor-de-produto";
 import { PedidoDialog } from "./pedido-dialog";
 import { BarraDePassosDoOrcamento, PerguntaDoPasso } from "./barra-de-passos";
 import { TabelaDeDegraus } from "./tabela-de-degraus";
@@ -61,6 +71,8 @@ import { cn } from "@/lib/utils";
 import { baixarArquivo, renderPDFBlob } from "@/lib/pdf/generate";
 import {
   carregarCatalogo,
+  carregarExtrasDoCatalogo,
+  CHAVE_EXTRAS,
   carregarPrazos,
   carregarPainel,
   CHAVE_CATALOGO,
@@ -193,7 +205,10 @@ export function EditorDeOrcamento({ id }: { id: string }) {
   const navigate = useNavigate();
 
   const { data: painel } = useQuery({ queryKey: CHAVE_PAINEL, queryFn: carregarPainel, staleTime: 60_000 });
-  const { data: catalogo = [] } = useQuery({ queryKey: CHAVE_CATALOGO, queryFn: carregarCatalogo, staleTime: 5 * 60_000 });
+  const catalogoQuery = useQuery({ queryKey: CHAVE_CATALOGO, queryFn: carregarCatalogo, staleTime: 5 * 60_000 });
+  const catalogo = catalogoQuery.data ?? [];
+  // Foto e descrição dos produtos para os cartões; sem elas o cartão mostra o desenho do tipo.
+  const { data: extras = [] } = useQuery({ queryKey: CHAVE_EXTRAS, queryFn: carregarExtrasDoCatalogo, staleTime: 5 * 60_000 });
   const { data: prazos = [] } = useQuery({ queryKey: CHAVE_PRAZOS, queryFn: carregarPrazos, staleTime: 5 * 60_000 });
   const servidor = useQuery({
     queryKey: ["parceiro-orcamento", id],
@@ -228,6 +243,8 @@ export function EditorDeOrcamento({ id }: { id: string }) {
   const [itens, setItens] = useState<ItemEditavel[]>([]);
   // "Tirar o item" pede confirmação, como na tela da equipe.
   const [aRemover, setARemover] = useState<{ id: string; numero: number; descricao: string } | null>(null);
+  // O diálogo de escolha em cartões: "novo" cria o item ao escolher; um id troca o produto daquele item.
+  const [escolhendo, setEscolhendo] = useState<{ alvo: "novo" | string } | null>(null);
   const [salvoComo, setSalvoComo] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [gerandoPdf, setGerandoPdf] = useState(false);
@@ -272,6 +289,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
   }, [sujo]);
 
   const porProduto = useMemo(() => new Map(catalogo.map((p) => [p.produto_id, p])), [catalogo]);
+  const extraPorProduto = useMemo(() => new Map(extras.map((e) => [e.produto_id, e])), [extras]);
   const resumoBase = useMemo(() => resumoDoOrcamento(itens, porProduto), [itens, porProduto]);
 
   if (servidor.isLoading || !painel) {
@@ -521,6 +539,46 @@ export function EditorDeOrcamento({ id }: { id: string }) {
     });
   }
 
+  // O item escolhido no diálogo: um novo entra no fim da lista já com o produto;
+  // um existente só troca o produto (ou vira item livre do tipo escolhido).
+  const itemEmEscolha = escolhendo && escolhendo.alvo !== "novo" ? itens.find((i) => i.id === escolhendo.alvo) : undefined;
+  const tipoDoItemEmEscolha: ChaveDoTipo | null = (() => {
+    const p = itemEmEscolha?.produto_id ? porProduto.get(itemEmEscolha.produto_id) : undefined;
+    return p ? tipoDoProduto(produtoDaEscolhaDoParceiro(p)).chave : null;
+  })();
+  function produtoEscolhidoNoDialogo(produto: ItemDoCatalogo) {
+    if (!escolhendo) return;
+    if (escolhendo.alvo === "novo") {
+      const novo = itemVazio();
+      setItens((lista) => [...lista, novo]);
+      escolherProduto(novo, produto);
+    } else if (itemEmEscolha) {
+      escolherProduto(itemEmEscolha, produto);
+    }
+    setEscolhendo(null);
+  }
+  function itemLivreEscolhidoNoDialogo(tipo: TipoDeProduto) {
+    if (!escolhendo) return;
+    if (escolhendo.alvo === "novo") {
+      setItens((lista) => [...lista, { ...itemVazio(), unidade: unidadeDoParceiroParaOTipo(tipo) }]);
+    } else if (itemEmEscolha) {
+      // Como na equipe: a unidade que um item livre já tinha fica; vindo de um produto, vale a do tipo.
+      const unidade = unidadeDoParceiroParaOTipo({
+        unidadePadrao: unidadeAoEscolherTipo(tipo, {
+          unidade: itemEmEscolha.unidade,
+          tinhaProduto: !!itemEmEscolha.produto_id,
+          editando: true,
+        }),
+      });
+      mudarItem(itemEmEscolha.id, {
+        produto_id: null,
+        unidade,
+        ...(unidade === "un" ? { largura: null, altura: null } : {}),
+      });
+    }
+    setEscolhendo(null);
+  }
+
   return (
     <div className="space-y-5 pb-36 lg:pb-16">
       <Link to="/parceiro/orcamentos" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -644,10 +702,12 @@ export function EditorDeOrcamento({ id }: { id: string }) {
                   indice={indice}
                   item={item}
                   produto={item.produto_id ? porProduto.get(item.produto_id) : undefined}
+                  extra={item.produto_id ? extraPorProduto.get(item.produto_id) : undefined}
                   catalogo={catalogo}
                   somenteLeitura={somenteLeitura}
                   onMudar={(parcial) => mudarItem(item.id, parcial)}
                   onEscolherProduto={(p) => escolherProduto(item, p)}
+                  onTrocarProduto={() => setEscolhendo({ alvo: item.id })}
                   podeSubir={indice > 0}
                   podeDescer={indice < itens.length - 1}
                   onSubir={() => moverItem(indice, -1)}
@@ -661,7 +721,7 @@ export function EditorDeOrcamento({ id }: { id: string }) {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => setItens((lista) => [...lista, itemVazio()])}
+                  onClick={() => setEscolhendo({ alvo: "novo" })}
                 >
                   <Plus className="mr-1 h-4 w-4" /> Adicionar item
                 </Button>
@@ -878,6 +938,23 @@ export function EditorDeOrcamento({ id }: { id: string }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* A escolha em passos da equipe: tipo em cartões, depois o produto com foto e o preço do parceiro. */}
+      <DialogoDeEscolhaDoProduto
+        aberto={escolhendo !== null}
+        titulo={
+          escolhendo?.alvo === "novo" || !itemEmEscolha
+            ? "Novo item"
+            : `Trocar o produto do item ${itens.indexOf(itemEmEscolha) + 1}`
+        }
+        catalogo={catalogo}
+        extras={extras}
+        carregando={catalogoQuery.isLoading}
+        tipoInicial={tipoDoItemEmEscolha}
+        onFechar={() => setEscolhendo(null)}
+        onEscolherProduto={produtoEscolhidoNoDialogo}
+        onItemLivre={itemLivreEscolhidoNoDialogo}
+      />
+
       <PedidoDialog
         aberto={pedidoAberto}
         onOpenChange={setPedidoAberto}
@@ -1020,10 +1097,12 @@ function ItemCard({
   indice,
   item,
   produto,
+  extra,
   catalogo,
   somenteLeitura,
   onMudar,
   onEscolherProduto,
+  onTrocarProduto,
   podeSubir,
   podeDescer,
   onSubir,
@@ -1034,10 +1113,14 @@ function ItemCard({
   indice: number;
   item: ItemEditavel;
   produto: ItemDoCatalogo | undefined;
+  /** Foto e descrição do produto, para a linha encolhida. */
+  extra: ExtrasDoProduto | undefined;
   catalogo: ItemDoCatalogo[];
   somenteLeitura: boolean;
   onMudar: (parcial: Partial<ItemEditavel>) => void;
   onEscolherProduto: (p: ItemDoCatalogo) => void;
+  /** Abre a escolha em cartões para este item ("Trocar produto"). */
+  onTrocarProduto: () => void;
   podeSubir: boolean;
   podeDescer: boolean;
   onSubir: () => void;
@@ -1072,12 +1155,15 @@ function ItemCard({
           {numero}
         </span>
         <div className="min-w-0 flex-1">
-          <SeletorDeProduto
-            catalogo={catalogo}
+          {/* A linha encolhida da equipe: foto ou desenho do tipo, nome, "tipo · por m² · preço"
+              e "Trocar produto", que reabre a escolha em cartões. */}
+          <LinhaDoProduto
+            produto={produto}
             produtoId={item.produto_id}
+            extra={extra}
+            descricao={item.descricao}
             desabilitado={somenteLeitura}
-            onEscolher={onEscolherProduto}
-            onItemLivre={() => onMudar({ produto_id: null })}
+            onTrocar={onTrocarProduto}
           />
         </div>
       </div>
