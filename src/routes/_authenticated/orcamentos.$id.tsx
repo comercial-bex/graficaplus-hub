@@ -86,6 +86,7 @@ import { PerguntasDoItem, usePerguntasDoProduto } from "@/components/orcamento/p
 import { MaterialPorFormula, useCustoDosMateriais, useFormulasDoProduto, useTerceirizadosDoProduto } from "@/components/orcamento/material-por-formula";
 import { custoDasFormulas, materiaisPorFormula, medidasDoItem } from "@/domain/orcamentos/material-por-formula";
 import { custoDosTerceirizados } from "@/domain/orcamentos/terceirizados";
+import { fraseDoPrecoEspecial, precoDoProdutoNoItem } from "@/domain/precos/preco-especial-do-cliente";
 import {
   CobrancaDasRespostas,
   gravarLinhasDasRespostas,
@@ -435,6 +436,21 @@ function OrcamentoDetailPage() {
     },
   });
 
+  // Preço especial combinado com este cliente (02/11/2026, aba Preço da pasta do
+  // produto): vale no lugar da tabela, fora do modo parceiro. Só quem vê preço lê.
+  const precosEspeciais = useQuery({
+    queryKey: ["orcamento", id, "precos-especiais", (orc as any)?.cliente_id ?? null],
+    enabled: !!(orc as any)?.cliente_id && canSeePrices,
+    queryFn: async (): Promise<Map<string, number>> => {
+      const { data, error } = await (supabase as any)
+        .from("produto_precos_cliente")
+        .select("produto_id, preco")
+        .eq("cliente_id", (orc as any).cliente_id);
+      if (error) throw error;
+      return new Map(((data ?? []) as { produto_id: string; preco: number | string }[]).map((l) => [l.produto_id, Number(l.preco)]));
+    },
+  });
+
   // O que o cliente recebeu e aprovou (22/10/2026): a versão congelada pelo
   // banco ao enviar e ao aprovar, comparada com o orçamento de hoje.
   const { data: versao } = useQuery({
@@ -738,10 +754,18 @@ function OrcamentoDetailPage() {
       ? [...daTabela.faixas].sort((a, b) => b.quantidade_minima - a.quantidade_minima).find((f) => f.quantidade_minima <= qtd)
       : null;
     const parceiroDoProduto = faixa?.preco_parceiro ?? daTabela?.preco_parceiro ?? p.preco_parceiro ?? null;
-    const precoDoProduto =
-      emParceiro && parceiroDoProduto != null ? Number(parceiroDoProduto) : Number(p.preco_base ?? 0);
+    // Fora do modo parceiro, o preço especial combinado com o cliente vence a tabela (02/11/2026).
+    const { preco: precoDoProduto, origem } = precoDoProdutoNoItem({
+      emParceiro,
+      precoParceiro: parceiroDoProduto,
+      precoEspecial: precosEspeciais.data?.get(p.id) ?? null,
+      precoBase: p.preco_base,
+    });
     if (emParceiro && parceiroDoProduto == null && canSeePrices) {
       toast.warning(`“${p.nome}” não tem preço de parceiro: entrou com o preço de tabela.`);
+    }
+    if (origem === "cliente" && canSeePrices) {
+      toast.info(fraseDoPrecoEspecial(precoDoProduto, p.preco_base));
     }
     setTipoEscolhido(tipo.chave);
     setItemLivre(false);

@@ -148,4 +148,4 @@ Ordem de execução nesta sessão: 1, 2, 5 (parte de dados, não depende de tela
 2. Quais perguntas ficam obrigatórias (hoje nenhuma).
 3. Fotos por IA em lote para os 69: pode gastar o crédito? (teste com 1 primeiro)
 4. Terceirizados: hoje a gráfica terceiriza o quê? (vale decidir antes da fase 3)
-5. Preço especial por cliente: precisa? Hoje há preço de parceiro e faixas por quantidade.
+5. Preço especial por cliente: precisa? Hoje há preço de parceiro e faixas por quantidade. **Feito em 02/11 à noite (OK do dono):** tabela `produto_precos_cliente` (um preço por cliente e produto, leitura de quem vê preço, escrita de admin e gestor), cartão "Preço especial para clientes" na aba Preço da pasta, e o item do orçamento desse cliente entra com o preço especial no lugar da tabela, fora do modo parceiro, com aviso na tela.
