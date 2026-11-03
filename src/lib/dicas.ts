@@ -467,6 +467,10 @@ export const dicas = {
       sugestao: "Três caminhos, cada um com a conta: Bater = concorrente mais barato − R$ 1,50; Igualar = o mesmo preço; Piso = custo ÷ (1 − margem mínima do produto), o menor preço que ainda respeita a margem mínima. Em vermelho, quando a margem fica abaixo do mínimo do produto. Nada é gravado: é uma sugestão.",
     },
   },
+  "/vendas-diretas": {
+    menu: "Compras dos revendedores direto com a gráfica.",
+    tela: "Cada compra direta de parceiro, com o total recalculado pela tabela do nível dele e a forma de pagamento: sinal de 50% (metade agora, restante na entrega) ou à vista. Com OS aberta, o link leva à produção; sem OS, converta o pedido em Orçamentos.",
+  },
   "/aprovacoes": {
     menu: "O que o cliente aprovou, o que pediu ajuste e o que já foi entregue.",
     tela: "Situação de cada orçamento na visão do cliente. Junta três coisas que costumam ficar separadas: o status do orçamento, a resposta do cliente em cada arte e os pedidos de ajuste abertos no portal. Se aparecer 'Pediu ajuste', não mande produzir.",

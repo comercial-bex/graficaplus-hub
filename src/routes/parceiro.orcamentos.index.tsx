@@ -50,6 +50,7 @@ function OrcamentosDoParceiro() {
           "id, numero, titulo, cliente_nome, status, created_at, updated_at, " +
             "itens:parceiro_orcamento_itens(produto_id, descricao, unidade, largura, altura, quantidade, preco_venda_unidade)",
         )
+        .eq("venda_direta", false)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Linha[];
