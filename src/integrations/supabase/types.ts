@@ -7776,24 +7776,24 @@ export type Database = {
       }
       orcamento_item_custos: {
         Row: {
-          custo_unitario: number
           custo_formulas: number
+          custo_unitario: number
           orcamento_item_id: string
           updated_at: string
           valor_total: number
           valor_unitario: number
         }
         Insert: {
-          custo_unitario?: number
           custo_formulas?: number
+          custo_unitario?: number
           orcamento_item_id: string
           updated_at?: string
           valor_total?: number
           valor_unitario?: number
         }
         Update: {
-          custo_unitario?: number
           custo_formulas?: number
+          custo_unitario?: number
           orcamento_item_id?: string
           updated_at?: string
           valor_total?: number
@@ -7840,17 +7840,17 @@ export type Database = {
           area_unitaria: number | null
           arquivo_id: string | null
           created_at: string
+          custo_formulas: number
           custo_previsto: number
           custo_unitario: number
           desconto: number
           descricao: string
           especificacao: string | null
           gerado_por_item_id: string | null
-          materiais_por_formula: Json
-          custo_formulas: number
           id: string
           largura: number | null
           margem_prevista: number | null
+          materiais_por_formula: Json
           orcamento_id: string
           ordem: number
           origem_calculo: string | null
@@ -7874,17 +7874,17 @@ export type Database = {
           area_unitaria?: number | null
           arquivo_id?: string | null
           created_at?: string
+          custo_formulas?: number
           custo_previsto?: number
           custo_unitario?: number
           desconto?: number
           descricao: string
           especificacao?: string | null
           gerado_por_item_id?: string | null
-          materiais_por_formula?: Json
-          custo_formulas?: number
           id?: string
           largura?: number | null
           margem_prevista?: number | null
+          materiais_por_formula?: Json
           orcamento_id: string
           ordem?: number
           origem_calculo?: string | null
@@ -7908,17 +7908,17 @@ export type Database = {
           area_unitaria?: number | null
           arquivo_id?: string | null
           created_at?: string
+          custo_formulas?: number
           custo_previsto?: number
           custo_unitario?: number
           desconto?: number
           descricao?: string
           especificacao?: string | null
           gerado_por_item_id?: string | null
-          materiais_por_formula?: Json
-          custo_formulas?: number
           id?: string
           largura?: number | null
           margem_prevista?: number | null
+          materiais_por_formula?: Json
           orcamento_id?: string
           ordem?: number
           origem_calculo?: string | null
@@ -14261,6 +14261,86 @@ export type Database = {
           },
         ]
       }
+      produto_precos_cliente: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          observacao: string | null
+          preco: number
+          produto_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacao?: string | null
+          preco: number
+          produto_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacao?: string | null
+          preco?: number
+          produto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_precos_cliente_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_precos_cliente_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_metragem_cliente"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "produto_precos_cliente_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_precos_cliente_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_precos_cliente_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_precos_cliente_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_precos_cliente_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_processos: {
         Row: {
           created_at: string
@@ -14393,6 +14473,85 @@ export type Database = {
           },
           {
             foreignKeyName: "produto_tamanhos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_terceirizados: {
+        Row: {
+          base: string
+          created_at: string
+          descricao: string
+          fornecedor_id: string | null
+          id: string
+          observacao: string | null
+          ordem: number
+          produto_id: string
+          valor: number
+        }
+        Insert: {
+          base?: string
+          created_at?: string
+          descricao: string
+          fornecedor_id?: string | null
+          id?: string
+          observacao?: string | null
+          ordem?: number
+          produto_id: string
+          valor: number
+        }
+        Update: {
+          base?: string
+          created_at?: string
+          descricao?: string
+          fornecedor_id?: string | null
+          id?: string
+          observacao?: string | null
+          ordem?: number
+          produto_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_terceirizados_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_terceirizados_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_terceirizados_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_terceirizados_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_terceirizados_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_terceirizados_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos_operacional"
@@ -17746,11 +17905,11 @@ export type Database = {
           area_unitaria: number | null
           arquivo_id: string | null
           created_at: string | null
+          custo_formulas: number | null
           custo_unitario: number | null
           descricao: string | null
           especificacao: string | null
           gerado_por_item_id: string | null
-          custo_formulas: number | null
           id: string | null
           largura: number | null
           orcamento_id: string | null
@@ -21636,6 +21795,18 @@ export type Database = {
         }
         Returns: Json
       }
+      parceiro_cadastrar_rapido: {
+        Args: {
+          p_codigo: string
+          p_email: string
+          p_nome: string
+          p_origem?: Json
+          p_senha: string
+          p_telefone: string
+          p_usuario_id: string
+        }
+        Returns: Json
+      }
       parceiro_catalogo: {
         Args: never
         Returns: {
@@ -21663,6 +21834,7 @@ export type Database = {
           tipo: string
         }[]
       }
+      parceiro_completar_cadastro: { Args: { p_dados: Json }; Returns: Json }
       parceiro_compras: {
         Args: { p_fim: string; p_inicio: string; p_parceiro_id: string }
         Returns: {
