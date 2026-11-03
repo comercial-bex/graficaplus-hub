@@ -1,6 +1,4 @@
 import { Gift, PartyPopper, Target, Trophy } from "lucide-react";
-import { DicaIcone } from "@/components/bex/Dica";
-import { dicaCampo } from "@/lib/dicas";
 import { cn } from "@/lib/utils";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";

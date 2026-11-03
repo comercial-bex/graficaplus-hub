@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
