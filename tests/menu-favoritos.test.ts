@@ -28,7 +28,9 @@ describe("favoritos do menu", () => {
     expect(MENU).toContain('label: "Favoritos"');
     expect(MENU).toMatch(/\.\.\.secoesDoModulo,\s*\]/);
     // a árvore já vem filtrada por permissão: tela sem acesso não vira favorita fantasma
-    expect(MENU).toContain(".filter((i): i is ItemVisivel => !!i)");
+    // 02/11/2026: tela que virou aba de um hub continua valendo como favorito e abre a aba.
+    expect(MENU).toContain("const dono = todosOsItens.find((i) => i.telas.some((t) => t.url === url));");
+    expect(MENU).toContain("url: aba.url, link: aba.url, title: aba.title");
   });
 
   it("o contador 'N itens' do módulo não conta os favoritos de novo", () => {

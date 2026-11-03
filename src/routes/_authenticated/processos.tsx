@@ -184,7 +184,7 @@ function ProcessosPage() {
     <div className="space-y-4">
       <SectionHeader
         ajuda={dicaTela("/processos")}
-        breadcrumb="Preço e custo · Processos"
+        breadcrumb="Custeio · Processos"
         title="Processos"
         description="O passo a passo de que os produtos são feitos: etapa, preparação, pessoas e produtividade."
       />

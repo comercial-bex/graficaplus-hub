@@ -112,7 +112,7 @@ function PreencherPastas() {
     <div className="space-y-4">
       <SectionHeader
         ajuda={dicaTela("/preencher-pastas")}
-        breadcrumb="Preço e custo · Produtos e serviços"
+        breadcrumb="Custeio · Produtos e serviços"
         title="Preencher as pastas"
         description="Cada área tem a sua parte para o orçamento e o tempo de produção saírem certos."
       />

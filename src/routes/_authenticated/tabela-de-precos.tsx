@@ -291,7 +291,7 @@ function TabelaDePrecosPage() {
     <div className={cn("space-y-5", comparar.length > 0 && "pb-24")}>
       <SectionHeader
         ajuda={dicaTela("/tabela-de-precos")}
-        breadcrumb="Preço e custo"
+        breadcrumb="Custeio · Tabela de preços"
         title="Tabela de preços"
         description="Cada produto com custo, venda final, preço de parceiro, margem e a posição frente aos concorrentes — numa régua só."
       />

@@ -107,7 +107,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   catalogo_cotacao_sem_atendimento: {
     acao: 'Ver pedidos do catálogo',
     passos: [
-      'Abra Catálogos e entre em Pedidos.',
+      'Abra Vendas › Orçamentos, aba Catálogo de brindes, e entre em Pedidos.',
       'Veja os itens que o cliente escolheu e fale com ele no WhatsApp.',
       'Marque o pedido como atendido para sair desta lista.',
     ],
@@ -221,7 +221,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   os_pronta_sem_entrega_agendada: {
     acao: 'Abrir entregas',
     passos: [
-      'Abra Produção › Entregas e instalações.',
+      'Abra Produção › Ordens de serviço, aba Entregas e instalações.',
       'A entrega costuma nascer sozinha quando a peça fica pronta; se não apareceu, use "Agendar".',
       'Confira o endereço e escolha quem vai levar.',
       'Ao voltar, registre a conclusão com foto ou assinatura — é o que fecha o serviço para o cliente.',
@@ -297,7 +297,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
     acao: 'Ver ordens sem material',
     passos: [
       'Abra a OS e veja se o produto dela tem ficha técnica.',
-      'Se não tiver, cadastre a ficha em Financeiro › Produtos e serviços (aba Materiais).',
+      'Se não tiver, cadastre a ficha em Financeiro › Custeio, abra a pasta do produto e preencha Materiais deste produto (aba Parâmetros).',
       'Com a ficha pronta, a OS passa a prever o material, reservar o estoque e fechar o custo real.',
     ],
   },
@@ -306,14 +306,14 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
     passos: [
       'Abra Produção › Ordens de serviço e entre na OS que a pendência cita.',
       'Se o item foi digitado sem produto, abra a aba Itens e ligue o item ao produto que ele é.',
-      'Se o produto não tem custo, abra Financeiro › Produtos e serviços e preencha o custo (ou a ficha de materiais).',
+      'Se o produto não tem custo, abra Financeiro › Custeio e preencha o custo (ou a ficha de materiais).',
       'Com o custo no produto, a margem da OS e o semáforo do reembolso passam a ter referência.',
     ],
   },
   reembolsos_para_a_gerencia: {
     acao: 'Decidir reembolsos',
     passos: [
-      'Abra Financeiro › Reembolsos e veja a aba "Para decidir".',
+      'Abra Financeiro › Caixa e contas a pagar, aba Reembolsos, e veja a aba "Para decidir".',
       'Cada pedido mostra a foto do cupom e a margem da OS antes e depois da compra.',
       'Aprove ou recuse: prejuízo e recusa pedem o motivo. O aprovado entra na conta a pagar da sexta.',
     ],
@@ -321,7 +321,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   reembolsos_para_o_financeiro: {
     acao: 'Aprovar reembolsos',
     passos: [
-      'Abra Financeiro › Reembolsos e veja a aba "Para decidir".',
+      'Abra Financeiro › Caixa e contas a pagar, aba Reembolsos, e veja a aba "Para decidir".',
       'Confira a foto do cupom contra o valor e a OS pedidos.',
       'Aprove: o valor entra no custo da OS e na conta a pagar da sexta de quem pediu.',
     ],
@@ -337,7 +337,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   produto_sem_ficha: {
     acao: 'Abrir produtos',
     passos: [
-      'Abra Financeiro › Produtos e serviços.',
+      'Abra Financeiro › Custeio.',
       'Os que estão sem ficha têm a etiqueta "sem receita" na lista.',
       'Abra o produto, vá em Materiais e diga quanto de cada material entra por unidade de venda (por m², no caso de impressão).',
     ],
@@ -414,7 +414,7 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   produto_custo_provisorio: {
     acao: 'Abrir produtos',
     passos: [
-      'Abra Financeiro › Produtos e serviços e procure os produtos com a etiqueta "Custo provisório".',
+      'Abra Financeiro › Custeio e procure os produtos com a etiqueta "Custo provisório".',
       'Abra cada um e troque o custo por m² e o preço de balcão pelos números reais.',
       'Ao salvar, o aviso some: a observação de provisório sai do produto.',
     ],
@@ -422,21 +422,21 @@ export const GUIA_PENDENCIAS: Record<string, GuiaPendencia> = {
   produto_sem_custo: {
     acao: 'Abrir produtos',
     passos: [
-      'Abra Financeiro › Produtos e serviços e filtre pelos produtos sem custo.',
+      'Abra Financeiro › Custeio e filtre pelos produtos sem custo.',
       'Preencha o custo do produto ou monte a ficha de materiais na aba Materiais.',
     ],
   },
   produto_sem_preco: {
     acao: 'Abrir produtos',
     passos: [
-      'Abra Financeiro › Produtos e serviços e procure os produtos sem preço.',
+      'Abra Financeiro › Custeio e procure os produtos sem preço.',
       'Preencha o preço de balcão, as faixas de quantidade ou o preço de parceiro.',
     ],
   },
   acabamento_sem_preco: {
     acao: 'Abrir produtos',
     passos: [
-      'Abra Financeiro › Produtos e serviços e entre em um produto que leva o acabamento.',
+      'Abra Financeiro › Custeio e entre em um produto que leva o acabamento.',
       'Na parte de acabamentos da ficha, preencha o preço de venda de cada um.',
     ],
   },

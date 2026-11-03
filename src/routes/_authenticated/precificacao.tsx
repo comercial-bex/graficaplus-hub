@@ -466,7 +466,7 @@ function Simulador() {
     <div>
       <SectionHeader
         ajuda={dicaTela("/precificacao")}
-        breadcrumb="Catálogo & Estoque"
+        breadcrumb="Custeio · Simulador de preço"
         title="Simulador de preço"
         description="Custo, preço sugerido pelo markup da casa e margem de uma peça real, com os parâmetros da casa lidos agora. Mudar um número aqui não grava nada."
       />

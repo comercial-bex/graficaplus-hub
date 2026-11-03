@@ -203,7 +203,7 @@ function CustosProducaoPage() {
     <div>
       <SectionHeader
         ajuda={dicaTela("/custos-producao")}
-        breadcrumb="Catálogo & Estoque"
+        breadcrumb="Custeio · Mão de obra e encargos"
         title="Custos de mão de obra"
         description="Custo/hora com encargos de cada função. É o terceiro bloco do detalhamento de cálculo, junto com Materiais e Processos."
         actions={

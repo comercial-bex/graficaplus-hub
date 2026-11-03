@@ -272,7 +272,7 @@ describe("cada pessoa, com o banco de 06/10/2026 (o que o sistema usa hoje)", ()
       ["producao", false],
       ["financeiro", true],
     ]);
-    expect(l.subgrupos).toEqual(["Receber", "Pagar e caixa", "Preço e custo", "Resultado"]);
+    expect(l.subgrupos).toEqual(["Receber", "Pagar e caixa", "Custeio e resultado"]);
   });
 });
 
@@ -316,8 +316,10 @@ describe("o cabeçalho do painel", () => {
   it("o cartão do módulo conta as entradas do painel", () => {
     const html = desenhar(["financeiro"], banco, "/a-receber");
     // 10 desde 23/10/2026: "Tabela de preços" entrou em Preço e custo;
-    // 11 desde 26/10/2026: "Fornecedores" entrou em Pagar e caixa.
-    expect(html).toMatch(/>11 itens</);
+    // 11 desde 26/10/2026: "Fornecedores" entrou em Pagar e caixa;
+    // 6 desde 02/11/2026: o menu enxuto (banco, despesas fixas, reembolsos viraram
+    // abas do Caixa; planilha, tabela e simulador viraram abas do Custeio).
+    expect(html).toMatch(/>6 itens</);
     const inicio = desenhar(["operador"], banco);
     expect(inicio).toMatch(/>4 itens</); // Início + 3 atalhos
   });
@@ -412,9 +414,9 @@ describe("a barra de abas do hub, desenhada", () => {
     expect(/<a[^>]*aria-current="page"[^>]*>([^<]*)</.exec(html)?.[1]).toBe("Monitor");
   });
 
-  it("o Sergio em Ordens de serviço não vê barra nenhuma (não é hub)", () => {
+  it("o Sergio no Quadro de produção não vê barra nenhuma (não é hub)", () => {
     estado.permissoes = new Set(banco.operador);
-    estado.pathname = "/os";
+    estado.pathname = "/kanban";
     expect(renderToStaticMarkup(createElement(AbasDaTela))).toBe("");
   });
 

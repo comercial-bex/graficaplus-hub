@@ -2,10 +2,8 @@ import type { LucideIcon } from "lucide-react";
 import {
   BadgeDollarSign,
   BellRing,
-  BookOpen,
   Boxes,
   Building2,
-  Calculator,
   CalendarClock,
   ChartColumn,
   ClipboardList,
@@ -16,29 +14,18 @@ import {
   Funnel,
   HandCoins,
   Handshake,
-  HeartHandshake,
   History,
-  Hourglass,
   House,
-  Landmark,
   MessageCircle,
   Network,
   Package,
   Palette,
   Printer,
   ReceiptText,
-  Repeat,
-  Ruler,
   Settings,
-  Sheet,
   ShoppingCart,
-  SlidersHorizontal,
-  Table2,
   SquareKanban,
   Store,
-  Target,
-  TrendingDown,
-  Truck,
   Tv,
   UserCog,
   UserRound,
@@ -154,36 +141,37 @@ export const AREAS: AreaDoMenu[] = [
         ],
       },
       {
-        label: "Orçamentos",
+        // 02/11/2026 (OK do dono ao plano do custeio): 39 itens viraram 26. Tela
+        // que é desdobramento de outra virou aba dela: Catálogo de brindes e Meta
+        // do mês moram no Orçamentos; Pós-venda e Metragem, no Clientes.
+        label: "Clientes e orçamentos",
         itens: [
-          item("Orçamentos", "/orcamentos", FileText, [], { atalho: 1 }),
+          item(
+            "Orçamentos",
+            "/orcamentos",
+            FileText,
+            [
+              // Acrescentado pelo dono depois da proposta (06/10/2026): o catálogo
+              // da LUGA é de onde sai o item de brinde que entra no orçamento.
+              aba("Catálogo de brindes", "/catalogos", "Catálogos de fornecedores"),
+              aba("Meta do mês", "/meta"),
+            ],
+            { atalho: 1 },
+          ),
+          // Continua item próprio (revisão de 02/11): o número de "pediu ajuste" tem
+          // de levar à fila de aprovações, não à lista de orçamentos.
           item("Aprovações do cliente", "/aprovacoes", FileCheck2, [], {
             badge: "pediuAjuste",
             antes: "Aprovações",
           }),
-          // Acrescentado pelo dono depois da proposta (06/10/2026): o catálogo
-          // da LUGA é de onde sai o item de brinde que entra no orçamento.
-          item("Catálogo de brindes", "/catalogos", BookOpen, [], {
-            antes: "Catálogos de fornecedores",
-          }),
-        ],
-      },
-      {
-        label: "Clientes",
-        itens: [
-          item("Clientes", "/clientes", Users),
+          item("Clientes", "/clientes", Users, [
+            aba("Pós-venda", "/pos-venda", "Pós-venda / NPS"),
+            aba("Metragem por cliente", "/metragem"),
+          ]),
           item("Funil de vendas", "/funil", Funnel, [aba("Contatos novos", "/leads", "Leads")], {
             antes: "Funil",
           }),
           item("Parceiros revendedores", "/parceiros", Handshake, [], { antes: "Parceiros" }),
-          item("Pós-venda", "/pos-venda", HeartHandshake, [], { antes: "Pós-venda / NPS" }),
-        ],
-      },
-      {
-        label: "Números de venda",
-        itens: [
-          item("Meta do mês", "/meta", Target),
-          item("Metragem por cliente", "/metragem", Ruler),
         ],
       },
     ],
@@ -208,8 +196,21 @@ export const AREAS: AreaDoMenu[] = [
             curto: "Quadro",
             badge: "osAtrasadas",
           }),
-          item("Ordens de serviço", "/os", ClipboardList, [], { atalho: 2, curto: "OS" }),
-          item("Trabalho parado", "/onde-para", Hourglass, [], { antes: "Onde o trabalho para" }),
+          // 02/11/2026: o que acontece com a OS depois da máquina (parada,
+          // entrega, perda) são abas dela, não itens soltos.
+          item(
+            "Ordens de serviço",
+            "/os",
+            ClipboardList,
+            [
+              aba("Trabalho parado", "/onde-para", "Onde o trabalho para"),
+              aba("Entregas e instalações", "/entregas", "Entregas & Instalações"),
+              // "Perdas" curto: ao lado de "Ocorrências e retrabalho", o nome longo repetia a palavra.
+              aba("Perdas", "/perdas", "Perdas e ocorrências"),
+              aba("Ocorrências e retrabalho", "/ocorrencias", "Ocorrências"),
+            ],
+            { atalho: 2, curto: "OS" },
+          ),
         ],
       },
       {
@@ -232,10 +233,10 @@ export const AREAS: AreaDoMenu[] = [
         ],
       },
       {
-        // "Arte" (um item só) e "Entrega e qualidade" viraram um subgrupo em
-        // 20/10/2026: seis títulos para nove itens era título demais para ler.
-        // A arte vem antes da máquina; a entrega e as perdas, depois dela.
-        label: "Arte, entrega e qualidade",
+        // 20/10/2026: "Arte" (um item só) e "Entrega e qualidade" viraram um
+        // subgrupo. 02/11/2026: entrega e perdas foram para as abas da OS, e o
+        // que sobrou (a arte antes da máquina, o material e a compra) ficou junto.
+        label: "Arte e material",
         itens: [
           item(
             "Artes para produzir",
@@ -244,21 +245,6 @@ export const AREAS: AreaDoMenu[] = [
             [aba("Todos os arquivos", "/arquivos", "Arquivos")],
             { badge: "artesAguardando", antes: "Design & Arte" },
           ),
-          item("Entregas e instalações", "/entregas", Truck, [], {
-            antes: "Entregas & Instalações",
-          }),
-          item(
-            "Perdas e ocorrências",
-            "/perdas",
-            TrendingDown,
-            [aba("Ocorrências e retrabalho", "/ocorrencias", "Ocorrências")],
-            { aba: "Perdas", antes: "Perdas & desperdício" },
-          ),
-        ],
-      },
-      {
-        label: "Material e compras",
-        itens: [
           item(
             "Materiais e estoque",
             "/materiais",
@@ -312,39 +298,46 @@ export const AREAS: AreaDoMenu[] = [
       {
         label: "Pagar e caixa",
         itens: [
-          item("Caixa e contas a pagar", "/fluxo-caixa", Wallet, [], {
-            atalho: 2,
-            curto: "Caixa",
-            antes: "Fluxo de caixa",
-          }),
-          item("Contas bancárias e extrato", "/contas-bancarias", Landmark, [], {
-            antes: "Contas bancárias",
-          }),
-          item("Despesas fixas e contratos", "/compromissos", Repeat, [], {
-            antes: "Compromissos",
-          }),
-          // 15/10/2026: a mesa de quem decide (financeiro e gerência). O pedido
-          // de cada pessoa é "Meus reembolsos", no rodapé — ver FORA_DO_MENU.
-          item("Reembolsos", "/reembolsos", HandCoins),
+          // 02/11/2026: o banco, as despesas fixas e os reembolsos são abas do
+          // Caixa; a mesa de quem decide reembolso ("Reembolsos", 15/10) continua
+          // separada do pedido de cada pessoa ("Meus reembolsos", no rodapé).
+          item(
+            "Caixa e contas a pagar",
+            "/fluxo-caixa",
+            Wallet,
+            [
+              aba("Contas bancárias e extrato", "/contas-bancarias", "Contas bancárias"),
+              aba("Despesas fixas e contratos", "/compromissos", "Compromissos"),
+              aba("Reembolsos", "/reembolsos"),
+            ],
+            { atalho: 2, curto: "Caixa", aba: "Caixa", antes: "Fluxo de caixa" },
+          ),
           // 26/10/2026, pedido do dono: de quem a gráfica compra e o que foi
           // comprado em cada um (Camaleão Tintas primeiro).
           item("Fornecedores", "/fornecedores", Building2),
         ],
       },
       {
-        label: "Preço e custo",
+        // O "Custeio" do Holdprint num lugar só (02/11/2026, OK do dono): o que
+        // antes eram cinco itens de "Preço e custo" mais o catálogo de processos
+        // escondido fora do menu.
+        label: "Custeio e resultado",
         itens: [
-          item("Produtos e serviços", "/produtos", Package, [], { antes: "Produtos" }),
-          item("Planilha de custos", "/planilha-custos", Sheet, [
-            aba("Mão de obra e encargos", "/custos-producao", "Custos de mão de obra"),
-          ]),
-          item("Tabela de preços", "/tabela-de-precos", Table2),
-          item("Simulador de preço", "/precificacao", SlidersHorizontal),
+          item(
+            "Custeio",
+            "/produtos",
+            Package,
+            [
+              aba("Processos", "/processos"),
+              aba("Planilha de custos", "/planilha-custos"),
+              aba("Mão de obra e encargos", "/custos-producao", "Custos de mão de obra"),
+              aba("Tabela de preços", "/tabela-de-precos"),
+              aba("Simulador de preço", "/precificacao"),
+            ],
+            { aba: "Produtos e serviços", antes: "Produtos e serviços" },
+          ),
+          item("Relatórios", "/relatorios", ChartColumn, [], { atalho: 3 }),
         ],
-      },
-      {
-        label: "Resultado",
-        itens: [item("Relatórios", "/relatorios", ChartColumn, [], { atalho: 3 })],
       },
     ],
   },
@@ -397,10 +390,6 @@ export const FORA_DO_MENU: Record<string, { titulo: string; motivo: string }> = 
   "/preencher-pastas": {
     titulo: "Preencher as pastas",
     motivo: "é a cobrança da pasta do produto: abre pela pendência no painel de cada papel",
-  },
-  "/processos": {
-    titulo: "Processos",
-    motivo: "abre pela pasta do produto (aba Processos): o menu é o que o dono aprovou no cenário B",
   },
   "/dashboard": {
     titulo: "Início",
@@ -590,7 +579,10 @@ export function abasDaTela(
   const telas = telasDoItem(dono.item).filter((t) => podeAbrir(t.url));
   if (telas.length < 2) return null;
   const p = normalizar(pathname);
-  const ativa = telas.find((t) => estaNaRota(p, t.url))?.url;
+  // Só na tela da aba em si: a ficha por baixo dela (/os/123, /produtos/abc) tem
+  // as próprias abas, e a barra do hub em cima delas empilhava dois "Processos"
+  // na pasta do produto (revisão de 02/11/2026).
+  const ativa = telas.find((t) => p === t.url)?.url;
   // Aba que a pessoa não abre não é marcada nem mostrada: o guarda já está
   // dizendo "Acesso restrito" no corpo da tela.
   if (!ativa) return null;
