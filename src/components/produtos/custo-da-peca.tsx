@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { acabamentoFicaForaDoCusto, custoDasEtapasDeAcabamento } from "@/domain/catalogo/pasta-do-produto";
 import { custoDasFormulas, materiaisPorFormula, type FormulaDoProduto } from "@/domain/orcamentos/material-por-formula";
+import { custoDosTerceirizados, rotuloDaBase, type TerceirizadoDoProduto } from "@/domain/orcamentos/terceirizados";
 import {
   composicaoMaisRecente,
   custoCheio,
@@ -78,6 +79,13 @@ export function CustoDaPeca(p: {
         .eq("produto_id", p.produtoId)
         .order("ordem");
       if (formulas.error) throw formulas.error;
+      // Os terceirizados do produto (fase 3): valor por peça, por m² ou por pedido.
+      const terceirizados = await (supabase as any)
+        .from("produto_terceirizados")
+        .select("id, descricao, valor, base, fornecedor_id, fornecedor:fornecedor_id(nome)")
+        .eq("produto_id", p.produtoId)
+        .order("ordem");
+      if (terceirizados.error) throw terceirizados.error;
       const ids = [
         ...new Set<string>([
           ...(receita.data ?? []).map((r: any) => r.material_id as string),
@@ -120,6 +128,7 @@ export function CustoDaPeca(p: {
         composicao,
         receita: receitaDoProduto,
         formulas: (formulas.data ?? []) as FormulaDoProduto[],
+        terceirizados: (terceirizados.data ?? []) as TerceirizadoDoProduto[],
         custoDoMaterial: new Map<string, number>(
           (mats.data ?? []).map((m: any) => [m.id as string, Number(m.custo_medio ?? m.custo_unitario ?? 0)]),
         ),
@@ -142,9 +151,10 @@ export function CustoDaPeca(p: {
       </p>
     );
   }
-  const { composicao, receita, etapas, horaDaPessoa, maquina, formulas, custoDoMaterial } = dados.data;
+  const { composicao, receita, etapas, horaDaPessoa, maquina, formulas, terceirizados, custoDoMaterial } = dados.data;
   const porFormula = materiaisPorFormula(formulas, { largura: p.largura, altura: p.altura, copias: 1, quantidade: 1 });
   const custoPorFormula = custoDasFormulas(porFormula.validas, custoDoMaterial);
+  const terceiros = custoDosTerceirizados(terceirizados, { largura: p.largura, altura: p.altura, quantidade: 1 });
   const cheio = custoCheio(composicao);
   const fatias = fatiasDoCusto(composicao);
   const margem = margemSobreVenda(p.preco, cheio);
@@ -284,6 +294,28 @@ export function CustoDaPeca(p: {
             </ul>
             <p className="mt-1.5 text-xs text-muted-foreground">
               Entra no custo de cada item do orçamento, calculado na medida do item: {brl(custoPorFormula.total)} por peça neste tamanho.
+            </p>
+          </section>
+        )}
+
+        {terceiros.linhas.length > 0 && (
+          <section data-testid="custo-de-terceirizados">
+            <h3 className="text-sm font-semibold">Terceirizados, numa peça de {p.largura.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} × {p.altura.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} m</h3>
+            <ul className="mt-1.5 space-y-1 text-sm">
+              {terceiros.linhas.map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate">
+                    {t.descricao}
+                    {t.fornecedor && <span className="ml-1.5 text-xs text-muted-foreground">{t.fornecedor}</span>}
+                  </span>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                    {brl(t.valor)} {rotuloDaBase(t.base)} = <strong className="text-foreground">{brl(t.porPeca)}</strong>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Entra no custo de cada item do orçamento, na medida e na quantidade do item: {brl(terceiros.total)} por peça neste tamanho.
             </p>
           </section>
         )}

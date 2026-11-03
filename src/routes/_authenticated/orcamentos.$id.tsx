@@ -83,8 +83,9 @@ import { UnidadeDoItem } from "@/components/orcamento/unidade-do-item";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
 import { PerguntasDoItem, usePerguntasDoProduto } from "@/components/orcamento/perguntas-do-item";
-import { MaterialPorFormula, useCustoDosMateriais, useFormulasDoProduto } from "@/components/orcamento/material-por-formula";
+import { MaterialPorFormula, useCustoDosMateriais, useFormulasDoProduto, useTerceirizadosDoProduto } from "@/components/orcamento/material-por-formula";
 import { custoDasFormulas, materiaisPorFormula, medidasDoItem } from "@/domain/orcamentos/material-por-formula";
+import { custoDosTerceirizados } from "@/domain/orcamentos/terceirizados";
 import {
   CobrancaDasRespostas,
   gravarLinhasDasRespostas,
@@ -661,6 +662,13 @@ function OrcamentoDetailPage() {
   const custoFormulasForm = canSeeFinancials
     ? custoDasFormulas(calculoDasFormulas.validas, custoDosMateriaisDasFormulas.data ?? new Map<string, number>())
     : null;
+  // Terceirizados do produto (fase 3): o banco soma para todo mundo; a tela só mostra a quem vê custo.
+  const terceirizadosDoProduto = useTerceirizadosDoProduto(form.produto_id, canSeeFinancials);
+  const terceirizadosForm = custoDosTerceirizados(terceirizadosDoProduto.data ?? [], {
+    largura: dimensoesForm.largura,
+    altura: dimensoesForm.altura,
+    quantidade: paraNumero(form.quantidade),
+  });
 
   // Faixa de preço por quantidade e o próximo degrau (argumento de venda).
   const quantidadeForm = paraNumero(form.quantidade) || 1;
@@ -700,7 +708,7 @@ function OrcamentoDetailPage() {
   // A margem na hora conta o material por fórmula junto: é o que o banco vai somar ao custo do item.
   const margemItem =
     valorUnitarioEfetivo > 0
-      ? ((valorUnitarioEfetivo - custoUnitarioForm - (custoFormulasForm?.total ?? 0)) / valorUnitarioEfetivo) * 100
+      ? ((valorUnitarioEfetivo - custoUnitarioForm - (custoFormulasForm?.total ?? 0) - terceirizadosForm.total) / valorUnitarioEfetivo) * 100
       : null;
   const margemMinimaItem = form.margem_minima ?? null;
   const margemAbaixoDoMinimo =
@@ -2075,7 +2083,11 @@ function OrcamentoDetailPage() {
                       onMudar={({ respostas, acabamento }) => setForm((f) => ({ ...f, respostas, acabamento }))}
                     />
 
-                    <MaterialPorFormula linhas={calculoDasFormulas.linhas} custo={custoFormulasForm} />
+                    <MaterialPorFormula
+                      linhas={calculoDasFormulas.linhas}
+                      custo={custoFormulasForm}
+                      terceirizados={terceirizadosForm.linhas}
+                    />
 
                     <CobrancaDasRespostas
                       cobrancas={cobrancasDoItem}

@@ -83,7 +83,7 @@ describe("as telas e o banco", () => {
     expect(item).toContain('"valor_total, custo_unitario, custo_formulas, quantidade"');
     expect(item).toContain("(Number(i.custo_unitario ?? 0) + Number(i.custo_formulas ?? 0)) * Number(i.quantidade ?? 0)");
     expect(item).toContain("valorUnitarioEfetivo - custoUnitarioForm - (custoFormulasForm?.total ?? 0)");
-    expect(item).toContain("<MaterialPorFormula linhas={calculoDasFormulas.linhas} custo={custoFormulasForm} />");
+    expect(item).toMatch(/<MaterialPorFormula\s+linhas=\{calculoDasFormulas\.linhas\}\s+custo=\{custoFormulasForm\}/);
     // Quem não vê custo não consulta o custo do material.
     expect(bloco).toContain("enabled: habilitado && ids.length > 0");
     expect(bloco).toContain('fromFinancialView("materiais", "financeiro")');
