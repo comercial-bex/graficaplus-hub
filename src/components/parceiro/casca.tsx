@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, type CSSProperties } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Dica } from "@/components/bex/Dica";
 import { ThemeToggle } from "@/components/bex/ThemeToggle";
 import { brl } from "@/domain/parceiros/preco";
 import type { PainelDoParceiro } from "@/domain/parceiros/painel";
@@ -68,15 +69,16 @@ export function Casca({
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Seu crédito</p>
               <p className="text-sm font-semibold tabular-nums">{brl(painel.saldo_credito)}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event(EVENTO_REVER_TOUR))}
-              aria-label="Rever a apresentação do painel"
-              title="Rever a apresentação"
-              className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
-            >
-              <HelpCircle className="h-5 w-5" />
-            </button>
+            <Dica texto="Rever a apresentação" lado="bottom">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event(EVENTO_REVER_TOUR))}
+                aria-label="Rever a apresentação do painel"
+                className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+              >
+                <HelpCircle className="h-5 w-5" />
+              </button>
+            </Dica>
             <ThemeToggle />
             <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: "var(--gradient-cmyk)" }} />
           </header>

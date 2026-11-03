@@ -76,7 +76,7 @@ export function BlocoDeAcao(props: {
             <p className="truncate text-lg font-bold tabular-nums md:text-2xl">
               <Contador valor={n.valor} formato={n.formato} />
             </p>
-            <p className="flex items-center gap-0.5 text-[11px] leading-tight text-muted-foreground">
+            <p className="flex items-center gap-0.5 text-xs leading-tight text-muted-foreground">
               {n.rotulo}
               <DicaIcone texto={n.dica} rotulo={n.rotulo} className="h-3.5 w-3.5" />
             </p>
@@ -99,7 +99,7 @@ export function BlocoDeAcao(props: {
               </div>
               {l.selo && (
                 <span
-                  className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
                   style={{ background: `color-mix(in oklab, ${c} 14%, transparent)`, color: c }}
                 >
                   {l.selo}
