@@ -21699,6 +21699,10 @@ export type Database = {
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
       normalize_whatsapp_phone: { Args: { _phone: string }; Returns: string }
+      ocultar_senha_provisoria_do_parceiro: {
+        Args: { p_parceiro: string }
+        Returns: number
+      }
       onde_o_trabalho_para: { Args: never; Returns: Json }
       orcamento_aplicar_preco: {
         Args: { p_modo: string; p_orcamento: string; p_usuario: string }
