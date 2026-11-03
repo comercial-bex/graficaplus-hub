@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   ALFABETO_DA_SENHA,
   cadastroPendente,
+  erroDaTrocaDeSenha,
   gerarSenhaProvisoria,
   mascaraWhatsapp,
   validarCadastroRapido,
@@ -82,6 +83,36 @@ describe("o primeiro acesso", () => {
     expect(PRIMEIRO_ACESSO.indexOf('"parceiro_completar_cadastro"')).toBeLessThan(PRIMEIRO_ACESSO.indexOf("supabase.auth.updateUser"));
     expect(PRIMEIRO_ACESSO).toContain("data: { [CHAVE_CADASTRO_PENDENTE]: false }");
     expect(PRIMEIRO_ACESSO).toContain('autoComplete="new-password"');
+  });
+});
+
+describe("quando o auth recusa a senha do primeiro acesso", () => {
+  it("copiar a senha provisória do WhatsApp vira instrução clara, pelo código do auth ou pelo texto", () => {
+    const porCodigo = erroDaTrocaDeSenha({ code: "same_password", message: "x" });
+    const porTexto = erroDaTrocaDeSenha({ message: "New password should be different from the old password." });
+    for (const e of [porCodigo, porTexto]) {
+      expect(e?.mensagem).toContain("senha nova, só sua");
+      expect(e?.limpar).toBe(true);
+      expect(e?.sairDaConta).toBe(false);
+    }
+  });
+  it("senha fraca ou vazada pede outra; sessão vencida manda entrar de novo; o resto segue para o tradutor central", () => {
+    expect(erroDaTrocaDeSenha({ code: "weak_password", message: "Password is known to be weak" })?.mensagem).toContain("mais forte");
+    expect(erroDaTrocaDeSenha({ message: "Password should be at least 8 characters" })?.limpar).toBe(true);
+    const sessao = erroDaTrocaDeSenha({ message: "Auth session missing!" });
+    expect(sessao?.sairDaConta).toBe(true);
+    expect(sessao?.mensagem).toContain("Entre de novo");
+    expect(erroDaTrocaDeSenha({ message: "boom" })).toBeNull();
+  });
+  it("a tela mostra o erro embaixo do campo, avisa antes de errar e confere a marca no servidor", () => {
+    expect(PRIMEIRO_ACESSO).toContain("erroDaTrocaDeSenha(erroSenha)");
+    expect(PRIMEIRO_ACESSO).toContain('erro={erroDe("novaSenha")}');
+    expect(PRIMEIRO_ACESSO).toContain('erro={erroDe("comprovacao")}');
+    expect(PRIMEIRO_ACESSO).toContain('id="acesso-ramo-erro"');
+    // validação não vai mais para o aviso do canto da tela
+    expect(PRIMEIRO_ACESSO).not.toContain("toast.error(falta");
+    expect(PRIMEIRO_ACESSO).toContain("diferente da provisória");
+    expect(PRIMEIRO_ACESSO).toContain("supabase.auth.getUser()");
   });
 });
 
