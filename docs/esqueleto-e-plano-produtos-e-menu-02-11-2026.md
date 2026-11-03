@@ -42,7 +42,7 @@ Processos: 19 no catálogo, 6 com produtividade medida (impressão eco-solvente,
 
 ## 2. O esqueleto: módulos, telas, tabelas e como se ligam
 
-79 telas logadas, 176 tabelas, menu em 4 áreas (Vendas, Produção, Financeiro, Administração), 13 subgrupos, 41 itens e 25 abas. O número de linhas diz o que vive e o que nunca foi usado.
+79 telas logadas, 176 tabelas, menu em 4 áreas (Vendas, Produção, Financeiro, Administração), 13 subgrupos, 39 itens e 21 abas. O número de linhas diz o que vive e o que nunca foi usado.
 
 ### 2.1 A cadeia principal (é por ela que o dinheiro passa)
 
@@ -101,9 +101,9 @@ Tabelas com zero linhas depois de meses no ar: pós-venda (tickets, retornos, ga
 
 Holdprint: 12 entradas no trilho (Visão geral, Favoritos, Agenda, Cadastros, Custeio, CRM, Produção, Financeiro, Estoque, Relatórios, Insider AI, Ajustes), cada uma com até 5 subitens. O Custeio tem Centros de Custo, Equipamentos, Processos, Produtos e Serviços e Terceirizados.
 
-Bex Print: 4 áreas, 13 subgrupos, 41 itens. O que cansa não é o número de áreas, é o número de itens por área (Vendas 11, Produção 11, Financeiro 14, Administração 5), com 25 abas por trás.
+Bex Print: 4 áreas, 13 subgrupos, 39 itens. O que cansa não é o número de áreas, é o número de itens por área (Vendas 11, Produção 11, Financeiro 12, Administração 5), com 21 abas por trás.
 
-**Proposta (41 itens viram 27; nenhuma tela some, muda de porta):**
+**Proposta (39 itens viram 25, com 36 abas; nenhuma tela some, muda de porta):**
 
 | Área | Hoje | Proposta |
 |---|---|---|
@@ -140,7 +140,7 @@ Ordem de execução nesta sessão: 1, 2, 5 (parte de dados, não depende de tela
 | 4. Fórmulas no custo | Mesclada (#402); migração `20261102220000` aplicada e ensaiada; publicação em andamento ao fim da sessão |
 | 5. Preencher | Catálogo do Holdprint atualizado em `catalogo_modelos` (33 nomes novos, 442 no total; só nome, sem produto). Campos semeados (fase 2). Fotos por IA dependem de alguém logado clicar "Gerar fotos que faltam" (o modelo de imagem ainda não foi confirmado). Subfamília não foi semeada: a família já faz esse papel |
 | 6. Pronto para a IA | Mesclada (#404): nota de 0 a 10 na lista e no alto da pasta, com o que falta pelo nome |
-| 7. Menu | OK do dono na noite de 02/11 ("tem meu sim para tudo"). Executada: 41 itens viraram 25. Aprovações, Catálogo de brindes e Meta do mês são abas de Orçamentos; Pós-venda e Metragem, de Clientes; Trabalho parado, Entregas, Perdas e Ocorrências, da OS; Contas bancárias, Despesas fixas e Reembolsos, do Caixa; o hub **Custeio** (a tela de produtos) leva Processos, Planilha de custos, Mão de obra, Tabela de preços e Simulador. Ninguém ganhou nem perdeu tela: mudou a porta. Avisos ao cliente ficou item próprio (a Cibele o abre sem abrir o WhatsApp) |
+| 7. Menu | OK do dono na noite de 02/11 ("tem meu sim para tudo"). Executada: 39 itens viraram 25 (as abas foram de 21 para 36). Aprovações, Catálogo de brindes e Meta do mês são abas de Orçamentos; Pós-venda e Metragem, de Clientes; Trabalho parado, Entregas, Perdas e Ocorrências, da OS; Contas bancárias, Despesas fixas e Reembolsos, do Caixa; o hub **Custeio** (a tela de produtos) leva Processos, Planilha de custos, Mão de obra, Tabela de preços e Simulador. Ninguém ganhou nem perdeu tela: mudou a porta. Avisos ao cliente ficou item próprio (a Cibele o abre sem abrir o WhatsApp) |
 
 ## 5. Decisões do dono
 

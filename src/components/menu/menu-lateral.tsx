@@ -335,10 +335,16 @@ export function MenuLateral({
   // Favoritos: as telas marcadas, de qualquer área, no alto do painel de qualquer módulo. Só entra
   // o que a pessoa ainda pode ver (a árvore já vem filtrada por permissão).
   const todosOsItens = areas.flatMap((a) => a.subgrupos.flatMap((s) => s.itens));
-  const entradasFavoritas = favoritos
-    .map((url) => todosOsItens.find((i) => i.url === url))
-    .filter((i): i is ItemVisivel => !!i)
-    .map((i) => entradaDoItem(i, "item"));
+  const entradasFavoritas = favoritos.flatMap((url) => {
+    const item = todosOsItens.find((i) => i.url === url);
+    if (item) return [entradaDoItem(item, "item")];
+    // Tela que virou aba de um hub (menu enxuto de 02/11/2026): o favorito guardado
+    // antes continua valendo e abre a aba, com o nome dela.
+    const dono = todosOsItens.find((i) => i.telas.some((t) => t.url === url));
+    const aba = dono?.telas.find((t) => t.url === url);
+    if (!dono || !aba) return [];
+    return [{ ...entradaDoItem(dono, "item"), url: aba.url, link: aba.url, title: aba.title, badge: undefined }];
+  });
   const secoes: Secao[] = favoritosLidos
     ? [
         {

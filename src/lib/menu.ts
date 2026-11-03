@@ -140,7 +140,7 @@ export const AREAS: AreaDoMenu[] = [
         ],
       },
       {
-        // 02/11/2026 (OK do dono ao plano do custeio): 41 itens viraram 25. Tela
+        // 02/11/2026 (OK do dono ao plano do custeio): 39 itens viraram 25. Tela
         // que é desdobramento de outra virou aba dela: Aprovações, Catálogo de
         // brindes e Meta do mês moram no Orçamentos; Pós-venda e Metragem, no
         // Clientes. O selo de "pediu ajuste" sobe para o hub.
@@ -200,7 +200,8 @@ export const AREAS: AreaDoMenu[] = [
             [
               aba("Trabalho parado", "/onde-para", "Onde o trabalho para"),
               aba("Entregas e instalações", "/entregas", "Entregas & Instalações"),
-              aba("Perdas e ocorrências", "/perdas", "Perdas & desperdício"),
+              // "Perdas" curto: ao lado de "Ocorrências e retrabalho", o nome longo repetia a palavra.
+              aba("Perdas", "/perdas", "Perdas e ocorrências"),
               aba("Ocorrências e retrabalho", "/ocorrencias", "Ocorrências"),
             ],
             { atalho: 2, curto: "OS" },
@@ -573,7 +574,10 @@ export function abasDaTela(
   const telas = telasDoItem(dono.item).filter((t) => podeAbrir(t.url));
   if (telas.length < 2) return null;
   const p = normalizar(pathname);
-  const ativa = telas.find((t) => estaNaRota(p, t.url))?.url;
+  // Só na tela da aba em si: a ficha por baixo dela (/os/123, /produtos/abc) tem
+  // as próprias abas, e a barra do hub em cima delas empilhava dois "Processos"
+  // na pasta do produto (revisão de 02/11/2026).
+  const ativa = telas.find((t) => p === t.url)?.url;
   // Aba que a pessoa não abre não é marcada nem mostrada: o guarda já está
   // dizendo "Acesso restrito" no corpo da tela.
   if (!ativa) return null;

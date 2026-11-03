@@ -126,7 +126,7 @@ function juntarSubgrupos(b: ResumoDoMenu, area: string, nomes: string[], novoNom
 
 /**
  * O custeio como no Holdprint e o menu enxuto (02/11/2026, OK do dono ao plano
- * do custeio): 41 itens viraram 25. Tela que é desdobramento de outra virou aba
+ * do custeio): 39 itens viraram 25. Tela que é desdobramento de outra virou aba
  * dela: Aprovações, Catálogo de brindes e Meta do mês no Orçamentos; Pós-venda e
  * Metragem no Clientes; Trabalho parado, Entregas e Perdas na OS; Contas
  * bancárias, Despesas fixas e Reembolsos no Caixa; e o hub "Custeio" (a tela de
