@@ -39,6 +39,7 @@ import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 import { baseDeCalculo, rotuloDaUnidade } from "@/domain/catalogo/familias-da-lista";
 import { entradaDaNota, fraseDaNota, notaDaPasta } from "@/domain/catalogo/pronto-para-ia";
 import { BASES_DO_TERCEIRIZADO, pendenciaDoTerceirizado, rotuloDaBase } from "@/domain/orcamentos/terceirizados";
+import { pendenciaDoPrecoEspecial } from "@/domain/precos/preco-especial-do-cliente";
 import { NotaProntoParaIa } from "@/components/produtos/nota-pronto-para-ia";
 import { lerParametros, type LinhaDeParametro } from "@/domain/precificacao/parametros";
 import { supabase } from "@/integrations/supabase/client";
@@ -627,6 +628,12 @@ function PastaDoProduto() {
               </CardContent>
             </Card>
             {canSeeFinancials && botaoSalvar}
+            {/* "Preço especial para clientes" do Holdprint: um preço combinado com um cliente. */}
+            <PrecosEspeciaisDoProduto
+              produtoId={id}
+              podeEditar={podeEditar}
+              precoTabela={p.preco_base == null ? null : Number(p.preco_base)}
+            />
             {nivelDeVisao === "financeiro" && casa && (
               // O "Método de cálculo" e os "Impostos" do Holdprint: os números da casa, lidos da Planilha de custos.
               <Card data-testid="metodo-de-calculo-da-casa">
@@ -1184,6 +1191,156 @@ function AbaProcessos({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Preço especial para clientes (aba Preço do Holdprint, 02/11/2026): um preço
+ * de venda do produto combinado com um cliente. O item do orçamento desse
+ * cliente entra com ele no lugar da tabela, fora do modo parceiro.
+ */
+function PrecosEspeciaisDoProduto({
+  produtoId,
+  podeEditar,
+  precoTabela,
+}: {
+  produtoId: string;
+  podeEditar: boolean;
+  precoTabela: number | null;
+}) {
+  const qc = useQueryClient();
+  const [clienteId, setClienteId] = useState("");
+  const [preco, setPreco] = useState("");
+  const [observacao, setObservacao] = useState("");
+  const chave = ["pasta-precos-especiais", produtoId];
+  const lista = useQuery({
+    queryKey: chave,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_precos_cliente")
+        .select("id, cliente_id, preco, observacao, cliente:cliente_id(nome)")
+        .eq("produto_id", produtoId)
+        .order("created_at");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+  const clientes = useQuery({
+    queryKey: ["clientes-para-preco-especial"],
+    enabled: podeEditar,
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("clientes").select("id, nome").order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+  const pendencia = pendenciaDoPrecoEspecial({ cliente_id: clienteId, preco }, lista.data ?? []);
+  const atualizar = () => {
+    void qc.invalidateQueries({ queryKey: chave });
+    void qc.invalidateQueries({ queryKey: ["pasta-historico", produtoId] });
+  };
+  const adicionar = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_precos_cliente")
+        .insert({
+          produto_id: produtoId,
+          cliente_id: clienteId,
+          preco: Number(preco.replace(",", ".")),
+          observacao: observacao.trim() || null,
+        })
+        .select("id");
+      if (error) throw error;
+      confereGravou(data);
+    },
+    onSuccess: () => {
+      setClienteId("");
+      setPreco("");
+      setObservacao("");
+      atualizar();
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+  const remover = useMutation({
+    mutationFn: async (linhaId: string) => {
+      const { data, error } = await (supabase as any)
+        .from("produto_precos_cliente")
+        .delete()
+        .eq("id", linhaId)
+        .select("id");
+      if (error) throw error;
+      confereGravou(data);
+    },
+    onSuccess: atualizar,
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+  return (
+    <Card data-testid="precos-especiais-do-produto">
+      <CardHeader>
+        <CardTitle className="text-base">Preço especial para clientes</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          O orçamento deste cliente entra com o preço combinado no lugar da tabela
+          {precoTabela != null && precoTabela > 0 ? ` (${brl(precoTabela)})` : ""}. Fora do modo parceiro, que tem a própria tabela.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {podeEditar && (
+          <div className="grid items-end gap-3 md:grid-cols-[1fr_140px_1fr_auto]">
+            <div className="space-y-1.5">
+              <Label htmlFor="pasta-preco-especial-cliente">Cliente</Label>
+              <Select value={clienteId || "nenhum"} onValueChange={(v) => setClienteId(v === "nenhum" ? "" : v)}>
+                <SelectTrigger id="pasta-preco-especial-cliente">
+                  <SelectValue placeholder="Escolha o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Escolha o cliente</SelectItem>
+                  {(clientes.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Campo rotulo="Preço combinado (R$)" valor={preco} desativado={false} aoMudar={setPreco} />
+            <Campo rotulo="Observação (opcional)" valor={observacao} desativado={false} aoMudar={setObservacao} />
+            <Button disabled={!!pendencia || adicionar.isPending} onClick={() => adicionar.mutate()}>
+              <Plus className="mr-1.5 h-4 w-4" /> Acrescentar
+            </Button>
+            {pendencia && (clienteId || preco) && (
+              <p className="text-xs text-destructive md:col-span-4">{pendencia}</p>
+            )}
+          </div>
+        )}
+        {lista.isLoading && <Carregando />}
+        {!lista.isLoading && (lista.data ?? []).length === 0 && (
+          <p className="py-2 text-center text-sm text-muted-foreground">
+            Nenhum cliente com preço especial neste produto.
+          </p>
+        )}
+        {(lista.data ?? []).map((l) => (
+          <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-3">
+            <div className="min-w-0">
+              <div className="font-medium">{l.cliente?.nome ?? "Cliente"}</div>
+              <div className="text-xs text-muted-foreground">
+                {brl(Number(l.preco))}
+                {l.observacao ? ` · ${l.observacao}` : ""}
+              </div>
+            </div>
+            {podeEditar && (
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={remover.isPending}
+                aria-label={`Tirar o preço especial de ${l.cliente?.nome ?? "cliente"}`}
+                onClick={() => remover.mutate(l.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
