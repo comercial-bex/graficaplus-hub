@@ -1,30 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BadgePercent, Eye, EyeOff, FileText, Gift, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowRight, BadgePercent, FileText, Gift, Loader2, MessageCircle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CampoDeAcesso } from "@/components/acesso/CampoDeAcesso";
 import { BANNER_DO_CONVITE, LOGO_FUNDO_ESCURO } from "@/lib/marca";
 import { mensagemErro } from "@/lib/erros";
-import { cn } from "@/lib/utils";
 import { cadastroParceiroConcluidoMeta, lerOrigemDaUrl, META_PIXEL_ID } from "@/lib/metaPixel";
-import { RAMOS, normalizarComprovacao } from "@/domain/parceiros/ramo";
-
-/** Máscara (XX) XXXXX-XXXX / (XX) XXXX-XXXX. */
-function mascaraWhatsapp(v: string): string {
-  const d = v.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : "";
-  const ddd = d.slice(0, 2), r = d.slice(2);
-  if (r.length <= 4) return `(${ddd}) ${r}`;
-  if (d.length === 11) return `(${ddd}) ${r.slice(0, 5)}-${r.slice(5)}`;
-  return `(${ddd}) ${r.slice(0, 4)}-${r.slice(4)}`;
-}
-
-function whatsappValido(v: string): boolean {
-  const n = v.replace(/\D/g, "").length;
-  return n === 10 || n === 11;
-}
+import {
+  CHAVE_CADASTRO_PENDENTE,
+  gerarSenhaProvisoria,
+  mascaraWhatsapp,
+  validarCadastroRapido,
+} from "@/domain/parceiros/cadastro-rapido";
 
 /**
  * No tema escuro os tokens de campo e de cartão são a mesma cor (#0d0d0d): um
@@ -32,10 +21,6 @@ function whatsappValido(v: string): boolean {
  * fundo da página (bg-background) com a borda comum, visível nos dois temas.
  */
 const campoCls = "border-border bg-background";
-
-/** O <select> nativo vestido como o <Input> do CampoDeAcesso (mesma altura, borda e fundo). */
-const selectCls =
-  "flex h-12 w-full rounded-lg border border-border bg-background px-4 text-base shadow-none transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 md:text-sm";
 
 /**
  * Cadastro de revendedor por convite de outro revendedor.
@@ -48,6 +33,12 @@ const selectCls =
  * da marca nos dois temas (tokens da barra lateral, como a tela de entrada),
  * leva o banner da campanha e tem os dados do link (og:image) para a prévia
  * sair com o banner quando o link é colado numa conversa.
+ *
+ * TRÊS CAMPOS (03/11/2026, decisão do dono): nome, WhatsApp e e-mail. A senha é
+ * provisória, gerada aqui, e vai pelo WhatsApp junto com o link e o e-mail; o
+ * resto do cadastro (ramo, comprovação, cidade, documento) e a senha
+ * definitiva são pedidos no primeiro acesso ao painel (CompletarCadastro). Um
+ * formulário de nove campos dentro do Instagram perdia gente no meio.
  *
  * Duas coisas que esta tela NÃO faz, de propósito:
  *
@@ -64,8 +55,6 @@ const selectCls =
 function erroDoCadastro(msg: string): string {
   const m = msg.toLowerCase();
   if (m.includes("already registered")) return "Este e-mail já tem cadastro. Entre pela tela de login (aba parceiro).";
-  if (m.includes("password") && (m.includes("weak") || m.includes("pwned") || m.includes("least")))
-    return "Escolha uma senha mais forte: 8 ou mais caracteres, misturando letras e números.";
   if (m.includes("rate limit") || m.includes("too many")) return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
   if (m.includes("invalid") && m.includes("email")) return "Confira o e-mail digitado.";
   if (m.includes("signups not allowed") || m.includes("signup is disabled"))
@@ -73,7 +62,7 @@ function erroDoCadastro(msg: string): string {
   return msg;
 }
 
-const DESCRICAO = "Preço de revendedor, orçamento com a sua marca e crédito a cada compra. Cadastre-se e o painel é liberado na hora.";
+const DESCRICAO = "Preço de revendedor, orçamento com a sua marca e crédito a cada compra. Cadastre-se em 30 segundos e o painel é liberado na hora.";
 
 export const Route = createFileRoute("/convite/$codigo")({
   head: () => ({
@@ -159,6 +148,9 @@ function Moldura({ children }: { children: React.ReactNode }) {
 const linkNoCartao =
   "inline-block rounded-sm pt-2 font-medium text-card-foreground underline decoration-border underline-offset-4 hover:decoration-bex-cyan";
 
+const botaoCiano =
+  "flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-bex-cyan text-base font-bold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
 function ConvitePage() {
   const { codigo } = Route.useParams();
 
@@ -174,19 +166,11 @@ function ConvitePage() {
     },
   });
 
-  const [empresa, setEmpresa] = useState("");
-  const [documento, setDocumento] = useState("");
+  const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [estado, setEstado] = useState("");
   const [email, setEmail] = useState("");
-  const [ramo, setRamo] = useState("");
-  const [ramoOutro, setRamoOutro] = useState("");
-  const [comprovacao, setComprovacao] = useState("");
-  const [senha, setSenha] = useState("");
-  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [pronto, setPronto] = useState(false);
+  const [pronto, setPronto] = useState<{ whatsapp: boolean } | null>(null);
   // UTM de onde a pessoa veio (anúncio, story, link direto): vai junto no cadastro.
   const [origem, setOrigem] = useState<Record<string, string> | null>(null);
   useEffect(() => {
@@ -197,22 +181,21 @@ function ConvitePage() {
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
-    if (!empresa.trim()) return toast.error("Diga o nome da sua empresa.");
-    if (!whatsappValido(telefone)) return toast.error("Informe um WhatsApp válido com DDD: (XX) XXXXX-XXXX.");
-    if (!ramo) return toast.error("Escolha o seu ramo de atuação.");
-    if (ramo === "outro" && !ramoOutro.trim()) return toast.error("Diga qual é o seu ramo.");
-    const comprovacaoUrl = normalizarComprovacao(comprovacao);
-    if (comprovacaoUrl.length < 3) return toast.error("Informe o Instagram ou site do seu negócio.");
-    if (senha.length < 6) return toast.error("A senha precisa de pelo menos 6 caracteres.");
+    const falta = validarCadastroRapido({ nome, telefone, email });
+    if (falta) return toast.error(falta.mensagem);
 
     setEnviando(true);
     try {
+      // A senha provisória nasce aqui e vai pelo WhatsApp; no primeiro acesso a
+      // pessoa cria a dela. `cadastro_pendente` é a marca que abre essa tela.
+      const senha = gerarSenhaProvisoria();
+      const emailLimpo = email.trim().toLowerCase();
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: emailLimpo,
         password: senha,
         options: {
           emailRedirectTo: `${window.location.origin}/login`,
-          data: { nome: empresa.trim(), telefone: telefone.trim() },
+          data: { nome: nome.trim(), telefone: telefone.trim(), [CHAVE_CADASTRO_PENDENTE]: true },
         },
       });
       if (error) throw new Error(erroDoCadastro(error.message));
@@ -223,22 +206,17 @@ function ConvitePage() {
       const usuarioId = data.user?.id;
       if (!usuarioId) throw new Error("O cadastro não retornou a conta criada.");
 
-      const { error: erroRpc } = await (supabase.rpc as any)("parceiro_cadastrar_por_convite", {
+      const { data: resultado, error: erroRpc } = await (supabase.rpc as any)("parceiro_cadastrar_rapido", {
         p_codigo: codigo,
         p_usuario_id: usuarioId,
-        p_marca_nome: empresa.trim(),
-        p_documento: documento.trim() || null,
-        p_telefone: telefone.trim() || null,
-        p_email: email.trim().toLowerCase() || null,
-        p_cidade: cidade.trim() || null,
-        p_estado: estado.trim().toUpperCase() || null,
+        p_nome: nome.trim(),
+        p_telefone: telefone.trim(),
+        p_email: emailLimpo,
+        p_senha: senha,
         p_origem: origem,
-        p_ramo: ramo,
-        p_ramo_outro: ramo === "outro" ? ramoOutro.trim() : null,
-        p_comprovacao: comprovacaoUrl,
       });
       // A conta já existe neste ponto. Se o vínculo falhar, a pessoa precisa
-      // saber que a senha dela vale — e a gráfica precisa saber que houve uma
+      // saber que a conta vale — e a gráfica precisa saber que houve uma
       // conta órfã, em vez de um cadastro que "sumiu".
       if (erroRpc) {
         throw new Error(
@@ -247,7 +225,7 @@ function ConvitePage() {
         );
       }
 
-      setPronto(true);
+      setPronto({ whatsapp: (resultado as { whatsapp_enfileirado?: boolean } | null)?.whatsapp_enfileirado !== false });
       cadastroParceiroConcluidoMeta();
     } catch (err) {
       toast.error(mensagemErro(err));
@@ -287,21 +265,28 @@ function ConvitePage() {
   if (pronto) {
     return (
       <Moldura>
-        <div className="space-y-3 text-center">
+        <div className="space-y-4 text-center">
           <ShieldCheck className="mx-auto h-10 w-10 text-bex-cyan" aria-hidden="true" />
           <h1 className="text-xl font-semibold">Cadastro feito — acesso liberado</h1>
           <p className="text-sm text-muted-foreground">
-            Bem-vindo, <strong className="text-card-foreground">{empresa.trim()}</strong>. Seu cadastro
-            de revendedor está pronto e o seu painel já está liberado.
+            Bem-vindo, <strong className="text-card-foreground">{nome.trim()}</strong>. Seu painel de
+            revendedor já está liberado.
           </p>
-          <p className="text-sm text-muted-foreground">
-            Entre com o e-mail e a senha que acabou de escolher (se pedirmos a confirmação do
-            e-mail, confirme primeiro). Lá você já recebe o <strong className="text-card-foreground">seu próprio link de convite</strong> para
-            indicar outros revendedores.
+          <p className="flex items-start gap-2 rounded-lg border border-border bg-background p-3 text-left text-sm">
+            <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-bex-cyan" aria-hidden="true" />
+            <span>
+              {pronto.whatsapp
+                ? <>Mandamos no seu WhatsApp <strong className="text-card-foreground">{telefone}</strong> o link de entrada, o seu e-mail e uma senha provisória, para você entrar de qualquer aparelho.</>
+                : <>Não conseguimos mandar o acesso pelo WhatsApp agora. Entre pelo botão abaixo e, se precisar da senha depois, use "Esqueci a senha" com o e-mail <strong className="text-card-foreground">{email.trim().toLowerCase()}</strong>.</>}
+            </span>
           </p>
-          <Link to="/login" search={{ como: "parceiro" }} className={linkNoCartao}>
-            Entrar no meu painel
-          </Link>
+          {/* Endereço completo de propósito: a página recarrega e lê o papel novo do banco. */}
+          <a href="/parceiro" className={botaoCiano}>
+            Abrir meu painel agora <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </a>
+          <p className="text-xs text-muted-foreground">
+            No primeiro acesso você cria a sua senha e completa o cadastro em um minuto.
+          </p>
         </div>
       </Moldura>
     );
@@ -333,44 +318,15 @@ function ConvitePage() {
       {/* noValidate: a conferência é nossa, com aviso no canto; o campo marca o que é obrigatório. */}
       <form onSubmit={enviar} noValidate className="space-y-4">
         <CampoDeAcesso
-          id="convite-empresa"
+          id="convite-nome"
           className={campoCls}
-          rotulo="Nome da sua empresa"
+          rotulo="Seu nome ou o da sua empresa"
           placeholder="Como o seu cliente te conhece"
           autoComplete="organization"
           required
-          value={empresa}
-          onChange={(e) => setEmpresa(e.target.value)}
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
         />
-        <CampoDeAcesso
-          id="convite-documento"
-          className={campoCls}
-          rotulo="CNPJ ou CPF (opcional)"
-          inputMode="numeric"
-          autoComplete="off"
-          value={documento}
-          onChange={(e) => setDocumento(e.target.value)}
-        />
-        <div className="grid grid-cols-[1fr_5.5rem] gap-3">
-          <CampoDeAcesso
-            id="convite-cidade"
-            className={campoCls}
-            rotulo="Cidade"
-            autoComplete="address-level2"
-            value={cidade}
-            onChange={(e) => setCidade(e.target.value)}
-          />
-          <CampoDeAcesso
-            id="convite-uf"
-            rotulo="UF"
-            maxLength={2}
-            autoCapitalize="characters"
-            autoComplete="address-level1"
-            className={cn(campoCls, "uppercase")}
-            value={estado}
-            onChange={(e) => setEstado(e.target.value)}
-          />
-        </div>
         <CampoDeAcesso
           id="convite-whatsapp"
           className={campoCls}
@@ -383,95 +339,25 @@ function ConvitePage() {
           value={telefone}
           onChange={(e) => setTelefone(mascaraWhatsapp(e.target.value))}
         />
-        {/* Ramo e comprovação (desde 02/11/2026): o programa é só para quem é do setor gráfico. */}
-        <div className="space-y-1.5">
-          <label htmlFor="convite-ramo" className="block text-sm font-medium text-foreground">
-            Qual o seu ramo?
-          </label>
-          <select
-            id="convite-ramo"
-            className={selectCls}
-            required
-            value={ramo}
-            onChange={(e) => setRamo(e.target.value)}
-          >
-            <option value="" disabled>Escolha o ramo</option>
-            {RAMOS.map((r) => (
-              <option key={r.valor} value={r.valor}>{r.rotulo}</option>
-            ))}
-          </select>
-        </div>
-        {ramo === "outro" && (
-          <CampoDeAcesso
-            id="convite-ramo-outro"
-            className={campoCls}
-            rotulo="Qual é o seu ramo?"
-            maxLength={120}
-            required
-            value={ramoOutro}
-            onChange={(e) => setRamoOutro(e.target.value)}
-          />
-        )}
         <div>
           <CampoDeAcesso
-            id="convite-comprovacao"
+            id="convite-email"
             className={campoCls}
-            rotulo="Instagram ou site do seu negócio"
-            placeholder="@suaempresa ou suaempresa.com.br"
-            inputMode="url"
+            rotulo="Seu e-mail"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
             autoCapitalize="none"
             spellCheck={false}
-            maxLength={300}
             required
-            value={comprovacao}
-            onChange={(e) => setComprovacao(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
-          <p className="mt-1.5 text-xs text-muted-foreground">Usamos para confirmar que você trabalha no ramo.</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">É o seu login. A senha provisória chega no WhatsApp.</p>
         </div>
-        <CampoDeAcesso
-          id="convite-email"
-          className={campoCls}
-          rotulo="Seu e-mail"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          autoCapitalize="none"
-          spellCheck={false}
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <CampoDeAcesso
-          id="convite-senha"
-          className={campoCls}
-          rotulo="Crie uma senha"
-          type={mostrarSenha ? "text" : "password"}
-          autoComplete="new-password"
-          placeholder="Pelo menos 6 caracteres"
-          required
-          minLength={6}
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          acao={
-            <button
-              type="button"
-              onClick={() => setMostrarSenha((v) => !v)}
-              aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
-              aria-pressed={mostrarSenha}
-              className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {mostrarSenha ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-            </button>
-          }
-        />
 
         {/* Botão sólido ciano com letra preta (7:1): no fundo escuro a borda neon some. */}
-        <button
-          type="submit"
-          disabled={enviando}
-          aria-busy={enviando}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-bex-cyan text-base font-bold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <button type="submit" disabled={enviando} aria-busy={enviando} className={botaoCiano}>
           {enviando ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />

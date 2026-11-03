@@ -76,6 +76,9 @@ const ASSINATURAS: Record<string, string[]> = {
   parceiro_painel: [],
   parceiro_salvar_marca: ["p_dados"],
   parceiro_vincular_usuario: ["p_parceiro_id", "p_usuario_id"],
+  // Migração 20261103300000 (convite curto): cadastro de três campos e o primeiro acesso.
+  parceiro_cadastrar_rapido: ["p_codigo", "p_usuario_id", "p_nome", "p_telefone", "p_email", "p_senha", "p_origem"],
+  parceiro_completar_cadastro: ["p_dados"],
   parceiros_contador_periodo: ["p_inicio", "p_fim"],
   parceiros_resumo: [],
   previsoes_desatualizadas: [],

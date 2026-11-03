@@ -26,27 +26,26 @@ describe("a página do convite", () => {
     expect(CONVITE).not.toContain("BexBackground");
   });
 
-  it("todo campo tem rótulo visível e o botão de enviar é sólido, com letra preta no ciano", () => {
-    // empresa, documento, cidade, UF, WhatsApp, "qual ramo" (só com Outro), comprovação, e-mail, senha
+  it("três campos com rótulo visível e o botão de enviar é sólido, com letra preta no ciano", () => {
+    // nome, WhatsApp, e-mail (03/11/2026): o resto fica para o primeiro acesso
     const campos = CONVITE.match(/<CampoDeAcesso/g) ?? [];
-    expect(campos.length).toBe(9);
+    expect(campos.length).toBe(3);
     expect(CONVITE).not.toContain("<input");
-    // o ramo é um <select> nativo com rótulo ligado por htmlFor
-    expect(CONVITE).toContain('htmlFor="convite-ramo"');
-    expect(CONVITE).toContain('id="convite-ramo"');
-    expect(CONVITE).not.toContain("aria-label=\"Qual");
+    expect(CONVITE).not.toContain("<select");
     expect(CONVITE).toContain("bg-bex-cyan text-base font-bold text-black");
   });
 
-  it("mantém o que a outra sessão pôs no convite: Pixel, UTM, ramo, comprovação e privacidade", () => {
+  it("mantém o que a outra sessão pôs no convite: Pixel, UTM e privacidade; ramo e comprovação foram para o primeiro acesso", () => {
     expect(CONVITE).toContain("META_PIXEL_ID");
     expect(CONVITE).toContain("cadastroParceiroConcluidoMeta()");
     expect(CONVITE).toContain("lerOrigemDaUrl(");
     expect(CONVITE).toContain("p_origem: origem");
-    expect(CONVITE).toContain("p_ramo: ramo");
-    expect(CONVITE).toContain("p_comprovacao: comprovacaoUrl");
     expect(CONVITE).toContain("mascaraWhatsapp(e.target.value)");
     expect(CONVITE).toContain('to="/privacidade"');
     expect(CONVITE).toContain("Seja parceiro revendedor da Bex Print");
+    const PRIMEIRO_ACESSO = readFileSync("src/components/parceiro/completar-cadastro.tsx", "utf8");
+    expect(PRIMEIRO_ACESSO).toContain('htmlFor="acesso-ramo"');
+    expect(PRIMEIRO_ACESSO).toContain('id="acesso-ramo"');
+    expect(PRIMEIRO_ACESSO).toContain("comprovacao: normalizarComprovacao(comprovacao)");
   });
 });
