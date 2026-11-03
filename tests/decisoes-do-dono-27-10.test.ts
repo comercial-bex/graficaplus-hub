@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { mensagensDoPix, notaDoSinal, pedidoDeSinal } from "../src/domain/pagamento/sinal";
 import { acaoDoBotaoDoPix, BOTOES_DO_PIX, textoDeReservaDosBotoes } from "../src/domain/pagamento/botoes-do-pix";
 import { montarEnvio } from "../src/domain/whatsapp/zapi-envio";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 const le = (p: string) => readFileSync(p, "utf8");
 
@@ -47,7 +48,7 @@ describe("decisões do dono gravadas no banco e no código", () => {
   });
   it("na tela: Pix recebido é obrigatório na conferência e 'O Pix chegou' num aprovado abre a conversão", () => {
     expect(le("src/domain/orcamentos/acordo.ts")).toContain('rotulo: "Sinal em Pix recebido"');
-    const pagina = le("src/routes/_authenticated/orcamentos.$id.tsx");
+    const pagina = telaDoOrcamento();
     expect(pagina).toContain("aoMarcarPixRecebido={() => {");
     expect(pagina).toContain('data-testid="pix-do-sinal-enviado"');
     expect(le("src/components/orcamento/acordo-do-orcamento.tsx")).toContain("marca ? aoMarcarPixRecebido : undefined");

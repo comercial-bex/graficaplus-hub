@@ -7,6 +7,7 @@ import {
   somarDiasUteis,
   textoDaOsSemDataDeEntrega,
 } from "../src/domain/orcamentos/acordo";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 /**
  * A OS 212 (Marcela, orçamento 150, 29/10/2026) nasceu sem prazo: o orçamento nunca teve data de entrega (o
@@ -65,7 +66,7 @@ describe("o prazo com que a OS nasce (tela)", () => {
 
 describe("a tela não promete prazo para orçamento que já virou OS", () => {
   const COMPONENTE = readFileSync("src/components/orcamento/acordo-do-orcamento.tsx", "utf8");
-  const ROTA = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+  const ROTA = telaDoOrcamento();
 
   it("o quadro da entrega recebe se o orçamento já virou OS e então só informa", () => {
     expect(COMPONENTE).toContain("jaVirouOs = false,");

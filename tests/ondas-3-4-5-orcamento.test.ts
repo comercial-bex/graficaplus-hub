@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 const le = (p: string) => readFileSync(p, "utf8");
-const pagina = le("src/routes/_authenticated/orcamentos.$id.tsx");
+const pagina = telaDoOrcamento();
 const lista = le("src/routes/_authenticated/orcamentos.index.tsx");
 const sql = le("supabase/migrations/20261026960000_painel_funil_orcamentos.sql");
 const texto = le("src/lib/api/whatsapp-texto.functions.ts");

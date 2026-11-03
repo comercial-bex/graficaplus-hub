@@ -11,6 +11,7 @@ import {
 } from "../src/domain/orcamentos/desconto";
 import { pendenciasParaEnviar } from "../src/domain/orcamentos/acordo";
 import { dicaAcao, dicaCampo } from "../src/lib/dicas";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 /**
  * Desconto no orçamento (06/10/2026).
@@ -29,7 +30,7 @@ const MIGRACAO = readFileSync(
   "utf8",
 );
 const QUADRO = readFileSync("src/components/orcamento/desconto-do-orcamento.tsx", "utf8");
-const TELA = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+const TELA = telaDoOrcamento();
 
 /** O corpo de uma função da migração, entre os delimitadores $fn$ / $function$. */
 function corpo(nome: string): string {

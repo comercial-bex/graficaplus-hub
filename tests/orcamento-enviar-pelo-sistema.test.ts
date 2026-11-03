@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 const servidor = readFileSync("src/lib/api/orcamento-whatsapp.functions.ts", "utf8");
-const tela = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+const tela = telaDoOrcamento();
 
 describe("Enviar pelo sistema (orçamento → Z-API)", () => {
   it("confere whatsapp.reply, gera o link no banco e enfileira o PDF como documento", () => {

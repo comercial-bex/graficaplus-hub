@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 /**
  * `accent` é cor de FUNDO, não de texto (20/10/2026).
@@ -89,7 +90,7 @@ describe("accent não é cor de texto", () => {
     expect(ler("src/routes/aprovar.$token.tsx")).toContain('"bg-success/15 text-success"');
     expect(ler("src/routes/_authenticated/clientes.$id.tsx").match(/text-link hover:underline/g)).toHaveLength(2);
     expect(ler("src/components/orcamento-material-check.tsx")).toContain("text-success whitespace-nowrap");
-    const orc = ler("src/routes/_authenticated/orcamentos.$id.tsx");
+    const orc = telaDoOrcamento();
     expect(orc).toContain('<strong className={margem < 20 ? "text-destructive" : "text-success"}>');
     expect(orc).toContain('<span className="text-link">');
     expect(ler("src/routes/_authenticated/os.$id.tsx")).toContain("border-l-2 border-primary pl-3");
