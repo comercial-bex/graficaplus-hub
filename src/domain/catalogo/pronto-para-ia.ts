@@ -3,8 +3,12 @@
  * 02/11/2026). Cada campo da pasta existe para a IA orçar sozinha depois, nas
  * palavras do dono; a nota diz, produto a produto, o que ainda falta para
  * isso. É contagem do que está preenchido, não opinião: dez checagens, cada
- * uma vale igual, e a que não cabe no produto (medida padrão num serviço) sai
- * da conta em vez de puxar a nota para baixo.
+ * uma vale igual, e a que não cabe no produto sai da conta em vez de puxar a
+ * nota para baixo. Serviço (acabamento, instalação, criação) não tem foto,
+ * material principal, medida padrão, fórmula de material nem pergunta de
+ * checklist: a medida vem do item a que ele se aplica, e o que ele pergunta ao
+ * cliente é o próprio item. Ajustado em 03/11/2026, quando a conta cobrava
+ * "perguntas do checklist" de 13 serviços que não têm o que perguntar.
  */
 
 export type EntradaDaNota = {
@@ -60,10 +64,10 @@ export function checagensDaPasta(e: EntradaDaNota): Checagem[] {
     { chave: "descricao", rotulo: "descrição", cabe: true, pronta: e.temDescricao },
     { chave: "familia", rotulo: "família", cabe: true, pronta: e.temFamilia },
     { chave: "unidade", rotulo: "unidade na proposta", cabe: true, pronta: !!(e.unidade ?? "").trim() },
-    { chave: "medida", rotulo: "medida padrão", cabe: area, pronta: e.temMedidaPadrao },
+    { chave: "medida", rotulo: "medida padrão", cabe: area && !servico, pronta: e.temMedidaPadrao },
     { chave: "material", rotulo: "material principal", cabe: !servico, pronta: e.temMaterialPrincipal },
     { chave: "processos", rotulo: "processos", cabe: true, pronta: e.processos > 0 },
-    { chave: "perguntas", rotulo: "perguntas do checklist", cabe: true, pronta: e.perguntas > 0 },
+    { chave: "perguntas", rotulo: "perguntas do checklist", cabe: !servico, pronta: e.perguntas > 0 },
     { chave: "formulas", rotulo: "fórmula de material", cabe: area && !servico, pronta: e.formulas > 0 },
     {
       chave: "roteiro",
