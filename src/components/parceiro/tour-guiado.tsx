@@ -49,7 +49,11 @@ function visivel(el: Element) {
   return r.width > 0 && r.height > 0;
 }
 
-export function TourGuiado({ concluido }: { concluido: boolean }) {
+export function TourGuiado() {
+  const [concluido, setConcluido] = useState<boolean | null>(null);
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => setConcluido(!!data.user?.user_metadata?.tour_parceiro_visto));
+  }, []);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [aberto, setAberto] = useState(false);
@@ -63,7 +67,7 @@ export function TourGuiado({ concluido }: { concluido: boolean }) {
     } catch {
       /* sem armazenamento */
     }
-    if (!concluido && !local && pathname === "/parceiro") setAberto(true);
+    if (concluido === false && !local && pathname === "/parceiro") setAberto(true);
     const rever = () => {
       setI(0);
       if (pathname !== "/parceiro") navigate({ to: "/parceiro" });
@@ -104,7 +108,10 @@ export function TourGuiado({ concluido }: { concluido: boolean }) {
     } catch {
       /* sem armazenamento */
     }
-    if (!concluido) void supabase.auth.updateUser({ data: { tour_parceiro_visto: new Date().toISOString() } });
+    if (concluido === false) {
+      setConcluido(true);
+      void supabase.auth.updateUser({ data: { tour_parceiro_visto: new Date().toISOString() } });
+    }
   }, [concluido]);
 
   useEffect(() => {
