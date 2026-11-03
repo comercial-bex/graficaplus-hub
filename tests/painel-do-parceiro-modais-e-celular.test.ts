@@ -9,7 +9,8 @@ import { readFileSync } from "node:fs";
 const ler = (p: string) => readFileSync(p, "utf8");
 const AVISO = ler("src/components/parceiro/oferta-aviso.tsx");
 const CASCA = ler("src/components/parceiro/casca.tsx");
-const SELETOR = ler("src/components/parceiro/seletor-de-produto.tsx");
+// 02/11: a busca em lista virou a escolha em cartões da equipe (parceiro-escolha-em-cartoes.test.ts).
+const SELETOR = ler("src/components/orcamento/escolha-de-produto.tsx");
 const PEDIDO = ler("src/components/parceiro/pedido-dialog.tsx");
 const PEDIDOS = ler("src/components/parceiro/pedidos.tsx");
 const CSS = ler("src/styles.css");
@@ -44,8 +45,8 @@ describe("campo visível no tema escuro", () => {
 });
 
 describe("campos com nome", () => {
-  it("a busca do seletor de produto tem aria-label", () => {
-    expect(SELETOR).toMatch(/<CommandInput[^>]*aria-label="Buscar produto da tabela"/);
+  it("a busca da escolha de produto tem aria-label", () => {
+    expect(SELETOR).toContain('aria-label="Buscar produto"');
   });
   it("o valor de crédito do pedido tem rótulo visível ligado ao campo", () => {
     expect(PEDIDO).toContain('<Label htmlFor="valor-credito">');
