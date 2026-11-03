@@ -12,6 +12,7 @@ import {
   CHAVE_CADASTRO_PENDENTE,
   gerarSenhaProvisoria,
   mascaraWhatsapp,
+  sugerirEmail,
   validarCadastroRapido,
 } from "@/domain/parceiros/cadastro-rapido";
 
@@ -170,6 +171,9 @@ function ConvitePage() {
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [enviando, setEnviando] = useState(false);
+  // "gmai.com"? Avisa uma vez antes de criar a conta; o e-mail é o login e não se recupera errado.
+  const [sugestaoEmail, setSugestaoEmail] = useState<string | null>(null);
+  const [emailConferido, setEmailConferido] = useState(false);
   const [pronto, setPronto] = useState<{ whatsapp: boolean } | null>(null);
   // UTM de onde a pessoa veio (anúncio, story, link direto): vai junto no cadastro.
   const [origem, setOrigem] = useState<Record<string, string> | null>(null);
@@ -183,6 +187,13 @@ function ConvitePage() {
     e.preventDefault();
     const falta = validarCadastroRapido({ nome, telefone, email });
     if (falta) return toast.error(falta.mensagem);
+    const sugestao = sugerirEmail(email);
+    if (sugestao && !emailConferido) {
+      setSugestaoEmail(sugestao);
+      setEmailConferido(true);
+      document.getElementById("convite-email")?.focus();
+      return;
+    }
 
     setEnviando(true);
     try {
@@ -351,8 +362,26 @@ function ConvitePage() {
             spellCheck={false}
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            erro={sugestaoEmail ? `Você quis dizer ${sugestaoEmail}? Se o e-mail estiver certo, é só enviar de novo.` : undefined}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setSugestaoEmail(null);
+              setEmailConferido(false);
+            }}
           />
+          {sugestaoEmail && (
+            <button
+              type="button"
+              onClick={() => {
+                setEmail(sugestaoEmail);
+                setSugestaoEmail(null);
+                setEmailConferido(false);
+              }}
+              className="mt-1 inline-flex min-h-10 items-center rounded-sm text-sm font-semibold text-bex-cyan underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Usar {sugestaoEmail}
+            </button>
+          )}
           <p className="mt-1.5 text-xs text-muted-foreground">É o seu login. A senha provisória chega no WhatsApp.</p>
         </div>
 

@@ -47,9 +47,67 @@ export function gerarSenhaProvisoria(
 
 export type CadastroRapido = { nome: string; telefone: string; email: string };
 
+/**
+ * O nome vai dentro da mensagem do WhatsApp da gráfica. A função do banco
+ * (parceiro_cadastrar_rapido) recusa nome que pareça endereço de site, para
+ * ninguém usar o número da gráfica para mandar link. A página aplica a MESMA
+ * regra antes de criar a conta: a conta nasce antes da função rodar, e um nome
+ * recusado lá deixaria uma conta órfã. A regra daqui tem de ser tão rígida
+ * quanto a do banco (nunca mais branda).
+ */
+export function nomeParecendoEndereco(nome: string): boolean {
+  return /(https?:|www\.|:\/\/|\.(com|net|org|br|io|app|dev|me|co|info|biz|xyz|link|site|online|store|shop|click|ly|gl)(\b|$))/i.test(nome);
+}
+
+const DOMINIOS_COMUNS = [
+  "gmail.com", "hotmail.com", "hotmail.com.br", "outlook.com", "outlook.com.br", "yahoo.com", "yahoo.com.br",
+  "icloud.com", "live.com", "msn.com", "uol.com.br", "bol.com.br", "terra.com.br", "me.com",
+];
+/** Erros de digitação que a distância de edição não alcança. */
+const CORRECOES_FIXAS: Record<string, string> = {
+  "gmail.com.br": "gmail.com",
+  "gmail.com.com": "gmail.com",
+  "gmail.co": "gmail.com",
+  "gmail.cm": "gmail.com",
+  "hotmail.co": "hotmail.com",
+  "outlook.co": "outlook.com",
+};
+
+/** Distância de edição (inserir, apagar, trocar, inverter vizinhas). */
+function distancia(a: string, b: string): number {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const custo = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + custo);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+
+/**
+ * "ruanny@gmai.com" → "ruanny@gmail.com". O e-mail é o login: um erro de
+ * digitação vira conta que a pessoa não consegue recuperar (3/11/2026, o quarto
+ * cadastro real veio com gmai.com). Só sugere quando o domínio está a uma
+ * edição de um provedor comum; domínio de empresa nunca é mexido.
+ */
+export function sugerirEmail(email: string): string | null {
+  const limpo = email.trim().toLowerCase();
+  const arroba = limpo.lastIndexOf("@");
+  if (arroba < 1) return null;
+  const local = limpo.slice(0, arroba);
+  const dominio = limpo.slice(arroba + 1);
+  if (dominio.length < 5 || DOMINIOS_COMUNS.includes(dominio)) return null;
+  const certo = CORRECOES_FIXAS[dominio] ?? DOMINIOS_COMUNS.find((d) => distancia(dominio, d) === 1);
+  return certo ? `${local}@${certo}` : null;
+}
+
 /** O que falta no formulário curto, em português claro; `null` quando pode enviar. */
 export function validarCadastroRapido(c: CadastroRapido): { campo: keyof CadastroRapido; mensagem: string } | null {
   if (c.nome.trim().length < 2) return { campo: "nome", mensagem: "Diga o seu nome ou o da sua empresa." };
+  if (nomeParecendoEndereco(c.nome)) return { campo: "nome", mensagem: "Use só o nome, sem endereço de site ou e-mail." };
   if (!whatsappValido(c.telefone)) return { campo: "telefone", mensagem: "Informe um WhatsApp válido com DDD: (XX) XXXXX-XXXX." };
   if (!emailValido(c.email)) return { campo: "email", mensagem: "Confira o e-mail: é por ele que você entra no painel." };
   return null;
