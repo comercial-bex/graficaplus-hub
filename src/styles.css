@@ -297,3 +297,21 @@
     var(--gradient-cmyk) border-box;
   border: 1px solid transparent;
 }
+
+/* Início do parceiro: blocos Comprar (venda) e Orçar */
+:root {
+  --venda: #00a9c6;
+  --orcamento: #e32686;
+}
+.dark {
+  --venda: #22c3dd;
+  --orcamento: #f0479c;
+}
+@keyframes bloco-entra {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@utility bloco-entra {
+  animation: bloco-entra 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+}

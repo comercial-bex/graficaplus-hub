@@ -69,7 +69,7 @@ export function Casca({
             <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: "var(--gradient-cmyk)" }} />
           </header>
 
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-5 md:px-7 md:pb-12 md:pt-8">{children}</main>
+          <main className="w-full flex-1 px-4 pb-28 pt-5 md:px-7 2xl:px-10 md:pb-12 md:pt-8">{children}</main>
         </div>
       </div>
 
