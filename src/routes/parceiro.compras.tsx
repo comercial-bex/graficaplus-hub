@@ -46,7 +46,7 @@ type Compra = {
   os_id: string | null;
   status: string;
   itens: { quantidade: number }[];
-  pedido: { valor_total: number | null; numero: number | null } | null;
+  total_pedido: number | null;
 };
 
 function ComprasDoParceiro() {
@@ -72,7 +72,7 @@ function ComprasDoParceiro() {
       const { data, error } = await (supabase as any)
         .from("parceiro_orcamentos")
         .select(
-          "id, numero, created_at, pagamento_modelo, os_id, status, itens:parceiro_orcamento_itens(quantidade), pedido:orcamentos!parceiro_orcamentos_pedido_orcamento_id_fkey(valor_total, numero)",
+          "id, numero, created_at, pagamento_modelo, os_id, status, itens:parceiro_orcamento_itens(quantidade), total_pedido",
         )
         .eq("venda_direta", true)
         .order("created_at", { ascending: false });
@@ -277,7 +277,6 @@ function ComprasDoParceiro() {
                 <div className="min-w-0">
                   <p className="font-medium">
                     Compra nº {c.numero}
-                    {c.pedido?.numero ? <span className="text-muted-foreground"> · pedido {c.pedido.numero}</span> : null}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {new Date(c.created_at).toLocaleDateString("pt-BR")} · {c.itens.length} {c.itens.length === 1 ? "item" : "itens"} ·{" "}
@@ -285,7 +284,7 @@ function ComprasDoParceiro() {
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
-                  <span className="font-semibold tabular-nums">{brl(c.pedido?.valor_total ?? 0)}</span>
+                  <span className="font-semibold tabular-nums">{brl(c.total_pedido ?? 0)}</span>
                   <StatusChip
                     label={situacaoDoPagamento(c.pagamento_modelo)}
                     tone={c.pagamento_modelo === "a_vista" ? "cyan" : "amber"}

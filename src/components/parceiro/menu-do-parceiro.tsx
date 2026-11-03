@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Crown, FileText, Home, LogOut, Palette, Tags, Wallet, X } from "lucide-react";
+import { Crown, FileText, ShoppingCart, Home, LogOut, Palette, Tags, Wallet, X } from "lucide-react";
 import { Sidebar, useSidebar } from "@/components/ui/sidebar";
 import { chaveDoLogo, urlDoLogo } from "@/lib/parceiro-api";
 import { brl } from "@/domain/parceiros/preco";
@@ -22,6 +22,7 @@ export const LARGURA_DO_MENU_DO_PARCEIRO = "17rem";
 export const NAVEGACAO_DO_PARCEIRO = [
   { to: "/parceiro", rotulo: "Início", curto: "Início", icone: Home, exato: true },
   { to: "/parceiro/orcamentos", rotulo: "Orçamentos", curto: "Orçamentos", icone: FileText, exato: false },
+  { to: "/parceiro/compras", rotulo: "Comprar", curto: "Comprar", icone: ShoppingCart, exato: false },
   { to: "/parceiro/tabela", rotulo: "Tabela de preços", curto: "Tabela", icone: Tags, exato: false },
   { to: "/parceiro/marca", rotulo: "Minha marca", curto: "Marca", icone: Palette, exato: false },
 ] as const;

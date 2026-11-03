@@ -11124,6 +11124,7 @@ export type Database = {
           prazo: string
           status: string
           titulo: string
+          total_pedido: number | null
           updated_at: string
           validade_dias: number
           venda_direta: boolean
@@ -11145,6 +11146,7 @@ export type Database = {
           prazo?: string
           status?: string
           titulo: string
+          total_pedido?: number | null
           updated_at?: string
           validade_dias?: number
           venda_direta?: boolean
@@ -11166,6 +11168,7 @@ export type Database = {
           prazo?: string
           status?: string
           titulo?: string
+          total_pedido?: number | null
           updated_at?: string
           validade_dias?: number
           venda_direta?: boolean
