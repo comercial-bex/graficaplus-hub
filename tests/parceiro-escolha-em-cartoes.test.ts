@@ -155,6 +155,12 @@ describe("o editor do parceiro usa a escolha em cartões", () => {
     expect(EDITOR).toContain("<LinhaDoProduto");
     expect(EDITOR).not.toContain("SeletorDeProduto");
   });
+  it("trocar o tipo de um item livre troca a unidade junto: a lona volta com medidas", () => {
+    // 03/11, achado ao vivo: copiar a regra da equipe (a unidade anterior fica) deixava
+    // "Outro item deste tipo" de lona em Unidade, sem largura × altura.
+    expect(EDITOR).not.toContain("unidadeAoEscolherTipo");
+    expect(EDITOR).toContain("const unidade = unidadeDoParceiroParaOTipo(tipo);");
+  });
   it("o diálogo é a escolha da equipe, com o item livre do parceiro no rodapé", () => {
     expect(DIALOGO).toContain("<EscolhaDeProduto");
     expect(DIALOGO).toContain("verPreco");

@@ -8,7 +8,6 @@ import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
 import {
   camposDaUnidade,
   tipoDoProduto,
-  unidadeAoEscolherTipo,
   type ChaveDoTipo,
   type TamanhoComum,
   type TipoDeProduto,
@@ -562,14 +561,10 @@ export function EditorDeOrcamento({ id }: { id: string }) {
     if (escolhendo.alvo === "novo") {
       setItens((lista) => [...lista, { ...itemVazio(), unidade: unidadeDoParceiroParaOTipo(tipo) }]);
     } else if (itemEmEscolha) {
-      // Como na equipe: a unidade que um item livre já tinha fica; vindo de um produto, vale a do tipo.
-      const unidade = unidadeDoParceiroParaOTipo({
-        unidadePadrao: unidadeAoEscolherTipo(tipo, {
-          unidade: itemEmEscolha.unidade,
-          tinhaProduto: !!itemEmEscolha.produto_id,
-          editando: true,
-        }),
-      });
+      // Quem troca o tipo está dizendo o que o item é: a unidade acompanha o tipo (lona em m²,
+      // com as medidas). Diferente da equipe, a unidade anterior aqui veio de outra escolha de
+      // tipo, não de uma digitada — preservá-la deixava "Outro item deste tipo" de lona sem medidas.
+      const unidade = unidadeDoParceiroParaOTipo(tipo);
       mudarItem(itemEmEscolha.id, {
         produto_id: null,
         unidade,
