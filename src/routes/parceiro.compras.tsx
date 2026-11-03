@@ -15,6 +15,7 @@ import {
   valoresDoPagamento,
   type PagamentoDaVendaDireta,
 } from "@/domain/parceiros/venda-direta";
+import { MedidasDaPeca } from "@/components/orcamento/medidas-da-peca";
 import { DialogoDeEscolhaDoProduto, LinhaDoProduto } from "@/components/parceiro/escolha-de-produto-do-parceiro";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { Button } from "@/components/ui/button";
@@ -184,13 +185,28 @@ function ComprasDoParceiro() {
               return (
                 <li key={i.chave} className="space-y-2 rounded-xl border border-border p-3">
                   <LinhaDoProduto produto={produto} produtoId={i.produto_id} descricao={i.descricao} onTrocar={() => setEscolhendo(true)} />
+                  {produto?.por_area && (
+                    <MedidasDaPeca
+                      idPrefixo={`compra-${i.chave}`}
+                      largura={i.largura != null ? String(i.largura) : ""}
+                      altura={i.altura != null ? String(i.altura) : ""}
+                      quantidade={Number(i.quantidade) || 1}
+                      areaMinima={produto.area_minima ? Number(produto.area_minima) : null}
+                      tamanhos={(produto.tamanhos ?? [])
+                        .filter((t) => t.largura && t.altura)
+                        .map((t) => ({ nome: t.nome, largura: Number(t.largura), altura: Number(t.altura) }))}
+                      origemDosTamanhos="produto"
+                      onMudar={(campo, m) => {
+                        const n = Number(String(m).replace(",", "."));
+                        mudar(i.chave, campo, m === "" || !Number.isFinite(n) ? null : n);
+                      }}
+                      onAplicarTamanho={(t) => {
+                        mudar(i.chave, "largura", t.largura);
+                        mudar(i.chave, "altura", t.altura);
+                      }}
+                    />
+                  )}
                   <div className="flex flex-wrap items-end gap-3">
-                    {produto?.por_area && (
-                      <>
-                        <Campo rotulo="Largura (m)" valor={i.largura} onChange={(v) => mudar(i.chave, "largura", v)} />
-                        <Campo rotulo="Altura (m)" valor={i.altura} onChange={(v) => mudar(i.chave, "altura", v)} />
-                      </>
-                    )}
                     <Campo rotulo="Quantidade" valor={i.quantidade} onChange={(v) => mudar(i.chave, "quantidade", v ?? 1)} />
                     <div className="ml-auto text-right">
                       {c.tipo === "ok" ? (
