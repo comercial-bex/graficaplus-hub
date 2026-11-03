@@ -1222,7 +1222,7 @@ function ItemCard({
         </Campo>
       </div>
 
-      <div className="ml-9grid grid-cols-3 gap-2 rounded-xl bg-foreground/5 p-3 text-center text-xs">
+      <div className="ml-9 grid grid-cols-3 gap-2 rounded-xl bg-foreground/5 p-3 text-center text-xs">
         <div>
           <p className="flex items-center justify-center gap-1 text-muted-foreground">
             Cliente paga
@@ -1256,17 +1256,17 @@ function ItemCard({
       </div>
 
       {custo.tipo === "pendente" && (
-        <p className="ml-9flex items-center gap-1.5 text-xs text-[color:var(--bex-amber)]">
+        <p className="ml-9 flex items-center gap-1.5 text-xs text-[color:var(--bex-amber)]">
           <AlertTriangle className="h-3.5 w-3.5" /> {custo.motivo}
         </p>
       )}
       {custo.tipo === "ok" && custo.proxima && (
-        <p className="ml-9text-xs text-muted-foreground">
+        <p className="ml-9 text-xs text-muted-foreground">
           A partir de {custo.proxima.quantidade_minima} {un} você paga {brl(custo.proxima.preco_parceiro)} por {un}.
         </p>
       )}
       {custo.tipo === "livre" && (
-        <p className="ml-9flex items-center gap-1.5 text-xs text-muted-foreground">
+        <p className="ml-9 flex items-center gap-1.5 text-xs text-muted-foreground">
           <PenLine className="h-3.5 w-3.5" /> Serviço seu: entra no PDF e não vira pedido.
         </p>
       )}

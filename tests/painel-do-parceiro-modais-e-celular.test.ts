@@ -87,6 +87,10 @@ describe("o item do parceiro herda a estrutura do item da equipe (02/11/2026)", 
     expect(EDITOR).not.toContain("Remover item ${indice + 1}");
   });
   it("preço na grade da equipe e o bloco de ganho só do parceiro", () => {
+    // 02/11: uma troca de classe comeu o espaço ("ml-9grid") e o bloco de ganho
+    // perdeu o grid no ar; classe colada na seguinte nunca mais.
+    expect(EDITOR).not.toMatch(/className="ml-9\S/);
+    expect(EDITOR).toContain('className="ml-9 grid grid-cols-3');
     expect(EDITOR).toContain('rotulo={porArea ? "Preço/m²" : "Valor un."}');
     expect(EDITOR).toContain('rotulo="Total do item"');
     for (const r of ["Cliente paga", "Você paga", "Seu ganho"]) expect(EDITOR).toContain(r);
