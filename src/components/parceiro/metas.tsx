@@ -1,4 +1,6 @@
 import { Gift, PartyPopper, Target, Trophy } from "lucide-react";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { cn } from "@/lib/utils";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
@@ -23,6 +25,7 @@ export function Metas({ campanhas, conquistas }: { campanhas: Campanha[]; conqui
       <h2 className="flex items-center gap-2 text-lg font-semibold">
         <Target className="h-5 w-5 text-[color:var(--bex-magenta)]" />
         Metas
+        <DicaIcone texto={dicaCampo("/parceiro", "metas")} rotulo="Metas" />
         <DicaIcone texto={dicaCampo("/parceiro", "metas")} rotulo="Metas" />
       </h2>
 

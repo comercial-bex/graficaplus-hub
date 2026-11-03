@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -143,7 +145,7 @@ function ComprasDoParceiro() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Comprar</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl flex items-center gap-2">Comprar <DicaIcone texto={dicaCampo("/parceiro", "comprar_da_grafica")} rotulo="Comprar" /></h1>
         <p className="text-sm text-muted-foreground">
           Compra direta com a Bex Print, pelo seu preço de parceiro. Sem cliente e sem PDF: vai direto para a produção.
         </p>
@@ -215,7 +217,7 @@ function ComprasDoParceiro() {
         {itens.length > 0 && (
           <div className="space-y-4 border-t border-border pt-4">
             <div>
-              <p className="mb-2 text-sm font-medium">Forma de pagamento</p>
+              <p className="mb-2 flex items-center gap-1 text-sm font-medium">Forma de pagamento <DicaIcone texto={dicaCampo("/parceiro", "pagamento")} rotulo="Forma de pagamento" /></p>
               <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Forma de pagamento">
                 {PAGAMENTOS_DA_VENDA_DIRETA.map((p) => {
                   const v = valoresDoPagamento(total, p.chave);
@@ -243,7 +245,7 @@ function ComprasDoParceiro() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="obs-compra">Observação (opcional)</Label>
+              <Label htmlFor="obs-compra" className="flex items-center gap-1">Observação (opcional) <DicaIcone texto={dicaCampo("/parceiro", "observacao_compra")} rotulo="Observação" /></Label>
               <Textarea id="obs-compra" value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={2} />
             </div>
             {semAtendente && (

@@ -13,6 +13,7 @@ import { Pedidos } from "@/components/parceiro/pedidos";
 import { NovoOrcamento } from "@/components/parceiro/novo-orcamento";
 import { PrimeirosPassos } from "@/components/parceiro/primeiros-passos";
 import { ConviteCard } from "@/components/parceiro/convite-card";
+import { dicaCampo } from "@/lib/dicas";
 import { BlocoDeAcao } from "@/components/parceiro/bloco-de-acao";
 
 export const Route = createFileRoute("/parceiro/")({
@@ -99,15 +100,17 @@ function InicioDoParceiro() {
           icone={ShoppingCart}
           sobretitulo="Venda direta"
           titulo="Comprar da gráfica"
+          tour="comprar"
+          dica={dicaCampo("/parceiro", "comprar_da_grafica")}
           acao={
             <Button asChild className="bg-[color:var(--venda)] text-[color:var(--background)] hover:bg-[color:var(--venda)]/90">
               <Link to="/parceiro/compras">Nova compra</Link>
             </Button>
           }
           numeros={[
-            { rotulo: "Comprado no mês", valor: totalMes, formato: brl },
+            { rotulo: "Comprado no mês", valor: totalMes, formato: brl, dica: dicaCampo("/parceiro", "comprado_no_mes") },
             { rotulo: "Compras no mês", valor: doMes.length },
-            { rotulo: "Saldo a pagar", valor: aPagar, formato: brl },
+            { rotulo: "Saldo a pagar", valor: aPagar, formato: brl, dica: dicaCampo("/parceiro", "saldo_a_pagar") },
           ]}
           linhas={compras.slice(0, 3).map((c) => ({
             id: c.id,
@@ -125,6 +128,8 @@ function InicioDoParceiro() {
           icone={FileText}
           sobretitulo="Para o seu cliente"
           titulo="Orçar com a sua marca"
+          tour="orcar"
+          dica={dicaCampo("/parceiro", "orcar_com_marca")}
           atraso={90}
           acao={
             <NovoOrcamento
@@ -133,9 +138,9 @@ function InicioDoParceiro() {
             />
           }
           numeros={[
-            { rotulo: "Orçamentos no mês", valor: painel.orcamentos.mes },
-            { rotulo: "Em aberto", valor: painel.orcamentos.abertos },
-            { rotulo: "Viraram pedido", valor: painel.orcamentos.pedidos },
+            { rotulo: "Orçamentos no mês", valor: painel.orcamentos.mes, dica: dicaCampo("/parceiro", "orcamentos_no_mes") },
+            { rotulo: "Em aberto", valor: painel.orcamentos.abertos, dica: dicaCampo("/parceiro", "em_aberto") },
+            { rotulo: "Viraram pedido", valor: painel.orcamentos.pedidos, dica: dicaCampo("/parceiro", "viraram_pedido") },
           ]}
           linhas={orcs.slice(0, 3).map((o) => ({
             id: o.id,
@@ -151,7 +156,7 @@ function InicioDoParceiro() {
 
       <PrimeirosPassos painel={painel} />
 
-      <div className="grid gap-4 md:gap-6 xl:grid-cols-3">
+      <div data-tour="nivel" className="grid gap-4 md:gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <NivelCard painel={painel} />
         </div>

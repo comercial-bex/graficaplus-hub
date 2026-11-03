@@ -1,4 +1,6 @@
 import { Link } from "@tanstack/react-router";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -19,6 +21,7 @@ export function Pedidos({ painel }: { painel: PainelDoParceiro }) {
       <h2 className="flex items-center gap-2 text-lg font-semibold">
         <Package className="h-5 w-5 text-status-cyan" aria-hidden="true" />
         Seus pedidos
+        <DicaIcone texto={dicaCampo("/parceiro", "pedidos")} rotulo="Seus pedidos" />
       </h2>
       {pedidos.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground">

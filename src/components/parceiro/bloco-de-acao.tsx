@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { DicaIcone } from "@/components/bex/Dica";
 import { ArrowRight, type LucideIcon } from "lucide-react";
 
 /** Número que sobe contando ao abrir; respeita quem pediu menos movimento. */
@@ -27,8 +28,10 @@ export function BlocoDeAcao(props: {
   icone: LucideIcon;
   sobretitulo: string;
   titulo: string;
+  dica?: string;
+  tour?: string;
   acao: ReactNode;
-  numeros: { rotulo: string; valor: number; formato?: (v: number) => string }[];
+  numeros: { rotulo: string; valor: number; formato?: (v: number) => string; dica?: string }[];
   linhas: LinhaDoBloco[];
   vazio: string;
   verTodos: { rotulo: string; para: string };
@@ -39,6 +42,7 @@ export function BlocoDeAcao(props: {
   return (
     <section
       data-testid={`bloco-${props.cor}`}
+      data-tour={props.tour}
       className="bloco-entra group relative flex flex-col overflow-hidden rounded-3xl border bg-card p-5 transition-all duration-300 hover:-translate-y-1 md:p-6"
       style={{
         animationDelay: `${props.atraso ?? 0}ms`,
@@ -59,7 +63,10 @@ export function BlocoDeAcao(props: {
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: c }}>
             {props.sobretitulo}
           </p>
-          <h2 className="text-xl font-bold leading-tight md:text-2xl">{props.titulo}</h2>
+          <h2 className="flex items-center gap-1 text-xl font-bold leading-tight md:text-2xl">
+            {props.titulo}
+            <DicaIcone texto={props.dica} rotulo={props.titulo} />
+          </h2>
         </div>
       </div>
 
@@ -69,7 +76,10 @@ export function BlocoDeAcao(props: {
             <p className="truncate text-lg font-bold tabular-nums md:text-2xl">
               <Contador valor={n.valor} formato={n.formato} />
             </p>
-            <p className="text-[11px] leading-tight text-muted-foreground">{n.rotulo}</p>
+            <p className="flex items-center gap-0.5 text-[11px] leading-tight text-muted-foreground">
+              {n.rotulo}
+              <DicaIcone texto={n.dica} rotulo={n.rotulo} className="h-3.5 w-3.5" />
+            </p>
           </div>
         ))}
       </div>

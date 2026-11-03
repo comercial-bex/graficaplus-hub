@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -75,7 +77,7 @@ function OrcamentosDoParceiro() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Orçamentos</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl flex items-center gap-2">Orçamentos <DicaIcone texto={dicaCampo("/parceiro", "situacoes")} rotulo="Situações do orçamento" /></h1>
           <p className="text-sm text-muted-foreground">
             Seus orçamentos, com a sua marca. O cliente é seu: a gráfica não vê estes dados.
           </p>
