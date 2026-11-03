@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 const le = (p: string) => readFileSync(p, "utf8");
 const sql = le("supabase/migrations/20261027300000_orcamento_unico_peca_3d.sql");
 const calc = le("src/components/impressao3d/calculadora-3d.tsx");
 const escolha = le("src/components/orcamento/escolha-de-produto.tsx");
-const pagina = le("src/routes/_authenticated/orcamentos.$id.tsx");
+const pagina = telaDoOrcamento();
 const detalhe = le("src/routes/_authenticated/orcamento-3d.$id.tsx");
 const hub = le("src/routes/_authenticated/impressao-3d.tsx");
 const rota = le("src/routes/_authenticated/orcamento-3d-novo.tsx");

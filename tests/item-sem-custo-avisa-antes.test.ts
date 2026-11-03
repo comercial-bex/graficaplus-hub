@@ -7,6 +7,7 @@ import {
   pendenciasParaEnviar,
 } from "../src/domain/orcamentos/acordo";
 import { estadoDosPassosDaEquipe, passoDaPendencia } from "../src/domain/orcamentos/passos-da-equipe";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 /**
  * O orçamento 153 ("3 banner", R$ 42, 29/10/2026) tinha o Pix recebido e dois itens digitados à mão como
@@ -17,7 +18,7 @@ import { estadoDosPassosDaEquipe, passoDaPendencia } from "../src/domain/orcamen
  */
 const PASTA = "supabase/migrations";
 const MIGRACAO = readFileSync(join(PASTA, "20261029600000_aviso_de_item_sem_custo_antes_da_os.sql"), "utf8");
-const TELA = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+const TELA = telaDoOrcamento();
 
 const base = {
   temClienteOuContato: true,

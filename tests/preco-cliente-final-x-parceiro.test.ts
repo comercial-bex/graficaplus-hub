@@ -40,6 +40,7 @@ vi.mock("@supabase/supabase-js", () => ({
 vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: { rpc: h.rpc } }));
 
 import { confirmarPrecoDoOrcamento } from "../src/lib/api/orcamento-preco.functions";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 const ORC = "996f3d96-b34b-49fa-9be6-4f94c43129c7";
 
@@ -100,7 +101,7 @@ describe("confirmar o preço de parceiro exige a senha de quem pediu", () => {
 });
 
 const SQL = readFileSync("supabase/migrations/20261022150000_preco_cliente_final_x_parceiro.sql", "utf8");
-const TELA = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+const TELA = telaDoOrcamento();
 const COMP = readFileSync("src/components/orcamento/preco-do-orcamento.tsx", "utf8");
 
 describe("o banco", () => {

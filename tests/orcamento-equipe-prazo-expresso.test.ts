@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { EscolhaDoPrazo } from "../src/components/orcamento/escolha-do-prazo";
 import { normalizarPrazos } from "../src/domain/parceiros/prazo";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 /**
  * Prazo e expresso no orçamento da EQUIPE e na conversão em OS (25/10/2026). A
@@ -15,7 +16,7 @@ const MIGRACAO = readFileSync(
   "supabase/migrations/20261025010000_prazo_expresso_equipe.sql",
   "utf8",
 );
-const TELA = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+const TELA = telaDoOrcamento();
 const PRAZO = readFileSync("src/components/orcamento/prazo-de-producao.tsx", "utf8");
 const ACORDO = readFileSync("src/components/orcamento/acordo-do-orcamento.tsx", "utf8");
 
@@ -150,8 +151,8 @@ describe("a migração da equipe", () => {
 
 describe("a tela da equipe", () => {
   it("o prazo de produção abre o passo das condições", () => {
-    const i = TELA.indexOf("{passo === 3 && (");
-    const trecho = TELA.slice(i, TELA.indexOf("{passo === 4 && (", i));
+    // o passo 3 mora em src/components/orcamento/tela/PassoPrazoEEntrega.tsx desde a divisão da rota
+    const trecho = readFileSync("src/components/orcamento/tela/PassoPrazoEEntrega.tsx", "utf8");
     expect(trecho.indexOf("<PrazoDeProducao")).toBeGreaterThan(0);
     expect(trecho.indexOf("<PrazoDeProducao")).toBeLessThan(trecho.indexOf("<EntregaEPrazos"));
   });

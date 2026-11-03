@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
-const tela = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+const tela = telaDoOrcamento();
 
 describe("Cliente aprovou: converter em OS num clique", () => {
   it("aprova pela função do banco (com observação) antes de converter", () => {

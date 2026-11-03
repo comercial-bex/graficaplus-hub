@@ -190,6 +190,12 @@ import { degrausDeFaixasDeBalcao } from "@/domain/parceiros/degraus";
 import { PRAZO_NORMAL, prazoEscolhido, rotuloDaPorcentagem } from "@/domain/parceiros/prazo";
 import { CHAVE_PRAZOS, carregarPrazos } from "@/lib/parceiro-api";
 import { Carregando } from "@/components/bex/Carregando";
+import { PassoCliente } from "@/components/orcamento/tela/PassoCliente";
+import { PassoPrazoEEntrega } from "@/components/orcamento/tela/PassoPrazoEEntrega";
+import { PassoRevisao } from "@/components/orcamento/tela/PassoRevisao";
+import { ResumoLateral } from "@/components/orcamento/tela/ResumoLateral";
+import { CabecalhoIdentificacao } from "@/components/orcamento/tela/CabecalhoIdentificacao";
+import { ONDE_RESOLVER, ROTULO_DO_STATUS, statusTone } from "@/components/orcamento/tela/comum";
 
 type Peca3dDoOrcamento = {
   id: string;
@@ -248,34 +254,6 @@ type TamanhoProduto = {
   altura: number;
   padrao: boolean;
   quando_usar: string | null;
-};
-
-const statusTone: Record<string, "cyan" | "magenta" | "lime" | "amber" | "muted"> = {
-  rascunho: "muted",
-  enviado: "cyan",
-  aprovado: "lime",
-  rejeitado: "magenta",
-  expirado: "amber",
-  convertido: "lime",
-};
-
-/** O status como se fala na gráfica (o valor gravado continua o do enum). */
-const ROTULO_DO_STATUS: Record<string, string> = {
-  rascunho: "Rascunho",
-  enviado: "Enviado ao cliente",
-  aprovado: "Aprovado",
-  rejeitado: "Recusado",
-  expirado: "Expirado",
-  convertido: "Virou OS",
-};
-
-/** Onde cada pendência se resolve: o aviso do topo leva até o campo. */
-const ONDE_RESOLVER: Record<string, string> = {
-  "data de entrega": "acordo-entrega",
-  "condição de pagamento": "acordo-pagamento",
-  "aprovação do desconto": "acordo-desconto",
-  itens: "itens-do-orcamento",
-  [PENDENCIA_ITEM_SEM_CUSTO]: "itens-do-orcamento",
 };
 
 export const Route = createFileRoute("/_authenticated/orcamentos/$id")({
@@ -1590,104 +1568,7 @@ function OrcamentoDetailPage() {
     <div className="space-y-6 pb-28 lg:pb-0">
       <header className="sticky top-0 z-20 -mx-2 px-2 pt-2 space-y-3 border-b border-border pb-4 mb-2 bg-background/95 backdrop-blur">
         {/* Linha 1 — identificação */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-3 min-w-0">
-            <Dica texto="Voltar para orçamentos">
-              <Button asChild variant="ghost" size="icon" className="mt-1 shrink-0">
-                <Link to="/orcamentos" aria-label="Voltar para orçamentos">
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-            </Dica>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                <span>Orçamento #{orc.numero}</span>
-                <StatusChip label={ROTULO_DO_STATUS[orc.status] ?? orc.status} tone={statusTone[orc.status] ?? "muted"} />
-                {linhaDaTaxa && <StatusChip label="Expresso" tone="amber" />}
-              </div>
-              <div className="mt-1 flex items-center gap-2 min-w-0">
-                <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{orc.titulo}</h1>
-                <DicaIcone texto={dicaTela("/orcamentos")} rotulo="Orçamento" lado="bottom" className="h-5 w-5" />
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {orc.cliente_nome ? (
-                  <>Cliente: <span className="text-foreground font-medium">{orc.cliente_nome}</span></>
-                ) : (
-                  "Sem cliente vinculado"
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* Converter exige `orcamentos.convert`, que só admin e gestor têm.
-              Sem a permissão, no lugar do botão fica a explicação de quem
-              converte e por onde essa pessoa é avisada. */}
-          {/* Só aprovado vira OS: em rascunho, enviado, rejeitado ou expirado o
-              banco recusa ("Orçamento sem versão aprovada") — o botão não
-              promete o que não entrega. Com OS, o lugar dele leva até ela. */}
-          {orc.os_id && (
-            <Button asChild variant="outline" className="shrink-0 h-11 md:h-10">
-              <Link to="/os/$id" params={{ id: orc.os_id }}>
-                Ver a OS <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
-            </Button>
-          )}
-          {!fechado && orc.status === "enviado" && podeConverter && hasPermission("orcamentos.approve") && (
-            <Dica texto="Use quando o cliente já confirmou por WhatsApp ou no balcão. Registra a aprovação da equipe no histórico e cria a OS.">
-              <Button
-                onClick={() => setConferindo("enviado")}
-                disabled={descontoPendente || convertendo}
-                className="shrink-0 h-11 md:h-10"
-              >
-                {convertendo ? "Criando a OS..." : "Cliente aprovou: converter em OS"} <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </Dica>
-          )}
-          {!fechado && orc.status === "aprovado" && (
-            podeConverter ? (
-              // Desconto que passou da alçada sem aprovação: o banco recusa a
-              // conversão (converter_orcamento_em_os), então o botão já trava
-              // aqui com o motivo.
-              <Dica texto={descontoPendente ? dicaCampo("/orcamentos", "desconto_pendente") : null}>
-                <Button
-                  onClick={() => setConferindo("aprovado")}
-                  disabled={descontoPendente || convertendo}
-                  className="shrink-0 h-11 md:h-10"
-                >
-                  {descontoPendente ? <Lock className="h-4 w-4 mr-1" /> : null}
-                  {convertendo ? "Criando a OS..." : "Converter em OS"} <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Dica>
-            ) : (
-              <div className="shrink-0 max-w-xs rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                <p className="flex items-center gap-1.5 font-medium text-foreground">
-                  <Lock className="h-3.5 w-3.5" /> Converter em OS é do gerente ou do admin
-                </p>
-                <p className="mt-1">
-                  {orc.status === "aprovado" ? (
-                    <>
-                      Este orçamento já está aprovado, então já aparece na lista de pendências
-                      deles no{" "}
-                      <Link to="/dashboard" className="underline underline-offset-2">
-                        painel
-                      </Link>
-                      .
-                    </>
-                  ) : (
-                    <>
-                      Marque o status como <strong>aprovado</strong> assim que o cliente fechar: é
-                      isso que coloca o orçamento na lista de pendências deles no{" "}
-                      <Link to="/dashboard" className="underline underline-offset-2">
-                        painel
-                      </Link>
-                      .
-                    </>
-                  )}
-                </p>
-              </div>
-            )
-          )}
-        </div>
+        <CabecalhoIdentificacao convertendo={convertendo} descontoPendente={descontoPendente} fechado={fechado} hasPermission={hasPermission} linhaDaTaxa={linhaDaTaxa} orc={orc} podeConverter={podeConverter} setConferindo={setConferindo} />
 
         {/* Linha 3 — ações secundárias */}
         <div className="flex items-center gap-2 flex-wrap md:pl-12">
@@ -1833,58 +1714,7 @@ function OrcamentoDetailPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="min-w-0 space-y-6">
           {passo === 1 && (
-            <Card id="passo-cliente" className="scroll-mt-48">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">{PASSOS_DA_EQUIPE[0].pergunta}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Cliente</p>
-                  {extra.cliente_id && orc.cliente_nome ? (
-                    <Link
-                      to="/clientes/$id"
-                      params={{ id: extra.cliente_id }}
-                      className="text-base font-medium underline-offset-4 hover:underline"
-                    >
-                      {orc.cliente_nome}
-                    </Link>
-                  ) : (
-                    <p className="text-base font-medium">{orc.cliente_nome || "Sem cliente vinculado"}</p>
-                  )}
-                  {[extra.contato_nome, extra.contato_telefone, extra.contato_email].some(Boolean) && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {[extra.contato_nome, extra.contato_telefone, extra.contato_email]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="mb-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                    Quem trouxe a venda
-                  </p>
-                  <QuemTrouxeAVenda alvo="orcamento" id={id} vendedorId={extra.vendedor_id ?? null} invalidar={[["orcamento", id]]} compacto />
-                </div>
-                {canSeePrices && (
-                  <div>
-                    <p className="mb-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                      Preço para
-                    </p>
-                    <PrecoDoOrcamento
-                      orcamentoId={id}
-                      modo={acordo.data?.preco_modo ?? "cliente_final"}
-                      confirmadoPor={acordo.data?.preco_parceiro_confirmado_por ?? null}
-                      confirmadoEm={acordo.data?.preco_parceiro_confirmado_em ?? null}
-                      clienteRevendedor={clienteRevendedor}
-                      parceiroCadastrado={!!tabelaDoParceiro && tabelaDoParceiro.nivel != null}
-                      nivelDoParceiro={tabelaDoParceiro?.nivel ?? null}
-                      descontoDoParceiro={tabelaDoParceiro?.descontoPct ?? null}
-                      podeEditar={podeEditarItens}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <PassoCliente acordo={acordo} canSeePrices={canSeePrices} clienteRevendedor={clienteRevendedor} extra={extra} id={id} orc={orc} podeEditarItens={podeEditarItens} tabelaDoParceiro={tabelaDoParceiro} />
           )}
 
           {passo === 2 && (
@@ -2757,189 +2587,11 @@ function OrcamentoDetailPage() {
           )}
 
           {passo === 3 && (
-            <div className="space-y-4">
-              <PrazoDeProducao
-                orcamentoId={id}
-                prazoTipo={dadosDoAcordo?.prazo_tipo ?? null}
-                baseDaTaxa={
-                  canSeePrices
-                    ? itensDeProduto.reduce((soma: number, i) => soma + Number(i.valor_total ?? 0), 0)
-                    : null
-                }
-                podeEditar={podeMexer}
-              />
-              {acordo.isError ? (
-                <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                  <div className="space-y-2">
-                    <p>Não foi possível carregar prazos e pagamento: {mensagemErro(acordo.error)}</p>
-                    <Button size="sm" variant="outline" onClick={() => void acordo.refetch()}>
-                      Tentar de novo
-                    </Button>
-                  </div>
-                </div>
-              ) : dadosDoAcordo ? (
-                <>
-                  <EntregaEPrazos acordo={dadosDoAcordo} podeEditar={podeMexer} jaVirouOs={!!(orc as any).os_id || orc.status === "convertido"} />
-                  {/* Desconto e parcelamento são preço: quem não vê preço não vê
-                      estes blocos (mostrariam "1× de R$ 0,00", que é mentira). O
-                      desconto vem antes porque é ele que muda o total das parcelas. */}
-                  {canSeePrices && (
-                    <DescontoDoOrcamento
-                      orcamentoId={id}
-                      podeEditar={podeMexer}
-                      verCusto={canSeeFinancials}
-                      onPrevia={setTotalPrevisto}
-                    />
-                  )}
-                  {canSeePrices && (
-                    <Pagamento
-                      orcamentoId={id}
-                      total={totalPrevisto ?? Number(orc.valor_total ?? 0)}
-                      previa={totalPrevisto != null}
-                      condicao={dadosDoAcordo.condicao_pagamento}
-                      podeEditar={podeMexer}
-                      prazo={dadosDoAcordo.prazo ?? dadosDoAcordo.data_entrega_prometida}
-                      numero={Number((orc as any).numero ?? 0) || null}
-                      clienteId={(dadosDoAcordo as any).cliente_id ?? null}
-                      aoMarcarPixRecebido={() => {
-                        // Aprovado + sinal recebido = pode virar OS agora: abre a conferência.
-                        if (orc.status === "aprovado" && !fechado && podeConverter) setConferindo("aprovado");
-                      }}
-                      clienteNome={orc.cliente_nome ?? (orc as any).contato_nome ?? null}
-                      clienteTelefone={
-                        ((orc as any).cliente_whatsapp ?? (orc as any).cliente_telefone ?? (orc as any).contato_telefone ?? null) as string | null
-                      }
-                    />
-                  )}
-                  <Observacoes acordo={dadosDoAcordo} podeEditar={podeMexer} />
-                </>
-              ) : (
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando prazos e pagamento…
-                </p>
-              )}
-            </div>
+            <PassoPrazoEEntrega acordo={acordo} canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} dadosDoAcordo={dadosDoAcordo} fechado={fechado} id={id} itensDeProduto={itensDeProduto} orc={orc} podeConverter={podeConverter} podeMexer={podeMexer} setConferindo={setConferindo} setTotalPrevisto={setTotalPrevisto} totalPrevisto={totalPrevisto} />
           )}
 
           {passo === 4 && (
-            <>
-              <Card id="passo-revisao" className="scroll-mt-48">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">{PASSOS_DA_EQUIPE[3].pergunta}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {fechado ? (
-                    <p className="text-sm text-muted-foreground">
-                      Este orçamento já virou OS: o que foi vendido fica como foi combinado.
-                    </p>
-                  ) : pendencias.length === 0 ? (
-                    <p className="text-sm">Nada falta para mandar ao cliente.</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <p className="text-sm font-medium">Antes de mandar ao cliente, falta:</p>
-                      <ul className="space-y-1 text-sm">
-                        {pendencias.map((p) => (
-                          <li key={p}>
-                            <button
-                              type="button"
-                              className="text-amber-600 underline underline-offset-2 hover:text-amber-500"
-                              onClick={() => irParaPasso(passoDaPendencia(p), ONDE_RESOLVER[p])}
-                            >
-                              {p}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-                    <div>
-                      <dt className="text-muted-foreground">Cliente</dt>
-                      <dd className="font-medium">{orc.cliente_nome || "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Itens</dt>
-                      <dd className="font-medium">
-                        {itensDeProduto.length}
-                        {somaArea > 0 ? ` · ${m2(somaArea)}` : ""}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Prazo de produção</dt>
-                      <dd className="font-medium">
-                        {linhaDaTaxa
-                          ? `Expresso (+${rotuloDaPorcentagem(taxaDoPrazoDoOrcamento)} sobre os produtos)`
-                          : "Normal"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Entrega</dt>
-                      <dd className="font-medium">
-                        {dadosDoAcordo?.data_entrega_prometida ?? dadosDoAcordo?.prazo
-                          ? dataBR((dadosDoAcordo?.data_entrega_prometida ?? dadosDoAcordo?.prazo) as string)
-                          : "sem data"}
-                      </dd>
-                    </div>
-                    {canSeePrices && (
-                      <div>
-                        <dt className="text-muted-foreground">Pagamento</dt>
-                        <dd className="font-medium">
-                          {condicao?.forma ?? "forma não escolhida"}
-                          {dadosDoAcordo?.condicao_pagamento
-                            ? ` · ${descricaoDaCondicao(lerCondicao(dadosDoAcordo.condicao_pagamento), Number(orc.valor_total ?? 0))}`
-                            : ""}
-                        </dd>
-                      </div>
-                    )}
-                    {canSeePrices && (
-                      <div>
-                        <dt className="text-muted-foreground">Total</dt>
-                        <dd className="font-semibold tabular-nums">{brl(orc.valor_total)}</dd>
-                      </div>
-                    )}
-                  </dl>
-
-                  <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-                  <Dica texto={dicaAcao("/orcamentos", "pdf")}><Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
-                    <FileDown className="h-4 w-4 mr-1" /> PDF
-                  </Button></Dica>
-                  <Dica texto={dicaAcao("/orcamentos", "producao")}><Button variant="outline" size="sm" onClick={() => setPreviewProducaoOpen(true)}>
-                    <Printer className="h-4 w-4 mr-1" /> Via de produção
-                  </Button></Dica>
-                  {podeMandar && (
-                    <>
-                      <Dica texto={dicaAcao("/orcamentos", "link")}><Button variant="outline" size="sm" onClick={copiarLinkCliente} disabled={gerandoLink}>
-                        {gerandoLink ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <LinkIcon className="h-4 w-4 mr-1" />
-                        )}
-                        Link do cliente
-                      </Button></Dica>
-                      <Dica texto="Envia o PDF e o link de aprovação direto na conversa do cliente, pelo WhatsApp da gráfica."><Button size="sm" onClick={enviarPeloSistema} disabled={enviandoPeloSistema || gerandoLink}>
-                        {enviandoPeloSistema ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MessageCircle className="h-4 w-4 mr-1" />} Enviar pelo sistema
-                      </Button></Dica>
-                      {orc.status === "enviado" && hasPermission("whatsapp.reply") && (orc as any).enviado_em &&
-                        Date.now() - new Date((orc as any).enviado_em).getTime() > 48 * 3600_000 && (
-                          <Dica texto="O cliente não respondeu há mais de 48 horas. Manda um lembrete curto com o link, pelo WhatsApp da gráfica.">
-                            <Button variant="outline" size="sm" onClick={lembrarCliente} disabled={lembrando}>
-                              {lembrando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MessageCircle className="h-4 w-4 mr-1" />} Lembrar o cliente
-                            </Button>
-                          </Dica>
-                        )}
-                      <Dica texto={dicaAcao("/orcamentos", "whatsapp")}><Button variant="outline" size="sm" onClick={enviarWhatsApp} disabled={gerandoLink}>
-                        <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
-                      </Button></Dica>
-                    </>
-                  )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <PDFHistoryCard tipo="orcamento" referencia_id={id} />
-            </>
+            <PassoRevisao canSeePrices={canSeePrices} condicao={condicao} copiarLinkCliente={copiarLinkCliente} dadosDoAcordo={dadosDoAcordo} enviandoPeloSistema={enviandoPeloSistema} enviarPeloSistema={enviarPeloSistema} enviarWhatsApp={enviarWhatsApp} fechado={fechado} gerandoLink={gerandoLink} hasPermission={hasPermission} id={id} irParaPasso={irParaPasso} itensDeProduto={itensDeProduto} lembrando={lembrando} lembrarCliente={lembrarCliente} linhaDaTaxa={linhaDaTaxa} orc={orc} pendencias={pendencias} podeMandar={podeMandar} setPreviewOpen={setPreviewOpen} setPreviewProducaoOpen={setPreviewProducaoOpen} somaArea={somaArea} taxaDoPrazoDoOrcamento={taxaDoPrazoDoOrcamento} />
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2956,104 +2608,7 @@ function OrcamentoDetailPage() {
         </div>
 
         {/* O resumo fica ao lado em todos os passos, como no orçamento do parceiro. */}
-        <aside className="min-w-0 space-y-4 lg:sticky lg:top-44 lg:self-start" data-testid="resumo-do-orcamento">
-          <Card>
-            <CardHeader className="px-4 pb-1 pt-3">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resumo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1.5 px-4 pb-3 text-sm">
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Itens</span>
-                <span className="font-medium">{itensDeProduto.length}</span>
-              </div>
-              {linhasDeMetragem.length > 0 && (
-                <div className="space-y-1 border-t pt-2" data-testid="metragem-por-material">
-                  <p className="text-xs font-medium text-muted-foreground">Metragem por material</p>
-                  {linhasDeMetragem.map((l) => (
-                    <div key={l.material} className="flex justify-between gap-3 text-xs">
-                      <span className="min-w-0 truncate">{l.material}</span>
-                      <span className="shrink-0 tabular-nums">{descreverLinhaDeMetragem(l)}</span>
-                    </div>
-                  ))}
-                  {linhasDeMetragem.length > 1 && (totaisDeMetragem.m2 > 0 || totaisDeMetragem.gramas > 0) && (
-                    <div className="flex justify-between gap-3 text-xs font-medium">
-                      <span>Total</span>
-                      <span className="tabular-nums">
-                        {[
-                          totaisDeMetragem.m2 > 0 ? m2(totaisDeMetragem.m2) : null,
-                          totaisDeMetragem.gramas > 0 ? `${Math.round(totaisDeMetragem.gramas)} g` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-              {canSeePrices && linhaDaTaxa && (
-                <div className="flex justify-between gap-3">
-                  <span className="text-muted-foreground">
-                    Expresso (+{rotuloDaPorcentagem(taxaDoPrazoDoOrcamento)})
-                  </span>
-                  <span className="tabular-nums">{brl(linhaDaTaxa.valor_total)}</span>
-                </div>
-              )}
-              {canSeePrices && descontoGravado > 0 && (
-                <>
-                  <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">Soma dos itens</span>
-                    <span className="tabular-nums">{brl(subtotalGravado)}</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    {/* Leva ao passo 3, onde o desconto é acertado e aprovado — não só rola a página.
-                        O rodapé da tabela de itens, que tinha este atalho, saiu a pedido do dono (27/10):
-                        o atalho continua aqui, no resumo que fica ao lado em todos os passos. */}
-                    <button
-                      type="button"
-                      className="text-left text-muted-foreground underline-offset-2 hover:underline"
-                      onClick={() => irParaPasso(3, "acordo-desconto")}
-                    >
-                      Desconto
-                    </button>
-                    <span className="tabular-nums">− {brl(descontoGravado)}</span>
-                  </div>
-                </>
-              )}
-              {canSeePrices && (
-                <div className="flex justify-between gap-3 border-t pt-2">
-                  <span className="text-muted-foreground">Total</span>
-                  <strong className="tabular-nums">{brl(orc.valor_total)}</strong>
-                </div>
-              )}
-              {canSeeFinancials && (
-                <>
-                  <div className="flex justify-between gap-3 text-xs">
-                    <span className="text-muted-foreground">
-                      Custo <span className="tabular-nums text-foreground">{brl(orc.custo_estimado)}</span>
-                    </span>
-                    {margem !== null && (
-                      <span className="text-muted-foreground">
-                        Margem{" "}
-                        <strong className={margem < 20 ? "text-destructive" : "text-success"}>{percentual(margem)}</strong>
-                      </span>
-                    )}
-                  </div>
-                </>
-              )}
-              {!fechado && (
-                <button
-                  type="button"
-                  className="w-full border-t pt-2 text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
-                  onClick={() => irParaPasso(4)}
-                >
-                  {pendencias.length === 0
-                    ? "Nada falta para enviar"
-                    : `${pendencias.length} ${pendencias.length === 1 ? "pendência" : "pendências"} · ver na revisão`}
-                </button>
-              )}
-            </CardContent>
-          </Card>
-        </aside>
+        <ResumoLateral canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} descontoGravado={descontoGravado} fechado={fechado} irParaPasso={irParaPasso} itensDeProduto={itensDeProduto} linhaDaTaxa={linhaDaTaxa} linhasDeMetragem={linhasDeMetragem} margem={margem} orc={orc} pendencias={pendencias} subtotalGravado={subtotalGravado} taxaDoPrazoDoOrcamento={taxaDoPrazoDoOrcamento} totaisDeMetragem={totaisDeMetragem} />
       </div>
 
       <div

@@ -1,20 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { telaDoOrcamento } from "./apoio/tela-do-orcamento";
 
 /**
  * A tela do orçamento da equipe nos quatro passos (25/10/2026): mesma barra do
  * parceiro, e cada coisa que já existia no lugar certo. Lê o código da tela.
  */
 
-const TELA = readFileSync("src/routes/_authenticated/orcamentos.$id.tsx", "utf8");
+const TELA = telaDoOrcamento();
 
-/** O texto de um passo: do `{passo === n && (` ao próximo passo (ou à navegação). */
+const parte = (nome: string) => readFileSync(`src/components/orcamento/tela/${nome}.tsx`, "utf8");
+
+/**
+ * O texto de um passo: do `{passo === n && (` ao próximo passo (ou à navegação). Os passos 1, 3 e 4
+ * saíram da rota para `src/components/orcamento/tela/`; o texto deles vem junto.
+ */
+const PASSO_EM_PARTE: Record<number, string> = { 1: "PassoCliente", 3: "PassoPrazoEEntrega", 4: "PassoRevisao" };
 function passo(n: 1 | 2 | 3 | 4): string {
   const ini = TELA.indexOf(`{passo === ${n} && (`);
   expect(ini, `passo ${n}`).toBeGreaterThan(0);
   const proximo =
     n < 4 ? TELA.indexOf(`{passo === ${n + 1} && (`, ini) : TELA.indexOf("Voltar", ini);
-  return TELA.slice(ini, proximo);
+  const dele = PASSO_EM_PARTE[n] ? parte(PASSO_EM_PARTE[n]) : "";
+  return TELA.slice(ini, proximo) + "\n" + dele;
 }
 
 describe("os passos da tela da equipe", () => {
@@ -64,7 +72,7 @@ describe("os passos da tela da equipe", () => {
   it("os botões de enviar saíram do cabeçalho, e o status e o 'Converter em OS' ficaram", () => {
     const ini = TELA.indexOf("<header");
     const fim = TELA.indexOf("</header>");
-    const cabecalho = TELA.slice(ini, fim);
+    const cabecalho = TELA.slice(ini, fim) + "\n" + parte("CabecalhoIdentificacao");
     expect(cabecalho).not.toContain("copiarLinkCliente");
     expect(cabecalho).not.toContain("enviarWhatsApp");
     expect(cabecalho).toContain("Status do orçamento");
