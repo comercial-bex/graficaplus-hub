@@ -90,6 +90,7 @@ import { Route as CatalogoTokenRouteImport } from './routes/catalogo.$token'
 import { Route as ConviteCodigoRouteImport } from './routes/convite.$codigo'
 import { Route as OrcamentoPublicoTokenRouteImport } from './routes/orcamento-publico.$token'
 import { Route as ParceiroIndexRouteImport } from './routes/parceiro.index'
+import { Route as ParceiroComprasRouteImport } from './routes/parceiro.compras'
 import { Route as ParceiroMarcaRouteImport } from './routes/parceiro.marca'
 import { Route as ParceiroTabelaRouteImport } from './routes/parceiro.tabela'
 import { Route as PublicoTokenRouteImport } from './routes/publico.$token'
@@ -562,6 +563,11 @@ const ParceiroIndexRoute = ParceiroIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ParceiroRoute,
 } as any)
+const ParceiroComprasRoute = ParceiroComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
+  getParentRoute: () => ParceiroRoute,
+} as any)
 const ParceiroMarcaRoute = ParceiroMarcaRouteImport.update({
   id: '/marca',
   path: '/marca',
@@ -826,6 +832,7 @@ export interface FileRoutesByFullPath {
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/compras': typeof ParceiroComprasRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
@@ -942,6 +949,7 @@ export interface FileRoutesByTo {
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/compras': typeof ParceiroComprasRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
@@ -1061,6 +1069,7 @@ export interface FileRoutesById {
   '/catalogo/$token': typeof CatalogoTokenRoute
   '/convite/$codigo': typeof ConviteCodigoRoute
   '/orcamento-publico/$token': typeof OrcamentoPublicoTokenRoute
+  '/parceiro/compras': typeof ParceiroComprasRoute
   '/parceiro/marca': typeof ParceiroMarcaRoute
   '/parceiro/tabela': typeof ParceiroTabelaRoute
   '/publico/$token': typeof PublicoTokenRoute
@@ -1180,6 +1189,7 @@ export interface FileRouteTypes {
     | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
+    | '/parceiro/compras'
     | '/parceiro/marca'
     | '/parceiro/tabela'
     | '/publico/$token'
@@ -1296,6 +1306,7 @@ export interface FileRouteTypes {
     | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
+    | '/parceiro/compras'
     | '/parceiro/marca'
     | '/parceiro/tabela'
     | '/publico/$token'
@@ -1414,6 +1425,7 @@ export interface FileRouteTypes {
     | '/catalogo/$token'
     | '/convite/$codigo'
     | '/orcamento-publico/$token'
+    | '/parceiro/compras'
     | '/parceiro/marca'
     | '/parceiro/tabela'
     | '/publico/$token'
@@ -2057,6 +2069,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParceiroIndexRouteImport
       parentRoute: typeof ParceiroRoute
     }
+    '/parceiro/compras': {
+      id: '/parceiro/compras'
+      path: '/compras'
+      fullPath: '/parceiro/compras'
+      preLoaderRoute: typeof ParceiroComprasRouteImport
+      parentRoute: typeof ParceiroRoute
+    }
     '/parceiro/marca': {
       id: '/parceiro/marca'
       path: '/marca'
@@ -2472,6 +2491,7 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface ParceiroRouteChildren {
+  ParceiroComprasRoute: typeof ParceiroComprasRoute
   ParceiroMarcaRoute: typeof ParceiroMarcaRoute
   ParceiroTabelaRoute: typeof ParceiroTabelaRoute
   ParceiroIndexRoute: typeof ParceiroIndexRoute
@@ -2480,6 +2500,7 @@ interface ParceiroRouteChildren {
 }
 
 const ParceiroRouteChildren: ParceiroRouteChildren = {
+  ParceiroComprasRoute: ParceiroComprasRoute,
   ParceiroMarcaRoute: ParceiroMarcaRoute,
   ParceiroTabelaRoute: ParceiroTabelaRoute,
   ParceiroIndexRoute: ParceiroIndexRoute,
