@@ -39,9 +39,20 @@ export type LinhaDeTerceirizado = {
   porPeca: number;
 };
 
-const centavos = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+/**
+ * R$ por peça sem esconder fração de centavo: R$ 100 por pedido em 30.000 peças são
+ * R$ 0,0033 por peça, não R$ 0,00. O banco guarda o custo por peça sem arredondar
+ * (o total do item é custo × quantidade), e a tela mostra o mesmo número.
+ */
+export function brlPorPeca(n: number): string {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 4 });
+}
 
-/** Quanto cada terceirizado custa por peça, na medida e na quantidade do item. */
+/**
+ * Quanto cada terceirizado custa por peça, na medida e na quantidade do item, SEM arredondar
+ * a centavos: é a mesma conta do gatilho do banco (revisão de 03/11/2026). Por pedido divide
+ * pela quantidade como ela é; só quantidade vazia ou zero conta como 1 peça.
+ */
 export function custoDosTerceirizados(
   linhas: readonly TerceirizadoDoProduto[],
   peca: { largura: number | null | undefined; altura: number | null | undefined; quantidade: number | null | undefined },
@@ -62,10 +73,10 @@ export function custoDosTerceirizados(
       fornecedor: t.fornecedor?.nome ?? null,
       base,
       valor,
-      porPeca: centavos(porPeca),
+      porPeca,
     });
   }
-  return { linhas: saida, total: centavos(saida.reduce((s, l) => s + l.porPeca, 0)) };
+  return { linhas: saida, total: saida.reduce((s, l) => s + l.porPeca, 0) };
 }
 
 /** Pendência do cadastro de um terceirizado novo, em uma frase; nula quando pode gravar. */

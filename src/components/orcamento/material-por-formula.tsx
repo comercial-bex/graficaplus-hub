@@ -3,7 +3,7 @@ import { Sigma } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import type { FormulaDoProduto, LinhaDeFormula } from "@/domain/orcamentos/material-por-formula";
-import { rotuloDaBase, type LinhaDeTerceirizado, type TerceirizadoDoProduto } from "@/domain/orcamentos/terceirizados";
+import { brlPorPeca, rotuloDaBase, type LinhaDeTerceirizado, type TerceirizadoDoProduto } from "@/domain/orcamentos/terceirizados";
 
 /**
  * Material por fórmula no item do orçamento (fase 4 do plano de 02/11/2026).
@@ -103,7 +103,7 @@ export function MaterialPorFormula({
                 {t.fornecedor && <span className="ml-1.5 text-xs text-muted-foreground">{t.fornecedor}</span>}
               </span>
               <span className="font-mono text-xs">
-                {brl(t.valor)} {rotuloDaBase(t.base)} = {brl(t.porPeca)} por peça
+                {brl(t.valor)} {rotuloDaBase(t.base)} = {brlPorPeca(t.porPeca)} por peça
               </span>
             </li>
           ))}
@@ -130,7 +130,7 @@ export function MaterialPorFormula({
         <p className="text-xs text-muted-foreground" data-testid="custo-das-formulas">
           Custo por peça:{" "}
           <strong className="font-mono text-foreground">
-            {brl(custo.total + terceirizados.reduce((s, t) => s + t.porPeca, 0))}
+            {brlPorPeca(custo.total + terceirizados.reduce((s, t) => s + t.porPeca, 0))}
           </strong>
           {custo.semCusto.length > 0 && ` · ${custo.semCusto.length === 1 ? "1 material" : `${custo.semCusto.length} materiais`} sem custo de compra`}
           . Entra no custo do item quando ele é salvo.

@@ -742,6 +742,11 @@ function OrcamentoDetailPage() {
     if (emParceiro && parceiroDoProduto == null && canSeePrices) {
       toast.warning(`“${p.nome}” não tem preço de parceiro: entrou com o preço de tabela.`);
     }
+    // Falha que se lê como vazio: se a consulta do preço especial ainda não voltou ou deu erro, o
+    // item entra com a tabela e a pessoa precisa saber que o acordo do cliente não foi conferido.
+    if (!emParceiro && canSeePrices && (orc as any)?.cliente_id && (precosEspeciais.isError || (precosEspeciais.isFetching && !precosEspeciais.data))) {
+      toast.warning(`Não consegui conferir o preço especial deste cliente: “${p.nome}” entrou com o preço de tabela. Confira o preço antes de enviar.`);
+    }
     if (origem === "cliente" && canSeePrices) {
       toast.info(fraseDoPrecoEspecial(precoDoProduto, p.preco_base));
     }
@@ -1132,6 +1137,14 @@ function OrcamentoDetailPage() {
     if (!base || repetindo) return;
     setRepetindo(true);
     try {
+      // O material por fórmula não vem nas views: lê da tabela. Sem ele a cópia nasce sem o
+      // custo das fórmulas e a margem sai maior que a real (revisão de 03/11/2026).
+      const { data: comFormulas, error: erroFormulas } = await (supabase as any)
+        .from("orcamento_itens")
+        .select("id, materiais_por_formula")
+        .in("id", base.itens.map((i: any) => i.id));
+      if (erroFormulas) return toast.error(mensagemErro(erroFormulas));
+      const formulasPorItem = new Map<string, unknown>(((comFormulas ?? []) as any[]).map((l) => [l.id, l.materiais_por_formula]));
       const linhas = base.itens.map((item: any, n: number) => {
         const copia: Record<string, unknown> = {
           orcamento_id: id,
@@ -1149,6 +1162,7 @@ function OrcamentoDetailPage() {
           produto_id: item.produto_id,
         };
         if (item.custo_unitario != null) copia.custo_unitario = item.custo_unitario;
+        copia.materiais_por_formula = formulasPorItem.get(item.id) ?? [];
         return copia;
       });
       const { error } = await (supabase as any).from("orcamento_itens").insert(linhas);
@@ -1162,6 +1176,16 @@ function OrcamentoDetailPage() {
   }
 
   async function duplicarItem(item: any) {
+    // A cobrança que a peça gerou vai junto (mais abaixo).
+    const dele = (itens as any[]).filter((l) => l.gerado_por_item_id === item.id);
+    // O material por fórmula não vem nas views: lê da tabela. Sem ele a cópia nasce sem o custo
+    // das fórmulas e custa menos que o original (revisão de 03/11/2026).
+    const { data: comFormulas, error: erroFormulas } = await (supabase as any)
+      .from("orcamento_itens")
+      .select("id, materiais_por_formula")
+      .in("id", [item.id, ...dele.map((l) => l.id)]);
+    if (erroFormulas) return toast.error(mensagemErro(erroFormulas));
+    const formulasPorItem = new Map<string, unknown>(((comFormulas ?? []) as any[]).map((l) => [l.id, l.materiais_por_formula]));
     const copia: Record<string, unknown> = {
       orcamento_id: id,
       descricao: item.descricao,
@@ -1177,6 +1201,7 @@ function OrcamentoDetailPage() {
       ordem: itens.length,
       produto_id: item.produto_id,
       arquivo_id: item.arquivo_id,
+      materiais_por_formula: formulasPorItem.get(item.id) ?? [],
     };
     // custo só existe na view financeira; sem ele, o banco usa o padrão
     if (item.custo_unitario != null) copia.custo_unitario = item.custo_unitario;
@@ -1187,7 +1212,6 @@ function OrcamentoDetailPage() {
       .single();
     if (error) return toast.error(mensagemErro(error));
     // A cobrança que a peça gerou vai junto: a cópia responde igual e custa igual.
-    const dele = (itens as any[]).filter((l) => l.gerado_por_item_id === item.id);
     if (dele.length > 0) {
       const { data: copiadas, error: erroCobranca } = await (supabase as any)
         .from("orcamento_itens")
@@ -1205,6 +1229,7 @@ function OrcamentoDetailPage() {
             valor_unitario: canSeePrices ? l.valor_unitario : 0,
             ordem: itens.length + 1 + n,
             gerado_por_item_id: novo.id,
+            materiais_por_formula: formulasPorItem.get(l.id) ?? [],
           })),
         )
         .select("id");
