@@ -29,3 +29,6 @@
 - [x] Selecionar três ferramentas no índice e propor ordem, pré-requisitos e riscos — PM/PO → data-engineer → QA/qa-loop; somente documentação (24/10)
 - [x] Detalhar plano PM/PO aprovado e produzir inventário, escopo, épico, quatro histórias, matriz de aceite, decisões e avaliação em `docs/planejamento-aiox/` (24/10); referência isolada verificada e 96 testes locais aprovados
 - [ ] Instalar e pilotar aiox-core em ambiente isolado — plano aprovado; bloqueado por acesso não confirmado ao anfitrião, operador e ambiente durável a definir; nenhuma instalação/ativação feita (24/10)
+
+- [x] Vendas diretas do revendedor (menu Comprar no painel do parceiro; pagamento sinal 50% ou à vista; vira OS; tela interna Vendas diretas)
+- [ ] Vendas diretas: anexar layout por item na compra
