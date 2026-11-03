@@ -31,10 +31,15 @@ export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso
   somarTabelaDePrecos(b);
   if (decideReembolso) somarReembolsos(b);
   somarFornecedores(b);
-  if (!temCatalogo) return b;
+  if (temCatalogo) somarCatalogo(b);
+  enxugarDeNovembro(b);
+  return b;
+}
+
+function somarCatalogo(b: ResumoDoMenu): void {
   const vendas = b.arvore.find((a) => a.area === "Vendas");
   const orcamentos = vendas?.subs.find((s) => s.sub === "Orçamentos");
-  if (!vendas || !orcamentos) return b;
+  if (!vendas || !orcamentos) return;
   orcamentos.itens.splice(
     orcamentos.itens.indexOf("Aprovações do cliente") + 1,
     0,
@@ -43,7 +48,162 @@ export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso
   b.itens += 1;
   // Uma linha a mais só quando Vendas abre sozinha (rotina em até duas áreas).
   if (vendas.rotina && b.rotina.length <= 2) b.linhas += 1;
-  return b;
+}
+
+type ItemLido = { titulo: string; n: number; link: string | null };
+
+/** "WhatsApp (+3 abas) [abre em /x]" → partes; e de volta. */
+const lerItem = (t: string): ItemLido => ({
+  titulo: t.replace(/ \[abre em [^\]]+\]/, "").replace(/ \(\+\d+ abas?\)/, ""),
+  n: Number(/\(\+(\d+) abas?\)/.exec(t)?.[1] ?? 0),
+  link: /\[abre em ([^\]]+)\]/.exec(t)?.[1] ?? null,
+});
+const escreverItem = (l: ItemLido): string =>
+  l.titulo + (l.n ? ` (+${l.n} aba${l.n > 1 ? "s" : ""})` : "") + (l.link ? ` [abre em ${l.link}]` : "");
+
+/**
+ * Funde itens de uma área num hub: cada item fundido (com as abas que já tinha)
+ * vira aba do hub. Como o resumo de cada pessoa só traz o que ela abre, a conta
+ * é mecânica: item que some é aba que entra. Se a pessoa não abre a tela
+ * principal do hub, o hub nasce no lugar do primeiro desdobramento e abre nele.
+ */
+function fundirEmHub(
+  b: ResumoDoMenu,
+  area: string,
+  hub: { titulo: string; abasNovasSeAberto?: number },
+  desdobramentos: { titulo: string; url: string }[],
+  subsDeOrigem: string[],
+): void {
+  const a = b.arvore.find((x) => x.area === area);
+  if (!a) return;
+  let doHub: ItemLido | null = null;
+  let onde: { sub: { itens: string[] }; index: number } | null = null;
+  let somaAbas = 0;
+  let removidos = 0;
+  let primeiraAba: string | null = null;
+  for (const s of a.subs.filter((x) => subsDeOrigem.includes(x.sub))) {
+    for (let i = 0; i < s.itens.length; i++) {
+      const l = lerItem(s.itens[i]);
+      if (l.titulo === hub.titulo) {
+        doHub = l;
+        onde = { sub: s, index: i };
+        continue;
+      }
+      const d = desdobramentos.find((x) => x.titulo === l.titulo);
+      if (!d) continue;
+      somaAbas += 1 + l.n;
+      removidos += 1;
+      primeiraAba ??= d.url;
+      onde ??= { sub: s, index: i };
+      s.itens.splice(i, 1);
+      i -= 1;
+    }
+  }
+  if (!onde) return;
+  if (doHub) {
+    doHub.n += somaAbas + (hub.abasNovasSeAberto ?? 0);
+    onde.sub.itens[onde.index] = escreverItem(doHub);
+    b.itens -= removidos;
+    b.abas += removidos + (hub.abasNovasSeAberto ?? 0);
+    return;
+  }
+  // Sem a tela principal: o primeiro desdobramento vira a porta do hub.
+  onde.sub.itens.splice(onde.index, 0, escreverItem({ titulo: hub.titulo, n: somaAbas - 1, link: primeiraAba }));
+  b.itens -= removidos - 1;
+  b.abas += removidos - 1;
+}
+
+/** Junta subgrupos de uma área num só, na posição do primeiro, mantendo a ordem dos itens. */
+function juntarSubgrupos(b: ResumoDoMenu, area: string, nomes: string[], novoNome: string): void {
+  const a = b.arvore.find((x) => x.area === area);
+  if (!a) return;
+  const i = a.subs.findIndex((s) => nomes.includes(s.sub));
+  if (i < 0) return;
+  const itens = a.subs.filter((s) => nomes.includes(s.sub)).flatMap((s) => s.itens);
+  a.subs = a.subs.filter((s) => !nomes.includes(s.sub));
+  if (itens.length > 0) a.subs.splice(i, 0, { sub: novoNome, itens });
+}
+
+/**
+ * O custeio como no Holdprint e o menu enxuto (02/11/2026, OK do dono ao plano
+ * do custeio): 41 itens viraram 25. Tela que é desdobramento de outra virou aba
+ * dela: Aprovações, Catálogo de brindes e Meta do mês no Orçamentos; Pós-venda e
+ * Metragem no Clientes; Trabalho parado, Entregas e Perdas na OS; Contas
+ * bancárias, Despesas fixas e Reembolsos no Caixa; e o hub "Custeio" (a tela de
+ * produtos) com Processos, Planilha de custos, Mão de obra, Tabela de preços e
+ * Simulador. Ninguém ganha nem perde tela: muda a porta.
+ */
+function enxugarDeNovembro(b: ResumoDoMenu): void {
+  fundirEmHub(
+    b,
+    "Vendas",
+    { titulo: "Orçamentos" },
+    [
+      { titulo: "Aprovações do cliente", url: "/aprovacoes" },
+      { titulo: "Catálogo de brindes", url: "/catalogos" },
+      { titulo: "Meta do mês", url: "/meta" },
+    ],
+    ["Orçamentos", "Números de venda"],
+  );
+  fundirEmHub(
+    b,
+    "Vendas",
+    { titulo: "Clientes" },
+    [
+      { titulo: "Pós-venda", url: "/pos-venda" },
+      { titulo: "Metragem por cliente", url: "/metragem" },
+    ],
+    ["Clientes", "Números de venda"],
+  );
+  juntarSubgrupos(b, "Vendas", ["Orçamentos", "Clientes", "Números de venda"], "Clientes e orçamentos");
+
+  fundirEmHub(
+    b,
+    "Produção",
+    { titulo: "Ordens de serviço" },
+    [
+      { titulo: "Trabalho parado", url: "/onde-para" },
+      { titulo: "Entregas e instalações", url: "/entregas" },
+      { titulo: "Perdas e ocorrências", url: "/perdas" },
+    ],
+    ["Fila da oficina", "Arte, entrega e qualidade"],
+  );
+  juntarSubgrupos(b, "Produção", ["Arte, entrega e qualidade", "Material e compras"], "Arte e material");
+
+  fundirEmHub(
+    b,
+    "Financeiro",
+    { titulo: "Caixa e contas a pagar" },
+    [
+      { titulo: "Contas bancárias e extrato", url: "/contas-bancarias" },
+      { titulo: "Despesas fixas e contratos", url: "/compromissos" },
+      { titulo: "Reembolsos", url: "/reembolsos" },
+    ],
+    ["Pagar e caixa"],
+  );
+  // "Processos" saiu de fora do menu e virou aba do Custeio; abre com a mesma porta de Produtos (custos.read).
+  fundirEmHub(
+    b,
+    "Financeiro",
+    { titulo: "Produtos e serviços", abasNovasSeAberto: 1 },
+    [
+      { titulo: "Planilha de custos", url: "/planilha-custos" },
+      { titulo: "Tabela de preços", url: "/tabela-de-precos" },
+      { titulo: "Simulador de preço", url: "/precificacao" },
+    ],
+    ["Preço e custo"],
+  );
+  const financeiro = b.arvore.find((x) => x.area === "Financeiro");
+  const precoECusto = financeiro?.subs.find((s) => s.sub === "Preço e custo");
+  if (precoECusto) {
+    precoECusto.itens = precoECusto.itens.map((t) => {
+      const l = lerItem(t);
+      return l.titulo === "Produtos e serviços" ? escreverItem({ ...l, titulo: "Custeio" }) : t;
+    });
+  }
+  juntarSubgrupos(b, "Financeiro", ["Preço e custo", "Resultado"], "Custeio e resultado");
+
+  for (const a of b.arvore) a.subs = a.subs.filter((s) => s.itens.length > 0);
 }
 
 /**

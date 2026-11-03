@@ -397,7 +397,7 @@ function PastaDoProduto() {
     <div className="space-y-4">
       <SectionHeader
         ajuda={dicaTela("/produtos")}
-        breadcrumb="Preço e custo · Produtos e serviços"
+        breadcrumb="Custeio · Produtos e serviços"
         title={p.nome}
         description="A pasta do produto: como se faz, o que perguntar ao orçar e o roteiro da IA."
         actions={

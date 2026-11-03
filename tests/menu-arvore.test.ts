@@ -144,13 +144,11 @@ describe("a árvore cobre o mapa de rotas, e o mapa cobre a árvore", () => {
     ]);
   });
 
-  it("Catálogo de brindes fica em Vendas › Orçamentos, logo depois de Aprovações do cliente", () => {
-    const orcamentos = AREAS[0].subgrupos.find((s) => s.label === "Orçamentos");
-    expect(orcamentos?.itens.map((i) => i.url)).toEqual([
-      "/orcamentos",
-      "/aprovacoes",
-      "/catalogos",
-    ]);
+  it("Catálogo de brindes é aba de Orçamentos, logo depois de Aprovações do cliente (menu enxuto de 02/11)", () => {
+    const orcamentos = AREAS[0].subgrupos
+      .flatMap((s) => s.itens)
+      .find((i) => i.url === "/orcamentos");
+    expect(orcamentos?.abas.map((a) => a.url)).toEqual(["/aprovacoes", "/catalogos", "/meta"]);
     // Aparece para quem tem catalogo.read — no banco de 06/10, todo mundo menos o operador.
     for (const [papel, ve] of [
       ["admin", true],
@@ -160,10 +158,28 @@ describe("a árvore cobre o mapa de rotas, e o mapa cobre a árvore", () => {
       ["operador", false],
     ] as const) {
       const urls = daPessoa([papel], banco).areas.flatMap((a) =>
-        a.subgrupos.flatMap((s) => s.itens.map((i) => i.url)),
+        a.subgrupos.flatMap((s) => s.itens.flatMap((i) => i.telas.map((t) => t.url))),
       );
       expect(urls.includes("/catalogos"), papel).toBe(ve);
     }
+  });
+
+  it("o menu enxuto de 02/11: 25 itens para o admin, e o Custeio junta a tela de produtos com as de custo", () => {
+    const { areas } = daPessoa(["admin"], banco);
+    expect(areas.reduce((n, a) => n + a.nItens, 0)).toBe(25);
+    const custeio = areas
+      .flatMap((a) => a.subgrupos.flatMap((s) => s.itens))
+      .find((i) => i.title === "Custeio");
+    expect(custeio?.telas.map((t) => t.url)).toEqual([
+      "/produtos",
+      "/processos",
+      "/planilha-custos",
+      "/custos-producao",
+      "/tabela-de-precos",
+      "/precificacao",
+    ]);
+    expect(nomeDaTela("/processos")).toBe("Processos");
+    expect(nomeDaTela("/produtos/abc")).toBe("Custeio");
   });
 });
 
@@ -329,7 +345,7 @@ describe("barra de abas do hub", () => {
   });
 
   it("sem barra fora de hub, e sem barra em tela que a pessoa não abre", () => {
-    expect(abasDaTela("/orcamentos", de(["admin"]))).toBeNull();
+    expect(abasDaTela("/a-receber", de(["admin"]))).toBeNull();
     expect(abasDaTela("/dashboard", de(["admin"]))).toBeNull();
     expect(abasDaTela("/automacoes", de(["vendedor"]))).toBeNull();
   });
@@ -463,6 +479,8 @@ describe("contagens ao lado dos itens", () => {
     expect(itemDa("parcelasVencidas").url).toBe("/a-receber");
     expect(getRoutePermissions("/a-receber")).toEqual(["financeiro.read"]);
     expect(telasDoItem(itemDa("avisosPendentes")).map((t) => t.url)).toEqual(["/avisos"]);
-    expect(telasDoItem(itemDa("pediuAjuste")).map((t) => t.url)).toEqual(["/aprovacoes"]);
+    // 02/11: Aprovações virou aba de Orçamentos; o selo de "pediu ajuste" subiu para o hub.
+    expect(itemDa("pediuAjuste").url).toBe("/orcamentos");
+    expect(telasDoItem(itemDa("pediuAjuste")).map((t) => t.url)).toContain("/aprovacoes");
   });
 });
