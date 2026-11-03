@@ -4,7 +4,10 @@
 - No painel do parceiro, um novo menu **Comprar** com o botão **Nova compra**.
 - O revendedor lança os itens com a mesma janela de passos do orçamento: Tipo, Produto, Medida e quantidade, Preço e revisão. Não pede cliente nem gera PDF.
 - Os preços vêm sempre da tabela de parceiro do nível dele. O revendedor não pode editar o preço.
-- Na finalização, ele escolhe a forma de pagamento (Pix, dinheiro, cartão, boleto ou crédito do parceiro) e a situação do pagamento: pago, parcial ou em aberto. Ele também pode deixar uma observação e anexar o layout de cada item.
+- Na finalização, aparecem só duas formas de pagamento:
+  - **Sinal (50%)**: mostra o valor do sinal e o restante a pagar. A situação fica "Parcial".
+  - **À vista**: mostra o total. A situação fica "Pago".
+- Ele também pode deixar uma observação e anexar o layout de cada item.
 - Uma lista **Minhas compras** mostra o número, a data, o total, a situação do pagamento e a etapa da produção.
 
 ## O que a gráfica vai ver
