@@ -184,12 +184,12 @@ function Ofertas({ painel }: { painel: PainelDoParceiro }) {
         <Zap className="h-5 w-5 text-[color:var(--bex-amber)]" />
         Ofertas para você
       </h2>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-3">
         {painel.ofertas.map((o) => (
           <Link
             key={o.id}
             to="/parceiro/tabela"
-            className="block rounded-2xl border border-[color:var(--bex-amber)]/30 bg-card p-4 transition-colors hover:border-[color:var(--bex-amber)]/70"
+            className="block w-[80%] shrink-0 snap-start rounded-2xl border border-[color:var(--bex-amber)]/30 transition-transform hover:-translate-y-0.5 md:w-auto bg-card p-4 transition-colors hover:border-[color:var(--bex-amber)]/70"
           >
             <p className="font-semibold">{o.titulo}</p>
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{o.mensagem}</p>
@@ -198,23 +198,5 @@ function Ofertas({ painel }: { painel: PainelDoParceiro }) {
         ))}
       </div>
     </section>
-  );
-}
-
-function Numero(props: {
-  icone: typeof FileText;
-  rotulo: string;
-  valor: number;
-  para: "/parceiro/orcamentos";
-}) {
-  return (
-    <Link
-      to={props.para}
-      className="rounded-2xl border border-border bg-card p-3 transition-colors hover:bg-foreground/5 md:p-4"
-    >
-      <props.icone className="h-4 w-4 text-muted-foreground" />
-      <p className="mt-2 text-2xl font-bold tabular-nums">{Number(props.valor)}</p>
-      <p className="text-xs leading-tight text-muted-foreground md:text-xs">{props.rotulo}</p>
-    </Link>
   );
 }
