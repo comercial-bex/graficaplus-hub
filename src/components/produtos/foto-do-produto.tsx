@@ -156,6 +156,15 @@ export function FotoDoProduto({
               : "Aparece na tabela do parceiro."}{" "}
           JPG, PNG ou WebP, até {LIMITE_MB} MB.
         </p>
+        {produto && (
+          // O pedido que a IA recebe, à vista: é o nome, a família e a descrição do produto dentro do
+          // texto da marca. Para mudar o resultado, muda-se a descrição do produto.
+          <details className="text-xs text-muted-foreground" data-testid="pedido-da-foto">
+            <summary className="cursor-pointer underline underline-offset-2">Ver o pedido que a IA recebe</summary>
+            <p className="mt-1 whitespace-pre-wrap rounded border bg-muted/40 p-2 text-foreground">{promptDaFotoDoProduto(produto)}</p>
+            <p className="mt-1">Para mudar a imagem, ajuste o nome, a família ou a descrição do produto: eles entram no pedido.</p>
+          </details>
+        )}
       </div>
     </div>
   );
