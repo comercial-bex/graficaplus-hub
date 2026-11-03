@@ -186,15 +186,13 @@ function PastaDoProduto() {
   const satelites = useQuery({
     queryKey: ["pasta-satelites", id],
     queryFn: async () => {
-      const [processos, perguntas, formulas] = await Promise.all([
+      const [processos, perguntas] = await Promise.all([
         (supabase as any).from("produto_processos").select("produto_id").eq("produto_id", id),
         (supabase as any).from("produto_perguntas").select("produto_id, finalidade").eq("produto_id", id),
-        (supabase as any).from("produto_formulas").select("produto_id").eq("produto_id", id),
       ]);
       return {
         processos: (processos.data ?? []) as { produto_id: string }[],
         perguntas: (perguntas.data ?? []) as { produto_id: string; finalidade?: string | null }[],
-        formulas: (formulas.data ?? []) as { produto_id: string }[],
       };
     },
   });
@@ -386,7 +384,6 @@ function PastaDoProduto() {
           : [],
         processos: satelites.data?.processos ?? [],
         perguntas: satelites.data?.perguntas ?? [],
-        formulas: satelites.data?.formulas ?? [],
       },
     ),
   );

@@ -284,7 +284,7 @@ function ProdutosPage() {
   const linhasParaNota = useLinhasParaNota();
   const notaDe = (p: Produto) =>
     notaDaPasta(
-      entradaDaNota(p, familiaDe.get(p.id), linhasParaNota.data ?? { fichas: [], processos: [], perguntas: [], formulas: [] }),
+      entradaDaNota(p, familiaDe.get(p.id), linhasParaNota.data ?? { fichas: [], processos: [], perguntas: [] }),
     );
 
   const stats = useMemo(() => {

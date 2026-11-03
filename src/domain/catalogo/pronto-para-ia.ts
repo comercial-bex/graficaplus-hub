@@ -2,13 +2,20 @@
  * "Pronto para a IA": a nota de 0 a 10 da pasta do produto (fase 6 do plano de
  * 02/11/2026). Cada campo da pasta existe para a IA orçar sozinha depois, nas
  * palavras do dono; a nota diz, produto a produto, o que ainda falta para
- * isso. É contagem do que está preenchido, não opinião: dez checagens, cada
+ * isso. É contagem do que está preenchido, não opinião: nove checagens, cada
  * uma vale igual, e a que não cabe no produto sai da conta em vez de puxar a
  * nota para baixo. Serviço (acabamento, instalação, criação) não tem foto,
- * material principal, medida padrão, fórmula de material nem pergunta de
- * checklist: a medida vem do item a que ele se aplica, e o que ele pergunta ao
- * cliente é o próprio item. Ajustado em 03/11/2026, quando a conta cobrava
- * "perguntas do checklist" de 13 serviços que não têm o que perguntar.
+ * material principal, medida padrão nem pergunta de checklist: a medida vem do
+ * item a que ele se aplica, e o que ele pergunta ao cliente é o próprio item.
+ * Ajustado em 03/11/2026, quando a conta cobrava "perguntas do checklist" de 13
+ * serviços que não têm o que perguntar.
+ *
+ * A fórmula de material NÃO entra na nota, de propósito (03/11/2026). Lona,
+ * banner e adesivo já têm o ilhós pelo acabamento (2 por metro, a cada 50 cm,
+ * cobrado por metro) e o bastão pela ficha; somar uma fórmula por cima contaria
+ * o mesmo material duas vezes. A aba Fórmulas existe para o material que
+ * depende de uma conta e não está em nenhum dos dois (letra caixa, moldura), e
+ * cobrá-la em todo produto por área empurraria quem preenche para o erro.
  */
 
 export type EntradaDaNota = {
@@ -22,7 +29,6 @@ export type EntradaDaNota = {
   processos: number;
   /** Perguntas do Checklist (as que cobram). */
   perguntas: number;
-  formulas: number;
   roteiroEscrito: boolean;
   roteiroRevisado: boolean;
 };
@@ -37,7 +43,6 @@ export type Checagem = {
     | "material"
     | "processos"
     | "perguntas"
-    | "formulas"
     | "roteiro";
   rotulo: string;
   /** Falso quando a checagem não cabe neste produto: ela sai da conta. */
@@ -68,7 +73,6 @@ export function checagensDaPasta(e: EntradaDaNota): Checagem[] {
     { chave: "material", rotulo: "material principal", cabe: !servico, pronta: e.temMaterialPrincipal },
     { chave: "processos", rotulo: "processos", cabe: true, pronta: e.processos > 0 },
     { chave: "perguntas", rotulo: "perguntas do checklist", cabe: !servico, pronta: e.perguntas > 0 },
-    { chave: "formulas", rotulo: "fórmula de material", cabe: area && !servico, pronta: e.formulas > 0 },
     {
       chave: "roteiro",
       rotulo: e.roteiroEscrito ? "revisão do roteiro da IA" : "roteiro da IA",
@@ -93,7 +97,7 @@ export function notaDaPasta(e: EntradaDaNota): NotaDaPasta {
   };
 }
 
-/** "Pronto para a IA: 7 de 10. Falta: foto, fórmula de material." */
+/** "Pronto para a IA: 8 de 10. Falta: foto, revisão do roteiro da IA." */
 export function fraseDaNota(n: NotaDaPasta): string {
   const cabeca = `Pronto para a IA: ${n.nota} de 10.`;
   if (n.faltas.length === 0) return `${cabeca} Nada falta.`;
@@ -111,7 +115,6 @@ export type LinhasParaNota = {
   fichas: readonly { produto_id: string; largura_padrao_m: number | string | null; altura_padrao_m: number | string | null; ia_como_medir: string | null; ia_revisado_em: string | null }[];
   processos: readonly { produto_id: string }[];
   perguntas: readonly { produto_id: string; finalidade?: string | null }[];
-  formulas: readonly { produto_id: string }[];
 };
 
 /** Monta a entrada da nota de um produto a partir das linhas das tabelas satélites. */
@@ -139,7 +142,6 @@ export function entradaDaNota(
     temMaterialPrincipal: !!p.material_principal_id,
     processos: linhas.processos.filter((x) => x.produto_id === p.id).length,
     perguntas: linhas.perguntas.filter((x) => x.produto_id === p.id && x.finalidade !== "informacao").length,
-    formulas: linhas.formulas.filter((x) => x.produto_id === p.id).length,
     roteiroEscrito: !!(ficha?.ia_como_medir ?? "").trim(),
     roteiroRevisado: !!ficha?.ia_revisado_em,
   };
