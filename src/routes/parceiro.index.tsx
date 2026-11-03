@@ -5,7 +5,7 @@ import { AlertTriangle, FileText, ShoppingCart, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { carregarPainel, CHAVE_PAINEL } from "@/lib/parceiro-api";
-import { resumoDaOferta, type PainelDoParceiro } from "@/domain/parceiros/painel";
+import { resumoDaOferta, STATUS_DO_ORCAMENTO, type PainelDoParceiro } from "@/domain/parceiros/painel";
 import { NivelCard } from "@/components/parceiro/nivel-card";
 import { CreditoCard } from "@/components/parceiro/credito-card";
 import { Metas } from "@/components/parceiro/metas";
@@ -31,13 +31,6 @@ export const Route = createFileRoute("/parceiro/")({
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const data = (s: string) => new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-const STATUS: Record<string, string> = {
-  rascunho: "Rascunho",
-  enviado: "Enviado",
-  aprovado: "Aprovado",
-  pedido: "Pedido",
-  recusado: "Recusado",
-};
 
 type Linha = {
   id: string;
@@ -148,7 +141,7 @@ function InicioDoParceiro() {
             id: o.id,
             titulo: o.titulo || `Orçamento #${o.numero}`,
             detalhe: `${o.cliente_nome ?? "Sem cliente"} · ${data(o.created_at)}`,
-            selo: STATUS[o.status] ?? o.status,
+            selo: (STATUS_DO_ORCAMENTO as Record<string, { rotulo: string }>)[o.status]?.rotulo ?? o.status,
             para: `/parceiro/orcamentos/${o.id}`,
           }))}
           vazio="Nenhum orçamento ainda — crie o primeiro."
