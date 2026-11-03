@@ -84,7 +84,6 @@ export function NovoOrcamento({
                 value={cliente}
                 onChange={(e) => setCliente(e.target.value)}
                 placeholder="Ex.: Padaria Pão Quente"
-                autoFocus
                 required
               />
             </div>

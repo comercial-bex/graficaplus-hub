@@ -246,10 +246,10 @@ describe("a tela", () => {
     expect(emM).toContain("Altura (Y) 0,50 m");
   });
 
-  it("o editor do parceiro usa o mesmo campo e o mesmo seletor (a unidade lembrada vale nos dois)", () => {
+  it("o editor do parceiro usa o mesmo bloco de medidas da equipe (a unidade lembrada vale nos dois)", () => {
     const parceiro = readFileSync("src/components/parceiro/editor-de-orcamento.tsx", "utf8");
-    expect(parceiro).toContain("<CampoDeMedida");
-    expect(parceiro).toContain("<SeletorDeUnidade");
+    expect(parceiro).toContain("<MedidasDaPeca");
+    expect(parceiro).toContain("idPrefixo={`item-${item.id}`}");
     expect(parceiro).not.toContain('rotulo="Largura (m)"');
   });
 

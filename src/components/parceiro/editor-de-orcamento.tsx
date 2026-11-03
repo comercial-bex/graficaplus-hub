@@ -1,18 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EscolhaDeMaterial } from "@/components/orcamento/escolha-de-material";
+// As mesmas peças do item do orçamento da equipe (02/11/2026, pedido do dono: o
+// item do parceiro herda a estrutura do oficial; só o bloco de ganho é dele).
+import { MedidasDaPeca } from "@/components/orcamento/medidas-da-peca";
+import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
+import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
+import { camposDaUnidade, type TamanhoComum } from "@/domain/orcamentos/tipos-de-produto";
 import {
-  CartaoDeEscolha,
-  GradeDeCartoes,
-  PreviaDaPeca,
-} from "@/components/orcamento/cartao-de-escolha";
-import { descricaoDoTamanho } from "@/domain/orcamentos/descricao-do-tamanho";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Copy,
   Download,
   Lock,
@@ -38,7 +50,6 @@ import {
 } from "@/components/ui/select";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { Dica, DicaIcone } from "@/components/bex/Dica";
-import { CampoDeMedida, SeletorDeUnidade, useUnidadeDeMedida } from "@/components/orcamento/campo-de-medida";
 import { dicaCampo } from "@/lib/dicas";
 import { SeletorDeProduto } from "./seletor-de-produto";
 import { PedidoDialog } from "./pedido-dialog";
@@ -215,6 +226,8 @@ export function EditorDeOrcamento({ id }: { id: string }) {
 
   const [cab, setCab] = useState<Cabecalho | null>(null);
   const [itens, setItens] = useState<ItemEditavel[]>([]);
+  // "Tirar o item" pede confirmação, como na tela da equipe.
+  const [aRemover, setARemover] = useState<{ id: string; numero: number; descricao: string } | null>(null);
   const [salvoComo, setSalvoComo] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [gerandoPdf, setGerandoPdf] = useState(false);
@@ -472,6 +485,22 @@ export function EditorDeOrcamento({ id }: { id: string }) {
     navigate({ to: "/parceiro/orcamentos/$id", params: { id: novo.id } });
   }
 
+  // Subir, descer e duplicar: as mesmas ações da tabela de itens da equipe.
+  // A ordem é gravada (coluna `ordem` = posição no array) no próximo salvar.
+  const moverItem = (indice: number, passo: 1 | -1) =>
+    setItens((lista) => {
+      const destino = indice + passo;
+      if (destino < 0 || destino >= lista.length) return lista;
+      const nova = [...lista];
+      [nova[indice], nova[destino]] = [nova[destino], nova[indice]];
+      return nova;
+    });
+  const duplicarItem = (indice: number) =>
+    setItens((lista) => {
+      const copia: ItemEditavel = { ...lista[indice], id: crypto.randomUUID() };
+      return [...lista.slice(0, indice + 1), copia, ...lista.slice(indice + 1)];
+    });
+
   function escolherProduto(item: ItemEditavel, produto: ItemDoCatalogo) {
     const anterior = item.produto_id ? porProduto.get(item.produto_id) : undefined;
     const sugestaoAnterior = anterior ? precoSugerido(anterior, item.quantidade) : null;
@@ -619,7 +648,12 @@ export function EditorDeOrcamento({ id }: { id: string }) {
                   somenteLeitura={somenteLeitura}
                   onMudar={(parcial) => mudarItem(item.id, parcial)}
                   onEscolherProduto={(p) => escolherProduto(item, p)}
-                  onRemover={() => setItens((lista) => lista.filter((i) => i.id !== item.id))}
+                  podeSubir={indice > 0}
+                  podeDescer={indice < itens.length - 1}
+                  onSubir={() => moverItem(indice, -1)}
+                  onDescer={() => moverItem(indice, 1)}
+                  onDuplicar={() => duplicarItem(indice)}
+                  onRemover={() => setARemover({ id: item.id, numero: indice + 1, descricao: item.descricao })}
                 />
               ))}
 
@@ -821,6 +855,29 @@ export function EditorDeOrcamento({ id }: { id: string }) {
         ) : null}
       </div>
 
+      <AlertDialog open={aRemover !== null} onOpenChange={(aberto) => !aberto && setARemover(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tirar o item {aRemover?.numero}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {aRemover?.descricao ? `"${aRemover.descricao}" sai do orçamento.` : "O item sai do orçamento."} Isso vale
+              quando você salvar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Manter</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (aRemover) setItens((lista) => lista.filter((i) => i.id !== aRemover.id));
+                setARemover(null);
+              }}
+            >
+              Tirar o item
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <PedidoDialog
         aberto={pedidoAberto}
         onOpenChange={setPedidoAberto}
@@ -967,6 +1024,11 @@ function ItemCard({
   somenteLeitura,
   onMudar,
   onEscolherProduto,
+  podeSubir,
+  podeDescer,
+  onSubir,
+  onDescer,
+  onDuplicar,
   onRemover,
 }: {
   indice: number;
@@ -976,6 +1038,11 @@ function ItemCard({
   somenteLeitura: boolean;
   onMudar: (parcial: Partial<ItemEditavel>) => void;
   onEscolherProduto: (p: ItemDoCatalogo) => void;
+  podeSubir: boolean;
+  podeDescer: boolean;
+  onSubir: () => void;
+  onDescer: () => void;
+  onDuplicar: () => void;
   onRemover: () => void;
 }) {
   const porArea = item.produto_id ? !!produto?.por_area : item.unidade === "m²" || item.unidade === "m2";
@@ -986,12 +1053,24 @@ function ItemCard({
   const sugestao = produto ? precoSugerido(produto, item.quantidade) : null;
   const tamanhos = (produto?.tamanhos ?? []).filter((t) => t.largura && t.altura);
   const cobradoPorArea = vendidoPorArea(item, produto);
-  const [unidadeDeMedida, mudarUnidadeDeMedida] = useUnidadeDeMedida();
+  const numero = indice + 1;
+  // As mesmas peças do item da equipe: a quantidade com o rótulo da unidade e
+  // os tamanhos prontos no formato que MedidasDaPeca espera.
+  const campos = camposDaUnidade(porArea ? "m2" : item.unidade);
+  const tamanhosProntos: TamanhoComum[] = tamanhos.map((t) => ({
+    nome: t.nome,
+    largura: Number(t.largura),
+    altura: Number(t.altura),
+  }));
 
   return (
-    <article className="space-y-3 rounded-2xl border border-border bg-card p-4">
+    <article className="space-y-3 rounded-2xl border border-border bg-card p-4" data-testid="item-do-parceiro">
+      {/* Cabeçalho = a linha da tabela de itens da equipe: número, produto e as
+          mesmas ações com os mesmos ícones (subir, descer, duplicar, tirar). */}
       <div className="flex items-start gap-2">
-        <span className="mt-2.5 w-6 shrink-0 text-center text-xs font-semibold text-muted-foreground">{indice + 1}</span>
+        <span className="mt-1.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-border text-xs font-semibold tabular-nums">
+          {numero}
+        </span>
         <div className="min-w-0 flex-1">
           <SeletorDeProduto
             catalogo={catalogo}
@@ -1001,16 +1080,33 @@ function ItemCard({
             onItemLivre={() => onMudar({ produto_id: null })}
           />
         </div>
-        {!somenteLeitura && (
-          <Dica texto="Remover item">
-            <Button variant="ghost" size="icon" onClick={onRemover} aria-label={`Remover item ${indice + 1}`}>
-              <Trash2 className="h-4 w-4 text-muted-foreground" />
+      </div>
+      {!somenteLeitura && (
+        <div className="-mt-1 flex items-center justify-end gap-0.5 pl-9">
+          <Dica texto="Subir na lista">
+            <Button variant="ghost" size="icon" aria-label={`Subir o item ${numero}`} disabled={!podeSubir} onClick={onSubir}>
+              <ArrowUp className="h-4 w-4" />
             </Button>
           </Dica>
-        )}
-      </div>
+          <Dica texto="Descer na lista">
+            <Button variant="ghost" size="icon" aria-label={`Descer o item ${numero}`} disabled={!podeDescer} onClick={onDescer}>
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+          </Dica>
+          <Dica texto="Duplicar item">
+            <Button variant="ghost" size="icon" aria-label={`Duplicar o item ${numero}`} onClick={onDuplicar}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </Dica>
+          <Dica texto="Tirar o item">
+            <Button variant="ghost" size="icon" aria-label={`Tirar o item ${numero}`} onClick={onRemover}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </Dica>
+        </div>
+      )}
 
-      <div className="grid gap-3 pl-8 md:grid-cols-2">
+      <div className="grid gap-3 pl-9 md:grid-cols-2">
         <div className="md:col-span-2 empty:hidden">
           <EscolhaDeMaterial
             nomeAtual={produto?.nome}
@@ -1025,18 +1121,18 @@ function ItemCard({
             onEscolher={onEscolherProduto}
           />
         </div>
-        <Campo rotulo="Descrição no PDF" id={`desc-${item.id}`} className="md:col-span-2">
+        <Campo rotulo="Descrição" id={`desc-${item.id}`} className="md:col-span-2">
           <Input
             id={`desc-${item.id}`}
             value={item.descricao}
             disabled={somenteLeitura}
-            placeholder={item.produto_id ? "" : "Ex.: Instalação na fachada"}
+            placeholder={item.produto_id ? "Ex.: Adesivo vinil fosco" : "Ex.: Instalação na fachada"}
             onChange={(e) => onMudar({ descricao: e.target.value })}
           />
         </Campo>
 
         {!item.produto_id && (
-          <Campo rotulo="Cobrar por" id={`un-${item.id}`} ajuda={dicaCampo("/parceiro", "cobrar por")}>
+          <Campo rotulo="Vendido por" id={`un-${item.id}`} ajuda={dicaCampo("/parceiro", "cobrar por")}>
             <Select value={porArea ? "m²" : "un"} disabled={somenteLeitura} onValueChange={(v) => onMudar({ unidade: v, ...(v === "un" ? { largura: null, altura: null } : {}) })}>
               <SelectTrigger id={`un-${item.id}`}>
                 <SelectValue />
@@ -1051,59 +1147,21 @@ function ItemCard({
 
         {porArea && (
           <div className="space-y-2 md:col-span-2">
-            {tamanhos.length > 0 && !somenteLeitura && (
-              <div className="space-y-1.5" data-testid="tamanhos-prontos">
-                <span className="text-sm font-medium">Tamanhos prontos</span>
-                <GradeDeCartoes rotulo="Tamanhos prontos">
-                  {tamanhos.map((t) => {
-                    const escolhido =
-                      Number(item.largura) === Number(t.largura) &&
-                      Number(item.altura) === Number(t.altura);
-                    return (
-                      <CartaoDeEscolha
-                        key={t.nome}
-                        ativo={escolhido}
-                        titulo={t.nome}
-                        detalhe={descricaoDoTamanho(t.largura, t.altura)}
-                        icone={<PreviaDaPeca largura={t.largura} altura={t.altura} />}
-                        onEscolher={() => onMudar({ largura: t.largura, altura: t.altura })}
-                      />
-                    );
-                  })}
-                </GradeDeCartoes>
-                <p className="text-xs text-muted-foreground">Ou digite a medida abaixo.</p>
-              </div>
-            )}
-            {/* Largura e altura na unidade que a pessoa escolher; o pedido segue em metros. */}
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">Medidas da peça</span>
-              <SeletorDeUnidade valor={unidadeDeMedida} onMudar={mudarUnidadeDeMedida} desabilitado={somenteLeitura} />
-            </div>
-            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
-              <CampoDeMedida
-                id={`larg-${item.id}`}
-                rotulo="Largura"
-                metros={item.largura != null ? String(item.largura) : ""}
-                unidade={unidadeDeMedida}
-                desabilitado={somenteLeitura}
-                onMudar={(m) => onMudar({ largura: numeroOuNulo(m) })}
-              />
-              <span className="pb-2.5 text-muted-foreground">×</span>
-              <CampoDeMedida
-                id={`alt-${item.id}`}
-                rotulo="Altura"
-                metros={item.altura != null ? String(item.altura) : ""}
-                unidade={unidadeDeMedida}
-                desabilitado={somenteLeitura}
-                onMudar={(m) => onMudar({ altura: numeroOuNulo(m) })}
-              />
-            </div>
-            {produto?.area_minima && cobradoPorArea ? (
-              <p className="text-xs text-muted-foreground">
-                Peças menores que {Number(produto.area_minima).toLocaleString("pt-BR")} m² são cobradas como{" "}
-                {Number(produto.area_minima).toLocaleString("pt-BR")} m².
-              </p>
-            ) : null}
+            {/* O mesmo bloco de medidas da equipe: desenho da peça, largura (X) ×
+                altura (Y) na unidade escolhida (mm, cm, m), a conta de área e os
+                tamanhos prontos do produto. O pedido segue em metros. */}
+            <MedidasDaPeca
+              idPrefixo={`item-${item.id}`}
+              largura={item.largura != null ? String(item.largura) : ""}
+              altura={item.altura != null ? String(item.altura) : ""}
+              quantidade={Number(item.quantidade) || 1}
+              areaMinima={cobradoPorArea && produto?.area_minima ? Number(produto.area_minima) : null}
+              tamanhos={tamanhosProntos}
+              origemDosTamanhos="produto"
+              desabilitado={somenteLeitura}
+              onMudar={(campo, m) => onMudar({ [campo]: numeroOuNulo(m) } as Partial<ItemEditavel>)}
+              onAplicarTamanho={(t) => onMudar({ largura: t.largura, altura: t.altura })}
+            />
             {produto?.faixa_por_area && cobradoPorArea ? (
               <p className="text-xs text-muted-foreground">
                 Do que passar de {produto.faixa_por_area.acimaDeM2.toLocaleString("pt-BR")} m² na
@@ -1113,60 +1171,58 @@ function ItemCard({
           </div>
         )}
 
-        <Campo rotulo={porArea ? "Quantidade de peças" : `Quantidade (${un})`} id={`qtd-${item.id}`}>
-          <Input
-            id={`qtd-${item.id}`}
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="1"
-            value={item.quantidade}
-            disabled={somenteLeitura}
-            onChange={(e) => onMudar({ quantidade: Number(e.target.value) })}
-          />
-        </Campo>
+        {/* Quantidade com − e + e o rótulo da unidade, como no item da equipe. */}
+        <QuantidadeDoItem
+          id={`item-${item.id}-qtd`}
+          valor={String(item.quantidade)}
+          campos={campos}
+          desabilitado={somenteLeitura}
+          onMudar={(v) => onMudar({ quantidade: Number(String(v).replace(",", ".")) || 0 })}
+        />
         <TabelaDeDegraus
           degraus={degrausDoProduto(produto, item.quantidade)}
           unidade={un}
           desabilitado={somenteLeitura}
           onEscolher={(q) => onMudar({ quantidade: q })}
         />
-        <Campo rotulo="Acabamento" id={`acab-${item.id}`}>
+        {/* Acabamento: o mesmo campo da equipe (cartões quando houver opções, texto livre sempre). */}
+        <AcabamentoDoItem
+          id={`item-${item.id}-acabamento`}
+          valor={item.acabamento ?? ""}
+          opcoes={[]}
+          desabilitado={somenteLeitura}
+          onMudar={(v) => onMudar({ acabamento: v })}
+        />
+        {/* Preço na mesma grade da equipe: Preço/m² ou Valor un., e o Total do item só de leitura.
+            A diferença do parceiro é o bloco de ganho logo abaixo. */}
+        <Campo rotulo={porArea ? "Preço/m²" : "Valor un."} id={`preco-${item.id}`} ajuda={dicaCampo("/parceiro", "seu preco")}>
           <Input
-            id={`acab-${item.id}`}
-            value={item.acabamento ?? ""}
+            id={`preco-${item.id}`}
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            className="tabular-nums"
+            value={item.preco_venda_unidade}
             disabled={somenteLeitura}
-            placeholder="Ex.: ilhós, refile, bastão"
-            onChange={(e) => onMudar({ acabamento: e.target.value })}
+            onChange={(e) => onMudar({ preco_venda_unidade: Number(e.target.value) })}
           />
+          {sugestao !== null && !somenteLeitura && Number(item.preco_venda_unidade) !== sugestao && (
+            <button
+              type="button"
+              onClick={() => onMudar({ preco_venda_unidade: sugestao })}
+              className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              usar preço de balcão ({brl(sugestao)})
+            </button>
+          )}
         </Campo>
-        <Campo rotulo={`Seu preço para o cliente (por ${un})`} id={`preco-${item.id}`} ajuda={dicaCampo("/parceiro", "seu preco")} className="md:col-span-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              id={`preco-${item.id}`}
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              className="w-40"
-              value={item.preco_venda_unidade}
-              disabled={somenteLeitura}
-              onChange={(e) => onMudar({ preco_venda_unidade: Number(e.target.value) })}
-            />
-            {sugestao !== null && !somenteLeitura && Number(item.preco_venda_unidade) !== sugestao && (
-              <button
-                type="button"
-                onClick={() => onMudar({ preco_venda_unidade: sugestao })}
-                className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-              >
-                usar preço de balcão ({brl(sugestao)})
-              </button>
-            )}
-          </div>
+        <Campo rotulo="Total do item" id={`total-${item.id}`}>
+          <Input id={`total-${item.id}`} readOnly value={brl(venda.total)} className="bg-muted/40 font-semibold tabular-nums" />
         </Campo>
       </div>
 
-      <div className="ml-8 grid grid-cols-3 gap-2 rounded-xl bg-foreground/5 p-3 text-center text-xs">
+      <div className="ml-9grid grid-cols-3 gap-2 rounded-xl bg-foreground/5 p-3 text-center text-xs">
         <div>
           <p className="flex items-center justify-center gap-1 text-muted-foreground">
             Cliente paga
@@ -1200,17 +1256,17 @@ function ItemCard({
       </div>
 
       {custo.tipo === "pendente" && (
-        <p className="ml-8 flex items-center gap-1.5 text-xs text-[color:var(--bex-amber)]">
+        <p className="ml-9flex items-center gap-1.5 text-xs text-[color:var(--bex-amber)]">
           <AlertTriangle className="h-3.5 w-3.5" /> {custo.motivo}
         </p>
       )}
       {custo.tipo === "ok" && custo.proxima && (
-        <p className="ml-8 text-xs text-muted-foreground">
+        <p className="ml-9text-xs text-muted-foreground">
           A partir de {custo.proxima.quantidade_minima} {un} você paga {brl(custo.proxima.preco_parceiro)} por {un}.
         </p>
       )}
       {custo.tipo === "livre" && (
-        <p className="ml-8 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <p className="ml-9flex items-center gap-1.5 text-xs text-muted-foreground">
           <PenLine className="h-3.5 w-3.5" /> Serviço seu: entra no PDF e não vira pedido.
         </p>
       )}

@@ -135,16 +135,17 @@ describe("o editor do parceiro, com cara de loja", () => {
     expect(EDITOR).toContain("onEscolher={(q) => onMudar({ quantidade: q })}");
   });
 
-  it("tamanhos prontos viram botões ANTES dos campos de medida, com o escolhido marcado", () => {
-    const iBotoes = EDITOR.indexOf('data-testid="tamanhos-prontos"');
-    const iCampos = EDITOR.indexOf("<CampoDeMedida", iBotoes);
-    expect(iBotoes).toBeGreaterThan(0);
-    expect(iCampos).toBeGreaterThan(iBotoes);
-    expect(EDITOR).toContain("ativo={escolhido}");
+  it("as medidas e os tamanhos prontos são o mesmo bloco da equipe (MedidasDaPeca), com o escolhido marcado", () => {
+    // 02/11/2026: o item do parceiro herda a estrutura do item da equipe; os
+    // tamanhos prontos ficam onde a equipe os põe, dentro de MedidasDaPeca.
+    expect(EDITOR).toContain("<MedidasDaPeca");
+    expect(EDITOR).toContain('origemDosTamanhos="produto"');
+    const medidas = readFileSync("src/components/orcamento/medidas-da-peca.tsx", "utf8");
+    expect(medidas).toContain('data-testid="tamanhos-prontos"');
+    expect(medidas).toContain("ativo={ativo}");
     expect(
       readFileSync("src/components/orcamento/cartao-de-escolha.tsx", "utf8"),
     ).toContain("aria-pressed={ativo}");
-    expect(EDITOR).toContain("Ou digite a medida abaixo.");
   });
 
   it("as pílulas pequenas de tamanho saíram de baixo dos campos", () => {
