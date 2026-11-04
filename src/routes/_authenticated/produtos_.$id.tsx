@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, Trash2 } from "lucide-react";
@@ -64,6 +64,7 @@ import {
   type TempoDoProcesso,
   type TipoDeResposta,
 } from "@/domain/catalogo/pasta-do-produto";
+import { cadastroDepoisDeRecarregar } from "@/domain/catalogo/foto-do-produto";
 import { ROTULO_DO_MODO_DA_IA, type ModoDaIa } from "@/domain/orcamentos/perguntas-do-item";
 
 export const Route = createFileRoute("/_authenticated/produtos_/$id")({
@@ -216,7 +217,7 @@ function PastaDoProduto() {
     const e = extras.data;
     if (!p) return;
     const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v));
-    setCadastro({
+    const doBanco: Cadastro = {
       nome: txt(p.nome),
       descricao: txt(p.descricao),
       familia: txt(e?.familia),
@@ -232,15 +233,26 @@ function PastaDoProduto() {
       maquina_padrao_id: txt(e?.maquina_padrao_id ?? p.maquina_padrao_id),
       material_principal_id: txt(e?.material_principal_id ?? p.material_principal_id),
       observacoes_internas: txt(p.observacoes_internas),
-    });
+    };
+    // Sem edição pendente a pasta troca tudo pelo banco. Com edição pendente (voltar à aba depois de 60 s, a foto
+    // que a IA acabou de gravar muda a linha), o texto digitado e não salvo fica: só a foto acompanha o banco.
+    const antes = cadastroDoBanco.current;
+    setCadastro((atual) => cadastroDepoisDeRecarregar(atual, antes, doBanco));
+    cadastroDoBanco.current = doBanco;
+    fotoNoBanco.current = doBanco.imagem_url;
   }, [produto.data, extras.data]);
+
+  // O cadastro como o banco o entregou da última vez, e a foto que o banco tem agora (avança quando a própria pasta
+  // gera uma foto): o Salvar só grava a foto quando ela difere desta (revisões de 03 e 04/11/2026).
+  const cadastroDoBanco = useRef<Cadastro | null>(null);
+  const fotoNoBanco = useRef("");
 
   const salvarCadastro = useMutation({
     mutationFn: async () => {
       if (!cadastro.nome.trim()) throw new Error("O produto precisa de um nome.");
       const { data, error } = await (supabase as any)
         .from("produtos")
-        .update(payloadDoCadastro(cadastro, { canSeePrices, canSeeFinancials }, { imagemNoBanco: produto.data?.imagem_url ?? "" }))
+        .update(payloadDoCadastro(cadastro, { canSeePrices, canSeeFinancials }, { imagemNoBanco: fotoNoBanco.current }))
         .eq("id", id)
         .select("id");
       if (error) throw error;
@@ -537,6 +549,9 @@ function PastaDoProduto() {
                 <FotoDoProduto
                   valor={cadastro.imagem_url}
                   onChange={(url) => setC({ imagem_url: url })}
+                  aoGerar={(url) => {
+                    fotoNoBanco.current = url;
+                  }}
                   produto={{
                     id,
                     nome: cadastro.nome,

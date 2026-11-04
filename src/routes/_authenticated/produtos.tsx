@@ -1,6 +1,6 @@
 import { hojeBr } from "@/lib/hoje-br";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -88,6 +88,7 @@ import {
   toCSV,
 } from "@/lib/produtos-catalogo";
 import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
+import { comFotoGerada, fotoMudouNaTela } from "@/domain/catalogo/foto-do-produto";
 import { GerarFotosQueFaltam } from "@/components/produtos/gerar-fotos-que-faltam";
 import { MiniaturaDoProduto } from "@/components/produtos/miniatura-do-produto";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
@@ -338,7 +339,7 @@ function ProdutosPage() {
       };
       // Foto: ao editar, só vai no Salvar se mudou desde que a janela abriu. Se o lote de fotos (ou outra
       // pessoa) gravou uma foto no meio tempo, o formulário velho não pode apagá-la com o valor de antes.
-      if (f.id && f.imagem_url.trim() === f.imagem_url_aberta.trim()) {
+      if (f.id && !fotoMudouNaTela(f.imagem_url, f.imagem_url_aberta)) {
         delete (payload as Record<string, unknown>).imagem_url;
       }
       // Strip undefined so we don't overwrite preço/custo/margem when vendedor edits
@@ -976,7 +977,8 @@ function ProdutoFormDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   form: FormState;
-  setForm: (f: FormState) => void;
+  /** O setter de verdade: a foto gerada chega depois de até um minuto e atualiza o formulário de AGORA, não o do clique. */
+  setForm: Dispatch<SetStateAction<FormState>>;
   canSeeFinancials: boolean;
   familiasEmUso: string[];
   onSubmit: () => void;
@@ -1154,7 +1156,10 @@ function ProdutoFormDialog({
               <Label>Foto</Label>
               <FotoDoProduto
                 valor={form.imagem_url}
-                onChange={(url) => setForm({ ...form, imagem_url: url })}
+                // Funcional: a foto gerada ou enviada chega depois, e o formulário já pode ter mudado.
+                onChange={(url) => setForm((f) => ({ ...f, imagem_url: url }))}
+                // Quem gerou avança a base: o banco já tem a foto, e "Gerar, Remover, Salvar" precisa valer.
+                aoGerar={(url) => setForm((f) => comFotoGerada(f, url))}
                 produto={{ id: form.id || null, nome: form.nome, descricao: form.descricao, familia: form.familia, categoria: form.categoria, tipo: form.tipo }}
               />
             </div>
