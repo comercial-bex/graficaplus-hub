@@ -108,7 +108,8 @@ export function MateriaisPrevistosCard({ osId }: { osId: string }) {
       const itens = (sugestao ?? []) as {
         material_id: string;
         faltante: number;
-        ultimo_custo: number;
+        // Nulos para quem não vê custo de material (04/11/2026): o banco só entrega custo e fornecedor a quem pode ler.
+        ultimo_custo: number | null;
         fornecedor_sugerido: string | null;
       }[];
       if (itens.length === 0) throw new Error("Não falta material nesta OS.");
@@ -136,7 +137,8 @@ export function MateriaisPrevistosCard({ osId }: { osId: string }) {
           pedido_id: pedido.id,
           material_id: i.material_id,
           quantidade: i.faltante,
-          custo_unitario: i.ultimo_custo,
+          // A coluna não aceita nulo: quem não vê o custo cria o rascunho com zero e o comprador preenche em Compras.
+          custo_unitario: i.ultimo_custo ?? 0,
         })),
       );
       if (erroItens) throw erroItens;
