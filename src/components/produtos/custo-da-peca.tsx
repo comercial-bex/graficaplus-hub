@@ -315,7 +315,7 @@ export function CustoDaPeca(p: {
               ))}
             </ul>
             {terceiros.linhas.some((t) => t.semMedida) && (
-              <p className="mt-1.5 text-xs font-medium text-amber-700 dark:text-amber-400" role="status" data-testid="terceirizado-sem-medida">
+              <p className="mt-1.5 text-xs font-medium text-amber-800 dark:text-amber-400" role="status" data-testid="terceirizado-sem-medida">
                 Terceirizado por m² precisa de largura e altura: sem elas ele entra com R$ 0,00 no custo.
               </p>
             )}

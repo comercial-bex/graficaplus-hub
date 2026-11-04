@@ -110,7 +110,7 @@ export function MaterialPorFormula({
         </ul>
       )}
       {terceirizados.some((t) => t.semMedida) && (
-        <p className="text-xs font-medium text-amber-700 dark:text-amber-400" role="status" data-testid="terceirizado-sem-medida">
+        <p className="text-xs font-medium text-amber-800 dark:text-amber-400" role="status" data-testid="terceirizado-sem-medida">
           Terceirizado por m² precisa de largura e altura no item: sem elas ele entra com R$ 0,00 no custo.
         </p>
       )}

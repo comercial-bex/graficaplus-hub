@@ -107,7 +107,9 @@ describe("a tela", () => {
   it("terceirizado por m² em item sem medida avisa nas duas telas, com texto legível (12 px, contraste alto)", () => {
     for (const fonte of [blocoDoItem, custoDaPeca]) {
       expect(fonte).toContain('data-testid="terceirizado-sem-medida"');
-      expect(fonte).toContain("text-xs font-medium text-amber-700 dark:text-amber-400");
+      // amber-700 em cima do cinza claro do cartão dava 4,49:1 (medido no navegador); amber-800 dá 6,3:1.
+      expect(fonte).toContain("text-xs font-medium text-amber-800 dark:text-amber-400");
+      expect(fonte).not.toContain("text-amber-700");
       expect(fonte).toContain("t.semMedida");
     }
   });
