@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { acabamentoFicaForaDoCusto, custoDasEtapasDeAcabamento } from "@/domain/catalogo/pasta-do-produto";
 import { custoDasFormulas, materiaisPorFormula, type FormulaDoProduto } from "@/domain/orcamentos/material-por-formula";
-import { custoDosTerceirizados, rotuloDaBase, type TerceirizadoDoProduto } from "@/domain/orcamentos/terceirizados";
+import { brlPorPeca, custoDosTerceirizados, rotuloDaBase, type TerceirizadoDoProduto } from "@/domain/orcamentos/terceirizados";
 import {
   composicaoMaisRecente,
   custoCheio,
@@ -309,7 +309,7 @@ export function CustoDaPeca(p: {
                     {t.fornecedor && <span className="ml-1.5 text-xs text-muted-foreground">{t.fornecedor}</span>}
                   </span>
                   <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                    {brl(t.valor)} {rotuloDaBase(t.base)} = <strong className="text-foreground">{brl(t.porPeca)}</strong>
+                    {brl(t.valor)} {rotuloDaBase(t.base)} = <strong className="text-foreground">{brlPorPeca(t.porPeca)}</strong>
                   </span>
                 </li>
               ))}
