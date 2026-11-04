@@ -84,8 +84,10 @@ export function CartaoOs({
       <Capa os={os}>
         {/* Número e avisos na MESMA linha: antes cada um era posicionado no seu canto e,
             numa coluna estreita, o aviso ("vence amanhã", "2 dias de atraso") cobria o
-            número da OS. Agora o aviso desce para a linha de baixo quando não cabe. */}
-        <div className="absolute inset-x-2 top-2 flex flex-wrap items-start gap-1">
+            número da OS. Agora o aviso desce para a linha de baixo quando não cabe.
+            Com imagem o cabeçalho flutua sobre a arte; sem imagem ele entra no fluxo (a capa
+            cresce o que precisar) para nunca encostar no "Sem arte" logo abaixo. */}
+        <div className="absolute inset-x-2 top-2 flex flex-wrap items-start gap-1 group-data-[sem-imagem]/capa:static group-data-[sem-imagem]/capa:order-first group-data-[sem-imagem]/capa:m-2">
           <span className="shrink-0 rounded-md bg-background/85 px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground backdrop-blur md:text-xs">
             #{os.numero}
           </span>
@@ -217,9 +219,14 @@ function Capa({ os, children }: { os: any; children?: React.ReactNode }) {
   const falta = avulsa ? { rotulo: "Impressão avulsa", detalhe: "feita direto no RIP" } : semArquivo;
   const temImagem = Boolean(url && !quebrou);
   return (
-    // Sem imagem a capa ganha altura mínima: o cabeçalho (número + aviso, que pode quebrar em
-    // duas linhas) mora no alto e o "Sem arte" fica embaixo, sem um cobrir o outro.
-    <div className={`relative aspect-[16/9] w-full overflow-hidden bg-muted/60 ${temImagem ? "" : "min-h-[104px]"}`}>
+    // Sem imagem a capa vira uma coluna: o cabeçalho (número + aviso, que pode quebrar em duas
+    // ou três linhas) vem primeiro, no fluxo, e o "Sem arte" ocupa o que sobra embaixo. Medir
+    // a altura do cabeçalho a olho (min-h fixo) deixava o ícone por cima do selo quando o
+    // aviso descia para a segunda linha numa coluna de 160 px.
+    <div
+      data-sem-imagem={temImagem ? undefined : ""}
+      className={`group/capa relative w-full overflow-hidden bg-muted/60 ${temImagem ? "aspect-[16/9]" : "flex min-h-[104px] flex-col"}`}
+    >
       {url && !quebrou ? (
         <img
           src={url}
@@ -230,7 +237,7 @@ function Capa({ os, children }: { os: any; children?: React.ReactNode }) {
           className="h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full flex-col items-center justify-end gap-0.5 pb-2 text-muted-foreground">
+        <div className="flex w-full flex-1 flex-col items-center justify-end gap-0.5 pb-2 text-muted-foreground">
           <FileImage className="h-6 w-6 opacity-60" aria-hidden />
           <span className="text-xs font-semibold uppercase tracking-wider">{quebrou ? "Imagem indisponível" : falta.rotulo}</span>
           {falta.detalhe && <span className="max-w-[90%] truncate text-xs">{falta.detalhe}</span>}
