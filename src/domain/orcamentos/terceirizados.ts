@@ -37,6 +37,11 @@ export type LinhaDeTerceirizado = {
   valor: number;
   /** O que entra no custo de cada peça do item, nesta medida e quantidade. */
   porPeca: number;
+  /**
+   * Base "por m² da peça" num item sem largura e altura: o terceirizado entra com R$ 0 no custo,
+   * no custo estimado e no piso do desconto, e nada no banco avisa (revisão de 04/11/2026).
+   */
+  semMedida: boolean;
 };
 
 /**
@@ -74,6 +79,7 @@ export function custoDosTerceirizados(
       base,
       valor,
       porPeca,
+      semMedida: base === "m2" && !(largura > 0 && altura > 0),
     });
   }
   return { linhas: saida, total: saida.reduce((s, l) => s + l.porPeca, 0) };

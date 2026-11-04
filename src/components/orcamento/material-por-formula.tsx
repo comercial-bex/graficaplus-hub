@@ -109,6 +109,11 @@ export function MaterialPorFormula({
           ))}
         </ul>
       )}
+      {terceirizados.some((t) => t.semMedida) && (
+        <p className="text-xs font-medium text-amber-700 dark:text-amber-400" role="status" data-testid="terceirizado-sem-medida">
+          Terceirizado por m² precisa de largura e altura no item: sem elas ele entra com R$ 0,00 no custo.
+        </p>
+      )}
       <ul className="space-y-1 text-sm">
         {linhas.map((l) => (
           <li key={l.formula_id} className="flex flex-wrap items-baseline justify-between gap-x-3">
@@ -120,7 +125,7 @@ export function MaterialPorFormula({
               <span className="text-xs text-destructive">{l.erro}</span>
             ) : (
               <span className="font-mono text-xs">
-                {l.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 4 })} {l.unidade} por peça
+                {l.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 6 })} {l.unidade} por peça
               </span>
             )}
           </li>

@@ -112,9 +112,13 @@ describe("copiar um item leva o material por fórmula", () => {
     // As views não trazem a coluna: sem lê-la da tabela a cópia nasce sem o custo das fórmulas.
     const leituras = tela.match(/\.select\("id, materiais_por_formula"\)/g) ?? [];
     expect(leituras.length).toBe(2);
-    expect(tela).toContain("copia.materiais_por_formula = formulasPorItem.get(item.id) ?? [];");
-    expect(tela).toContain("materiais_por_formula: formulasPorItem.get(item.id) ?? [],");
+    // A cópia sai da função pura (tests/copia-de-item-por-area.test.ts), com a lista lida do banco:
+    // item que a leitura não devolve para a cópia em vez de virar lista vazia (revisão de 04/11/2026).
+    expect(tela).toContain("const formulas = formulasParaCopiar(comFormulas as any[] | null, idsBase);");
+    expect(tela).toContain("const formulas = formulasParaCopiar(comFormulas as any[] | null, idsParaCopiar);");
+    expect(tela).toContain("materiaisPorFormula: formulas.porItem.get(item.id),");
     // A cobrança que a peça gerou também leva o dela.
-    expect(tela).toContain("materiais_por_formula: formulasPorItem.get(l.id) ?? [],");
+    expect(tela).toContain("materiaisPorFormula: formulas.porItem.get(l.id),");
+    expect(tela).not.toContain("?? [],\n    };\n    // custo só existe na view financeira");
   });
 });

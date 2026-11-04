@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Building2, Loader2, Lock, ShieldCheck, User } from "lucide-react";
+import { Building2, Loader2, Lock, RefreshCw, ShieldCheck, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 import { confirmarPrecoDoOrcamento } from "@/lib/api/orcamento-preco.functions";
+import { textoDoPrecoAplicado } from "@/domain/orcamentos/preco-aplicado";
 
 export type ModoDePreco = "cliente_final" | "parceiro";
 
@@ -52,6 +53,7 @@ export function PrecoDoOrcamento({
   const qc = useQueryClient();
   const confirmar = useServerFn(confirmarPrecoDoOrcamento);
   const [pedindoSenha, setPedindoSenha] = useState(false);
+  const [refazendo, setRefazendo] = useState(false);
   const [senha, setSenha] = useState("");
   const [trabalhando, setTrabalhando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -71,16 +73,9 @@ export function PrecoDoOrcamento({
     setErro(null);
     try {
       const r = await confirmar({ data: { orcamentoId, modo: novo, senha: senhaDigitada } });
-      const aviso =
-        r.itens_sem_preco > 0
-          ? ` ${r.itens_sem_preco} item(ns) ficaram como estavam (sem produto ou sem preço de parceiro).`
-          : "";
-      toast.success(
-        novo === "parceiro"
-          ? `Preço de parceiro confirmado em ${r.itens_repreciados} item(ns).${aviso}`
-          : `Voltou ao preço de tabela em ${r.itens_repreciados} item(ns).${aviso}`,
-      );
+      toast.success(textoDoPrecoAplicado(novo, r));
       setPedindoSenha(false);
+      setRefazendo(false);
       setSenha("");
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["orcamento", orcamentoId] }),
@@ -126,6 +121,19 @@ export function PrecoDoOrcamento({
         <span className="w-px bg-border" aria-hidden />
         {botao("parceiro", "Parceiro (terceirizado)", Building2)}
       </div>
+      {modo === "cliente_final" && podeEditar && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-8 px-2 text-xs"
+          disabled={trabalhando}
+          onClick={() => setRefazendo(true)}
+          data-testid="refazer-precos"
+        >
+          <RefreshCw className="mr-1 h-3.5 w-3.5" aria-hidden /> Refazer preços
+        </Button>
+      )}
       {modo === "parceiro" && parceiroCadastrado && (
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden />
@@ -150,6 +158,27 @@ export function PrecoDoOrcamento({
             : "Este cliente está marcado como revendedor, mas não tem cadastro de parceiro: a tabela por nível não se aplica. Cadastre em Parceiros."}
         </span>
       )}
+
+      <Dialog open={refazendo} onOpenChange={(v) => !trabalhando && setRefazendo(v)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Refazer os preços dos itens</DialogTitle>
+            <DialogDescription>
+              Aplica de novo o preço de cliente final nos itens do catálogo: o preço especial do cliente onde ele existe e a
+              tabela nos demais. Preço digitado à mão nesses itens é substituído. Itens fora do catálogo não mudam.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRefazendo(false)} disabled={trabalhando}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void aplicar("cliente_final")} disabled={trabalhando} data-testid="confirmar-refazer-precos">
+              {trabalhando && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              {trabalhando ? "Refazendo…" : "Refazer preços"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={pedindoSenha} onOpenChange={(v) => !trabalhando && setPedindoSenha(v)}>
         <DialogContent className="sm:max-w-md">

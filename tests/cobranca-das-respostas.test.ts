@@ -187,8 +187,10 @@ describe("o contrato com o banco e a tela", () => {
     expect(tela).toContain('throw new Error(`${c.nome} não entrou no orçamento.`)');
   });
 
-  it("copiar o item leva a cobrança junto", () => {
-    expect(rota).toContain("gerado_por_item_id: novo.id");
+  it("copiar o item leva a cobrança junto, presa à cópia", () => {
+    // A cópia sai de copiaDaCobranca (tests/copia-de-item-por-area.test.ts): a rota passa o id da cópia como pai.
+    expect(rota).toContain("paiId: novo.id");
+    expect(ler("src/domain/orcamentos/copia-de-item.ts")).toContain("gerado_por_item_id: o.paiId");
   });
 
   it("segue as regras da tela", () => {
