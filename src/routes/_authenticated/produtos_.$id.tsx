@@ -240,7 +240,7 @@ function PastaDoProduto() {
       if (!cadastro.nome.trim()) throw new Error("O produto precisa de um nome.");
       const { data, error } = await (supabase as any)
         .from("produtos")
-        .update(payloadDoCadastro(cadastro, { canSeePrices, canSeeFinancials }))
+        .update(payloadDoCadastro(cadastro, { canSeePrices, canSeeFinancials }, { imagemNoBanco: produto.data?.imagem_url ?? "" }))
         .eq("id", id)
         .select("id");
       if (error) throw error;
@@ -543,6 +543,7 @@ function PastaDoProduto() {
                     descricao: cadastro.descricao,
                     familia: cadastro.familia,
                     categoria: cadastro.categoria,
+                    tipo: cadastro.tipo,
                   }}
                 />
               </div>

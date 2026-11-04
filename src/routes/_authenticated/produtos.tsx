@@ -129,6 +129,8 @@ type FormState = {
   material_principal_id: string;
   observacoes_internas: string;
   imagem_url: string;
+  /** A foto que o produto tinha quando a janela abriu: só se mudar é que o Salvar grava a foto (o lote pode ter gravado outra no meio). */
+  imagem_url_aberta: string;
   ativo: boolean;
 };
 
@@ -149,6 +151,7 @@ const emptyForm: FormState = {
   material_principal_id: "",
   observacoes_internas: "",
   imagem_url: "",
+  imagem_url_aberta: "",
   ativo: true,
 };
 
@@ -333,6 +336,11 @@ function ProdutosPage() {
         imagem_url: f.imagem_url.trim() || null,
         ativo: f.ativo,
       };
+      // Foto: ao editar, só vai no Salvar se mudou desde que a janela abriu. Se o lote de fotos (ou outra
+      // pessoa) gravou uma foto no meio tempo, o formulário velho não pode apagá-la com o valor de antes.
+      if (f.id && f.imagem_url.trim() === f.imagem_url_aberta.trim()) {
+        delete (payload as Record<string, unknown>).imagem_url;
+      }
       // Strip undefined so we don't overwrite preço/custo/margem when vendedor edits
       Object.keys(payload).forEach(
         (k) =>
@@ -402,6 +410,7 @@ function ProdutosPage() {
       tempo_producao_min: p.tempo_producao_min ? String(p.tempo_producao_min) : "",
       observacoes_internas: p.observacoes_internas ?? "",
       imagem_url: p.imagem_url ?? "",
+      imagem_url_aberta: p.imagem_url ?? "",
       ativo: p.ativo,
     });
     setOpen(true);
@@ -424,6 +433,7 @@ function ProdutosPage() {
       tempo_producao_min: p.tempo_producao_min ? String(p.tempo_producao_min) : "",
       observacoes_internas: p.observacoes_internas ?? "",
       imagem_url: p.imagem_url ?? "",
+      imagem_url_aberta: "",
       ativo: true,
     });
     setOpen(true);
@@ -754,7 +764,7 @@ function ProdutosPage() {
             return (
               <Card key={p.id} className={!p.ativo ? "opacity-60" : ""}>
                 <CardContent className="p-4 space-y-3">
-                  <MiniaturaDoProduto url={p.imagem_url} className="h-28 w-full" />
+                  <MiniaturaDoProduto url={p.imagem_url} className="aspect-square h-auto w-full" />
                   <div className="flex justify-between items-start">
                     <div>
                       <Link
@@ -1145,7 +1155,7 @@ function ProdutoFormDialog({
               <FotoDoProduto
                 valor={form.imagem_url}
                 onChange={(url) => setForm({ ...form, imagem_url: url })}
-                produto={{ id: form.id || null, nome: form.nome, descricao: form.descricao, familia: form.familia, categoria: form.categoria }}
+                produto={{ id: form.id || null, nome: form.nome, descricao: form.descricao, familia: form.familia, categoria: form.categoria, tipo: form.tipo }}
               />
             </div>
             <div className="space-y-1.5">

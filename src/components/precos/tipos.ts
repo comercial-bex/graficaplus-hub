@@ -15,6 +15,8 @@ export type Produto = {
   tempo_producao_min: number | null;
   maquina_padrao_id: string | null;
   observacoes_internas?: string | null;
+  /** Entra no pedido da foto por IA que a ficha mostra. */
+  descricao?: string | null;
 };
 export type TipoDePreco = "final" | "parceiro";
 export type Concorrente = {

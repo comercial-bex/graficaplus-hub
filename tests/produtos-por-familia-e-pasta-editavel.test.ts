@@ -128,7 +128,8 @@ describe("as telas", () => {
     ])
       expect(pasta, marca).toContain(marca);
     // A gravação do cadastro pede as linhas de volta: a política que barra devolve zero linhas, sem erro.
-    expect(pasta).toMatch(/\.from\("produtos"\)\s*\.update\(payloadDoCadastro\(cadastro, \{ canSeePrices, canSeeFinancials \}\)\)\s*\.eq\("id", id\)\s*\.select\("id"\)/);
+    // O terceiro argumento é a foto que a pasta carregou: se não mudou, o Salvar não a regrava (revisão de 03/11/2026).
+    expect(pasta).toMatch(/\.from\("produtos"\)\s*\.update\(payloadDoCadastro\(cadastro, \{ canSeePrices, canSeeFinancials \}, \{ imagemNoBanco: [^)]*\}\)\)\s*\.eq\("id", id\)\s*\.select\("id"\)/);
   });
 
   it("preço e custo só vão no que se grava para quem os vê", () => {
