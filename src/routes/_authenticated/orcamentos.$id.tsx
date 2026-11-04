@@ -84,7 +84,8 @@ import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
 import { PerguntasDoItem, usePerguntasDoProduto } from "@/components/orcamento/perguntas-do-item";
 import { MaterialPorFormula, useCustoDosMateriais, useFormulasDoProduto, useTerceirizadosDoProduto } from "@/components/orcamento/material-por-formula";
-import { custoDasFormulas, materiaisPorFormula, medidasDoItem } from "@/domain/orcamentos/material-por-formula";
+import { custoDasFormulas, formulasParaGravar, materiaisPorFormula, medidasDoItem, type LeituraDasFormulas } from "@/domain/orcamentos/material-por-formula";
+import { AVISO_FORMULAS_FALTANDO, copiaDaCobranca, copiaDoItem, formulasParaCopiar } from "@/domain/orcamentos/copia-de-item";
 import { custoDosTerceirizados } from "@/domain/orcamentos/terceirizados";
 import { fraseDoPrecoEspecial, precoDoProdutoNoItem } from "@/domain/precos/preco-especial-do-cliente";
 import {
@@ -555,34 +556,23 @@ function OrcamentoDetailPage() {
     // adicionar o primeiro item — e era esse zero que ia para o PDF e para a
     // conta a receber criada na conversão em OS.
     //
-    // A lista de colunas depende do nível: `custo_unitario` só existe na view
-    // financeira. Pedir a coluna à view comercial faz o PostgREST devolver erro
-    // e `atuais` vem vazio — o total voltaria a zero em silêncio.
+    // O CUSTO ESTIMADO NÃO É GRAVADO AQUI. O dono dele é o gatilho `tg_orcamento_soma_os_itens`, que soma
+    // (custo do produto + custo das fórmulas e terceirizados) × quantidade para todo mundo, inclusive para quem
+    // não vê custo. A tela escrevia a mesma conta em JavaScript logo depois do gatilho: a próxima parcela de
+    // custo somada no banco seria sobrescrita por ela (revisão de 04/11/2026). Só o valor de venda se grava.
     const { data: atuais, error } = await fromFinancialView("orcamento_itens", nivelDeVisao)
-      .select(canSeeFinancials ? "valor_total, custo_unitario, custo_formulas, quantidade" : "valor_total, quantidade")
+      .select("valor_total")
       .eq("orcamento_id", id);
     if (error) {
       toast.error(mensagemErro(error, "Não foi possível recalcular o total"));
       return;
     }
-    const lista = (atuais ?? []) as {
-      valor_total: number | null;
-      custo_unitario?: number | null;
-      custo_formulas?: number | null;
-      quantidade: number | null;
-    }[];
+    const lista = (atuais ?? []) as { valor_total: number | null }[];
     const subtotal = lista.reduce((s, i) => s + Number(i.valor_total ?? 0), 0);
-    // O custo do item é o do produto mais o material por fórmula (migração 20261102220000).
-    const custo = lista.reduce(
-      (s, i) => s + (Number(i.custo_unitario ?? 0) + Number(i.custo_formulas ?? 0)) * Number(i.quantidade ?? 0),
-      0,
-    );
-    // Quem só vê preço não enxerga custo nenhum: gravar custo_estimado aqui
-    // seria escrever 0 por cima do custo que o financeiro já calculou. O
-    // vendedor atualiza só os totais de venda; o custo fica como estava.
-    const totais: any = { valor_subtotal: subtotal, valor_total: subtotal };
-    if (canSeeFinancials) totais.custo_estimado = custo;
-    const { error: erroTotais } = await supabase.from("orcamentos").update(totais).eq("id", id);
+    const { error: erroTotais } = await supabase
+      .from("orcamentos")
+      .update({ valor_subtotal: subtotal, valor_total: subtotal })
+      .eq("id", id);
     if (erroTotais) toast.error(mensagemErro(erroTotais, "Não foi possível gravar o total"));
     await qc.invalidateQueries({ queryKey: ["orcamento", id] });
   }
@@ -954,6 +944,11 @@ function OrcamentoDetailPage() {
     if (vendidoPorArea && areaUnitaria(dimensoesForm) <= 0) {
       return toast.error("Largura e altura devem ser maiores que zero.");
     }
+    // O material por fórmula vai por cima do que o item tinha: com a consulta das fórmulas ainda
+    // pendente ou falha, a lista "válida" é vazia por falta de dado e o Salvar apagaria o custo delas.
+    const leituraDasFormulas: LeituraDasFormulas = formulasDoItem.isSuccess ? "ok" : formulasDoItem.isError ? "erro" : "pendente";
+    const formulas = formulasParaGravar({ produtoId: form.produto_id, leitura: leituraDasFormulas, validas: calculoDasFormulas.validas });
+    if (!formulas.gravar) return toast.error(formulas.pendencia);
     const qtd = paraNumero(form.quantidade) || 1;
     // valor_total e (quando há preço/m²) valor_unitario são derivados pelo
     // trigger tg_orcamento_itens_precificar, no INSERT e no UPDATE.
@@ -966,7 +961,7 @@ function OrcamentoDetailPage() {
       acabamento: form.acabamento.trim() || null,
       respostas: form.respostas,
       // Só quantidade por peça: o custo das fórmulas quem calcula é o gatilho do banco.
-      materiais_por_formula: calculoDasFormulas.validas,
+      materiais_por_formula: formulas.valor,
       tipo_produto: form.tipo_produto.trim() || null,
       especificacao: form.especificacao.trim() || null,
       produto_id: form.produto_id,
@@ -1138,33 +1133,29 @@ function OrcamentoDetailPage() {
     setRepetindo(true);
     try {
       // O material por fórmula não vem nas views: lê da tabela. Sem ele a cópia nasce sem o
-      // custo das fórmulas e a margem sai maior que a real (revisão de 03/11/2026).
+      // custo das fórmulas e a margem sai maior que a real (revisão de 03/11/2026). Item que a
+      // leitura não devolve (mudado ou apagado por outra pessoa) para a cópia: lista vazia aqui
+      // custaria menos que o original, sem aviso (revisão de 04/11/2026).
+      const idsBase = base.itens.map((i: any) => i.id as string);
       const { data: comFormulas, error: erroFormulas } = await (supabase as any)
         .from("orcamento_itens")
         .select("id, materiais_por_formula")
-        .in("id", base.itens.map((i: any) => i.id));
+        .in("id", idsBase);
       if (erroFormulas) return toast.error(mensagemErro(erroFormulas));
-      const formulasPorItem = new Map<string, unknown>(((comFormulas ?? []) as any[]).map((l) => [l.id, l.materiais_por_formula]));
-      const linhas = base.itens.map((item: any, n: number) => {
-        const copia: Record<string, unknown> = {
-          orcamento_id: id,
-          descricao: item.descricao,
-          quantidade: item.quantidade,
-          unidade: item.unidade,
-          largura: item.largura,
-          altura: item.altura,
-          acabamento: item.acabamento,
-          tipo_produto: item.tipo_produto ?? null,
-          especificacao: item.especificacao ?? null,
-      respostas: item.respostas ?? [],
-          valor_unitario: canSeePrices ? item.valor_unitario : 0,
+      const formulas = formulasParaCopiar(comFormulas as any[] | null, idsBase);
+      if (!formulas.ok) {
+        void ultimoPedido.refetch();
+        return toast.error(AVISO_FORMULAS_FALTANDO);
+      }
+      // O preço por m² não vem nas views: a cópia o refaz do total da linha (ver copia-de-item).
+      const linhas = base.itens.map((item: any, n: number) =>
+        copiaDoItem(item, {
+          orcamentoId: id,
           ordem: itens.length + n,
-          produto_id: item.produto_id,
-        };
-        if (item.custo_unitario != null) copia.custo_unitario = item.custo_unitario;
-        copia.materiais_por_formula = formulasPorItem.get(item.id) ?? [];
-        return copia;
-      });
+          podeVerPrecos: canSeePrices,
+          materiaisPorFormula: formulas.porItem.get(item.id),
+        }),
+      );
       const { error } = await (supabase as any).from("orcamento_itens").insert(linhas);
       if (error) return toast.error(mensagemErro(error));
       toast.success(`Itens do orçamento #${base.numero} copiados. Confira medidas e preços.`);
@@ -1179,58 +1170,45 @@ function OrcamentoDetailPage() {
     // A cobrança que a peça gerou vai junto (mais abaixo).
     const dele = (itens as any[]).filter((l) => l.gerado_por_item_id === item.id);
     // O material por fórmula não vem nas views: lê da tabela. Sem ele a cópia nasce sem o custo
-    // das fórmulas e custa menos que o original (revisão de 03/11/2026).
+    // das fórmulas e custa menos que o original (revisão de 03/11/2026). Item que a leitura não
+    // devolve para a cópia: lista vazia aqui custaria menos que o original, sem aviso (04/11/2026).
+    const idsParaCopiar = [item.id as string, ...dele.map((l) => l.id as string)];
     const { data: comFormulas, error: erroFormulas } = await (supabase as any)
       .from("orcamento_itens")
       .select("id, materiais_por_formula")
-      .in("id", [item.id, ...dele.map((l) => l.id)]);
+      .in("id", idsParaCopiar);
     if (erroFormulas) return toast.error(mensagemErro(erroFormulas));
-    const formulasPorItem = new Map<string, unknown>(((comFormulas ?? []) as any[]).map((l) => [l.id, l.materiais_por_formula]));
-    const copia: Record<string, unknown> = {
-      orcamento_id: id,
-      descricao: item.descricao,
-      quantidade: item.quantidade,
-      unidade: item.unidade,
-      largura: item.largura,
-      altura: item.altura,
-      acabamento: item.acabamento,
-      tipo_produto: item.tipo_produto ?? null,
-      especificacao: item.especificacao ?? null,
-      respostas: item.respostas ?? [],
-      valor_unitario: canSeePrices ? item.valor_unitario : 0,
+    const formulas = formulasParaCopiar(comFormulas as any[] | null, idsParaCopiar);
+    if (!formulas.ok) return toast.error(AVISO_FORMULAS_FALTANDO);
+    // O preço por m² não vem nas views: a cópia o refaz do total da linha (ver copia-de-item).
+    const copia = copiaDoItem(item, {
+      orcamentoId: id,
       ordem: itens.length,
-      produto_id: item.produto_id,
-      arquivo_id: item.arquivo_id,
-      materiais_por_formula: formulasPorItem.get(item.id) ?? [],
-    };
-    // custo só existe na view financeira; sem ele, o banco usa o padrão
-    if (item.custo_unitario != null) copia.custo_unitario = item.custo_unitario;
+      podeVerPrecos: canSeePrices,
+      materiaisPorFormula: formulas.porItem.get(item.id),
+      arquivoId: item.arquivo_id,
+    });
     const { data: novo, error } = await (supabase as any)
       .from("orcamento_itens")
       .insert(copia)
       .select("id")
       .single();
     if (error) return toast.error(mensagemErro(error));
-    // A cobrança que a peça gerou vai junto: a cópia responde igual e custa igual.
+    // A cobrança que a peça gerou vai junto: a cópia responde igual e custa igual (no preço especial
+    // do cliente, se era esse o preço dela: o preço por m² sai do total gravado, não do catálogo).
     if (dele.length > 0) {
       const { data: copiadas, error: erroCobranca } = await (supabase as any)
         .from("orcamento_itens")
         .insert(
-          dele.map((l, n) => ({
-            orcamento_id: id,
-            produto_id: l.produto_id,
-            descricao: l.descricao,
-            unidade: l.unidade,
-            quantidade: l.quantidade,
-            largura: l.largura,
-            altura: l.altura,
-            // O preço por m² não vem nas views; sem ele a linha por área perderia a medida no preço e no custo.
-            preco_m2: l.largura ? (catalogo.produtos.find((p) => p.id === l.produto_id)?.preco_base ?? null) : null,
-            valor_unitario: canSeePrices ? l.valor_unitario : 0,
-            ordem: itens.length + 1 + n,
-            gerado_por_item_id: novo.id,
-            materiais_por_formula: formulasPorItem.get(l.id) ?? [],
-          })),
+          dele.map((l, n) =>
+            copiaDaCobranca(l, {
+              orcamentoId: id,
+              ordem: itens.length + 1 + n,
+              paiId: novo.id,
+              podeVerPrecos: canSeePrices,
+              materiaisPorFormula: formulas.porItem.get(l.id),
+            }),
+          ),
         )
         .select("id");
       if (erroCobranca || (copiadas ?? []).length !== dele.length) {
