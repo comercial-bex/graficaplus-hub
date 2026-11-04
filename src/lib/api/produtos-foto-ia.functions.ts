@@ -18,6 +18,19 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  *   - 402 = saldo de IA acabou; 429 = muitas chamadas seguidas. A tela diz isso
  *     com essas palavras, sem fingir que "não deu".
  *
+ * Revisão de 03/11/2026 (o lote ainda não tinha gerado nenhuma foto de verdade):
+ *   - quem tem foto não é gerado de novo: foto enviada à mão nunca é trocada pela
+ *     IA, e a gerada só é trocada quando a pessoa pede "Gerar outra". A leitura da
+ *     foto atual vem ANTES de pagar a geração, e a gravação só troca se a foto
+ *     ainda é a que foi lida (outra pessoa pode ter enviado a real no meio);
+ *   - serviço (Deslocamento, Ilhós na lona...) não leva foto gerada, como a nota
+ *     "Pronto para a IA" já dizia;
+ *   - a imagem que subiu e não foi gravada, e a gerada que a nova substitui, saem
+ *     do armazenamento (a gerada só sai se nenhum outro produto aponta para ela:
+ *     "duplicar produto" copia o endereço da foto);
+ *   - o pedido pode vir com o texto que a tela mostra (nome, família, descrição),
+ *     para "o pedido que a IA recebe" ser exatamente o que a IA recebe.
+ *
  * O modelo vem de `LOVABLE_IMAGE_MODEL` quando o projeto define; sem isso a
  * função tenta a lista abaixo em ordem e para no primeiro que o gateway aceita.
  *
@@ -47,7 +60,12 @@ export type ProdutoParaFoto = {
   descricao?: string | null;
   familia?: string | null;
   categoria?: string | null;
+  /** "servico" não leva foto gerada. */
+  tipo?: string | null;
 };
+
+/** O texto do pedido que a tela mostra; vale sobre o salvo no banco. */
+export type TextosDoPedido = { nome?: string | null; descricao?: string | null; familia?: string | null };
 
 export type ImagemGerada =
   | { estado: "ok"; bytes: Uint8Array; mime: string; modelo: string }
@@ -58,7 +76,52 @@ export type ImagemGerada =
 
 export type FotoGerada =
   | { estado: "ok"; url: string; modelo: string }
+  /** Já tem foto (enviada à mão, ou gerada e a pessoa não pediu outra): nada foi gasto. */
+  | { estado: "ja_tem_foto" }
+  /** Serviço não leva foto gerada: nada foi gasto. */
+  | { estado: "servico" }
   | Exclude<ImagemGerada, { estado: "ok" }>;
+
+export type DecisaoDaFoto = "gerar" | "servico" | "ja_tem_foto";
+
+/**
+ * O que fazer antes de gastar saldo de IA. Serviço não leva foto. Sem foto, gera.
+ * Com foto, só gera de novo quando a atual é uma gerada E a pessoa pediu "outra":
+ * foto enviada à mão nunca é trocada pela IA.
+ */
+export function decidirGeracao(p: { tipo?: string | null; imagem_url?: string | null }, substituir: boolean): DecisaoDaFoto {
+  if (p.tipo === "servico") return "servico";
+  const atual = (p.imagem_url ?? "").trim();
+  if (!atual) return "gerar";
+  return substituir && fotoFoiGerada(atual) ? "gerar" : "ja_tem_foto";
+}
+
+/**
+ * O pedido usa o texto que a tela mostrou, quando ela mandou (a pessoa pode ter mexido na
+ * descrição e ainda não salvo), e o salvo no banco quando não mandou. Nome vazio na tela não
+ * vale: não existe produto sem nome.
+ */
+export function produtoDoPedido(salvo: ProdutoParaFoto, textos?: TextosDoPedido | null): ProdutoParaFoto {
+  const da = (chave: keyof TextosDoPedido): string | null | undefined =>
+    textos && Object.prototype.hasOwnProperty.call(textos, chave) ? textos[chave] : salvo[chave];
+  const nome = limpar(da("nome"), 120) ? (da("nome") as string) : salvo.nome;
+  return { ...salvo, nome, descricao: da("descricao"), familia: da("familia") };
+}
+
+/**
+ * "…/object/public/produtos-fotos/ia/<id>/<arquivo>" vira "ia/<id>/<arquivo>". Só devolve o
+ * caminho de arquivo gerado DESTE produto: foto enviada à mão e arquivo de outro produto
+ * nunca são removidos por aqui.
+ */
+export function caminhoDaFotoGerada(url: string | null | undefined, produtoId: string): string | null {
+  if (!url) return null;
+  const marca = `/${BUCKET_DE_FOTOS}/${PASTA_DAS_GERADAS}/${produtoId}/`;
+  const i = url.indexOf(marca);
+  if (i < 0) return null;
+  const arquivo = url.slice(i + marca.length).split(/[?#]/)[0];
+  if (!arquivo || arquivo.includes("/") || arquivo.includes("..")) return null;
+  return `${PASTA_DAS_GERADAS}/${produtoId}/${arquivo}`;
+}
 
 const limpar = (texto: unknown, maximo: number) =>
   typeof texto === "string" ? texto.replace(/\s+/g, " ").trim().slice(0, maximo) : "";
@@ -208,9 +271,100 @@ export function modelosParaTentar(doAmbiente: string | undefined): string[] {
   return escolhido ? [escolhido, ...MODELOS_DE_IMAGEM.filter((m) => m !== escolhido)] : [...MODELOS_DE_IMAGEM];
 }
 
+/** Só o que a gravação precisa do cliente de serviço; o teste passa um falso. */
+export type GravadorDeFotos = {
+  storage: {
+    from: (bucket: string) => {
+      upload: (
+        caminho: string,
+        bytes: Uint8Array,
+        opcoes: { contentType: string; cacheControl: string; upsert: boolean },
+      ) => PromiseLike<{ error: unknown }>;
+      getPublicUrl: (caminho: string) => { data: { publicUrl: string } };
+      remove: (caminhos: string[]) => PromiseLike<unknown>;
+    };
+  };
+  // O construtor de consultas do cliente de verdade é genérico demais para descrever aqui.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from: (tabela: string) => any;
+};
+
+/**
+ * Guarda a imagem gerada: sobe o arquivo, troca `produtos.imagem_url` SÓ se a foto ainda é a que foi
+ * lida antes de pagar a geração, e limpa o que ficaria sem dono (o arquivo novo se a troca não valeu,
+ * a gerada anterior se nenhum outro produto aponta para ela).
+ */
+export async function guardarFotoGerada(a: {
+  admin: GravadorDeFotos;
+  produtoId: string;
+  /** A foto que o produto tinha quando foi lido ("" ou nulo = sem foto). */
+  fotoLida: string | null;
+  imagem: { bytes: Uint8Array; mime: string; modelo: string };
+  agora?: () => number;
+  sufixoUnico?: () => string;
+}): Promise<FotoGerada> {
+  const { admin, produtoId, imagem } = a;
+  const fotoLida = a.fotoLida ?? "";
+  const baldes = admin.storage.from(BUCKET_DE_FOTOS);
+  // Limpeza é de boa-fé: arquivo que sobra no armazenamento não é motivo para dizer que a foto falhou.
+  const tirarDoArmazenamento = async (caminhos: string[]) => {
+    try {
+      await baldes.remove(caminhos);
+    } catch {
+      /* sobra um arquivo; a próxima geração não depende disso */
+    }
+  };
+  // Nome único mesmo para duas gerações no mesmo milissegundo.
+  const sufixo = (a.sufixoUnico ?? (() => crypto.randomUUID().slice(0, 8)))();
+  const caminho = `${PASTA_DAS_GERADAS}/${produtoId}/${(a.agora ?? Date.now)()}-${sufixo}.${extensaoDoMime(imagem.mime)}`;
+
+  const { error: erroEnvio } = await baldes.upload(caminho, imagem.bytes, {
+    contentType: imagem.mime,
+    cacheControl: "31536000",
+    upsert: false,
+  });
+  if (erroEnvio) return { estado: "falhou", detalhe: "a imagem foi gerada mas não consegui guardar no armazenamento" };
+
+  const url = baldes.getPublicUrl(caminho).data.publicUrl;
+
+  // Só troca se a foto ainda é a que foi lida: se outra pessoa enviou a real (ou outra geração
+  // terminou) enquanto a IA desenhava, a gravação não acha a linha e nada é sobrescrito.
+  const troca = admin.from("produtos").update({ imagem_url: url }).eq("id", produtoId);
+  const { data: gravados, error: erroGravacao } = await (fotoLida.trim()
+    ? troca.eq("imagem_url", fotoLida)
+    : troca.or("imagem_url.is.null,imagem_url.eq.")
+  ).select("id");
+  if (erroGravacao || (gravados ?? []).length === 0) {
+    // O arquivo que acabou de subir não tem produto: sai do armazenamento.
+    await tirarDoArmazenamento([caminho]);
+    return erroGravacao
+      ? { estado: "falhou", detalhe: "a imagem subiu mas o produto não aceitou a foto" }
+      : { estado: "ja_tem_foto" };
+  }
+
+  // A gerada anterior deste produto sai do armazenamento, se nenhum outro produto aponta para ela
+  // ("duplicar produto" copia o endereço da foto).
+  const anterior = caminhoDaFotoGerada(fotoLida, produtoId);
+  if (anterior) {
+    try {
+      const { data: outros, error: erroOutros } = await admin
+        .from("produtos")
+        .select("id")
+        .eq("imagem_url", fotoLida)
+        .neq("id", produtoId)
+        .limit(1);
+      // Na dúvida (a consulta falhou) o arquivo fica: apagar o que outro produto usa é pior que sobrar um.
+      if (!erroOutros && (outros ?? []).length === 0) await tirarDoArmazenamento([anterior]);
+    } catch {
+      /* sem a resposta não se apaga nada */
+    }
+  }
+  return { estado: "ok", url, modelo: imagem.modelo };
+}
+
 export const gerarFotoDoProduto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { produtoId: string }) => input)
+  .inputValidator((input: { produtoId: string; substituir?: boolean; textos?: TextosDoPedido }) => input)
   .handler(async ({ data, context }): Promise<FotoGerada> => {
     const produtoId = limpar(data.produtoId, 64);
     if (!/^[0-9a-f-]{36}$/i.test(produtoId)) throw new Error("Produto inválido.");
@@ -224,18 +378,22 @@ export const gerarFotoDoProduto = createServerFn({ method: "POST" })
       throw new Error("Gerar foto de produto é de administrador e gerência.");
     }
 
-    // A view operacional: nome, família e descrição, sem preço nem custo.
+    // A view operacional: nome, família, descrição, tipo e a foto de agora, sem preço nem custo.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: produto, error: erroProduto } = await (context.supabase as any)
       .from("produtos_operacional")
-      .select("id, nome, descricao, familia, categoria")
+      .select("id, nome, descricao, familia, categoria, tipo, imagem_url")
       .eq("id", produtoId)
       .maybeSingle();
     if (erroProduto) throw new Error("Não foi possível ler o produto.");
     if (!produto) throw new Error("Produto não encontrado.");
 
+    // Antes de pagar a geração: serviço não leva foto, e quem já tem foto não é gerado de novo.
+    const decisao = decidirGeracao(produto as { tipo?: string | null; imagem_url?: string | null }, data.substituir === true);
+    if (decisao !== "gerar") return { estado: decisao };
+
     const imagem = await gerarImagemPeloGateway(
-      promptDaFotoDoProduto(produto as ProdutoParaFoto),
+      promptDaFotoDoProduto(produtoDoPedido(produto as ProdutoParaFoto, data.textos)),
       process.env.LOVABLE_API_KEY,
       fetch,
       modelosParaTentar(process.env.LOVABLE_IMAGE_MODEL),
@@ -243,17 +401,12 @@ export const gerarFotoDoProduto = createServerFn({ method: "POST" })
     if (imagem.estado !== "ok") return imagem;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const caminho = `${PASTA_DAS_GERADAS}/${produtoId}/${Date.now()}.${extensaoDoMime(imagem.mime)}`;
-    const { error: erroEnvio } = await supabaseAdmin.storage
-      .from(BUCKET_DE_FOTOS)
-      .upload(caminho, imagem.bytes, { contentType: imagem.mime, cacheControl: "31536000", upsert: false });
-    if (erroEnvio) return { estado: "falhou", detalhe: "a imagem foi gerada mas não consegui guardar no armazenamento" };
-
-    const url = supabaseAdmin.storage.from(BUCKET_DE_FOTOS).getPublicUrl(caminho).data.publicUrl;
-    const { error: erroGravacao } = await supabaseAdmin.from("produtos").update({ imagem_url: url }).eq("id", produtoId);
-    if (erroGravacao) return { estado: "falhou", detalhe: "a imagem subiu mas o produto não aceitou a foto" };
-
-    return { estado: "ok", url, modelo: imagem.modelo };
+    return guardarFotoGerada({
+      admin: supabaseAdmin as unknown as GravadorDeFotos,
+      produtoId,
+      fotoLida: String((produto as { imagem_url?: string | null }).imagem_url ?? ""),
+      imagem,
+    });
   });
 
 /** A foto veio da IA? (pela pasta no endereço; sem coluna nova no banco.) */
@@ -270,6 +423,10 @@ export function mensagemDaFotoGerada(r: Exclude<FotoGerada, { estado: "ok" }>): 
       return "O saldo de IA do projeto acabou. Reponha o crédito no Lovable ou envie a foto à mão.";
     case "limite":
       return "Muitas fotos seguidas. Espere um minuto e tente de novo.";
+    case "ja_tem_foto":
+      return "Este produto já tem foto, e a IA não troca a que já existe. Remova a atual e salve para gerar outra.";
+    case "servico":
+      return "Serviço não leva foto gerada: a tabela usa o ícone do serviço. Se quiser uma foto, envie pelo botão Enviar foto.";
     default:
       return `Não deu para gerar a foto: ${r.detalhe}.`;
   }

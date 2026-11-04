@@ -302,7 +302,7 @@ export function FichaDoProduto({
                 <FotoDoProduto
                   valor={foto}
                   onChange={setFoto}
-                  produto={{ id: p.id, nome: p.nome, familia: linha?.familia ?? null, categoria: p.categoria }}
+                  produto={{ id: p.id, nome: p.nome, descricao: p.descricao ?? null, familia: linha?.familia ?? null, categoria: p.categoria, tipo: p.tipo }}
                 />
                 <Button onClick={() => salvarFoto.mutate()} disabled={salvarFoto.isPending || foto === (p.imagem_url ?? "")}>
                   <Save className="mr-1.5 h-4 w-4" /> Salvar foto

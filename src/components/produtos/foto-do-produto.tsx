@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Copy, ImagePlus, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,12 @@ import {
  * Lovable desenha o produto no padrão da Bex Print e já guarda no cadastro) e
  * "Copiar pedido" (o mesmo texto, para gerar fora quando a IA não estiver
  * ligada). A foto gerada é marcada como tal; a real, enviada aqui, a substitui.
+ *
+ * Revisão de 03/11/2026: a IA nunca troca uma foto enviada à mão (o botão fica desligado e
+ * diz como liberar); serviço não leva foto gerada; "Gerar outra" é o único caso em que uma
+ * foto existente é trocada, e só se for uma gerada. O pedido mostrado é o que vai para o
+ * servidor, com o texto que está na tela, salvo ou não. Depois de gerar, a lista de produtos
+ * e a tabela de preços se atualizam, para o próximo lote não gerar por cima.
  */
 export const BUCKET_DE_FOTOS = "produtos-fotos";
 const LIMITE_MB = 5;
@@ -37,6 +44,7 @@ export function FotoDoProduto({
   produto?: ProdutoParaFoto & { id?: string | null };
 }) {
   const entrada = useRef<HTMLInputElement>(null);
+  const fila = useQueryClient();
   const [enviando, setEnviando] = useState(false);
   const [gerando, setGerando] = useState(false);
 
@@ -66,9 +74,20 @@ export function FotoDoProduto({
     if (!produto?.id) return;
     setGerando(true);
     try {
-      const r = await gerarFotoDoProduto({ data: { produtoId: produto.id } });
+      const r = await gerarFotoDoProduto({
+        data: {
+          produtoId: produto.id,
+          // Sem foto na tela ou com uma gerada: pode ser trocada. Foto enviada à mão nunca é.
+          substituir: !valor.trim() || gerada,
+          // O pedido que a tela mostra é o que a IA recebe, mesmo com o texto ainda não salvo.
+          textos: { nome: produto.nome, descricao: produto.descricao ?? null, familia: produto.familia ?? null },
+        },
+      });
       if (r.estado === "ok") {
         onChange(r.url);
+        // A foto já está gravada no produto: a lista e a tabela de preços precisam saber.
+        void fila.invalidateQueries({ queryKey: ["produtos"] });
+        void fila.invalidateQueries({ queryKey: ["tabela-precos", "produtos"] });
         toast.success("Foto gerada pela IA e guardada no produto. Quando tiver a foto real, envie por aqui que ela substitui.");
       } else {
         toast.error(mensagemDaFotoGerada(r));
@@ -92,6 +111,10 @@ export function FotoDoProduto({
 
   const gerada = fotoFoiGerada(valor);
   const ocupado = enviando || gerando;
+  // A IA não gera serviço nem troca foto enviada à mão: o botão fica desligado e o texto diz por quê.
+  const eServico = produto?.tipo === "servico";
+  const temFotoDaCasa = !!valor.trim() && !gerada;
+  const semGerar = eServico || temFotoDaCasa;
 
   return (
     <div className="flex items-center gap-3">
@@ -129,7 +152,7 @@ export function FotoDoProduto({
               type="button"
               size="sm"
               variant="outline"
-              disabled={ocupado || !produto.id}
+              disabled={ocupado || !produto.id || semGerar}
               onClick={() => void gerar()}
               data-testid="gerar-foto-com-ia"
             >
@@ -151,9 +174,13 @@ export function FotoDoProduto({
         <p className="text-xs text-muted-foreground">
           {produto && !produto.id
             ? "Salve o produto uma vez para a IA poder gerar a foto."
-            : produto
-              ? "A IA desenha o produto em fundo branco com a marca Bex Print. Foto real enviada por aqui substitui a gerada."
-              : "Aparece na tabela do parceiro."}{" "}
+            : eServico
+              ? "Serviço não leva foto gerada: a tabela usa o ícone do serviço. Foto enviada por aqui continua valendo."
+              : temFotoDaCasa
+                ? "Já tem foto enviada por você: a IA não troca. Para gerar com IA, remova a foto e salve."
+                : produto
+                  ? "A IA desenha o produto em fundo branco com a marca Bex Print. Foto real enviada por aqui substitui a gerada."
+                  : "Aparece na tabela do parceiro."}{" "}
           JPG, PNG ou WebP, até {LIMITE_MB} MB.
         </p>
         {produto && (
@@ -162,7 +189,9 @@ export function FotoDoProduto({
           <details className="text-xs text-muted-foreground" data-testid="pedido-da-foto">
             <summary className="cursor-pointer underline underline-offset-2">Ver o pedido que a IA recebe</summary>
             <p className="mt-1 whitespace-pre-wrap rounded border bg-muted/40 p-2 text-foreground">{promptDaFotoDoProduto(produto)}</p>
-            <p className="mt-1">Para mudar a imagem, ajuste o nome, a família ou a descrição do produto: eles entram no pedido.</p>
+            <p className="mt-1">
+              Para mudar a imagem, ajuste o nome, a família ou a descrição do produto: eles entram no pedido, mesmo antes de salvar.
+            </p>
           </details>
         )}
       </div>

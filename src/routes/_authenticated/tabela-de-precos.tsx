@@ -64,7 +64,7 @@ function TabelaDePrecosPage() {
     queryKey: ["tabela-precos", "produtos"],
     queryFn: async (): Promise<Produto[]> => {
       const { data, error } = await fromFinancialView("produtos", "financeiro")
-        .select("id, nome, categoria, tipo, unidade, ativo, custo_medio, margem_minima, preco_base, preco_parceiro, imagem_url, tempo_producao_min, maquina_padrao_id, observacoes_internas")
+        .select("id, nome, categoria, tipo, unidade, ativo, custo_medio, margem_minima, preco_base, preco_parceiro, imagem_url, tempo_producao_min, maquina_padrao_id, observacoes_internas, descricao")
         .order("ativo", { ascending: false })
         .order("categoria")
         .order("nome");

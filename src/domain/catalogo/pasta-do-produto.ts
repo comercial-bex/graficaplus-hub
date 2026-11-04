@@ -79,10 +79,16 @@ export const CADASTRO_VAZIO: Cadastro = {
   observacoes_internas: "",
 };
 
-/** O que vai para `produtos`: preço e custo só de quem os vê; vazio vira nulo onde o banco aceita. */
+/**
+ * O que vai para `produtos`: preço e custo só de quem os vê; vazio vira nulo onde o banco aceita.
+ * `imagemNoBanco` é a foto que a pasta carregou: se a foto do formulário é a mesma, ela não vai no
+ * Salvar. Assim uma foto que o lote de fotos (ou outra pessoa) gravou depois de a pasta abrir não é
+ * apagada pelo valor velho do formulário.
+ */
 export function payloadDoCadastro(
   c: Cadastro,
   visao: { canSeePrices: boolean; canSeeFinancials: boolean },
+  opcoes?: { imagemNoBanco?: string | null },
 ): Record<string, unknown> {
   const numero = (s: string) => Number(String(s).replace(",", "."));
   const payload: Record<string, unknown> = {
@@ -98,6 +104,9 @@ export function payloadDoCadastro(
     material_principal_id: c.material_principal_id || null,
     observacoes_internas: c.observacoes_internas.trim() || null,
   };
+  if (opcoes && opcoes.imagemNoBanco !== undefined && c.imagem_url.trim() === String(opcoes.imagemNoBanco ?? "").trim()) {
+    delete payload.imagem_url;
+  }
   if (visao.canSeePrices) payload.preco_base = numero(c.preco_base) || 0;
   if (visao.canSeeFinancials) {
     payload.custo_medio = numero(c.custo_medio) || 0;
