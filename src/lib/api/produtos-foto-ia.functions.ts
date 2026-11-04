@@ -31,6 +31,16 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  *   - o pedido pode vir com o texto que a tela mostra (nome, família, descrição),
  *     para "o pedido que a IA recebe" ser exatamente o que a IA recebe.
  *
+ * Segunda rodada, 04/11/2026 (revisão do PR 428):
+ *   - o produto é RESERVADO no banco (produto_foto_reservas) antes de pagar a IA, e a reserva sai ao fim
+ *     (também em erro): duas abas, dois administradores ou o lote mais o botão da pasta pagavam a mesma
+ *     foto duas vezes. Quem chega com o produto reservado recebe "em_andamento", sem gastar nada. Reserva
+ *     de mais de 5 minutos (a chamada que a fez morreu) não segura ninguém;
+ *   - perder a gravação depois de pagar é "mudou_no_meio" (a imagem é descartada e a mensagem diz que o saldo
+ *     foi gasto), não "já tem foto";
+ *   - erro ao gravar o produto pode ser só a resposta que se perdeu, com o UPDATE já feito: o banco é relido
+ *     antes de apagar o arquivo, e na dúvida o arquivo fica.
+ *
  * O modelo vem de `LOVABLE_IMAGE_MODEL` quando o projeto define; sem isso a
  * função tenta a lista abaixo em ordem e para no primeiro que o gateway aceita.
  *
@@ -80,6 +90,10 @@ export type FotoGerada =
   | { estado: "ja_tem_foto" }
   /** Serviço não leva foto gerada: nada foi gasto. */
   | { estado: "servico" }
+  /** Outra pessoa ou outra aba já está gerando a foto deste produto (reserva no banco): nada foi gasto. */
+  | { estado: "em_andamento" }
+  /** A IA desenhou e a foto do produto mudou enquanto isso: a imagem nova foi descartada. O saldo foi gasto. */
+  | { estado: "mudou_no_meio" }
   | Exclude<ImagemGerada, { estado: "ok" }>;
 
 export type DecisaoDaFoto = "gerar" | "servico" | "ja_tem_foto";
@@ -334,12 +348,19 @@ export async function guardarFotoGerada(a: {
     ? troca.eq("imagem_url", fotoLida)
     : troca.or("imagem_url.is.null,imagem_url.eq.")
   ).select("id");
-  if (erroGravacao || (gravados ?? []).length === 0) {
-    // O arquivo que acabou de subir não tem produto: sai do armazenamento.
+  if (erroGravacao) {
+    // Erro ambíguo: a rede pode ter perdido só a RESPOSTA, com o UPDATE já feito. Olha o banco antes de apagar o
+    // arquivo que a linha talvez já aponte; se nem a leitura funciona, o arquivo fica (sobrar um arquivo é inofensivo).
+    const { data: atual, error: erroLeitura } = await admin.from("produtos").select("imagem_url").eq("id", produtoId).maybeSingle();
+    if (erroLeitura) return { estado: "falhou", detalhe: "não consegui confirmar se o produto aceitou a foto" };
+    if (atual && String(atual.imagem_url ?? "") === url) return { estado: "ok", url, modelo: imagem.modelo };
     await tirarDoArmazenamento([caminho]);
-    return erroGravacao
-      ? { estado: "falhou", detalhe: "a imagem subiu mas o produto não aceitou a foto" }
-      : { estado: "ja_tem_foto" };
+    return { estado: "falhou", detalhe: "a imagem subiu mas o produto não aceitou a foto" };
+  }
+  if ((gravados ?? []).length === 0) {
+    // A foto do produto mudou enquanto a IA desenhava (e a IA já foi paga): o arquivo novo não tem produto e sai.
+    await tirarDoArmazenamento([caminho]);
+    return { estado: "mudou_no_meio" };
   }
 
   // A gerada anterior deste produto sai do armazenamento, se nenhum outro produto aponta para ela
@@ -362,6 +383,44 @@ export async function guardarFotoGerada(a: {
   return { estado: "ok", url, modelo: imagem.modelo };
 }
 
+/** Uma reserva de mais de 5 minutos é de uma chamada que morreu sem liberar: não segura ninguém. */
+export const RESERVA_VALE_MS = 5 * 60_000;
+export const TABELA_DE_RESERVAS = "produto_foto_reservas";
+
+/**
+ * Reserva o produto no banco antes de pagar a IA. A chave primária é o produto: o segundo a chegar leva
+ * 23505 e recebe "em_andamento". Sem a reserva, duas abas ou duas pessoas pagavam a mesma foto duas vezes.
+ */
+export async function reservarGeracao(
+  admin: GravadorDeFotos,
+  produtoId: string,
+  usuarioId: string | null,
+  agora: () => number = Date.now,
+): Promise<{ estado: "reservado" } | { estado: "em_andamento" } | { estado: "falhou"; detalhe: string }> {
+  try {
+    await admin
+      .from(TABELA_DE_RESERVAS)
+      .delete()
+      .eq("produto_id", produtoId)
+      .lt("reservado_em", new Date(agora() - RESERVA_VALE_MS).toISOString());
+    const { error } = await admin.from(TABELA_DE_RESERVAS).insert({ produto_id: produtoId, por: usuarioId });
+    if (!error) return { estado: "reservado" };
+    if ((error as { code?: string }).code === "23505") return { estado: "em_andamento" };
+    return { estado: "falhou", detalhe: "não consegui reservar o produto para gerar a foto" };
+  } catch {
+    return { estado: "falhou", detalhe: "não consegui reservar o produto para gerar a foto" };
+  }
+}
+
+/** Solta a reserva (também quando a geração falha): reserva esquecida bloquearia o produto até vencer. */
+export async function liberarGeracao(admin: GravadorDeFotos, produtoId: string): Promise<void> {
+  try {
+    await admin.from(TABELA_DE_RESERVAS).delete().eq("produto_id", produtoId);
+  } catch {
+    /* a reserva vence sozinha em 5 minutos */
+  }
+}
+
 export const gerarFotoDoProduto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { produtoId: string; substituir?: boolean; textos?: TextosDoPedido }) => input)
@@ -378,35 +437,44 @@ export const gerarFotoDoProduto = createServerFn({ method: "POST" })
       throw new Error("Gerar foto de produto é de administrador e gerência.");
     }
 
-    // A view operacional: nome, família, descrição, tipo e a foto de agora, sem preço nem custo.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: produto, error: erroProduto } = await (context.supabase as any)
-      .from("produtos_operacional")
-      .select("id, nome, descricao, familia, categoria, tipo, imagem_url")
-      .eq("id", produtoId)
-      .maybeSingle();
-    if (erroProduto) throw new Error("Não foi possível ler o produto.");
-    if (!produto) throw new Error("Produto não encontrado.");
-
-    // Antes de pagar a geração: serviço não leva foto, e quem já tem foto não é gerado de novo.
-    const decisao = decidirGeracao(produto as { tipo?: string | null; imagem_url?: string | null }, data.substituir === true);
-    if (decisao !== "gerar") return { estado: decisao };
-
-    const imagem = await gerarImagemPeloGateway(
-      promptDaFotoDoProduto(produtoDoPedido(produto as ProdutoParaFoto, data.textos)),
-      process.env.LOVABLE_API_KEY,
-      fetch,
-      modelosParaTentar(process.env.LOVABLE_IMAGE_MODEL),
-    );
-    if (imagem.estado !== "ok") return imagem;
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    return guardarFotoGerada({
-      admin: supabaseAdmin as unknown as GravadorDeFotos,
-      produtoId,
-      fotoLida: String((produto as { imagem_url?: string | null }).imagem_url ?? ""),
-      imagem,
-    });
+    const admin = supabaseAdmin as unknown as GravadorDeFotos;
+
+    // Reserva ANTES de ler e de pagar: com a reserva na mão, a leitura abaixo é a verdade até a gravação.
+    const reserva = await reservarGeracao(admin, produtoId, context.userId);
+    if (reserva.estado !== "reservado") return reserva;
+    try {
+      // A view operacional: nome, família, descrição, tipo e a foto de agora, sem preço nem custo.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: produto, error: erroProduto } = await (context.supabase as any)
+        .from("produtos_operacional")
+        .select("id, nome, descricao, familia, categoria, tipo, imagem_url")
+        .eq("id", produtoId)
+        .maybeSingle();
+      if (erroProduto) throw new Error("Não foi possível ler o produto.");
+      if (!produto) throw new Error("Produto não encontrado.");
+
+      // Antes de pagar a geração: serviço não leva foto, e quem já tem foto não é gerado de novo.
+      const decisao = decidirGeracao(produto as { tipo?: string | null; imagem_url?: string | null }, data.substituir === true);
+      if (decisao !== "gerar") return { estado: decisao };
+
+      const imagem = await gerarImagemPeloGateway(
+        promptDaFotoDoProduto(produtoDoPedido(produto as ProdutoParaFoto, data.textos)),
+        process.env.LOVABLE_API_KEY,
+        fetch,
+        modelosParaTentar(process.env.LOVABLE_IMAGE_MODEL),
+      );
+      if (imagem.estado !== "ok") return imagem;
+
+      return await guardarFotoGerada({
+        admin,
+        produtoId,
+        fotoLida: String((produto as { imagem_url?: string | null }).imagem_url ?? ""),
+        imagem,
+      });
+    } finally {
+      await liberarGeracao(admin, produtoId);
+    }
   });
 
 /** A foto veio da IA? (pela pasta no endereço; sem coluna nova no banco.) */
@@ -427,7 +495,14 @@ export function mensagemDaFotoGerada(r: Exclude<FotoGerada, { estado: "ok" }>): 
       return "Este produto já tem foto, e a IA não troca a que já existe. Remova a atual e salve para gerar outra.";
     case "servico":
       return "Serviço não leva foto gerada: a tabela usa o ícone do serviço. Se quiser uma foto, envie pelo botão Enviar foto.";
-    default:
-      return `Não deu para gerar a foto: ${r.detalhe}.`;
+    case "em_andamento":
+      return "Outra pessoa ou outra aba já está gerando a foto deste produto: espere ela chegar.";
+    case "mudou_no_meio":
+      return "A foto do produto mudou enquanto a IA desenhava (outra pessoa ou outra aba): a imagem nova foi descartada e o saldo desta geração foi gasto à toa.";
+    default: {
+      // Um estado que esta versão da tela não conhece nunca pode virar "undefined" na mensagem.
+      const detalhe = (r as { detalhe?: string }).detalhe;
+      return detalhe ? `Não deu para gerar a foto: ${detalhe}.` : "Não deu para gerar a foto: resposta inesperada do servidor.";
+    }
   }
 }

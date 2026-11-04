@@ -33,13 +33,23 @@ import {
 export const BUCKET_DE_FOTOS = "produtos-fotos";
 const LIMITE_MB = 5;
 
+/**
+ * Produtos com foto sendo gerada AGORA nesta aba. Mora fora do componente porque a chamada demora até um
+ * minuto e a pessoa pode trocar de aba da janela (o componente desmonta e a Promise segue): ao voltar, o botão
+ * não pode oferecer uma segunda geração paga do mesmo produto (a segunda perderia a gravação mesmo assim).
+ */
+const emGeracao = new Set<string>();
+
 export function FotoDoProduto({
   valor,
   onChange,
+  aoGerar,
   produto,
 }: {
   valor: string;
   onChange: (url: string) => void;
+  /** A foto gerada já está gravada no produto: quem tem base de comparação do Salvar avança ela. */
+  aoGerar?: (url: string) => void;
   /** Dados para a IA desenhar. Sem `id` (produto ainda não salvo) o botão fica desligado. */
   produto?: ProdutoParaFoto & { id?: string | null };
 }) {
@@ -72,6 +82,11 @@ export function FotoDoProduto({
 
   async function gerar() {
     if (!produto?.id) return;
+    if (emGeracao.has(produto.id)) {
+      toast.info("A foto deste produto já está sendo gerada: espere ela chegar.");
+      return;
+    }
+    emGeracao.add(produto.id);
     setGerando(true);
     try {
       const r = await gerarFotoDoProduto({
@@ -83,11 +98,12 @@ export function FotoDoProduto({
           textos: { nome: produto.nome, descricao: produto.descricao ?? null, familia: produto.familia ?? null },
         },
       });
+      // O servidor pode ter gravado ou recusado: nos dois casos a lista precisa ver o que o banco tem agora.
+      void fila.invalidateQueries({ queryKey: ["produtos"] });
+      void fila.invalidateQueries({ queryKey: ["tabela-precos", "produtos"] });
       if (r.estado === "ok") {
         onChange(r.url);
-        // A foto já está gravada no produto: a lista e a tabela de preços precisam saber.
-        void fila.invalidateQueries({ queryKey: ["produtos"] });
-        void fila.invalidateQueries({ queryKey: ["tabela-precos", "produtos"] });
+        aoGerar?.(r.url);
         toast.success("Foto gerada pela IA e guardada no produto. Quando tiver a foto real, envie por aqui que ela substitui.");
       } else {
         toast.error(mensagemDaFotoGerada(r));
@@ -95,6 +111,7 @@ export function FotoDoProduto({
     } catch (e) {
       toast.error(mensagemErro(e, "Não foi possível gerar a foto agora."));
     } finally {
+      emGeracao.delete(produto.id);
       setGerando(false);
     }
   }

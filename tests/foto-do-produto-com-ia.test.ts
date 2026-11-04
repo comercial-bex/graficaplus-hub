@@ -9,11 +9,14 @@ import {
   gerarImagemPeloGateway,
   GATEWAY_DE_IMAGEM,
   guardarFotoGerada,
+  liberarGeracao,
   mensagemDaFotoGerada,
   modelosParaTentar,
   MODELOS_DE_IMAGEM,
   produtoDoPedido,
   promptDaFotoDoProduto,
+  RESERVA_VALE_MS,
+  reservarGeracao,
   urlDaImagemNaResposta,
   type GravadorDeFotos,
 } from "../src/lib/api/produtos-foto-ia.functions";
@@ -164,6 +167,14 @@ describe("gerarImagemPeloGateway", () => {
     expect(mensagemDaFotoGerada({ estado: "falhou", detalhe: "x" })).toBe("Não deu para gerar a foto: x.");
     expect(mensagemDaFotoGerada({ estado: "ja_tem_foto" })).toContain("não troca a que já existe");
     expect(mensagemDaFotoGerada({ estado: "servico" })).toContain("Serviço não leva foto gerada");
+    expect(mensagemDaFotoGerada({ estado: "em_andamento" })).toContain("já está gerando");
+    // Perdeu a gravação DEPOIS de pagar: a mensagem não diz "já tem foto" e admite o gasto.
+    expect(mensagemDaFotoGerada({ estado: "mudou_no_meio" })).toContain("a imagem nova foi descartada");
+    expect(mensagemDaFotoGerada({ estado: "mudou_no_meio" })).toContain("saldo");
+    // Estado desconhecido nunca vira "undefined".
+    expect(mensagemDaFotoGerada({ estado: "estado_novo" } as unknown as Parameters<typeof mensagemDaFotoGerada>[0])).toBe(
+      "Não deu para gerar a foto: resposta inesperada do servidor.",
+    );
   });
 });
 
@@ -216,9 +227,22 @@ describe("antes de gastar saldo de IA (revisão de 03/11/2026)", () => {
 });
 
 /** Um armazenamento e uma tabela `produtos` em memória, com só os filtros que a gravação usa. */
-function ambiente(inicial: { id: string; imagem_url: string | null }[], opcoes: { falhaEnvio?: boolean; falhaGravacao?: boolean; falhaConsulta?: boolean } = {}) {
+function ambiente(
+  inicial: { id: string; imagem_url: string | null }[],
+  opcoes: {
+    falhaEnvio?: boolean;
+    /** o UPDATE devolve erro sem ter gravado */
+    falhaGravacao?: boolean;
+    /** o UPDATE grava e a resposta se perde (erro de rede): o banco já tem a foto nova */
+    respostaPerdida?: boolean;
+    /** a releitura da linha depois de um erro de gravação também falha */
+    falhaLeitura?: boolean;
+    falhaConsulta?: boolean;
+  } = {},
+) {
   const arquivos = new Map<string, number>();
   const produtos = inicial.map((p) => ({ ...p }));
+  const reservas = new Map<string, number>();
   const remocoes: string[][] = [];
   const base = "https://x.supabase.co/storage/v1/object/public/produtos-fotos";
   for (const p of produtos) {
@@ -239,17 +263,47 @@ function ambiente(inicial: { id: string; imagem_url: string | null }[], opcoes: 
       },
       limit: (n: number) => ((maximo = n), q),
       select: (_c: string) => q,
+      maybeSingle: () => {
+        if (opcoes.falhaLeitura) return Promise.resolve({ data: null, error: new Error("leitura") });
+        const achado = produtos.find((p) => filtros.every((f) => f(p)));
+        return Promise.resolve({ data: achado ? { imagem_url: achado.imagem_url } : null, error: null });
+      },
       then: (ok: (r: { data: { id: string }[] | null; error: unknown }) => unknown) => {
         if (opcoes.falhaConsulta && modo === "select") return Promise.resolve({ data: null, error: new Error("consulta") }).then(ok);
         const achados = produtos.filter((p) => filtros.every((f) => f(p))).slice(0, maximo);
         if (modo === "update") {
           if (opcoes.falhaGravacao) return Promise.resolve({ data: null, error: new Error("gravação") }).then(ok);
           for (const p of achados) p.imagem_url = valores!.imagem_url;
+          if (opcoes.respostaPerdida) return Promise.resolve({ data: null, error: new Error("fetch failed") }).then(ok);
         }
         return Promise.resolve({ data: achados.map((p) => ({ id: p.id })), error: null }).then(ok);
       },
     };
     return q;
+  }
+
+  /** A tabela de reservas: chave primária no produto (insert repetido leva 23505) e delete por produto e por idade. */
+  function reservasBuilder() {
+    let produtoId: string | null = null;
+    let antesDe: number | null = null;
+    return {
+      insert: (linha: { produto_id: string }) => {
+        if (reservas.has(linha.produto_id)) return Promise.resolve({ error: { code: "23505", message: "duplicate key" } });
+        reservas.set(linha.produto_id, Date.now());
+        return Promise.resolve({ error: null });
+      },
+      delete: () => {
+        const q = {
+          eq: (_c: string, v: string) => ((produtoId = v), q),
+          lt: (_c: string, iso: string) => ((antesDe = Date.parse(iso)), q),
+          then: (ok: (r: { error: unknown }) => unknown) => {
+            if (produtoId !== null && (antesDe === null || (reservas.get(produtoId) ?? Infinity) < antesDe)) reservas.delete(produtoId);
+            return Promise.resolve({ error: null }).then(ok);
+          },
+        };
+        return q;
+      },
+    };
   }
 
   const admin: GravadorDeFotos = {
@@ -268,12 +322,15 @@ function ambiente(inicial: { id: string; imagem_url: string | null }[], opcoes: 
         },
       }),
     },
-    from: () => ({
-      update: (valores: { imagem_url: string }) => construtor("update", valores),
-      select: () => construtor("select"),
-    }),
+    from: (tabela: string) =>
+      tabela === "produto_foto_reservas"
+        ? reservasBuilder()
+        : {
+            update: (valores: { imagem_url: string }) => construtor("update", valores),
+            select: () => construtor("select"),
+          },
   };
-  return { admin, arquivos, produtos, remocoes, base };
+  return { admin, arquivos, produtos, remocoes, base, reservas };
 }
 
 const IMAGEM = { bytes: new Uint8Array([1, 2, 3]), mime: "image/png", modelo: "m" };
@@ -302,7 +359,7 @@ describe("guardar a foto gerada (revisão de 03/11/2026)", () => {
     const a = ambiente([{ id: ID, imagem_url: real }]);
     // O produto foi lido SEM foto, mas na hora de gravar já tinha a real.
     const r = await guardarFotoGerada({ admin: a.admin, produtoId: ID, fotoLida: "", imagem: IMAGEM, agora: () => 1, sufixoUnico: () => "aa" });
-    expect(r).toEqual({ estado: "ja_tem_foto" });
+    expect(r).toEqual({ estado: "mudou_no_meio" });
     expect(a.produtos[0].imagem_url).toBe(real);
     // Só o arquivo da foto real continua no armazenamento; o que a IA acabou de subir foi embora.
     expect([...a.arquivos.keys()]).toEqual(["3f2a.jpg"]);
@@ -314,7 +371,7 @@ describe("guardar a foto gerada (revisão de 03/11/2026)", () => {
     const primeira = await guardarFotoGerada({ admin: a.admin, produtoId: ID, fotoLida: null, imagem: IMAGEM, agora: () => 1, sufixoUnico: () => "aa" });
     const segunda = await guardarFotoGerada({ admin: a.admin, produtoId: ID, fotoLida: null, imagem: IMAGEM, agora: () => 1, sufixoUnico: () => "bb" });
     expect(primeira.estado).toBe("ok");
-    expect(segunda).toEqual({ estado: "ja_tem_foto" });
+    expect(segunda).toEqual({ estado: "mudou_no_meio" });
     expect(a.produtos[0].imagem_url).toBe(`${a.base}/ia/${ID}/1-aa.png`);
     expect([...a.arquivos.keys()]).toEqual([`ia/${ID}/1-aa.png`]);
   });
@@ -384,6 +441,76 @@ describe("guardar a foto gerada (revisão de 03/11/2026)", () => {
   });
 });
 
+describe("reservar o produto antes de pagar a IA (segunda rodada, 04/11/2026)", () => {
+  it("o primeiro reserva; o segundo, de outra aba ou de outra pessoa, recebe em_andamento sem gastar nada", async () => {
+    const a = ambiente([{ id: ID, imagem_url: null }]);
+    expect(await reservarGeracao(a.admin, ID, "u1")).toEqual({ estado: "reservado" });
+    expect(await reservarGeracao(a.admin, ID, "u2")).toEqual({ estado: "em_andamento" });
+    expect(a.reservas.size).toBe(1);
+  });
+
+  it("depois que o primeiro solta, o produto pode ser reservado de novo", async () => {
+    const a = ambiente([{ id: ID, imagem_url: null }]);
+    await reservarGeracao(a.admin, ID, "u1");
+    await liberarGeracao(a.admin, ID);
+    expect(a.reservas.size).toBe(0);
+    expect(await reservarGeracao(a.admin, ID, "u2")).toEqual({ estado: "reservado" });
+  });
+
+  it("reserva de mais de 5 minutos (a chamada que a fez morreu) não segura ninguém; a de agora segura", async () => {
+    const a = ambiente([{ id: ID, imagem_url: null }]);
+    const agora = Date.now();
+    a.reservas.set(ID, agora - RESERVA_VALE_MS - 1000);
+    expect(await reservarGeracao(a.admin, ID, "u1", () => agora)).toEqual({ estado: "reservado" });
+    // Esta é de agora: a seguinte espera.
+    expect(await reservarGeracao(a.admin, ID, "u2", () => agora)).toEqual({ estado: "em_andamento" });
+  });
+
+  it("produtos diferentes não se atrapalham", async () => {
+    const a = ambiente([{ id: ID, imagem_url: null }, { id: OUTRO, imagem_url: null }]);
+    expect(await reservarGeracao(a.admin, ID, "u1")).toEqual({ estado: "reservado" });
+    expect(await reservarGeracao(a.admin, OUTRO, "u1")).toEqual({ estado: "reservado" });
+  });
+
+  it("outro erro do banco ao reservar não vira 'em andamento': diz que não conseguiu reservar", async () => {
+    const admin = {
+      storage: { from: () => ({ upload: async () => ({ error: null }), getPublicUrl: () => ({ data: { publicUrl: "" } }), remove: async () => ({}) }) },
+      from: () => ({
+        delete: () => ({ eq: () => ({ lt: () => Promise.resolve({ error: null }) }) }),
+        insert: () => Promise.resolve({ error: { code: "42P01", message: "relation does not exist" } }),
+      }),
+    } as unknown as GravadorDeFotos;
+    const r = await reservarGeracao(admin, ID, "u1");
+    expect(r.estado).toBe("falhou");
+  });
+});
+
+describe("erro ambíguo ao gravar o produto (segunda rodada, 04/11/2026)", () => {
+  it("a resposta se perdeu mas o UPDATE foi feito: a foto vale e o arquivo NÃO é apagado", async () => {
+    const a = ambiente([{ id: ID, imagem_url: null }], { respostaPerdida: true });
+    const r = await guardarFotoGerada({ admin: a.admin, produtoId: ID, fotoLida: null, imagem: IMAGEM, agora: () => 1, sufixoUnico: () => "aa" });
+    expect(r.estado).toBe("ok");
+    expect(a.produtos[0].imagem_url).toBe(`${a.base}/ia/${ID}/1-aa.png`);
+    expect(a.arquivos.has(`ia/${ID}/1-aa.png`)).toBe(true);
+    expect(a.remocoes).toEqual([]);
+  });
+
+  it("o UPDATE de fato falhou: o arquivo sai e a resposta diz o que houve", async () => {
+    const a = ambiente([{ id: ID, imagem_url: null }], { falhaGravacao: true });
+    const r = await guardarFotoGerada({ admin: a.admin, produtoId: ID, fotoLida: null, imagem: IMAGEM, agora: () => 1, sufixoUnico: () => "aa" });
+    expect(r).toEqual({ estado: "falhou", detalhe: "a imagem subiu mas o produto não aceitou a foto" });
+    expect(a.arquivos.size).toBe(0);
+  });
+
+  it("nem a releitura funciona: na dúvida o arquivo fica (sobrar um arquivo é inofensivo, apontar para um que sumiu não)", async () => {
+    const a = ambiente([{ id: ID, imagem_url: null }], { respostaPerdida: true, falhaLeitura: true });
+    const r = await guardarFotoGerada({ admin: a.admin, produtoId: ID, fotoLida: null, imagem: IMAGEM, agora: () => 1, sufixoUnico: () => "aa" });
+    expect(r).toEqual({ estado: "falhou", detalhe: "não consegui confirmar se o produto aceitou a foto" });
+    expect(a.arquivos.has(`ia/${ID}/1-aa.png`)).toBe(true);
+    expect(a.remocoes).toEqual([]);
+  });
+});
+
 describe("o Salvar não apaga a foto que o lote gravou no meio tempo", () => {
   const visao = { canSeePrices: true, canSeeFinancials: true };
   const cadastro = { ...CADASTRO_VAZIO, nome: "Lona", imagem_url: "" };
@@ -423,7 +550,14 @@ describe("o lote de fotos que faltam", () => {
   it("sair da tela para o lote, um segundo lote não começa por cima, e o Parar responde na hora", () => {
     const lote = ler("src/components/produtos/gerar-fotos-que-faltam.tsx");
     // O botão Parar mora na tela: ao desmontar, o laço para depois da foto em curso.
-    expect(lote).toMatch(/useEffect\(\s*\(\) => \(\) => \{\s*parar\.current = true;/);
+    expect(lote).toMatch(/useEffect\(\s*\(\) => \(\) => \{\s*parar\.current = "saiu";/);
+    // O Parar do botão tem motivo próprio, e a pausa do limite some quando a nova tentativa começa.
+    expect(lote).toContain('parar.current = "pediu";');
+    expect(lote).toContain("aoRetomar: () => setEsperando(null)");
+    // Chamada que nunca volta cai por tempo; quem falhou vai para o fim da fila; as falhas ficam listadas na tela.
+    expect(lote).toContain("comTempoLimite(");
+    expect(lote).toContain("filaDoLote(semFoto, jaFalharam)");
+    expect(lote).toContain('data-testid="falhas-do-lote"');
     expect(lote).toContain("let loteEmCurso = false;");
     expect(lote).toContain("if (loteEmCurso) {");
     expect(lote).toContain("setParando(true)");
@@ -452,7 +586,11 @@ describe("as telas", () => {
     expect(produtos.includes("categoria: form.categoria, tipo: form.tipo }}")).toBe(true);
     // Salvar a Edição rápida não regrava a foto velha por cima da que o lote gravou.
     expect(produtos.includes("imagem_url_aberta")).toBe(true);
-    expect(produtos.includes("f.imagem_url.trim() === f.imagem_url_aberta.trim()")).toBe(true);
+    expect(produtos.includes("!fotoMudouNaTela(f.imagem_url, f.imagem_url_aberta)")).toBe(true);
+    // Quem gera avança a base, e o formulário muda pelo setter funcional (a foto chega depois de até um minuto).
+    expect(produtos.includes("aoGerar={(url) => setForm((f) => comFotoGerada(f, url))}")).toBe(true);
+    expect(produtos.includes("onChange={(url) => setForm((f) => ({ ...f, imagem_url: url }))}")).toBe(true);
+    expect(produtos.includes("setForm: Dispatch<SetStateAction<FormState>>;")).toBe(true);
     // Na grade a miniatura é quadrada, como a foto pedida à IA.
     expect(produtos.includes('className="aspect-square h-auto w-full"')).toBe(true);
     expect(produtos.includes('className="h-28 w-full"')).toBe(false);
@@ -469,7 +607,11 @@ describe("as telas", () => {
     // A pasta passa o tipo e só grava a foto se ela mudou.
     const pasta = ler("src/routes/_authenticated/produtos_.$id.tsx");
     expect(pasta).toContain("tipo: cadastro.tipo,");
-    expect(pasta).toContain("{ imagemNoBanco: produto.data?.imagem_url ?? \"\" }");
+    expect(pasta).toContain("{ imagemNoBanco: fotoNoBanco.current }");
+    // A base avança quando a própria pasta gera, e a recarga do banco não apaga o texto digitado e não salvo.
+    expect(pasta).toContain("aoGerar={(url) => {");
+    expect(pasta).toContain("fotoNoBanco.current = url;");
+    expect(pasta).toContain("cadastroDepoisDeRecarregar(atual, antes, doBanco)");
     // Gerar não troca foto enviada à mão, não gera serviço e manda o texto que a tela mostra.
     expect(foto.includes("substituir: !valor.trim() || gerada")).toBe(true);
     expect(foto.includes("textos: { nome: produto.nome, descricao: produto.descricao ?? null, familia: produto.familia ?? null }")).toBe(true);
@@ -488,7 +630,11 @@ describe("as telas", () => {
     expect(fn.includes("tirarDoArmazenamento([anterior])")).toBe(true);
     expect(fn.includes("crypto.randomUUID()")).toBe(true);
     // O handler guarda pela função testada abaixo, com o cliente de serviço.
-    expect(fn.includes("return guardarFotoGerada({")).toBe(true);
+    expect(fn.includes("return await guardarFotoGerada({")).toBe(true);
+    // Reserva ANTES de ler a foto e de pagar a IA, e solta no finally (também em erro).
+    expect(fn.lastIndexOf("reservarGeracao(admin")).toBeLessThan(fn.lastIndexOf("decidirGeracao("));
+    expect(fn.includes("await liberarGeracao(admin, produtoId);")).toBe(true);
+    expect(fn.includes("} finally {")).toBe(true);
     expect(fn.includes('const PAPEIS_QUE_GERAM = ["admin", "gestor"]')).toBe(true);
     expect(fn.includes("process.env.LOVABLE_API_KEY")).toBe(true);
   });
