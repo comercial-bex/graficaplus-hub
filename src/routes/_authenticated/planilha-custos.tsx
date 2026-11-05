@@ -545,7 +545,7 @@ function PlanilhaPage() {
                   { campo: "pct_falha_padrao", rotulo: "Reserva de falha (%)", passo: "0.01",
                     nota: "peça que sai errada e precisa refazer" },
                   { campo: "custo_admin_padrao", rotulo: "Custo admin (R$)", passo: "0.01",
-                    nota: "rateio fixo por peça" },
+                    nota: "por pedido (cobrado uma vez por item 3D)" },
                 ].map((c) => {
                   const vazio = Number(config[c.campo] ?? 0) === 0;
                   return (

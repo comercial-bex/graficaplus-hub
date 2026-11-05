@@ -24,6 +24,7 @@ import {
   operationalCost,
 } from "@/domain/impressao3d/cost-engine";
 import { D } from "@/domain/impressao3d/decimal";
+import { custoAdministrativoDoLote } from "@/domain/impressao3d/custo-administrativo";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela, DICA_PRECO_3D_INCOMPLETO } from "@/lib/dicas";
 import { precoPodeAparecer } from "@/domain/impressao3d/preco-pode-aparecer";
@@ -433,7 +434,7 @@ export function Calculadora3D({
     const qtd = num(f.quantidade, 1) || 1;
     // O print do fatiador é UMA impressão (placa) que produz `pecasPlaca` peças.
     // Para `qtd` peças, precisamos de `placas` impressões — e material/máquina/
-    // energia escalam por impressão, mão de obra e embalagem por peça.
+    // energia escalam por impressão, mão de obra por peça; adm./embalagem uma vez por item 3D.
     const pecasPlaca = num(f.pecas_placa, 1) || 1;
     const placas = Math.max(1, Math.ceil(qtd / pecasPlaca));
 
@@ -455,8 +456,8 @@ export function Calculadora3D({
     const maoDeObra = laborCost([
       { minutos: horasMaoDeObra * 60, custoHoraSnapshot: num(f.mo_custo_hora) },
     ]).mul(qtd);
-    // adm/embalagem: por peça
-    const indireto = D(num(f.custo_admin)).mul(qtd);
+    // adm/embalagem: por pedido, cobrado uma vez por item 3D (não multiplica pela quantidade)
+    const indireto = custoAdministrativoDoLote(num(f.custo_admin), qtd);
 
     const operacional = operationalCost({
       material: material.toString(),
@@ -747,7 +748,7 @@ export function Calculadora3D({
                 <div className="space-y-1.5">
                   <FieldTooltip
                     label="Quantidade"
-                    hint="Total de peças a cotar. O motor escala automaticamente: material/máquina/energia por impressão e mão de obra/embalagem por peça (use 'Peças na placa' se o print traz mais de uma)."
+                    hint="Total de peças a cotar. O motor escala automaticamente: material/máquina/energia por impressão e mão de obra por peça e adm./embalagem uma vez por item (use 'Peças na placa' se o print traz mais de uma)."
                   />
                   <Input
                     type="number"
@@ -1139,8 +1140,8 @@ export function Calculadora3D({
                   step="0.1"
                 />
                 <Campo
-                  label="Adm./embalagem (R$)"
-                  hint="Rateio fixo por peça: caixa, plástico, etiqueta. Média 1,50–5,00."
+                  label="Adm./embalagem por pedido (R$)"
+                  hint="Por pedido (cobrado uma vez por item 3D), qualquer que seja a quantidade: caixa, plástico, etiqueta."
                   value={f.custo_admin}
                   onChange={(v) => set("custo_admin", v)}
                   step="0.01"
