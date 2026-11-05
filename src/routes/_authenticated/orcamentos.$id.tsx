@@ -195,6 +195,17 @@ import { PassoCliente } from "@/components/orcamento/tela/PassoCliente";
 import { PassoPrazoEEntrega } from "@/components/orcamento/tela/PassoPrazoEEntrega";
 import { PassoRevisao } from "@/components/orcamento/tela/PassoRevisao";
 import { ResumoLateral } from "@/components/orcamento/tela/ResumoLateral";
+import { VinculoDaInstalacao } from "@/components/orcamento/vinculo-da-instalacao";
+import {
+  descricaoAoEscolherOrigem,
+  descricaoDaInstalacao,
+  ehItemDeInstalacao,
+  instalacoesSemOrigem,
+  itensQuePodemSerInstalados,
+  origemPadrao,
+  vinculoDaInstalacaoConta,
+  type ItemParaInstalacao,
+} from "@/domain/orcamentos/instalacao";
 import { CabecalhoIdentificacao } from "@/components/orcamento/tela/CabecalhoIdentificacao";
 import { ONDE_RESOLVER, ROTULO_DO_STATUS, statusTone } from "@/components/orcamento/tela/comum";
 
@@ -240,6 +251,8 @@ const itemVazio = {
   custo_previsto: null as number | null,
   margem_prevista: null as number | null,
   parametros: null as Record<string, unknown> | null,
+  // Instalação: o item do mesmo orçamento que ela instala (orcamento_itens.instala_item_id).
+  instala_item_id: null as string | null,
 };
 
 const paraNumero = (texto: string) => {
@@ -850,6 +863,7 @@ function OrcamentoDetailPage() {
       custo_m2: custoM2 && custoM2 > 0 ? String(custoM2) : "",
       produto_id: (i.produto_id as string | null) ?? null,
       area_minima: areaMinima,
+      instala_item_id: (i.instala_item_id as string | null) ?? null,
     });
     // A escolha visual abre encolhida, com o produto e o tipo do item.
     setTipoEscolhido(tipoDoItemGravado(i, catalogo.produtos));
@@ -904,6 +918,40 @@ function OrcamentoDetailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [padraoDoProduto, form.produto_id, editando]);
+  // Instalação ligada ao item que ela instala (05/11/2026).
+  const itemEhInstalacao = ehItemDeInstalacao(
+    { descricao: form.descricao, unidade: form.unidade, produto_id: form.produto_id },
+    catalogo.produtos,
+  );
+  const candidatosDaInstalacao = itensQuePodemSerInstalados(
+    itensDeProduto as ItemParaInstalacao[],
+    catalogo.produtos,
+    editando?.id ?? null,
+  );
+  const opcoesDaInstalacao = candidatosDaInstalacao.map((c) => ({
+    id: c.id,
+    descricao: String(c.descricao ?? ""),
+    numero: itensDeProduto.findIndex((x) => x.id === c.id) + 1,
+  }));
+  function escolherOrigemDaInstalacao(origemId: string) {
+    const origem = candidatosDaInstalacao.find((c) => c.id === origemId);
+    if (!origem) return;
+    setForm((f) => ({
+      ...f,
+      instala_item_id: origemId,
+      descricao: descricaoAoEscolherOrigem({
+        atual: f.descricao,
+        nomeDaOrigem: String(origem.descricao ?? ""),
+        nomeDoProduto: produtoDoForm?.nome ?? null,
+        automaticas: candidatosDaInstalacao.map((c) => descricaoDaInstalacao(String(c.descricao ?? ""))),
+      }),
+    }));
+  }
+  const origemSugerida = itemEhInstalacao ? origemPadrao(candidatosDaInstalacao) : null;
+  useEffect(() => {
+    if (origemSugerida && !form.instala_item_id) escolherOrigemDaInstalacao(origemSugerida);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origemSugerida, form.instala_item_id]);
   const produtosJaNoOrcamento = new Set<string>();
   for (const i of itens as { produto_id?: string | null }[]) {
     if (i.produto_id) produtosJaNoOrcamento.add(i.produto_id);
@@ -967,6 +1015,10 @@ function OrcamentoDetailPage() {
       produto_id: form.produto_id,
       origem_calculo: form.origem_calculo,
     };
+    // Sem o catálogo carregado não dá para saber se é instalação: não mexe no vínculo gravado.
+    if (!form.produto_id || catalogo.produtos.length > 0) {
+      campos.instala_item_id = itemEhInstalacao ? form.instala_item_id : null;
+    }
     if (canSeePrices) {
       campos.preco_m2 = precoM2Form > 0 ? precoM2Form : null;
       campos.valor_unitario = valorUnitarioEfetivo;
@@ -1188,6 +1240,8 @@ function OrcamentoDetailPage() {
       materiaisPorFormula: formulas.porItem.get(item.id),
       arquivoId: item.arquivo_id,
     });
+    // Instalação duplicada continua instalando o mesmo item; o item de origem duplicado não leva instalação.
+    if (item.instala_item_id) copia.instala_item_id = item.instala_item_id;
     const { data: novo, error } = await (supabase as any)
       .from("orcamento_itens")
       .insert(copia)
@@ -1513,6 +1567,9 @@ function OrcamentoDetailPage() {
     itens: itensDeProduto as { arquivo_id: string | null }[],
     descontoPendente,
     itensSemCusto,
+    instalacoesSemOrigem: vinculoDaInstalacaoConta(orc.status, fechado)
+      ? instalacoesSemOrigem(itensDeProduto as ItemParaInstalacao[], catalogo.produtos)
+      : [],
   });
   const subtotalGravado = Number(orc.valor_subtotal ?? 0);
   const descontoGravado = Math.max(
@@ -1545,6 +1602,20 @@ function OrcamentoDetailPage() {
   const irParaPasso = (p: PassoDoOrcamento, alvo?: string) => {
     setPassoEscolhido(p);
     if (typeof window === "undefined") return;
+    // Instalação sem origem: abre o item e põe o foco no "Instala qual item?".
+    if (alvo === "vinculo-instalacao") {
+      const ids = new Set(itensDeProduto.map((x) => x.id));
+      const n = itensDeProduto.findIndex(
+        (x) =>
+          ehItemDeInstalacao(x, catalogo.produtos) &&
+          (!x.instala_item_id || x.instala_item_id === x.id || !ids.has(x.instala_item_id)),
+      );
+      if (n >= 0) {
+        editarItem(itensDeProduto[n], n + 1);
+        window.setTimeout(() => document.getElementById("instala-item")?.focus(), 250);
+        return;
+      }
+    }
     // O alvo só existe depois que o passo aparece: espera o próximo quadro.
     window.setTimeout(() => {
       if (alvo) document.getElementById(alvo)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1849,6 +1920,16 @@ function OrcamentoDetailPage() {
                         value={form.descricao}
                         onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                       />
+                      {itemEhInstalacao && (
+                        <div className="mt-3">
+                          <VinculoDaInstalacao
+                            valor={form.instala_item_id}
+                            opcoes={opcoesDaInstalacao}
+                            onMudar={escolherOrigemDaInstalacao}
+                            desabilitado={salvandoItem}
+                          />
+                        </div>
+                      )}
                       {produtoComOMesmoNome && (
                         <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-xs">
                           <span className="min-w-0 flex-1">
@@ -2677,6 +2758,11 @@ function OrcamentoDetailPage() {
             <AlertDialogDescription>
               O item sai do orçamento e o total é recalculado. As artes que estavam nele continuam
               guardadas no sistema.
+              {aRemover && itens.some((x) => x.instala_item_id === aRemover.id) && (
+                <span className="mt-2 block font-medium text-warning">
+                  Este item tem uma instalação ligada; ela ficará pendente.
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
