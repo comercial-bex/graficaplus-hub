@@ -34,4 +34,4 @@
 - [ ] Vendas diretas: anexar layout por item na compra
 
 - [x] Instalação ligada ao item que instala + pendência — coluna orcamento_itens.instala_item_id aplicada no banco (05/11), campo "Instala qual item?" e pendência na tela
-- [ ] Zerar mão de obra automática no 3D; conferir embalagem opcional e preço oculto no formulário vazio; executar suíte e validar pré-visualização (05/11).
+- [x] Zerar mão de obra automática no 3D; embalagem opcional e preço oculto preservados; testes de custo inicial adicionados e suíte executada (05/11). Conferência visual não realizada: solicitante sem conta correspondente para acesso autorizado.
