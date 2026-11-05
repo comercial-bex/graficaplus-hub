@@ -4,7 +4,6 @@ import { D } from "../src/domain/impressao3d/decimal";
 import {
   fecharPreco,
   horasDeMaoDeObraPorPeca,
-  POS_PROCESSAMENTO_PADRAO_MIN,
   PRECO_MINIMO_POR_PECA,
 } from "../src/domain/impressao3d/preco";
 
@@ -38,9 +37,13 @@ describe("preço mínimo por peça no 3D", () => {
 });
 
 describe("mão de obra por peça no 3D", () => {
-  it("em branco ou zero vale o padrão de 2 minutos", () => {
-    expect(horasDeMaoDeObraPorPeca(0)).toBeCloseTo(POS_PROCESSAMENTO_PADRAO_MIN / 60, 6);
-    expect(horasDeMaoDeObraPorPeca(NaN)).toBeCloseTo(2 / 60, 6);
+  it("zero não acrescenta horas automáticas", () => {
+    expect(horasDeMaoDeObraPorPeca(0)).toBe(0);
+  });
+  it("horas inválidas não geram mão de obra", () => {
+    expect(horasDeMaoDeObraPorPeca(NaN)).toBe(0);
+    expect(horasDeMaoDeObraPorPeca(Infinity)).toBe(0);
+    expect(horasDeMaoDeObraPorPeca(-1)).toBe(0);
   });
   it("horas informadas valem como informadas", () => {
     expect(horasDeMaoDeObraPorPeca(0.5)).toBe(0.5);
@@ -49,7 +52,7 @@ describe("mão de obra por peça no 3D", () => {
 
 describe("a calculadora 3D", () => {
   const tela = readFileSync("src/components/impressao3d/calculadora-3d.tsx", "utf8");
-  it("usa o padrão de mão de obra e o piso por peça, e avisa quando o piso vale", () => {
+  it("usa as horas informadas e o piso por peça, e avisa quando o piso vale", () => {
     expect(tela).toContain("horasDeMaoDeObraPorPeca(num(f.mo_horas))");
     expect(tela).toContain("PRECO_MINIMO_POR_PECA,");
     expect(tela).toContain('data-testid="preco-minimo-3d"');
