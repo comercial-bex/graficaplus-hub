@@ -14,16 +14,15 @@
 - **RLS e views financeiras:** não mudam. Uma chave dentro de `parametros` não afeta políticas nem as views do `fromFinancialView`, que não leem esse campo.
 - **Orçamentos antigos, enviados e aprovados:** a pendência só é calculada quando o orçamento ainda pode ser editado (rascunho ou enviado e não convertido). Ela nunca aparece em orçamentos aprovados, convertidos ou fechados. Rascunhos antigos com instalação passam a mostrar a pendência, o que é o comportamento esperado. Nenhum dado é alterado em massa.
 
-**Como reconhecer um item de instalação.** Uma regra pura em `src/domain/orcamentos/instalacao.ts` considera instalação o item que:
-- é do tipo "servico", e
-- tem um produto do catálogo com categoria `instalacao`, ou uma descrição que começa com "Instalação".
-
-Arte, frete e outros serviços ficam de fora.
+**Como reconhecer um item de instalação** (regra pura `ehItemDeInstalacao` em `src/domain/orcamentos/instalacao.ts`):
+- **Item com produto do catálogo:** quem decide é o produto, nunca o texto. É instalação só quando o tipo é "servico", a categoria do produto é `instalacao` e a unidade é hora ("h"). Assim, "Instalação em campo" (h) é instalação e "Deslocamento" (km) não é.
+- **Item livre, sem produto:** é instalação quando a descrição começa com "Instalação" e a unidade é hora.
+- Todo o resto fica sem o campo de vínculo e sem a pendência: Deslocamento, Criação/arte final, serviços por unidade e frete.
 
 **Se o item de origem for excluído:** o vínculo aponta para um id que não existe mais, a regra trata a instalação como "sem origem" e a pendência volta. Antes de excluir, o sistema avisa: "Este item tem uma instalação ligada; ela ficará pendente."
 **Se o item de origem for duplicado:** a cópia não leva nenhuma instalação junto, e a instalação continua ligada ao item original.
 **Se a própria instalação for duplicada:** a cópia mantém o mesmo vínculo, o que serve para duas instalações do mesmo item.
-**Se o orçamento for duplicado:** os itens ganham ids novos e o vínculo copiado apontaria para o orçamento antigo. A duplicação passa a refazer o vínculo pela posição do item na lista. Se não conseguir, a cópia apenas fica pendente.
+**Se o orçamento for duplicado:** hoje o sistema não tem a função de duplicar um orçamento inteiro. Conferi isso nas telas e no banco: só existe duplicar item. Por isso não há nada a ajustar e **nenhuma migração é necessária**. Se essa função for criada um dia, a cópia deve refazer o vínculo ou deixar a instalação pendente; a regra já trata o vínculo quebrado como pendência.
 **Se o orçamento for convertido em OS:** a conversão não usa o vínculo, e a OS recebe a descrição em texto ("Instalação do adesivo perfurado"), que já é o que a produção lê. Antes de implementar, confiro se a conversão copia `parametros`. Se copiar, a informação vai junto e não causa nenhum efeito.
 
 **PDF (`DocumentoPDF.tsx`):** só muda o texto, porque ele já imprime a descrição. Não entra nenhum campo novo.
@@ -36,14 +35,18 @@ Arte, frete e outros serviços ficam de fora.
 - `src/routes/_authenticated/orcamentos.$id.tsx`: o campo de vínculo no passo 3 da instalação, gravação em `parametros`, esconder o acabamento quando o item é serviço, aviso e atalho para o passo 4, aviso ao excluir e foco no campo quando o vendedor vem da pendência.
 - `src/components/orcamento/vinculo-da-instalacao.tsx` (novo): a lista de seleção, usando só tokens de cor.
 - `src/lib/dicas.ts`: dica do campo "Instala qual item?" e o texto do atalho para o passo 4.
-- A função de duplicar orçamento: refazer o vínculo. Isso só exige migração se a duplicação for feita no banco; confiro antes e, se for o caso, faço uma migração só da função, sem colunas novas.
+- Banco de dados: nenhuma mudança. Se, durante a implementação, aparecer algo que exija migração, eu paro, mostro o SQL e espero a decisão da equipe.
 
 ## Testes (em `tests/`)
 - `instalacao-vinculo.test.ts`:
   - instalação sem vínculo gera a pendência;
   - com vínculo válido, a pendência some;
   - vínculo para um item excluído volta a gerar a pendência;
-  - arte e frete do tipo serviço nunca geram a pendência;
+  - "Instalação em campo" (catálogo, instalacao, h) sem vínculo gera a pendência;
+  - "Deslocamento" (catálogo, instalacao, km) nunca gera a pendência nem recebe o campo;
+  - "Criação/arte final" (catálogo, servico, h) nunca gera;
+  - item livre "Instalação ..." em hora gera; item livre "Instalação ..." em un não gera;
+  - item com produto e descrição "Instalação ..", mas produto que não é de instalação: o catálogo manda e não gera;
   - `passoDaPendencia` leva ao passo 2.
 - `instalacao-descricao.test.ts`:
   - "Adesivo perfurado (one way)" vira "Instalação do adesivo perfurado (one way)";
@@ -52,7 +55,8 @@ Arte, frete e outros serviços ficam de fora.
 
 ## Riscos e o que fica de fora
 - **Riscos:**
-  - Reconhecer a instalação pelo texto da descrição pode falhar se alguém escrever o serviço de outro jeito. Por isso a categoria do produto no catálogo vale primeiro.
+  - Se alguém cadastrar outro serviço de instalação por hora com categoria diferente de `instalacao`, ele não será reconhecido. A correção é ajustar a categoria no catálogo.
+  - Um item livre de instalação escrito de outro jeito (por exemplo "Aplicação") também não é reconhecido. É aceitável, porque o caminho normal é usar o produto do catálogo.
   - Sem chave estrangeira, o banco não garante o vínculo. A regra trata vínculos quebrados como pendência.
 - **Fica de fora:**
   - coluna nova e chave estrangeira;
