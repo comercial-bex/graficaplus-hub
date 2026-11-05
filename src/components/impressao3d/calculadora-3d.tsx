@@ -25,7 +25,8 @@ import {
 } from "@/domain/impressao3d/cost-engine";
 import { D } from "@/domain/impressao3d/decimal";
 import { SectionHeader } from "@/components/bex/SectionHeader";
-import { dicaTela } from "@/lib/dicas";
+import { dicaTela, DICA_PRECO_3D_INCOMPLETO } from "@/lib/dicas";
+import { precoPodeAparecer } from "@/domain/impressao3d/preco-pode-aparecer";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { FieldTooltip } from "@/components/bex/FieldTooltip";
@@ -636,6 +637,14 @@ export function Calculadora3D({
   });
 
 
+  // Sem os quatro dados do custo, nenhum valor aparece (só "—"): o cálculo segue igual por baixo.
+  const mostraPreco = precoPodeAparecer({
+    maquinaId: f.maquina_id,
+    materialId: f.material_id,
+    gramas: num(f.gramas),
+    tempoMinutos,
+  });
+  const valor = (v: Parameters<typeof money>[0]) => (mostraPreco ? money(v) : "—");
   const margemPct = calc.margem.toNumber() * 100;
   const margemTone: "lime" | "amber" | "magenta" =
     margemPct >= 40 ? "lime" : margemPct >= 15 ? "amber" : "magenta";
@@ -1167,7 +1176,7 @@ export function Calculadora3D({
                   <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest font-bold">
                     <Calculator className="h-3.5 w-3.5" /> Resultado
                   </div>
-                  {podeVerCusto && (
+                  {podeVerCusto && mostraPreco && (
                     <StatusChip
                       label={`${margemPct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% de margem`}
                       tone={margemTone}
@@ -1184,13 +1193,18 @@ export function Calculadora3D({
                     {podeVerCusto && ` · markup ${vezes(calc.markup)}`}
                   </div>
                   <div className="font-mono text-4xl font-black tracking-tight">
-                    {money(calc.preco)}
+                    {valor(calc.preco)}
                   </div>
+                  {!mostraPreco && (
+                    <p className="mt-1 text-xs text-muted-foreground" data-testid="preco-3d-incompleto">
+                      {DICA_PRECO_3D_INCOMPLETO}
+                    </p>
+                  )}
                   {podeVerCusto && (
                     <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
-                      <span>Custo {money(calc.operacional)}</span>
+                      <span>Custo {valor(calc.operacional)}</span>
                       <span>·</span>
-                      <span>Lucro {money(calc.lucro)}</span>
+                      <span>Lucro {valor(calc.lucro)}</span>
                     </div>
                   )}
                 </div>
@@ -1201,11 +1215,11 @@ export function Calculadora3D({
                       Preço unitário
                       {calc.placas !== calc.qtd ? ` · ${calc.placas} impressões` : ""}
                     </span>
-                    <span className="font-mono font-semibold">{money(calc.unitario)}</span>
+                    <span className="font-mono font-semibold">{valor(calc.unitario)}</span>
                   </div>
                 )}
 
-                {calc.peloMinimo && (
+                {mostraPreco && calc.peloMinimo && (
                   <p className="text-xs text-muted-foreground" data-testid="preco-minimo-3d">
                     Preço mínimo de {money(PRECO_MINIMO_POR_PECA)} por peça aplicado: o cálculo deu
                     menos que isso.
@@ -1224,7 +1238,7 @@ export function Calculadora3D({
                       <div key={b.label} className="space-y-0.5">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">{b.label}</span>
-                          <span className="font-mono">{money(b.value)}</span>
+                          <span className="font-mono">{valor(b.value)}</span>
                         </div>
                         <div className="h-1 rounded-full bg-muted overflow-hidden">
                           <div
@@ -1236,7 +1250,7 @@ export function Calculadora3D({
                               b.tone === "lime" && "bg-[color:var(--bex-lime)]",
                               b.tone === "muted" && "bg-muted-foreground",
                             )}
-                            style={{ width: `${Math.min(100, pct)}%` }}
+                            style={{ width: `${mostraPreco ? Math.min(100, pct) : 0}%` }}
                           />
                         </div>
                       </div>
@@ -1255,7 +1269,7 @@ export function Calculadora3D({
                         rotulo="Atacado"
                       />
                     </div>
-                    <div className="font-mono font-semibold">{money(calc.atacado)}</div>
+                    <div className="font-mono font-semibold">{valor(calc.atacado)}</div>
                     <div className="text-xs text-muted-foreground">preço para revenda</div>
                   </div>
                   <div
@@ -1265,7 +1279,7 @@ export function Calculadora3D({
                       Piso · 10% de margem
                       <DicaIcone texto="O menor preço que ainda deixa 10% de margem. Abaixo dele, a peça dá prejuízo." rotulo="Piso" />
                     </div>
-                    <div className="font-mono font-semibold">{money(calc.equilibrio)}</div>
+                    <div className="font-mono font-semibold">{valor(calc.equilibrio)}</div>
                     <div className="text-xs text-muted-foreground">não vender abaixo</div>
                   </div>
                 </div>
