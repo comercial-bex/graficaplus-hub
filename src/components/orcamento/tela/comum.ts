@@ -1,4 +1,4 @@
-import { PENDENCIA_ITEM_SEM_CUSTO } from "@/domain/orcamentos/acordo";
+import { PENDENCIA_INSTALACAO_SEM_ORIGEM, PENDENCIA_ITEM_SEM_CUSTO } from "@/domain/orcamentos/acordo";
 
 export const statusTone: Record<string, "cyan" | "magenta" | "lime" | "amber" | "muted"> = {
   rascunho: "muted",
@@ -26,4 +26,5 @@ export const ONDE_RESOLVER: Record<string, string> = {
   "aprovação do desconto": "acordo-desconto",
   itens: "itens-do-orcamento",
   [PENDENCIA_ITEM_SEM_CUSTO]: "itens-do-orcamento",
+  [PENDENCIA_INSTALACAO_SEM_ORIGEM]: "vinculo-instalacao",
 };

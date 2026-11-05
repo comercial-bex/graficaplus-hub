@@ -1,5 +1,5 @@
 import type { EstadoDoPasso, PassoDoOrcamento } from "@/domain/parceiros/passos-do-orcamento";
-import { PENDENCIA_ITEM_SEM_CUSTO } from "@/domain/orcamentos/acordo";
+import { PENDENCIA_INSTALACAO_SEM_ORIGEM, PENDENCIA_ITEM_SEM_CUSTO } from "@/domain/orcamentos/acordo";
 
 /**
  * O orçamento da equipe (vendas e atendimento) nos MESMOS quatro passos do
