@@ -225,7 +225,7 @@ function OrcamentoDetalhe() {
     ["Mão de obra", calc?.custo_mao_obra],
     ["Acabamento", calc?.custo_acabamento],
     ["Falha", calc?.custo_risco],
-    ["Adm./embalagem", calc?.custo_indireto],
+    ["Embalagem", calc?.custo_indireto],
   ];
 
   return (
@@ -400,7 +400,16 @@ function OrcamentoDetalhe() {
                 <Param label="Tarifa energia" value={inputs.tarifa_kwh != null ? money(inputs.tarifa_kwh) : null} />
                 <Param label="% Acabamento" value={inputs.pct_acabamento != null ? `${inputs.pct_acabamento}%` : null} />
                 <Param label="% Falha" value={inputs.pct_falha != null ? `${inputs.pct_falha}%` : null} />
-                <Param label="Adm./embalagem" value={inputs.custo_admin != null ? money(inputs.custo_admin) : null} />
+                <Param
+                  label="Embalagem"
+                  value={
+                    inputs.embalagem_incluida === false
+                      ? "Não cobrada"
+                      : inputs.custo_admin != null && Number(inputs.custo_admin) > 0
+                        ? money(inputs.custo_admin)
+                        : "Não cobrada"
+                  }
+                />
               </CardContent>
             </Card>
           )}

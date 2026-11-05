@@ -24,7 +24,8 @@ import {
   operationalCost,
 } from "@/domain/impressao3d/cost-engine";
 import { D } from "@/domain/impressao3d/decimal";
-import { custoAdministrativoDoLote } from "@/domain/impressao3d/custo-administrativo";
+import { custoDeEmbalagemDoItem, embalagemGravada } from "@/domain/impressao3d/custo-administrativo";
+import { Switch } from "@/components/ui/switch";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela, DICA_PRECO_3D_INCOMPLETO } from "@/lib/dicas";
 import { precoPodeAparecer } from "@/domain/impressao3d/preco-pode-aparecer";
@@ -195,6 +196,8 @@ export function Calculadora3D({
     tocados.current.add(k);
     setF((s) => ({ ...s, [k]: v }));
   };
+  // Embalagem é opcional e separada: desligada por padrão; a configuração só sugere o valor.
+  const [embalagemIncluida, setEmbalagemIncluida] = useState(false);
   const patch = (p: Partial<FormState>) => setF((s) => ({ ...s, ...p }));
   const aplicarPreset = (p: Partial<FormState>) => {
     (Object.keys(p) as (keyof FormState)[]).forEach((k) => tocados.current.add(k));
@@ -334,7 +337,6 @@ export function Calculadora3D({
       ["markup", c.markup_padrao],
       ["pct_acabamento", c.pct_acabamento_padrao],
       ["pct_falha", c.pct_falha_padrao],
-      ["custo_admin", c.custo_admin_padrao],
     ];
     const aplicados = new Set<string>();
     setF((s) => {
@@ -391,7 +393,9 @@ export function Calculadora3D({
     if (ci.mao_obra?.horas != null) patchGravado.mo_horas = texto(ci.mao_obra.horas);
     if (ci.pct_acabamento != null) patchGravado.pct_acabamento = texto(ci.pct_acabamento);
     if (ci.pct_falha != null) patchGravado.pct_falha = texto(ci.pct_falha);
-    if (ci.custo_admin != null) patchGravado.custo_admin = texto(ci.custo_admin);
+    const emb = embalagemGravada(ci);
+    setEmbalagemIncluida(emb.incluida);
+    patchGravado.custo_admin = emb.incluida ? texto(emb.valor) : "0";
     if (ci.markup != null) patchGravado.markup = texto(ci.markup);
     aplicarPreset(patchGravado);
     setSlicerAtualPath(typeof p.slicer_screenshot === "string" ? p.slicer_screenshot : null);
@@ -434,7 +438,7 @@ export function Calculadora3D({
     const qtd = num(f.quantidade, 1) || 1;
     // O print do fatiador é UMA impressão (placa) que produz `pecasPlaca` peças.
     // Para `qtd` peças, precisamos de `placas` impressões — e material/máquina/
-    // energia escalam por impressão, mão de obra por peça; adm./embalagem uma vez por item 3D.
+    // energia escalam por impressão, mão de obra por peça; embalagem opcional, uma vez por item 3D.
     const pecasPlaca = num(f.pecas_placa, 1) || 1;
     const placas = Math.max(1, Math.ceil(qtd / pecasPlaca));
 
@@ -456,8 +460,8 @@ export function Calculadora3D({
     const maoDeObra = laborCost([
       { minutos: horasMaoDeObra * 60, custoHoraSnapshot: num(f.mo_custo_hora) },
     ]).mul(qtd);
-    // adm/embalagem: por pedido, cobrado uma vez por item 3D (não multiplica pela quantidade)
-    const indireto = custoAdministrativoDoLote(num(f.custo_admin), qtd);
+    // embalagem: opcional; quando ligada, cobrada uma vez por item 3D (não multiplica pela quantidade)
+    const indireto = custoDeEmbalagemDoItem({ incluir: embalagemIncluida, valor: num(f.custo_admin) });
 
     const operacional = operationalCost({
       material: material.toString(),
@@ -580,7 +584,9 @@ export function Calculadora3D({
         mao_obra: { custo_hora: num(f.mo_custo_hora), horas: calc.horasMaoDeObra },
         pct_acabamento: num(f.pct_acabamento),
         pct_falha: num(f.pct_falha),
-        custo_admin: num(f.custo_admin),
+        custo_admin: embalagemIncluida ? num(f.custo_admin) : 0,
+        embalagem_incluida: embalagemIncluida,
+        embalagem_valor: embalagemIncluida ? calc.indireto.toNumber() : 0,
         markup: num(f.markup, 2),
         slicer_screenshot: slicerPath ?? slicerAtualPath,
         impressora: impressora?.maquinas?.nome ?? null,
@@ -594,6 +600,8 @@ export function Calculadora3D({
         acabamento: calc.acabamento.toNumber(),
         risco: calc.risco.toNumber(),
         indireto: calc.indireto.toNumber(),
+        embalagem_incluida: embalagemIncluida,
+        embalagem: calc.indireto.toNumber(),
         operacional: calc.operacional.toNumber(),
         preco: calc.preco.toNumber(),
         margem: calc.margem.toNumber(),
@@ -658,7 +666,7 @@ export function Calculadora3D({
     { label: "Mão de obra", value: calc.maoDeObra.toNumber(), tone: "lime" as const },
     { label: "Acabamento", value: calc.acabamento.toNumber(), tone: "cyan" as const },
     { label: "Falha", value: calc.risco.toNumber(), tone: "magenta" as const },
-    { label: "Adm./embal.", value: calc.indireto.toNumber(), tone: "muted" as const },
+    { label: "Embalagem", value: calc.indireto.toNumber(), tone: "muted" as const },
   ];
 
   return (
@@ -748,7 +756,7 @@ export function Calculadora3D({
                 <div className="space-y-1.5">
                   <FieldTooltip
                     label="Quantidade"
-                    hint="Total de peças a cotar. O motor escala automaticamente: material/máquina/energia por impressão e mão de obra por peça e adm./embalagem uma vez por item (use 'Peças na placa' se o print traz mais de uma)."
+                    hint="Total de peças a cotar. O motor escala automaticamente: material/máquina/energia por impressão e mão de obra por peça; a embalagem é opcional e, se marcada, cobrada uma vez por item (use 'Peças na placa' se o print traz mais de uma)."
                   />
                   <Input
                     type="number"
@@ -1139,13 +1147,32 @@ export function Calculadora3D({
                   onChange={(v) => set("pct_falha", v)}
                   step="0.1"
                 />
-                <Campo
-                  label="Adm./embalagem por pedido (R$)"
-                  hint="Por pedido (cobrado uma vez por item 3D), qualquer que seja a quantidade: caixa, plástico, etiqueta."
-                  value={f.custo_admin}
-                  onChange={(v) => set("custo_admin", v)}
-                  step="0.01"
-                />
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <Switch
+                      checked={embalagemIncluida}
+                      onCheckedChange={(on) => {
+                        setEmbalagemIncluida(on);
+                        if (on && num(f.custo_admin) <= 0 && configPrec?.custo_admin_padrao != null) {
+                          patch({ custo_admin: String(configPrec.custo_admin_padrao) });
+                        }
+                      }}
+                      aria-label="Cobrar embalagem neste item"
+                    />
+                    Cobrar embalagem neste item
+                  </label>
+                  {embalagemIncluida ? (
+                    <Campo
+                      label="Embalagem (R$)"
+                      hint="Cobrado uma vez por item 3D, qualquer que seja a quantidade"
+                      value={f.custo_admin}
+                      onChange={(v) => set("custo_admin", v)}
+                      step="0.01"
+                    />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sem embalagem: nada entra no custo nem no preço.</p>
+                  )}
+                </div>
                 <Campo
                   label="Markup (×)"
                   hint="Multiplica o custo operacional. Varejo 2,0–2,5×; atacado 1,3–1,5×; peça premium 2,5–3,5×."

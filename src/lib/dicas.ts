@@ -310,7 +310,7 @@ export const dicas = {
   },
   "/orcamento-3d-novo": {
     menu: "Calculadora de orçamento de impressão 3D.",
-    tela: "Monte o orçamento 3D peça por peça. Preencha peso, tempo e acabamento; o sistema aplica filamento, energia, mão de obra e margem para chegar ao preço.",
+    tela: "Monte o orçamento 3D peça por peça. Preencha peso, tempo e acabamento; o sistema aplica filamento, energia, mão de obra e margem para chegar ao preço. A embalagem é opcional: só entra quando você marca 'Cobrar embalagem neste item', e é cobrada uma vez por item 3D, qualquer que seja a quantidade.",
   },
   "/orcamento-3d": {
     menu: "Detalhe do orçamento de impressão 3D.",
