@@ -240,6 +240,8 @@ export const dicas = {
         "Estes produtos têm só o material no custo, sem hora de máquina e de gente. Com o custo menor que o real, o mínimo sai baixo e a alçada de quem vende fica maior do que devia. Complete a composição em Produtos.",
       // Escolha visual do produto no item (07/10/2026): tipo em cartões,
       // medidas desenhadas, resumo antes de adicionar.
+      servico_detalhes_no_passo_4:
+        "Serviço não tem acabamento. Especificações para a produção e artes ficam em 'Detalhes opcionais', no passo Preço e revisão.",
       tipo_de_produto:
         "O tipo é o primeiro filtro: mostra só os produtos daquela família e já diz o que o item precisa. Lona, adesivo e placa pedem largura × altura e vendem por m²; papel e brinde pedem só a quantidade. O tipo entra sozinho no campo 'Tipo de produto' (Lona, Adesivo, Placa…), que sai na coluna 'Tipo Produto' do PDF — dá para trocar o texto à mão.",
       medidas:

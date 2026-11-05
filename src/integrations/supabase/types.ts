@@ -13866,6 +13866,60 @@ export type Database = {
           },
         ]
       }
+      produto_foto_reservas: {
+        Row: {
+          por: string | null
+          produto_id: string
+          reservado_em: string
+        }
+        Insert: {
+          por?: string | null
+          produto_id: string
+          reservado_em?: string
+        }
+        Update: {
+          por?: string | null
+          produto_id?: string
+          reservado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_foto_reservas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_foto_reservas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_foto_reservas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_foto_reservas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_foto_reservas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_materiais: {
         Row: {
           created_at: string
@@ -21444,6 +21498,7 @@ export type Database = {
           tem_comissao: boolean
         }[]
       }
+      estimativas_sem_reais: { Args: { p_estimativas: Json }; Returns: Json }
       estornar_baixa_estoque_os: {
         Args: { p_motivo: string; p_movimentacao_origem_id: string }
         Returns: Json
@@ -21635,6 +21690,7 @@ export type Database = {
         Args: { p_orcamento_id: string }
         Returns: string[]
       }
+      jsonb_sem_custo: { Args: { p_json: Json }; Returns: Json }
       lembrete_orcamentos_aprovados_sem_os: { Args: never; Returns: Json }
       lembretes_da_equipe: { Args: never; Returns: Json }
       ler_item_3d: { Args: { p_orcamento_3d_id: string }; Returns: Json }
@@ -21780,6 +21836,70 @@ export type Database = {
       }
       os_ids_de_venda: { Args: never; Returns: string[] }
       os_saiu_fisicamente: { Args: { p_os_id: string }; Returns: boolean }
+      os_sem_colunas_privadas: {
+        Args: { p_os: Database["public"]["Tables"]["ordens_servico"]["Row"] }
+        Returns: {
+          briefing: string | null
+          cliente_id: string
+          condicao_pagamento: Json | null
+          contato_id: string | null
+          created_at: string
+          created_by: string | null
+          custo_previsto: number
+          custo_real: number
+          data_entrega_real: string | null
+          data_fechamento: string | null
+          desconto: number
+          designer_id: string | null
+          endereco_entrega: Json | null
+          estoque_baixado: boolean
+          estoque_baixado_em: string | null
+          fechamento_estimado: boolean
+          fechamento_estimativas: Json
+          finalidade: string
+          id: string
+          local_mostruario: string | null
+          lucro_previsto: number
+          lucro_real: number
+          maquina_id: string | null
+          margem_prevista: number | null
+          margem_real: number | null
+          motivo_interno: string | null
+          numero: number
+          numero_os: number | null
+          observacoes: string | null
+          operador_id: string | null
+          orcamento_id: string | null
+          ordem_kanban: number
+          os_origem_id: string | null
+          prazo_cliente: string | null
+          prazo_entrega: string | null
+          prazo_interno: string | null
+          precisa_entrega: boolean
+          precisa_instalacao: boolean
+          prioridade: number
+          produto_id: string | null
+          responsavel_id: string | null
+          setor_atual: string | null
+          status: Database["public"]["Enums"]["status_os"]
+          status_comercial: string
+          status_financeiro: Database["public"]["Enums"]["status_pagamento"]
+          status_geral: string
+          status_logistica: string
+          status_producao: string
+          titulo: string
+          updated_at: string
+          valor_total: number
+          valor_venda: number
+          vendedor_id: string | null
+        }
+        SetofOptions: {
+          from: "ordens_servico"
+          to: "ordens_servico"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       painel_funil_orcamentos: { Args: { p_dias?: number }; Returns: Json }
       parceiro_ajustar_credito: {
         Args: { p_descricao: string; p_parceiro_id: string; p_valor: number }

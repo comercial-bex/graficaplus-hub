@@ -1922,15 +1922,34 @@ function OrcamentoDetailPage() {
                           desabilitado={salvandoItem}
                         />
                       </div>
-                      <div className="col-span-12 md:col-span-5">
-                        <AcabamentoDoItem
-                          valor={form.acabamento}
-                          opcoes={tipoDoItem?.acabamentos ?? []}
-                          onMudar={(valor) => setForm({ ...form, acabamento: valor })}
-                          desabilitado={salvandoItem}
-                        />
-                      </div>
+                      {/* Serviço (instalação, arte, frete) não tem refile nem ilhós (05/11/2026). */}
+                      {tipoDoItem?.chave !== "servico" && (
+                        <div className="col-span-12 md:col-span-5">
+                          <AcabamentoDoItem
+                            valor={form.acabamento}
+                            opcoes={tipoDoItem?.acabamentos ?? []}
+                            onMudar={(valor) => setForm({ ...form, acabamento: valor })}
+                            desabilitado={salvandoItem}
+                          />
+                        </div>
+                      )}
                     </div>
+                    {tipoDoItem?.chave === "servico" && (
+                      <p className="text-xs text-muted-foreground" data-testid="aviso-detalhes-servico">
+                        {dicaCampo("/orcamentos", "servico_detalhes_no_passo_4")}{" "}
+                        <button
+                          type="button"
+                          className="text-link underline-offset-2 hover:underline disabled:opacity-50"
+                          disabled={!!faltaNaMedida}
+                          onClick={() => {
+                            setDetalhesManual(true);
+                            setPassoDoDetalhe(4);
+                          }}
+                        >
+                          Ir para os detalhes
+                        </button>
+                      </p>
+                    )}
 
                     <PerguntasDoItem
                       produtoId={form.produto_id}
