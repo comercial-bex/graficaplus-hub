@@ -286,7 +286,7 @@ function Configuracoes3D() {
         <CardContent className="grid grid-cols-3 gap-3">
           <Campo label="Markup varejo (×)" value={form.markup_padrao} onChange={(v) => set("markup_padrao", v)} num step="0.1" />
           <Campo label="Markup atacado (×)" value={form.markup_atacado_padrao} onChange={(v) => set("markup_atacado_padrao", v)} num step="0.1" />
-          <Campo label="Custo adm./embalagem por pedido (cobrado uma vez por item 3D) (R$)" value={form.custo_admin_padrao} onChange={(v) => set("custo_admin_padrao", v)} num />
+          <Campo label="Embalagem sugerida por item 3D (R$) — só soma quando 'Cobrar embalagem' estiver marcado" value={form.custo_admin_padrao} onChange={(v) => set("custo_admin_padrao", v)} num />
           <Campo label="% Acabamento" value={form.pct_acabamento_padrao} onChange={(v) => set("pct_acabamento_padrao", v)} num step="0.1" />
           <Campo label="% Falha" value={form.pct_falha_padrao} onChange={(v) => set("pct_falha_padrao", v)} num step="0.1" />
         </CardContent>
