@@ -32,3 +32,5 @@
 
 - [x] Vendas diretas do revendedor (menu Comprar no painel do parceiro; pagamento sinal 50% ou à vista; vira OS; tela interna Vendas diretas)
 - [ ] Vendas diretas: anexar layout por item na compra
+
+- [ ] Instalação ligada ao item que instala + pendência — aguardando a equipe aprovar a mudança no banco (docs/proposta-vinculo-instalacao.sql)
