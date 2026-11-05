@@ -27,11 +27,16 @@ describe("embalagem opcional, cobrada uma vez por item 3D", () => {
 
 describe("restaurar embalagem de peça gravada", () => {
   it("usa os campos novos quando existem", () => {
-    expect(embalagemGravada({ embalagem_incluida: false, embalagem_valor: 12, custo_admin: 12 })).toEqual({
+    expect(
+      embalagemGravada({ embalagem_incluida: false, embalagem_valor: 12, custo_admin: 12 }),
+    ).toEqual({
       incluida: false,
       valor: 12,
     });
-    expect(embalagemGravada({ embalagem_incluida: true, embalagem_valor: 8 })).toEqual({ incluida: true, valor: 8 });
+    expect(embalagemGravada({ embalagem_incluida: true, embalagem_valor: 8 })).toEqual({
+      incluida: true,
+      valor: 8,
+    });
   });
   it("legado: custo_admin > 0 liga a opção com esse valor", () =>
     expect(embalagemGravada({ custo_admin: 12 })).toEqual({ incluida: true, valor: 12 }));
