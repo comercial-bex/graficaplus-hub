@@ -7848,6 +7848,7 @@ export type Database = {
           especificacao: string | null
           gerado_por_item_id: string | null
           id: string
+          instala_item_id: string | null
           largura: number | null
           margem_prevista: number | null
           materiais_por_formula: Json
@@ -7882,6 +7883,7 @@ export type Database = {
           especificacao?: string | null
           gerado_por_item_id?: string | null
           id?: string
+          instala_item_id?: string | null
           largura?: number | null
           margem_prevista?: number | null
           materiais_por_formula?: Json
@@ -7916,6 +7918,7 @@ export type Database = {
           especificacao?: string | null
           gerado_por_item_id?: string | null
           id?: string
+          instala_item_id?: string | null
           largura?: number | null
           margem_prevista?: number | null
           materiais_por_formula?: Json
@@ -7965,6 +7968,34 @@ export type Database = {
           {
             foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
             columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
             isOneToOne: false
             referencedRelation: "orcamento_itens_operacional"
             referencedColumns: ["id"]
@@ -17842,6 +17873,7 @@ export type Database = {
           especificacao: string | null
           gerado_por_item_id: string | null
           id: string | null
+          instala_item_id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
@@ -17885,6 +17917,34 @@ export type Database = {
           {
             foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
             columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
             isOneToOne: false
             referencedRelation: "orcamento_itens_operacional"
             referencedColumns: ["id"]
@@ -17977,6 +18037,7 @@ export type Database = {
           especificacao: string | null
           gerado_por_item_id: string | null
           id: string | null
+          instala_item_id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
@@ -18020,6 +18081,34 @@ export type Database = {
           {
             foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
             columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
             isOneToOne: false
             referencedRelation: "orcamento_itens_operacional"
             referencedColumns: ["id"]
@@ -18110,6 +18199,7 @@ export type Database = {
           especificacao: string | null
           gerado_por_item_id: string | null
           id: string | null
+          instala_item_id: string | null
           largura: number | null
           orcamento_id: string | null
           ordem: number | null
@@ -18132,6 +18222,7 @@ export type Database = {
           especificacao?: string | null
           gerado_por_item_id?: string | null
           id?: string | null
+          instala_item_id?: string | null
           largura?: number | null
           orcamento_id?: string | null
           ordem?: number | null
@@ -18154,6 +18245,7 @@ export type Database = {
           especificacao?: string | null
           gerado_por_item_id?: string | null
           id?: string | null
+          instala_item_id?: string | null
           largura?: number | null
           orcamento_id?: string | null
           ordem?: number | null
@@ -18195,6 +18287,34 @@ export type Database = {
           {
             foreignKeyName: "orcamento_itens_gerado_por_item_id_fkey"
             columns: ["gerado_por_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
+            isOneToOne: false
+            referencedRelation: "orcamento_itens_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_instala_item_id_fkey"
+            columns: ["instala_item_id"]
             isOneToOne: false
             referencedRelation: "orcamento_itens_operacional"
             referencedColumns: ["id"]
