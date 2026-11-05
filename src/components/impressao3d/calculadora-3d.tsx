@@ -507,7 +507,7 @@ export function Calculadora3D({
       placas,
       markup,
     };
-  }, [f, impressora, filamento, configPrec]);
+  }, [f, impressora, filamento, configPrec, embalagemIncluida]);
 
   const faltando: string[] = [];
   if (!f.titulo) faltando.push("título");
