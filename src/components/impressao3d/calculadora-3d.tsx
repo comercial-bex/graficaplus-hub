@@ -37,7 +37,6 @@ import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao
 import {
   fecharPreco,
   horasDeMaoDeObraPorPeca,
-  POS_PROCESSAMENTO_PADRAO_MIN,
   PRECO_MINIMO_POR_PECA,
 } from "@/domain/impressao3d/preco";
 import {
@@ -1124,14 +1123,14 @@ export function Calculadora3D({
                   step="0.01"
                 />
                 <Campo
-                    label="Mão de obra (horas)"
-                    hint={
-                      "Só o pós-processamento manual por peça (remoção de suporte, lixa, montagem). " +
-                      `Em branco ou 0, vale o padrão de ${POS_PROCESSAMENTO_PADRAO_MIN} minutos por peça.`
-                    }
-                    value={f.mo_horas}
-                    onChange={(v) => set("mo_horas", v)}
-                    step="0.1"
+                  label="Mão de obra (horas)"
+                  hint={
+                    "Só o pós-processamento manual por peça (remoção de suporte, lixa, montagem). " +
+                    "Em branco ou 0: sem mão de obra."
+                  }
+                  value={f.mo_horas}
+                  onChange={(v) => set("mo_horas", v)}
+                  step="0.1"
                 />
                 <Campo
                   label="% Acabamento"

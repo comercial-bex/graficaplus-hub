@@ -10,18 +10,15 @@ import { D, type Decimal } from "./decimal";
  * arredondado primeiro e o total é ele vezes a quantidade; lucro e margem saem
  * desse total, que é o que vai para o banco, para a OS e para a conta a receber.
  */
-/** Pós-processamento e embalagem por peça quando ninguém informa horas (decisão de 30/10/2026). */
-export const POS_PROCESSAMENTO_PADRAO_MIN = 2;
-
 /** Preço mínimo de UMA peça, em reais (decisão de 30/10/2026: o chaveiro saía a R$ 1,78). */
 export const PRECO_MINIMO_POR_PECA = 5;
 
 /**
- * Horas de mão de obra por peça: as informadas, ou o padrão de 2 minutos quando o campo está em
- * branco ou zero. Sem isto o 3D saía sem nenhuma mão de obra (só material, máquina e energia).
+ * Horas de pós-processamento por peça: somente as informadas.
+ * Em branco, zero ou inválidas não geram custo de mão de obra.
  */
 export function horasDeMaoDeObraPorPeca(horasInformadas: number): number {
-  return horasInformadas > 0 ? horasInformadas : POS_PROCESSAMENTO_PADRAO_MIN / 60;
+  return Number.isFinite(horasInformadas) && horasInformadas > 0 ? horasInformadas : 0;
 }
 
 /**
