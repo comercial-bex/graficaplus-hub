@@ -416,6 +416,9 @@ export function parcelasDoOrcamento(
 /** O rótulo da pendência de item sem produto e sem custo (a tela e os passos reconhecem por ele). */
 export const PENDENCIA_ITEM_SEM_CUSTO = "custo de item fora do catálogo";
 
+/** Instalação sem o item que ela instala (`orcamento_itens.instala_item_id`). */
+export const PENDENCIA_INSTALACAO_SEM_ORIGEM = "instalação sem item de origem";
+
 export function pendenciasParaEnviar(o: {
   temClienteOuContato: boolean;
   dataEntrega: string | null;
@@ -429,6 +432,8 @@ export function pendenciasParaEnviar(o: {
    * Vazio para quem não vê preço. Ausente = a tela ainda não perguntou.
    */
   itensSemCusto?: string[];
+  /** Instalações sem item de origem (`instalacoesSemOrigem`); só para orçamento ainda editável. */
+  instalacoesSemOrigem?: string[];
 }): string[] {
   const falta: string[] = [];
   if (!o.temClienteOuContato) falta.push("cliente ou contato");
@@ -439,6 +444,7 @@ export function pendenciasParaEnviar(o: {
   if (o.itens.length === 0) falta.push("itens");
   // Avisar enquanto o orçamento é montado, não depois que o cliente aprovou e pagou (orçamento 153, 29/10).
   if ((o.itensSemCusto?.length ?? 0) > 0) falta.push(PENDENCIA_ITEM_SEM_CUSTO);
+  if ((o.instalacoesSemOrigem?.length ?? 0) > 0) falta.push(PENDENCIA_INSTALACAO_SEM_ORIGEM);
   return falta;
 }
 

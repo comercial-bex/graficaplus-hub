@@ -26,7 +26,7 @@ export const PASSOS_DA_EQUIPE: readonly {
 /** Em qual passo cada pendência de `pendenciasParaEnviar` se resolve. */
 export function passoDaPendencia(pendencia: string): PassoDoOrcamento {
   if (pendencia === "cliente ou contato") return 1;
-  if (pendencia === "itens" || pendencia === PENDENCIA_ITEM_SEM_CUSTO || pendencia.startsWith("layout")) return 2;
+  if (pendencia === "itens" || pendencia === PENDENCIA_ITEM_SEM_CUSTO || pendencia === PENDENCIA_INSTALACAO_SEM_ORIGEM || pendencia.startsWith("layout")) return 2;
   if (
     pendencia === "data de entrega" ||
     pendencia === "condição de pagamento" ||
