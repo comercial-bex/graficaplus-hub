@@ -734,3 +734,6 @@ export function dicaCampo(rota: string, campo: string): string | undefined {
 export function dicaAcao(rota: string, acao: string): string | undefined {
   return buscar((dicas as Record<string, DicasTela>)[rota]?.acoes, acao);
 }
+
+/** Calculadora 3D: o preço só aparece com os quatro dados que definem o custo (05/11/2026). */
+export const DICA_PRECO_3D_INCOMPLETO = "Informe impressora, filamento, peso e tempo para calcular o preço.";
