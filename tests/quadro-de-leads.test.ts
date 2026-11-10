@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canalDaOrigem, origemAgrupada } from "@/domain/crm/origens";
 import {
+  avisoDeOrcamentos,
   contagemPorAba,
   leadsDaAba,
   montarQuadro,
