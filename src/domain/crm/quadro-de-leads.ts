@@ -32,6 +32,20 @@ export function valorDoCartao(
   return null;
 }
 
+/**
+ * Aviso do cartão: quantos orçamentos entram na soma mostrada. Só faz sentido quando o valor
+ * vem de orçamentos reais ("orçado") e há mais de um; com um orçamento o valor já é dele.
+ */
+export function avisoDeOrcamentos(
+  l: Pick<LeadDoQuadro, "orcamentos">,
+  v: ValorDoCartao,
+): string | null {
+  if (!v || v.fonte !== "orcado") return null;
+  const n = Number(l.orcamentos) || 0;
+  if (n <= 1) return null;
+  return `${n} orçamentos somados`;
+}
+
 export function leadsDaAba<T extends LeadDoQuadro>(leads: T[], aba: AbaDoQuadro): T[] {
   return aba === "todos" ? leads : leads.filter((l) => canalDaOrigem(l.origem) === aba);
 }

@@ -4,6 +4,7 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
 import {
   ABAS,
+  avisoDeOrcamentos,
   contagemPorAba,
   leadsDaAba,
   montarQuadro,
@@ -11,6 +12,7 @@ import {
   type AbaDoQuadro,
   type LeadDoQuadro,
 } from "@/domain/crm/quadro-de-leads";
+import { origemAgrupada } from "@/domain/crm/origens";
 
 export type LeadDoCartao = LeadDoQuadro & {
   nome: string;
