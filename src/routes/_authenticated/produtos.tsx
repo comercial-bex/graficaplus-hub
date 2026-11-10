@@ -107,6 +107,7 @@ import { EditarFamilias, FamiliasDaLista } from "@/components/produtos/familias-
 import { familiasDaLista, filtrarPorFamiliaDaLista } from "@/domain/catalogo/familias-da-lista";
 import { NotaProntoParaIa, useLinhasParaNota } from "@/components/produtos/nota-pronto-para-ia";
 import { entradaDaNota, notaDaPasta } from "@/domain/catalogo/pronto-para-ia";
+import { AvisoDeValorNoTexto } from "@/components/custos/aviso-de-valor-no-texto";
 export const Route = createFileRoute("/_authenticated/produtos")({
   head: () => ({ meta: [{ title: "Produtos & Serviços — BEX PRINT OS" }] }),
   component: ProdutosPage,
@@ -1354,6 +1355,7 @@ function ProdutoFormDialog({
                 placeholder="Gramatura, tinta, fornecedor preferido — não aparece para o cliente"
                 rows={2}
               />
+              <AvisoDeValorNoTexto texto={form.observacoes_internas} />
             </div>
             {/* A ficha é gravada pelo id: item novo salva antes; serviço não consome material. */}
             {form.id && form.tipo === "produto" ? (

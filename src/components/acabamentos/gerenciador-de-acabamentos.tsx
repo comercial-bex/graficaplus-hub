@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { AvisoDeValorNoTexto } from "@/components/custos/aviso-de-valor-no-texto";
 import {
   avisoDeProcesso,
   BASES,
@@ -377,6 +378,7 @@ export function GerenciadorDeAcabamentos({ aberto, aoFechar }: { aberto: boolean
             <div className="space-y-1.5">
               <Label htmlFor="acabamento-1-observacao">Observação</Label>
               <Textarea id="acabamento-1-observacao" rows={2} value={form.observacao} onChange={(e) => setForm({ ...form, observacao: e.target.value })} />
+              <AvisoDeValorNoTexto texto={form.observacao} />
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} id="acabamento-ativo" />

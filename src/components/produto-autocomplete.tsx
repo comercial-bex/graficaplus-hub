@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { useAuth } from "@/lib/auth-context";
+import { colunasDoSeletorDeProdutos } from "@/domain/catalogo/colunas-do-seletor";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -35,11 +36,12 @@ export function ProdutoAutocomplete({
     queryKey: ["produtos-catalog-picker", nivelDeVisao],
     queryFn: async () => {
       // produtos tem SELECT de tabela revogado: select("*") na base falhava com
-      // "permission denied" e o catálogo não abria. Sem lista de colunas, cada
-      // view devolve só o que tem: comercial traz preco_base/publico/sugerido
-      // (sem custo); operacional, nenhum valor; financeira, tudo.
+      // "permission denied" e o catálogo não abria. A consulta vai à view do nível e
+      // pede só as colunas que o catálogo usa (a mesma lista do seletor do orçamento,
+      // que divide esta chave de cache): preço só a partir do comercial, custo só no
+      // financeiro, e nunca a nota interna do produto (10/11/2026).
       const { data, error } = await fromFinancialView("produtos", nivelDeVisao)
-        .select("*")
+        .select(colunasDoSeletorDeProdutos(nivelDeVisao))
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;

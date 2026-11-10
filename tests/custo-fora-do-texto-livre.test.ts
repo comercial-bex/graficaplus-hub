@@ -14,9 +14,15 @@ import { describe, expect, it } from "vitest";
  * `IF NOT FOUND` depois dele pulava TODAS as linhas como "ausentes" (nenhuma foi alterada, sem erro nenhum).
  */
 
-const SQL = readFileSync("supabase/migrations/20261110200000_custo_fora_do_texto_livre.sql", "utf8");
+const SQL = readFileSync(
+  "supabase/migrations/20261110200000_custo_fora_do_texto_livre.sql",
+  "utf8",
+);
 const CODIGO = SQL.replace(/--[^\n]*/g, "");
-const BLOCO_EVENTOS = CODIGO.slice(CODIGO.indexOf("DO $eventos_e_os$"), CODIGO.indexOf("$eventos_e_os$;"));
+const BLOCO_EVENTOS = CODIGO.slice(
+  CODIGO.indexOf("DO $eventos_e_os$"),
+  CODIGO.indexOf("$eventos_e_os$;"),
+);
 const BLOCO_TEXTOS = CODIGO.slice(CODIGO.indexOf("DO $textos$"), CODIGO.indexOf("$textos$;"));
 
 type Linha = {
@@ -49,8 +55,12 @@ const LINHAS: Linha[] = [
 
 describe("a tabela onde o original fica guardado", () => {
   it("só quem vê custo lê, e ninguém grava pela API", () => {
-    expect(CODIGO).toContain("ALTER TABLE public.custo_em_texto_guardado ENABLE ROW LEVEL SECURITY;");
-    expect(CODIGO).toContain("REVOKE ALL ON public.custo_em_texto_guardado FROM PUBLIC, anon, authenticated;");
+    expect(CODIGO).toContain(
+      "ALTER TABLE public.custo_em_texto_guardado ENABLE ROW LEVEL SECURITY;",
+    );
+    expect(CODIGO).toContain(
+      "REVOKE ALL ON public.custo_em_texto_guardado FROM PUBLIC, anon, authenticated;",
+    );
     expect(CODIGO).toContain("GRANT SELECT ON public.custo_em_texto_guardado TO authenticated;");
     expect(CODIGO).not.toMatch(/GRANT\s+(INSERT|UPDATE|DELETE|ALL)[^;]*custo_em_texto_guardado/i);
     expect(CODIGO).not.toMatch(/GRANT[^;]*custo_em_texto_guardado[^;]*\b(anon|PUBLIC)\b/i);
@@ -97,11 +107,15 @@ describe("os 4 eventos e a OS 212", () => {
     expect(BLOCO_EVENTOS).toContain("WHERE id = r.id AND dados_posteriores = r.atual");
     expect(BLOCO_EVENTOS).toContain("WHERE id = c_os_212 AND fechamento_estimativas = v_os_atual");
     const guardaOs = BLOCO_EVENTOS.lastIndexOf("INSERT INTO public.custo_em_texto_guardado");
-    expect(BLOCO_EVENTOS.indexOf("UPDATE public.ordens_servico SET fechamento_estimativas")).toBeGreaterThan(guardaOs);
+    expect(
+      BLOCO_EVENTOS.indexOf("UPDATE public.ordens_servico SET fechamento_estimativas"),
+    ).toBeGreaterThan(guardaOs);
   });
 
   it("só toca a coluna de cada tabela, nunca custo, preço, estoque ou status", () => {
-    const updates = [...BLOCO_EVENTOS.matchAll(/UPDATE\s+public\.(\w+)\s+SET\s+([^;]*?)\s+WHERE/gi)].map((m) => `${m[1]}: ${m[2]}`);
+    const updates = [
+      ...BLOCO_EVENTOS.matchAll(/UPDATE\s+public\.(\w+)\s+SET\s+([^;]*?)\s+WHERE/gi),
+    ].map((m) => `${m[1]}: ${m[2]}`);
     expect(updates).toEqual([
       "eventos_negocio: dados_posteriores = v_novo",
       "ordens_servico: fechamento_estimativas = v_novo",
@@ -120,7 +134,9 @@ describe("os textos de material, produto e acabamento", () => {
     expect(LINHAS).toHaveLength(25);
     expect(LINHAS.filter((l) => !l.soComOk)).toHaveLength(20);
     expect(LINHAS.filter((l) => l.soComOk)).toHaveLength(5);
-    expect(LINHAS.filter((l) => l.soComOk).every((l) => l.tabela === "custos_mao_de_obra")).toBe(true);
+    expect(LINHAS.filter((l) => l.soComOk).every((l) => l.tabela === "custos_mao_de_obra")).toBe(
+      true,
+    );
     expect(BLOCO_TEXTOS).toContain("c_incluir_mao_de_obra constant boolean := false;");
     expect(BLOCO_TEXTOS).toContain("WHERE NOT v.so_com_ok OR c_incluir_mao_de_obra");
   });
@@ -142,9 +158,14 @@ describe("os textos de material, produto e acabamento", () => {
   it("o trecho trocado tem o valor em reais e o trecho novo não tem", () => {
     for (const l of LINHAS) {
       expect(l.a1 + l.a2, `${l.tabela} ${l.id}: a âncora deve conter o valor`).toContain("R$");
-      expect(l.t1 + l.t2, `${l.tabela} ${l.id}: o texto novo não pode ter valor`).not.toContain("R$");
+      expect(l.t1 + l.t2, `${l.tabela} ${l.id}: o texto novo não pode ter valor`).not.toContain(
+        "R$",
+      );
       expect(l.a1.length, `${l.id}: âncora vazia casaria em todo lugar`).toBeGreaterThan(0);
-      expect(l.t1.length + l.t2.length, `${l.id}: o texto novo não pode ficar vazio`).toBeGreaterThanOrEqual(0);
+      expect(
+        l.t1.length + l.t2.length,
+        `${l.id}: o texto novo não pode ficar vazio`,
+      ).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -155,19 +176,25 @@ describe("os textos de material, produto e acabamento", () => {
   });
 
   it("não mexe no marcador nem nos prefixos que a tabela de preços e as pendências leem", () => {
-    expect(BLOCO_TEXTOS).toContain("(v_atual ILIKE '%CUSTO E PREÇO DE BALCÃO PROVISÓRIOS%') <> (v_novo ILIKE '%CUSTO E PREÇO DE BALCÃO PROVISÓRIOS%')");
+    expect(BLOCO_TEXTOS).toContain(
+      "(v_atual ILIKE '%CUSTO E PREÇO DE BALCÃO PROVISÓRIOS%') <> (v_novo ILIKE '%CUSTO E PREÇO DE BALCÃO PROVISÓRIOS%')",
+    );
     expect(BLOCO_TEXTOS).toContain("(v_atual LIKE 'PROVISÓRIO%') <> (v_novo LIKE 'PROVISÓRIO%')");
     expect(BLOCO_TEXTOS).toContain("(v_atual LIKE 'Provisório%') <> (v_novo LIKE 'Provisório%')");
     expect(BLOCO_TEXTOS).toContain("(v_atual LIKE 'Estimativa%') <> (v_novo LIKE 'Estimativa%')");
     // nenhum texto novo apaga o marcador: ele não aparece em nenhuma frase trocada
     for (const l of LINHAS) {
-      expect(l.a1 + l.a2 + l.t1 + l.t2).not.toMatch(/CUSTO E PRE[ÇC]O DE BALC[ÃA]O PROVIS[ÓO]RIOS/i);
+      expect(l.a1 + l.a2 + l.t1 + l.t2).not.toMatch(
+        /CUSTO E PRE[ÇC]O DE BALC[ÃA]O PROVIS[ÓO]RIOS/i,
+      );
     }
   });
 
   it("guarda o original ANTES de trocar e só troca a coluna citada, com o texto ainda igual ao lido", () => {
     const guarda = BLOCO_TEXTOS.indexOf("INSERT INTO public.custo_em_texto_guardado");
-    const troca = BLOCO_TEXTOS.indexOf("EXECUTE format('UPDATE public.%I SET %I = $1 WHERE id = $2 AND %I = $3'");
+    const troca = BLOCO_TEXTOS.indexOf(
+      "EXECUTE format('UPDATE public.%I SET %I = $1 WHERE id = $2 AND %I = $3'",
+    );
     expect(guarda).toBeGreaterThan(0);
     expect(troca).toBeGreaterThan(guarda);
     expect([...BLOCO_TEXTOS.matchAll(/\bUPDATE\b/g)]).toHaveLength(1);
@@ -175,7 +202,9 @@ describe("os textos de material, produto e acabamento", () => {
   });
 
   it("DEFEITO ACHADO NO ENSAIO: depois de EXECUTE ... INTO, a ausência da linha vem do ROW_COUNT, nunca do FOUND", () => {
-    const leitura = BLOCO_TEXTOS.indexOf("EXECUTE format('SELECT %I, updated_at FROM public.%I WHERE id = $1'");
+    const leitura = BLOCO_TEXTOS.indexOf(
+      "EXECUTE format('SELECT %I, updated_at FROM public.%I WHERE id = $1'",
+    );
     const diagnostico = BLOCO_TEXTOS.indexOf("GET DIAGNOSTICS v_linhas = ROW_COUNT;", leitura);
     expect(leitura).toBeGreaterThan(0);
     expect(diagnostico).toBeGreaterThan(leitura);
@@ -198,7 +227,9 @@ describe("o que a migração NÃO faz", () => {
     expect(CODIGO).not.toMatch(/\bTRUNCATE\b/i);
     expect(CODIGO).not.toMatch(/\bDROP\s+(TABLE|COLUMN|VIEW|FUNCTION)\b/i);
     expect(CODIGO).not.toMatch(/\bALTER\s+TABLE\s+public\.(?!custo_em_texto_guardado)/i);
-    expect(CODIGO).not.toMatch(/\b(GRANT|REVOKE)\b[^;]*\bON\s+(TABLE\s+)?public\.(?!custo_em_texto_guardado)/i);
+    expect(CODIGO).not.toMatch(
+      /\b(GRANT|REVOKE)\b[^;]*\bON\s+(TABLE\s+)?public\.(?!custo_em_texto_guardado)/i,
+    );
   });
 
   it("não troca nenhuma coluna de custo, preço, estoque ou permissão", () => {
@@ -207,7 +238,9 @@ describe("o que a migração NÃO faz", () => {
   });
 
   it("o que vai ao gateway de IA deixa de ter valor: nenhum texto novo cita R$", () => {
-    const novos = LINHAS.filter((l) => !l.soComOk).map((l) => l.t1 + l.t2).join("\n");
+    const novos = LINHAS.filter((l) => !l.soComOk)
+      .map((l) => l.t1 + l.t2)
+      .join("\n");
     expect(novos).not.toContain("R$");
     expect(novos).not.toMatch(/\d+[.,]\d{2}\s*(\/|por)\s*(m|h|metro|hora)/i);
   });
