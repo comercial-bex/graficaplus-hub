@@ -65,24 +65,28 @@ describe("valorDoCartao", () => {
 describe("avisoDeOrcamentos", () => {
   it("0 orçamentos: sem aviso", () => {
     const l = { orcamentos: 0 };
-    expect(avisoDeOrcamentos(l, valorDoCartao({ ...l, valor_orcado: 0, valor_potencial: 300 }))).toBeNull();
+    expect(
+      avisoDeOrcamentos(l, valorDoCartao({ ...l, valor_orcado: 0, valor_potencial: 300 })),
+    ).toBeNull();
     expect(avisoDeOrcamentos(l, { valor: 500, fonte: "orcado" })).toBeNull();
   });
   it("1 orçamento: só 'orçado', sem aviso", () => {
     const l = { orcamentos: 1 };
-    expect(avisoDeOrcamentos(l, valorDoCartao({ ...l, valor_orcado: 500, valor_potencial: 0 }))).toBeNull();
+    expect(
+      avisoDeOrcamentos(l, valorDoCartao({ ...l, valor_orcado: 500, valor_potencial: 0 })),
+    ).toBeNull();
   });
   it("2 orçamentos: avisa que são 2 somados", () => {
     const l = { orcamentos: 2 };
-    expect(avisoDeOrcamentos(l, valorDoCartao({ ...l, valor_orcado: 800, valor_potencial: 0 }))).toBe(
-      "2 orçamentos somados",
-    );
+    expect(
+      avisoDeOrcamentos(l, valorDoCartao({ ...l, valor_orcado: 800, valor_potencial: 0 })),
+    ).toBe("2 orçamentos somados");
   });
   it("3 orçamentos: avisa com a contagem real", () => {
     const l = { orcamentos: 3 };
-    expect(avisoDeOrcamentos(l, valorDoCartao({ ...l, valor_orcado: 1200, valor_potencial: 0 }))).toBe(
-      "3 orçamentos somados",
-    );
+    expect(
+      avisoDeOrcamentos(l, valorDoCartao({ ...l, valor_orcado: 1200, valor_potencial: 0 })),
+    ).toBe("3 orçamentos somados");
   });
   it("fonte 'potencial' nunca mostra o aviso, mesmo com vários orçamentos", () => {
     const l = { orcamentos: 5 };
