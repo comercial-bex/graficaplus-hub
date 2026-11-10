@@ -170,6 +170,11 @@ export function QuadroDeLeads({
                               {v && (
                                 <div className="text-xs uppercase tracking-wide text-muted-foreground">
                                   {v.fonte === "orcado" ? "orçado" : "potencial"}
+                                  {aviso && (
+                                    <span className="ml-1 normal-case tracking-normal">
+                                      · {aviso}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>
