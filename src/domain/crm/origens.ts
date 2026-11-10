@@ -29,3 +29,27 @@ export function origensParaOferecer(atual: string | null | undefined): string[] 
   const t = (atual ?? "").trim();
   return t && !ORIGENS.includes(t) ? [...ORIGENS, t] : [...ORIGENS];
 }
+
+export type Canal = "whatsapp" | "instagram" | "facebook" | "outros";
+
+function semAcento(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Canal do lead para o quadro: ignora maiúsculas, acentos e espaços. O resto é "outros". */
+export function canalDaOrigem(origem: string | null | undefined): Canal {
+  const t = semAcento((origem ?? "").trim().toLowerCase());
+  if (t === "whatsapp") return "whatsapp";
+  if (t === "instagram") return "instagram";
+  if (t === "facebook") return "facebook";
+  return "outros";
+}
+
+/** Rótulo para o quadro "Por origem": WhatsApp/Instagram/Facebook unificados; o resto como está. */
+export function origemAgrupada(origem: string | null | undefined): string {
+  const canal = canalDaOrigem(origem);
+  if (canal === "whatsapp") return "WhatsApp";
+  if (canal === "instagram") return "Instagram";
+  if (canal === "facebook") return "Facebook";
+  return rotuloDaOrigem(origem);
+}
