@@ -165,7 +165,7 @@ export function QuadroDeLeads({
                                 {v ? brl(v.valor) : "—"}
                               </div>
                               {v && (
-                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                <div className="text-xs uppercase tracking-wide text-muted-foreground">
                                   {v.fonte === "orcado" ? "orçado" : "potencial"}
                                 </div>
                               )}
