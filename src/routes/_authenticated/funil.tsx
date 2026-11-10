@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { AlertTriangle } from "lucide-react";
 import { Carregando } from "@/components/bex/Carregando";
+import { QuadroDeLeads } from "@/components/crm/quadro-de-leads";
+import { origemAgrupada } from "@/domain/crm/origens";
 
 export const Route = createFileRoute("/_authenticated/funil")({
   head: () => ({ meta: [{ title: "Funil comercial — BEX PRINT OS" }] }),
@@ -80,6 +82,7 @@ function FunilPage() {
   const { canSeeFinancials, canSeePrices } = useAuth();
   const [inicio, setInicio] = useState(noventa);
   const [fim, setFim] = useState(hoje);
+  const [visao, setVisao] = useState<"quadro" | "lista">("quadro");
 
   /**
    * Saldo em conta, do extrato bancário.
@@ -126,11 +129,12 @@ function FunilPage() {
     // Por origem: qual canal traz dinheiro, não só volume.
     const porOrigem = new Map<string, { leads: number; fechado: number; entregues: number }>();
     for (const l of linhas) {
-      const atual = porOrigem.get(l.origem) ?? { leads: 0, fechado: 0, entregues: 0 };
+      const origem = origemAgrupada(l.origem);
+      const atual = porOrigem.get(origem) ?? { leads: 0, fechado: 0, entregues: 0 };
       atual.leads += 1;
       atual.fechado += Number(l.valor_fechado);
       if (l.estagio === "entregue") atual.entregues += 1;
-      porOrigem.set(l.origem, atual);
+      porOrigem.set(origem, atual);
     }
 
     return {
@@ -295,7 +299,25 @@ function FunilPage() {
         </Card>
       )}
 
-      <Card>
+      <div role="group" aria-label="Visão" className="mb-3 inline-flex rounded-md border p-0.5">
+        {(["quadro", "lista"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={visao === v}
+            onClick={() => setVisao(v)}
+            className={`rounded px-3 py-1 text-sm ${visao === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {v === "quadro" ? "Quadro" : "Lista"}
+          </button>
+        ))}
+      </div>
+
+      {visao === "quadro" && !isLoading && (
+        <QuadroDeLeads leads={linhas} etapas={ESTAGIOS} verValores={canSeePrices} />
+      )}
+
+      <Card className={visao === "quadro" && !isLoading ? "hidden" : undefined}>
         <CardContent className="p-0">
           {isLoading ? (
             <Carregando />

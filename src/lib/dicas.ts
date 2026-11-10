@@ -113,7 +113,14 @@ export const dicas = {
   },
   "/funil": {
     menu: "Negociações por etapa, do primeiro contato até a conversão em OS.",
-    tela: "Visão comercial dos orçamentos por etapa. Mover um cartão altera a situação da negociação; a produção só começa depois da aprovação e da conversão em ordem de serviço.",
+    tela: "Visão comercial dos orçamentos por etapa. A etapa de cada lead vem da cadeia real (orçamento, OS, entrega), por isso os cartões não se arrastam; a produção só começa depois da aprovação e da conversão em ordem de serviço.",
+    campos: {
+      abas_por_canal:
+        "Cada aba mostra os leads de um canal. WhatsApp entra sozinho; Instagram e Facebook só aparecem quando alguém cadastra o lead em Leads com essa origem. Indicação, Google, Balcão e as demais ficam em Outros.",
+      total_da_aba:
+        "Soma do valor de todos os cartões da aba: o valor orçado quando o lead tem orçamento, senão o valor potencial digitado no lead.",
+      em_aberto: "Mesma soma, sem os leads entregues e os perdidos: o que ainda dá para trabalhar.",
+    },
   },
   "/breakdown-3d": {
     menu: "Composição do custo de cada peça 3D: material, máquina, energia e trabalho.",
