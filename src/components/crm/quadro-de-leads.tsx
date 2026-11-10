@@ -4,6 +4,7 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
 import {
   ABAS,
+  avisoDeOrcamentos,
   contagemPorAba,
   leadsDaAba,
   montarQuadro,
@@ -11,6 +12,7 @@ import {
   type AbaDoQuadro,
   type LeadDoQuadro,
 } from "@/domain/crm/quadro-de-leads";
+import { origemAgrupada } from "@/domain/crm/origens";
 
 export type LeadDoCartao = LeadDoQuadro & {
   nome: string;
@@ -123,6 +125,7 @@ export function QuadroDeLeads({
                   )}
                   {col.leads.map((l) => {
                     const v = valorDoCartao(l);
+                    const aviso = avisoDeOrcamentos(l, v);
                     const fechado = ["entregue", "perdido"].includes(l.estagio);
                     return (
                       <div
@@ -131,7 +134,7 @@ export function QuadroDeLeads({
                       >
                         <div className="font-medium leading-tight">{l.nome}</div>
                         <div className="text-xs text-muted-foreground">
-                          {l.origem || "Não informada"}
+                          {origemAgrupada(l.origem)}
                           {l.campanha ? ` · ${l.campanha}` : ""}
                         </div>
                         <div className="mt-1 flex items-end justify-between gap-2 text-xs">
@@ -167,6 +170,11 @@ export function QuadroDeLeads({
                               {v && (
                                 <div className="text-xs uppercase tracking-wide text-muted-foreground">
                                   {v.fonte === "orcado" ? "orçado" : "potencial"}
+                                  {aviso && (
+                                    <span className="ml-1 normal-case tracking-normal">
+                                      · {aviso}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>
