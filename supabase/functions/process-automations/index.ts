@@ -71,6 +71,14 @@ function onlyDigits(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
+// Grupo do WhatsApp (ex.: o grupo de trabalho da equipe) é endereçado pela Z-API como
+// "120363…-group": tirar o sufixo vira um número que não existe. Pessoa continua só dígitos.
+function destinoDoWhatsapp(destinatario: string): string {
+  const bruto = destinatario.trim();
+  if (/^\d{10,}-group$/.test(bruto)) return bruto;
+  return onlyDigits(bruto);
+}
+
 function resolvePhone(payload: JsonRecord, contexto: JsonRecord, merged: JsonRecord): string {
   const rawPhone =
     (typeof payload.telefone === "string" ? renderTemplate(payload.telefone, merged) : undefined) ||
@@ -233,7 +241,7 @@ async function drenarFilaNotificacoes(limite: number) {
       const mensagem = renderTemplate(template.corpo, (item.variaveis ?? {}) as JsonRecord).trim();
       if (!mensagem) throw new Error("Template rendeu mensagem vazia.");
 
-      const destino = onlyDigits(item.destinatario ?? "");
+      const destino = destinoDoWhatsapp(item.destinatario ?? "");
       if (!destino) throw new Error("Notificação sem telefone de destino.");
 
       const resposta = await sendZapiText(destino, mensagem);

@@ -12,6 +12,7 @@ const ROTULO: Record<string, string> = {
   parceiro_boas_vindas: "Boas-vindas ao parceiro",
   usuario_boas_vindas: "Boas-vindas à equipe",
   alerta_equipe: "Aviso à equipe",
+  aviso_grupo_equipe: "Aviso no grupo da equipe",
   os_arte_para_aprovar: "Arte pronta para aprovar",
   os_em_acabamento: "Entrou em acabamento",
   os_em_producao: "Entrou em produção",
