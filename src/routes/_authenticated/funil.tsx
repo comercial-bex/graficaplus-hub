@@ -14,13 +14,20 @@ import { AlertTriangle } from "lucide-react";
 import { Carregando } from "@/components/bex/Carregando";
 import { QuadroDeLeads } from "@/components/crm/quadro-de-leads";
 import { origemAgrupada } from "@/domain/crm/origens";
+import { Button } from "@/components/ui/button";
+import { DicaIcone } from "@/components/bex/Dica";
+import { dicaCampo } from "@/lib/dicas";
+import { SeloParceiro } from "@/components/crm/selo-parceiro";
+import { ehLeadParceiro, filtrarParceiros } from "@/domain/crm/tipo-do-lead";
+import { lerTiposDosLeads } from "@/lib/crm/tipos-dos-leads";
 
 export const Route = createFileRoute("/_authenticated/funil")({
-  head: () => ({ meta: [{ title: "Funil comercial — BEX PRINT OS" }] }),
+  head: () => ({ meta: [{ title: "Funil comercial — BEX PRINT OS" }, { name: "description", content: "Acompanhe leads, parceiros e negociações por canal e etapa no Bex Print." }, { property: "og:title", content: "Funil comercial — BEX PRINT OS" }, { property: "og:description", content: "Leads e parceiros por canal e etapa comercial." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: FunilPage,
 });
 
 type Linha = {
+  tipo?: string | null;
   lead_id: string;
   nome: string;
   origem: string;
@@ -83,6 +90,7 @@ function FunilPage() {
   const [inicio, setInicio] = useState(noventa);
   const [fim, setFim] = useState(hoje);
   const [visao, setVisao] = useState<"quadro" | "lista">("quadro");
+  const [somenteParceiros, setSomenteParceiros] = useState(false);
 
   /**
    * Saldo em conta, do extrato bancário.
@@ -110,10 +118,13 @@ function FunilPage() {
         p_fim: fim,
       });
       if (error) throw error;
-      return (data ?? []) as Linha[];
+      const recebidas = (data ?? []) as Linha[];
+      const tipos = await lerTiposDosLeads(recebidas.map((l) => l.lead_id));
+      return recebidas.map((l) => ({ ...l, tipo: tipos.get(l.lead_id) ?? "cliente" }));
     },
   });
 
+  const linhasDaLista = filtrarParceiros(linhas, somenteParceiros);
   const resumo = useMemo(() => {
     const porEstagio = new Map<string, number>();
     for (const l of linhas) porEstagio.set(l.estagio, (porEstagio.get(l.estagio) ?? 0) + 1);
@@ -313,15 +324,21 @@ function FunilPage() {
         ))}
       </div>
 
+      {visao === "lista" && <div className="mb-3 flex items-center gap-1">
+        <Button variant="outline" size="sm" aria-pressed={somenteParceiros}
+          onClick={() => setSomenteParceiros(!somenteParceiros)}
+          className={somenteParceiros ? "border-lead-parceiro bg-lead-parceiro-surface text-lead-parceiro" : undefined}>Parceiros</Button>
+        <DicaIcone texto={dicaCampo("/funil", "parceiros")} rotulo="Filtro de parceiros" />
+      </div>}
       {visao === "quadro" && !isLoading && (
-        <QuadroDeLeads leads={linhas} etapas={ESTAGIOS} verValores={canSeePrices} />
+        <QuadroDeLeads leads={linhas} etapas={ESTAGIOS} verValores={canSeePrices} somenteParceiros={somenteParceiros} onSomenteParceiros={setSomenteParceiros} />
       )}
 
       <Card className={visao === "quadro" && !isLoading ? "hidden" : undefined}>
         <CardContent className="p-0">
           {isLoading ? (
             <Carregando />
-          ) : linhas.length === 0 ? (
+          ) : linhasDaLista.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
               Nenhum lead no período. O funil se enche quando os leads forem cadastrados em
               Leads e o orçamento nascer a partir deles.
@@ -341,10 +358,11 @@ function FunilPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {linhas.map((l) => (
+                  {linhasDaLista.map((l) => (
                     <TableRow key={l.lead_id}>
-                      <TableCell>
+                      <TableCell className={ehLeadParceiro(l.tipo) ? "border-l-4 border-l-lead-parceiro" : undefined}>
                         <div className="font-medium">{l.nome}</div>
+                        <SeloParceiro tipo={l.tipo} />
                         {l.cliente && (
                           <div className="text-xs text-muted-foreground">
                             cliente: {l.cliente}

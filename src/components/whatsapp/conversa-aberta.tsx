@@ -29,6 +29,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { StatusChip } from "@/components/bex/StatusChip";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
+import { SeloParceiro } from "@/components/crm/selo-parceiro";
+import { ehLeadParceiro } from "@/domain/crm/tipo-do-lead";
 import { mensagemErro } from "@/lib/erros";
 import {
   ANEXO_TIPOS,
@@ -421,7 +423,7 @@ export function ConversaAberta({
 
   return (
     <Card className={cn("flex flex-col overflow-hidden", className)}>
-      <div className="space-y-2 border-b p-3">
+      <div className={cn("space-y-2 border-b p-3", ehLeadParceiro(conversa.lead?.tipo) && "border-l-4 border-l-lead-parceiro")}>
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -437,6 +439,7 @@ export function ConversaAberta({
             {/* Sem `truncate`: a 375 px o nome ficava cortado atrás dos botões.
                 Quebra em até duas linhas e o cabeçalho se acomoda. */}
             <div className="line-clamp-2 break-words font-medium leading-tight">{nome}</div>
+            <SeloParceiro tipo={conversa.lead?.tipo} />
             <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
               <span>{telefoneLegivel(conversa.telefone)}</span>
               {conversa.cliente && (

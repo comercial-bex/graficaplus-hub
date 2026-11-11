@@ -13,6 +13,12 @@ import type {
 } from "@/domain/whatsapp/caixa-de-entrada";
 import { ehSetor, type AtendimentoResumo, type Setor } from "@/domain/whatsapp/filas";
 import { CONFIG_PADRAO, type ConfigAssistente } from "@/domain/whatsapp/assistente";
+import { lerTiposDosLeads } from "@/lib/crm/tipos-dos-leads";
+
+async function comTiposDosLeads(conversas: ConversaDaCaixa[]): Promise<ConversaDaCaixa[]> {
+  const tipos = await lerTiposDosLeads(conversas.flatMap((c) => c.lead ? [c.lead.id] : []));
+  return conversas.map((c) => ({ ...c, lead: c.lead ? { ...c.lead, tipo: tipos.get(c.lead.id) ?? "cliente" } : c.lead }));
+}
 
 /**
  * As leituras e gravações da caixa de entrada (/whatsapp).
@@ -103,7 +109,7 @@ export function useConversas(habilitado: boolean) {
         .order("ultima_mensagem_at", { ascending: false, nullsFirst: false })
         .limit(LIMITE_CONVERSAS);
       if (error) throw error;
-      return (data ?? []) as ConversaDaCaixa[];
+      return comTiposDosLeads((data ?? []) as ConversaDaCaixa[]);
     },
   });
 }
@@ -398,7 +404,7 @@ export function useConversasPaginadas(f: FiltroDaLista) {
         .order("ultima_mensagem_at", { ascending: false, nullsFirst: false })
         .range(pageParam, pageParam + POR_PAGINA - 1);
       if (error) throw error;
-      return (data ?? []) as ConversaDaCaixa[];
+      return comTiposDosLeads((data ?? []) as ConversaDaCaixa[]);
     },
     getNextPageParam: (ultima, todas) =>
       ultima.length < POR_PAGINA ? undefined : todas.length * POR_PAGINA,
@@ -451,7 +457,8 @@ export function useConversa(id: string | null) {
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as ConversaDaCaixa | null;
+      if (!data) return null;
+      return (await comTiposDosLeads([data as ConversaDaCaixa]))[0] ?? null;
     },
   });
 }

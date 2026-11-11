@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { rotuloDaPessoa } from "@/domain/whatsapp/equipe";
 import { cn } from "@/lib/utils";
+import { SeloParceiro } from "@/components/crm/selo-parceiro";
+import { ehLeadParceiro } from "@/domain/crm/tipo-do-lead";
 import {
   agruparPorDia,
   horaCurta,
@@ -290,14 +292,15 @@ export function ListaDeConversas({
                 const setorDaConversa = c.fila ? infoDoSetor(c.fila) : null;
                 const comAssistente = c.modo === "auto" && !c.responsavel_id && estaAbertaOuPendente(c.status);
                 return (
-                  <button
+                  <Button variant="ghost"
                     key={c.id}
                     type="button"
                     onClick={() => onSelecionar(c.id)}
                     aria-current={selecionadaId === c.id ? "true" : undefined}
                     className={cn(
-                      "relative w-full border-b px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
+                      "relative block h-auto w-full whitespace-normal rounded-none border-b px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
                       selecionadaId === c.id && "bg-muted",
+                      ehLeadParceiro(c.lead?.tipo) && "border-l-4 border-l-lead-parceiro",
                     )}
                   >
                     <div className="flex items-start gap-3">
@@ -325,6 +328,7 @@ export function ListaDeConversas({
                             {horaCurta(c.ultima_mensagem_at)}
                           </span>
                         </div>
+                        <SeloParceiro tipo={c.lead?.tipo} />
                         <div className="truncate text-xs text-muted-foreground">
                           {resumoDaConversa(c.ultima_mensagem)}
                         </div>
@@ -379,7 +383,7 @@ export function ListaDeConversas({
                         </div>
                       </div>
                     </div>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
