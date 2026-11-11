@@ -1,3 +1,4 @@
+import { camposDeOrigem } from "@/domain/whatsapp/origem-do-anuncio";
 /* eslint-disable @typescript-eslint/no-explicit-any -- `rpc as any`: funções fora dos tipos gerados; é a forma que tests/rpc-assinaturas lê */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
@@ -106,7 +107,7 @@ export async function processarWebhookZapi(request: Request): Promise<Response> 
   let resultado: Resposta = {};
   let erro: string | null = null;
   try {
-    resultado = await tratar(evento, instancia.id, registro.id);
+    resultado = await tratar(evento, instancia.id, registro.id, payload);
   } catch (e) {
     erro = e instanceof Error ? e.message : String(e);
   }
@@ -218,6 +219,7 @@ async function tratar(
   evento: EventoZapi,
   instanciaId: string,
   eventoId: string,
+  payloadCru?: unknown,
 ): Promise<Resposta> {
   switch (evento.tipo) {
     case "ignorado":
@@ -264,7 +266,13 @@ async function tratar(
       // O evento cru já está em whatsapp_webhook_eventos; na mensagem fica o
       // ponteiro. Fora da chamada para o objeto dela não ter chave aninhada —
       // senão tests/rpc-assinaturas desiste de conferir os parâmetros.
-      const ponteiro = { fonte: "whatsapp_webhook_eventos", chave: `msg:${evento.messageId}` };
+      // Campos de Click-to-WhatsApp (canal_origem, tipo_origem, anuncio_id)
+      // entram planos, só quando existem; o banco usa para a origem do lead.
+      const ponteiro = {
+        fonte: "whatsapp_webhook_eventos",
+        chave: `msg:${evento.messageId}`,
+        ...(evento.deMim ? {} : camposDeOrigem(payloadCru)),
+      };
       const { data, error } = await (supabaseAdmin.rpc as any)("whatsapp_registrar_mensagem", {
         p_instancia_id: instanciaId,
         p_zapi_message_id: evento.messageId,
