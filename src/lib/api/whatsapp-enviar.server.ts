@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
 import { textoDeReservaDosBotoes } from "@/domain/pagamento/botoes-do-pix";
 import {
+  ehGrupoZapi,
   lerRespostaZapi,
   montarEnvio,
   renderizarTemplate,
@@ -1151,8 +1152,12 @@ async function processarAvisosAoCliente(
 
     // O aviso vira mensagem da conversa. Fora da chamada para o objeto dela
     // não ter chave aninhada — senão tests/rpc-assinaturas desiste de conferir.
+    // Aviso no grupo da equipe NÃO vira conversa: registrar criaria uma "conversa de cliente"
+    // com o id do grupo na caixa de entrada. Fica só o log do envio.
     const ponteiro = { fonte: "notificacoes_fila", id: linha.id };
-    const { data: registrada, error: erroRegistro } = await (supabaseAdmin.rpc as any)(
+    const { data: registrada, error: erroRegistro } = ehGrupoZapi(request.phone)
+      ? { data: null, error: null }
+      : await (supabaseAdmin.rpc as any)(
       "whatsapp_registrar_mensagem",
       {
         p_instancia_id: instancia.id,

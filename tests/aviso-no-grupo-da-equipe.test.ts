@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { ehGrupoZapi, montarEnvio } from "../src/domain/whatsapp/zapi-envio";
 
 const SQL = readFileSync("supabase/migrations/20261110100000_aviso_no_grupo_da_equipe.sql", "utf8");
 const ENVIO = readFileSync("supabase/functions/process-automations/index.ts", "utf8");
@@ -43,6 +44,24 @@ describe("aviso no grupo de WhatsApp da equipe", () => {
 
   it("o aviso nunca impede o atendimento ou o lead de nascer", () => {
     expect(SQL.match(/EXCEPTION WHEN OTHERS THEN\s+RAISE WARNING/g)).toHaveLength(2);
+  });
+
+  it("o despachante do app (quem drena a fila de verdade) manda para o grupo sem mexer no id", () => {
+    const m = montarEnvio(
+      { tipo: "texto", para: "120363431862625987-group", texto: "📥 Novo atendimento" },
+      { instanceId: "3ABC", token: "TOK" },
+    );
+    expect(m).toEqual({
+      url: "https://api.z-api.io/instances/3ABC/token/TOK/send-text",
+      corpo: { phone: "120363431862625987-group", message: "📥 Novo atendimento" },
+    });
+    expect(ehGrupoZapi("(96) 99142-3082")).toBe(false);
+    expect(ehGrupoZapi("123-group")).toBe(false);
+  });
+
+  it("aviso no grupo não vira conversa de cliente na caixa de entrada", () => {
+    const DESPACHANTE = readFileSync("src/lib/api/whatsapp-enviar.server.ts", "utf8");
+    expect(DESPACHANTE).toMatch(/ehGrupoZapi\(request\.phone\)\s*\?\s*\{ data: null, error: null \}/);
   });
 
   it("o tipo novo aparece com nome nas telas de avisos", () => {
