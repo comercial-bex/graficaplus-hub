@@ -1,18 +1,17 @@
 -- PROPOSTA SOMENTE: NÃO APLICADA. Primeiro bloco sem controle de transação.
 -- Função abaixo obtida por pg_get_functiondef em 11/11/2026, não da migração 0010.
 -- Corpo atual: MD5 normalizado (espaços únicos + trim) f3fc4ed646de9084ff4ab6b364a23f94.
--- Somente a lista de colunas/valores do INSERT de lead novo foi modificada.
+-- Modificados: o INSERT de lead novo (coluna tipo, inclusive pela frase "quero ser parceir")
+-- e um UPDATE pequeno de leads.tipo para lead temporário 'cliente' que manda essa frase.
 -- Origem, campanha, assinatura, idempotência e demais operações permanecem intactas.
 -- Limite preservado: contato que já é cliente pode não gerar lead; conversa sem
 -- lead ligado permanece visualmente cliente. Este SQL não cria leads para esses contatos.
 -- ACL atual de leads: privilégios de tabela arwdDxtm para postgres/anon/authenticated/
 -- service_role e ar para sandbox_exec; colunas atuais não têm ACL específica.
--- Os grants abaixo repetem SOMENTE leitura/escrita de coluna já permitidas pela tabela;
--- RLS existente de leads continua valendo, inclusive para anon (nenhuma policy anon).
+-- Sem GRANT de coluna: a ACL de tabela de leads já cobre a coluna nova tipo, e a RLS
+-- de leads só tem políticas para authenticated (nenhum acesso intencional a anon).
 
 ALTER TABLE public.leads ADD COLUMN tipo text NOT NULL DEFAULT 'cliente' CHECK (tipo IN ('cliente','parceiro'));
-GRANT SELECT (tipo), INSERT (tipo), UPDATE (tipo) ON public.leads TO anon, authenticated, service_role;
-GRANT SELECT (tipo), INSERT (tipo) ON public.leads TO sandbox_exec;
 
 CREATE TABLE public.anuncios_de_parceiro (
   anuncio_id text PRIMARY KEY,
@@ -153,6 +152,7 @@ BEGIN
           SELECT 1 FROM public.anuncios_de_parceiro a
           WHERE a.anuncio_id = p_payload->>'anuncio_id'
         ) OR public._wa_telefone_de_parceiro(v_tel)
+          OR lower(translate(COALESCE(p_texto, ''), 'ÁÀÂÃÉÊÍÓÔÕÚÇáàâãéêíóôõúç', 'AAAAEEIOOOUCaaaaeeiooouc')) LIKE '%quero ser parceir%'
           THEN 'parceiro' ELSE 'cliente'
         END
       )
@@ -168,6 +168,14 @@ BEGIN
         WHERE telefone_normalizado = v_tel AND temporario IS TRUE;
       END IF;
     END IF;
+  END IF;
+
+  -- Frase do anúncio de parceiros: lead temporário já existente e ainda 'cliente' passa
+  -- a 'parceiro'. Só leads.tipo muda; nada mais do lead é tocado.
+  IF p_direcao = 'entrada' AND v_lead_id IS NOT NULL AND NOT v_lead_criado
+     AND lower(translate(COALESCE(p_texto, ''), 'ÁÀÂÃÉÊÍÓÔÕÚÇáàâãéêíóôõúç', 'AAAAEEIOOOUCaaaaeeiooouc')) LIKE '%quero ser parceir%' THEN
+    UPDATE public.leads SET tipo = 'parceiro'
+    WHERE id = v_lead_id AND temporario IS TRUE AND tipo = 'cliente';
   END IF;
 
   v_resumo := left(COALESCE(p_texto, p_legenda, '[' || p_tipo::text || ']'), 500);
@@ -264,6 +272,9 @@ WHERE tipo <> 'parceiro' AND public._wa_telefone_de_parceiro(telefone);
 -- 2. No ambiente isolado, cadastre anúncio fictício 999000111 e parceiro fictício;
 --    envie pelo webhook mensagem de entrada com anúncio cadastrado: lead novo parceiro.
 -- 3. Repita sem anúncio, com telefone de parceiro: lead novo parceiro.
+-- 3b. "Quero ser parceiro Bex Print" de telefone fictício novo: lead novo parceiro;
+--     "Olá! Posso ter mais informações sobre isso?" ou "meu parceiro me indicou": cliente.
+-- 3c. Lead temporário cliente que manda "quero ser parceira": só o tipo vira parceiro.
 -- 4. Telefone fictício desconhecido e anúncio fora da lista: lead novo cliente.
 -- 5. Reenvie o mesmo id de mensagem: duplicada, sem novo lead nem mensagem.
 -- 6. Reenvie para lead existente: tipo, origem e campanha existentes não se alteram.
