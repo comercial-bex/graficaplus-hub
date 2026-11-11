@@ -1,13 +1,20 @@
 export type TipoDoLead = "parceiro" | "cliente";
 
-export function tipoDoLead({ anuncioId, anunciosDeParceiro = [], telefoneEhDeParceiro = false, tipoGravado }: {
+/** Frase do anúncio de parceiros; específica para "meu parceiro indicou" não marcar parceiro. */
+export function textoDeParceiro(texto: string | null | undefined): boolean {
+  if (!texto) return false;
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes("quero ser parceir");
+}
+
+export function tipoDoLead({ anuncioId, anunciosDeParceiro = [], telefoneEhDeParceiro = false, textoInicial, tipoGravado }: {
   anuncioId?: string | null;
+  textoInicial?: string | null;
   anunciosDeParceiro?: readonly string[];
   telefoneEhDeParceiro?: boolean;
   tipoGravado?: unknown;
 }): TipoDoLead {
   if (tipoGravado === "parceiro" || tipoGravado === "cliente") return tipoGravado;
-  return (anuncioId != null && anunciosDeParceiro.includes(anuncioId)) || telefoneEhDeParceiro
+  return (anuncioId != null && anunciosDeParceiro.includes(anuncioId)) || telefoneEhDeParceiro || textoDeParceiro(textoInicial)
     ? "parceiro" : "cliente";
 }
 

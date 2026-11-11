@@ -4,6 +4,8 @@
 - [x] Preparar domínio, selo e filtro tolerantes à ausência de leads.tipo no Funil, Leads e WhatsApp.
 - [x] Escrever proposta SQL com função atual, permissões, backfill opcional, reversão e testes manuais; não aplicada.
 - [x] Executar suíte completa (4.234 aprovados, 1 pulado; 357 arquivos aprovados, 1 pulado) e checagem de tipos sem erros. Conferência visual autenticada bloqueada: solicitante sem conta correspondente; navegador ficou em carregamento sem sessão.
+- [x] Ajustar proposta: frase "quero ser parceir" no lead novo e no temporário cliente; remover GRANTs de coluna (não aplicado).
+- [ ] Plano do agente de cadastro de parceiros no WhatsApp (modo de teste) — escrito, aguardando revisão do dono.
 - [ ] Aplicar proposta e validar classificação com mensagem real — depende de aprovação futura, cadastro dos IDs de anúncios e acesso autorizado; não executar nesta tarefa.
 
 - [x] Criar temas claro e escuro com Montserrat e preferência persistente.

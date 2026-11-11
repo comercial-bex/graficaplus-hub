@@ -34,3 +34,13 @@ describe("tipo do lead", () => {
   it("não oculta falta de permissão", () => expect(colunaTipoAusente({ code: "42501", message: "permission denied for tipo" })).toBe(false));
   it("não oculta outra coluna ausente", () => expect(colunaTipoAusente({ code: "42703", message: "column nome does not exist" })).toBe(false));
 });
+
+describe("tipoDoLead pela primeira mensagem", () => {
+  const t = (textoInicial: string | null) => tipoDoLead({ textoInicial });
+  it("Quero ser parceiro Bex Print é parceiro", () => expect(t("Quero ser parceiro Bex Print")).toBe("parceiro"));
+  it("quero ser parceira é parceiro", () => expect(t("quero ser parceira")).toBe("parceiro"));
+  it("frase padrão do Meta é cliente", () => expect(t("Olá! Posso ter mais informações sobre isso?")).toBe("cliente"));
+  it("meu parceiro me indicou é cliente", () => expect(t("meu parceiro me indicou")).toBe("cliente"));
+  it("texto vazio é cliente", () => expect(t("")).toBe("cliente"));
+  it("null é cliente", () => expect(t(null)).toBe("cliente"));
+});
