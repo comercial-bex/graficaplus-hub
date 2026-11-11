@@ -81,6 +81,20 @@ export type Database = {
             foreignKeyName: "acabamentos_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acabamentos_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acabamentos_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -302,6 +316,20 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apontamentos_producao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apontamentos_producao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -2671,6 +2699,20 @@ export type Database = {
             foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -3155,6 +3197,51 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
         ]
+      }
+      custo_em_texto_guardado: {
+        Row: {
+          atualizado_em_original: string | null
+          coluna: string
+          guardado_em: string
+          id: string
+          lote: string
+          novo_json: Json | null
+          novo_texto: string | null
+          original_json: Json | null
+          original_texto: string | null
+          registro_id: string
+          rotulo: string | null
+          tabela: string
+        }
+        Insert: {
+          atualizado_em_original?: string | null
+          coluna: string
+          guardado_em?: string
+          id?: string
+          lote: string
+          novo_json?: Json | null
+          novo_texto?: string | null
+          original_json?: Json | null
+          original_texto?: string | null
+          registro_id: string
+          rotulo?: string | null
+          tabela: string
+        }
+        Update: {
+          atualizado_em_original?: string | null
+          coluna?: string
+          guardado_em?: string
+          id?: string
+          lote?: string
+          novo_json?: Json | null
+          novo_texto?: string | null
+          original_json?: Json | null
+          original_texto?: string | null
+          registro_id?: string
+          rotulo?: string | null
+          tabela?: string
+        }
+        Relationships: []
       }
       custos_mao_de_obra: {
         Row: {
@@ -5383,6 +5470,20 @@ export type Database = {
             foreignKeyName: "manutencoes_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutencoes_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutencoes_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -5446,6 +5547,20 @@ export type Database = {
             foreignKeyName: "maquina_compatibilidades_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquina_compatibilidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquina_compatibilidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -5495,14 +5610,17 @@ export type Database = {
       }
       maquinas: {
         Row: {
+          alimentacao: string | null
           ativa: boolean
           avanco_m: number
           base_cobranca: string
+          comprimento_util_m: number | null
           created_at: string
           custo_hora: number
           data_aquisicao: string | null
           disponibilidade_pct: number
           especificacoes: Json
+          especificacoes_comerciais: Json
           fabricante: string | null
           forma_aquisicao: string
           horas_produtivas_mensais: number | null
@@ -5526,14 +5644,17 @@ export type Database = {
           vida_util_horas: number | null
         }
         Insert: {
+          alimentacao?: string | null
           ativa?: boolean
           avanco_m?: number
           base_cobranca?: string
+          comprimento_util_m?: number | null
           created_at?: string
           custo_hora?: number
           data_aquisicao?: string | null
           disponibilidade_pct?: number
           especificacoes?: Json
+          especificacoes_comerciais?: Json
           fabricante?: string | null
           forma_aquisicao?: string
           horas_produtivas_mensais?: number | null
@@ -5557,14 +5678,17 @@ export type Database = {
           vida_util_horas?: number | null
         }
         Update: {
+          alimentacao?: string | null
           ativa?: boolean
           avanco_m?: number
           base_cobranca?: string
+          comprimento_util_m?: number | null
           created_at?: string
           custo_hora?: number
           data_aquisicao?: string | null
           disponibilidade_pct?: number
           especificacoes?: Json
+          especificacoes_comerciais?: Json
           fabricante?: string | null
           forma_aquisicao?: string
           horas_produtivas_mensais?: number | null
@@ -5723,6 +5847,20 @@ export type Database = {
             foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: true
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -5821,6 +5959,20 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -6029,6 +6181,20 @@ export type Database = {
             foreignKeyName: "maquinas_contrato_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: true
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_contrato_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_contrato_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -6081,6 +6247,20 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_modos_impressao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_modos_impressao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -6151,6 +6331,20 @@ export type Database = {
             foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_velocidades_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -6167,15 +6361,19 @@ export type Database = {
         Row: {
           caracteristicas: string | null
           comprimento_bobina_m: number | null
+          comprimento_chapa_m: number | null
           created_at: string
           custo_medio: number | null
           custo_unitario: number | null
+          espessura_mm: number | null
           estoque: number
           estoque_maximo: number | null
           estoque_minimo: number
+          formato: string | null
           fornecedor: string | null
           id: string
           largura_bobina_m: number | null
+          largura_chapa_m: number | null
           localizacao: string | null
           nome: string
           status: string
@@ -6185,15 +6383,19 @@ export type Database = {
         Insert: {
           caracteristicas?: string | null
           comprimento_bobina_m?: number | null
+          comprimento_chapa_m?: number | null
           created_at?: string
           custo_medio?: number | null
           custo_unitario?: number | null
+          espessura_mm?: number | null
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
+          formato?: string | null
           fornecedor?: string | null
           id?: string
           largura_bobina_m?: number | null
+          largura_chapa_m?: number | null
           localizacao?: string | null
           nome: string
           status?: string
@@ -6203,15 +6405,19 @@ export type Database = {
         Update: {
           caracteristicas?: string | null
           comprimento_bobina_m?: number | null
+          comprimento_chapa_m?: number | null
           created_at?: string
           custo_medio?: number | null
           custo_unitario?: number | null
+          espessura_mm?: number | null
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
+          formato?: string | null
           fornecedor?: string | null
           id?: string
           largura_bobina_m?: number | null
+          largura_chapa_m?: number | null
           localizacao?: string | null
           nome?: string
           status?: string
@@ -7482,6 +7688,20 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_3d_placas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_3d_placas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -9027,6 +9247,20 @@ export type Database = {
             foreignKeyName: "ordens_servico_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -9561,6 +9795,20 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -13363,6 +13611,20 @@ export type Database = {
             foreignKeyName: "producao_3d_jobs_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_3d_jobs_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_3d_jobs_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -14205,6 +14467,20 @@ export type Database = {
             foreignKeyName: "produto_precificacao_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_precificacao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_precificacao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -14759,6 +15035,20 @@ export type Database = {
             columns: ["maquina_padrao_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -15360,6 +15650,20 @@ export type Database = {
             foreignKeyName: "rip_importacoes_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rip_importacoes_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rip_importacoes_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -15662,6 +15966,20 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rip_jobs_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rip_jobs_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -16193,6 +16511,8 @@ export type Database = {
           assinatura: string
           dias_semana: number[]
           endereco: string | null
+          grupo_equipe_ativo: boolean
+          grupo_equipe_id: string | null
           horario_fim: string
           horario_inicio: string
           horario_texto: string | null
@@ -16206,6 +16526,8 @@ export type Database = {
           assinatura?: string
           dias_semana?: number[]
           endereco?: string | null
+          grupo_equipe_ativo?: boolean
+          grupo_equipe_id?: string | null
           horario_fim?: string
           horario_inicio?: string
           horario_texto?: string | null
@@ -16219,6 +16541,8 @@ export type Database = {
           assinatura?: string
           dias_semana?: number[]
           endereco?: string | null
+          grupo_equipe_ativo?: boolean
+          grupo_equipe_id?: string | null
           horario_fim?: string
           horario_inicio?: string
           horario_texto?: string | null
@@ -17236,6 +17560,20 @@ export type Database = {
             foreignKeyName: "maquinas_agenda_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_agenda_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -17796,19 +18134,167 @@ export type Database = {
           },
         ]
       }
+      maquinas_financeiro: {
+        Row: {
+          alimentacao: string | null
+          ativa: boolean | null
+          avanco_m: number | null
+          base_cobranca: string | null
+          comprimento_util_m: number | null
+          created_at: string | null
+          custo_hora: number | null
+          data_aquisicao: string | null
+          disponibilidade_pct: number | null
+          especificacoes: Json | null
+          especificacoes_comerciais: Json | null
+          fabricante: string | null
+          forma_aquisicao: string | null
+          horas_produtivas_mensais: number | null
+          id: string | null
+          imagem_url: string | null
+          largura_util_m: number | null
+          margem_lateral_m: number | null
+          modelo: string | null
+          nome: string | null
+          numero_serie: string | null
+          potencia_kw: number | null
+          setor: string | null
+          setup_min: number | null
+          tempo_minimo_min: number | null
+          tipo: string | null
+          updated_at: string | null
+          valor_aquisicao: number | null
+          valor_residual: number | null
+          velocidade_m2_h: number | null
+          velocidade_mm_s: number | null
+          vida_util_horas: number | null
+        }
+        Insert: {
+          alimentacao?: string | null
+          ativa?: boolean | null
+          avanco_m?: number | null
+          base_cobranca?: string | null
+          comprimento_util_m?: number | null
+          created_at?: string | null
+          custo_hora?: number | null
+          data_aquisicao?: string | null
+          disponibilidade_pct?: number | null
+          especificacoes?: Json | null
+          especificacoes_comerciais?: Json | null
+          fabricante?: string | null
+          forma_aquisicao?: string | null
+          horas_produtivas_mensais?: number | null
+          id?: string | null
+          imagem_url?: string | null
+          largura_util_m?: number | null
+          margem_lateral_m?: number | null
+          modelo?: string | null
+          nome?: string | null
+          numero_serie?: string | null
+          potencia_kw?: number | null
+          setor?: string | null
+          setup_min?: number | null
+          tempo_minimo_min?: number | null
+          tipo?: string | null
+          updated_at?: string | null
+          valor_aquisicao?: number | null
+          valor_residual?: number | null
+          velocidade_m2_h?: number | null
+          velocidade_mm_s?: number | null
+          vida_util_horas?: number | null
+        }
+        Update: {
+          alimentacao?: string | null
+          ativa?: boolean | null
+          avanco_m?: number | null
+          base_cobranca?: string | null
+          comprimento_util_m?: number | null
+          created_at?: string | null
+          custo_hora?: number | null
+          data_aquisicao?: string | null
+          disponibilidade_pct?: number | null
+          especificacoes?: Json | null
+          especificacoes_comerciais?: Json | null
+          fabricante?: string | null
+          forma_aquisicao?: string | null
+          horas_produtivas_mensais?: number | null
+          id?: string | null
+          imagem_url?: string | null
+          largura_util_m?: number | null
+          margem_lateral_m?: number | null
+          modelo?: string | null
+          nome?: string | null
+          numero_serie?: string | null
+          potencia_kw?: number | null
+          setor?: string | null
+          setup_min?: number | null
+          tempo_minimo_min?: number | null
+          tipo?: string | null
+          updated_at?: string | null
+          valor_aquisicao?: number | null
+          valor_residual?: number | null
+          velocidade_m2_h?: number | null
+          velocidade_mm_s?: number | null
+          vida_util_horas?: number | null
+        }
+        Relationships: []
+      }
+      maquinas_operacional: {
+        Row: {
+          alimentacao: string | null
+          ativa: boolean | null
+          avanco_m: number | null
+          comprimento_util_m: number | null
+          id: string | null
+          largura_util_m: number | null
+          margem_lateral_m: number | null
+          nome: string | null
+          setor: string | null
+          tipo: string | null
+        }
+        Insert: {
+          alimentacao?: string | null
+          ativa?: boolean | null
+          avanco_m?: number | null
+          comprimento_util_m?: number | null
+          id?: string | null
+          largura_util_m?: number | null
+          margem_lateral_m?: number | null
+          nome?: string | null
+          setor?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          alimentacao?: string | null
+          ativa?: boolean | null
+          avanco_m?: number | null
+          comprimento_util_m?: number | null
+          id?: string | null
+          largura_util_m?: number | null
+          margem_lateral_m?: number | null
+          nome?: string | null
+          setor?: string | null
+          tipo?: string | null
+        }
+        Relationships: []
+      }
       materiais_financeiro: {
         Row: {
           caracteristicas: string | null
           comprimento_bobina_m: number | null
+          comprimento_chapa_m: number | null
           created_at: string | null
           custo_medio: number | null
           custo_unitario: number | null
+          espessura_mm: number | null
           estoque: number | null
           estoque_maximo: number | null
           estoque_minimo: number | null
+          formato: string | null
           fornecedor: string | null
           id: string | null
           largura_bobina_m: number | null
+          largura_chapa_m: number | null
           localizacao: string | null
           nome: string | null
           status: string | null
@@ -17821,11 +18307,15 @@ export type Database = {
         Row: {
           caracteristicas: string | null
           comprimento_bobina_m: number | null
+          comprimento_chapa_m: number | null
           created_at: string | null
+          espessura_mm: number | null
           estoque: number | null
           estoque_minimo: number | null
+          formato: string | null
           id: string | null
           largura_bobina_m: number | null
+          largura_chapa_m: number | null
           localizacao: string | null
           nome: string | null
           status: string | null
@@ -17834,11 +18324,15 @@ export type Database = {
         Insert: {
           caracteristicas?: string | null
           comprimento_bobina_m?: number | null
+          comprimento_chapa_m?: number | null
           created_at?: string | null
+          espessura_mm?: number | null
           estoque?: number | null
           estoque_minimo?: number | null
+          formato?: string | null
           id?: string | null
           largura_bobina_m?: number | null
+          largura_chapa_m?: number | null
           localizacao?: string | null
           nome?: string | null
           status?: string | null
@@ -17847,11 +18341,15 @@ export type Database = {
         Update: {
           caracteristicas?: string | null
           comprimento_bobina_m?: number | null
+          comprimento_chapa_m?: number | null
           created_at?: string | null
+          espessura_mm?: number | null
           estoque?: number | null
           estoque_minimo?: number | null
+          formato?: string | null
           id?: string | null
           largura_bobina_m?: number | null
+          largura_chapa_m?: number | null
           localizacao?: string | null
           nome?: string | null
           status?: string | null
@@ -18841,6 +19339,20 @@ export type Database = {
             foreignKeyName: "ordens_servico_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -19019,6 +19531,20 @@ export type Database = {
             foreignKeyName: "ordens_servico_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -19188,6 +19714,20 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -19459,6 +19999,20 @@ export type Database = {
             foreignKeyName: "os_perdas_maquina_id_fkey"
             columns: ["maquina_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_perdas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -19662,6 +20216,20 @@ export type Database = {
             foreignKeyName: "produtos_maquina_padrao_id_fkey"
             columns: ["maquina_padrao_id"]
             isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
             referencedRelation: "rel_producao_por_maquina"
             referencedColumns: ["maquina_id"]
           },
@@ -19738,6 +20306,20 @@ export type Database = {
             columns: ["maquina_padrao_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -19857,6 +20439,20 @@ export type Database = {
             columns: ["maquina_padrao_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_maquina_padrao_id_fkey"
+            columns: ["maquina_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -20256,6 +20852,20 @@ export type Database = {
             columns: ["maquina_id"]
             isOneToOne: false
             referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compromissos_financeiros_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -21753,6 +22363,7 @@ export type Database = {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: Json
       }
+      grupo_equipe_destino: { Args: never; Returns: string }
       has_any_permission: { Args: { _user_id: string }; Returns: boolean }
       has_permission: {
         Args: { _permission: string; _user_id: string }
@@ -21927,6 +22538,10 @@ export type Database = {
           faixas: Json
           preco_parceiro: number
         }[]
+      }
+      orcamento_retrato_diferencas: {
+        Args: { p_guardado: Json; p_vivo: Json }
+        Returns: Json
       }
       os_bloqueios_do_quadro: {
         Args: never
@@ -22271,6 +22886,11 @@ export type Database = {
       }
       permissoes_da_pessoa: { Args: { p_usuario_id: string }; Returns: Json }
       permissoes_uso_no_banco: { Args: never; Returns: Json }
+      pode_ver_custo: { Args: { _user_id: string }; Returns: boolean }
+      pode_ver_custo_de_maquina: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       ponto_de_equilibrio: { Args: { p_mes?: string }; Returns: Json }
       portal_arquivo_visivel: {
         Args: { p_arquivo_id: string; p_cliente_id: string }
@@ -22848,6 +23468,7 @@ export type Database = {
       }
       tarefas_que_bloqueiam_os: { Args: { p_os_id: string }; Returns: number }
       telefone_estrangeiro: { Args: { p_telefone: string }; Returns: boolean }
+      telefone_legivel: { Args: { p_telefone: string }; Returns: string }
       telefone_recebe_whatsapp: {
         Args: { p_telefone: string }
         Returns: boolean
