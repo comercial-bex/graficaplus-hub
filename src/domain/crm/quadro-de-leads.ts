@@ -2,6 +2,7 @@ import { canalDaOrigem, type Canal } from "./origens";
 
 export type LeadDoQuadro = {
   lead_id: string;
+  tipo?: string | null;
   origem: string | null;
   estagio: string;
   orcamentos: number;

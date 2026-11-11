@@ -38,7 +38,7 @@ export type ConversaDaCaixa = {
   responsavel_id: string | null;
   created_at: string;
   cliente?: { id: string; nome: string } | null;
-  lead?: { id: string; nome: string | null; status: string | null } | null;
+  lead?: { id: string; nome: string | null; status: string | null; tipo?: string | null } | null;
   /** Caixa v3: setor, quem está no comando, desde quando o cliente espera. */
   fila?: string | null;
   modo?: "auto" | "humano" | string | null;
