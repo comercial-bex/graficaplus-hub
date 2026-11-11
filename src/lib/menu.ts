@@ -383,6 +383,10 @@ export const FORA_DO_MENU: Record<string, { titulo: string; motivo: string }> = 
     titulo: "Ensaio do atendente",
     motivo: "abre pela Fila humana: é o teste do atendente automático, antes de ele falar com cliente",
   },
+  "/agente-parceiro-ensaio": {
+    titulo: "Ensaio do agente de parceiros",
+    motivo: "abre pela Fila humana: é o teste do agente que cadastra parceiros, antes de ele falar com alguém",
+  },
   "/configuracoes-api": {
     titulo: "API e MCP",
     motivo: "abre por Dados da empresa: token pessoal de leitura; o menu é o que o dono aprovou no cenário B",

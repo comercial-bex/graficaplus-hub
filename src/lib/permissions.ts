@@ -102,6 +102,8 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/whatsapp-fila-humana", permissions: ["whatsapp.read"] },
   // O atendente em ensaio: repete conversas (whatsapp.read) e monta orçamento de teste (orcamentos.create).
   { path: "/atendente-ensaio", permissions: ["whatsapp.read"] },
+  // Ensaio do agente de parceiros: só tela, nada é gravado nem enviado.
+  { path: "/agente-parceiro-ensaio", permissions: ["whatsapp.read"] },
   // Números do atendimento (08/10/2026). Lê as tabelas whatsapp_* (whatsapp.read);
   // leads e orçamentos só aparecem para quem tem leads.read / orcamentos.read.
   { path: "/whatsapp-visao-geral", permissions: ["whatsapp.read"] },
