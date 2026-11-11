@@ -9,7 +9,8 @@ import { CampoDeMedida, SeletorDeUnidade, useUnidadeDeMedida } from "@/component
 import { medidaLegivel, type UnidadeDeMedida } from "@/domain/orcamentos/unidade-de-medida";
 import { dicaCampo } from "@/lib/dicas";
 import { cn } from "@/lib/utils";
-import { areaCobrada, areaLegivel, areaTotal, areaUnitaria, temDimensoes } from "@/domain/orcamentos/area";
+import { areaLegivel, areaUnitaria, temDimensoes } from "@/domain/orcamentos/area";
+import { areaExataCobradaDoLote, areaExataDoLote } from "@/domain/encaixe/linha-do-lote";
 import type { TamanhoComum } from "@/domain/orcamentos/tipos-de-produto";
 
 /**
@@ -174,8 +175,10 @@ export function MedidasDaPeca({
   const dims = { largura: paraNumero(largura), altura: paraNumero(altura), quantidade };
   const temMedida = temDimensoes(dims);
   const daPeca = areaUnitaria(dims);
-  const doLote = areaTotal(dims);
-  const cobrada = areaCobrada(dims, areaMinima);
+  // Áreas exatas ao mm²: a mesma conta da linha sob a quantidade. areaTotal e areaCobrada arredondam o LOTE em 3 casas
+  // (a precisão do banco) e em lote miúdo mostravam número errado: 3 adesivos de 4 × 4 cm (48 cm²) saíam "50 cm²".
+  const doLote = areaExataDoLote(dims);
+  const cobrada = areaExataCobradaDoLote(dims, areaMinima);
   const minimoAplicado = temMedida && cobrada > doLote + 0.0001;
   const qtd = quantidade > 0 ? quantidade : 1;
 

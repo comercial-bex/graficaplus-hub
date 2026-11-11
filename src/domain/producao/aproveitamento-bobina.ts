@@ -2,9 +2,13 @@
  * Aproveitamento de bobina: quantas peças saem do rolo que está na máquina.
  *
  * É a conta que decide se um pedido cabe, quantos metros lineares ele consome e
- * quanto material vira sobra. O preço por m² do catálogo é cobrado sobre a
- * BOBINA CONSUMIDA, não sobre a área da peça pronta — e a diferença entre as
- * duas é exatamente o que esta função calcula.
+ * quanto material vira sobra. Ela mede MATERIAL, não preço: o orçamento cobra a
+ * área da peça pronta, com o mínimo por peça (`areaCobrada`, em
+ * `orcamentos/area.ts`), e a bobina gasta não entra nessa cobrança. A diferença
+ * entre as duas é a perda de material (avanço, faixa lateral, espaço entre as
+ * peças), e é exatamente o que esta função calcula. O teste de calibração
+ * (`tests/aproveitamento-bobina.test.ts`) compara esta conta com a régua de
+ * preço fechado do catálogo; é conferência, não regra de cobrança.
  *
  * Quatro parâmetros mandam no resultado:
  *   - largura útil da máquina (a boca de impressão);
@@ -15,6 +19,8 @@
  * O gargalo é sempre o menor entre a boca da máquina e a largura da bobina:
  * uma máquina de 1,80 m com bobina de 1,06 m imprime 1,06 m.
  */
+
+import { UNIDADES_POR_METRO, divPiso, dmmDeMetros } from "@/domain/encaixe/inteiros";
 
 export type EntradaBobina = {
   /** metros */
@@ -74,17 +80,46 @@ const arred = (n: number, casas = 3) => {
 };
 
 /**
+ * Metros em décimos de milímetro (a unidade do motor de encaixe), sempre inteiro.
+ * `dmmDeMetros` devolve null quando o valor não é múltiplo de 0,1 mm; nesse caso
+ * arredonda ao décimo mais próximo.
+ */
+const emDecimosDeMm = (metros: number): number =>
+  dmmDeMetros(metros) ?? Math.round(metros * UNIDADES_POR_METRO);
+
+/**
  * Quantas peças de `largura` cabem lado a lado em `disponivel`.
  *
  * n peças ocupam n·largura + (n−1)·espaçamento, então
  * n ≤ (disponível + espaçamento) ÷ (largura + espaçamento).
  * O espaçamento entra no numerador porque a última peça não tem vizinha à
- * direita — esquecer isso perde uma coluna em peça pequena, que é justamente
+ * direita: esquecer isso perde uma coluna em peça pequena, que é justamente
  * onde a coluna a mais faz diferença.
+ *
+ * A divisão é INTEIRA, em décimos de milímetro (a unidade do motor de encaixe,
+ * `encaixe/inteiros.ts`). Em metros de ponto flutuante, 0,6 ÷ 0,2 vale
+ * 2,9999999999999996 e o `Math.floor` perdia uma coluna sempre que o encaixe
+ * era exato: bobina de 1,27 m, margem de 15 mm, espaço de 5 mm e peça de 244 mm
+ * davam 4 colunas em vez de 5 (25 fileiras em vez de 20, 25% de material a
+ * mais). Em 4,27 milhões de combinações de milímetros inteiros (disponível de
+ * 50 a 2.000 mm, peça de 5 a 400 mm, espaço de 0 a 5 mm) a conta antiga errou
+ * 12.109 (0,28%), sempre uma coluna a menos.
+ *
+ * Medida que não é múltipla de 0,1 mm (a tela só guarda 1 mm; isso só sobra em
+ * conta feita à mão) é arredondada ao décimo de milímetro mais próximo: erro de
+ * até 0,05 mm por medida. Espaço negativo vale 0. Peça sem largura, ou número
+ * que não é medida, devolve 0 colunas.
  */
 export function colunasQueCabem(disponivel: number, largura: number, espacamento: number): number {
-  if (largura <= 0 || disponivel < largura) return 0;
-  return Math.floor((disponivel + espacamento) / (largura + espacamento));
+  if (!(largura > 0) || !Number.isFinite(disponivel) || !Number.isFinite(espacamento)) return 0;
+  const d = emDecimosDeMm(disponivel);
+  // Largura positiva nunca vira zero: abaixo de 0,05 mm conta como 1 décimo, senão a divisão seria por zero.
+  const l = Math.max(1, emDecimosDeMm(largura));
+  const e = Math.max(0, emDecimosDeMm(espacamento));
+  // Acima de 900 bilhões de metros o inteiro deixa de ser exato. Isso não é medida: devolve 0.
+  if (!Number.isSafeInteger(d + e) || !Number.isSafeInteger(l + e)) return 0;
+  if (d < l) return 0;
+  return divPiso(d + e, l + e);
 }
 
 export function planejarBobina(entrada: EntradaBobina): ResultadoBobina {

@@ -81,6 +81,7 @@ import { MedidasDaPeca } from "@/components/orcamento/medidas-da-peca";
 import { DetalhesOpcionais } from "@/components/orcamento/detalhes-opcionais";
 import { UnidadeDoItem } from "@/components/orcamento/unidade-do-item";
 import { QuantidadeDoItem } from "@/components/orcamento/quantidade-do-item";
+import { LinhaDoLote } from "@/components/orcamento/linha-do-lote";
 import { AcabamentoDoItem } from "@/components/orcamento/acabamento-do-item";
 import { PerguntasDoItem, usePerguntasDoProduto } from "@/components/orcamento/perguntas-do-item";
 import { MaterialPorFormula, useCustoDosMateriais, useFormulasDoProduto, useTerceirizadosDoProduto } from "@/components/orcamento/material-por-formula";
@@ -1992,6 +1993,13 @@ function OrcamentoDetailPage() {
                         </div>
                       )}
                     </div>
+                    <LinhaDoLote
+                      largura={dimensoesForm.largura}
+                      altura={dimensoesForm.altura}
+                      quantidade={paraNumero(form.quantidade)}
+                      unidade={form.unidade}
+                      areaMinima={form.area_minima}
+                    />
                     {tipoDoItem?.chave === "servico" && (
                       <p className="text-xs text-muted-foreground" data-testid="aviso-detalhes-servico">
                         {dicaCampo("/orcamentos", "servico_detalhes_no_passo_4")}{" "}
