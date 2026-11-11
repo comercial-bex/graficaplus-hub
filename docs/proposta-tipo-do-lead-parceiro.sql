@@ -1,5 +1,6 @@
 -- PROPOSTA SOMENTE: NÃO APLICADA. Primeiro bloco sem controle de transação.
 -- Função abaixo obtida por pg_get_functiondef em 11/11/2026, não da migração 0010.
+-- Corpo atual: MD5 normalizado (espaços únicos + trim) f3fc4ed646de9084ff4ab6b364a23f94.
 -- Somente a lista de colunas/valores do INSERT de lead novo foi modificada.
 -- Origem, campanha, assinatura, idempotência e demais operações permanecem intactas.
 -- Limite preservado: contato que já é cliente pode não gerar lead; conversa sem
