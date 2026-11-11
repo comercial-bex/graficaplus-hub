@@ -171,7 +171,8 @@ function CompromissosPage() {
   const { data: maquinas = [] } = useQuery({
     queryKey: ["compromissos-maquinas"],
     queryFn: async () => {
-      const { data } = await supabase.from("maquinas").select("id, nome, custo_hora").eq("ativa", true).order("nome");
+      // Tela do financeiro: o custo por hora vem da visão `maquinas_financeiro`.
+      const { data } = await supabase.from("maquinas_financeiro" as never).select("id, nome, custo_hora").eq("ativa", true).order("nome");
       return data ?? [];
     },
   });

@@ -1017,14 +1017,24 @@ describe("o painel e o cartão de apontamento não mostram custo a quem aponta",
     ).split("\n");
     // Entre aspas duplas = lista de colunas de um select. (Crase é o texto
     // "R$/h" da tela, que o teste seguinte confere.)
-    const emTexto = linhas.filter((l) => /"[^"]*custo_hora[^"]*"/.test(l));
-    // O teste não pode passar por não achar nada: são duas consultas.
-    expect(emTexto.length).toBe(2);
-    for (const l of emTexto) {
-      expect(l, `consulta pede custo_hora sem conferir canSeeFinancials:\n${l}`).toMatch(
-        /canSeeFinancials\s*\?/,
-      );
+    const indices = linhas
+      .map((l, i) => (/"[^"]*custo_hora[^"]*"/.test(l) ? i : -1))
+      .filter((i) => i >= 0);
+    // O teste não pode passar por não achar nada: são duas consultas (a lista de máquinas para apontar e a visão do
+    // custo, de onde o cartão junta o custo por hora de cada apontamento; o embed da tabela só pede o nome).
+    expect(indices.length).toBe(2);
+    for (const i of indices) {
+      // Ou a própria linha confere o nível, ou a consulta vem depois de um retorno antecipado de quem não vê custo.
+      const antes = linhas.slice(Math.max(0, i - 25), i).join("\n");
+      const conferido = /canSeeFinancials\s*\?/.test(linhas[i]) || /if \(!canSeeFinancials/.test(antes);
+      expect(
+        conferido,
+        `consulta pede custo_hora sem conferir canSeeFinancials:\n${linhas[i]}`,
+      ).toBe(true);
     }
+    // O embed da tabela de máquinas pede só o nome: a tabela não entrega custo por hora.
+    expect(linhas.join("\n")).toContain("maquinas(nome)");
+    expect(linhas.join("\n")).not.toMatch(/maquinas\([^)]*custo_hora/);
   });
 
   it("apontamento-card não escreve valor em reais fora de um ramo de quem vê custo", () => {

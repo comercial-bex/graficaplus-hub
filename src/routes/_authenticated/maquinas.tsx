@@ -22,6 +22,7 @@ import { StatusChip } from "@/components/bex/StatusChip";
 import { NeonButton } from "@/components/bex/NeonButton";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { useAuth } from "@/lib/auth-context";
+import { lerMaquinas } from "@/lib/supabase-financial-views";
 import { ParametrosDeMaquina } from "@/components/maquinas/parametros-de-maquina";
 import { mensagemErro } from "@/lib/erros";
 import { Dica } from "@/components/bex/Dica";
@@ -91,15 +92,16 @@ function MaquinasPage() {
   const [form, setForm] = useState<Form>(emptyForm);
   const [passosAberto, setPassosAberto] = useState(false);
 
+  // Quem vê custo lê a máquina inteira pela visão `maquinas_financeiro`; os demais, a tabela só com as colunas sem
+  // custo (a tabela não entrega custo por hora, valor de compra nem o texto de compra). O nível entra na chave: a
+  // resposta de quem vê custo não pode ser servida do cache a quem não vê. As invalidações por ["maquinas"] seguem
+  // valendo (a chave começa igual).
   const { data: maquinas = [], isLoading } = useQuery({
-    queryKey: ["maquinas"],
+    queryKey: ["maquinas", canSeeFinancials],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("maquinas")
-        .select("*")
-        .order("nome", { ascending: true });
+      const { data, error } = await lerMaquinas(canSeeFinancials).order("nome", { ascending: true });
       if (error) throw error;
-      return data;
+      return (data ?? []) as any[];
     },
   });
 
@@ -506,6 +508,31 @@ function MaquinasPage() {
                     ) : null}
                   </details>
                 )}
+
+                {/* Compra e custo: o texto que antes morava na ficha técnica (e toda a equipe lia). Só quem vê custo. */}
+                {canSeeFinancials &&
+                  m.especificacoes_comerciais &&
+                  Object.keys(m.especificacoes_comerciais as object).length > 0 && (
+                    <details className="rounded-md border bg-muted/30 p-2" data-compra-e-custo="">
+                      <summary className="cursor-pointer text-sm font-medium">Compra e custo</summary>
+                      <dl className="mt-2 space-y-1 text-sm">
+                        {Object.entries(m.especificacoes_comerciais as Record<string, unknown>).map(
+                          ([chave, valor]) => (
+                            <div key={chave} className="flex justify-between gap-3">
+                              <dt className="text-muted-foreground">{chave.replace(/_/g, " ")}</dt>
+                              <dd className="text-right">
+                                {typeof valor === "object" && valor !== null
+                                  ? Object.entries(valor as Record<string, unknown>)
+                                      .map(([k, v]) => `${k.replace(/_/g, " ")}: ${String(v)}`)
+                                      .join("; ")
+                                  : String(valor)}
+                              </dd>
+                            </div>
+                          ),
+                        )}
+                      </dl>
+                    </details>
+                  )}
 
                 {canSeeFinancials && contratoPorMaquina.get(m.id) && (
                   <div className="rounded-md border border-[color:var(--bex-cyan)]/30 bg-[color:var(--bex-cyan)]/5 p-2 text-xs space-y-1">

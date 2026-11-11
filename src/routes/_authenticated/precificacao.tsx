@@ -239,8 +239,9 @@ function Simulador() {
   const maquinas = useQuery({
     queryKey: ["precificacao-maquinas"],
     queryFn: async (): Promise<MaquinaDoCatalogo[]> => {
+      // Tela do financeiro: o custo por hora vem da visão `maquinas_financeiro`.
       const { data, error } = await supabase
-        .from("maquinas")
+        .from("maquinas_financeiro" as never)
         .select("id, nome, custo_hora, potencia_kw, setup_min")
         .eq("ativa", true)
         .order("nome");

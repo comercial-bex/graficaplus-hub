@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { SELECT_DA_MAQUINA_SEM_CUSTO } from "@/domain/maquinas/colunas";
 
 /**
  * Três níveis de visão sobre as tabelas que carregam dinheiro.
@@ -50,4 +51,19 @@ export function fromFinancialView<E extends ProtectedEntity>(entity: E, nivel: N
   // Views mirror the base table shape but aren't in generated types;
   // use a dynamic builder so generated table typings don't reject view names.
   return (supabase as any).from(view);
+}
+
+/**
+ * As máquinas, no nível de quem olha (10/11/2026).
+ *
+ * Quem vê custo lê a visão `maquinas_financeiro`, a máquina inteira, com custo por hora, valor de compra e o texto de
+ * compra. Quem não vê lê a tabela `maquinas` só com as colunas sem custo: a tabela não entrega as outras, e `select("*")`
+ * ali derruba a consulta. Devolve o construtor de consulta já com o `select`: o chamador acrescenta filtro e ordem.
+ * `nivel` aceita o nível novo ou o boolean `canSeeFinancials`.
+ */
+export function lerMaquinas(nivel: NivelDeVisao | boolean) {
+  const vendoCusto = nivel === true || nivel === "financeiro";
+  return vendoCusto
+    ? (supabase as any).from("maquinas_financeiro").select("*")
+    : (supabase as any).from("maquinas").select(SELECT_DA_MAQUINA_SEM_CUSTO);
 }

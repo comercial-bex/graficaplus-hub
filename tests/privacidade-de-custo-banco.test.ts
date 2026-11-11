@@ -173,3 +173,52 @@ describe("o visitante (anon) não lê nem grava nas tabelas de custo", () => {
     expect(bloco).not.toContain("authenticated");
   });
 });
+
+describe("onda B1: a visão do custo das máquinas", () => {
+  const B1 = readFileSync(
+    "supabase/migrations/20261110250000_custo_privado_b1_visao_do_custo_das_maquinas.sql",
+    "utf8",
+  );
+  const c = B1.replace(/^--[^\n]*$/gm, "");
+
+  it("a visão guarda no WHERE: só quem é da equipe e vê custo de máquina", () => {
+    expect(c).toContain(
+      "WHERE public.is_staff(( SELECT auth.uid() AS uid)) AND public.pode_ver_custo_de_maquina(( SELECT auth.uid() AS uid));",
+    );
+  });
+
+  it("security_barrier ligado, security_invoker desligado, só SELECT para authenticated, nada para o visitante", () => {
+    expect(c).toContain(
+      "ALTER VIEW public.maquinas_financeiro SET (security_invoker = false, security_barrier = true);",
+    );
+    expect(c).toContain(
+      "REVOKE ALL ON public.maquinas_financeiro FROM PUBLIC, anon, authenticated;",
+    );
+    expect(c).toContain("GRANT SELECT ON public.maquinas_financeiro TO authenticated;");
+    expect(c).not.toMatch(/GRANT\s+(INSERT|UPDATE|DELETE|ALL)[^;]*maquinas_financeiro/i);
+  });
+
+  it("traz as colunas de custo e as duas do formato da máquina, e a coluna nova nasce vazia", () => {
+    for (const col of [
+      "m.custo_hora",
+      "m.vida_util_horas",
+      "m.valor_residual",
+      "m.forma_aquisicao",
+      "m.valor_aquisicao",
+      "m.data_aquisicao",
+      "m.especificacoes_comerciais",
+      "m.alimentacao",
+      "m.comprimento_util_m",
+    ]) {
+      expect(c, col).toContain(col);
+    }
+    expect(c).toContain(
+      "ADD COLUMN IF NOT EXISTS especificacoes_comerciais jsonb NOT NULL DEFAULT '{}'::jsonb;",
+    );
+  });
+
+  it("é aditiva: não revoga nem apaga nada de nenhuma tabela", () => {
+    expect(c).not.toMatch(/\bDELETE\b|\bDROP\b|\bTRUNCATE\b/i);
+    expect(c).not.toMatch(/REVOKE[^;]*ON\s+public\.maquinas\s/i);
+  });
+});
