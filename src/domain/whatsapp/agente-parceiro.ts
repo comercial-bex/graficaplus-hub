@@ -111,10 +111,9 @@ export const SAUDACAO =
   "Oi! Aqui é a assistente da Bex Print. Que bom que tu quer ser parceiro! Vou fazer umas perguntas rápidas pro teu cadastro. " +
   "Teus dados servem só pra isso, como explica nossa política: bexprint.com.br/privacidade. Posso seguir? (sim) — se não quiser, manda SAIR.";
 
-export function mininoCompleto(f: Ficha): boolean {
+export function minimoCompleto(f: Ficha): boolean {
   return !!f.nome && f.telefoneConfirmado !== null && !!f.telefoneCadastro && !!f.email;
 }
-export { mininoCompleto as minimoCompleto };
 
 function sa(t: string): string {
   return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -270,19 +269,19 @@ function foraDoHorario(agora: Date): boolean {
 export function responder(anterior: EstadoDoAgente, entrada: Entrada): Resultado {
   const e: EstadoDoAgente = structuredClone(anterior);
   const out: string[] = [];
-  const minimoAntes = mininoCompleto(e.ficha);
+  const minimoAntes = minimoCompleto(e.ficha);
   const fim = (transferir: MotivoDeTransferencia | null = null): Resultado => {
     for (const r of out) if (textoBloqueado(r)) {
       e.situacao = "transferido";
       return { estado: e, respostas: [FRASE_TRANSFERENCIA], transferir: "texto_bloqueado", criarPreCadastro: false };
     }
-    const criar = !minimoAntes && mininoCompleto(e.ficha);
+    const criar = !minimoAntes && minimoCompleto(e.ficha);
     if (criar && e.situacao === "coletando") e.situacao = "minimo_completo";
     return { estado: e, respostas: out, transferir, criarPreCadastro: criar };
   };
 
   if (e.situacao === "saiu" || e.situacao === "transferido" || e.situacao === "enviado") return fim();
-  if (e.situacao === "pausado") e.situacao = mininoCompleto(e.ficha) ? "minimo_completo" : "coletando";
+  if (e.situacao === "pausado") e.situacao = minimoCompleto(e.ficha) ? "minimo_completo" : "coletando";
 
   if (entrada.tipo === "midia") { out.push(FRASE_MIDIA); e.situacao = "transferido"; return fim("midia"); }
   const texto = (entrada.texto ?? "").trim();
@@ -313,7 +312,7 @@ export function responder(anterior: EstadoDoAgente, entrada: Entrada): Resultado
 
   switch (e.passo) {
     case "consentimento":
-      if (SIM.test(s) || /quero ser parceir/.test(s)) { e.ficha.aceiteLgpdEm = entrada.agora.toISOString(); ok(); }
+      if (SIM.test(s)) { e.ficha.aceiteLgpdEm = entrada.agora.toISOString(); ok(); }
       else { erro = invalida(e, "Pra seguir, responde \"sim\". Se não quiser, manda SAIR.", out); return fim(erro); }
       break;
     case "nome": {
