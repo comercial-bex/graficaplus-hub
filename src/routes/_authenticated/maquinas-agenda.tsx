@@ -73,9 +73,11 @@ function AgendaPage() {
   const [fim, setFim] = useState(() => proximaHora(3));
 
   const { data: maquinas = [] } = useQuery({
-    queryKey: ["maquinas"],
+    // Só id e nome são usados aqui. Chave própria: ["maquinas"] é da tela de máquinas, com outro formato (e, para quem
+    // vê custo, de outra visão).
+    queryKey: ["maquinas", "agenda"],
     queryFn: async () => {
-      const { data, error } = await db.from("maquinas").select("*").eq("ativa", true).order("nome");
+      const { data, error } = await db.from("maquinas").select("id, nome, tipo, ativa, setor").eq("ativa", true).order("nome");
       if (error) throw error;
       return data;
     },

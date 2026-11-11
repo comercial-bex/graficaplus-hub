@@ -164,8 +164,9 @@ export function CalculadoraCusto({
     queryKey: ["calc-maquinas"],
     enabled: open,
     queryFn: async () => {
+      // O componente só abre para quem vê custo; custo por hora vem da visão `maquinas_financeiro`.
       const { data, error } = await supabase
-        .from("maquinas")
+        .from("maquinas_financeiro" as never)
         .select("id, nome, custo_hora, potencia_kw, setup_min, velocidade_m2_h, base_cobranca, velocidade_mm_s, tempo_minimo_min")
         .eq("ativa", true)
         .order("nome");

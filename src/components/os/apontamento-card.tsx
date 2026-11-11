@@ -37,7 +37,7 @@ type Apontamento = {
   iniciado_em: string;
   finalizado_em: string | null;
   observacoes: string | null;
-  /** `custo_hora` só vem para quem pode ver custo — nem é pedido para os demais. */
+  /** `custo_hora` só vem para quem pode ver custo, juntado da visão `maquinas_financeiro`: nem é pedido para os demais. */
   maquinas?: { nome: string; custo_hora?: number | null } | null;
 };
 
@@ -139,17 +139,32 @@ export function ApontamentoDaOS({ osId }: { osId: string }) {
     // ser servida do cache a quem não vê.
     queryKey: ["apontamentos", osId, canSeeFinancials],
     queryFn: async (): Promise<Apontamento[]> => {
+      // O embed pede só o nome: a tabela `maquinas` não entrega o custo por hora (10/11/2026).
       const { data, error } = await (supabase as any)
         .from("apontamentos_producao")
-        .select(
-          `id, maquina_id, etapa, quantidade, iniciado_em, finalizado_em, observacoes, maquinas(${
-            canSeeFinancials ? "nome, custo_hora" : "nome"
-          })`,
-        )
+        .select("id, maquina_id, etapa, quantidade, iniciado_em, finalizado_em, observacoes, maquinas(nome)")
         .eq("os_id", osId)
         .order("iniciado_em", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Apontamento[];
+      const linhas = (data ?? []) as Apontamento[];
+      if (!canSeeFinancials || linhas.length === 0) return linhas;
+      // Quem vê custo lê o custo por hora na visão `maquinas_financeiro` e junta aqui pela máquina. Se esta consulta
+      // falhar, a lista falha inteira (e mostra o erro): custo zero em silêncio faria o apontamento parecer de graça.
+      const ids = [...new Set(linhas.map((l) => l.maquina_id).filter((id): id is string => !!id))];
+      if (ids.length === 0) return linhas;
+      const { data: custos, error: erroDoCusto } = await (supabase as any)
+        .from("maquinas_financeiro")
+        .select("id, custo_hora")
+        .in("id", ids);
+      if (erroDoCusto) throw erroDoCusto;
+      const custoPorMaquina = new Map<string, number | null>(
+        ((custos ?? []) as { id: string; custo_hora: number | null }[]).map((c) => [c.id, c.custo_hora]),
+      );
+      return linhas.map((l) =>
+        l.maquinas && l.maquina_id
+          ? { ...l, maquinas: { ...l.maquinas, custo_hora: custoPorMaquina.get(l.maquina_id) ?? null } }
+          : l,
+      );
     },
   });
 
@@ -163,8 +178,9 @@ export function ApontamentoDaOS({ osId }: { osId: string }) {
     queryFn: async (): Promise<MaquinaParaApontar[]> => {
       // O erro era jogado fora: consulta caída virava seletor vazio, e o
       // operador lia "não há máquina" onde havia falha.
+      // Quem vê custo lê a visão `maquinas_financeiro` (com custo por hora); os demais, a tabela só com id e nome.
       const { data, error } = await (supabase as any)
-        .from("maquinas")
+        .from(canSeeFinancials ? "maquinas_financeiro" : "maquinas")
         .select(canSeeFinancials ? "id, nome, custo_hora" : "id, nome")
         .eq("ativa", true)
         .order("nome");
