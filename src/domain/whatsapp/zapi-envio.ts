@@ -47,6 +47,14 @@ export function telefoneParaZapi(valor: string | null | undefined): string | nul
   return numeroEstrangeiro(valor) ?? numeroRecebidoDeFora(valor);
 }
 
+/**
+ * Grupo do WhatsApp, como o Z-API endereça: "120363…-group". É o destino do aviso no grupo de
+ * trabalho da equipe. Não é telefone: `telefoneParaZapi` recusa (18 dígitos e o sufixo).
+ */
+export function ehGrupoZapi(valor: string | null | undefined): boolean {
+  return /^\d{10,}-group$/.test((valor ?? "").trim());
+}
+
 export type EnderecoZapi = {
   url: string;
   corpo: Record<string, unknown>;
@@ -63,7 +71,7 @@ export function montarEnvio(
   pedido: PedidoDeEnvio,
   credenciais: { instanceId: string; token: string },
 ): EnderecoZapi | { erro: string } {
-  const phone = telefoneParaZapi(pedido.para);
+  const phone = ehGrupoZapi(pedido.para) ? pedido.para.trim() : telefoneParaZapi(pedido.para);
   if (!phone) {
     return { erro: `"${pedido.para ?? ""}" não é um celular que recebe WhatsApp` };
   }
