@@ -302,7 +302,7 @@ export function responder(anterior: EstadoDoAgente, entrada: Entrada): Resultado
   let erro: MotivoDeTransferencia | null = null;
 
   if (e.aguardandoQualCorrigir) {
-    const alvo = (Object.keys(ROTULO_DO_PASSO) as Passo[]).find((p) => s.includes(sa(ROTULO_DO_PASSO[p])) || (p === "telefone" && /numero|telefone|whats/.test(s)));
+    const alvo = (Object.keys(ROTULO_DO_PASSO) as Passo[]).find((p) => s.replace(/-/g, "").includes(sa(ROTULO_DO_PASSO[p]).replace(/-/g, "")) || (p === "telefone" && /numero|telefone|whats/.test(s)));
     if (!alvo) { erro = invalida(e, "Qual dado tu quer corrigir? (nome, número, e-mail, empresa, ramo, cidade, instagram, documento, volume ou promoções)", out); return fim(erro); }
     ok(); e.aguardandoQualCorrigir = false; e.corrigindo = true; e.passo = alvo;
     if (alvo === "telefone") { e.ficha.telefoneCadastro = null; e.ficha.telefoneConfirmado = null; }
