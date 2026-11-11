@@ -457,6 +457,10 @@ export const dicas = {
     menu: "O atendente automático em teste, sem falar com cliente.",
     tela: "Escreva como um cliente e veja o que o atendente responderia, o que entendeu e a conta da tabela. A réplica passa as conversas reais por ele e mostra ao lado o que a equipe respondeu. Nada sai pelo WhatsApp.",
   },
+  "/agente-parceiro-ensaio": {
+    menu: "O agente que cadastra parceiros pelo WhatsApp, em teste.",
+    tela: "Escreva como quem quer ser parceiro e veja, ao lado, a ficha sendo preenchida passo a passo. Teste SAIR, áudio, silêncio e fora do horário. Nada sai pelo WhatsApp e nada é gravado.",
+  },
   "/preencher-pastas": {
     menu: "O que falta preencher nas pastas dos produtos.",
     tela: "Cada área tem a sua parte: a produção confirma a produtividade, o atendimento revisa o roteiro da IA e o financeiro preenche o NCM.",

@@ -19,6 +19,7 @@ import { Route as SejaParceiroRouteImport } from './routes/seja-parceiro'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as Tv2RouteImport } from './routes/tv2'
 import { Route as AuthenticatedAReceberRouteImport } from './routes/_authenticated/a-receber'
+import { Route as AuthenticatedAgenteParceiroEnsaioRouteImport } from './routes/_authenticated/agente-parceiro-ensaio'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated/arquivos'
 import { Route as AuthenticatedAtendenteEnsaioRouteImport } from './routes/_authenticated/atendente-ensaio'
@@ -177,6 +178,12 @@ const AuthenticatedAReceberRoute = AuthenticatedAReceberRouteImport.update({
   path: '/a-receber',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAgenteParceiroEnsaioRoute =
+  AuthenticatedAgenteParceiroEnsaioRouteImport.update({
+    id: '/agente-parceiro-ensaio',
+    path: '/agente-parceiro-ensaio',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
   id: '/aprovacoes',
   path: '/aprovacoes',
@@ -769,6 +776,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
+  '/agente-parceiro-ensaio': typeof AuthenticatedAgenteParceiroEnsaioRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/atendente-ensaio': typeof AuthenticatedAtendenteEnsaioRoute
@@ -887,6 +895,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
+  '/agente-parceiro-ensaio': typeof AuthenticatedAgenteParceiroEnsaioRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/atendente-ensaio': typeof AuthenticatedAtendenteEnsaioRoute
@@ -1008,6 +1017,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/_authenticated/a-receber': typeof AuthenticatedAReceberRoute
+  '/_authenticated/agente-parceiro-ensaio': typeof AuthenticatedAgenteParceiroEnsaioRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
   '/_authenticated/atendente-ensaio': typeof AuthenticatedAtendenteEnsaioRoute
@@ -1129,6 +1139,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tv2'
     | '/a-receber'
+    | '/agente-parceiro-ensaio'
     | '/aprovacoes'
     | '/arquivos'
     | '/atendente-ensaio'
@@ -1247,6 +1258,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tv2'
     | '/a-receber'
+    | '/agente-parceiro-ensaio'
     | '/aprovacoes'
     | '/arquivos'
     | '/atendente-ensaio'
@@ -1367,6 +1379,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tv2'
     | '/_authenticated/a-receber'
+    | '/_authenticated/agente-parceiro-ensaio'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/arquivos'
     | '/_authenticated/atendente-ensaio'
@@ -1583,6 +1596,13 @@ declare module '@tanstack/react-router' {
       path: '/a-receber'
       fullPath: '/a-receber'
       preLoaderRoute: typeof AuthenticatedAReceberRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agente-parceiro-ensaio': {
+      id: '/_authenticated/agente-parceiro-ensaio'
+      path: '/agente-parceiro-ensaio'
+      fullPath: '/agente-parceiro-ensaio'
+      preLoaderRoute: typeof AuthenticatedAgenteParceiroEnsaioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/aprovacoes': {
@@ -2346,6 +2366,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAReceberRoute: typeof AuthenticatedAReceberRoute
+  AuthenticatedAgenteParceiroEnsaioRoute: typeof AuthenticatedAgenteParceiroEnsaioRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedArquivosRoute: typeof AuthenticatedArquivosRoute
   AuthenticatedAtendenteEnsaioRoute: typeof AuthenticatedAtendenteEnsaioRoute
@@ -2428,6 +2449,8 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAReceberRoute: AuthenticatedAReceberRoute,
+  AuthenticatedAgenteParceiroEnsaioRoute:
+    AuthenticatedAgenteParceiroEnsaioRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedArquivosRoute: AuthenticatedArquivosRoute,
   AuthenticatedAtendenteEnsaioRoute: AuthenticatedAtendenteEnsaioRoute,

@@ -177,3 +177,28 @@ export function erroDaTrocaDeSenha(erro: { code?: string | null; message?: strin
     };
   return null;
 }
+
+/** CPF (11) ou CNPJ (14) com dígitos verificadores corretos. Aceita pontuação. */
+export function documentoValido(v: string): boolean {
+  const d = v.replace(/\D/g, "");
+  if (d.length !== 11 && d.length !== 14) return false;
+  if (/^(\d)\1+$/.test(d)) return false;
+  const digito = (base: string, pesos: number[]) => {
+    const s = pesos.reduce((acc, p, i) => acc + Number(base[i]) * p, 0) % 11;
+    return s < 2 ? 0 : 11 - s;
+  };
+  if (d.length === 11) {
+    const d1 = digito(d, [10, 9, 8, 7, 6, 5, 4, 3, 2]);
+    const d2 = digito(d, [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+    return d1 === Number(d[9]) && d2 === Number(d[10]);
+  }
+  const d1 = digito(d, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const d2 = digito(d, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return d1 === Number(d[12]) && d2 === Number(d[13]);
+}
+
+export const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"] as const;
+
+export function ufValida(v: string): boolean {
+  return (UFS as readonly string[]).includes(v.trim().toUpperCase());
+}
