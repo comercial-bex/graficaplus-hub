@@ -222,3 +222,50 @@ describe("onda B1: a visão do custo das máquinas", () => {
     expect(c).not.toMatch(/REVOKE[^;]*ON\s+public\.maquinas\s/i);
   });
 });
+
+describe("onda B3: o fechamento do custo das máquinas", () => {
+  const B3 = readFileSync(
+    "supabase/migrations/20261110260000_custo_privado_b3_fechar_custo_das_maquinas.sql",
+    "utf8",
+  );
+  const c = B3.replace(/^--[^\n]*$/gm, "");
+
+  it("a leitura que sobra para authenticated é exatamente a lista de colunas sem custo do código", async () => {
+    const { COLUNAS_DA_MAQUINA_SEM_CUSTO } = await import("../src/domain/maquinas/colunas");
+    const m = c.match(/GRANT SELECT \(([^)]*)\)\s+ON public\.maquinas TO authenticated;/);
+    expect(m, "GRANT por coluna em maquinas").not.toBeNull();
+    const liberadas = m![1].split(",").map((x) => x.trim());
+    expect([...liberadas].sort()).toEqual([...COLUNAS_DA_MAQUINA_SEM_CUSTO].sort());
+  });
+
+  it("tira o SELECT de tabela inteira de authenticated e do visitante, e não revoga escrita de ninguém", () => {
+    expect(c).toContain("REVOKE SELECT ON public.maquinas FROM authenticated, anon;");
+    expect(c).not.toMatch(/REVOKE\s+(ALL|INSERT|UPDATE|DELETE)[^;]*ON public\.maquinas\s/i);
+  });
+
+  it("move para a coluna restrita as chaves de compra que a ficha técnica tinha, e a ficha não aceita mais chave assim", async () => {
+    const { CHAVES_COMERCIAIS_DA_FICHA } = await import("../src/domain/maquinas/colunas");
+    for (const chave of CHAVES_COMERCIAIS_DA_FICHA) expect(c, chave).toContain(`'${chave}'`);
+    expect(c).toContain("especificacoes = especificacoes - ARRAY[");
+    expect(c).toContain("ADD CONSTRAINT maquinas_especificacoes_sem_custo_chk");
+    expect(c).toContain("(compra|custo|preco|valor|aquisi|parcela|financ)");
+  });
+
+  it("o patrimônio lê da visão do custo e a pendência do marcador provisório lê a coluna nova", () => {
+    expect(c).toContain("'FROM maquinas_financeiro m'");
+    expect(c).toContain("ALTER VIEW public.vw_patrimonio_maquinas SET (security_invoker = true);");
+    expect(c).toContain("IF v_n <> 2 THEN");
+    expect(c).toContain("especificacoes_comerciais->>''custo_hora_provisorio''");
+  });
+
+  it("para antes de fechar se alguma visão com security_invoker ainda depende de coluna de custo", () => {
+    expect(c).toContain("coalesce(c.reloptions::text, '') ~ 'security_invoker=(true|on)'");
+    expect(c).toContain(
+      "RAISE EXCEPTION 'Visões com security_invoker ainda leem coluna de custo de maquinas",
+    );
+    const guarda = c.indexOf("DO $guarda$");
+    const fecha = c.indexOf("REVOKE SELECT ON public.maquinas");
+    expect(guarda).toBeGreaterThan(0);
+    expect(fecha).toBeGreaterThan(guarda);
+  });
+});
