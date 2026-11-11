@@ -1,5 +1,11 @@
 # Roadmap
 
+## Identificação de parceiros (11/11)
+- [x] Preparar domínio, selo e filtro tolerantes à ausência de leads.tipo no Funil, Leads e WhatsApp.
+- [x] Escrever proposta SQL com função atual, permissões, backfill opcional, reversão e testes manuais; não aplicada.
+- [x] Executar suíte completa (4.234 aprovados, 1 pulado; 357 arquivos aprovados, 1 pulado) e checagem de tipos sem erros. Conferência visual autenticada bloqueada: solicitante sem conta correspondente; navegador ficou em carregamento sem sessão.
+- [ ] Aplicar proposta e validar classificação com mensagem real — depende de aprovação futura, cadastro dos IDs de anúncios e acesso autorizado; não executar nesta tarefa.
+
 - [x] Criar temas claro e escuro com Montserrat e preferência persistente.
 - [x] Manter o menu lateral escuro e sem reorganização.
 - [x] Adicionar alternância de tema no cabeçalho autenticado.

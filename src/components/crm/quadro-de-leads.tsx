@@ -13,6 +13,9 @@ import {
   type LeadDoQuadro,
 } from "@/domain/crm/quadro-de-leads";
 import { origemAgrupada } from "@/domain/crm/origens";
+import { Button } from "@/components/ui/button";
+import { SeloParceiro } from "@/components/crm/selo-parceiro";
+import { ehLeadParceiro, filtrarParceiros } from "@/domain/crm/tipo-do-lead";
 
 export type LeadDoCartao = LeadDoQuadro & {
   nome: string;
@@ -30,27 +33,32 @@ export function QuadroDeLeads({
   leads,
   etapas,
   verValores,
+  somenteParceiros = false,
+  onSomenteParceiros,
 }: {
   leads: LeadDoCartao[];
   etapas: { chave: string; rotulo: string }[];
   verValores: boolean;
+  somenteParceiros?: boolean;
+  onSomenteParceiros?: (valor: boolean) => void;
 }) {
   const [aba, setAba] = useState<AbaDoQuadro>("todos");
   const contagem = useMemo(() => contagemPorAba(leads), [leads]);
   const quadro = useMemo(
     () =>
       montarQuadro(
-        leadsDaAba(leads, aba),
+        filtrarParceiros(leadsDaAba(leads, aba), somenteParceiros),
         etapas.map((e) => e.chave),
       ),
-    [leads, aba, etapas],
+    [leads, aba, etapas, somenteParceiros],
   );
 
   return (
     <div>
-      <div role="tablist" className="mb-3 flex gap-1 overflow-x-auto border-b">
+      <div className="mb-3 flex items-center gap-1 overflow-x-auto border-b">
+        <div role="tablist" className="flex gap-1" aria-label="Canal do lead">
         {ABAS.map((a) => (
-          <button
+          <Button variant="ghost"
             key={a.chave}
             role="tab"
             type="button"
@@ -64,8 +72,12 @@ export function QuadroDeLeads({
           >
             {a.rotulo}{" "}
             <span className="font-mono text-xs text-muted-foreground">{contagem[a.chave]}</span>
-          </button>
+          </Button>
         ))}
+        </div>
+        {onSomenteParceiros && <Button variant="ghost" size="sm" aria-pressed={somenteParceiros}
+          onClick={() => onSomenteParceiros(!somenteParceiros)}
+          className={somenteParceiros ? "bg-lead-parceiro-surface text-lead-parceiro" : undefined}>Parceiros</Button>}
         <DicaIcone
           texto={dicaCampo("/funil", "abas_por_canal")}
           rotulo="Abas por canal"
@@ -130,9 +142,10 @@ export function QuadroDeLeads({
                     return (
                       <div
                         key={l.lead_id}
-                        className="rounded-md border bg-card p-2 text-sm shadow-sm"
+                        className={`rounded-md border bg-card p-2 text-sm shadow-sm ${ehLeadParceiro(l.tipo) ? "border-l-4 border-l-lead-parceiro" : ""}`}
                       >
                         <div className="font-medium leading-tight">{l.nome}</div>
+                        <SeloParceiro tipo={l.tipo} />
                         <div className="text-xs text-muted-foreground">
                           {origemAgrupada(l.origem)}
                           {l.campanha ? ` · ${l.campanha}` : ""}

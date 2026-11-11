@@ -43,8 +43,10 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { Carregando } from "@/components/bex/Carregando";
 import { ORIGENS } from "@/domain/crm/origens";
+import { SeloParceiro } from "@/components/crm/selo-parceiro";
+import { ehLeadParceiro } from "@/domain/crm/tipo-do-lead";
 export const Route = createFileRoute("/_authenticated/leads")({
-  head: () => ({ meta: [{ title: "Leads — BEX PRINT OS" }] }),
+  head: () => ({ meta: [{ title: "Leads — BEX PRINT OS" }, { name: "description", content: "Gerencie contatos comerciais e identifique parceiros revendedores no Bex Print." }, { property: "og:title", content: "Leads — BEX PRINT OS" }, { property: "og:description", content: "Contatos comerciais, parceiros e oportunidades da gráfica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: LeadsPage,
 });
 
@@ -364,8 +366,9 @@ function LeadsPage() {
                     const fechado = !!l.cliente_id || l.status === "perdido";
                     return (
                       <TableRow key={l.id}>
-                        <TableCell>
+                        <TableCell className={ehLeadParceiro(l.tipo) ? "border-l-4 border-l-lead-parceiro" : undefined}>
                           <div className="font-medium">{l.nome}</div>
+                          <SeloParceiro tipo={l.tipo} />
                           {l.empresa && (
                             <div className="text-xs text-muted-foreground">{l.empresa}</div>
                           )}

@@ -120,6 +120,7 @@ export const dicas = {
       total_da_aba:
         "Soma do valor de todos os cartões da aba: o valor orçado quando o lead tem orçamento, senão o valor potencial digitado no lead.",
       em_aberto: "Mesma soma, sem os leads entregues e os perdidos: o que ainda dá para trabalhar.",
+      parceiros: "Parceiro é o terceirizado ou revendedor identificado no cadastro do lead. O filtro mostra somente parceiros, mantendo o canal selecionado. A marca não altera a etapa, a origem nem os valores.",
     },
   },
   "/breakdown-3d": {

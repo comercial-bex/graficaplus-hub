@@ -62,6 +62,8 @@
   --color-surface-subtle: var(--surface-subtle);
   --color-positive: var(--positive);
   --color-positive-foreground: var(--positive-foreground);
+  --color-lead-parceiro: var(--lead-parceiro);
+  --color-lead-parceiro-surface: var(--lead-parceiro-surface);
   --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
@@ -77,6 +79,9 @@
 /* BEX PRINT OS — painel industrial híbrido, claro por padrão. */
 :root {
   --radius: 0.75rem;
+  /* Parceiros: laranja queimado, distinto das etapas; texto AA no fundo próprio. */
+  --lead-parceiro: #9a3412;
+  --lead-parceiro-surface: #fff7ed;
 
   /* Fundo cinza-azulado (o cartão branco se destaca) e ação principal em
      verde-água com letra azul-marinho, como o Holdprint que o dono aprovou. O
@@ -178,6 +183,8 @@
 }
 
 .dark {
+  --lead-parceiro: #fdba74;
+  --lead-parceiro-surface: #431407;
   /* Tema escuro "Neon Cyber" (21st.dev/@gustavo.raimundo, 02/11/2026): so as cores; fonte e raio ficam. Menu e topo seguem azul-marinho, iguais nos dois temas (regra dos testes). --muted-foreground e
      --sidebar-foreground clareados (o original #777 dava 3,3:1; com opacidade /70 do menu pedia #d4d4d8). Contra o card escuro #0d0d0d. Daltonismo fica na faixa 6–8: a legenda,
      o vão entre barras e a ordem fixa (recebidas à esquerda) completam. */
