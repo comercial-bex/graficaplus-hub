@@ -96,6 +96,9 @@ function FilaHumanaPage() {
               <Link to="/atendente-ensaio">Ensaio do atendente</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
+              <Link to="/agente-parceiro-ensaio">Ensaio do agente de parceiros</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
               <Link to="/whatsapp" aria-label="Abrir a caixa de entrada">
                 <MessageCircle className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Caixa de entrada</span>

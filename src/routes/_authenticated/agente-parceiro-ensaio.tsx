@@ -47,13 +47,8 @@ function EnsaioDoAgenteDeParceiros() {
   const [motivo, setMotivo] = useState<MotivoDeTransferencia | null>(null);
   const [preCadastroCriado, setPreCadastroCriado] = useState(false);
 
-  const agora = () => (foraDoHorario ? new Date("2026-11-15T13:00:00Z") : new Date(new Date().setUTCHours(13, 0, 0, 0) + 0));
-  const diaUtil = () => {
-    const d = agora();
-    if (foraDoHorario) return d;
-    while ([0, 6].includes(d.getUTCDay())) d.setUTCDate(d.getUTCDate() + 1);
-    return d;
-  };
+  /** Hora real; com a chave ligada, um domingo, para ver o aviso de fora do horário. */
+  const diaUtil = () => (foraDoHorario ? new Date("2026-11-15T13:00:00Z") : new Date());
 
   function recomecar(tel = telefone) {
     const i = iniciarAgente(tel);
@@ -132,7 +127,7 @@ function EnsaioDoAgenteDeParceiros() {
               </label>
               <label className="flex items-center gap-2">
                 <Switch checked={foraDoHorario} onCheckedChange={setForaDoHorario} aria-label="Simular fora do horário" />
-                Fora do horário
+                Forçar fora do horário
               </label>
             </div>
           </CardHeader>
