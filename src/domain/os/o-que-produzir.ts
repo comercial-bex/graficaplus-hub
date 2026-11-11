@@ -12,6 +12,9 @@
  * existe, e silêncio no lugar de "não definido".
  */
 
+import { areaLegivel } from "@/domain/orcamentos/area";
+import { medidaNaUnidadeCerta } from "@/domain/encaixe/linha-do-lote";
+
 export type ItemOs = {
   descricao?: string | null;
   quantidade?: number | string | null;
@@ -28,13 +31,16 @@ function num(v: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** "3,00 × 0,70 m" — a medida como a gráfica fala. */
+/**
+ * "3,00 × 0,70 m": a medida como a gráfica fala, sem perder precisão. Peça pequena com milímetro
+ * sai em centímetros ("4,5 × 4,5 cm"): com duas casas em metros o adesivo de 4,5 cm virava
+ * "0,05 × 0,05 m", e o cartão dizia 5 cm. A regra mora em `medidaNaUnidadeCerta`.
+ */
 export function medidaEmTexto(item: ItemOs): string | null {
   const l = num(item.largura);
   const a = num(item.altura);
   if (!l || !a) return null;
-  const fmt = (n: number) => n.toFixed(2).replace(".", ",");
-  return `${fmt(l)} × ${fmt(a)} m`;
+  return medidaNaUnidadeCerta(l, a);
 }
 
 /**
@@ -82,8 +88,11 @@ export function resumoDaProducao(itens: ItemOs[] | null | undefined): ResumoProd
   };
 }
 
-/** "12,50 m²" — metragem do jeito que aparece no orçamento. */
+/**
+ * "12,50 m²": a metragem do jeito que aparece no orçamento (mesma regra de casas de `areaLegivel`:
+ * de duas a três casas, e cm² abaixo de 0,01 m²). A soma vem das áreas que o banco guarda em 3 casas.
+ */
 export function areaEmTexto(area: number | null): string | null {
   if (area == null || area <= 0) return null;
-  return `${area.toFixed(2).replace(".", ",")} m²`;
+  return areaLegivel(area);
 }

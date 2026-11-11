@@ -1,5 +1,10 @@
-import { areaCobrada, areaLegivel, areaTotal, areaUnitaria, temDimensoes } from "./area";
+import { areaLegivel, areaUnitaria, temDimensoes } from "./area";
 import { camposDaUnidade } from "./tipos-de-produto";
+import {
+  areaExataCobradaDoLote,
+  areaExataDoLote,
+  medidaNaUnidadeCerta,
+} from "@/domain/encaixe/linha-do-lote";
 
 /**
  * A linha que o vendedor lê antes de apertar "Adicionar":
@@ -8,6 +13,11 @@ import { camposDaUnidade } from "./tipos-de-produto";
  *
  * É a mesma conta da tabela de itens e do PDF, dita em uma frase. Preço só
  * entra quando quem olha vê preço; sem ele a frase termina na metragem.
+ *
+ * As áreas saem pela mesma regra de casas do resto da tela (`areaLegivel`: cm²
+ * abaixo de 0,01 m², senão de duas a três casas) e a medida sem perder precisão
+ * (`medidaNaUnidadeCerta`: um adesivo de 4,5 cm é "4,5 × 4,5 cm", não "0,05 × 0,05 m").
+ * A área do lote vem exata, não arredondada em 3 casas (ver `linha-do-lote.ts`).
  */
 export type EntradaDoResumo = {
   descricao: string;
@@ -20,8 +30,6 @@ export type EntradaDoResumo = {
   valorTotal?: number | null;
 };
 
-const metros = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const m2 = (v: number) => `${metros(v)} m²`;
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export function fraseDoResumo(e: EntradaDoResumo): string {
@@ -33,13 +41,14 @@ export function fraseDoResumo(e: EntradaDoResumo): string {
   const dims = { largura: e.largura, altura: e.altura, quantidade: qtd };
   if (temDimensoes(dims)) {
     const peca = areaUnitaria(dims);
-    const total = areaTotal(dims);
-    const cobrada = areaCobrada(dims, e.areaMinima);
+    const total = areaExataDoLote(dims);
+    const cobrada = areaExataCobradaDoLote(dims, e.areaMinima);
     partes.push(`${qtd} × ${nome}`);
-    // A peça miúda sai em cm² ("25 cm² a peça"); o lote continua em m².
-    partes.push(`${metros(dims.largura!)} × ${metros(dims.altura!)} m = ${areaLegivel(peca)} a peça`);
-    if (qtd > 1) partes.push(`${m2(total)} no total`);
-    if (cobrada > total + 0.0001) partes.push(`cobrado ${m2(cobrada)} (mínimo)`);
+    // A peça miúda sai em cm² ("25 cm² a peça"); o lote só sai em cm² quando é miúdo de verdade.
+    const medida = medidaNaUnidadeCerta(dims.largura!, dims.altura!);
+    partes.push(`${medida} = ${areaLegivel(peca)} a peça`);
+    if (qtd > 1) partes.push(`${areaLegivel(total)} no total`);
+    if (cobrada > total + 0.0001) partes.push(`cobrado ${areaLegivel(cobrada)} (mínimo)`);
   } else {
     const nomeQtd =
       qtd === 1 ? campos.nomeDaQuantidade.singular : campos.nomeDaQuantidade.plural;

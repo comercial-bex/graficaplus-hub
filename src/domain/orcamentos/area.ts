@@ -59,14 +59,15 @@ export function areaUnitaria(item: ItemDimensionado): number {
 }
 
 /**
- * A área como a pessoa lê: peça pequena em cm² ("25 cm²"), o resto em m² com
- * duas casas ("0,25 m²"). Com duas casas, o adesivo de 5 × 5 cm aparecia como
- * "0,00 m²" na tela de medidas — e ninguém desconfiava da conta.
+ * A área como a pessoa lê: peça pequena em cm² ("25 cm²"), o resto em m² com no mínimo duas e no máximo três
+ * casas ("0,25 m²", "0,064 m²"). Com duas casas, o adesivo de 5 × 5 cm aparecia como "0,00 m²" na tela de medidas
+ * e ninguém desconfiava da conta; com duas casas fixas, 40 adesivos de 4 × 4 cm (0,064 m²) apareciam como "0,06 m²"
+ * enquanto a tabela e o PDF mostravam 0,064 (10/11/2026). Três casas é a precisão do documento ("22,050m²").
  */
 export function areaLegivel(m2: number): string {
   const v = Number.isFinite(m2) ? m2 : 0;
   if (v > 0 && v < 0.01) return `${Math.round(v * 10_000).toLocaleString("pt-BR")} cm²`;
-  return `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
+  return `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })} m²`;
 }
 
 /** Área do item inteiro (peça × quantidade), em m². */
