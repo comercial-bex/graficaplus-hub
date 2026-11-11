@@ -54,14 +54,19 @@ describe("a conversão e os antigos", () => {
 });
 
 describe("a tela avisa", () => {
+  // Desde 10/11/2026 as frases moram em src/domain/orcamentos/o-que-mudou.ts (testadas em o-que-mudou.test.ts)
+  // e a faixa em src/components/orcamento/faixa-de-mudanca.tsx; a tela só lê a RPC e entrega à faixa.
+  const DOMINIO = readFileSync("src/domain/orcamentos/o-que-mudou.ts", "utf8");
+
   it("lê a diferença pelo banco e mostra o que a versão tinha e o que está hoje", () => {
     expect(TELA).toContain('"orcamento_diferenca_da_versao"');
-    expect(TELA).toContain("Mudou depois de");
-    expect(TELA).toContain("brlVersao(versao.valor_da_versao)");
+    expect(TELA).toContain("<FaixaDeMudanca versao={versao} statusDoOrcamento={orc.status} erro={versaoErro} />");
+    expect(DOMINIO).toContain('Mudou depois de ${aprovada ? "aprovado" : "enviado"}');
+    expect(DOMINIO).toContain("brl(versao.valor_da_versao)");
   });
 
   it("diz o que fazer: aprovado → voltar o valor ou aprovar de novo; enviado → enviar de novo", () => {
-    expect(TELA).toContain("Para converter em OS o valor precisa voltar ao aprovado, ou o cliente aprovar de novo.");
-    expect(TELA).toContain("Envie de novo para registrar a nova versão.");
+    expect(DOMINIO).toContain("Para virar OS, volte ao valor aprovado ou peça nova aprovação do cliente.");
+    expect(DOMINIO).toContain("Envie de novo para o cliente ver o orçamento certo.");
   });
 });

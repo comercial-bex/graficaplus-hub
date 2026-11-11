@@ -66,6 +66,7 @@ import {
 } from "@/domain/catalogo/pasta-do-produto";
 import { cadastroDepoisDeRecarregar } from "@/domain/catalogo/foto-do-produto";
 import { ROTULO_DO_MODO_DA_IA, type ModoDaIa } from "@/domain/orcamentos/perguntas-do-item";
+import { AvisoDeValorNoTexto } from "@/components/custos/aviso-de-valor-no-texto";
 
 export const Route = createFileRoute("/_authenticated/produtos_/$id")({
   head: () => ({ meta: [{ title: "Pasta do produto — BEX PRINT OS" }] }),
@@ -776,6 +777,7 @@ function PastaDoProduto() {
                 desativado={!podeEditar}
                 aoMudar={(v) => setC({ observacoes_internas: v })}
               />
+              <AvisoDeValorNoTexto texto={cadastro.observacoes_internas} />
             </CardContent>
           </Card>
           {botaoSalvar}

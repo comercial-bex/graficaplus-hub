@@ -70,6 +70,7 @@ import {
   type ConferenciaIa,
 } from "@/domain/materiais/parecidos";
 import { Carregando } from "@/components/bex/Carregando";
+import { AvisoDeValorNoTexto } from "@/components/custos/aviso-de-valor-no-texto";
 
 export const Route = createFileRoute("/_authenticated/materiais")({
   head: () => ({
@@ -677,6 +678,7 @@ function MateriaisPage() {
                 onChange={(e) => setForm({ ...form, caracteristicas: e.target.value })}
                 placeholder="Cor, espessura, gramatura, acabamento, largura da bobina…"
               />
+              <AvisoDeValorNoTexto texto={form.caracteristicas} />
             </div>
             <div className="sm:col-span-2">
               <ConferenciaDeDuplicidade

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { useAuth } from "@/lib/auth-context";
+import { colunasDoSeletorDeProdutos } from "@/domain/catalogo/colunas-do-seletor";
 import type { ProdutoDaEscolha } from "./escolha-de-produto";
 
 /**
@@ -10,8 +11,11 @@ import type { ProdutoDaEscolha } from "./escolha-de-produto";
  *
  * As consultas vieram do seletor antigo (busca em lista). O catálogo vem da
  * view do nível de quem olha: a comercial traz preço de venda; a operacional,
- * nenhum valor. `select("*")` de propósito — cada view devolve só o que tem,
- * e pedir coluna que a view não tem derrubaria a consulta inteira.
+ * nenhum valor. Pede só as colunas que a escolha usa, por nível
+ * (`colunasDoSeletorDeProdutos`): até 10/11/2026 era `select("*")`, e a nota
+ * interna do produto (`observacoes_internas`) chegava ao navegador de quem não
+ * vê custo sem tela nenhuma usar. Coluna que a view não tem derruba a consulta
+ * inteira, por isso a lista cresce por nível e um teste confere cada uma.
  */
 export function useProdutosParaEscolha({
   ativo,
@@ -28,7 +32,7 @@ export function useProdutosParaEscolha({
     enabled: ativo,
     queryFn: async () => {
       const { data, error } = await fromFinancialView("produtos", nivelDeVisao)
-        .select("*")
+        .select(colunasDoSeletorDeProdutos(nivelDeVisao))
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
