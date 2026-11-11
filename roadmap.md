@@ -24,6 +24,7 @@
 - [x] Transferência com aviso ao cliente (14/10): a frase de passagem sai assinada por quem transferiu, na mesma transação; a conversa fica esperando o novo dono
 - [x] Os 3 leads de propaganda (Claro, Renova Be, Kwai) fechados como perdidos e as conversas resolvidas como spam, a pedido do dono (08/10). "Gratidão" segue aberto
 - [x] Despachante do servidor ligado (job `whatsapp-despachar`, a cada 2 min, token no Vault; testado com 200) (08/10)
+- [x] Origem do lead pelo anúncio (11/11): leads NOVOS do WhatsApp que vêm de anúncio/botão/post entram com origem Instagram ou Facebook e campanha "Anúncio <número>" (migração 0010). Leads antigos não mudam
 - [x] 12 funções SECURITY DEFINER que gravam fechadas para `anon` (migração 20261008040000, aplicada e conferida) (08/10)
 - [x] Índice das ferramentas guardadas (ferramentas/aiox-core) criado em `docs/indice-aiox-core.md` — o que é, o que pode ajudar no Bex Print e pré-requisitos; nada ativado (24/10)
 - [x] Selecionar três ferramentas no índice e propor ordem, pré-requisitos e riscos — PM/PO → data-engineer → QA/qa-loop; somente documentação (24/10)
