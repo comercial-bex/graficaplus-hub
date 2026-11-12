@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { FileText, Link2, Loader2, Search } from "lucide-react";
+import { Link2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +14,11 @@ import { rotuloDe } from "@/domain/os/etapas";
 import type { ConversaDaCaixa } from "@/domain/whatsapp/caixa-de-entrada";
 import {
   CHAVES,
-  acionarEnvio,
   buscarParaVincular,
-  subirAnexo,
   useVinculosDaConversa,
-  type VinculoResumo,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
-import { acaoNaConversa, enfileirarArquivo } from "@/lib/api/whatsapp-caixa.functions";
+import { acaoNaConversa } from "@/lib/api/whatsapp-caixa.functions";
+import { BotaoEnviarPdfAoCliente } from "@/components/whatsapp/botao-enviar-pdf-ao-cliente";
 import { Carregando } from "@/components/bex/Carregando";
 
 const brl = (v: number | null) =>
@@ -32,8 +30,6 @@ export function VinculosDaConversa({ conversa, podeEditar }: { conversa: Convers
   const qc = useQueryClient();
   const vinculos = useVinculosDaConversa(conversa.id, conversa.os_id, nivelDeVisao);
   const acao = useServerFn(acaoNaConversa);
-  const enviarArquivo = useServerFn(enfileirarArquivo);
-  const [enviandoPdf, setEnviandoPdf] = useState<string | null>(null);
 
   const recarregar = () => {
     void qc.invalidateQueries({ queryKey: ["wa-caixa-vinculos", conversa.id] });
@@ -52,39 +48,13 @@ export function VinculosDaConversa({ conversa, podeEditar }: { conversa: Convers
       toast.success(
         tipo === "orcamentos"
           ? r.cliente_herdado
-            ? "Orçamento vinculado — a conversa herdou o cliente dele"
+            ? "Orçamento vinculado. A conversa herdou o cliente dele"
             : "Orçamento vinculado"
           : "OS vinculada",
       );
       recarregar();
     } catch (e) {
       toast.error(mensagemErro(e));
-    }
-  }
-
-  async function enviarPdf(o: VinculoResumo) {
-    setEnviandoPdf(o.id);
-    try {
-      const { carregarPropsOrcamento, renderPDFBlob } = await import("@/lib/pdf/generate");
-      const props = await carregarPropsOrcamento(o.id, true, nivelDeVisao);
-      const blob = await renderPDFBlob(props);
-      const nome = `Orcamento-${o.numero}.pdf`;
-      const caminho = await subirAnexo(conversa.id, new Blob([blob], { type: "application/pdf" }), nome);
-      const r = await enviarArquivo({
-        data: { conversaId: conversa.id, tipo: "documento", caminho, nomeArquivo: nome, legenda: `Orçamento #${o.numero}` },
-      });
-      void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) });
-      const http = await acionarEnvio();
-      const saiu =
-        !("falhaDeRede" in http) &&
-        http.corpo?.resultados?.some((x) => x.fila_id === r.fila_id && x.situacao === "enviada");
-      if (saiu) toast.success(`PDF do orçamento #${o.numero} enviado`);
-      else toast.warning("PDF na fila — sai assim que o WhatsApp aceitar.");
-      void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) });
-    } catch (e) {
-      toast.error(`O PDF não foi enviado: ${mensagemErro(e)}`);
-    } finally {
-      setEnviandoPdf(null);
     }
   }
 
@@ -110,27 +80,45 @@ export function VinculosDaConversa({ conversa, podeEditar }: { conversa: Convers
                 </Link>
                 <Badge variant="outline" className="shrink-0 text-xs">{o.status}</Badge>
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 <span>{brl(o.valor_total)}</span>
-                {podeEditar && (
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={!!enviandoPdf} onClick={() => void enviarPdf(o)}>
-                    {enviandoPdf === o.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <FileText className="mr-1 h-3 w-3" />}
-                    Enviar PDF do orçamento
-                  </Button>
-                )}
               </div>
+              {podeEditar && (
+                <BotaoEnviarPdfAoCliente
+                  tipo="orcamento"
+                  referenciaId={o.id}
+                  numero={o.numero}
+                  conversaId={conversa.id}
+                  instanciaId={conversa.instancia_id}
+                  variant="outline"
+                  className="w-full"
+                />
+              )}
             </div>
           ))}
           {os && (
-            <div className="flex items-center justify-between gap-2 rounded border p-2">
-              <Link to="/os/$id" params={{ id: os.id }} className="truncate font-medium hover:underline">
-                OS #{os.numero} · {os.titulo}
-              </Link>
-              <span className="shrink-0 text-right text-xs text-muted-foreground">
-                {rotuloDe(os.status)}
-                <br />
-                {brl(os.valor_total)}
-              </span>
+            <div className="space-y-1 rounded border p-2">
+              <div className="flex items-center justify-between gap-2">
+                <Link to="/os/$id" params={{ id: os.id }} className="truncate font-medium hover:underline">
+                  OS #{os.numero} · {os.titulo}
+                </Link>
+                <span className="shrink-0 text-right text-xs text-muted-foreground">
+                  {rotuloDe(os.status)}
+                  <br />
+                  {brl(os.valor_total)}
+                </span>
+              </div>
+              {podeEditar && (
+                <BotaoEnviarPdfAoCliente
+                  tipo="os"
+                  referenciaId={os.id}
+                  numero={os.numero}
+                  conversaId={conversa.id}
+                  instanciaId={conversa.instancia_id}
+                  variant="outline"
+                  className="w-full"
+                />
+              )}
             </div>
           )}
         </div>

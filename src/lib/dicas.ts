@@ -761,3 +761,19 @@ export function dicaAcao(rota: string, acao: string): string | undefined {
 
 /** Calculadora 3D: o preço só aparece com os quatro dados que definem o custo (05/11/2026). */
 export const DICA_PRECO_3D_INCOMPLETO = "Informe impressora, filamento, peso e tempo para calcular o preço.";
+
+/**
+ * "Enviar PDF ao cliente" (12/11/2026): o mesmo botão no orçamento, na OS, no orçamento 3D, na prévia
+ * do PDF e no painel da conversa. O texto diz o que sai e que só sai com o clique de uma pessoa.
+ */
+export const DICAS_DO_PDF_AO_CLIENTE = {
+  orcamento:
+    "Manda o PDF do orçamento (via do cliente) na conversa dele, pelo WhatsApp da gráfica, com o link para aprovar. O Pix do sinal segue depois. Só sai quando você aperta.",
+  os: "Manda o PDF da ordem de serviço (via do cliente, com valores) na conversa dele, pelo WhatsApp da gráfica. Só sai quando você aperta.",
+  orcamento_3d:
+    "Manda o PDF do orçamento 3D (via do cliente) na conversa dele, pelo WhatsApp da gráfica. Só sai quando você aperta.",
+  desconectado: "Reconecte o WhatsApp no Monitor",
+  enviando: "Enviando. Espere o aviso dizendo se saiu.",
+  gerando: "Montando o PDF da via do cliente.",
+  esperando_o_pdf: "Espere o documento terminar de montar.",
+} as const;

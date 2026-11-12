@@ -39,6 +39,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { BotaoEnviarPdfAoCliente, ItemDoMenuEnviarPdf, useEnviarPdfAoCliente } from "@/components/whatsapp/botao-enviar-pdf-ao-cliente";
 import { gerarESalvarPDF } from "@/lib/pdf/generate";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import { BaixaEstoqueDialog } from "@/components/baixa-estoque-dialog";
@@ -188,6 +189,11 @@ function OSDetailPage() {
     },
   });
 
+  // "Enviar PDF ao cliente" (12/11/2026): a via do cliente, com valores, na conversa dele. Um só envio
+  // serve ao botão do computador e ao item do menu Mais do celular. Só quem vê preço (o servidor
+  // confere a mesma regra).
+  const envioDoPdf = useEnviarPdfAoCliente({ tipo: "os", referenciaId: id, numero: os?.numero ?? "" });
+
   async function updateStatus(novoStatus: string) {
     const statusAnterior = os?.status;
     if (novoStatus === "concluido") {
@@ -292,6 +298,11 @@ function OSDetailPage() {
                 <FileDown className="h-4 w-4 mr-1" /> PDF Cliente
               </Button>
             )}
+            {envioDoPdf.estado.visivel && (
+              <span className="hidden md:inline-flex">
+                <BotaoEnviarPdfAoCliente tipo="os" referenciaId={id} numero={os.numero} variant="outline" />
+              </span>
+            )}
             <Button variant="outline" className="hidden md:inline-flex" onClick={() => setPreviewOpen("producao")}>
               <FileDown className="h-4 w-4 mr-1" /> PDF Produção
             </Button>
@@ -349,6 +360,7 @@ function OSDetailPage() {
                     <FileDown className="h-4 w-4 mr-2" /> PDF Cliente
                   </DropdownMenuItem>
                 )}
+                <ItemDoMenuEnviarPdf envio={envioDoPdf} />
                 <DropdownMenuItem className="py-3" onClick={() => setPreviewOpen("producao")}>
                   <FileDown className="h-4 w-4 mr-2" /> PDF Produção
                 </DropdownMenuItem>

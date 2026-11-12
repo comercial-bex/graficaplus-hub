@@ -18,8 +18,10 @@ describe("botão WhatsApp do orçamento", () => {
   it("usa o mesmo normalizador do envio do sistema", () => {
     expect(TELA).toContain("telefoneParaZapi(bruto)");
   });
-  it("depois de mandar, rascunho vira enviado (congela a versão) e a lista é atualizada", () => {
-    expect(TELA).toContain('if ((orc as any)?.status === "rascunho") await setStatus("enviado", "Orçamento marcado como enviado");');
+  it("depois de mandar, o SERVIDOR passa rascunho a enviado (congela a versão) e a tela atualiza a lista", () => {
+    // 12/11/2026: a tela deixou de trocar o status e de gravar enviado_em; pede o registro (canal wa_me).
+    expect(TELA).toContain('await registrarPorFora("wa_me");');
+    expect(TELA).not.toContain('if ((orc as any)?.status === "rascunho") await setStatus("enviado", "Orçamento marcado como enviado");');
     expect(TELA).toContain('qc.invalidateQueries({ queryKey: ["orcamentos"] });');
   });
 });
