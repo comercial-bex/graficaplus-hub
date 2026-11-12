@@ -12,19 +12,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Calculator, Cpu, Package, Sparkles, Wand2, X } from "lucide-react";
+import { ArrowLeft, Calculator, Cpu, Package, RotateCw, Sparkles, TriangleAlert, Wand2, X } from "lucide-react";
 import { SeletorFilamento, SeletorImpressora } from "@/components/impressao3d/seletores-3d";
 import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-de-escolha";
 import { toast } from "sonner";
 import {
-  materialCost,
-  machineCost,
-  energyCost,
-  laborCost,
-  operationalCost,
-} from "@/domain/impressao3d/cost-engine";
-import { D } from "@/domain/impressao3d/decimal";
-import { custoDeEmbalagemDoItem, embalagemGravada } from "@/domain/impressao3d/custo-administrativo";
+  calcularPeca3D,
+  inputsDoItem3d,
+  LIMITES_DA_PECA_3D,
+  PRECO_MUDOU_3D,
+  resultadosDoItem3d,
+  type AvisoDaCotacao3D,
+  type EntradasDaPeca3D,
+} from "@/domain/impressao3d/calcular-peca";
+import { embalagemGravada } from "@/domain/impressao3d/custo-administrativo";
+import { cotarPeca3d, salvarPeca3dNoOrcamento } from "@/lib/api/orcamento-3d.functions";
+import { lerFilamentos3d, lerImpressoras3d } from "@/lib/supabase-financial-views";
+import { Carregando } from "@/components/bex/Carregando";
 import { Switch } from "@/components/ui/switch";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela, DICA_PRECO_3D_INCOMPLETO } from "@/lib/dicas";
@@ -34,11 +38,7 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { FieldTooltip } from "@/components/bex/FieldTooltip";
 import { Dropzone, type DropzoneStatus } from "@/components/bex/Dropzone";
 import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao3d/ocr";
-import {
-  fecharPreco,
-  horasDeMaoDeObraPorPeca,
-  PRECO_MINIMO_POR_PECA,
-} from "@/domain/impressao3d/preco";
+import { PRECO_MINIMO_POR_PECA } from "@/domain/impressao3d/preco";
 import {
   BUCKET_DOS_ARQUIVOS_3D,
   caminhoDoArquivo3d,
@@ -68,6 +68,123 @@ const money = (v: any) =>
 const numOuNulo = (v: string) => (String(v ?? "").trim() === "" ? null : num(v));
 
 const vezes = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}×`;
+
+/**
+ * A frase de quando o servidor não devolve o preço (onda C, 11/11/2026). Falha de cotação nunca vira o preço
+ * anterior nem número de fábrica: a tela diz que falhou e não deixa salvar.
+ */
+const FALHA_DA_COTACAO_3D =
+  "Não consegui calcular o preço agora. Tente de novo; se continuar, avise a gerência.";
+
+/** Os avisos do servidor dizem só que um cadastro está zerado, nunca o valor. */
+const TEXTO_DO_AVISO: Record<AvisoDaCotacao3D, string> = {
+  impressora_sem_custo_hora:
+    "A impressora escolhida está sem custo por hora no cadastro. Peça à gerência para corrigir antes de enviar este preço.",
+  impressora_sem_potencia:
+    "A impressora escolhida está sem potência no cadastro: a energia ficou fora do preço. Avise a gerência.",
+  filamento_sem_custo:
+    "O filamento escolhido está sem custo no cadastro: o material ficou fora do preço. Avise a gerência.",
+};
+
+/** O valor só muda depois de `ms` sem mudar (a cotação espera a pessoa parar de digitar). */
+function useAtrasado<T>(valor: T, ms: number): T {
+  const [atrasado, setAtrasado] = useState(valor);
+  useEffect(() => {
+    const t = setTimeout(() => setAtrasado(valor), ms);
+    return () => clearTimeout(t);
+  }, [valor, ms]);
+  return atrasado;
+}
+
+/** O que quem não vê custo manda ao servidor: só a peça, nunca taxa, preço ou markup (contrato de `cotarPeca3d`). */
+type EntradasDaCotacao3D = {
+  maquinaId: string;
+  materialId: string;
+  gramasModelo: number;
+  pesoSuporteG: number;
+  pesoPurgaG: number;
+  tempoMinutos: number;
+  quantidade: number;
+  pecasPorPlaca: number;
+};
+
+/**
+ * Confere a peça com os mesmos limites do servidor, para a mensagem sair aqui e não depois da espera.
+ * Devolve a frase do primeiro problema, ou nulo.
+ */
+function problemaDaPeca(e: EntradasDaCotacao3D): string | null {
+  const L = LIMITES_DA_PECA_3D;
+  const fora = (v: number, lim: { min: number; max: number }) => !(v >= lim.min && v <= lim.max);
+  const br = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+  if (!Number.isInteger(e.quantidade) || fora(e.quantidade, L.quantidade))
+    return `A quantidade deve ser um número inteiro, de ${br(L.quantidade.min)} a ${br(L.quantidade.max)}.`;
+  if (!Number.isInteger(e.pecasPorPlaca) || fora(e.pecasPorPlaca, L.pecasPorPlaca))
+    return `Peças na placa deve ser um número inteiro, de ${br(L.pecasPorPlaca.min)} a ${br(L.pecasPorPlaca.max)}.`;
+  if (fora(e.gramasModelo, L.gramasModelo))
+    return `O peso do modelo deve ficar entre ${br(L.gramasModelo.min)} g e ${br(L.gramasModelo.max)} g.`;
+  if (fora(e.pesoSuporteG, L.pesoSuporteG))
+    return `O peso do suporte deve ficar entre ${br(L.pesoSuporteG.min)} g e ${br(L.pesoSuporteG.max)} g.`;
+  if (fora(e.pesoPurgaG, L.pesoPurgaG))
+    return `O peso da purga deve ficar entre ${br(L.pesoPurgaG.min)} g e ${br(L.pesoPurgaG.max)} g.`;
+  if (!Number.isInteger(e.tempoMinutos) || fora(e.tempoMinutos, L.tempoMinutos))
+    return "O tempo de impressão deve ficar entre 1 minuto e 1 ano.";
+  return null;
+}
+
+/** Os campos do formulário que entram na conta (tudo texto, como a tela guarda). */
+type CamposDaConta3D = Pick<
+  FormState,
+  | "quantidade"
+  | "gramas"
+  | "peso_suporte"
+  | "peso_purga"
+  | "pecas_placa"
+  | "custo_hora"
+  | "potencia_w"
+  | "tarifa_kwh"
+  | "mo_custo_hora"
+  | "mo_horas"
+  | "pct_acabamento"
+  | "pct_falha"
+  | "custo_admin"
+  | "markup"
+>;
+
+/**
+ * Do formulário de quem vê custo para as entradas de `calcularPeca3D`, do mesmo jeito que a conta inline lia até
+ * 11/11/2026 (`num(f.quantidade, 1)`, `num(f.markup, 2)`, custo por grama da lista, markup de atacado da base).
+ * A normalização `|| 1`, `|| 2` e `|| 1,5` é do módulo. `tests/custo-3d-pela-visao.test.ts` compara, campo a campo,
+ * esta tradução mais o módulo com a conta antiga.
+ */
+export function entradasDaContaNaTela(a: {
+  f: CamposDaConta3D;
+  tempoMinutos: number;
+  custoPorGramaCalculado: unknown;
+  embalagemIncluida: boolean;
+  markupAtacadoPadrao: unknown;
+}): EntradasDaPeca3D {
+  const { f } = a;
+  return {
+    gramasModelo: num(f.gramas),
+    pesoSuporteG: num(f.peso_suporte),
+    pesoPurgaG: num(f.peso_purga),
+    tempoMinutos: a.tempoMinutos,
+    quantidade: num(f.quantidade, 1),
+    pecasPorPlaca: num(f.pecas_placa, 1),
+    moHoras: num(f.mo_horas),
+    embalagemIncluida: a.embalagemIncluida,
+    custoPorGrama: Number(a.custoPorGramaCalculado ?? 0),
+    custoHoraMaquina: num(f.custo_hora),
+    potenciaW: num(f.potencia_w),
+    tarifaKwh: num(f.tarifa_kwh),
+    moCustoHora: num(f.mo_custo_hora),
+    embalagemValor: num(f.custo_admin),
+    pctAcabamento: num(f.pct_acabamento),
+    pctFalha: num(f.pct_falha),
+    markup: num(f.markup, 2),
+    markupAtacado: Number(a.markupAtacadoPadrao ?? 1.5),
+  };
+}
 
 type FormState = {
   cliente_id: string;
@@ -203,18 +320,25 @@ export function Calculadora3D({
     patch(p);
   };
 
-  // aplica último preset salvo
+  // aplica último preset salvo. Preset é escolha de quem vê custo: no ramo sem custo ele nem entra (o servidor
+  // cota com a base da gráfica). Antes, o preset que o gestor escolheu num computador valia para o vendedor no
+  // mesmo computador.
   const [presetAtivo, setPresetAtivo] = useState<string | null>(null);
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const id = localStorage.getItem("bex.orc3d.preset");
+    if (!podeVerCusto || typeof window === "undefined") return;
+    let id: string | null = null;
+    try {
+      id = localStorage.getItem("bex.orc3d.preset");
+    } catch {
+      return;
+    }
     if (!id) return;
     const p = PRESETS.find((x) => x.id === id);
     if (p) {
       aplicarPreset(p.patch);
       setPresetAtivo(p.id);
     }
-  }, []);
+  }, [podeVerCusto]);
 
   const [fotoModelo, setFotoModelo] = useState<File | null>(null);
   const [slicerFile, setSlicerFile] = useState<File | null>(null);
@@ -291,30 +415,43 @@ export function Calculadora3D({
     queryFn: async () =>
       (await supabase.from("clientes").select("id, nome").order("nome")).data ?? [],
   });
-  const { data: impressoras = [] } = useQuery({
-    queryKey: ["impressoras-sel"],
-    queryFn: async () =>
-      (
-        await (supabase as any)
-          .from("maquinas_3d_config")
-          .select("maquina_id, custo_hora_calculado, potencia_media_w, maquinas(nome)")
-          .eq("ativa", true)
-      ).data ?? [],
+  // Impressoras e filamentos pelo nível de quem olha (onda C, 11/11/2026). Quem vê custo lê as visões
+  // *_financeiro (custo por hora, potência e custo por grama) e calcula aqui; os demais leem só as colunas abertas
+  // e o preço vem do servidor. Falha de leitura aparece como falha, nunca como "nenhuma impressora".
+  const listaDeImpressoras = useQuery({
+    queryKey: ["impressoras-sel", podeVerCusto],
+    queryFn: async () => {
+      const { data, error } = await lerImpressoras3d(podeVerCusto).eq("ativa", true);
+      if (error) throw error;
+      const linhas = (data ?? []) as any[];
+      // A visão traz o nome solto; o seletor lê `maquinas?.nome`.
+      return podeVerCusto ? linhas.map((l) => ({ ...l, maquinas: { nome: l.nome } })) : linhas;
+    },
   });
-  const { data: filamentos = [] } = useQuery({
-    queryKey: ["filamentos-sel"],
-    queryFn: async () =>
-      (
-        await (supabase as any)
-          .from("materiais_3d_filamento")
-          .select("material_id, custo_por_grama_calculado, tipo, cor, materiais(nome)")
-      ).data ?? [],
+  const listaDeFilamentos = useQuery({
+    queryKey: ["filamentos-sel", podeVerCusto],
+    queryFn: async () => {
+      const { data, error } = await lerFilamentos3d(podeVerCusto);
+      if (error) throw error;
+      const linhas = (data ?? []) as any[];
+      return podeVerCusto ? linhas.map((l) => ({ ...l, materiais: { nome: l.nome } })) : linhas;
+    },
   });
+  const impressoras: any[] = listaDeImpressoras.data ?? [];
+  const filamentos: any[] = listaDeFilamentos.data ?? [];
 
   // Base de precificação 3D: preenche todo campo que o usuário ainda não tocou.
   // A tarifa de energia sempre vem da conta de luz cadastrada em /configuracoes-3d.
-  const { data: configPrec, isError: configErro } = useQuery({
+  // Só quem vê custo a lê: para os demais o servidor lê e só o preço volta.
+  const {
+    data: configPrec,
+    isError: configErro,
+    isPending: configPendente,
+    isFetching: configBuscando,
+    refetch: lerConfigDeNovo,
+  } = useQuery({
     queryKey: ["config-precificacao-3d"],
+    enabled: podeVerCusto,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("config_precificacao_3d")
@@ -326,6 +463,17 @@ export function Calculadora3D({
       return data;
     },
   });
+  // A linha que não chega (erro, ou filtrada pela policy, ou nunca cadastrada) não é "use os números de fábrica":
+  // a tela avisa em voz alta e não deixa salvar.
+  const baseDePreco: "carregando" | "ok" | "falhou" | "vazia" = !podeVerCusto
+    ? "ok"
+    : configErro
+      ? "falhou"
+      : configPendente
+        ? "carregando"
+        : configPrec
+          ? "ok"
+          : "vazia";
   const [vindoDaConfig, setVindoDaConfig] = useState<Set<string>>(new Set());
   useEffect(() => {
     const c = configPrec;
@@ -412,101 +560,97 @@ export function Calculadora3D({
 
   // Ao trocar de impressora, puxa custo-hora e potência para campos editáveis.
   // Evita sub-precificar em silêncio quando a impressora não tem custo-hora.
+  // Só para quem vê custo: no ramo sem custo essas colunas nem chegam ao navegador (o servidor as lê).
   useEffect(() => {
-    if (!impressora) return;
+    if (!podeVerCusto || !impressora) return;
     setF((s) => ({
       ...s,
       custo_hora: String(Number(impressora.custo_hora_calculado ?? 0)),
       potencia_w: String(Number(impressora.potencia_media_w ?? 0)),
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [f.maquina_id]);
+  }, [f.maquina_id, podeVerCusto]);
 
   const tempoMinutos = parseTempoLivre(f.tempo) ?? 0;
   const tempoHoras = tempoMinutos / 60;
 
-  const calc = useMemo(() => {
-    const gramasModelo = num(f.gramas);
-    const gramasSuporte = num(f.peso_suporte);
-    const gramasPurga = num(f.peso_purga);
-    const gramas = gramasModelo + gramasSuporte + gramasPurga;
-    const horasTotais = tempoHoras;
-    const cpg = Number(filamento?.custo_por_grama_calculado ?? 0);
-    const custoHora = num(f.custo_hora);
-    const potenciaW = num(f.potencia_w);
-    const qtd = num(f.quantidade, 1) || 1;
-    // O print do fatiador é UMA impressão (placa) que produz `pecasPlaca` peças.
-    // Para `qtd` peças, precisamos de `placas` impressões — e material/máquina/
-    // energia escalam por impressão, mão de obra por peça; embalagem opcional, uma vez por item 3D.
-    const pecasPlaca = num(f.pecas_placa, 1) || 1;
-    const placas = Math.max(1, Math.ceil(qtd / pecasPlaca));
+  // A conta é uma só (src/domain/impressao3d/calcular-peca.ts), a mesma que o servidor roda para quem não vê
+  // custo. Aqui ela só roda para quem vê custo, com as taxas das visões e o que estiver no cartão de custo.
+  const entradasDaConta = useMemo(
+    () =>
+      entradasDaContaNaTela({
+        f,
+        tempoMinutos,
+        custoPorGramaCalculado: filamento?.custo_por_grama_calculado,
+        embalagemIncluida,
+        markupAtacadoPadrao: configPrec?.markup_atacado_padrao,
+      }),
+    [f, tempoMinutos, filamento, configPrec, embalagemIncluida],
+  );
+  const calc = useMemo(
+    () => (podeVerCusto ? calcularPeca3D(entradasDaConta) : null),
+    [podeVerCusto, entradasDaConta],
+  );
 
-    const materialPlaca = materialCost(D(gramas), cpg);
-    const maquinaPlaca = machineCost(horasTotais * 3600, custoHora);
-    const energiaPlaca = energyCost({
-      potenciaMediaW: potenciaW,
-      horasImpressao: horasTotais,
-      tarifaKwhSnapshot: num(f.tarifa_kwh),
-    });
+  // Sem os quatro dados do custo, nenhum valor aparece: o cálculo segue igual por baixo.
+  const mostraPreco = precoPodeAparecer({
+    maquinaId: f.maquina_id,
+    materialId: f.material_id,
+    gramas: num(f.gramas),
+    tempoMinutos,
+  });
 
-    const material = materialPlaca.mul(placas);
-    const maquina = maquinaPlaca.mul(placas);
-    const energia = energiaPlaca.mul(placas);
-    const acabamento = material.mul(num(f.pct_acabamento) / 100);
-    const risco = material.mul(num(f.pct_falha) / 100);
-    // mão de obra: horas de pós-processamento POR PEÇA × quantidade
-    const horasMaoDeObra = horasDeMaoDeObraPorPeca(num(f.mo_horas));
-    const maoDeObra = laborCost([
-      { minutos: horasMaoDeObra * 60, custoHoraSnapshot: num(f.mo_custo_hora) },
-    ]).mul(qtd);
-    // embalagem: opcional; quando ligada, cobrada uma vez por item 3D (não multiplica pela quantidade)
-    const indireto = custoDeEmbalagemDoItem({ incluir: embalagemIncluida, valor: num(f.custo_admin) });
+  // ---- Ramo sem custo: o preço vem do servidor (cotarPeca3d) ----
+  // O navegador manda só a peça; o servidor lê as taxas com a chave de serviço, roda a mesma conta e devolve o
+  // preço. Espera 400 ms depois de a pessoa parar de digitar, e nunca mostra o preço anterior como se fosse o atual.
+  const entradasDaCotacao: EntradasDaCotacao3D = {
+    maquinaId: f.maquina_id,
+    materialId: f.material_id,
+    gramasModelo: num(f.gramas),
+    pesoSuporteG: num(f.peso_suporte),
+    pesoPurgaG: num(f.peso_purga),
+    tempoMinutos,
+    quantidade: num(f.quantidade, 1) || 1,
+    pecasPorPlaca: num(f.pecas_placa, 1) || 1,
+  };
+  const chaveDaCotacao = JSON.stringify(entradasDaCotacao);
+  const chaveAtrasada = useAtrasado(chaveDaCotacao, 400);
+  const problemaDaCotacao = !podeVerCusto && mostraPreco ? problemaDaPeca(entradasDaCotacao) : null;
+  const cotavel = !podeVerCusto && mostraPreco && !problemaDaCotacao;
+  const esperandoDigitar = chaveAtrasada !== chaveDaCotacao;
+  const cotacao = useQuery({
+    queryKey: ["cotar-peca-3d", chaveAtrasada],
+    enabled: cotavel && !esperandoDigitar,
+    queryFn: () => cotarPeca3d({ data: JSON.parse(chaveAtrasada) as EntradasDaCotacao3D }),
+    retry: 1,
+    staleTime: 30_000,
+  });
+  // Só vale a cotação das entradas de AGORA: digitou de novo, some até a nova chegar.
+  const cotacaoAtual = cotavel && !esperandoDigitar && cotacao.isSuccess ? cotacao.data : null;
+  const cotacaoFalhou = cotavel && !esperandoDigitar && cotacao.isError;
+  const cotando = cotavel && !cotacaoAtual && !cotacaoFalhou;
 
-    const operacional = operationalCost({
-      material: material.toString(),
-      maquina: maquina.toString(),
-      energia: energia.toString(),
-      maoDeObra: maoDeObra.toString(),
-      acabamento: acabamento.toString(),
-      reservaFalha: risco.toString(),
-      indiretosRateados: indireto.toString(),
-    });
-    const markup = num(f.markup, 2) || 2;
-    // TOTAL do lote = unitário arredondado × quantidade: o PDF fecha a conta.
-    const { preco, unitario, lucro, margem, peloMinimo } = fecharPreco(
-      operacional,
-      markup,
-      qtd,
-      PRECO_MINIMO_POR_PECA,
-    );
-    const markupAtacado = Number(configPrec?.markup_atacado_padrao ?? 1.5) || 1.5;
-    const equilibrio = operacional.mul(1 / 0.9); // margem 10%
-    return {
-      cpg,
-      custoHora,
-      material,
-      maquina,
-      energia,
-      maoDeObra,
-      acabamento,
-      risco,
-      indireto,
-      operacional,
-      preco,
-      unitario,
-      peloMinimo,
-      horasMaoDeObra,
-      lucro,
-      margem,
-      atacado: operacional.mul(markupAtacado),
-      markupAtacado,
-      equilibrio,
-      qtd,
-      pecasPlaca,
-      placas,
-      markup,
-    };
-  }, [f, impressora, filamento, configPrec, embalagemIncluida]);
+  // O que o cartão de resultado mostra, venha de onde vier.
+  const resumo = calc
+    ? {
+        preco: calc.preco.toNumber(),
+        unitario: calc.unitario.toNumber(),
+        qtd: calc.qtd,
+        placas: calc.placas,
+        peloMinimo: calc.peloMinimo,
+      }
+    : cotacaoAtual
+      ? {
+          preco: cotacaoAtual.preco,
+          unitario: cotacaoAtual.unitario,
+          qtd: cotacaoAtual.quantidade,
+          placas: cotacaoAtual.placas,
+          peloMinimo: cotacaoAtual.peloMinimo,
+        }
+      : null;
+  const qtdNoTitulo = resumo?.qtd ?? (num(f.quantidade, 1) || 1);
+  // Salvar só com preço de verdade: quem vê custo, com a base de preço lida; os demais, com a cotação de agora.
+  const precoPronto = podeVerCusto ? baseDePreco === "ok" : !!cotacaoAtual;
 
   const faltando: string[] = [];
   if (!f.titulo) faltando.push("título");
@@ -565,46 +709,42 @@ export function Calculadora3D({
         fotoArquivoId = r.id;
       }
 
+      // Quem NÃO vê custo: o servidor refaz a conta com as taxas do banco e grava pela mesma função do banco, com a
+      // sessão de quem salva. O navegador não manda preço nem custo; o preço que a tela mostrou só é conferido.
+      if (!podeVerCusto) {
+        if (!cotacaoAtual) throw new Error(FALHA_DA_COTACAO_3D);
+        const r = await salvarPeca3dNoOrcamento({
+          data: {
+            ...(JSON.parse(chaveDaCotacao) as EntradasDaCotacao3D),
+            orcamentoId: orcId,
+            orcamento3dId,
+            titulo: f.titulo.trim(),
+            filamentoTipoDetectado: f.filamento_tipo_detectado || null,
+            alturaCamadaMm: numOuNulo(f.altura_camada),
+            infillPct: numOuNulo(f.infill_pct),
+            slicerScreenshot: slicerPath ?? slicerAtualPath,
+            fotoArquivoId,
+            clienteId: clienteId ?? (f.cliente_id || null),
+            precoVisto: cotacaoAtual.preco,
+          },
+        });
+        return { orcamentoId: r.orcamentoId, orcamento3dId: r.orcamento3dId, itemId: r.itemId };
+      }
+
+      // Quem vê custo: a conta é a do navegador (as taxas vieram das visões) e grava pela função do banco, como
+      // sempre. O formato gravado é o mesmo do servidor (os construtores moram no módulo da conta).
+      if (!calc || baseDePreco !== "ok") throw new Error("A base de preço 3D não chegou. Avise a gerência.");
       const horasTotais = tempoHoras;
-      const inputs = {
-        cliente_id: clienteId ?? f.cliente_id ?? null,
-        quantidade: calc.qtd,
-        gramas: num(f.gramas),
-        peso_suporte_g: num(f.peso_suporte),
-        peso_purga_g: num(f.peso_purga),
-        pecas_por_placa: num(f.pecas_placa, 1) || 1,
-        filamento_tipo_detectado: f.filamento_tipo_detectado || null,
-        altura_camada_mm: numOuNulo(f.altura_camada),
-        infill_pct: numOuNulo(f.infill_pct),
-        horas_totais: horasTotais,
-        custo_hora_maquina: num(f.custo_hora),
-        potencia_w: num(f.potencia_w),
-        tarifa_kwh: num(f.tarifa_kwh),
-        mao_obra: { custo_hora: num(f.mo_custo_hora), horas: calc.horasMaoDeObra },
-        pct_acabamento: num(f.pct_acabamento),
-        pct_falha: num(f.pct_falha),
-        custo_admin: embalagemIncluida ? num(f.custo_admin) : 0,
-        embalagem_incluida: embalagemIncluida,
-        embalagem_valor: embalagemIncluida ? calc.indireto.toNumber() : 0,
-        markup: num(f.markup, 2),
-        slicer_screenshot: slicerPath ?? slicerAtualPath,
+      const inputs = inputsDoItem3d(entradasDaConta, calc, {
+        clienteId: clienteId ?? f.cliente_id ?? null,
+        filamentoTipoDetectado: f.filamento_tipo_detectado || null,
+        alturaCamadaMm: numOuNulo(f.altura_camada),
+        infillPct: numOuNulo(f.infill_pct),
+        slicerScreenshot: slicerPath ?? slicerAtualPath,
         impressora: impressora?.maquinas?.nome ?? null,
         filamento: filamento?.materiais?.nome ?? null,
-      };
-      const resultados = {
-        material: calc.material.toNumber(),
-        maquina: calc.maquina.toNumber(),
-        energia: calc.energia.toNumber(),
-        mao_de_obra: calc.maoDeObra.toNumber(),
-        acabamento: calc.acabamento.toNumber(),
-        risco: calc.risco.toNumber(),
-        indireto: calc.indireto.toNumber(),
-        embalagem_incluida: embalagemIncluida,
-        embalagem: calc.indireto.toNumber(),
-        operacional: calc.operacional.toNumber(),
-        preco: calc.preco.toNumber(),
-        margem: calc.margem.toNumber(),
-      };
+      });
+      const resultados = resultadosDoItem3d(entradasDaConta, calc);
 
       const { data, error } = await (supabase.rpc as any)("salvar_item_3d_no_orcamento", {
         p_orcamento_id: orcId,
@@ -641,32 +781,33 @@ export function Calculadora3D({
       toast.success(orcamento3dId ? "Peça 3D atualizada" : "Peça 3D adicionada ao orçamento");
       onSalvo(r);
     },
-    onError: (e: any) => toast.error(mensagemErro(e)),
+    onError: (e: any) => {
+      toast.error(mensagemErro(e));
+      // "O preço mudou": a base ou o custo mudou depois da cotação. A tela ainda guarda a cotação velha (30 s de
+      // cache), então pede a nova na hora. Sem isso o vendedor não vê valor novo e o salvar falha em laço.
+      if (mensagemErro(e) === PRECO_MUDOU_3D) void cotacao.refetch();
+    },
   });
 
 
-  // Sem os quatro dados do custo, nenhum valor aparece (só "—"): o cálculo segue igual por baixo.
-  const mostraPreco = precoPodeAparecer({
-    maquinaId: f.maquina_id,
-    materialId: f.material_id,
-    gramas: num(f.gramas),
-    tempoMinutos,
-  });
+  // Ramo de custo: sem os quatro dados do custo, nenhum valor aparece (só "—"); o cálculo segue igual por baixo.
   const valor = (v: Parameters<typeof money>[0]) => (mostraPreco ? money(v) : "—");
-  const margemPct = calc.margem.toNumber() * 100;
+  const margemPct = calc ? calc.margem.toNumber() * 100 : 0;
   const margemTone: "lime" | "amber" | "magenta" =
     margemPct >= 40 ? "lime" : margemPct >= 15 ? "amber" : "magenta";
 
-  const total = calc.operacional.toNumber() || 1;
-  const breakdown = [
-    { label: "Material", value: calc.material.toNumber(), tone: "cyan" as const },
-    { label: "Máquina", value: calc.maquina.toNumber(), tone: "magenta" as const },
-    { label: "Energia", value: calc.energia.toNumber(), tone: "amber" as const },
-    { label: "Mão de obra", value: calc.maoDeObra.toNumber(), tone: "lime" as const },
-    { label: "Acabamento", value: calc.acabamento.toNumber(), tone: "cyan" as const },
-    { label: "Falha", value: calc.risco.toNumber(), tone: "magenta" as const },
-    { label: "Embalagem", value: calc.indireto.toNumber(), tone: "muted" as const },
-  ];
+  const total = calc ? calc.operacional.toNumber() || 1 : 1;
+  const breakdown = calc
+    ? [
+        { label: "Material", value: calc.material.toNumber(), tone: "cyan" as const },
+        { label: "Máquina", value: calc.maquina.toNumber(), tone: "magenta" as const },
+        { label: "Energia", value: calc.energia.toNumber(), tone: "amber" as const },
+        { label: "Mão de obra", value: calc.maoDeObra.toNumber(), tone: "lime" as const },
+        { label: "Acabamento", value: calc.acabamento.toNumber(), tone: "cyan" as const },
+        { label: "Falha", value: calc.risco.toNumber(), tone: "magenta" as const },
+        { label: "Embalagem", value: calc.indireto.toNumber(), tone: "muted" as const },
+      ]
+    : [];
 
   return (
     <div className="space-y-6 pb-24">
@@ -844,11 +985,23 @@ export function Calculadora3D({
                   <FieldTooltip
                     label="Impressora"
                     required
-                    hint="Custo/hora vem de maquinas_3d_config (depreciação + manutenção + rateio de estrutura)."
+                    hint={
+                      podeVerCusto
+                        ? "Custo/hora vem do cadastro da impressora (depreciação + manutenção + rateio de estrutura)."
+                        : "Escolha a impressora que vai imprimir a peça."
+                    }
                   />
-                  {impressoras.length === 0 ? (
-                    <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                      Nenhuma impressora ativa — cadastre em /impressoras-3d
+                  {listaDeImpressoras.isPending ? (
+                    <Carregando linhas={1} />
+                  ) : listaDeImpressoras.isError ? (
+                    <FalhaDaLista
+                      texto="Não consegui carregar as impressoras."
+                      tentando={listaDeImpressoras.isFetching}
+                      onTentar={() => void listaDeImpressoras.refetch()}
+                    />
+                  ) : impressoras.length === 0 ? (
+                    <p className="rounded-lg border border-dashed p-3 text-base text-muted-foreground">
+                      Nenhuma impressora ativa. Cadastre em Impressoras 3D.
                     </p>
                   ) : (
                     <SeletorImpressora
@@ -867,11 +1020,23 @@ export function Calculadora3D({
                   <FieldTooltip
                     label="Filamento"
                     required
-                    hint="Preço vem de materiais_3d_filamento. Toque numa cor para filtrar a lista."
+                    hint={
+                      podeVerCusto
+                        ? "O custo por grama vem do cadastro do filamento. Toque numa cor para filtrar a lista."
+                        : "Escolha o filamento. Toque numa cor para filtrar a lista."
+                    }
                   />
-                  {filamentos.length === 0 ? (
-                    <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                      Nenhum filamento — cadastre em /filamentos-3d
+                  {listaDeFilamentos.isPending ? (
+                    <Carregando linhas={1} />
+                  ) : listaDeFilamentos.isError ? (
+                    <FalhaDaLista
+                      texto="Não consegui carregar os filamentos."
+                      tentando={listaDeFilamentos.isFetching}
+                      onTentar={() => void listaDeFilamentos.refetch()}
+                    />
+                  ) : filamentos.length === 0 ? (
+                    <p className="rounded-lg border border-dashed p-3 text-base text-muted-foreground">
+                      Nenhum filamento cadastrado. Cadastre em Filamentos 3D.
                     </p>
                   ) : (
                     <SeletorFilamento
@@ -1035,16 +1200,10 @@ export function Calculadora3D({
                   titulo="Parâmetros de custo"
                   sub="Seguem as Configurações 3D da gráfica"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Custo-hora, energia, mão de obra, perdas e markup vêm da base da gráfica. Quem tem
-                  permissão de ver custo ajusta esses números; aqui você cota com eles.
+                <p className="text-base text-muted-foreground">
+                  Custo por hora, energia, mão de obra, perdas e markup vêm da base da gráfica, e a
+                  conta é feita no servidor. Você informa a peça e recebe o preço.
                 </p>
-                {f.maquina_id && num(f.custo_hora) <= 0 && (
-                  <p className="text-xs text-destructive">
-                    A impressora escolhida está sem custo-hora no cadastro: peça à gerência para
-                    corrigir antes de enviar este preço.
-                  </p>
-                )}
               </CardContent>
             </Card>
           ) : (
@@ -1216,18 +1375,36 @@ export function Calculadora3D({
                   {/* "Preço (2×)" lia como "duas peças": a quantidade e o markup
                       agora têm nome. */}
                   <div className="text-xs uppercase tracking-widest text-muted-foreground font-mono">
-                    {calc.qtd > 1 ? `Preço total · ${calc.qtd} peças` : "Preço"}
-                    {podeVerCusto && ` · markup ${vezes(calc.markup)}`}
+                    {qtdNoTitulo > 1 ? `Preço total · ${qtdNoTitulo} peças` : "Preço"}
+                    {calc && ` · markup ${vezes(calc.markup)}`}
                   </div>
-                  <div className="font-mono text-4xl font-black tracking-tight">
-                    {valor(calc.preco)}
-                  </div>
+                  {calc ? (
+                    // Ramo de custo: a conta é daqui; enquanto a base de preço não chega, nada de número.
+                    baseDePreco === "carregando" ? (
+                      <Carregando linhas={1} />
+                    ) : (
+                      <div className="font-mono text-4xl font-black tracking-tight">
+                        {valor(calc.preco)}
+                      </div>
+                    )
+                  ) : (
+                    <PrecoDoServidor
+                      mostraPreco={mostraPreco}
+                      problema={problemaDaCotacao}
+                      cotando={cotando}
+                      falhou={cotacaoFalhou}
+                      erro={cotacao.error}
+                      tentando={cotacao.isFetching}
+                      onTentar={() => void cotacao.refetch()}
+                      preco={cotacaoAtual ? money(cotacaoAtual.preco) : null}
+                    />
+                  )}
                   {!mostraPreco && (
                     <p className="mt-1 text-xs text-muted-foreground" data-testid="preco-3d-incompleto">
                       {DICA_PRECO_3D_INCOMPLETO}
                     </p>
                   )}
-                  {podeVerCusto && (
+                  {calc && (
                     <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
                       <span>Custo {valor(calc.operacional)}</span>
                       <span>·</span>
@@ -1236,24 +1413,66 @@ export function Calculadora3D({
                   )}
                 </div>
 
-                {calc.qtd > 1 && (
-                  <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      Preço unitário
-                      {calc.placas !== calc.qtd ? ` · ${calc.placas} impressões` : ""}
-                    </span>
-                    <span className="font-mono font-semibold">{valor(calc.unitario)}</span>
+                {podeVerCusto && (baseDePreco === "falhou" || baseDePreco === "vazia") && (
+                  <div
+                    role="alert"
+                    className="space-y-2 rounded-lg border border-destructive p-3 text-foreground"
+                    data-testid="base-de-preco-3d-faltou"
+                  >
+                    <p className="flex items-start gap-2 text-base font-medium">
+                      <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden />
+                      {baseDePreco === "falhou"
+                        ? "Não consegui ler a base de preço 3D."
+                        : "A base de preço 3D não chegou para o seu perfil."}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Tarifa, mão de obra, percentuais e markup estão com valores genéricos. Salvar fica
+                      bloqueado até a base chegar. Se continuar, avise a gerência.
+                    </p>
+                    {baseDePreco === "falhou" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11"
+                        disabled={configBuscando}
+                        onClick={() => void lerConfigDeNovo()}
+                      >
+                        <RotateCw className="mr-2 h-4 w-4" aria-hidden /> Tentar de novo
+                      </Button>
+                    )}
                   </div>
                 )}
 
-                {mostraPreco && calc.peloMinimo && (
+                {resumo && resumo.qtd > 1 && baseDePreco !== "carregando" && (
+                  <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      Preço unitário
+                      {resumo.placas !== resumo.qtd ? ` · ${resumo.placas} impressões` : ""}
+                    </span>
+                    <span className="font-mono font-semibold">{valor(resumo.unitario)}</span>
+                  </div>
+                )}
+
+                {cotacaoAtual?.avisos.map((a) => (
+                  <p
+                    key={a}
+                    role="status"
+                    className="flex items-start gap-2 rounded-lg border border-[color:var(--warning)] px-3 py-2 text-base text-foreground"
+                    data-testid={`aviso-da-cotacao-${a}`}
+                  >
+                    <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+                    {TEXTO_DO_AVISO[a]}
+                  </p>
+                ))}
+
+                {mostraPreco && resumo?.peloMinimo && (
                   <p className="text-xs text-muted-foreground" data-testid="preco-minimo-3d">
                     Preço mínimo de {money(PRECO_MINIMO_POR_PECA)} por peça aplicado: o cálculo deu
                     menos que isso.
                   </p>
                 )}
 
-                {podeVerCusto && (
+                {calc && (
                 <>
                 <div className="space-y-2">
                   <div className="text-xs uppercase tracking-widest font-mono text-muted-foreground">
@@ -1323,7 +1542,7 @@ export function Calculadora3D({
                 <NeonButton
                   className="w-full"
                   onClick={() => salvar.mutate()}
-                  disabled={salvar.isPending || faltando.length > 0}
+                  disabled={salvar.isPending || faltando.length > 0 || !precoPronto}
                 >
                   {salvar.isPending ? "Salvando..." : embutido ? (orcamento3dId ? "Salvar a peça" : "Adicionar a peça ao orçamento") : "Salvar orçamento"}
                 </NeonButton>
@@ -1362,6 +1581,102 @@ function BlocoTitulo({
         </div>
         <div className="text-xs text-muted-foreground">{sub}</div>
       </div>
+    </div>
+  );
+}
+
+/** Lista que não carregou: diz que falhou e oferece tentar de novo (nunca "nenhuma impressora"). */
+function FalhaDaLista({
+  texto,
+  tentando,
+  onTentar,
+}: {
+  texto: string;
+  tentando: boolean;
+  onTentar: () => void;
+}) {
+  return (
+    <div role="alert" className="space-y-2 rounded-lg border border-destructive p-3 text-foreground">
+      <p className="flex items-start gap-2 text-base font-medium">
+        <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden />
+        {texto}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        É uma falha de leitura, não uma lista vazia. Se continuar, avise a gerência.
+      </p>
+      <Button type="button" variant="outline" className="min-h-11" disabled={tentando} onClick={onTentar}>
+        <RotateCw className="mr-2 h-4 w-4" aria-hidden /> Tentar de novo
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * O preço de quem não vê custo, como o servidor o devolveu (onda C, 11/11/2026). Cinco estados, e nenhum mostra
+ * número que não seja o das entradas de agora: falta dado, dado fora do limite, calculando, falhou, pronto.
+ */
+function PrecoDoServidor({
+  mostraPreco,
+  problema,
+  cotando,
+  falhou,
+  erro,
+  tentando,
+  onTentar,
+  preco,
+}: {
+  mostraPreco: boolean;
+  problema: string | null;
+  cotando: boolean;
+  falhou: boolean;
+  erro: unknown;
+  tentando: boolean;
+  onTentar: () => void;
+  preco: string | null;
+}) {
+  if (!mostraPreco) {
+    return (
+      <div className="text-2xl font-semibold text-muted-foreground" data-testid="preco-3d-sem-valor">
+        Sem preço ainda
+      </div>
+    );
+  }
+  if (problema) {
+    return (
+      <p role="alert" className="flex items-start gap-2 text-base font-medium text-foreground" data-testid="preco-3d-entrada-invalida">
+        <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden />
+        {problema}
+      </p>
+    );
+  }
+  if (falhou) {
+    // O servidor responde em português quando sabe o motivo (impressora desativada, base não cadastrada);
+    // o resto vira a frase geral, sem detalhe técnico.
+    const motivo = mensagemErro(erro, FALHA_DA_COTACAO_3D);
+    return (
+      <div role="alert" className="space-y-2 rounded-lg border border-destructive p-3 text-foreground" data-testid="preco-3d-falhou">
+        <p className="flex items-start gap-2 text-base font-medium">
+          <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden />
+          {FALHA_DA_COTACAO_3D}
+        </p>
+        {motivo !== FALHA_DA_COTACAO_3D && <p className="text-sm text-muted-foreground">{motivo}</p>}
+        <Button type="button" variant="outline" className="min-h-11" disabled={tentando} onClick={onTentar}>
+          <RotateCw className="mr-2 h-4 w-4" aria-hidden /> Tentar de novo
+        </Button>
+      </div>
+    );
+  }
+  if (cotando || !preco) {
+    return (
+      <div data-testid="preco-3d-calculando">
+        <Carregando linhas={1} className="max-w-64" />
+        <p className="text-sm text-muted-foreground">Calculando o preço</p>
+      </div>
+    );
+  }
+  return (
+    <div className="font-mono text-4xl font-black tracking-tight" data-testid="preco-3d-do-servidor">
+      {preco}
     </div>
   );
 }

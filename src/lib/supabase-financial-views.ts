@@ -1,5 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { SELECT_DA_MAQUINA_SEM_CUSTO } from "@/domain/maquinas/colunas";
+import {
+  SELECT_DA_IMPRESSORA_3D_SEM_CUSTO,
+  SELECT_DO_FILAMENTO_SEM_CUSTO,
+} from "@/domain/impressao3d/colunas";
 
 /**
  * Três níveis de visão sobre as tabelas que carregam dinheiro.
@@ -66,4 +70,29 @@ export function lerMaquinas(nivel: NivelDeVisao | boolean) {
   return vendoCusto
     ? (supabase as any).from("maquinas_financeiro").select("*")
     : (supabase as any).from("maquinas").select(SELECT_DA_MAQUINA_SEM_CUSTO);
+}
+
+/**
+ * As impressoras 3D, no nível de quem olha (onda C, 11/11/2026).
+ *
+ * Quem vê custo de máquina lê a visão `maquinas_3d_config_financeiro`: a impressora inteira, com depreciação, custo
+ * por hora e o nome solto (`nome`, sem o `maquinas(nome)` aninhado). Quem não vê lê a tabela só com as colunas
+ * abertas e o nome aninhado em `maquinas.nome`. Devolve o construtor já com o `select`: o chamador acrescenta filtro
+ * e ordem e TRATA o erro (falha de leitura nunca vira lista vazia).
+ */
+export function lerImpressoras3d(verCusto: boolean) {
+  return verCusto
+    ? (supabase as any).from("maquinas_3d_config_financeiro").select("*")
+    : (supabase as any).from("maquinas_3d_config").select(SELECT_DA_IMPRESSORA_3D_SEM_CUSTO);
+}
+
+/**
+ * Os filamentos, no nível de quem olha (onda C, 11/11/2026). Quem vê custo de máquina lê a visão
+ * `materiais_3d_filamento_financeiro` (com custo de compra, custo por grama e `nome` solto); os demais, a tabela só
+ * com as colunas abertas e o nome em `materiais.nome`.
+ */
+export function lerFilamentos3d(verCusto: boolean) {
+  return verCusto
+    ? (supabase as any).from("materiais_3d_filamento_financeiro").select("*")
+    : (supabase as any).from("materiais_3d_filamento").select(SELECT_DO_FILAMENTO_SEM_CUSTO);
 }

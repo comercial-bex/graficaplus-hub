@@ -30,6 +30,8 @@ import { mensagemErro } from "@/lib/erros";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { Carregando } from "@/components/bex/Carregando";
+import { useAuth } from "@/lib/auth-context";
+import { lerFilamentos3d } from "@/lib/supabase-financial-views";
 export const Route = createFileRoute("/_authenticated/filamentos-3d")({
   head: () => ({ meta: [{ title: "Filamentos 3D — BEX PRINT OS" }] }),
   component: FilamentosPage,
@@ -66,15 +68,24 @@ function FilamentosPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
 
-  const { data: filamentos = [], isLoading } = useQuery({
-    queryKey: ["filamentos-3d"],
+  // Onda C (11/11/2026): o custo do filamento sai pela visão materiais_3d_filamento_financeiro, só para quem vê custo
+  // de máquina. Quem cadastra filamento hoje (admin, gestor) vê. Se um dia alguém cadastrar sem ver custo, lê só as
+  // colunas abertas e não edita (o formulário gravaria valor por kg zero por cima do de verdade).
+  const { hasPermission } = useAuth();
+  const veCusto = hasPermission("impressao3d.cost.read") || hasPermission("financeiro.read");
+  const brl = (v: unknown, casas: number) =>
+    `R$ ${Number(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })}`;
+
+  const {
+    data: filamentos = [],
+    isPending,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["filamentos-3d", veCusto],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("materiais_3d_filamento")
-        .select(
-          "material_id, tipo, marca, cor, diametro, peso_nominal, custo_compra, fator_aproveitamento, custo_por_grama_calculado, materiais(nome)",
-        )
-        .order("updated_at", { ascending: false });
+      const { data, error } = await lerFilamentos3d(veCusto).order("updated_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -125,7 +136,7 @@ function FilamentosPage() {
     const pesoKg = Number(f.peso_nominal ?? 1000) / 1000;
     setForm({
       material_id: f.material_id,
-      nome: f.materiais?.nome ?? "",
+      nome: f.nome ?? f.materiais?.nome ?? "",
       tipo: f.tipo ?? "PLA",
       marca: f.marca ?? "",
       cor: f.cor ?? "",
@@ -139,7 +150,7 @@ function FilamentosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">Filamentos 3D</h1>
@@ -251,8 +262,20 @@ function FilamentosPage() {
         </Dialog>
       </div>
 
-      {isLoading ? (
+      {isPending ? (
         <Carregando />
+      ) : isError ? (
+        <Card role="alert" className="border-destructive">
+          <CardContent className="space-y-3 py-6">
+            <p className="text-base font-medium">Não consegui carregar os filamentos.</p>
+            <p className="text-sm text-muted-foreground">
+              É uma falha de leitura, não uma lista vazia. Se continuar, avise a gerência.
+            </p>
+            <Button variant="outline" className="min-h-11" disabled={isFetching} onClick={() => void refetch()}>
+              Tentar de novo
+            </Button>
+          </CardContent>
+        </Card>
       ) : filamentos.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -273,7 +296,7 @@ function FilamentosPage() {
                         <Boxes className="h-5 w-5 text-link" />
                       </div>
                       <div>
-                        <CardTitle className="text-base">{f.materiais?.nome ?? "—"}</CardTitle>
+                        <CardTitle className="text-base">{f.nome ?? f.materiais?.nome ?? "Sem nome"}</CardTitle>
                         <div className="text-xs text-muted-foreground">
                           {[f.tipo, f.marca, f.cor].filter(Boolean).join(" · ") || "—"}
                         </div>
@@ -283,22 +306,28 @@ function FilamentosPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <div className="text-muted-foreground text-xs">Valor por kg</div>
-                      <div className="font-mono font-semibold">R$ {rsKg.toFixed(2)}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground text-xs">Custo por grama</div>
-                      <div className="font-mono font-semibold">
-                        R$ {Number(f.custo_por_grama_calculado ?? 0).toFixed(4)}
+                  {veCusto && (
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <div className="text-muted-foreground text-xs">Valor por kg</div>
+                        <div className="font-mono font-semibold">{brl(rsKg, 2)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Custo por grama</div>
+                        <div className="font-mono font-semibold">
+                          {brl(f.custo_por_grama_calculado, 4)}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                   <div className="flex gap-2 pt-1">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(f)}>
-                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                    </Button>
+                    {veCusto ? (
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(f)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                    ) : (
+                      <p className="flex-1 text-sm text-muted-foreground">Editar pede a permissão de ver custo.</p>
+                    )}
                     <ConfirmarAcao
                       titulo="Remover este filamento?"
                       rotuloConfirmar="Remover"
