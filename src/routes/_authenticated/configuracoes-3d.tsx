@@ -56,10 +56,24 @@ function Configuracoes3D() {
   const qc = useQueryClient();
   const [form, setForm] = useState<Form | null>(null);
 
-  const { data: cfg, isLoading } = useQuery({
+  // Falha de leitura e linha que não chega são ditas na tela (antes, as duas deixavam o "Carregando" para sempre).
+  // Depois da onda C3 a linha só chega a quem vê custo de máquina (admin, gestor, financeiro).
+  const {
+    data: cfg,
+    isPending,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ["config-precificacao-3d-full"],
-    queryFn: async () =>
-      (await (supabase as any).from("config_precificacao_3d").select("*").maybeSingle()).data,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("config_precificacao_3d")
+        .select("*")
+        .maybeSingle();
+      if (error) throw error;
+      return data ?? null;
+    },
   });
 
   useEffect(() => {
@@ -167,7 +181,29 @@ function Configuracoes3D() {
     ? n(form.energia_total_fatura) / n(form.energia_consumo_kwh)
     : null;
 
-  if (isLoading || !form) return <Carregando tela />;
+  if (isPending) return <Carregando tela />;
+  if (isError || !cfg) {
+    return (
+      <div role="alert" className="max-w-3xl space-y-3 rounded-lg border border-destructive p-4">
+        <p className="text-base font-medium">
+          {isError
+            ? "Não consegui carregar a base de preço 3D."
+            : "A base de preço 3D não chegou: ou ainda não foi cadastrada, ou o seu perfil não vê custo."}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {isError
+            ? "É uma falha de leitura, não uma base vazia. Se continuar, avise a gerência."
+            : "Ela fica com quem vê custo de máquina (gerência e financeiro). Se você deveria ver, avise a gerência."}
+        </p>
+        {isError && (
+          <Button variant="outline" className="min-h-11" disabled={isFetching} onClick={() => void refetch()}>
+            Tentar de novo
+          </Button>
+        )}
+      </div>
+    );
+  }
+  if (!form) return <Carregando tela />;
 
   return (
     <div className="space-y-6 max-w-3xl">

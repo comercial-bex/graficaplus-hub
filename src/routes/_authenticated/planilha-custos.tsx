@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
+import { Carregando } from "@/components/bex/Carregando";
 import { deCSV, escreverNumero, lerNumero, paraCSV } from "@/domain/custos/planilha-csv";
 import { AlertTriangle, Download, Upload, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -91,15 +92,25 @@ function PlanilhaPage() {
     },
   });
 
-  const { data: config } = useQuery({
+  // As tarifas e margens da impressão 3D. Depois da onda C3 só quem vê custo de máquina (admin, gestor, financeiro)
+  // lê esta linha: o estoque, que abre esta planilha por custos.read, recebe nada. A aba diz isso em vez de ficar
+  // vazia, e falha de leitura aparece como falha.
+  const {
+    data: config,
+    isPending: configPendente,
+    isError: configFalhou,
+    isFetching: configBuscando,
+    refetch: lerConfigDeNovo,
+  } = useQuery({
     queryKey: ["planilha-config"],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("config_precificacao_3d")
         .select("*")
         .limit(1)
         .maybeSingle();
-      return data;
+      if (error) throw error;
+      return data ?? null;
     },
   });
 
@@ -531,6 +542,32 @@ function PlanilhaPage() {
               <CardTitle className="text-sm font-medium">Tarifas e margens</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {configPendente && <Carregando linhas={3} className="sm:col-span-2 lg:col-span-3" />}
+              {configFalhou && (
+                <div role="alert" className="space-y-3 sm:col-span-2 lg:col-span-3" data-testid="tarifas-3d-falhou">
+                  <p className="text-base font-medium">Não consegui carregar as tarifas e margens.</p>
+                  <p className="text-sm text-muted-foreground">
+                    É uma falha de leitura, não uma tabela vazia. Se continuar, avise a gerência.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="min-h-11"
+                    disabled={configBuscando}
+                    onClick={() => void lerConfigDeNovo()}
+                  >
+                    Tentar de novo
+                  </Button>
+                </div>
+              )}
+              {!configPendente && !configFalhou && !config && (
+                <div className="space-y-1 sm:col-span-2 lg:col-span-3" data-testid="tarifas-3d-sem-acesso">
+                  <p className="text-base font-medium">As tarifas e margens da impressão 3D não chegaram para o seu perfil.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Elas ficam com quem vê custo de máquina (gerência e financeiro). Se a base nunca foi cadastrada, cadastre em
+                    Configurações 3D.
+                  </p>
+                </div>
+              )}
               {config &&
                 [
                   { campo: "tarifa_kwh_padrao", rotulo: "Energia (R$/kWh)", passo: "0.0001",

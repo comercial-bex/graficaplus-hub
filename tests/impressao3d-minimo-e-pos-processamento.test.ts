@@ -52,12 +52,17 @@ describe("mão de obra por peça no 3D", () => {
 
 describe("a calculadora 3D", () => {
   const tela = readFileSync("src/components/impressao3d/calculadora-3d.tsx", "utf8");
+  // Desde 11/11/2026 (onda C) a conta mora num módulo só, o mesmo que o servidor roda para quem não vê custo.
+  const modulo = readFileSync("src/domain/impressao3d/calcular-peca.ts", "utf8");
   it("usa as horas informadas e o piso por peça, e avisa quando o piso vale", () => {
-    expect(tela).toContain("horasDeMaoDeObraPorPeca(num(f.mo_horas))");
-    expect(tela).toContain("PRECO_MINIMO_POR_PECA,");
+    expect(tela).toContain("moHoras: num(f.mo_horas)");
+    expect(tela).toContain("calcularPeca3D(entradasDaConta)");
+    expect(modulo).toContain("horasDeMaoDeObraPorPeca(e.moHoras)");
+    expect(modulo).toContain("PRECO_MINIMO_POR_PECA,");
     expect(tela).toContain('data-testid="preco-minimo-3d"');
   });
   it("grava no orçamento as horas que de fato entraram na conta", () => {
-    expect(tela).toContain("horas: calc.horasMaoDeObra");
+    expect(tela).toContain("inputsDoItem3d(entradasDaConta, calc,");
+    expect(modulo).toContain("horas: r.horasMaoDeObra");
   });
 });

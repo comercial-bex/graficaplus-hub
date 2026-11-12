@@ -30,6 +30,8 @@ import { mensagemErro } from "@/lib/erros";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { Carregando } from "@/components/bex/Carregando";
+import { useAuth } from "@/lib/auth-context";
+import { lerImpressoras3d } from "@/lib/supabase-financial-views";
 export const Route = createFileRoute("/_authenticated/impressoras-3d")({
   head: () => ({ meta: [{ title: "Impressoras 3D — BEX PRINT OS" }] }),
   component: ImpressorasPage,
@@ -72,30 +74,51 @@ function ImpressorasPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
 
-  const { data: impressoras = [], isLoading } = useQuery({
-    queryKey: ["impressoras-3d"],
+  // Onda C (11/11/2026): o custo da impressora sai pela visão maquinas_3d_config_financeiro, só para quem vê custo
+  // de máquina. Quem cadastra impressora hoje (admin, gestor) vê. Se um dia alguém cadastrar sem ver custo, lê só as
+  // colunas abertas da tabela e não edita (o formulário gravaria custo zero por cima do de verdade).
+  const { hasPermission } = useAuth();
+  const veCusto = hasPermission("impressao3d.cost.read") || hasPermission("financeiro.read");
+
+  const {
+    data: impressoras = [],
+    isPending,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["impressoras-3d", veCusto],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("maquinas_3d_config")
-        .select(
-          "maquina_id, fabricante, modelo, tecnologia, custo_aquisicao, valor_residual, vida_util_horas, manutencao_por_hora, potencia_media_w, potencia_aquecimento_w, potencia_standby_w, custo_hora_calculado, ativa, maquinas(nome, ativa)",
-        )
-        .order("updated_at", { ascending: false });
+      const { data, error } = await lerImpressoras3d(veCusto).order("updated_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  // Tarifa de energia base (config_precificacao_3d) para mostrar o custo de
-  // energia/hora de cada máquina.
-  const { data: tarifaBase = 0 } = useQuery({
+  // Tarifa de energia base (config_precificacao_3d) para mostrar o custo de energia/hora de cada máquina. Falha ou
+  // linha que não chega vira "sem tarifa", nunca R$ 0 por hora.
+  const tarifa = useQuery({
     queryKey: ["tarifa-energia-base"],
-    queryFn: async () =>
-      Number(
-        (await (supabase as any).from("config_precificacao_3d").select("tarifa_kwh_padrao").maybeSingle())
-          .data?.tarifa_kwh_padrao ?? 0,
-      ),
+    enabled: veCusto,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("config_precificacao_3d")
+        .select("tarifa_kwh_padrao")
+        .maybeSingle();
+      if (error) throw error;
+      const n = Number(data?.tarifa_kwh_padrao);
+      return data && Number.isFinite(n) && n > 0 ? n : null;
+    },
   });
+  const tarifaBase: number | null = tarifa.data ?? null;
+  const brl = (v: unknown, casas: number) =>
+    `R$ ${Number(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })}`;
+  const energiaPorHora = (w: unknown) =>
+    tarifaBase == null
+      ? tarifa.isError
+        ? "tarifa não carregou"
+        : "sem tarifa"
+      : `R$ ${((Number(w ?? 0) / 1000) * tarifaBase).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
 
   const save = useMutation({
     mutationFn: async () => {
@@ -144,7 +167,7 @@ function ImpressorasPage() {
   function openEdit(m: any) {
     setForm({
       maquina_id: m.maquina_id,
-      nome: m.maquinas?.nome ?? "",
+      nome: m.nome ?? m.maquinas?.nome ?? "",
       fabricante: m.fabricante ?? "",
       modelo: m.modelo ?? "",
       tecnologia: m.tecnologia ?? "FDM",
@@ -169,7 +192,7 @@ function ImpressorasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">Impressoras 3D</h1>
@@ -238,10 +261,10 @@ function ImpressorasPage() {
                   value={form.potencia_media_w}
                   onChange={(e) => setForm({ ...form, potencia_media_w: e.target.value })}
                 />
-                {tarifaBase > 0 && Number(form.potencia_media_w) > 0 && (
+                {tarifaBase != null && Number(form.potencia_media_w) > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    ≈ R$ {((Number(form.potencia_media_w) / 1000) * tarifaBase).toFixed(3)}/h de energia
-                    (tarifa base R$ {tarifaBase.toFixed(4)}/kWh)
+                    ≈ {energiaPorHora(form.potencia_media_w)}/h de energia (tarifa base R${" "}
+                    {tarifaBase.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}/kWh)
                   </p>
                 )}
               </div>
@@ -319,8 +342,20 @@ function ImpressorasPage() {
         </Dialog>
       </div>
 
-      {isLoading ? (
+      {isPending ? (
         <Carregando />
+      ) : isError ? (
+        <Card role="alert" className="border-destructive">
+          <CardContent className="space-y-3 py-6">
+            <p className="text-base font-medium">Não consegui carregar as impressoras.</p>
+            <p className="text-sm text-muted-foreground">
+              É uma falha de leitura, não uma lista vazia. Se continuar, avise a gerência.
+            </p>
+            <Button variant="outline" className="min-h-11" disabled={isFetching} onClick={() => void refetch()}>
+              Tentar de novo
+            </Button>
+          </CardContent>
+        </Card>
       ) : impressoras.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -338,7 +373,7 @@ function ImpressorasPage() {
                       <Printer className="h-5 w-5 text-link" />
                     </div>
                     <div>
-                      <CardTitle className="text-base">{m.maquinas?.nome ?? "—"}</CardTitle>
+                      <CardTitle className="text-base">{m.nome ?? m.maquinas?.nome ?? "Sem nome"}</CardTitle>
                       <div className="text-xs text-muted-foreground">
                         {[m.fabricante, m.modelo].filter(Boolean).join(" ") || "—"}
                       </div>
@@ -349,29 +384,37 @@ function ImpressorasPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <div className="text-muted-foreground text-xs">Máquina</div>
-                    <div className="font-mono font-semibold">R$ {Number(m.custo_aquisicao ?? 0).toFixed(0)}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground text-xs">Custo/hora</div>
-                    <div className="font-mono font-semibold">R$ {Number(m.custo_hora_calculado ?? 0).toFixed(2)}</div>
-                  </div>
+                  {veCusto && (
+                    <>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Máquina</div>
+                        <div className="font-mono font-semibold">{brl(m.custo_aquisicao, 0)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-xs">Custo/hora</div>
+                        <div className="font-mono font-semibold">{brl(m.custo_hora_calculado, 2)}</div>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <div className="text-muted-foreground text-xs">Potência</div>
                     <div className="font-mono font-semibold">{Number(m.potencia_media_w ?? 0).toFixed(0)} W</div>
                   </div>
-                  <div>
-                    <div className="text-muted-foreground text-xs">Energia/hora</div>
-                    <div className="font-mono font-semibold">
-                      R$ {((Number(m.potencia_media_w ?? 0) / 1000) * tarifaBase).toFixed(3)}
+                  {veCusto && (
+                    <div>
+                      <div className="text-muted-foreground text-xs">Energia/hora</div>
+                      <div className="font-mono font-semibold">{energiaPorHora(m.potencia_media_w)}</div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(m)}>
-                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                  </Button>
+                  {veCusto ? (
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(m)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                    </Button>
+                  ) : (
+                    <p className="flex-1 text-sm text-muted-foreground">Editar pede a permissão de ver custo.</p>
+                  )}
                   <ConfirmarAcao
                     titulo="Remover esta impressora?"
                     rotuloConfirmar="Remover"
