@@ -10,6 +10,7 @@ import { AlertTriangle, ArrowLeft, FileDown, ImagePlus, Lock } from "lucide-reac
 import { BUCKET_DOS_ARQUIVOS_3D, caminhoDoArquivo3d } from "@/domain/impressao3d/arquivos";
 import { toast } from "sonner";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
+import { BotaoEnviarPdfAoCliente } from "@/components/whatsapp/botao-enviar-pdf-ao-cliente";
 import { mensagemErro } from "@/lib/erros";
 import { useAuth } from "@/lib/auth-context";
 
@@ -273,6 +274,13 @@ function OrcamentoDetalhe() {
         <Button variant="outline" onClick={() => setPdfOpen(true)}>
           <FileDown className="h-4 w-4 mr-1" /> Gerar PDF
         </Button>
+        {/* A via do cliente na conversa dele. O número é o do PDF: o do orçamento; sem ele, o código da peça. */}
+        <BotaoEnviarPdfAoCliente
+          tipo="orcamento_3d"
+          referenciaId={id}
+          numero={orc.orcamentos?.numero ?? String(orc.id).slice(0, 8).toUpperCase()}
+          variant="outline"
+        />
         {orc.os_id ? (
           <Button asChild variant="outline">
             <Link to="/os/$id" params={{ id: orc.os_id }}>

@@ -10,6 +10,7 @@ import { carregarEmpresa } from "./empresa";
 import { dataBR, descreverEntrega, parcelasDoAcordo, validadeAte } from "./formato";
 import { prepararImagensDoDocumento } from "./imagens";
 import { BUCKET_DOS_ARQUIVOS_3D } from "@/domain/impressao3d/arquivos";
+import type { TipoDeDocumento } from "@/domain/whatsapp/envio-de-documento";
 
 // As consultas abaixo usam listas de colunas montadas em constantes: o
 // gerador de tipos do supabase-js só entende o select literal, e as views nem
@@ -1137,18 +1138,24 @@ export async function salvarERegistrarPDF(opts: {
     .upload(path, opts.blob, { contentType: "application/pdf", upsert: false });
   if (upErr) throw upErr;
 
-  const { error: regErr } = await supabase.from("documentos_gerados").insert({
-    tipo: opts.tipo,
-    referencia_id: opts.referencia_id,
-    variante: opts.variante,
-    numero: Number(opts.numero) || null,
-    caminho: path,
-    tamanho_bytes: opts.blob.size,
-    gerado_por: userId,
-  });
+  // A linha volta com o id: é ele que o "Enviar PDF ao cliente" manda ao servidor (a RLS de SELECT é a
+  // mesma do INSERT, orcamentos.create).
+  const { data: registrado, error: regErr } = await db
+    .from("documentos_gerados")
+    .insert({
+      tipo: opts.tipo,
+      referencia_id: opts.referencia_id,
+      variante: opts.variante,
+      numero: Number(opts.numero) || null,
+      caminho: path,
+      tamanho_bytes: opts.blob.size,
+      gerado_por: userId,
+    })
+    .select("id")
+    .single();
   if (regErr) throw regErr;
 
-  return { path, filename };
+  return { path, filename, documentoId: String(registrado.id) };
 }
 
 /** Renderiza + sobe no Storage + baixa para o usuário. */
@@ -1184,18 +1191,44 @@ export async function gerarESalvarPDF(opts: {
   return { props, filename };
 }
 
-/** Gera e registra a via do cliente do orçamento SEM baixar; devolve o caminho no Storage (envio pelo sistema). */
-export async function gerarPDFOrcamentoParaEnvio(id: string, nivelDeVisao?: NivelDeVisao) {
-  const props = await carregarPropsOrcamento(id, true, nivelDeVisao);
+/** O PDF da via do cliente pronto para o "Enviar PDF ao cliente": a linha de documentos_gerados e o caminho. */
+export type PDFParaEnvio = { documentoId: string; caminho: string; numero: string | number };
+
+/**
+ * Gera a via do CLIENTE (orçamento, OS com valores ou orçamento 3D) no navegador, sobe e registra em
+ * documentos_gerados, sem baixar. Devolve o id da linha: é ele que o servidor confere
+ * (`enviarDocumentoAoCliente`).
+ */
+export async function gerarPDFDoClienteParaEnvio(a: {
+  tipo: TipoDeDocumento;
+  referenciaId: string;
+  nivelDeVisao?: NivelDeVisao;
+}): Promise<PDFParaEnvio> {
+  const props =
+    a.tipo === "orcamento"
+      ? await carregarPropsOrcamento(a.referenciaId, true, a.nivelDeVisao)
+      : a.tipo === "os"
+        ? await carregarPropsOS(a.referenciaId, true, a.nivelDeVisao)
+        : await carregarPropsOrcamento3d(a.referenciaId, true);
   const blob = await renderPDFBlob(props);
-  const { path } = await salvarERegistrarPDF({
-    blob,
-    tipo: "orcamento",
-    referencia_id: id,
-    numero: props.numero,
+  return registrarPDFDoClienteParaEnvio({ blob, tipo: a.tipo, referenciaId: a.referenciaId, numero: props.numero });
+}
+
+/** A prévia já tem o arquivo desenhado: só sobe e registra a via do cliente. */
+export async function registrarPDFDoClienteParaEnvio(a: {
+  blob: Blob;
+  tipo: TipoDeDocumento;
+  referenciaId: string;
+  numero: string | number;
+}): Promise<PDFParaEnvio> {
+  const { path, documentoId } = await salvarERegistrarPDF({
+    blob: a.blob,
+    tipo: a.tipo,
+    referencia_id: a.referenciaId,
+    numero: a.numero,
     variante: "cliente",
   });
-  return path;
+  return { documentoId, caminho: path, numero: a.numero };
 }
 
 // Backwards-compat wrappers (caso algum lugar ainda chame os antigos)

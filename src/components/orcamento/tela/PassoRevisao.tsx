@@ -9,6 +9,7 @@ import { Dica } from "@/components/bex/Dica";
 import { dicaAcao } from "@/lib/dicas";
 import { Button } from "@/components/ui/button";
 import { FileDown, Link as LinkIcon, Loader2, MessageCircle, Printer } from "lucide-react";
+import { BotaoEnviarPdfAoCliente } from "@/components/whatsapp/botao-enviar-pdf-ao-cliente";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
 import type { AcordoDoOrcamento } from "@/components/orcamento/acordo-do-orcamento";
 import type { PassoDoOrcamento } from "@/domain/parceiros/passos-do-orcamento";
@@ -18,8 +19,6 @@ export function PassoRevisao({
   condicao,
   copiarLinkCliente,
   dadosDoAcordo,
-  enviandoPeloSistema,
-  enviarPeloSistema,
   enviarWhatsApp,
   fechado,
   gerandoLink,
@@ -42,8 +41,6 @@ export function PassoRevisao({
   condicao: { forma?: string | null; parcelas?: number | null; } | null;
   copiarLinkCliente: () => Promise<void>;
   dadosDoAcordo: AcordoDoOrcamento | null;
-  enviandoPeloSistema: boolean;
-  enviarPeloSistema: () => Promise<void>;
   enviarWhatsApp: () => Promise<void>;
   fechado: boolean;
   gerandoLink: boolean;
@@ -158,9 +155,8 @@ export function PassoRevisao({
                 )}
                 Link do cliente
               </Button></Dica>
-              <Dica texto="Envia o PDF e o link de aprovação direto na conversa do cliente, pelo WhatsApp da gráfica."><Button size="sm" onClick={enviarPeloSistema} disabled={enviandoPeloSistema || gerandoLink}>
-                {enviandoPeloSistema ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MessageCircle className="h-4 w-4 mr-1" />} Enviar pelo sistema
-              </Button></Dica>
+              {/* O mesmo botão da OS, do 3D, da prévia e do painel da conversa: PDF da via do cliente + link + Pix. */}
+              <BotaoEnviarPdfAoCliente tipo="orcamento" referenciaId={id} numero={orc.numero} />
               {orc.status === "enviado" && hasPermission("whatsapp.reply") && (orc as any).enviado_em &&
                 Date.now() - new Date((orc as any).enviado_em).getTime() > 48 * 3600_000 && (
                   <Dica texto="O cliente não respondeu há mais de 48 horas. Manda um lembrete curto com o link, pelo WhatsApp da gráfica.">

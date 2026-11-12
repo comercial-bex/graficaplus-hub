@@ -16,11 +16,13 @@ import {
   carregarPropsOrcamento3d,
   carregarPropsOS,
   renderPDFBlob,
+  registrarPDFDoClienteParaEnvio,
   salvarERegistrarPDF,
 } from "./generate";
 import type { DocumentoPDFProps } from "./DocumentoPDF";
 import { PaginasDoPDF } from "./PaginasDoPDF";
 import { mensagemErro } from "@/lib/erros";
+import { BotaoEnviarPdfAoCliente } from "@/components/whatsapp/botao-enviar-pdf-ao-cliente";
 
 type Props = {
   open: boolean;
@@ -137,6 +139,7 @@ export function PDFPreviewDialog({
   }
 
   const faltando = props ? dadosDaEmpresaFaltando(props.empresa) : [];
+  const viaDoCliente = mostrarValores && !comCustos;
   const nomeDoTipo = tipo === "os" ? "OS" : tipo === "orcamento_3d" ? "Orçamento 3D" : "Orçamento";
 
   return (
@@ -191,6 +194,21 @@ export function PDFPreviewDialog({
               <ExternalLink className="mr-1 h-4 w-4" /> Abrir em nova aba
             </a>
           </Button>
+          {/* Só na via do CLIENTE: a de produção e a de custos nunca vão ao cliente. O arquivo é o que
+              está na tela (sobe e registra como via do cliente), e o servidor confere de novo. */}
+          {viaDoCliente && (
+            <BotaoEnviarPdfAoCliente
+              tipo={tipo}
+              referenciaId={referencia_id}
+              numero={props?.numero ?? ""}
+              variant="outline"
+              esperandoODocumento={!blob || !props || loading}
+              gerarPdf={async () => {
+                if (!blob || !props) throw new Error("O documento ainda está montando.");
+                return registrarPDFDoClienteParaEnvio({ blob, tipo, referenciaId: referencia_id, numero: props.numero });
+              }}
+            />
+          )}
           <Button onClick={baixarESalvar} disabled={!blob || saving}>
             {saving ? (
               <Loader2 className="mr-1 h-4 w-4 animate-spin" />

@@ -61,8 +61,8 @@ import { useAuth } from "@/lib/auth-context";
 import { PDFPreviewDialog } from "@/lib/pdf/PDFPreviewDialog";
 import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 import { PDFHistoryCard } from "@/lib/pdf/PDFHistoryCard";
-import { gerarPDFOrcamentoParaEnvio } from "@/lib/pdf/generate";
-import { enviarOrcamentoPeloSistema } from "@/lib/api/orcamento-whatsapp.functions";
+import { registrarEnvioPorFora } from "@/lib/api/documento-whatsapp.functions";
+import { legendaDoDocumento, textoAoCliente } from "@/domain/whatsapp/envio-de-documento";
 import { useComprovantesDoOrcamento } from "@/components/pagamento/comprovantes-do-orcamento";
 import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-antes-de-converter";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -1288,12 +1288,30 @@ function OrcamentoDetailPage() {
     return `${window.location.origin}/orcamento-publico/${token}`;
   }
 
+  /**
+   * wa.me e link copiado: o SERVIDOR registra a intenção em documentos_enviados (e, no wa.me, passa
+   * rascunho a enviado e grava enviado_em). A tela não escreve mais nesse campo por aqui. Falhar o
+   * registro não impede o clique: só avisa.
+   */
+  async function registrarPorFora(canal: "wa_me" | "link_copiado") {
+    try {
+      await registrarEnvioPorFora({ data: { tipo: "orcamento", referenciaId: id, canal } });
+      qc.invalidateQueries({ queryKey: ["orcamento", id] });
+      qc.invalidateQueries({ queryKey: ["orcamentos"] });
+      qc.invalidateQueries({ queryKey: ["envio-dos-documentos", "orcamento", id] });
+    } catch (e) {
+      toast.warning(`Não consegui registrar este envio no histórico do orçamento: ${mensagemErro(e, "tente de novo")}`);
+    }
+  }
+
   async function copiarLinkCliente() {
     setGerandoLink(true);
     try {
       const url = await obterLinkCliente();
       await navigator.clipboard.writeText(url);
       toast.success("Link copiado. É só colar para o cliente.");
+      // Registro de INTENÇÃO (canal link_copiado): quem copiou, não prova de que o cliente recebeu.
+      await registrarPorFora("link_copiado");
     } catch (e) {
       toast.error(mensagemErro(e, "Não foi possível gerar o link"));
     } finally {
@@ -1312,11 +1330,17 @@ function OrcamentoDetailPage() {
       // O telefone digitado no orçamento vale primeiro; sem ele, o do cadastro do cliente.
       const bruto = String((orc as any)?.contato_telefone || foneDoCliente || "");
       const destino = telefoneParaZapi(bruto) ?? bruto.replace(/\D/g, "");
-      const texto = `Olá! Segue o orçamento nº ${(orc as any).numero} — ${(orc as any).titulo}.\nVocê pode conferir e aprovar por aqui: ${url}`;
+      // A mesma frase do envio pelo sistema (sem travessão): "Olá! Segue o orçamento nº 123: título."
+      const texto = legendaDoDocumento({
+        tipo: "orcamento",
+        numero: (orc as any).numero,
+        titulo: (orc as any).titulo ?? null,
+        link: url,
+      });
       const endereco = `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`;
-      // Mandou: o orçamento sai de "rascunho" para "enviado" (congela a versão e entra em "Aguardando o cliente").
-      // Antes do clique do WhatsApp o link só existia; o status seguia "rascunho" até alguém trocar à mão.
-      if ((orc as any)?.status === "rascunho") await setStatus("enviado", "Orçamento marcado como enviado");
+      // Mandou: o servidor passa o orçamento de "rascunho" a "enviado" (congela a versão, entra em
+      // "Aguardando o cliente") e grava enviado_em. A tela só pede o registro.
+      await registrarPorFora("wa_me");
       if (janela) janela.location.href = endereco;
       else window.location.href = endereco;
     } catch (e) {
@@ -1324,36 +1348,6 @@ function OrcamentoDetailPage() {
       toast.error(mensagemErro(e, "Não foi possível abrir o WhatsApp"));
     } finally {
       setGerandoLink(false);
-    }
-  }
-
-  const [enviandoPeloSistema, setEnviandoPeloSistema] = useState(false);
-  /** Envio direto pelo Z-API: PDF + link na conversa do cliente, sem passar pelo celular de quem clicou. */
-  async function enviarPeloSistema() {
-    if (enviandoPeloSistema) return;
-    setEnviandoPeloSistema(true);
-    try {
-      let pdfCaminho: string | undefined;
-      try {
-        pdfCaminho = await gerarPDFOrcamentoParaEnvio(id, nivelDeVisao);
-      } catch (e) {
-        // Sem PDF o link ainda segue: o cliente aprova pelo link.
-        toast.warning("Não consegui gerar o PDF; vou mandar só o texto com o link.");
-      }
-      const r = await enviarOrcamentoPeloSistema({
-        data: { orcamentoId: id, origem: window.location.origin, pdfCaminho },
-      });
-      if ((orc as any)?.status === "rascunho") await setStatus("enviado", "Orçamento marcado como enviado");
-      const http = await acionarEnvio();
-      if ("falhaDeRede" in http || http.status >= 400) {
-        toast.warning("Entrou na fila de envio; o despachante manda em até 2 minutos.");
-      } else {
-        toast.success(r.comPdf ? "Orçamento (PDF + link) enviado pelo WhatsApp da gráfica." : "Link do orçamento enviado pelo WhatsApp da gráfica.");
-      }
-    } catch (e) {
-      toast.error(mensagemErro(e, "Não foi possível enviar pelo sistema"));
-    } finally {
-      setEnviandoPeloSistema(false);
     }
   }
 
@@ -1370,7 +1364,7 @@ function OrcamentoDetailPage() {
           telefone: fone,
           nome: (orc as any)?.cliente_nome ?? (orc as any)?.contato_nome ?? undefined,
           origem: "lembrete_orcamento",
-          texto: `Olá! Passando para saber se deu para ver o orçamento nº ${(orc as any).numero} — ${(orc as any).titulo}. Qualquer ajuste é só falar. Para conferir e aprovar: ${url}`,
+          texto: `Olá! Passando para saber se deu para ver o orçamento nº ${(orc as any).numero}: ${textoAoCliente(String((orc as any).titulo ?? "")).replace(/[\s.]+$/, "")}. Qualquer ajuste é só falar. Para conferir e aprovar: ${url}`,
         },
       });
       const http = await acionarEnvio();
@@ -2679,7 +2673,7 @@ function OrcamentoDetailPage() {
           )}
 
           {passo === 4 && (
-            <PassoRevisao canSeePrices={canSeePrices} condicao={condicao} copiarLinkCliente={copiarLinkCliente} dadosDoAcordo={dadosDoAcordo} enviandoPeloSistema={enviandoPeloSistema} enviarPeloSistema={enviarPeloSistema} enviarWhatsApp={enviarWhatsApp} fechado={fechado} gerandoLink={gerandoLink} hasPermission={hasPermission} id={id} irParaPasso={irParaPasso} itensDeProduto={itensDeProduto} lembrando={lembrando} lembrarCliente={lembrarCliente} linhaDaTaxa={linhaDaTaxa} orc={orc} pendencias={pendencias} podeMandar={podeMandar} setPreviewOpen={setPreviewOpen} setPreviewProducaoOpen={setPreviewProducaoOpen} somaArea={somaArea} taxaDoPrazoDoOrcamento={taxaDoPrazoDoOrcamento} />
+            <PassoRevisao canSeePrices={canSeePrices} condicao={condicao} copiarLinkCliente={copiarLinkCliente} dadosDoAcordo={dadosDoAcordo} enviarWhatsApp={enviarWhatsApp} fechado={fechado} gerandoLink={gerandoLink} hasPermission={hasPermission} id={id} irParaPasso={irParaPasso} itensDeProduto={itensDeProduto} lembrando={lembrando} lembrarCliente={lembrarCliente} linhaDaTaxa={linhaDaTaxa} orc={orc} pendencias={pendencias} podeMandar={podeMandar} setPreviewOpen={setPreviewOpen} setPreviewProducaoOpen={setPreviewProducaoOpen} somaArea={somaArea} taxaDoPrazoDoOrcamento={taxaDoPrazoDoOrcamento} />
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-2">

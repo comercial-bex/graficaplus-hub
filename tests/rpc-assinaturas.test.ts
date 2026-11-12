@@ -283,6 +283,12 @@ const ASSINATURAS: Record<string, string[]> = {
   // Migração 20261112130000 (chat_lid): só o webhook chama.
   whatsapp_conversa_do_lid: ["p_instancia_id", "p_chat_lid"],
   whatsapp_aprender_lid: ["p_conversa_id", "p_chat_lid"],
+  // Migração 20261112100000 (PDF ao cliente): só o servidor chama (documento-whatsapp.functions.ts).
+  registrar_envio_documento: [
+    "p_usuario", "p_tipo", "p_referencia_id", "p_canal", "p_documento_id", "p_mensagem_id", "p_conversa_id",
+  ],
+  confirmar_envio_documento: ["p_usuario", "p_envio_id"],
+  arquivo_do_pdf_gerado: ["p_caminho"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */
