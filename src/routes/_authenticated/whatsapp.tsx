@@ -266,9 +266,13 @@ function CaixaDeEntradaPage() {
                 focarResposta={focarRespostaEm === selecionada.id}
                 acoes={<PainelDaConversa conversa={selecionada} className="border-0 shadow-none" />}
               />
+              {/* Coluna própria só a partir de 1280 px. Antes disso o painel
+                  ia para uma segunda linha da grade de altura fixa e a conversa
+                  ficava com metade da altura (print do dono, 11/11/2026); agora
+                  ele abre na gaveta "Ações" do cabeçalho da conversa. */}
               {painelAberto && (
                 <PainelDaConversa
-                  className="hidden lg:flex lg:col-span-2 xl:col-span-1 xl:h-auto xl:min-h-0"
+                  className="hidden xl:flex xl:h-auto xl:min-h-0"
                   conversa={selecionada}
                 />
               )}

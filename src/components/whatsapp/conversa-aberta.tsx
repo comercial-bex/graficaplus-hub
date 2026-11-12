@@ -482,14 +482,17 @@ export function ConversaAberta({
             </Button>
           </Dica>
           {acoes && (
-            // No celular o painel da conversa (cliente, etiquetas, orçamento,
-            // histórico) não cabe embaixo do chat: abre numa gaveta.
+            // Abaixo de 1280 px o painel da conversa (cliente, etiquetas,
+            // orçamento, histórico) não cabe ao lado do chat: abre numa gaveta.
+            // Até 11/11/2026 a gaveta parava em 1024 px e, entre 1024 e
+            // 1279 px, o painel descia para baixo da conversa dentro da mesma
+            // altura fixa e espremia as mensagens numa faixa.
             <Sheet>
               <SheetTrigger asChild>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="lg:hidden"
+                  className="xl:hidden"
                 >
                   <PanelRightOpen className="mr-1 h-4 w-4" aria-hidden />
                   Ações
