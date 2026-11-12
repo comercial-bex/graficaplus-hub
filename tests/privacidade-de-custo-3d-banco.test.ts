@@ -180,13 +180,15 @@ describe("onda C3: o fechamento das taxas da impressão 3D", () => {
 });
 
 describe("as duas migrações", () => {
-  it("prefixos únicos, sem CURRENT_DATE, recarregam o PostgREST e dizem que ainda não foram aplicadas", () => {
+  it("prefixos únicos, sem CURRENT_DATE, recarregam o PostgREST e dizem em que pé estão (C1 aplicada, C3 não)", () => {
     for (const [nome, sql] of [
       ["20261110270000_custo_privado_c1_visoes_do_custo_3d.sql", C1],
       ["20261110280000_custo_privado_c3_fechar_taxas_3d.sql", C3],
     ] as const) {
       const bruto = readFileSync(`supabase/migrations/${nome}`, "utf8");
-      expect(bruto.split("\n")[0], nome).toMatch(/^-- AINDA NÃO APLICADA/);
+      // C1 foi aplicada em 12/11/2026; C3 só depois do front publicado e provado.
+      const esperado = nome.includes("_c1_") ? /^-- APLICADA em / : /^-- AINDA NÃO APLICADA/;
+      expect(bruto.split("\n")[0], nome).toMatch(esperado);
       expect(sql).not.toMatch(/current_date/i);
       expect(sql).toContain("NOTIFY pgrst, 'reload schema';");
     }
