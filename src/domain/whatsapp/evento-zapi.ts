@@ -23,7 +23,14 @@
  * GRUPO NÃO É CLIENTE
  * Mensagem de grupo chega com `isGroup: true` e o id do grupo no `phone`. Sem o
  * filtro, cada grupo em que o número da empresa está viraria um "Lead WhatsApp
- * 120363...". Canal (`isNewsletter`) e lista de transmissão, idem.
+ * 120363...". Canal (`isNewsletter`) e lista de transmissão, idem. O RECIBO de
+ * grupo, porém, entra (12/11/2026): é a prova de que o aviso ao grupo da equipe
+ * foi entregue e lido, e só toca a fila de avisos.
+ *
+ * O CELULAR DA EMPRESA MANDA O LID (12/11/2026)
+ * A mensagem digitada no celular da empresa chega com `phone` "<n>@lid", sem
+ * telefone. Vira `mensagem_do_celular`; a conversa é achada pelo lid que a
+ * mensagem do próprio cliente ensinou (`chatLid`). Nunca vira lead.
  *
  * Formatos conferidos na documentação do Z-API em 11/09/2026.
  */
@@ -64,6 +71,29 @@ export type EventoZapi =
       legenda: string | null;
       midia: Midia | null;
       momento: Date | null;
+      /**
+       * O id interno do WhatsApp para este contato ("253386293268636@lid"), quando o Z-API o
+       * manda. A mensagem do CLIENTE ensina à conversa o seu lid: é por ele que a mensagem
+       * digitada no celular da empresa (que chega com o lid no `phone`) acha a conversa.
+       */
+      chatLid: string | null;
+    }
+  | {
+      /**
+       * Mandada pelo celular da empresa (fromMe, sem fromApi) com o destinatário no formato
+       * "<n>@lid" (12/11/2026: 282 de 283 em 30 dias chegavam assim e eram descartadas). Não
+       * traz telefone: a conversa é achada pelo lid que o cliente ensinou. Nunca vira lead.
+       */
+      tipo: "mensagem_do_celular";
+      instanceId: string;
+      messageId: string;
+      /** "253386293268636@lid": o Z-API manda o destinatário assim quando sai do celular da empresa */
+      chatLid: string;
+      tipoMensagem: TipoMensagem;
+      texto: string | null;
+      legenda: string | null;
+      midia: Midia | null;
+      momento: Date | null;
     }
   | {
       tipo: "status";
@@ -71,6 +101,12 @@ export type EventoZapi =
       ids: string[];
       status: StatusMensagem;
       momento: Date | null;
+      /**
+       * Recibo de mensagem mandada a um GRUPO (o aviso e a cobrança no grupo da equipe). Só
+       * grava entregue e lido na linha da `notificacoes_fila` pelo id da mensagem: não existe
+       * conversa de grupo e nenhuma é criada.
+       */
+      grupo?: boolean;
     }
   | { tipo: "conexao"; instanceId: string; conectado: boolean; momento: Date | null }
   | { tipo: "ignorado"; instanceId: string | null; motivo: string };
@@ -137,6 +173,14 @@ function telefoneDePessoa(phone: unknown): string | null {
   const digitos = p.replace(/\D/g, "");
   if (digitos.length < 10 || digitos.length > MAXIMO_DE_DIGITOS_DE_TELEFONE) return null;
   return digitos;
+}
+
+/** O lid do WhatsApp: só dígitos e "@lid" ("253386293268636@lid"). */
+const FORMATO_DO_LID = /^\d{6,20}@lid$/;
+
+function lid(v: unknown): string | null {
+  const t = texto(v);
+  return t && FORMATO_DO_LID.test(t) ? t : null;
 }
 
 function conteudo(p: Json): {
@@ -337,6 +381,29 @@ export function classificarEventoZapi(payload: unknown): EventoZapi {
       const messageId = texto(p.messageId);
       const telefone = telefoneDePessoa(p.phone);
       if (!messageId) return { tipo: "ignorado", instanceId, motivo: "mensagem sem messageId" };
+      // Digitada no celular da empresa para um contato que o WhatsApp só identifica pelo lid.
+      // O eco da API (fromApi) já saiu acima; a ENTRADA com lid no phone segue recusada logo
+      // abaixo, porque um lid nunca vira lead.
+      const lidDoPhone = lid(p.phone);
+      if (p.fromMe === true && lidDoPhone) {
+        // Aviso do sistema do celular (mensagem apagada, "REVOKE", mudança de grupo): não é
+        // resposta ao cliente. Gravar como saída pararia o relógio de "cliente esperando".
+        if (p.notification != null || conteudo(p).tipoMensagem === "sistema") {
+          return {
+            tipo: "ignorado",
+            instanceId,
+            motivo: "notificação de sistema do celular da empresa",
+          };
+        }
+        return {
+          tipo: "mensagem_do_celular",
+          instanceId,
+          messageId,
+          chatLid: lid(p.chatLid) ?? lidDoPhone,
+          ...conteudo(p),
+          momento: momento(p.momment),
+        };
+      }
       if (!telefone) return { tipo: "ignorado", instanceId, motivo: "remetente não é um telefone" };
 
       return {
@@ -349,11 +416,15 @@ export function classificarEventoZapi(payload: unknown): EventoZapi {
         nome: texto(p.senderName) ?? texto(p.chatName),
         ...conteudo(p),
         momento: momento(p.momment),
+        chatLid: lid(p.chatLid),
       };
     }
 
     case "MessageStatusCallback": {
-      if (p.isGroup === true) return { tipo: "ignorado", instanceId, motivo: "recibo de grupo" };
+      // Recibo de grupo (12/11/2026): antes era descartado, e nenhum aviso ao grupo da equipe
+      // tinha entregue_em. Agora segue a mesma leitura e volta marcado como de grupo; quem
+      // grava (whatsapp_registrar_status) só toca a fila de avisos e as mensagens pelo id.
+      const grupo = p.isGroup === true;
       const ids = Array.isArray(p.ids)
         ? p.ids.filter((i): i is string => typeof i === "string" && i.trim() !== "")
         : [];
@@ -362,7 +433,14 @@ export function classificarEventoZapi(payload: unknown): EventoZapi {
       if (!status) {
         return { tipo: "ignorado", instanceId, motivo: `recibo com status ${String(p.status)}` };
       }
-      return { tipo: "status", instanceId, ids, status, momento: momento(p.momment) };
+      return {
+        tipo: "status",
+        instanceId,
+        ids,
+        status,
+        momento: momento(p.momment),
+        ...(grupo ? { grupo: true } : {}),
+      };
     }
 
     case "ConnectedCallback":

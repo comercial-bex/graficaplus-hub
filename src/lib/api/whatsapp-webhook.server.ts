@@ -246,112 +246,200 @@ async function tratar(
         p_status: evento.status,
         p_momento: evento.momento?.toISOString() ?? null,
       });
+      // Recibo do grupo da equipe: a função do banco só grava entregue e lido na linha da
+      // notificacoes_fila pelo id (não há conversa de grupo, e nenhuma é criada). Perder um
+      // recibo de grupo não custa nada e não pode virar 500 (o Z-API reenviaria o recibo): a
+      // falha fica no log e no resultado. O recibo de conversa de cliente segue lançando.
+      if (error && evento.grupo) {
+        console.warn("[webhook] recibo do grupo não gravado:", error.message);
+        return { recibo_erro: error.message, grupo: true };
+      }
       if (error) throw new Error(error.message);
-      return { recibo: data as Resposta };
+      return evento.grupo ? { recibo: data as Resposta, grupo: true } : { recibo: data as Resposta };
     }
 
     case "mensagem": {
-      // Eco de envio feito pela tela: o Z-API pode avisar o "fromMe" antes de
-      // o consumidor gravar o zapi_message_id na mensagem pendente. Completa a
-      // pendente em vez de criar uma segunda cópia na conversa.
-      if (evento.deMim && evento.texto) {
-        const completada = await completarPendente(
-          instanciaId,
-          evento.telefone,
-          evento.texto,
-          evento.messageId,
-        );
-        if (completada) return { mensagem: { duplicada: false, completou_pendente: completada } };
+      const resposta = await gravarMensagem(evento, instanciaId, eventoId, payloadCru);
+      // A mensagem do CLIENTE ensina o lid à conversa: é por ele que a digitada no celular da
+      // empresa (phone "<n>@lid") acha a conversa. Depois do registro, e acessório: nunca
+      // derruba o evento.
+      const gravada = resposta.mensagem as { duplicada?: boolean; conversa_id?: string } | undefined;
+      if (!evento.deMim && evento.chatLid && gravada?.conversa_id) {
+        try {
+          const { data, error } = await (supabaseAdmin.rpc as any)("whatsapp_aprender_lid", {
+            p_conversa_id: gravada.conversa_id,
+            p_chat_lid: evento.chatLid,
+          });
+          if (error) console.warn("[webhook] lid da conversa não aprendido:", error.message);
+          // `false` sem erro: a conversa já tem outro lid ou o lid é de outra conversa. Deixa
+          // rastro (só ids, nunca telefone) para quem estranhar a falta das mensagens do celular.
+          else if (data === false) {
+            console.warn("[webhook] lid da conversa não aprendido (já tem outro lid ou é de outra conversa):", {
+              conversa_id: gravada.conversa_id,
+              chat_lid: evento.chatLid,
+            });
+          }
+        } catch (e) {
+          console.warn("[webhook] lid da conversa não aprendido:", e instanceof Error ? e.message : e);
+        }
       }
-      // O evento cru já está em whatsapp_webhook_eventos; na mensagem fica o
-      // ponteiro. Fora da chamada para o objeto dela não ter chave aninhada —
-      // senão tests/rpc-assinaturas desiste de conferir os parâmetros.
-      // Campos de Click-to-WhatsApp (canal_origem, tipo_origem, anuncio_id)
-      // entram planos, só quando existem; o banco usa para a origem do lead.
-      const ponteiro = {
-        fonte: "whatsapp_webhook_eventos",
-        chave: `msg:${evento.messageId}`,
-        ...(evento.deMim ? {} : camposDeOrigem(payloadCru)),
-      };
-      const { data, error } = await (supabaseAdmin.rpc as any)("whatsapp_registrar_mensagem", {
+      return resposta;
+    }
+
+    case "mensagem_do_celular": {
+      // Digitada no celular da empresa para um contato que só vem pelo lid. Acha a conversa
+      // pelo lid que o cliente ensinou; sem conversa conhecida, nada é gravado (um lid nunca
+      // abre lead nem conversa). Erro de leitura lança: o evento fica para o reenvio.
+      const { data, error } = await (supabaseAdmin.rpc as any)("whatsapp_conversa_do_lid", {
         p_instancia_id: instanciaId,
-        p_zapi_message_id: evento.messageId,
-        p_telefone: evento.telefone,
-        // fromMe sem fromApi: digitada no celular da empresa. É saída, e nunca
-        // vira lead (a função do banco só abre lead para 'entrada').
-        p_direcao: evento.deMim ? "saida" : "entrada",
-        p_tipo: evento.tipoMensagem,
-        p_texto: evento.texto,
-        p_legenda: evento.legenda,
-        p_media_url: evento.midia?.url ?? null,
-        p_nome_contato: evento.deMim ? null : evento.nome,
-        p_payload: ponteiro,
-        p_momento: evento.momento?.toISOString() ?? null,
-        // Mensagem de modelo (template de empresa) é automação, não gente:
-        // entra na caixa, mas não abre lead nem atendimento.
-        p_origem: evento.deModelo ? "automacao" : undefined,
+        p_chat_lid: evento.chatLid,
       });
       if (error) throw new Error(error.message);
-
-      const gravada = data as {
-        duplicada: boolean;
-        mensagem_id?: string;
-        conversa_id?: string;
-        cliente_id?: string | null;
-        os_id?: string | null;
-        lead_criado?: boolean;
-      };
-      if (!gravada.duplicada && gravada.mensagem_id && evento.deMim) {
-        // Resposta dada pelo celular da empresa (notifySentByMe).
-        await supabaseAdmin
-          .from("whatsapp_mensagens")
-          .update({ origem: "celular" } as never)
-          .eq("id", gravada.mensagem_id);
+      const linha = (Array.isArray(data) ? data[0] : data) as
+        | { conversa_id?: string | null; telefone?: string | null }
+        | null
+        | undefined;
+      if (!linha?.conversa_id || !linha.telefone) {
+        return { ignorado: "mensagem do celular da empresa: chatLid sem conversa conhecida" };
       }
-      // Toque num botão do Pix (ou a mesma frase digitada): "Já paguei", "Ver orçamento",
-      // "Falar com a equipe". Acessório: nunca derruba o evento.
-      if (!gravada.duplicada && !evento.deMim && evento.texto && gravada.conversa_id) {
-        try {
-          await reagirAoBotaoDoPix(gravada.conversa_id, evento.texto);
-        } catch (e) {
-          console.warn("[webhook] reação ao botão do Pix falhou:", e instanceof Error ? e.message : e);
-        }
-      }
-      if (gravada.duplicada || !evento.midia || !gravada.mensagem_id || !gravada.conversa_id) {
-        return { mensagem: gravada };
-      }
-
-      // A mensagem já está gravada com o link do Z-API. Guardar a cópia é
-      // bônus: se falhar, a mensagem fica e o motivo vai para a mensagem, para
-      // o evento, para o log e para a resposta.
-      const ctx = {
+      // O mesmo caminho da saída digitada no celular com telefone: completa a pendente,
+      // grava como saída com o telefone da conversa (nunca lead), marca origem "celular" e
+      // copia a mídia.
+      return gravarMensagem(
+        {
+          tipo: "mensagem",
+          instanceId: evento.instanceId,
+          messageId: evento.messageId,
+          telefone: linha.telefone,
+          deMim: true,
+          deModelo: false,
+          nome: null,
+          tipoMensagem: evento.tipoMensagem,
+          texto: evento.texto,
+          legenda: evento.legenda,
+          midia: evento.midia,
+          momento: evento.momento,
+          chatLid: null,
+        },
         instanciaId,
-        mensagemId: gravada.mensagem_id,
-        conversaId: gravada.conversa_id,
-        clienteId: gravada.cliente_id ?? null,
-        osId: gravada.os_id ?? null,
-      };
-      try {
-        const copia = await guardarMidia(evento.midia, ctx);
-        // Comprovante do sinal (27/10/2026): imagem ou PDF que o CLIENTE manda numa conversa cujo
-        // orçamento pediu o Pix vira anexo do orçamento. Acessório: nunca derruba o evento.
-        if (!evento.deMim) {
-          const { error: erroComprovante } = await supabaseAdmin.rpc("anexar_comprovante_recebido" as never, {
-            p_conversa_id: ctx.conversaId,
-            p_caminho: copia.caminho,
-            p_nome: evento.midia.nomeArquivo ?? null,
-            p_mime: evento.midia.mimeType ?? null,
-            p_tamanho: null,
-          } as never);
-          if (erroComprovante) console.warn("[webhook] comprovante não anexado:", erroComprovante.message);
-        }
-        return { mensagem: gravada, midia: copia.reaproveitada ? "reaproveitada" : "guardada" };
-      } catch (e) {
-        const motivo = e instanceof Error ? e.message : String(e);
-        await registrarFalhaDeMidia(motivo, { ...ctx, eventoId, midia: evento.midia });
-        return { mensagem: gravada, midia_erro: motivo };
-      }
+        eventoId,
+        payloadCru,
+      );
     }
+  }
+}
+
+type EventoDeMensagem = Extract<EventoZapi, { tipo: "mensagem" }>;
+
+/**
+ * Grava uma mensagem (de entrada, ou de saída digitada no celular da empresa) e copia a mídia.
+ * Um caminho só para a mensagem com telefone e para a do celular achada pelo lid.
+ */
+async function gravarMensagem(
+  evento: EventoDeMensagem,
+  instanciaId: string,
+  eventoId: string,
+  payloadCru?: unknown,
+): Promise<Resposta> {
+  // Eco de envio feito pela tela: o Z-API pode avisar o "fromMe" antes de
+  // o consumidor gravar o zapi_message_id na mensagem pendente. Completa a
+  // pendente em vez de criar uma segunda cópia na conversa.
+  if (evento.deMim && evento.texto) {
+    const completada = await completarPendente(
+      instanciaId,
+      evento.telefone,
+      evento.texto,
+      evento.messageId,
+    );
+    if (completada) return { mensagem: { duplicada: false, completou_pendente: completada } };
+  }
+  // O evento cru já está em whatsapp_webhook_eventos; na mensagem fica o
+  // ponteiro. Fora da chamada para o objeto dela não ter chave aninhada —
+  // senão tests/rpc-assinaturas desiste de conferir os parâmetros.
+  // Campos de Click-to-WhatsApp (canal_origem, tipo_origem, anuncio_id)
+  // entram planos, só quando existem; o banco usa para a origem do lead.
+  const ponteiro = {
+    fonte: "whatsapp_webhook_eventos",
+    chave: `msg:${evento.messageId}`,
+    ...(evento.deMim ? {} : camposDeOrigem(payloadCru)),
+  };
+  const { data, error } = await (supabaseAdmin.rpc as any)("whatsapp_registrar_mensagem", {
+    p_instancia_id: instanciaId,
+    p_zapi_message_id: evento.messageId,
+    p_telefone: evento.telefone,
+    // fromMe sem fromApi: digitada no celular da empresa. É saída, e nunca
+    // vira lead (a função do banco só abre lead para 'entrada').
+    p_direcao: evento.deMim ? "saida" : "entrada",
+    p_tipo: evento.tipoMensagem,
+    p_texto: evento.texto,
+    p_legenda: evento.legenda,
+    p_media_url: evento.midia?.url ?? null,
+    p_nome_contato: evento.deMim ? null : evento.nome,
+    p_payload: ponteiro,
+    p_momento: evento.momento?.toISOString() ?? null,
+    // Mensagem de modelo (template de empresa) é automação, não gente:
+    // entra na caixa, mas não abre lead nem atendimento.
+    p_origem: evento.deModelo ? "automacao" : undefined,
+  });
+  if (error) throw new Error(error.message);
+
+  const gravada = data as {
+    duplicada: boolean;
+    mensagem_id?: string;
+    conversa_id?: string;
+    cliente_id?: string | null;
+    os_id?: string | null;
+    lead_criado?: boolean;
+  };
+  if (!gravada.duplicada && gravada.mensagem_id && evento.deMim) {
+    // Resposta dada pelo celular da empresa (notifySentByMe).
+    await supabaseAdmin
+      .from("whatsapp_mensagens")
+      .update({ origem: "celular" } as never)
+      .eq("id", gravada.mensagem_id);
+  }
+  // Toque num botão do Pix (ou a mesma frase digitada): "Já paguei", "Ver orçamento",
+  // "Falar com a equipe". Acessório: nunca derruba o evento.
+  if (!gravada.duplicada && !evento.deMim && evento.texto && gravada.conversa_id) {
+    try {
+      await reagirAoBotaoDoPix(gravada.conversa_id, evento.texto);
+    } catch (e) {
+      console.warn("[webhook] reação ao botão do Pix falhou:", e instanceof Error ? e.message : e);
+    }
+  }
+  if (gravada.duplicada || !evento.midia || !gravada.mensagem_id || !gravada.conversa_id) {
+    return { mensagem: gravada };
+  }
+
+  // A mensagem já está gravada com o link do Z-API. Guardar a cópia é
+  // bônus: se falhar, a mensagem fica e o motivo vai para a mensagem, para
+  // o evento, para o log e para a resposta.
+  const ctx = {
+    instanciaId,
+    mensagemId: gravada.mensagem_id,
+    conversaId: gravada.conversa_id,
+    clienteId: gravada.cliente_id ?? null,
+    osId: gravada.os_id ?? null,
+  };
+  try {
+    const copia = await guardarMidia(evento.midia, ctx);
+    // Comprovante do sinal (27/10/2026): imagem ou PDF que o CLIENTE manda numa conversa cujo
+    // orçamento pediu o Pix vira anexo do orçamento. Acessório: nunca derruba o evento.
+    if (!evento.deMim) {
+      const { error: erroComprovante } = await supabaseAdmin.rpc("anexar_comprovante_recebido" as never, {
+        p_conversa_id: ctx.conversaId,
+        p_caminho: copia.caminho,
+        p_nome: evento.midia.nomeArquivo ?? null,
+        p_mime: evento.midia.mimeType ?? null,
+        p_tamanho: null,
+      } as never);
+      if (erroComprovante) console.warn("[webhook] comprovante não anexado:", erroComprovante.message);
+    }
+    return { mensagem: gravada, midia: copia.reaproveitada ? "reaproveitada" : "guardada" };
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : String(e);
+    await registrarFalhaDeMidia(motivo, { ...ctx, eventoId, midia: evento.midia });
+    return { mensagem: gravada, midia_erro: motivo };
   }
 }
 
@@ -695,7 +783,10 @@ export async function reprocessarMidia(
   if (!evento) return { ok: false, erro: "evento não encontrado" };
 
   const classificado = classificarEventoZapi(evento.payload);
-  if (classificado.tipo !== "mensagem" || !classificado.midia) {
+  if (
+    (classificado.tipo !== "mensagem" && classificado.tipo !== "mensagem_do_celular") ||
+    !classificado.midia
+  ) {
     return { ok: false, erro: "este evento não é uma mensagem com mídia" };
   }
 

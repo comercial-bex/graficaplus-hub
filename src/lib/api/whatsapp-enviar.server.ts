@@ -6,6 +6,7 @@ import {
   ehGrupoZapi,
   lerRespostaZapi,
   montarEnvio,
+  numerosParaMencionar,
   renderizarTemplate,
   valeTentarDeNovo,
   type EnderecoZapi,
@@ -23,6 +24,13 @@ import {
   limiteDePresa,
   proximaTentativaEm,
 } from "@/domain/whatsapp/despachante";
+import {
+  configDaCobranca,
+  dentroDoHorarioUtil,
+  numeroParaMencao,
+  type ConfigCobranca,
+  type LinhaDaConfiguracao,
+} from "@/domain/whatsapp/cobranca";
 import { hashDoSegredo, hashesIguais } from "@/domain/whatsapp/segredo-webhook";
 import { assinarMensagem, assinaturaDaPessoa } from "@/domain/whatsapp/assinatura";
 import {
@@ -975,6 +983,43 @@ async function rodada(quem: Quem): Promise<Response> {
 
 type Instancia = { id: string; zapi_instance_id: string };
 
+/** O evento da cobrança de orçamento no grupo (modelo `{{texto}}`, migração 20261112110000). */
+const EVENTO_DA_COBRANCA = "cobranca_orcamento";
+
+/**
+ * Eventos cujo modelo é só `{{texto}}` e que SÓ vão para o grupo da equipe. A trava olha o evento
+ * E o modelo: `notificacoes_fila` aceita escrita direta de equipe (policy `notificacoes_fila_staff`),
+ * e uma linha com outro evento e `template` de grupo acharia o modelo pelo `template` e mandaria
+ * o texto escolhido a um cliente.
+ */
+const EVENTOS_SO_PARA_GRUPO = new Set([EVENTO_DA_COBRANCA, "aviso_grupo_equipe"]);
+
+/** Cobrança que passou disto na fila não vale mais: o texto fala de um minuto que já passou. */
+const VALIDADE_DA_COBRANCA_MS = 30 * 60 * 1000;
+
+const COLUNAS_DO_HORARIO_DA_COBRANCA =
+  "horario_inicio, horario_fim, dias_semana, grupo_equipe_id, grupo_equipe_ativo, cobranca_modo, cobranca_min_pedido, cobranca_min_orcamento, cobranca_min_gestor, cobranca_sabado, cobranca_sabado_fim, cobranca_ligada_em, cobranca_ensaio_desde";
+
+/** O que a cobrança precisa conferir na hora do envio: o horário útil e a equipe de hoje. */
+type ContextoDaCobranca = { cfg: ConfigCobranca; numerosDaEquipe: Set<string> };
+
+async function lerContextoDaCobranca(): Promise<ContextoDaCobranca | { erro: string }> {
+  const [cfgResp, equipeResp] = await Promise.all([
+    (supabaseAdmin as any).from("whatsapp_configuracoes").select(COLUNAS_DO_HORARIO_DA_COBRANCA).limit(1).maybeSingle(),
+    (supabaseAdmin.rpc as any)("whatsapp_cobranca_equipe"),
+  ]);
+  if (cfgResp?.error) return { erro: `falha ao ler o horário da cobrança: ${cfgResp.error.message}` };
+  if (!cfgResp?.data) return { erro: "sem linha em whatsapp_configuracoes para conferir o horário da cobrança" };
+  if (equipeResp?.error) return { erro: `falha ao ler a equipe da cobrança: ${equipeResp.error.message}` };
+  if (!Array.isArray(equipeResp?.data)) return { erro: "a equipe da cobrança veio num formato inesperado" };
+  const numerosDaEquipe = new Set<string>();
+  for (const pessoa of equipeResp.data as { telefone?: string | null }[]) {
+    const numero = numeroParaMencao(pessoa.telefone);
+    if (numero) numerosDaEquipe.add(numero);
+  }
+  return { cfg: configDaCobranca(cfgResp.data as LinhaDaConfiguracao), numerosDaEquipe };
+}
+
 /**
  * A OUTRA fila: os avisos automáticos ao cliente.
  *
@@ -1027,7 +1072,7 @@ async function processarAvisosAoCliente(
 
   const { data: linhas, error: erroLinhas } = await supabaseAdmin
     .from("notificacoes_fila")
-    .select("id, canal, destinatario, evento, template, variaveis, tentativas, max_tentativas")
+    .select("id, canal, destinatario, evento, template, variaveis, tentativas, max_tentativas, created_at")
     .eq("canal", "whatsapp")
     .eq("status", "pendente")
     .or(`proxima_tentativa_em.is.null,proxima_tentativa_em.lte.${agora.toISOString()}`)
@@ -1061,6 +1106,8 @@ async function processarAvisosAoCliente(
   );
 
   let enviados = 0;
+  // Lido uma vez por rodada, e só se houver cobrança na fila.
+  let contextoDaCobranca: ContextoDaCobranca | { erro: string } | null = null;
 
   for (const linha of linhas) {
     const maximo = linha.max_tentativas ?? 5;
@@ -1085,13 +1132,72 @@ async function processarAvisosAoCliente(
       continue;
     }
 
+    // TERCEIRA TRAVA (12/11/2026): evento de grupo só vai para o grupo da equipe. A primeira é o
+    // banco (whatsapp_cobranca_registrar não aceita destino, usa grupo_equipe_destino()); a segunda,
+    // a rodada do servidor. Destino que não é grupo vira falha definitiva SEM chamar o Z-API. Vale
+    // para o evento e para o modelo da linha: nada da cobrança vai ao cliente.
+    const eventoDeGrupo =
+      EVENTOS_SO_PARA_GRUPO.has(linha.evento) || EVENTOS_SO_PARA_GRUPO.has(linha.template ?? "");
+    if (eventoDeGrupo && !ehGrupoZapi(linha.destinatario)) {
+      const erro = "o aviso do grupo só vai para o grupo da equipe";
+      await gravarAviso(erros, linha.id, { status: "falhou", ultimo_erro: erro });
+      detalhes.push({ evento: linha.evento, erro });
+      continue;
+    }
+
+    // A cobrança é conferida DE NOVO na hora de sair: a rodada decidiu minutos ou horas antes, e
+    // a linha pode ter voltado a `pendente` por falha de rede. Vencida (mais de 30 minutos na
+    // fila) ou fora do horário útil, nada sai; quem já saiu da equipe deixa de ser citado.
+    let variaveisDoEnvio = linha.variaveis as Record<string, unknown> | null;
+    if (linha.evento === EVENTO_DA_COBRANCA || linha.template === EVENTO_DA_COBRANCA) {
+      const criada = linha.created_at ? new Date(linha.created_at).getTime() : NaN;
+      if (Number.isFinite(criada) && agora.getTime() - criada > VALIDADE_DA_COBRANCA_MS) {
+        const erro = "cobrança vencida: ficou mais de 30 minutos na fila";
+        await gravarAviso(erros, linha.id, { status: "cancelado", ultimo_erro: erro });
+        detalhes.push({ evento: linha.evento, erro });
+        continue;
+      }
+      contextoDaCobranca ??= await lerContextoDaCobranca();
+      const ctx = contextoDaCobranca;
+      if ("erro" in ctx) {
+        // Sem conferir não envia. Devolve a linha à fila sem gastar a tentativa da reserva.
+        await gravarAviso(erros, linha.id, {
+          status: "pendente",
+          tentativas: linha.tentativas ?? 0,
+          ultimo_erro: ctx.erro,
+          proxima_tentativa_em: proximaTentativaEm(agora, 1),
+        });
+        detalhes.push({ evento: linha.evento, erro: ctx.erro });
+        continue;
+      }
+      if (!dentroDoHorarioUtil(agora, ctx.cfg.horario)) {
+        const erro = "cobrança fora do horário útil: não enviada";
+        await gravarAviso(erros, linha.id, { status: "cancelado", ultimo_erro: erro });
+        detalhes.push({ evento: linha.evento, erro });
+        continue;
+      }
+      const pedidos = (variaveisDoEnvio as { mencionar?: unknown } | null)?.mencionar;
+      const numeros = numerosParaMencionar(Array.isArray(pedidos) ? pedidos : []);
+      const fora = numeros.filter((n) => !ctx.numerosDaEquipe.has(n));
+      if (fora.length > 0) {
+        let texto = String((variaveisDoEnvio as { texto?: unknown } | null)?.texto ?? "");
+        for (const n of fora) texto = texto.split(`@${n}`).join("(fora da equipe)");
+        variaveisDoEnvio = {
+          ...(variaveisDoEnvio ?? {}),
+          texto,
+          mencionar: numeros.filter((n) => ctx.numerosDaEquipe.has(n)),
+        };
+      }
+    }
+
     // O texto fica numa variável: é ele que vai para a conversa e para o log.
-    const textoDoAviso = renderizarTemplate(
-      corpo,
-      linha.variaveis as Record<string, unknown> | null,
-    );
+    const textoDoAviso = renderizarTemplate(corpo, variaveisDoEnvio);
+    // Quem citar com "@" (cobrança no grupo): `variaveis.mencionar`, só números de 12 ou 13
+    // dígitos. `montarEnvio` só usa a lista quando o destino é grupo.
+    const pedidosDeMencao = (variaveisDoEnvio as { mencionar?: unknown } | null)?.mencionar;
+    const mencionar = numerosParaMencionar(Array.isArray(pedidosDeMencao) ? pedidosDeMencao : []);
     const montado = montarEnvio(
-      { tipo: "texto", para: linha.destinatario, texto: textoDoAviso },
+      { tipo: "texto", para: linha.destinatario, texto: textoDoAviso, mencionar },
       { instanceId: instancia.zapi_instance_id, token },
     );
 

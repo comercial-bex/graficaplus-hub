@@ -355,6 +355,22 @@ export const dicas = {
   "/whatsapp-monitor": {
     menu: "Acompanhamento das mensagens ligadas a cada trabalho.",
     tela: "Mostra as mensagens trocadas por ordem de serviço, para saber o que foi combinado com o cliente sem sair do sistema.",
+    campos: {
+      cobranca_modo:
+        "Desligada: nada acontece. Ensaio: o sistema só anota o que teria mandado, sem mandar nada ao grupo. Ligada: a cobrança vai para o grupo da equipe no WhatsApp. Nunca vai nada ao cliente.",
+      cobranca_min_pedido:
+        "Minutos úteis depois que o cliente pediu orçamento sem receber nenhum. Passou disso, o grupo recebe a primeira cobrança, citando o responsável do atendimento.",
+      cobranca_min_orcamento:
+        "Minutos úteis depois que o orçamento foi criado e ainda não foi enviado ao cliente. Passou disso, o grupo recebe a primeira cobrança, citando o responsável e o vendedor do orçamento.",
+      cobranca_min_gestor:
+        "Minutos úteis depois da primeira cobrança sem solução. Passou disso, vai a segunda e última cobrança, que também chama a gerência.",
+      cobranca_sabado:
+        "Se o sábado de manhã conta como horário útil. Fora do horário útil o relógio para e nenhuma cobrança sai.",
+    },
+    acoes: {
+      cobranca_salvar:
+        "Grava o modo e os tempos da cobrança. Só administrador e gestor podem mudar. Ao passar para Ensaio ou Ligada, só contam os pedidos feitos dali em diante.",
+    },
   },
   "/respostas-rapidas": {
     menu: "Mensagens prontas para agilizar o atendimento.",
