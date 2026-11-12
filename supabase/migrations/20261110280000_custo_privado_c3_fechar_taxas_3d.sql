@@ -1,3 +1,7 @@
+-- APLICADA em 12/11/2026 às 19h50 (Macapá), fora do expediente, depois do front da onda C publicado e provado (marcas presentes no pacote).
+-- Ensaiada em transação desfeita: guardas ok, md5 das policies iguais, vendedor nega custo_hora_calculado e custo_por_grama_calculado, lê as colunas abertas;
+-- depois de aplicada: quem vê custo lê 4 impressoras, 33 filamentos e a configuração; o vendedor lê 0 linhas da configuração. Avisar a equipe para recarregar a página.
+-- (texto original abaixo)
 -- AINDA NÃO APLICADA (escrita em 11/11/2026, pacote c2 da onda C). Só depois da C1 aplicada E do front da onda C publicado
 -- e provado no pacote. Quem aplicar: ensaiar antes (transação desfeita, com as contas reais: e52011db, a1d56e29 e d15a87fd sem
 -- custo; a5bc923d financeiro; o admin), aplicar fora do horário, avisar a equipe para recarregar a página, e só então trocar
