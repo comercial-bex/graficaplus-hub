@@ -276,6 +276,34 @@ export const salvarConfiguracoesWhatsapp = createServerFn({ method: "POST" })
   });
 
 /**
+ * Cobrança de orçamento no grupo (cartão do Monitor). Exige configuracoes › manage (admin e
+ * gestor; whatsapp › manage é só admin e não serve). Chama `whatsapp_cobranca_salvar`, só do
+ * service_role, que confere de novo e grava o corte (`cobranca_ligada_em`, `cobranca_ensaio_desde`)
+ * quando o modo muda.
+ */
+const cobrancaSchema = z.object({
+  modo: z.enum(["desligada", "ensaio", "ligada"]),
+  min_pedido: z.number().int().min(30).max(1440),
+  min_orcamento: z.number().int().min(30).max(1440),
+  min_gestor: z.number().int().min(30).max(1440),
+  sabado: z.boolean(),
+  sabado_fim: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+});
+
+export type ConfiguracaoDaCobranca = z.infer<typeof cobrancaSchema>;
+
+export const salvarCobrancaDeOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => cobrancaSchema.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true }> => {
+    await exigir(context.supabase, context.userId, "configuracoes.manage");
+    const db = (await admin()) as any;
+    const { error } = await db.rpc("whatsapp_cobranca_salvar", { p_usuario: context.userId, p_config: data });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/**
  * O que o Monitor precisa saber da assistente sem ver segredo nenhum: se a
  * chave da OpenAI está no servidor e qual modelo será usado.
  */

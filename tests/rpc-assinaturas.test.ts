@@ -273,6 +273,16 @@ const ASSINATURAS: Record<string, string[]> = {
   // Migração 20261020120000: a conversa do WhatsApp a partir do cadastro do cliente
   // (abrirConversaDoCliente, só service_role). Exige whatsapp.reply de p_usuario.
   whatsapp_conversa_do_cliente: ["p_cliente_id", "p_usuario"],
+  // Migração 20261112110000 (cobrança de orçamento no grupo): só o servidor chama
+  // (whatsapp-cobranca.server.ts e salvarCobrancaDeOrcamento em whatsapp-caixa.functions.ts).
+  whatsapp_cobranca_pendencias: ["p_desde"],
+  whatsapp_cobranca_equipe: [],
+  whatsapp_cobranca_registrar: ["p_modo", "p_itens", "p_texto", "p_mencionar", "p_agrupada"],
+  whatsapp_cobranca_salvar: ["p_usuario", "p_config"],
+  whatsapp_cobranca_rodada_gravar: ["p_ok", "p_parada", "p_erro"],
+  // Migração 20261112130000 (chat_lid): só o webhook chama.
+  whatsapp_conversa_do_lid: ["p_instancia_id", "p_chat_lid"],
+  whatsapp_aprender_lid: ["p_conversa_id", "p_chat_lid"],
 };
 
 /** Funções com muitos parâmetros opcionais que a tela monta dinamicamente. */

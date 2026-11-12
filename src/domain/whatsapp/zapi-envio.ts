@@ -29,6 +29,12 @@ export type PedidoDeEnvio = {
   nomeArquivo?: string;
   /** Botões de resposta rápida (até 3). Só para tipo "botoes"; o texto é o corpo da mensagem. */
   botoes?: Botao[];
+  /**
+   * Quem citar com "@" (cobrança de orçamento no grupo, 12/11/2026). Só vale para texto em
+   * destino de GRUPO: vira o campo `mentioned` do send-text do Z-API (documentação pública,
+   * "mention-participant": só dígitos, com o 55). Destino de pessoa ignora a lista.
+   */
+  mencionar?: string[];
 };
 
 /**
@@ -45,6 +51,20 @@ export function telefoneParaZapi(valor: string | null | undefined): string | nul
   // Cliente de fora: o número já carrega o código do país e NÃO leva o 55 na frente. Escrito com
   // "+" (cadastro) ou só dígitos de 12 a 15 (conversa que chegou pelo webhook).
   return numeroEstrangeiro(valor) ?? numeroRecebidoDeFora(valor);
+}
+
+/**
+ * Os números do `mentioned`: só dígitos, 12 ou 13 (55 + DDD + número), sem repetir, na ordem
+ * recebida. Qualquer outra coisa cai.
+ */
+export function numerosParaMencionar(lista: readonly unknown[] | null | undefined): string[] {
+  const vistos = new Set<string>();
+  for (const n of lista ?? []) {
+    if (typeof n !== "string") continue;
+    const s = n.trim();
+    if (/^\d{12,13}$/.test(s)) vistos.add(s);
+  }
+  return [...vistos];
 }
 
 /**
@@ -84,6 +104,9 @@ export function montarEnvio(
   if (pedido.tipo === "texto") {
     const message = (pedido.texto ?? "").trim();
     if (!message) return { erro: "mensagem sem texto" };
+    // Menção só em grupo: para pessoa o corpo continua { phone, message }.
+    const mentioned = ehGrupoZapi(pedido.para) ? numerosParaMencionar(pedido.mencionar) : [];
+    if (mentioned.length > 0) return { url: `${base}/send-text`, corpo: { phone, message, mentioned } };
     return { url: `${base}/send-text`, corpo: { phone, message } };
   }
 
