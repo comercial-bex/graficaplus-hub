@@ -53,8 +53,12 @@ const REGRAS: readonly Regra[] = [
 
 /** Estilo pedido pelo dono: sem travessão, seta nem parênteses; nada de variável sem preencher. */
 const ESTILO: readonly Regra[] = [
-  { regra: "travessao", teste: /[—–]/, ramos: "todos" },
-  { regra: "seta", teste: /[←-⇿➔➡]|->|=>|<-/, ramos: "todos" },
+  // travessões de Unicode: em dash, en dash, barra horizontal U+2015, traço de figura U+2012, sinal de menos U+2212, dois e três
+  // em dash U+2E3A e U+2E3B, e as formas pequena U+FE58, U+FE63 e de largura total U+FF0D. O hífen comum NÃO entra (Ana-Clara).
+  { regra: "travessao", teste: /[—–―‒−⸺⸻﹘﹣－]/, ramos: "todos" },
+  // setas: bloco de setas U+2190 a U+21FF, setas de dingbats U+2794, U+2798 a U+27AF e U+27B1 a U+27BE (inclui U+279C; fora ficam os emojis de mais, menos, divisão e laço), setas suplementares A e B
+  // U+27F0 a U+27FF e U+2900 a U+297F, e as setas de emoji U+2B05 a U+2B07. Mais as setas de teclado: ->, => e <-.
+  { regra: "seta", teste: /[←-⇿➔➘-➯➱-➾⟰-⟿⤀-⥿⬅-⬇]|->|=>|<-/, ramos: "todos" },
   { regra: "parenteses", teste: /[()]/, ramos: "todos" },
   { regra: "variavel_sem_preencher", teste: /\{\{|\}\}/, ramos: "todos" },
 ];

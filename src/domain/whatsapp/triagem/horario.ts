@@ -77,17 +77,42 @@ export function diasEmTexto(dias: readonly number[]): string {
   return `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
 }
 
-/** As variáveis `abre`, `fecha` e `dias` do texto. Nulo se nenhum dia está ativo. */
+/**
+ * As variáveis `abre`, `fecha` e `dias` do texto. Nulo se nenhum dia está ativo.
+ *
+ * Dias ativos com horários diferentes são agrupados por horário: `abre` e `fecha` são os do grupo com mais dias
+ * (empate: o que tem dia útil, depois o que começa mais cedo na semana) e os outros grupos entram em `dias`
+ * ("de segunda a sexta, e aos sábados das 8h às 12h"). Espelho de `whatsapp_horario_em_texto` (B3).
+ */
 export function horarioEmTexto(
   tabela: TabelaDeHorario,
 ): { abre: string; fecha: string; dias: string } | null {
   const ativos = tabela.semana.filter((h) => h.ativo);
   if (ativos.length === 0) return null;
-  const base = ativos.find((h) => h.diaSemana >= 1 && h.diaSemana <= 5) ?? ativos[0];
+  const grupos = new Map<string, { abre: string; fecha: string; dias: number[] }>();
+  for (const h of ativos) {
+    const chave = `${h.abre}|${h.fecha}`;
+    const g = grupos.get(chave) ?? { abre: h.abre, fecha: h.fecha, dias: [] };
+    g.dias.push(h.diaSemana);
+    grupos.set(chave, g);
+  }
+  const lista = [...grupos.values()].map((g) => ({ ...g, dias: [...g.dias].sort((a, b) => a - b) }));
+  const temUtil = (g: { dias: number[] }) => g.dias.some((d) => d >= 1 && d <= 5);
+  const principal = [...lista].sort(
+    (a, b) =>
+      b.dias.length - a.dias.length ||
+      Number(temUtil(b)) - Number(temUtil(a)) ||
+      a.dias[0] - b.dias[0],
+  )[0];
+  const outros = lista
+    .filter((g) => g !== principal)
+    .sort((a, b) => a.dias[0] - b.dias[0])
+    .map((g) => `, e ${diasEmTexto(g.dias)} das ${horaEmTexto(g.abre)} às ${horaEmTexto(g.fecha)}`)
+    .join("");
   return {
-    abre: horaEmTexto(base.abre),
-    fecha: horaEmTexto(base.fecha),
-    dias: diasEmTexto(ativos.map((h) => h.diaSemana)),
+    abre: horaEmTexto(principal.abre),
+    fecha: horaEmTexto(principal.fecha),
+    dias: diasEmTexto(principal.dias) + outros,
   };
 }
 

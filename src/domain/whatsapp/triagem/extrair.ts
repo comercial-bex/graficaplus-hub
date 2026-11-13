@@ -3,6 +3,7 @@ import { semAcento } from "./normalizar";
 import { interpretar } from "./quadro";
 import { SEMENTES_DO_QUADRO } from "./quadro-sementes";
 import type { RespostaDoQuadro } from "./tipos";
+import { verificarTexto } from "./verificador";
 
 /* ------------------------------------------------------------------ */
 /* Nome                                                                */
@@ -246,6 +247,30 @@ const NAO_E_NOME = new Set([
   "revendedora",
   "revenda",
   "atacado",
+  // dinheiro e pagamento: o banco proíbe o texto montado com estas palavras (verificador.ts), e o nome volta na
+  // mensagem do robô ("Prazer, Pix!"), então nunca pode ser nome. O que o verificador já pega (pix, juros, boleto,
+  // parcel*, reais, diferenciad*) é conferido de novo abaixo, direto da lista dele; estas são as formas coladas
+  // ou sem acento que a lista dele não alcança.
+  "pix",
+  "juros",
+  "boleto",
+  "boletos",
+  "parcela",
+  "parcelas",
+  "parcelamento",
+  "reais",
+  "diferenciado",
+  "diferenciada",
+  "notafiscal",
+  "nota",
+  "fiscal",
+  "porcentagem",
+  "percentual",
+  "precisamos",
+  "orcar",
+  "camisa",
+  "quanto",
+  "puto",
   // palavrões
   "porra",
   "caralho",
@@ -278,6 +303,12 @@ const NAO_E_NOME = new Set([
   "cu",
 ]);
 const PREFIXOS_BARRADOS = [
+  "notafisc",
+  "porcent",
+  "percent",
+  "parcel",
+  "diferenciad",
+  "boleto",
   "parceir",
   "parceri",
   "terceiriz",
@@ -388,6 +419,11 @@ export function extrairNome(
     if (NAO_E_NOME.has(planos[i]) || PREFIXOS_BARRADOS.some((p) => planos[i].startsWith(p)))
       return { ok: false, motivo: "palavra_barrada" };
   }
+  // a mesma lista do banco: se o texto montado com este nome seria barrado pelo verificador (que o banco espelha),
+  // não é nome. Sem isto, "Pix" virava "Prazer, Pix!", o texto era barrado e a triagem desligava para todos.
+  const barradoPeloVerificador = (x: string) => !verificarTexto(x, "cliente").ok;
+  if (barradoPeloVerificador(tokens.join(" ")) || tokens.some(barradoPeloVerificador))
+    return { ok: false, motivo: "palavra_barrada" };
   const principais = tokens.filter((_, i) => !CONECTORES.has(planos[i]));
   if (principais[0].replace(/['’-]/g, "").length > 15)
     return { ok: false, motivo: "primeiro_nome_longo" };
@@ -400,6 +436,8 @@ export function extrairNome(
   const nome = tokens
     .map((p, i) => (CONECTORES.has(planos[i]) ? planos[i] : maiusculaInicial(p)))
     .join(" ");
+  // a coluna do banco guarda até 60 letras: nome maior que isso o banco recusaria em silêncio
+  if (nome.length > 60) return { ok: false, motivo: "muito_longo" };
   return {
     ok: true,
     nome,
