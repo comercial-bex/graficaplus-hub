@@ -21,15 +21,19 @@ import { ThemeToggle } from "@/components/bex/ThemeToggle";
  * crédito por pedido pago, não esses dois.
  */
 
+const DESCRICAO =
+  "Seja parceiro da Bex Print: tabela de parceiro, orçamento com a sua marca e crédito a cada pedido pago.";
+
 export const Route = createFileRoute("/seja-parceiro")({
   head: () => ({
     meta: [
       { title: "Seja parceiro — Bex Print" },
       {
         name: "description",
-        content:
-          "Revenda ou terceirize com a Bex Print: tabela de parceiro, orçamento com a sua marca e crédito a cada pedido pago.",
+        content: DESCRICAO,
       },
+      { property: "og:description", content: DESCRICAO },
+      { name: "twitter:description", content: DESCRICAO },
     ],
   }),
   component: SejaParceiroPage,

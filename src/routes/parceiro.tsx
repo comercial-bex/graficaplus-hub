@@ -55,7 +55,7 @@ function LayoutDoParceiro() {
         titulo={daEquipe ? "Este é o painel dos parceiros" : "Acesso de parceiro ainda não liberado"}
         texto={
           daEquipe
-            ? "Você entrou com uma conta da equipe. O painel do parceiro é para quem revende com a própria marca — a gestão da rede fica em Parceiros, no sistema."
+            ? "Você entrou com uma conta da equipe. O painel do parceiro é para quem vende com a própria marca. A gestão da rede fica em Parceiros, no sistema."
             : "Sua conta está criada, mas ainda não foi ligada a um cadastro de parceiro. Avise a gráfica: assim que ligarem, este painel abre com a sua tabela."
         }
         email={user.email ?? ""}

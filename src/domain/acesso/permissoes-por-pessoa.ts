@@ -317,7 +317,7 @@ export const NOME_DO_MODULO: Record<string, string> = {
   operacao: "Produção: quadro, apontamento, qualidade e tarefas",
   orcamentos: "Orçamentos, desconto e margem",
   os: "Ordens de serviço",
-  parceiros: "Parceiros revendedores",
+  parceiros: "Parceiros",
   portal: "Portal do cliente",
   precos: "Preço de venda",
   reembolsos: "Reembolsos",

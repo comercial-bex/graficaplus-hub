@@ -155,7 +155,7 @@ export function PrecoDoOrcamento({
         <span className="text-xs text-warning">
           {parceiroCadastrado
             ? "Este cliente é parceiro: use o preço de parceiro."
-            : "Este cliente está marcado como revendedor, mas não tem cadastro de parceiro: a tabela por nível não se aplica. Cadastre em Parceiros."}
+            : "Este cliente está marcado como parceiro, mas ainda não tem cadastro no programa: a tabela por nível não se aplica. Cadastre em Parceiros."}
         </span>
       )}
 

@@ -1516,7 +1516,7 @@ export function Calculadora3D({
                       />
                     </div>
                     <div className="font-mono font-semibold">{valor(calc.atacado)}</div>
-                    <div className="text-xs text-muted-foreground">preço para revenda</div>
+                    <div className="text-xs text-muted-foreground">preço para parceiro</div>
                   </div>
                   <div
                     className="rounded-lg border border-border px-2 py-1.5"

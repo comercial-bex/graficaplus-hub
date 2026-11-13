@@ -16,8 +16,8 @@ export type DicasTela = {
 
 export const dicas = {
   "/parceiros": {
-    menu: "Rede de revendedores: níveis, metas, ofertas e quem está esfriando.",
-    tela: "Quem compra da gráfica para revender com a própria marca. Aqui você cadastra o parceiro, dá o acesso ao painel dele, define níveis de desconto, metas com prêmio e ofertas que aparecem para ele. Os orçamentos que o parceiro faz para os clientes dele são dele: a gráfica vê quanto ele trabalha (orçamentos, m², pedidos), nunca quem são os clientes.",
+    menu: "Rede de parceiros: níveis, metas, ofertas e quem está esfriando.",
+    tela: "Quem compra da gráfica para vender com a própria marca. Aqui você cadastra o parceiro, dá o acesso ao painel dele, define níveis de desconto, metas com prêmio e ofertas que aparecem para ele. Os orçamentos que o parceiro faz para os clientes dele são dele: a gráfica vê quanto ele trabalha (orçamentos, m², pedidos), nunca quem são os clientes.",
     campos: {
       compras_30_dias:
         "Quanto o parceiro comprou da gráfica nos últimos 30 dias (OS não canceladas do cliente dele). Só aparece para quem vê financeiro.",
@@ -32,7 +32,7 @@ export const dicas = {
       compras_em_90_dias:
         "Quanto o parceiro precisa comprar em 90 dias para entrar neste nível. Divida por 3 para pensar por mês.",
       desconto_na_tabela:
-        "Quanto ele paga a menos que o preço de balcão. É o ganho dele ao revender pelo mesmo preço que a gráfica cobra.",
+        "Quanto ele paga a menos que o preço de balcão. É o ganho dele ao vender pelo mesmo preço que a gráfica cobra.",
       desconto_em_preco_por_faixa:
         "Desconto extra nos produtos de campanha, que já têm preço por quantidade e não têm custo cadastrado — por isso é separado e menor.",
       volta_em_credito: "Cashback: percentual do pedido que volta como crédito quando a OS é paga.",
@@ -60,7 +60,7 @@ export const dicas = {
     },
   },
   "/parceiro": {
-    menu: "Painel do parceiro revendedor.",
+    menu: "Painel do parceiro.",
     tela: "Seu painel: sua tabela de preços, seus orçamentos com a sua marca, seus pedidos e o seu crédito.",
     campos: {
       seu_nivel:
@@ -69,7 +69,7 @@ export const dicas = {
       seu_credito:
         "Dinheiro seu para abater no próximo pedido. Vem do cashback dos pedidos pagos, das metas batidas e de ajustes da gráfica.",
       metas: "Todo parceiro que bate a meta ganha o prêmio. Não é sorteio: não depende de sorte nem de ser o primeiro.",
-      balcao: "O preço que a gráfica cobra do cliente final. Se você revender por ele, o seu ganho é o desconto do seu nível.",
+      balcao: "O preço que a gráfica cobra do cliente final. Se você vender por ele, o seu ganho é o desconto do seu nível.",
       peca_minima: "Peças menores que essa área são cobradas como se tivessem o tamanho mínimo — o corte e o setup existem do mesmo jeito.",
       faixa: "Quanto maior a quantidade no mesmo pedido, menor o preço por unidade.",
       item_livre: "Serviço seu (instalação, arte, deslocamento). Entra no PDF do seu cliente e não vira pedido na gráfica.",
@@ -93,7 +93,7 @@ export const dicas = {
         "Rascunho: só você vê. Enviado: foi para o cliente. Cliente aprovou: falta virar pedido. Pedido feito: a gráfica recebeu. Perdido: o cliente não fechou.",
       tabela: "Preços que você paga à gráfica, já com o desconto do seu nível. Mais quantidade no mesmo pedido, menor o preço por unidade.",
       minha_marca: "Logo, nome, telefone e cor que saem no PDF dos seus orçamentos. A marca da gráfica não aparece.",
-      convite: "Indique outro revendedor pelo seu link. Quando ele comprar, você ganha crédito.",
+      convite: "Indique outro parceiro pelo seu link. Quando ele comprar, você ganha crédito.",
       pedidos: "O que você mandou produzir e em que etapa está na gráfica.",
     },
     acoes: {
@@ -120,7 +120,7 @@ export const dicas = {
       total_da_aba:
         "Soma do valor de todos os cartões da aba: o valor orçado quando o lead tem orçamento, senão o valor potencial digitado no lead.",
       em_aberto: "Mesma soma, sem os leads entregues e os perdidos: o que ainda dá para trabalhar.",
-      parceiros: "Parceiro é o terceirizado ou revendedor identificado no cadastro do lead. O filtro mostra somente parceiros, mantendo o canal selecionado. A marca não altera a etapa, a origem nem os valores.",
+      parceiros: "Parceiro é o terceirizado identificado no cadastro do lead. O filtro mostra somente parceiros, mantendo o canal selecionado. A marca não altera a etapa, a origem nem os valores.",
     },
   },
   "/breakdown-3d": {
@@ -511,7 +511,7 @@ export const dicas = {
     },
   },
   "/vendas-diretas": {
-    menu: "Compras dos revendedores direto com a gráfica.",
+    menu: "Compras dos parceiros direto com a gráfica.",
     tela: "Cada compra direta de parceiro, com o total recalculado pela tabela do nível dele e a forma de pagamento: sinal de 50% (metade agora, restante na entrega) ou à vista. Com OS aberta, o link leva à produção; sem OS, converta o pedido em Orçamentos.",
   },
   "/aprovacoes": {

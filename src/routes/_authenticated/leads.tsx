@@ -46,7 +46,7 @@ import { ORIGENS } from "@/domain/crm/origens";
 import { SeloParceiro } from "@/components/crm/selo-parceiro";
 import { ehLeadParceiro } from "@/domain/crm/tipo-do-lead";
 export const Route = createFileRoute("/_authenticated/leads")({
-  head: () => ({ meta: [{ title: "Leads — BEX PRINT OS" }, { name: "description", content: "Gerencie contatos comerciais e identifique parceiros revendedores no Bex Print." }, { property: "og:title", content: "Leads — BEX PRINT OS" }, { property: "og:description", content: "Contatos comerciais, parceiros e oportunidades da gráfica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Leads — BEX PRINT OS" }, { name: "description", content: "Gerencie contatos comerciais e identifique parceiros no Bex Print." }, { property: "og:title", content: "Leads — BEX PRINT OS" }, { property: "og:description", content: "Contatos comerciais, parceiros e oportunidades da gráfica." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: LeadsPage,
 });
 

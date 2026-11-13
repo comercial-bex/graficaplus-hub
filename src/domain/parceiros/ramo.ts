@@ -4,7 +4,7 @@ export const RAMOS = [
   { valor: "comunicacao_visual", rotulo: "Comunicação visual" },
   { valor: "agencia", rotulo: "Agência de publicidade / marketing" },
   { valor: "designer", rotulo: "Designer / freelancer" },
-  { valor: "revendedor_brindes", rotulo: "Revendedor de brindes e personalizados" },
+  { valor: "revendedor_brindes", rotulo: "Brindes e personalizados" },
   { valor: "outro", rotulo: "Outro" },
 ] as const;
 
