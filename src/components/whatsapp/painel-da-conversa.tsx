@@ -38,6 +38,8 @@ import { DialogosDaConversa } from "@/components/whatsapp/dialogos-da-conversa";
 import { VinculosDaConversa } from "@/components/whatsapp/vinculos-da-conversa";
 import { AtendimentosDaConversa } from "@/components/whatsapp/atendimentos-da-conversa";
 import { Carregando } from "@/components/bex/Carregando";
+import { EtiquetaDeTipoDoContato } from "@/components/whatsapp/etiqueta-de-tipo-do-contato";
+import { useOrigemDaConversa } from "@/components/whatsapp/usar-origem-da-conversa";
 
 const ROTULO_ORCAMENTO: Record<string, string> = {
   rascunho: "Rascunho",
@@ -101,6 +103,7 @@ export function PainelDaConversa({
   const semMensagemDoCliente =
     !!mensagens.data && !mensagens.data.some((m) => m.direcao === "entrada");
   const historico = useHistoricoDoCliente(conversa.cliente_id, nivelDeVisao);
+  const origem = useOrigemDaConversa(conversa);
   const fotos = useFotosDosContatos([conversa.foto_path]);
   const nome = nomeDaConversa(conversa);
   const [dialogoLocal, setDialogoLocal] = useState<DialogoDaConversa | null>(null);
@@ -165,6 +168,20 @@ export function PainelDaConversa({
         />
       </section>
 
+      <div className="border-b p-4">
+        <EtiquetaDeTipoDoContato
+          conversaId={conversa.id}
+          leadId={conversa.lead_id}
+          tipo={origem.data?.tipo ?? null}
+          tipoOrigem={origem.data?.tipoOrigem ?? null}
+          anuncioNome={origem.data?.anuncioNome ?? null}
+          produto={origem.data?.produto ?? null}
+          clienteCadastrado={!!conversa.cliente_id}
+          parceiroCadastrado={origem.data?.parceiroCadastrado ?? false}
+          somenteLeitura={!podeResponder}
+          aoMudar={() => void origem.refetch()}
+        />
+      </div>
       <section className="space-y-2 border-b p-4" aria-labelledby="gaveta-trabalho">
         <h3 id="gaveta-trabalho" className={TITULO_DA_SECAO}>
           Transformar em trabalho

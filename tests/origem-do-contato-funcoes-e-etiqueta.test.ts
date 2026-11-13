@@ -69,9 +69,12 @@ describe("etiqueta de tipo do contato", () => {
     expect(etiqueta).not.toMatch(/text-(xs|sm)\b/);
     expect(etiqueta).toContain("h-11");
   });
-  it("não está montada em nenhuma tela ainda", () => {
-    // Montagem fica para depois que o outro trabalho da caixa entrar.
-    const usos = execSync("grep -rl etiqueta-de-tipo-do-contato src tests/../src || true", { encoding: "utf8" }).trim().split("\n").filter(Boolean);
-    expect(usos).toEqual([]);
+  it("está montada só no painel da conversa", () => {
+    const usos = execSync("grep -rl etiqueta-de-tipo-do-contato src || true", { encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .sort();
+    expect(usos).toEqual(["src/components/whatsapp/painel-da-conversa.tsx"]);
   });
 });
