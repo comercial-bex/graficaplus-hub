@@ -46,7 +46,11 @@ function textoVisivel(src: string): string {
 }
 
 describe("vocabulário: revendedor e revenda não voltam na tela", () => {
-  const arquivos = arquivosDe("src").filter((a) => !(a in EXCECOES_POR_ARQUIVO));
+  // A triagem reconhece o que o CONTATO digita ("sou revendedor"), então a palavra
+  // aparece ali como padrão de leitura, nunca como texto mostrado a alguém.
+  const arquivos = arquivosDe("src").filter(
+    (a) => !(a in EXCECOES_POR_ARQUIVO) && !a.startsWith("src/domain/whatsapp/triagem/"),
+  );
 
   it("varre os arquivos de src", () => {
     expect(arquivos.length).toBeGreaterThan(100);
