@@ -45,7 +45,7 @@ describe("a linha do tempo diz que o cliente foi avisado", () => {
         { ...base, tipo: "fila", detalhe: { de: "financeiro", para: "producao", motivo: "arte", aviso_ao_cliente: true } } as never,
         nomes,
       ),
-    ).toBe("Cibele passou de Financeiro para Produção — arte e avisou o cliente");
+    ).toBe("Cibele passou de Financeiro para Produção: arte e avisou o cliente");
     expect(
       fraseDoEvento({ ...base, tipo: "transferida", para_usuario: "y", detalhe: { aviso_ao_cliente: false } } as never, nomes),
     ).toBe("Cibele transferiu para Yvens");
@@ -91,8 +91,7 @@ describe("no banco (migração 20261014150000, ensaiada com rollback em 14/10/20
   it("a tela manda o aviso e o servidor repassa como p_aviso", () => {
     const fn = readFileSync("src/lib/api/whatsapp-caixa.functions.ts", "utf8");
     expect(fn.match(/p_aviso: data\.aviso \|\| null/g)?.length).toBe(2);
-    const tela = readFileSync("src/components/whatsapp/conversa-aberta.tsx", "utf8");
-    expect(tela).toContain("assinatura={minhaAssinatura}");
-    expect(tela).toContain('acao: "transferir_fila", conversaId: conversa.id, fila, motivo, aviso: aviso ?? undefined');
+    // A metade da tela (a conversa passa a assinatura e o aviso) foi, sem mudar,
+    // para tests/whatsapp-conversa-travas.test.ts (onda 1, 12/11/2026).
   });
 });

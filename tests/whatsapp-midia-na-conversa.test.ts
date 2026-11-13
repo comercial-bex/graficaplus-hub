@@ -7,6 +7,9 @@ import type { MensagemDaCaixa } from "../src/domain/whatsapp/caixa-de-entrada";
 import {
   categoriaDaMidia,
   extensaoDoLink,
+  fotosDaConversa,
+  bolhaSemFundo,
+  legendaDaBolha,
   nomeParaBaixar,
   precisaArquivar,
   temArquivo,
@@ -39,6 +42,7 @@ vi.mock("@/components/whatsapp/usar-caixa-de-entrada", () => ({
 }));
 
 import { MidiaDaMensagem } from "../src/components/whatsapp/midia-da-mensagem";
+import { TooltipProvider } from "../src/components/ui/tooltip";
 
 const Z = "https://f004.backblazeb2.com/file/temp-file-download/instances/I/C/ZK2rx8-zw83HVuzzkLDfdw==.jpg";
 
@@ -70,7 +74,11 @@ beforeEach(() => {
 
 function desenhar(m: MensagemDaCaixa): string {
   return renderToStaticMarkup(
-    createElement(QueryClientProvider, { client: cliente }, createElement(MidiaDaMensagem, { m })),
+    createElement(
+      QueryClientProvider,
+      { client: cliente },
+      createElement(TooltipProvider, null, createElement(MidiaDaMensagem, { m })),
+    ),
   );
 }
 
@@ -137,13 +145,16 @@ describe("o nome do arquivo que a pessoa baixa", () => {
 });
 
 describe("a bolha mostra a mídia de verdade (e não só um link)", () => {
-  it("foto: aparece na bolha, amplia ao clicar e tem Baixar", () => {
+  // Onda 1 (12/11/2026): a foto não leva botão solto embaixo (bolha limpa); o
+  // Baixar mora no visor, que abre ao tocar na foto (tests/whatsapp-visor-de-fotos).
+  it("foto: aparece na bolha e abre no visor ao tocar (o Baixar mora no visor)", () => {
     const html = desenhar(msg({}));
     expect(html).toContain("<img");
     expect(html).toContain(`src="${Z}"`);
     expect(html).toContain('aria-label="Ampliar imagem"');
-    expect(html).toContain("Baixar");
     expect(html).toContain('data-midia="imagem"');
+    expect(html).not.toContain("Baixar");
+    expect(readFileSync("src/components/whatsapp/visor-de-fotos.tsx", "utf8")).toContain("Baixar");
   });
 
   it("vídeo: toca na bolha, com controles, e tem Baixar", () => {
@@ -153,15 +164,20 @@ describe("a bolha mostra a mídia de verdade (e não só um link)", () => {
     expect(html).toContain("Baixar");
   });
 
-  it("áudio: toca na bolha, com controles, e tem Baixar", () => {
+  it("áudio: tocador próprio (botão de tocar, barra, velocidade) e Baixar, sem os controles do navegador", () => {
     const html = desenhar(msg({ tipo: "audio", media_url: "https://x.exemplo/a.ogg" }));
-    expect(html).toMatch(/<audio[^>]*controls/);
+    expect(html).toContain("data-voz");
+    expect(html).toContain('aria-label="Tocar a mensagem de voz"');
+    expect(html).toContain('role="slider"');
+    expect(html).toContain("1x");
+    expect(html).not.toMatch(/<audio[^>]*controls/);
     expect(html).toContain("Baixar");
   });
 
-  it("figurinha: imagem pequena", () => {
+  it("figurinha: imagem de uns 160 px, sem moldura", () => {
     const html = desenhar(msg({ tipo: "sticker", media_url: "https://x.exemplo/s.webp" }));
-    expect(html).toContain("max-h-32");
+    expect(html).toContain("size-40");
+    expect(html).toMatch(/<img[^>]*class="size-40 object-contain"/);
   });
 
   it("cópia nossa: usa o link assinado (não o do Z-API) quando ele chega", () => {
@@ -185,6 +201,10 @@ describe("a bolha mostra a mídia de verdade (e não só um link)", () => {
     expect(html).toContain("planta.pdf");
     expect(html).toContain("Abrir");
     expect(html).toContain("Baixar");
+    expect(html).toContain('data-documento="pdf"');
+    // Nunca o "[Documento]" de antes: o tipo vai no aria-label da mídia.
+    expect(html).not.toContain("[Documento]");
+    expect(html).toContain('aria-label="Documento: planta.pdf"');
   });
 
   it("sem arquivo, ou tipo sem arquivo (localização, contato), não desenha nada", () => {
@@ -197,8 +217,11 @@ describe("a bolha mostra a mídia de verdade (e não só um link)", () => {
 describe("as travas", () => {
   const FUNCOES = readFileSync("src/lib/api/whatsapp-midia.functions.ts", "utf8");
   const SERVIDOR = readFileSync("src/lib/api/whatsapp-webhook.server.ts", "utf8");
-  const CONVERSA = readFileSync("src/components/whatsapp/conversa-aberta.tsx", "utf8");
+  const BOLHA = readFileSync("src/components/whatsapp/conteudo-da-bolha.tsx", "utf8");
   const COMPONENTE = readFileSync("src/components/whatsapp/midia-da-mensagem.tsx", "utf8");
+  // Onda 1: baixar e abrir moram num lugar só, porque o cartão do documento, a
+  // mídia da bolha e o visor de fotos usam os mesmos.
+  const ARQUIVO = readFileSync("src/components/whatsapp/usar-arquivo-da-midia.ts", "utf8");
 
   it("copiar a mídia é com quem lê a conversa, conferido no banco, e a chave de serviço fica no servidor", () => {
     const trecho = FUNCOES.slice(FUNCOES.indexOf("export const guardarMidiaDaMensagem"));
@@ -217,10 +240,13 @@ describe("as travas", () => {
     expect(trecho).toContain("registrarFalhaDeMidia(");
   });
 
-  it("a conversa usa o componente — e não imprime mais o link do Z-API como texto", () => {
-    expect(CONVERSA).toContain("<MidiaDaMensagem");
-    expect(CONVERSA).not.toContain("link do Z-API, vale 30 dias");
-    expect(CONVERSA).toContain("manterNoFim");
+  // Onda 1 (12/11/2026): o miolo da bolha virou ConteudoDaBolha (da MIDIA), e a
+  // conversa só o desenha. A metade "a conversa usa o miolo e mantém o fim à
+  // vista" foi para tests/whatsapp-conversa-travas.test.ts (da CONVERSA).
+  it("o miolo da bolha usa o componente — e não imprime mais o link do Z-API como texto", () => {
+    expect(BOLHA).toContain("<MidiaDaMensagem");
+    expect(BOLHA).toContain("aoMudarAltura");
+    expect(BOLHA).not.toContain("link do Z-API, vale 30 dias");
   });
 
   it("falha ao carregar a mídia aparece como falha, com Baixar ao lado — nunca some", () => {
@@ -232,6 +258,88 @@ describe("as travas", () => {
   it("o download da cópia nossa sai com o nome certo (Content-Disposition), não depende do atributo download", () => {
     const tela = readFileSync("src/components/whatsapp/usar-caixa-de-entrada.ts", "utf8");
     expect(tela).toContain("{ download: baixarComo }");
-    expect(COMPONENTE).toContain("linkDaMidia(m.storage_bucket as string, m.storage_path as string, 60, nome)");
+    expect(ARQUIVO).toContain("linkDaMidia(m.storage_bucket as string, m.storage_path as string, 60, nome)");
+    expect(COMPONENTE).toContain("baixarMidia(m, nome)");
+  });
+});
+
+/**
+ * Onda 1 (12/11/2026): mídia em cima e legenda embaixo. O "[Documento]",
+ * "[Imagem]" e "[Áudio]" não aparecem quando a mídia aparece; a legenda igual
+ * ao nome do arquivo não se repete; mídia sem arquivo diz uma frase clara.
+ */
+describe("a legenda embaixo da mídia", () => {
+  const COPIA = { media_url: null, storage_bucket: "whatsapp-midias", storage_path: "i/c/1760000000000-planta.pdf" };
+
+  it("mídia que aparece e não tem texto: nenhuma frase (sem [Documento], [Imagem], [Áudio])", () => {
+    for (const tipo of ["imagem", "documento", "audio", "video", "sticker"]) {
+      expect(legendaDaBolha(msg({ tipo })), tipo).toBe("");
+    }
+  });
+
+  it("a legenda de verdade aparece; a igual ao nome do arquivo não se repete", () => {
+    expect(legendaDaBolha(msg({ legenda: "a arte do banner" }))).toBe("a arte do banner");
+    expect(legendaDaBolha(msg({ tipo: "documento", ...COPIA, legenda: "planta.pdf" }))).toBe("");
+    expect(legendaDaBolha(msg({ tipo: "documento", ...COPIA, legenda: "Planta" }))).toBe("");
+    expect(legendaDaBolha(msg({ tipo: "documento", ...COPIA, texto: "planta.pdf" }))).toBe("");
+    expect(legendaDaBolha(msg({ tipo: "documento", ...COPIA, legenda: "planta nova, versão 2" }))).toBe("planta nova, versão 2");
+  });
+
+  it("mídia sem arquivo diz uma frase clara, sem colchete e sem travessão", () => {
+    for (const tipo of ["imagem", "documento", "audio", "video", "sticker"]) {
+      const f = legendaDaBolha(msg({ tipo, media_url: null }));
+      expect(f, tipo).not.toBe("");
+      expect(f, tipo).not.toMatch(/[\[\]\u2014\u2013\u2192]/);
+    }
+    expect(legendaDaBolha(msg({ tipo: "imagem", media_url: null }))).toContain("não chegou");
+    expect(legendaDaBolha(msg({ tipo: "imagem", media_url: null, direcao: "saida" }))).toContain("não foi guardado");
+  });
+
+  it("texto comum, localização, contato e aviso do sistema seguem como antes, sem colchete", () => {
+    expect(legendaDaBolha(msg({ tipo: "texto", media_url: null, texto: "bom dia" }))).toBe("bom dia");
+    expect(legendaDaBolha(msg({ tipo: "localizacao", media_url: null }))).toBe("Localização enviada.");
+    expect(legendaDaBolha(msg({ tipo: "contato", media_url: null }))).toBe("Contato enviado.");
+    expect(legendaDaBolha(msg({ tipo: "sistema", media_url: null }))).toContain("não suportada");
+  });
+
+  it("figurinha não tem fundo de bolha; foto tem", () => {
+    expect(bolhaSemFundo({ tipo: "sticker" })).toBe(true);
+    expect(bolhaSemFundo({ tipo: "imagem" })).toBe(false);
+  });
+
+  it("o visor anda só nas fotos que têm arquivo, da mais antiga para a mais nova", () => {
+    const a = msg({ id: "a", recebido_em: "2026-10-18T10:00:00Z" });
+    const b = msg({ id: "b", recebido_em: "2026-10-18T09:00:00Z" });
+    const semArquivo = msg({ id: "c", media_url: null });
+    const doc = msg({ id: "d", tipo: "documento" });
+    expect(fotosDaConversa([a, semArquivo, doc, b]).map((x) => x.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("a bolha de mídia, pelo código", () => {
+  const MIDIA = readFileSync("src/components/whatsapp/midia-da-mensagem.tsx", "utf8");
+  const BOLHA = readFileSync("src/components/whatsapp/conteudo-da-bolha.tsx", "utf8");
+
+  it("a mídia vem antes da legenda, e o texto da bolha tem 16 px", () => {
+    expect(BOLHA.indexOf("<MidiaDaMensagem")).toBeGreaterThan(-1);
+    expect(BOLHA.indexOf("<MidiaDaMensagem")).toBeLessThan(BOLHA.indexOf("partesComRealce(texto"));
+    expect(BOLHA).toContain("text-base");
+    expect(BOLHA).toContain("legendaDaBolha");
+    expect(BOLHA).not.toContain("conteudoDaMensagem(");
+  });
+
+  it("todo botão de mídia tem 44 px, nenhum title, nenhum travessão nem seta nas frases", () => {
+    expect(MIDIA).toContain("h-11");
+    for (const arq of ["midia-da-mensagem", "capa-do-documento", "tocador-de-voz", "visor-de-fotos"]) {
+      const t = readFileSync(`src/components/whatsapp/${arq}.tsx`, "utf8");
+      expect(t, arq).not.toMatch(/\btitle=/);
+      expect(t, arq).not.toContain("<title");
+      // Comentário de código pode; frase em aspas ou crase não.
+      const frases = t
+        .split("\n")
+        .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+        .join("\n");
+      expect(frases, arq).not.toMatch(/[\u2014\u2013\u2192\u2190\u21d2]/);
+    }
   });
 });

@@ -338,10 +338,10 @@ export const dicas = {
   },
   "/whatsapp": {
     menu: "Conversas com clientes pelo WhatsApp.",
-    tela: "Caixa de entrada do WhatsApp da empresa. Responda o cliente (com respostas rápidas), ligue a conversa ao cliente e abra o orçamento já com o pedido. Para chamar um número que ainda não escreveu, use Nova (tecla N) e cole o número.",
+    tela: "Caixa de entrada do WhatsApp da empresa. Responda o cliente (com respostas rápidas), ligue a conversa ao cliente e abra o orçamento já com o pedido. Para chamar um número que ainda não escreveu, use o botão Nova conversa e cole o número.",
     acoes: {
       nova_conversa:
-        "Chamar um número que ainda não escreveu: cole o número (com ou sem +55, ou o link wa.me), dê um nome ao contato e a conversa abre pronta para escrever (tecla N).",
+        "Chamar um número que ainda não escreveu: cole o número (com ou sem +55, ou o link wa.me), dê um nome ao contato e a conversa abre pronta para escrever.",
     },
   },
   "/whatsapp-visao-geral": {
@@ -350,7 +350,7 @@ export const dicas = {
   },
   "/whatsapp-fila-humana": {
     menu: "Clientes esperando resposta, de quem espera há mais tempo.",
-    tela: "As conversas abertas em que o cliente escreveu e ninguém respondeu ainda — inclusive as que a assistente passou para a equipe. Âmbar passa de 15 minutos; vermelho, de 1 hora. Assuma e responda pela caixa.",
+    tela: "As conversas abertas em que o cliente escreveu e ninguém respondeu ainda, inclusive as que a assistente passou para a equipe. Âmbar passa de 15 minutos; vermelho, de 1 hora. Assuma e responda pela caixa.",
   },
   "/whatsapp-monitor": {
     menu: "Acompanhamento das mensagens ligadas a cada trabalho.",
@@ -777,3 +777,59 @@ export const DICAS_DO_PDF_AO_CLIENTE = {
   gerando: "Montando o PDF da via do cliente.",
   esperando_o_pdf: "Espere o documento terminar de montar.",
 } as const;
+
+/* ===================================================================== */
+/* Caixa do WhatsApp, onda 1 (12/11/2026). Cada construtor escreve SÓ no   */
+/* bloco com o nome dele. Fora dos blocos, só a MOLDURA mexe, e só na      */
+/* entrada "/whatsapp" do objeto `dicas` (a frase da tela e a nova_conversa */
+/* citam a tecla N, que sai).                                              */
+/* ===================================================================== */
+
+/* ---- início MOLDURA ---- */
+/** Dicas da moldura e da lista de conversas. */
+export const DICAS_WA_MOLDURA: Record<string, string> = {
+  conexao:
+    "O ponto ao lado de Conversas diz se o WhatsApp da empresa está conectado e recebendo mensagens. Se não estiver, quem administra o WhatsApp resolve no Monitor.",
+  atalhos:
+    "Os atalhos do teclado estão no menu de três pontos: Enter envia, Shift e Enter quebram a linha, Esc fecha a conversa.",
+  filtro_de_fila:
+    "Mostra só as conversas de uma fila. O número é de conversas abertas; o relógio, de clientes esperando resposta.",
+};
+/* ---- fim MOLDURA ---- */
+
+/* ---- início CONVERSA ---- */
+/** Dicas do cabeçalho da conversa, das mensagens e da caixa de resposta. */
+export const DICAS_WA_CONVERSA: Record<string, string> = {
+  dados_do_contato: "Abre os dados do contato: cliente, orçamentos, ordens de serviço, atendimentos e etiquetas.",
+  orcamento: "Cria um orçamento com o pedido desta conversa. Antes, confere se já não há um rascunho.",
+  buscar: "Procura uma palavra nas mensagens que já estão carregadas nesta conversa e mostra uma por vez.",
+  mais_acoes: "Transferir, marcar pendente, arquivar, criar OS, vincular a um cliente e os atalhos do teclado.",
+  mais_na_caixa: "Anexar documento ou foto (até 10 MB), criar orçamento ou escrever uma nota interna que só a equipe vê.",
+  respostas_rapidas: "Textos prontos da empresa. Digitar / no começo da caixa também abre a lista.",
+  enviar: "Envia a mensagem. O Enter também envia; no celular o Enter quebra a linha e o envio é por este botão.",
+  descer: "Vai para a mensagem mais recente da conversa.",
+  assumir: "Assume esta conversa: você passa a ser a responsável. Se for de outra pessoa, pede confirmação antes.",
+  resolver: "Marca a conversa como resolvida e pergunta o motivo. Se o cliente escrever de novo, ela volta para a lista.",
+  reabrir: "Volta esta conversa para as abertas.",
+};
+/* ---- fim CONVERSA ---- */
+
+/* ---- início MIDIA ---- */
+/** Dicas da mídia na bolha (documento, tocador de voz, visor de fotos). */
+export const DICAS_WA_MIDIA: Record<string, string> = {
+  velocidade: "Muda a velocidade do áudio: 1x, 1,5x e 2x. A voz não fica fina nem grossa.",
+  posicao: "Toque na barra para pular para aquele ponto. As setas do teclado andam 5 segundos.",
+  abrir: "Abre o arquivo em outra aba, no tamanho real.",
+  baixar: "Guarda o arquivo no aparelho, com o nome que o cliente mandou.",
+};
+/* ---- fim MIDIA ---- */
+
+/* ---- início GAVETA ---- */
+/** Dicas dos dados do contato e dos diálogos de trabalho. */
+export const DICAS_WA_GAVETA: Record<string, string> = {
+  atendimentos:
+    "Cada vez que o cliente volta a escrever depois de a conversa ser resolvida, abre um atendimento novo, com número próprio. O atual mostra há quanto tempo está aberto e em quanto tempo houve a primeira resposta.",
+  etiquetas:
+    "Marcas livres para achar a conversa depois, como Arte, Pagamento ou Entrega. Ficam gravadas na conversa e valem para todos da equipe.",
+};
+/* ---- fim GAVETA ---- */

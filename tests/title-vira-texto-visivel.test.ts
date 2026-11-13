@@ -159,26 +159,16 @@ describe("o cartão do Quadro diz à vista o que o title escondia", () => {
   });
 });
 
-describe("OS e WhatsApp", () => {
+// As duas travas do WhatsApp que moravam aqui (as ações da conversa com nome;
+// a lista diz quantos esperam) foram, sem mudar, para os testes de cada parte
+// da caixa (onda 1, 12/11/2026): tests/whatsapp-conversa-travas.test.ts e
+// tests/whatsapp-lista-travas.test.ts. Assim cada construtor mexe só no seu.
+describe("OS", () => {
   const OS = readFileSync("src/routes/_authenticated/os.$id.tsx", "utf8");
-  const CONVERSA = readFileSync("src/components/whatsapp/conversa-aberta.tsx", "utf8");
-  const LISTA = readFileSync("src/components/whatsapp/lista-de-conversas.tsx", "utf8");
 
   it("OS: o motivo do valor ausente à vista; 'Marcar como final' com nome; o Voltar é um link com rótulo", () => {
     expect(OS).toContain("{ausente && campo.motivo && <div");
     expect(OS).toContain("Marcar como final");
     expect(OS).toContain('<Link to="/os" aria-label="Voltar para as ordens de serviço">');
-  });
-
-  it("conversa: as ações mostram o nome em todo tamanho; a tecla de atalho vai para a dica", () => {
-    expect(CONVERSA).not.toContain('className="hidden sm:inline"');
-    for (const [nome, tecla] of [["Assumir", "R"], ["Transferir", "T"], ["Resolver", "E"]]) {
-      expect(CONVERSA, nome).toMatch(new RegExp(`<Dica texto="[^"]*\\(tecla ${tecla}\\)">`));
-    }
-  });
-
-  it("lista: cada fila diz quantos esperam resposta, à vista", () => {
-    expect(LISTA).toContain('<span className="sr-only"> esperando resposta</span>');
-    expect(LISTA).toContain("{n && n.aguardando > 0 && (");
   });
 });

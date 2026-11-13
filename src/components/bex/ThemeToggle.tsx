@@ -44,8 +44,8 @@ export function ThemeToggle({ noTopo = false }: { noTopo?: boolean } = {}) {
         className={
           noTopo
             ? // Sobre a barra azul-marinho: letra clara e fundo translúcido.
-              "h-9 w-9 rounded-full border border-white/25 bg-white/10 text-topbar-foreground shadow-sm hover:bg-white/20 hover:text-white"
-            : "h-9 w-9 rounded-full border border-border bg-background/70 text-muted-foreground shadow-sm hover:text-foreground"
+              "h-11 w-11 rounded-full border border-white/25 bg-white/10 text-topbar-foreground shadow-sm hover:bg-white/20 hover:text-white"
+            : "h-11 w-11 rounded-full border border-border bg-background/70 text-muted-foreground shadow-sm hover:text-foreground"
         }
       >
         {tema === "dark" ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}

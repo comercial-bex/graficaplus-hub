@@ -1,6 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { abasDaTela, podeAbrirRota } from "@/lib/menu";
+import { ehTelaCheia, useAbasEscondidas } from "@/lib/tela-cheia";
+import { cn } from "@/lib/utils";
 
 type Abas = NonNullable<ReturnType<typeof abasDaTela>>;
 
@@ -14,19 +16,29 @@ type Abas = NonNullable<ReturnType<typeof abasDaTela>>;
 export function AbasDaTela() {
   const { hasPermission } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const escondidas = useAbasEscondidas();
   const abas = abasDaTela(pathname, (url) => podeAbrirRota(url, hasPermission));
   if (!abas) return null;
-  return <BarraDeAbas abas={abas} />;
+  // Telas cheias (a caixa do WhatsApp): uma linha só, sem margem, e no celular
+  // com a conversa aberta a barra some para a conversa ocupar tudo (12/11/2026).
+  const cheia = ehTelaCheia(pathname);
+  if (cheia && escondidas) return null;
+  return <BarraDeAbas abas={abas} compacta={cheia} />;
 }
 
-export function BarraDeAbas({ abas }: { abas: Abas }) {
+export function BarraDeAbas({ abas, compacta = false }: { abas: Abas; compacta?: boolean }) {
   return (
     // No celular as abas rolam de lado: a linha de dentro tem a largura do
     // conteúdo (w-max) e começa na esquerda, então nada é espremido nem fica
     // fora do alcance da rolagem.
     <nav
       aria-label={`Telas de ${abas.item.title}`}
-      className="-mx-4 mb-4 overflow-x-auto border-b border-border px-4 md:mx-0 md:mb-6 md:px-0"
+      className={cn(
+        "overflow-x-auto border-b border-border",
+        compacta
+          ? "shrink-0 bg-card px-2"
+          : "-mx-4 mb-4 px-4 md:mx-0 md:mb-6 md:px-0",
+      )}
     >
       <div className="flex w-max gap-1">
         {abas.telas.map((t) => {
@@ -37,7 +49,11 @@ export function BarraDeAbas({ abas }: { abas: Abas }) {
               to={t.url}
               aria-current={ativa ? "page" : undefined}
               data-active={ativa}
-              className="relative inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-t-md px-3 text-sm font-medium text-muted-foreground transition-colors after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:text-foreground data-[active=true]:after:bg-primary md:h-10"
+              className={cn(
+                "relative inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-t-md px-3 text-sm font-medium text-muted-foreground transition-colors after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:text-foreground data-[active=true]:after:bg-primary",
+                // Na barra compacta o alvo fica de 44 px em toda largura.
+                !compacta && "md:h-10",
+              )}
             >
               {t.title}
             </Link>

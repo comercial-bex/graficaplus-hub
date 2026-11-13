@@ -2,21 +2,25 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
 /**
- * A conversa do WhatsApp não fica espremida entre 1024 e 1279 px.
+ * A conversa do WhatsApp não fica espremida, em nenhuma largura.
  *
  * Até 11/11/2026 a grade da caixa tinha altura fixa a partir de 1024 px e o
  * painel do contato ganhava `lg:col-span-2`: entre 1024 e 1279 px ele descia
  * para uma segunda linha DENTRO da mesma altura, e a área das mensagens ficava
- * com uma faixa de uns 60 px (print do dono, janela de uns 1000 px úteis). Nessa
- * faixa também não havia como abrir o painel: o botão "Ações" sumia a partir de
- * 1024 px e o de recolher só aparecia a partir de 1280 px.
+ * com uma faixa de uns 60 px (print do dono, janela de uns 1000 px úteis).
  *
- * A regra agora: o painel só vira coluna a partir de `xl`; abaixo disso ele
- * abre na gaveta "Ações", e as duas coisas usam o MESMO ponto de quebra.
+ * MUDOU DE PROPÓSITO na onda 1 (12/11/2026, MOLDURA): o ponto de quebra deixou
+ * de olhar a JANELA (`xl:`) e passou a olhar a LARGURA ÚTIL da área (consulta
+ * de contêiner `@min-[1280px]/caixa:`), e o painel virou a gaveta de dados do
+ * contato (por cima abaixo de 1280 px). A trava velha ("o painel só vira coluna
+ * a partir de xl", lendo as classes do <PainelDaConversa>) não existe mais.
+ *
+ * A garantia de fundo (a conversa nunca é espremida e o painel nunca ocupa uma
+ * segunda linha) está aqui na forma nova e, com a conta de larguras, em
+ * tests/whatsapp-moldura.test.ts.
  */
 
 const ROTA = readFileSync("src/routes/_authenticated/whatsapp.tsx", "utf8");
-const CONVERSA = readFileSync("src/components/whatsapp/conversa-aberta.tsx", "utf8");
 
 function semComentarios(codigo: string): string {
   return codigo
@@ -26,22 +30,20 @@ function semComentarios(codigo: string): string {
 }
 
 describe("a conversa ocupa a altura toda", () => {
-  it("o painel lateral só vira coluna a partir de xl e nunca ocupa uma segunda linha", () => {
+  it("o painel dos dados nunca ocupa uma segunda linha, e só é coluna a partir de 1280 px úteis", () => {
     const rota = semComentarios(ROTA);
-    const painel = /<PainelDaConversa\s+className="([^"]+)"/.exec(rota);
-    expect(painel, "o painel lateral da rota").not.toBeNull();
-    const classes = painel![1].split(/\s+/);
-    expect(classes).toContain("hidden");
-    expect(classes).toContain("xl:flex");
-    expect(classes.filter((c) => /^(sm|md|lg):(flex|block|grid)$/.test(c))).toEqual([]);
     expect(rota).not.toMatch(/col-span-2/);
+    expect(rota).toContain("grid-rows-[minmax(0,1fr)]");
+    // A terceira coluna só existe na consulta de 1280 px do contêiner.
+    expect(rota).toContain("@min-[1280px]/caixa:grid-cols-[360px_minmax(0,1fr)_360px]");
+    const tresColunas = [...rota.matchAll(/(\S*)grid-cols-\[[^\]\s]*_minmax\(0,1fr\)_\d+px\]/g)];
+    expect(tresColunas.length).toBeGreaterThan(0);
+    for (const m of tresColunas) expect(m[1].replace(/^"/, "")).toBe("@min-[1280px]/caixa:");
   });
 
-  it("a gaveta Ações aparece em toda largura em que o painel não é coluna", () => {
-    const conversa = semComentarios(CONVERSA);
-    const gatilho = /<SheetTrigger asChild>\s*<Button[^>]*className="([^"]+)"/.exec(conversa);
-    expect(gatilho, "o botão da gaveta").not.toBeNull();
-    expect(gatilho![1].split(/\s+/)).toContain("xl:hidden");
-    expect(gatilho![1]).not.toMatch(/\blg:hidden\b/);
+  it("abaixo de 1280 px o painel é a gaveta por cima (GavetaDoContato), não uma coluna", () => {
+    const rota = semComentarios(ROTA);
+    expect(rota).toContain("<GavetaDoContato");
+    expect(rota).not.toContain("<PainelDaConversa");
   });
 });

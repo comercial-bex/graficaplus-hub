@@ -5,7 +5,11 @@ import {
   conteudoDaMensagem,
   desfechoDoEnvio,
   envioLiberado,
+  fraseDoEvento,
   filtrarConversas,
+  MENSAGEM_NAO_SUPORTADA,
+  previaDaConversa,
+  tituloSugerido,
   horaCurta,
   instanciaPrincipal,
   nomeDaConversa,
@@ -85,7 +89,7 @@ describe("o botão de responder diz por que não envia", () => {
     const r = envioLiberado(NUNCA_PAREADA);
     expect(r.liberado).toBe(false);
     if (r.liberado) return;
-    expect(r.rotulo).toBe("WhatsApp desconectado — falta escanear o QR Code");
+    expect(r.rotulo).toBe("WhatsApp desconectado: falta escanear o QR Code");
     expect(r.motivo).toContain("QR Code");
     // A frase do cartão do Monitor diz "Verificar aqui"; aqui é outra tela.
     expect(r.motivo).not.toMatch(/Verificar aqui/);
@@ -94,7 +98,7 @@ describe("o botão de responder diz por que não envia", () => {
   it("caiu depois de ter funcionado: pede o QR de novo", () => {
     const r = envioLiberado(CAIU);
     expect(r.liberado).toBe(false);
-    if (!r.liberado) expect(r.rotulo).toBe("WhatsApp desconectado — leia o QR Code de novo");
+    if (!r.liberado) expect(r.rotulo).toBe("WhatsApp desconectado: leia o QR Code de novo");
   });
 
   it("sem instância e instância desativada também recusam", () => {
@@ -129,7 +133,7 @@ describe("o botão de responder diz por que não envia", () => {
 describe("a caixa vazia diz o motivo", () => {
   it("nunca pareada: falta escanear o QR Code", () => {
     const v = vazioDaCaixa(NUNCA_PAREADA);
-    expect(v.titulo).toBe("Nenhuma conversa ainda — falta escanear o QR Code");
+    expect(v.titulo).toBe("Nenhuma conversa ainda: falta escanear o QR Code");
     expect(v.detalhe).toContain("QR Code");
   });
 
@@ -137,13 +141,13 @@ describe("a caixa vazia diz o motivo", () => {
     // A classificação vem de situacaoDaConexao; se alguém mudar um rótulo lá,
     // este teste aponta a frase que ficou para trás aqui.
     const casos: [Parameters<typeof vazioDaCaixa>[0], string][] = [
-      [null, "Nenhuma conversa ainda — o WhatsApp não está configurado"],
+      [null, "Nenhuma conversa ainda: o WhatsApp não está configurado"],
       [
         { ...CONECTADA, ativa: false },
-        "Nenhuma conversa ainda — a instância do WhatsApp está desativada",
+        "Nenhuma conversa ainda: a instância do WhatsApp está desativada",
       ],
-      [NUNCA_PAREADA, "Nenhuma conversa ainda — falta escanear o QR Code"],
-      [CAIU, "Nenhuma conversa — o WhatsApp está desconectado"],
+      [NUNCA_PAREADA, "Nenhuma conversa ainda: falta escanear o QR Code"],
+      [CAIU, "Nenhuma conversa: o WhatsApp está desconectado"],
       [{ ...CONECTADA, ultimo_evento_at: null }, "Nenhuma mensagem recebida ainda"],
       [CONECTADA, "Nenhuma mensagem recebida ainda"],
     ];
@@ -235,7 +239,7 @@ describe("as mensagens", () => {
 
   it("o selo nunca diz 'enviada' do que está na fila", () => {
     expect(seloDoStatus({ direcao: "saida", status: "pendente" })?.texto).toBe(
-      "na fila — ainda não saiu",
+      "na fila, ainda não saiu",
     );
     expect(seloDoStatus({ direcao: "saida", status: "falha" })?.texto).toBe("não saiu");
     expect(seloDoStatus({ direcao: "saida", status: "lida" })?.texto).toBe("lida");
@@ -382,5 +386,71 @@ describe("o que dizer depois de acionar o envio", () => {
     const d = desfechoDoEnvio({ falhaDeRede: "Failed to fetch" }, FILA, MSG);
     expect(d.tom).toBe("aviso");
     expect(d.texto).toContain("ficou na fila");
+  });
+});
+
+/**
+ * Onda 1 da caixa (12/11/2026, decisão 12 do dono): travessão e seta saem das
+ * frases que a tela mostra. O dono enxerga mal e o travessão se lê como risco
+ * solto no meio da frase. A garantia de fundo: varre TODA frase que este
+ * arquivo devolve à tela e exige que nenhuma tenha travessão nem seta.
+ */
+describe("nenhuma frase da caixa tem travessão nem seta", () => {
+  const PROIBIDOS = /[\u2014\u2013\u2192\u2190\u21d2]/;
+  const sem = (texto: string, de: string) => expect(texto, de).not.toMatch(PROIBIDOS);
+
+  it("o botão de responder e a caixa vazia, em todo estado da conexão", () => {
+    for (const [nome, inst] of [
+      ["nunca pareada", NUNCA_PAREADA],
+      ["caiu", CAIU],
+      ["conectada", CONECTADA],
+      ["desativada", { ...CONECTADA, ativa: false }],
+      ["sem instância", null],
+    ] as const) {
+      const l = envioLiberado(inst);
+      if (!l.liberado) {
+        sem(l.rotulo, `rótulo de ${nome}`);
+        sem(l.motivo, `motivo de ${nome}`);
+      }
+      const v = vazioDaCaixa(inst);
+      sem(v.titulo, `título vazio de ${nome}`);
+      sem(v.detalhe ?? "", `detalhe vazio de ${nome}`);
+    }
+  });
+
+  it("o selo, a prévia, a mensagem não suportada e o título do pedido", () => {
+    for (const status of ["pendente", "enviada", "entregue", "lida", "falha", "outro"]) {
+      sem(seloDoStatus({ direcao: "saida", status })?.texto ?? "", `selo ${status}`);
+    }
+    sem(MENSAGEM_NAO_SUPORTADA, "mensagem não suportada");
+    for (const u of ["[sistema]", "[imagem]", "[Documento]", "oi", null]) sem(previaDaConversa(u).texto, `prévia ${String(u)}`);
+    sem(tituloSugerido(conversa({ nome_contato: "Maria" })), "título do pedido");
+    expect(tituloSugerido(conversa({ nome_contato: "Maria" }))).toBe("Pedido pelo WhatsApp: Maria");
+  });
+
+  it("o resultado do envio, em todo caminho", () => {
+    const FILA = "f1";
+    const MSG = "m1";
+    const casos = [
+      desfechoDoEnvio({ falhaDeRede: "sem rede" }, FILA, MSG),
+      desfechoDoEnvio({ status: 200, corpo: { ok: true, resultados: [] } }, FILA, MSG),
+      desfechoDoEnvio({ status: 500, corpo: { ok: false, erro: "caiu" } }, FILA, MSG),
+      desfechoDoEnvio({ status: 401, corpo: null }, FILA, MSG),
+    ];
+    for (const d of casos) sem(d.texto, "desfecho do envio");
+  });
+
+  it("a frase de cada evento do atendimento, com e sem motivo", () => {
+    const nomes = new Map([["y", "Yvens"]]);
+    const base = { id: "e", conversa_id: "c", created_at: "2026-11-12T10:00:00Z", detalhe: {} };
+    for (const tipo of ["assumida", "transferida", "status", "vinculo", "fila", "transferida_ia", "devolvida_ia", "atendimento"] as const) {
+      for (const detalhe of [{}, { motivo: "cliente pediu", para: "resolvida", de: "comercial" }]) {
+        const f = fraseDoEvento({ ...base, tipo, de_usuario: "y", para_usuario: "y", detalhe } as never, nomes);
+        sem(f, `evento ${tipo}`);
+      }
+    }
+    expect(
+      fraseDoEvento({ ...base, tipo: "transferida_ia", de_usuario: null, para_usuario: null, detalhe: { motivo: "pediu humano" } } as never, nomes),
+    ).toBe("A assistente passou a conversa para a equipe: pediu humano");
   });
 });

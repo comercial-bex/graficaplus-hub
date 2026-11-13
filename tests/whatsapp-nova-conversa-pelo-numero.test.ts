@@ -99,7 +99,9 @@ describe("a escrita passa pelo servidor (AGENTS.md)", () => {
 });
 
 describe("o atalho na caixa", () => {
-  it("botão Nova ao lado da busca, só para quem responde", () => {
+  // Onda 1 da caixa (12/11/2026, MOLDURA): o botão Nova saiu de ao lado da busca
+  // para o topo da lista, com 44 px; a garantia (só para quem responde) é a mesma.
+  it("botão Nova conversa no topo da lista, só para quem responde", () => {
     expect(LISTA).toContain("{onNovaConversa && <BotaoNovaConversa onClick={() => onNovaConversa()} />}");
     expect(TELA).toContain("onNovaConversa={temPermissaoDeResponder ? abrirNova : undefined}");
   });
@@ -109,11 +111,15 @@ describe("o atalho na caixa", () => {
     expect(LISTA).toContain("onClick={() => onNovaConversa(numeroDaBusca.chave)}");
   });
 
-  it("tecla N, fora de campo de texto e sem outro diálogo aberto", () => {
-    expect(DIALOGO).toContain('if (e.key.toLowerCase() !== "n") return;');
-    expect(DIALOGO).toContain("digitando(e.target)");
-    expect(DIALOGO).toContain(`document.querySelector("[role='dialog']")`);
-    expect(TELA).toContain("useAtalhoNovaConversa(temPermissaoDeResponder, () => abrirNova());");
+  // Onda 1 da caixa (12/11/2026, MOLDURA): o caso "tecla N" foi trocado de
+  // propósito (decisão 5 do dono: nenhuma letra solta faz ação; a Ctrl+Alt+N
+  // que se pensou também não entra, é o AltGr do teclado ABNT2). A garantia de
+  // fundo agora é a contrária: nenhum ouvinte de letra solta na nova conversa.
+  it("nenhuma tecla solta abre a Nova conversa (só o botão e o Chamar da busca)", () => {
+    expect(DIALOGO).not.toContain("useAtalhoNovaConversa");
+    expect(DIALOGO).not.toContain('addEventListener("keydown"');
+    expect(TELA).not.toContain("useAtalhoNovaConversa");
+    expect(DIALOGO).toContain('aria-label="Nova conversa"');
   });
 
   it("sem clique duplo, e a conversa aberta já vem com o cursor na resposta", () => {
@@ -129,9 +135,8 @@ describe("o atalho na caixa", () => {
     expect(DIALOGO).toContain("onCloseAutoFocus={(e) => {");
     expect(DIALOGO).toContain("e.preventDefault();\n          onFechouNaConversa?.(id);");
     expect(TELA).toContain("onFechouNaConversa={setFocarRespostaEm}");
-    const CONVERSA = readFileSync("src/components/whatsapp/conversa-aberta.tsx", "utf8");
-    expect(CONVERSA).toContain("if (focarResposta && temPermissaoDeResponder) respostaRef.current?.focus();");
-    expect(CONVERSA).not.toContain("autoFocus={focarResposta");
+    // A outra metade (a conversa põe o cursor na resposta, sem autoFocus) foi,
+    // sem mudar, para tests/whatsapp-conversa-travas.test.ts (onda 1, 12/11/2026).
   });
 
   it("a dica mora em dicas.ts", () => {

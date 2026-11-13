@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRightLeft, Bot, CheckCheck, Loader2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,8 @@ import {
 import type { PessoaDaEquipe } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { avisoParaFila, avisoParaPessoa } from "@/domain/whatsapp/aviso-de-transferencia";
 import { setorDaPessoa } from "@/domain/whatsapp/equipe";
+import { ATALHOS_DO_TECLADO } from "@/domain/whatsapp/teclado";
+import { FECHAR_DE_44_PX } from "@/components/whatsapp/fechar-de-44-px";
 
 /**
  * Diálogos e faixa da conversa aberta (caixa v3): Transferir (pessoa ou fila,
@@ -116,12 +118,12 @@ export function DialogoTransferir({
 
   return (
     <Dialog open={aberto} onOpenChange={onAberto}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={`sm:max-w-md ${FECHAR_DE_44_PX}`}>
         <DialogHeader>
           <DialogTitle>Transferir a conversa</DialogTitle>
           <DialogDescription>
             Para uma pessoa da equipe, ou para a fila de outro setor. Mudar de fila tira o responsável
-            atual — quem é daquela fila assume.
+            atual e quem é daquela fila assume.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1 text-sm" role="tablist">
@@ -243,10 +245,10 @@ export function DialogoTransferir({
           </div>
         )}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onAberto(false)}>
+          <Button variant="ghost" className="h-11" onClick={() => onAberto(false)}>
             Cancelar
           </Button>
-          <Button onClick={() => void confirmar()} disabled={!pronto || ocupado}>
+          <Button className="h-11" onClick={() => void confirmar()} disabled={!pronto || ocupado}>
             {ocupado && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
             Transferir
           </Button>
@@ -296,7 +298,7 @@ export function DialogoResolver({
 
   return (
     <Dialog open={aberto} onOpenChange={onAberto}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={`sm:max-w-md ${FECHAR_DE_44_PX}`}>
         <DialogHeader>
           <DialogTitle>Resolver{numeroDoAtendimento ? ` o atendimento ${numeroDoAtendimento}` : ""}</DialogTitle>
           <DialogDescription>
@@ -306,7 +308,7 @@ export function DialogoResolver({
         {!atendidoPermitido && (
           <p className="flex items-start gap-2 rounded-md border border-status-amber/40 bg-status-amber/10 p-2 text-xs">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-amber" />
-            O cliente mandou a última mensagem. Responda antes de marcar como “Atendido” — ou escolha
+            O cliente mandou a última mensagem. Responda antes de marcar como “Atendido” ou escolha
             outro motivo.
           </p>
         )}
@@ -345,10 +347,10 @@ export function DialogoResolver({
           </div>
         )}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onAberto(false)}>
+          <Button variant="ghost" className="h-11" onClick={() => onAberto(false)}>
             Cancelar
           </Button>
-          <Button onClick={() => void confirmar()} disabled={!pronto || ocupado}>
+          <Button className="h-11" onClick={() => void confirmar()} disabled={!pronto || ocupado}>
             {ocupado ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCheck className="mr-1 h-4 w-4" />}
             Resolver
           </Button>
@@ -388,7 +390,7 @@ export function FaixaDoModo({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 border-b px-3 py-1.5 text-xs",
+        "flex items-center gap-2 border-b px-3 py-1.5 text-sm",
         comAssistente ? "bg-status-cyan/5 text-status-cyan" : "bg-muted/40 text-muted-foreground",
       )}
     >
@@ -396,7 +398,7 @@ export function FaixaDoModo({
         <>
           <Bot className="h-3.5 w-3.5" />
           <span>
-            <strong>Assistente ativo</strong> — responde com os dados do sistema e chama a equipe quando
+            <strong>Assistente ativa.</strong> Responde com os dados do sistema e chama a equipe quando
             precisa. Responder ou assumir passa para você.
           </span>
         </>
@@ -404,17 +406,17 @@ export function FaixaDoModo({
         <>
           <UserRound className="h-3.5 w-3.5" />
           <span>
-            <strong>Atendimento humano</strong> — a assistente não responde nesta conversa.
+            <strong>Atendimento humano.</strong> A assistente não responde nesta conversa.
           </span>
           {podeDevolver && (
             <Button
               size="sm"
               variant="outline"
-              className="ml-auto h-7 px-2 text-xs"
+              className="ml-auto h-11 px-3 text-sm"
               disabled={ocupado}
               onClick={onDevolver}
             >
-              <Bot className="mr-1 h-3 w-3" /> Devolver ao assistente
+              <Bot className="mr-1 h-4 w-4" /> Devolver à assistente
             </Button>
           )}
         </>
@@ -424,42 +426,51 @@ export function FaixaDoModo({
 }
 
 /* ------------------------------------------------------------------ */
-/* Atalhos                                                             */
+/* Atalhos do teclado (a lista)                                        */
 /* ------------------------------------------------------------------ */
 
-/** Foco num campo de texto: o atalho não pode roubar a letra que se digita. */
-export function digitando(alvo: EventTarget | null): boolean {
-  const el = alvo as HTMLElement | null;
-  if (!el) return false;
-  const tag = el.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+/**
+ * "Atalhos do teclado": a lista que abre pelo menu de três pontos da conversa
+ * e da lista de conversas. Contrato da onda 1 (12/11/2026): dono CONVERSA; a
+ * MOLDURA só abre (importa daqui). As teclas moram em domain/whatsapp/teclado.ts.
+ */
+export function DialogoAtalhos({
+  aberto,
+  onAberto,
+}: {
+  aberto: boolean;
+  onAberto: (aberto: boolean) => void;
+}) {
+  return (
+    <Dialog open={aberto} onOpenChange={onAberto}>
+      <DialogContent className={`sm:max-w-lg ${FECHAR_DE_44_PX}`}>
+        <DialogHeader>
+          <DialogTitle>Atalhos do teclado</DialogTitle>
+          <DialogDescription className="text-base">
+            Como no WhatsApp. Nenhuma letra sozinha faz ação: o que você digita vai para a conversa.
+          </DialogDescription>
+        </DialogHeader>
+        <dl className="space-y-3 text-base">
+          {ATALHOS_DO_TECLADO.map((a) => (
+            <div key={a.teclas} className="grid gap-1 sm:grid-cols-[11rem_1fr] sm:gap-3">
+              <dt className="font-semibold">{a.teclas}</dt>
+              <dd className="text-muted-foreground">{a.faz}</dd>
+            </div>
+          ))}
+        </dl>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
+/* ------------------------------------------------------------------ */
+/* Teclado                                                             */
+/* ------------------------------------------------------------------ */
+
 /**
- * R assume, T transfere, E resolve. Esc fecha qualquer diálogo (o próprio
- * diálogo cuida). Desligados com Ctrl/Alt/Meta e com foco em campo de texto.
+ * `digitando` mora em domain/whatsapp/teclado.ts desde a onda 1 (12/11/2026).
+ * Reexportada daqui só porque nova-conversa.tsx ainda a importa deste caminho
+ * até a MOLDURA tirar a tecla N. As teclas soltas R, T e E (`useAtalhosDaConversa`)
+ * saíram: a R assumia a conversa de outra pessoa sem perguntar.
  */
-export function useAtalhosDaConversa(
-  ativo: boolean,
-  acoes: { assumir?: () => void; transferir?: () => void; resolver?: () => void },
-) {
-  // As ações mudam a cada render; o ouvinte não precisa ser trocado junto.
-  const atual = useRef(acoes);
-  atual.current = acoes;
-  useEffect(() => {
-    if (!ativo) return;
-    function aoTeclar(e: KeyboardEvent) {
-      if (e.ctrlKey || e.altKey || e.metaKey || e.repeat || digitando(e.target)) return;
-      if (document.querySelector("[role='dialog']")) return;
-      const tecla = e.key.toLowerCase();
-      const a = atual.current;
-      const fazer = tecla === "r" ? a.assumir : tecla === "t" ? a.transferir : tecla === "e" ? a.resolver : undefined;
-      if (fazer) {
-        e.preventDefault();
-        fazer();
-      }
-    }
-    window.addEventListener("keydown", aoTeclar);
-    return () => window.removeEventListener("keydown", aoTeclar);
-  }, [ativo]);
-}
+export { digitando } from "@/domain/whatsapp/teclado";

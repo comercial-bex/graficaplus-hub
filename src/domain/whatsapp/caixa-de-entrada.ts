@@ -114,12 +114,12 @@ export function envioLiberado(instancia: InstanciaResumo | null): Liberacao {
     return instancia.ultimo_evento_at
       ? {
           liberado: false,
-          rotulo: "WhatsApp desconectado — leia o QR Code de novo",
+          rotulo: "WhatsApp desconectado: leia o QR Code de novo",
           motivo: PASSO_RELER_QR,
         }
       : {
           liberado: false,
-          rotulo: "WhatsApp desconectado — falta escanear o QR Code",
+          rotulo: "WhatsApp desconectado: falta escanear o QR Code",
           motivo: PASSO_ESCANEAR_QR,
         };
   }
@@ -163,22 +163,22 @@ export function vazioDaCaixa(instancia: InstanciaResumo | null): Vazio {
   switch (rotulo) {
     case "Não configurado":
       return {
-        titulo: "Nenhuma conversa ainda — o WhatsApp não está configurado",
+        titulo: "Nenhuma conversa ainda: o WhatsApp não está configurado",
         detalhe:
           "Cadastre a instância do Z-API no Monitor do WhatsApp e cole o endereço gerado no painel deles.",
       };
     case "Desativada":
       return {
-        titulo: "Nenhuma conversa ainda — a instância do WhatsApp está desativada",
+        titulo: "Nenhuma conversa ainda: a instância do WhatsApp está desativada",
         detalhe: "Reative ou cadastre a instância no Monitor do WhatsApp.",
       };
     case "Falta escanear o QR Code":
       return {
-        titulo: "Nenhuma conversa ainda — falta escanear o QR Code",
+        titulo: "Nenhuma conversa ainda: falta escanear o QR Code",
         detalhe: PASSO_ESCANEAR_QR,
       };
     case "Desconectada":
-      return { titulo: "Nenhuma conversa — o WhatsApp está desconectado", detalhe: PASSO_RELER_QR };
+      return { titulo: "Nenhuma conversa: o WhatsApp está desconectado", detalhe: PASSO_RELER_QR };
     case "Aguardando o primeiro evento":
       return {
         titulo: "Nenhuma mensagem recebida ainda",
@@ -290,7 +290,12 @@ export function rotuloDoTipo(tipo: string): string {
   return ROTULO_TIPO[tipo] ?? tipo;
 }
 
-/** O texto da bolha: mensagem, legenda da mídia, ou o tipo entre colchetes. */
+/**
+ * O texto da bolha: mensagem, legenda da mídia, ou o tipo entre colchetes.
+ * A bolha da tela não usa mais esta (onda 1, 12/11/2026): ela usa
+ * `legendaDaBolha` (midia.ts), que não imprime "[Documento]" quando a mídia
+ * aparece. Esta fica para quem só tem texto, legenda e tipo.
+ */
 export function conteudoDaMensagem(m: Pick<MensagemDaCaixa, "texto" | "legenda" | "tipo">): string {
   const texto = m.texto?.trim() || m.legenda?.trim();
   if (texto) return texto;
@@ -316,7 +321,7 @@ export function seloDoStatus(m: Pick<MensagemDaCaixa, "direcao" | "status">): Se
   if (m.direcao !== "saida") return null;
   switch (m.status) {
     case "pendente":
-      return { texto: "na fila — ainda não saiu", tom: "amber" };
+      return { texto: "na fila, ainda não saiu", tom: "amber" };
     case "enviada":
       return { texto: "enviada", tom: "cyan" };
     case "entregue":
@@ -382,7 +387,7 @@ export function pedidoDaConversa(mensagens: MensagemDaCaixa[], limite = 10): str
 }
 
 export function tituloSugerido(c: ConversaDaCaixa): string {
-  return `Pedido pelo WhatsApp — ${nomeDaConversa(c)}`.slice(0, 120);
+  return `Pedido pelo WhatsApp: ${nomeDaConversa(c)}`.slice(0, 120);
 }
 
 /* ------------------------------------------------------------------ */
@@ -487,7 +492,7 @@ export function desfechoDoEnvio(
   return {
     tom: "aviso",
     texto:
-      "A resposta ficou na fila — outra rodada de envio pode estar com ela. O selo da mensagem muda quando ela sair.",
+      "A resposta ficou na fila, e outra rodada de envio pode estar com ela. O selo da mensagem muda quando ela sair.",
   };
 }
 
@@ -495,13 +500,62 @@ export function desfechoDoEnvio(
 /* Caixa v2: filas, status, agrupamento e autoria                      */
 /* ------------------------------------------------------------------ */
 
-export const MENSAGEM_NAO_SUPORTADA = "Mensagem não suportada — ver evento bruto";
+export const MENSAGEM_NAO_SUPORTADA = "Mensagem não suportada: ver evento bruto";
 
 /** Resumo da conversa na lista: "[sistema]" antigo vira rótulo legível. */
 export function resumoDaConversa(ultima: string | null): string {
   if (!ultima) return "Sem mensagens";
   if (ultima === "[sistema]") return MENSAGEM_NAO_SUPORTADA;
   return ultima;
+}
+
+/** O tipo da última mensagem, para o ícone da linha da lista. */
+export type TipoDaPrevia =
+  | "texto"
+  | "imagem"
+  | "audio"
+  | "video"
+  | "documento"
+  | "figurinha"
+  | "localizacao"
+  | "contato"
+  | "sistema"
+  | "vazia";
+
+export type PreviaDaConversa = { tipo: TipoDaPrevia; texto: string };
+
+/**
+ * O que o banco grava em `ultima_mensagem` quando a mensagem não tem texto:
+ * `whatsapp_registrar_mensagem` escreve "[imagem]", "[audio]", "[video]"
+ * (minúsculo, sem acento) e `whatsapp_responder_arquivo` escreve "[Imagem]" ou
+ * "[Documento]". Chave sem acento e minúscula.
+ */
+const TIPO_DO_COLCHETE: Record<string, { tipo: TipoDaPrevia; texto: string }> = {
+  imagem: { tipo: "imagem", texto: "Foto" },
+  audio: { tipo: "audio", texto: "Áudio" },
+  video: { tipo: "video", texto: "Vídeo" },
+  documento: { tipo: "documento", texto: "Documento" },
+  sticker: { tipo: "figurinha", texto: "Figurinha" },
+  figurinha: { tipo: "figurinha", texto: "Figurinha" },
+  localizacao: { tipo: "localizacao", texto: "Localização" },
+  contato: { tipo: "contato", texto: "Contato" },
+};
+
+/**
+ * A prévia da linha da lista (contrato da onda 1, 12/11/2026): o tipo, para a
+ * MOLDURA pôr o ícone, e o texto sem colchete ("Foto", "Áudio"). Dono das
+ * palavras: MIDIA. `resumoDaConversa` continua para a fila humana e o início.
+ */
+export function previaDaConversa(ultima: string | null): PreviaDaConversa {
+  if (!ultima || !ultima.trim()) return { tipo: "vazia", texto: "Sem mensagens" };
+  if (ultima === "[sistema]") return { tipo: "sistema", texto: MENSAGEM_NAO_SUPORTADA };
+  const colchete = /^\[([^\]]+)\]$/.exec(ultima.trim());
+  if (colchete) {
+    const chave = semAcento(colchete[1]);
+    const achado = TIPO_DO_COLCHETE[chave];
+    if (achado) return { ...achado };
+  }
+  return { tipo: "texto", texto: ultima };
 }
 
 export type Fila = "minhas" | "nao_atribuidas" | "todas";
@@ -606,7 +660,7 @@ export function fraseDoEvento(
       return `${quem} transferiu para ${para}${avisou}`;
     case "status": {
       const para = ROTULO_STATUS[String(d.para)] ?? String(d.para);
-      const motivo = d.motivo ? ` — ${rotuloDoMotivo(String(d.motivo))}` : "";
+      const motivo = d.motivo ? `: ${rotuloDoMotivo(String(d.motivo))}` : "";
       const nota = d.nota ? ` (${String(d.nota)})` : "";
       const numero = d.atendimento ? ` · ${String(d.atendimento)}` : "";
       return `${quem} marcou como ${para}${motivo}${nota}${numero}`;
@@ -620,11 +674,11 @@ export function fraseDoEvento(
     case "fila": {
       // Sem autor = a assistente classificou.
       const autor = e.de_usuario ? quem : "A assistente";
-      const motivo = d.motivo ? ` — ${String(d.motivo)}` : "";
+      const motivo = d.motivo ? `: ${String(d.motivo)}` : "";
       return `${autor} passou de ${rotuloDoSetor(String(d.de ?? ""))} para ${rotuloDoSetor(String(d.para ?? ""))}${motivo}${avisou}`;
     }
     case "transferida_ia":
-      return `A assistente passou a conversa para a equipe${d.motivo ? ` — ${String(d.motivo)}` : ""}`;
+      return `A assistente passou a conversa para a equipe${d.motivo ? `: ${String(d.motivo)}` : ""}`;
     case "devolvida_ia":
       return `${quem} devolveu a conversa à assistente`;
     case "atendimento":
