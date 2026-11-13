@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BadgePercent, FileText, Gift, HandCoins, LogIn, Send, ShieldCheck, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fraseDaEntrada, lerEntrada } from "@/domain/parceiros/credito-de-entrada";
 import { LOGO_FUNDO_ESCURO } from "@/lib/marca";
 import { ThemeToggle } from "@/components/bex/ThemeToggle";
 
@@ -47,6 +48,8 @@ type Programa = {
   boas_vindas: { ativa: boolean; pct: number; teto: number; validade_dias: number } | null;
   indicacao: { ativa: boolean; pct: number; teto: number; compras: number } | null;
   credito_max_pct_pedido: number | null;
+  /** Ausente enquanto a proposta do crédito de entrada não for aplicada. */
+  entrada?: unknown;
 };
 
 const brl = (v: number) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -71,6 +74,7 @@ function SejaParceiroPage() {
   });
   const p = programa.data;
   const niveis = p?.niveis ?? [];
+  const entrada = lerEntrada(p);
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -145,6 +149,11 @@ function SejaParceiroPage() {
               Nos níveis acima do primeiro, uma parte de cada pedido pago volta em crédito
               {p?.credito_max_pct_pedido ? `, que pode cobrir até ${pct(p.credito_max_pct_pedido)} de um pedido` : ""}.
             </Beneficio>
+            {entrada?.ativa && (
+              <Beneficio icone={Gift} titulo="Crédito de entrada">
+                {fraseDaEntrada(entrada)}
+              </Beneficio>
+            )}
             <Beneficio icone={Users} titulo="Indique outros parceiros">
               {p?.indicacao?.ativa
                 ? `Cada indicado tem o seu link. Nas ${p.indicacao.compras} primeiras compras dele, ${pct(p.indicacao.pct)} voltam em crédito para você (até ${brl(p.indicacao.teto)} por indicado).`

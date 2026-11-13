@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/erros";
 import { useAuth } from "@/lib/auth-context";
+import { atribuirAtendentePadrao } from "@/lib/parceiro-api";
 
 /**
  * Quem se cadastrou pelo link de convite e ainda não tem ninguém da gráfica.
@@ -58,6 +59,28 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
     onError: (e) => toast.error(mensagemErro(e)),
   });
 
+  // Atendente padrão (proposta ainda não aplicada = coluna ausente = botão some).
+  const { data: padrao = null } = useQuery({
+    queryKey: ["parceiro-programa", "atendente-padrao"],
+    queryFn: async (): Promise<string | null> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).from("parceiro_programa").select("*").maybeSingle();
+      if (error) throw error;
+      return (data?.atendente_padrao_id as string | null | undefined) ?? null;
+    },
+  });
+  const semAtendente = pendentes.filter((p) => p.status === "ativo");
+
+  const atribuirPadrao = useMutation({
+    mutationFn: () => atribuirAtendentePadrao(semAtendente.map((p) => p.id)),
+    onSuccess: (n) => {
+      toast.success(n === 1 ? "1 parceiro ganhou atendente." : `${n} parceiros ganharam atendente.`);
+      qc.invalidateQueries({ queryKey: ["parceiros-pendentes"] });
+      qc.invalidateQueries({ queryKey: ["parceiros-resumo"] });
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+
   const assumir = useMutation({
     mutationFn: async (id: string) => {
       const { data, error } = await (supabase as any)
@@ -80,13 +103,24 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
 
   return (
     <div className="rounded-xl border border-[color:var(--bex-cyan)]/40 bg-[color:var(--bex-cyan)]/5 p-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <UserPlus className="h-4 w-4 text-[color:var(--bex-cyan)]" />
         <h2 className="font-semibold">
           {pendentes.length === 1
             ? "1 parceiro novo sem atendente"
             : `${pendentes.length} parceiros novos sem atendente`}
         </h2>
+        {podeAprovar && padrao && semAtendente.length > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto"
+            onClick={() => atribuirPadrao.mutate()}
+            disabled={atribuirPadrao.isPending}
+          >
+            Atribuir ao atendente padrão
+          </Button>
+        )}
       </div>
       <p className="mt-0.5 text-sm text-muted-foreground">
         Cadastraram-se pelo link de convite e já entram no painel. Falta alguém da gráfica

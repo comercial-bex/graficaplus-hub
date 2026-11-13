@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, Percent, Gift, Users, Wallet } from "lucide-react";
+import { Save, Gift, Users, Wallet, Sparkles, Headset } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { mensagemErro } from "@/lib/erros";
 import { brl } from "@/domain/parceiros/preco";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { fraseDaEntrada } from "@/domain/parceiros/credito-de-entrada";
+import { CreditoDeEntradaDialog } from "./credito-de-entrada-dialog";
 
 /**
  * As regras do programa de indicação, em números que a gestão troca sem deploy.
@@ -38,7 +47,21 @@ interface Programa {
   boas_vindas_teto: number;
   boas_vindas_validade_dias: number;
   credito_max_pct_pedido: number;
+  // Proposta docs/proposta-credito-de-entrada-e-atendente.sql: enquanto não for
+  // aplicada, estas colunas não vêm e os blocos delas não aparecem.
+  entrada_ativa?: boolean;
+  entrada_valor?: number;
+  entrada_validade_dias?: number;
+  entrada_pedido_minimo?: number;
+  entrada_max_pct_pedido?: number;
+  atendente_padrao_id?: string | null;
 }
+
+const CAMPOS_ENTRADA: (keyof Programa)[] = [
+  "entrada_ativa", "entrada_valor", "entrada_validade_dias", "entrada_pedido_minimo", "entrada_max_pct_pedido",
+];
+
+type Atendente = { id: string; nome: string; atende: number };
 
 const CAMPOS: (keyof Programa)[] = [
   "indicacao_ativa", "indicacao_pct", "indicacao_compras", "indicacao_teto",
@@ -56,7 +79,7 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
     queryFn: async (): Promise<Programa> => {
       const { data: d, error } = await (supabase as any)
         .from("parceiro_programa")
-        .select(CAMPOS.join(", "))
+        .select("*")
         .maybeSingle();
       if (error) throw error;
       return d as Programa;
@@ -66,6 +89,31 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
   useEffect(() => {
     if (data) setR(data);
   }, [data]);
+
+  const temEntrada = !!data && "entrada_ativa" in data;
+  const temAtendente = !!data && "atendente_padrao_id" in data;
+
+  // Quem pode ser atendente padrão: usuários ativos da equipe (não os logins de
+  // parceiro), com quantos parceiros cada um já atende.
+  const atendentes = useQuery({
+    queryKey: ["parceiro-atendentes-possiveis"],
+    enabled: temAtendente,
+    queryFn: async (): Promise<Atendente[]> => {
+      const [us, ps] = await Promise.all([
+        (supabase as any).from("usuarios").select("id, nome").eq("ativo", true),
+        (supabase as any).from("parceiros").select("usuario_id, responsavel_id"),
+      ]);
+      if (us.error) throw us.error;
+      if (ps.error) throw ps.error;
+      const logins = new Set((ps.data ?? []).map((p: any) => p.usuario_id).filter(Boolean));
+      const conta = new Map<string, number>();
+      for (const p of ps.data ?? []) if (p.responsavel_id) conta.set(p.responsavel_id, (conta.get(p.responsavel_id) ?? 0) + 1);
+      return (us.data ?? [])
+        .filter((u: any) => !logins.has(u.id))
+        .map((u: any) => ({ id: u.id, nome: u.nome || "Sem nome", atende: conta.get(u.id) ?? 0 }))
+        .sort((a: Atendente, b: Atendente) => b.atende - a.atende || a.nome.localeCompare(b.nome, "pt-BR"));
+    },
+  });
 
   if (isLoading || !r) {
     return <p className="py-6 text-sm text-muted-foreground">Carregando as regras...</p>;
@@ -82,9 +130,16 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
     if (!r) return;
     setSalvando(true);
     try {
+      // Só as colunas que esta tela edita e que o banco já tem.
+      const campos = [
+        ...CAMPOS,
+        ...(temEntrada ? CAMPOS_ENTRADA : []),
+        ...(temAtendente ? (["atendente_padrao_id"] as (keyof Programa)[]) : []),
+      ];
+      const dados = Object.fromEntries(campos.map((k) => [k, r[k]]));
       const { error } = await (supabase as any)
         .from("parceiro_programa")
-        .update({ ...r, updated_at: new Date().toISOString() })
+        .update({ ...dados, updated_at: new Date().toISOString() })
         .eq("id", true);
       if (error) throw error;
       toast.success("Regras salvas. Valem para as próximas compras pagas.");
@@ -198,6 +253,74 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
             `Num pedido de R$ 1.000, o crédito abate no máximo ${brl(num("credito_max_pct_pedido") * 10)}.`)}
         </div>
       </section>
+
+      {temEntrada && (
+        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="flex items-center gap-2 font-semibold">
+              <Sparkles className="h-4 w-4 text-muted-foreground" />
+              Crédito de entrada
+            </h3>
+            <Switch
+              checked={!!r.entrada_ativa}
+              disabled={!podeEditar}
+              onCheckedChange={(v) => setR({ ...r, entrada_ativa: v })}
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {fraseDaEntrada({
+              valor: num("entrada_valor"),
+              validade_dias: num("entrada_validade_dias"),
+              pedido_minimo: num("entrada_pedido_minimo"),
+              max_pct: num("entrada_max_pct_pedido"),
+            })}{" "}
+            Ele nunca paga sozinho: o dinheiro de verdade cobre pelo menos o mesmo valor do crédito.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {campo("entrada_valor", "Valor", "R$", "Quanto o parceiro ganha ao ser ativado. Uma vez por pessoa.")}
+            {campo("entrada_validade_dias", "Validade", "dias", "De 1 a 365. Prazo curto cria urgência para a 1ª compra.")}
+            {campo("entrada_pedido_minimo", "1ª compra mínima", "R$", "Em produtos. Não pode ser menor que o valor do crédito.")}
+            {campo("entrada_max_pct_pedido", "Cobre até", "%", "Na 1ª compra. Máximo 50%: acima disso o crédito pagaria mais que o dinheiro.")}
+          </div>
+          {podeEditar && (
+            <div className="flex justify-end">
+              <CreditoDeEntradaDialog valor={num("entrada_valor")} disabled={!data?.entrada_ativa} />
+            </div>
+          )}
+        </section>
+      )}
+
+      {temAtendente && (
+        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <Headset className="h-4 w-4 text-muted-foreground" />
+            Atendente padrão
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Todo parceiro que entra sem atendente vai para esta pessoa. Sem atendente, o parceiro não
+            consegue fazer o primeiro pedido.
+          </p>
+          <div className="max-w-sm">
+            <Select
+              value={r.atendente_padrao_id ?? "nenhum"}
+              disabled={!podeEditar}
+              onValueChange={(v) => setR({ ...r, atendente_padrao_id: v === "nenhum" ? null : v })}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Escolha quem atende" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Ninguém (cada um assume pela fila)</SelectItem>
+                {(atendentes.data ?? []).map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.nome}{a.atende > 0 ? ` · atende ${a.atende}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </section>
+      )}
 
       {podeEditar && (
         <div className="flex justify-end">

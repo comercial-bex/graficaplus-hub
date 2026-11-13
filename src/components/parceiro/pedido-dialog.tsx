@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Send } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -15,7 +15,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { mensagemErro } from "@/lib/erros";
-import { CHAVE_PAINEL, enviarPedido, type PedidoEnviado } from "@/lib/parceiro-api";
+import {
+  CHAVE_PAINEL,
+  CHAVE_PROGRAMA_PUBLICO,
+  carregarProgramaPublico,
+  enviarPedido,
+  type PedidoEnviado,
+} from "@/lib/parceiro-api";
+import { ehPrimeiraCompra, lerEntrada, pctMaximoDoPedido, tetoDeCreditoDoPedido } from "@/domain/parceiros/credito-de-entrada";
 import { brl, type ResumoDoOrcamento } from "@/domain/parceiros/preco";
 import type { PainelDoParceiro } from "@/domain/parceiros/painel";
 
@@ -41,7 +48,21 @@ export function PedidoDialog({
 }) {
   const qc = useQueryClient();
   const saldo = Math.max(Number(painel.saldo_credito) || 0, 0);
-  const maximo = Math.round(Math.min(saldo, resumo.custo) * 100) / 100;
+  // O teto espelha o servidor (parceiro_enviar_pedido), que é quem decide: % dos
+  // produtos (sem a taxa de prazo), maior na 1ª compra quando há crédito de entrada.
+  const programa = useQuery({ queryKey: CHAVE_PROGRAMA_PUBLICO, queryFn: carregarProgramaPublico, staleTime: 5 * 60_000 });
+  const entrada = lerEntrada(programa.data);
+  const primeiraCompra = ehPrimeiraCompra(painel.pedidos ?? []);
+  const regraDoTeto = {
+    base: resumo.custo,
+    primeiraCompra,
+    maxPctGeral: programa.data ? (programa.data.credito_max_pct_pedido as number | null) : 100,
+    entrada,
+  };
+  const pctTeto = pctMaximoDoPedido(regraDoTeto);
+  const teto = tetoDeCreditoDoPedido(regraDoTeto);
+  const tetoDeEntrada = !!entrada?.ativa && primeiraCompra && resumo.custo >= entrada.pedido_minimo && entrada.max_pct > Number(regraDoTeto.maxPctGeral ?? 100);
+  const maximo = Math.round(Math.min(saldo, teto) * 100) / 100;
   const [usarCredito, setUsarCredito] = useState(false);
   const [valorCredito, setValorCredito] = useState(maximo);
   const [enviando, setEnviando] = useState(false);
@@ -186,6 +207,14 @@ export function PedidoDialog({
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
+                  {tetoDeEntrada
+                    ? `É a sua 1ª compra: o crédito pode cobrir até ${pctTeto.toLocaleString("pt-BR")}% dos produtos. `
+                    : programa.data
+                      ? `O crédito cobre até ${pctTeto.toLocaleString("pt-BR")}% dos produtos do pedido. `
+                      : ""}
+                  {!tetoDeEntrada && entrada?.ativa && primeiraCompra && resumo.custo < entrada.pedido_minimo
+                    ? `Com produtos a partir de ${brl(entrada.pedido_minimo)}, o crédito de entrada pode cobrir até ${entrada.max_pct.toLocaleString("pt-BR")}%. `
+                    : ""}
                   O crédito entra como desconto no próprio pedido. Se a gráfica recusar, ele volta para o seu saldo.
                 </p>
               </div>
