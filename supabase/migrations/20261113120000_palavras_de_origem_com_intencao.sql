@@ -1,5 +1,5 @@
--- AINDA NÃO APLICADA. O dono ensaia e aplica; depois troca esta linha por "APLICADA em <data>".
--- ORDEM: aplicar ESTA migração ANTES de publicar o front (a tela passa a mandar p_tipo).
+-- APLICADA em 13/11/2026, depois de ensaio com reversão.
+-- ORDEM: esta migração foi aplicada ANTES de publicar o front (a tela manda p_tipo).
 --
 -- PALAVRAS COM INTENÇÃO (Bex Print, onda A2 da origem do contato)
 --

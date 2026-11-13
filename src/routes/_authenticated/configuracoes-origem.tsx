@@ -924,15 +924,17 @@ function BlocoPalavras(props: {
     props.palavras.map((p) => p.palavra),
   );
   const existente = previa.guardada ? props.palavras.find((p) => p.palavra === previa.guardada) : undefined;
-  const jaExistia = existente !== undefined;
 
   const mutacao = useMutation({
     mutationFn: (v: { palavra: string; tipo?: TipoDeContato; ativo?: boolean; remover?: boolean }) => gravar({ data: v }),
     onSuccess: (_r, v) => {
       setErro(null);
+      // O aviso sai do que foi gravado agora, não do que está digitado no campo.
+      const antes = props.palavras.find((p) => p.palavra === v.palavra);
       if (v.remover) toast.success("Palavra removida.");
+      else if (antes && v.tipo !== undefined && v.tipo !== antes.tipo) toast.success("Tipo da palavra mudado.");
       else if (v.ativo === false) toast.success("Palavra desligada.");
-      else if (jaExistia) toast.success("Tipo da palavra mudado.");
+      else if (antes && v.ativo === true && !antes.ativo) toast.success("Palavra ligada.");
       else toast.success("Palavra salva.");
       props.aoMudar();
     },
