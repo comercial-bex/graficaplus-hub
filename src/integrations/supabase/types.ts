@@ -3560,6 +3560,85 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_enviados: {
+        Row: {
+          canal: string
+          conversa_id: string | null
+          documento_id: string | null
+          enviado_em: string
+          enviado_por: string | null
+          id: string
+          mensagem_id: string | null
+          referencia_id: string
+          tipo: string
+        }
+        Insert: {
+          canal: string
+          conversa_id?: string | null
+          documento_id?: string | null
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          mensagem_id?: string | null
+          referencia_id: string
+          tipo: string
+        }
+        Update: {
+          canal?: string
+          conversa_id?: string | null
+          documento_id?: string | null
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          mensagem_id?: string | null
+          referencia_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_enviados_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "documentos_enviados_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "documentos_enviados_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_enviados_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_gerados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_enviados_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_enviados_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_gerados: {
         Row: {
           caminho: string
@@ -16434,7 +16513,12 @@ export type Database = {
             | null
           nota_resolucao: string | null
           numero: string
+          orcamento_dispensado_em: string | null
+          orcamento_dispensado_motivo: string | null
+          orcamento_dispensado_por: string | null
           origem_abertura: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          pediu_orcamento_em: string | null
+          pediu_orcamento_por: string | null
           primeira_resposta_em: string | null
           reaberto_de: string | null
           responsavel_id: string | null
@@ -16452,7 +16536,12 @@ export type Database = {
             | null
           nota_resolucao?: string | null
           numero: string
+          orcamento_dispensado_em?: string | null
+          orcamento_dispensado_motivo?: string | null
+          orcamento_dispensado_por?: string | null
           origem_abertura?: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          pediu_orcamento_em?: string | null
+          pediu_orcamento_por?: string | null
           primeira_resposta_em?: string | null
           reaberto_de?: string | null
           responsavel_id?: string | null
@@ -16470,7 +16559,12 @@ export type Database = {
             | null
           nota_resolucao?: string | null
           numero?: string
+          orcamento_dispensado_em?: string | null
+          orcamento_dispensado_motivo?: string | null
+          orcamento_dispensado_por?: string | null
           origem_abertura?: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          pediu_orcamento_em?: string | null
+          pediu_orcamento_por?: string | null
           primeira_resposta_em?: string | null
           reaberto_de?: string | null
           responsavel_id?: string | null
@@ -16498,6 +16592,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "whatsapp_atendimentos_orcamento_dispensado_por_fkey"
+            columns: ["orcamento_dispensado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_atendimentos_pediu_orcamento_por_fkey"
+            columns: ["pediu_orcamento_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "whatsapp_atendimentos_reaberto_de_fkey"
             columns: ["reaberto_de"]
             isOneToOne: false
@@ -16506,9 +16614,150 @@ export type Database = {
           },
         ]
       }
+      whatsapp_cobrancas: {
+        Row: {
+          agrupada: boolean
+          atendimento_id: string
+          citados: Json
+          conversa_id: string
+          created_at: string
+          destino: string | null
+          fila_id: string | null
+          id: string
+          minutos_uteis: number
+          modo: string
+          motivo: string
+          nivel: number
+          orcamento_id: string | null
+          texto: string
+        }
+        Insert: {
+          agrupada?: boolean
+          atendimento_id: string
+          citados?: Json
+          conversa_id: string
+          created_at?: string
+          destino?: string | null
+          fila_id?: string | null
+          id?: string
+          minutos_uteis: number
+          modo: string
+          motivo: string
+          nivel: number
+          orcamento_id?: string | null
+          texto: string
+        }
+        Update: {
+          agrupada?: boolean
+          atendimento_id?: string
+          citados?: Json
+          conversa_id?: string
+          created_at?: string
+          destino?: string | null
+          fila_id?: string | null
+          id?: string
+          minutos_uteis?: number
+          modo?: string
+          motivo?: string
+          nivel?: number
+          orcamento_id?: string | null
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_cobrancas_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_atendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "notificacoes_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "vw_avisos_pendentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_cobrancas_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_orcamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_configuracoes: {
         Row: {
           assinatura: string
+          cobranca_ensaio_desde: string | null
+          cobranca_ligada_em: string | null
+          cobranca_min_gestor: number
+          cobranca_min_orcamento: number
+          cobranca_min_pedido: number
+          cobranca_modo: string
+          cobranca_rodada_em: string | null
+          cobranca_rodada_erro: string | null
+          cobranca_rodada_ok: boolean | null
+          cobranca_rodada_parada: string | null
+          cobranca_sabado: boolean
+          cobranca_sabado_fim: string
           dias_semana: number[]
           endereco: string | null
           grupo_equipe_ativo: boolean
@@ -16524,6 +16773,18 @@ export type Database = {
         }
         Insert: {
           assinatura?: string
+          cobranca_ensaio_desde?: string | null
+          cobranca_ligada_em?: string | null
+          cobranca_min_gestor?: number
+          cobranca_min_orcamento?: number
+          cobranca_min_pedido?: number
+          cobranca_modo?: string
+          cobranca_rodada_em?: string | null
+          cobranca_rodada_erro?: string | null
+          cobranca_rodada_ok?: boolean | null
+          cobranca_rodada_parada?: string | null
+          cobranca_sabado?: boolean
+          cobranca_sabado_fim?: string
           dias_semana?: number[]
           endereco?: string | null
           grupo_equipe_ativo?: boolean
@@ -16539,6 +16800,18 @@ export type Database = {
         }
         Update: {
           assinatura?: string
+          cobranca_ensaio_desde?: string | null
+          cobranca_ligada_em?: string | null
+          cobranca_min_gestor?: number
+          cobranca_min_orcamento?: number
+          cobranca_min_pedido?: number
+          cobranca_modo?: string
+          cobranca_rodada_em?: string | null
+          cobranca_rodada_erro?: string | null
+          cobranca_rodada_ok?: boolean | null
+          cobranca_rodada_parada?: string | null
+          cobranca_sabado?: boolean
+          cobranca_sabado_fim?: string
           dias_semana?: number[]
           endereco?: string | null
           grupo_equipe_ativo?: boolean
@@ -16706,6 +16979,7 @@ export type Database = {
           aguardando_desde: string | null
           atendimento_ativo_id: string | null
           atribuido_para: string | null
+          chat_lid: string | null
           cliente_id: string | null
           created_at: string
           etiquetas: string[]
@@ -16735,6 +17009,7 @@ export type Database = {
           aguardando_desde?: string | null
           atendimento_ativo_id?: string | null
           atribuido_para?: string | null
+          chat_lid?: string | null
           cliente_id?: string | null
           created_at?: string
           etiquetas?: string[]
@@ -16764,6 +17039,7 @@ export type Database = {
           aguardando_desde?: string | null
           atendimento_ativo_id?: string | null
           atribuido_para?: string | null
+          chat_lid?: string | null
           cliente_id?: string | null
           created_at?: string
           etiquetas?: string[]
@@ -18134,6 +18410,92 @@ export type Database = {
           },
         ]
       }
+      maquinas_3d_config_financeiro: {
+        Row: {
+          acessorios_capitalizados: number | null
+          ativa: boolean | null
+          bico_padrao: string | null
+          capacidade_x: number | null
+          capacidade_y: number | null
+          capacidade_z: number | null
+          consumiveis_json: Json | null
+          consumiveis_por_hora: number | null
+          created_at: string | null
+          custo_aquisicao: number | null
+          custo_hora_calculado: number | null
+          custo_hora_manual: number | null
+          custo_hora_manual_at: string | null
+          custo_hora_manual_usuario_id: string | null
+          fabricante: string | null
+          frete_aquisicao: number | null
+          horas_acumuladas: number | null
+          horas_produtivas_mensais: number | null
+          infraestrutura_por_hora: number | null
+          instalacao: number | null
+          manutencao_por_hora: number | null
+          maquina_id: string | null
+          metodo_custo_hora: string | null
+          modelo: string | null
+          motivo_custo_manual: string | null
+          nome: string | null
+          placa_padrao: string | null
+          possui_ams: boolean | null
+          potencia_aquecimento_w: number | null
+          potencia_media_w: number | null
+          potencia_standby_w: number | null
+          quantidade_slots: number | null
+          serial: string | null
+          tecnologia: string | null
+          tipo: string | null
+          updated_at: string | null
+          valor_residual: number | null
+          vida_util_horas: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_3d_config_custo_hora_manual_usuario_id_fkey"
+            columns: ["custo_hora_manual_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "maquinas_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "maquinas_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "rel_producao_por_maquina"
+            referencedColumns: ["maquina_id"]
+          },
+          {
+            foreignKeyName: "maquinas_3d_config_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: true
+            referencedRelation: "vw_patrimonio_maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maquinas_financeiro: {
         Row: {
           alimentacao: string | null
@@ -18277,6 +18639,66 @@ export type Database = {
           tipo?: string | null
         }
         Relationships: []
+      }
+      materiais_3d_filamento_financeiro: {
+        Row: {
+          armazenamento: string | null
+          codigo: string | null
+          cor: string | null
+          created_at: string | null
+          custo_compra: number | null
+          custo_por_grama_calculado: number | null
+          densidade: number | null
+          descontos: number | null
+          diametro: number | null
+          exige_secagem: boolean | null
+          fator_aproveitamento: number | null
+          frete_rateado: number | null
+          linha: string | null
+          marca: string | null
+          material_id: string | null
+          nome: string | null
+          outros_custos: number | null
+          peso_liquido: number | null
+          peso_nominal: number | null
+          potencia_secador: number | null
+          tara_carretel: number | null
+          temperatura_secagem: number | null
+          tempo_secagem: number | null
+          tipo: string | null
+          tributos_aquisicao: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materiais_3d_filamento_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: true
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materiais_3d_filamento_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: true
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materiais_3d_filamento_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: true
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materiais_3d_filamento_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+        ]
       }
       materiais_financeiro: {
         Row: {
@@ -20978,6 +21400,34 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_envio_dos_documentos: {
+        Row: {
+          entregue_em: string | null
+          envios: number | null
+          erro_da_mensagem: string | null
+          lido_em: string | null
+          mensagem_saiu_em: string | null
+          primeiro_envio_efetivo_em: string | null
+          primeiro_envio_em: string | null
+          referencia_id: string | null
+          situacao_da_mensagem: string | null
+          tipo: string | null
+          ultima_mensagem_id: string | null
+          ultimo_canal: string | null
+          ultimo_enviado_por: string | null
+          ultimo_envio_efetivo_em: string | null
+          ultimo_envio_em: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_enviados_mensagem_id_fkey"
+            columns: ["ultima_mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_estoque_critico: {
         Row: {
           critico: boolean | null
@@ -21693,6 +22143,7 @@ export type Database = {
         }
         Returns: Json
       }
+      arquivo_do_pdf_gerado: { Args: { p_caminho: string }; Returns: Json }
       arquivo_em_aprovacao_aberta: {
         Args: { p_caminho: string }
         Returns: boolean
@@ -22020,6 +22471,10 @@ export type Database = {
       conferir_retirada_compra: {
         Args: { p_id: string; p_obs?: string }
         Returns: undefined
+      }
+      confirmar_envio_documento: {
+        Args: { p_envio_id: string; p_usuario: string }
+        Returns: Json
       }
       confirmar_pagamento: {
         Args: {
@@ -23215,6 +23670,18 @@ export type Database = {
         }
         Returns: Json
       }
+      registrar_envio_documento: {
+        Args: {
+          p_canal: string
+          p_conversa_id?: string
+          p_documento_id?: string
+          p_mensagem_id?: string
+          p_referencia_id: string
+          p_tipo: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
       registrar_evento_os: {
         Args: {
           p_dados?: Json
@@ -23602,8 +24069,61 @@ export type Database = {
         Args: { p_cliente_id: string; p_usuario_id: string }
         Returns: Json
       }
+      whatsapp_aprender_lid: {
+        Args: { p_chat_lid: string; p_conversa_id: string }
+        Returns: boolean
+      }
       whatsapp_assumir: {
         Args: { p_conversa_id: string; p_usuario: string }
+        Returns: Json
+      }
+      whatsapp_cobranca_equipe: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+          papeis: string[]
+          telefone: string
+        }[]
+      }
+      whatsapp_cobranca_pendencias: {
+        Args: { p_desde: string }
+        Returns: {
+          aberto_em: string
+          atendimento_id: string
+          cliente_nome: string
+          cobrancas: Json
+          conversa_id: string
+          conversa_status: string
+          dispensado_em: string
+          envios_na_conversa: string[]
+          fechado_em: string
+          fila: string
+          lead_status: string
+          numero: string
+          orcamentos: Json
+          pediu_por_marca_em: string
+          pediu_por_palavra_em: string
+          resp_atendimento_id: string
+          resp_conversa_id: string
+        }[]
+      }
+      whatsapp_cobranca_registrar: {
+        Args: {
+          p_agrupada: boolean
+          p_itens: Json
+          p_mencionar: string[]
+          p_modo: string
+          p_texto: string
+        }
+        Returns: Json
+      }
+      whatsapp_cobranca_rodada_gravar: {
+        Args: { p_erro: string; p_ok: boolean; p_parada: string }
+        Returns: undefined
+      }
+      whatsapp_cobranca_salvar: {
+        Args: { p_config: Json; p_usuario: string }
         Returns: Json
       }
       whatsapp_configurar_instancia: {
@@ -23627,6 +24147,13 @@ export type Database = {
       whatsapp_conversa_do_cliente: {
         Args: { p_cliente_id: string; p_usuario: string }
         Returns: Json
+      }
+      whatsapp_conversa_do_lid: {
+        Args: { p_chat_lid: string; p_instancia_id: string }
+        Returns: {
+          conversa_id: string
+          telefone: string
+        }[]
       }
       whatsapp_conversa_do_numero: {
         Args: { p_nome: string; p_telefone: string; p_usuario: string }
