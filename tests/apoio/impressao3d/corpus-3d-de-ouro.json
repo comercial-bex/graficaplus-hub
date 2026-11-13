@@ -128,21 +128,21 @@
       "orcamento3dId": "1ad8bdcf-4848-481a-b2d0-b067a33a63b9",
       "precoEsperado": 44.5734,
       "valorUnitarioEsperado": 22.29,
-      "precoDeHoje": 44.58,
-      "unitarioDeHoje": 22.29,
+      "precoDeHoje": 49.9,
+      "unitarioDeHoje": 24.95,
       "peloMinimoHoje": false,
       "placasHoje": 2,
       "decomposicaoDeHoje": {
         "material": 13.611,
         "maquina": 5.179164,
         "energia": 2.13551,
-        "maoDeObra": 0,
+        "maoDeObra": 2.66664,
         "acabamento": 0.68055,
         "risco": 0.68055,
         "indireto": 0,
-        "operacional": 22.2867,
-        "lucro": 22.2933,
-        "margem": 0.500074
+        "operacional": 24.9533,
+        "lucro": 24.9467,
+        "margem": 0.499933
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "o total guardado é o custo vezes o markup sem arredondar (cotação de antes de 14/10, quando o arredondamento do unitário entrou no ar); hoje o total é o unitário arredondado vezes a quantidade"
@@ -188,21 +188,21 @@
       "orcamento3dId": "2b176726-7895-4663-acfc-324d24f16ddb",
       "precoEsperado": 130.5252,
       "valorUnitarioEsperado": 130.53,
-      "precoDeHoje": 130.53,
-      "unitarioDeHoje": 130.53,
+      "precoDeHoje": 133.19,
+      "unitarioDeHoje": 133.19,
       "peloMinimoHoje": false,
       "placasHoje": 1,
       "decomposicaoDeHoje": {
         "material": 36.3792,
         "maquina": 17.875,
         "energia": 7.37035,
-        "maoDeObra": 0,
+        "maoDeObra": 1.33332,
         "acabamento": 1.81896,
         "risco": 1.81896,
         "indireto": 0,
-        "operacional": 65.2626,
-        "lucro": 65.2674,
-        "margem": 0.500018
+        "operacional": 66.5959,
+        "lucro": 66.5941,
+        "margem": 0.499993
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "o total guardado é o custo vezes o markup sem arredondar (cotação de antes de 14/10, quando o arredondamento do unitário entrou no ar); hoje o total é o unitário arredondado vezes a quantidade"
@@ -248,21 +248,21 @@
       "orcamento3dId": "2a2cda83-f04a-468a-8cfa-4647a61c8ff6",
       "precoEsperado": 192.377,
       "valorUnitarioEsperado": 192.38,
-      "precoDeHoje": 192.38,
-      "unitarioDeHoje": 192.38,
+      "precoDeHoje": 195.04,
+      "unitarioDeHoje": 195.04,
       "peloMinimoHoje": false,
       "placasHoje": 1,
       "decomposicaoDeHoje": {
         "material": 60.5805,
         "maquina": 20.922915,
         "energia": 8.627088,
-        "maoDeObra": 0,
+        "maoDeObra": 1.33332,
         "acabamento": 3.029025,
         "risco": 3.029025,
         "indireto": 0,
-        "operacional": 96.1885,
-        "lucro": 96.1915,
-        "margem": 0.500007
+        "operacional": 97.5218,
+        "lucro": 97.5182,
+        "margem": 0.49999
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "o total guardado é o custo vezes o markup sem arredondar (cotação de antes de 14/10, quando o arredondamento do unitário entrou no ar); hoje o total é o unitário arredondado vezes a quantidade"
@@ -308,21 +308,21 @@
       "orcamento3dId": "e9611f88-91a5-4ed8-b4d6-9d3c30db1a8f",
       "precoEsperado": 1076,
       "valorUnitarioEsperado": 5.38,
-      "precoDeHoje": 1076,
-      "unitarioDeHoje": 5.38,
+      "precoDeHoje": 1610,
+      "unitarioDeHoje": 8.05,
       "peloMinimoHoje": false,
       "placasHoje": 200,
       "decomposicaoDeHoje": {
         "material": 224.7,
         "maquina": 206.25,
         "energia": 85.0424,
-        "maoDeObra": 0,
+        "maoDeObra": 266.664,
         "acabamento": 11.235,
         "risco": 11.235,
         "indireto": 0,
-        "operacional": 538.4624,
-        "lucro": 537.5376,
-        "margem": 0.49957
+        "operacional": 805.1264,
+        "lucro": 804.8736,
+        "margem": 0.499921
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -368,21 +368,21 @@
       "orcamento3dId": "5bda6540-5232-45ba-86d2-e91c74f4cd34",
       "precoEsperado": 1240,
       "valorUnitarioEsperado": 12.4,
-      "precoDeHoje": 1240,
-      "unitarioDeHoje": 12.4,
+      "precoDeHoje": 1506,
+      "unitarioDeHoje": 15.06,
       "peloMinimoHoje": false,
       "placasHoje": 100,
       "decomposicaoDeHoje": {
         "material": 213.39,
         "maquina": 272.7082,
         "energia": 112.445,
-        "maoDeObra": 0,
+        "maoDeObra": 133.332,
         "acabamento": 10.6695,
         "risco": 10.6695,
         "indireto": 0,
-        "operacional": 619.8822,
-        "lucro": 620.1178,
-        "margem": 0.500095
+        "operacional": 753.2142,
+        "lucro": 752.7858,
+        "margem": 0.499857
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -428,21 +428,21 @@
       "orcamento3dId": "f0f8ca45-5ed0-48f6-addf-9dd9a9280125",
       "precoEsperado": 823,
       "valorUnitarioEsperado": 8.23,
-      "precoDeHoje": 823,
-      "unitarioDeHoje": 8.23,
+      "precoDeHoje": 1089,
+      "unitarioDeHoje": 10.89,
       "peloMinimoHoje": false,
       "placasHoje": 100,
       "decomposicaoDeHoje": {
         "material": 241.5,
         "maquina": 103.125,
         "energia": 42.5212,
-        "maoDeObra": 0,
+        "maoDeObra": 133.332,
         "acabamento": 12.075,
         "risco": 12.075,
         "indireto": 0,
-        "operacional": 411.2962,
-        "lucro": 411.7038,
-        "margem": 0.500247
+        "operacional": 544.6282,
+        "lucro": 544.3718,
+        "margem": 0.499882
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -488,21 +488,21 @@
       "orcamento3dId": "30703bc3-ced5-4fe7-85ab-41076fd8f90a",
       "precoEsperado": 135.2,
       "valorUnitarioEsperado": 3.38,
-      "precoDeHoje": 200,
-      "unitarioDeHoje": 5,
-      "peloMinimoHoje": true,
+      "precoDeHoje": 242,
+      "unitarioDeHoje": 6.05,
+      "peloMinimoHoje": false,
       "placasHoje": 40,
       "decomposicaoDeHoje": {
         "material": 20.332,
         "maquina": 32.08328,
         "energia": 13.2288,
-        "maoDeObra": 0,
+        "maoDeObra": 53.3328,
         "acabamento": 1.0166,
         "risco": 1.0166,
         "indireto": 0,
-        "operacional": 67.6773,
-        "lucro": 132.3227,
-        "margem": 0.661613
+        "operacional": 121.0101,
+        "lucro": 120.9899,
+        "margem": 0.499958
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "piso de R$ 5,00 por peça (decisão de 30/10, commit f3242d76): a cotação é anterior a ele; o preço de hoje sobe para 5.00 por peça"
@@ -548,21 +548,21 @@
       "orcamento3dId": "34d9c285-22c6-4dc4-8180-d1b29b446b28",
       "precoEsperado": 292.6,
       "valorUnitarioEsperado": 14.63,
-      "precoDeHoje": 292.6,
-      "unitarioDeHoje": 14.63,
+      "precoDeHoje": 346,
+      "unitarioDeHoje": 17.3,
       "peloMinimoHoje": false,
       "placasHoje": 20,
       "decomposicaoDeHoje": {
         "material": 53.568,
         "maquina": 61.875,
         "energia": 25.51274,
-        "maoDeObra": 0,
+        "maoDeObra": 26.6664,
         "acabamento": 2.6784,
         "risco": 2.6784,
         "indireto": 0,
-        "operacional": 146.3125,
-        "lucro": 146.2875,
-        "margem": 0.499957
+        "operacional": 172.9789,
+        "lucro": 173.0211,
+        "margem": 0.50006
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -608,21 +608,21 @@
       "orcamento3dId": "11b762be-1e60-4a3c-ad77-7d8d6551d9d6",
       "precoEsperado": 214,
       "valorUnitarioEsperado": 10.7,
-      "precoDeHoje": 214,
-      "unitarioDeHoje": 10.7,
+      "precoDeHoje": 267.4,
+      "unitarioDeHoje": 13.37,
       "peloMinimoHoje": false,
       "placasHoje": 20,
       "decomposicaoDeHoje": {
         "material": 63.72,
         "maquina": 26.125,
         "energia": 10.77204,
-        "maoDeObra": 0,
+        "maoDeObra": 26.6664,
         "acabamento": 3.186,
         "risco": 3.186,
         "indireto": 0,
-        "operacional": 106.989,
-        "lucro": 107.011,
-        "margem": 0.500051
+        "operacional": 133.6554,
+        "lucro": 133.7446,
+        "margem": 0.500166
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -676,13 +676,13 @@
         "material": 11.196,
         "maquina": 16.5,
         "energia": 6.8034,
-        "maoDeObra": 0,
+        "maoDeObra": 53.3328,
         "acabamento": 0.5598,
         "risco": 0.5598,
         "indireto": 0,
-        "operacional": 35.619,
-        "lucro": 164.381,
-        "margem": 0.821905
+        "operacional": 88.9518,
+        "lucro": 111.0482,
+        "margem": 0.555241
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "piso de R$ 5,00 por peça (decisão de 30/10, commit f3242d76): a cotação é anterior a ele; o preço de hoje sobe para 5.00 por peça"
@@ -728,21 +728,21 @@
       "orcamento3dId": "66abe1f9-818a-4db8-bff8-1dc0a02bedb6",
       "precoEsperado": 107.6,
       "valorUnitarioEsperado": 2.69,
-      "precoDeHoje": 200,
-      "unitarioDeHoje": 5,
-      "peloMinimoHoje": true,
+      "precoDeHoje": 214.4,
+      "unitarioDeHoje": 5.36,
+      "peloMinimoHoje": false,
       "placasHoje": 40,
       "decomposicaoDeHoje": {
         "material": 10.152,
         "maquina": 30.25,
         "energia": 12.47288,
-        "maoDeObra": 0,
+        "maoDeObra": 53.3328,
         "acabamento": 0.5076,
         "risco": 0.5076,
         "indireto": 0,
-        "operacional": 53.8901,
-        "lucro": 146.1099,
-        "margem": 0.730549
+        "operacional": 107.2229,
+        "lucro": 107.1771,
+        "margem": 0.499893
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "piso de R$ 5,00 por peça (decisão de 30/10, commit f3242d76): a cotação é anterior a ele; o preço de hoje sobe para 5.00 por peça"
@@ -788,21 +788,21 @@
       "orcamento3dId": "cca60c3a-4bc2-446b-9316-ee77594e3095",
       "precoEsperado": 467,
       "valorUnitarioEsperado": 4.67,
-      "precoDeHoje": 500,
-      "unitarioDeHoje": 5,
-      "peloMinimoHoje": true,
+      "precoDeHoje": 734,
+      "unitarioDeHoje": 7.34,
+      "peloMinimoHoje": false,
       "placasHoje": 100,
       "decomposicaoDeHoje": {
         "material": 115.29,
         "maquina": 75.625,
         "energia": 31.1822,
-        "maoDeObra": 0,
+        "maoDeObra": 133.332,
         "acabamento": 5.7645,
         "risco": 5.7645,
         "indireto": 0,
-        "operacional": 233.6262,
-        "lucro": 266.3738,
-        "margem": 0.532747
+        "operacional": 366.9582,
+        "lucro": 367.0418,
+        "margem": 0.500056
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "piso de R$ 5,00 por peça (decisão de 30/10, commit f3242d76): a cotação é anterior a ele; o preço de hoje sobe para 5.00 por peça"
@@ -848,21 +848,21 @@
       "orcamento3dId": "5668f391-6a7c-4230-8f65-163c01244bd9",
       "precoEsperado": 504,
       "valorUnitarioEsperado": 5.04,
-      "precoDeHoje": 504,
-      "unitarioDeHoje": 5.04,
+      "precoDeHoje": 770,
+      "unitarioDeHoje": 7.7,
       "peloMinimoHoje": false,
       "placasHoje": 100,
       "decomposicaoDeHoje": {
         "material": 125.91,
         "maquina": 80.2082,
         "energia": 33.072,
-        "maoDeObra": 0,
+        "maoDeObra": 133.332,
         "acabamento": 6.2955,
         "risco": 6.2955,
         "indireto": 0,
-        "operacional": 251.7812,
-        "lucro": 252.2188,
-        "margem": 0.500434
+        "operacional": 385.1132,
+        "lucro": 384.8868,
+        "margem": 0.499852
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -908,21 +908,21 @@
       "orcamento3dId": "6afc50b5-4d3e-4de3-9048-1f8f9172ab3c",
       "precoEsperado": 378,
       "valorUnitarioEsperado": 3.78,
-      "precoDeHoje": 500,
-      "unitarioDeHoje": 5,
-      "peloMinimoHoje": true,
+      "precoDeHoje": 645,
+      "unitarioDeHoje": 6.45,
+      "peloMinimoHoje": false,
       "placasHoje": 100,
       "decomposicaoDeHoje": {
         "material": 72,
         "maquina": 77.9165,
         "energia": 32.1271,
-        "maoDeObra": 0,
+        "maoDeObra": 133.332,
         "acabamento": 3.6,
         "risco": 3.6,
         "indireto": 0,
-        "operacional": 189.2436,
-        "lucro": 310.7564,
-        "margem": 0.621512
+        "operacional": 322.5756,
+        "lucro": 322.4244,
+        "margem": 0.499882
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "piso de R$ 5,00 por peça (decisão de 30/10, commit f3242d76): a cotação é anterior a ele; o preço de hoje sobe para 5.00 por peça"
@@ -968,21 +968,21 @@
       "orcamento3dId": "fbcbf9b1-5221-4ae7-9286-6d241317b38c",
       "precoEsperado": 317,
       "valorUnitarioEsperado": 3.17,
-      "precoDeHoje": 500,
-      "unitarioDeHoje": 5,
-      "peloMinimoHoje": true,
+      "precoDeHoje": 584,
+      "unitarioDeHoje": 5.84,
+      "peloMinimoHoje": false,
       "placasHoje": 100,
       "decomposicaoDeHoje": {
         "material": 58.86,
         "maquina": 66.4582,
         "energia": 27.4025,
-        "maoDeObra": 0,
+        "maoDeObra": 133.332,
         "acabamento": 2.943,
         "risco": 2.943,
         "indireto": 0,
-        "operacional": 158.6067,
-        "lucro": 341.3933,
-        "margem": 0.682786
+        "operacional": 291.9387,
+        "lucro": 292.0613,
+        "margem": 0.500104
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "piso de R$ 5,00 por peça (decisão de 30/10, commit f3242d76): a cotação é anterior a ele; o preço de hoje sobe para 5.00 por peça"
@@ -1036,13 +1036,13 @@
         "material": 44.1,
         "maquina": 41.25,
         "energia": 17.0085,
-        "maoDeObra": 0,
+        "maoDeObra": 133.332,
         "acabamento": 2.205,
         "risco": 2.205,
         "indireto": 0,
-        "operacional": 106.7685,
-        "lucro": 393.2315,
-        "margem": 0.786463
+        "operacional": 240.1005,
+        "lucro": 259.8995,
+        "margem": 0.519799
       },
       "bateComHoje": false,
       "motivoSeNaoBate": "piso de R$ 5,00 por peça (decisão de 30/10, commit f3242d76): a cotação é anterior a ele; o preço de hoje sobe para 5.00 por peça"
@@ -1088,21 +1088,21 @@
       "orcamento3dId": "c62277c8-3a27-49a9-8d77-64f423f9f404",
       "precoEsperado": 1597,
       "valorUnitarioEsperado": 15.97,
-      "precoDeHoje": 1597,
-      "unitarioDeHoje": 15.97,
+      "precoDeHoje": 1863,
+      "unitarioDeHoje": 18.63,
       "peloMinimoHoje": false,
       "placasHoje": 100,
       "decomposicaoDeHoje": {
         "material": 402.03,
         "maquina": 252.0832,
         "energia": 103.9407,
-        "maoDeObra": 0,
+        "maoDeObra": 133.332,
         "acabamento": 20.1015,
         "risco": 20.1015,
         "indireto": 0,
-        "operacional": 798.2569,
-        "lucro": 798.7431,
-        "margem": 0.500152
+        "operacional": 931.5889,
+        "lucro": 931.4111,
+        "margem": 0.499952
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -1148,21 +1148,21 @@
       "orcamento3dId": "b2b80adc-d2a4-43da-a72a-34cfb144d68f",
       "precoEsperado": 1699.5,
       "valorUnitarioEsperado": 33.99,
-      "precoDeHoje": 1699.5,
-      "unitarioDeHoje": 33.99,
+      "precoDeHoje": 1740,
+      "unitarioDeHoje": 34.8,
       "peloMinimoHoje": false,
       "placasHoje": 50,
       "decomposicaoDeHoje": {
         "material": 249.9742,
         "maquina": 404.7,
         "energia": 170.085,
-        "maoDeObra": 0,
+        "maoDeObra": 20.2831,
         "acabamento": 12.49871,
         "risco": 12.49871,
         "indireto": 0,
-        "operacional": 849.7566,
-        "lucro": 849.7434,
-        "margem": 0.499996
+        "operacional": 870.0397,
+        "lucro": 869.9603,
+        "margem": 0.499977
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -1208,21 +1208,21 @@
       "orcamento3dId": "0e5b04c7-f88a-44ab-b110-0b8b35aeefd2",
       "precoEsperado": 1699.5,
       "valorUnitarioEsperado": 33.99,
-      "precoDeHoje": 1699.5,
-      "unitarioDeHoje": 33.99,
+      "precoDeHoje": 1740,
+      "unitarioDeHoje": 34.8,
       "peloMinimoHoje": false,
       "placasHoje": 50,
       "decomposicaoDeHoje": {
         "material": 249.9742,
         "maquina": 404.7,
         "energia": 170.085,
-        "maoDeObra": 0,
+        "maoDeObra": 20.2831,
         "acabamento": 12.49871,
         "risco": 12.49871,
         "indireto": 0,
-        "operacional": 849.7566,
-        "lucro": 849.7434,
-        "margem": 0.499996
+        "operacional": 870.0397,
+        "lucro": 869.9603,
+        "margem": 0.499977
       },
       "bateComHoje": true,
       "motivoSeNaoBate": null
@@ -1499,20 +1499,20 @@
         "placas": 1,
         "pecasPorPlaca": 1,
         "quantidade": 1,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 0.13818,
           "maquina": 0.2698,
           "energia": 0.034017,
-          "maoDeObra": 0,
+          "maoDeObra": 0.405662,
           "acabamento": 0.006909,
           "risco": 0.006909,
           "indireto": 0,
-          "operacional": 0.4558,
-          "lucro": 4.5442,
-          "margem": 0.90884,
-          "atacado": 0.6837,
-          "equilibrio": 0.506444
+          "operacional": 0.8615,
+          "lucro": 4.1385,
+          "margem": 0.8277,
+          "atacado": 1.29225,
+          "equilibrio": 0.957222
         }
       }
     },
@@ -1546,20 +1546,20 @@
         "placas": 40,
         "pecasPorPlaca": 1,
         "quantidade": 40,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 8.18552,
           "maquina": 16.188,
           "energia": 2.041,
-          "maoDeObra": 0,
+          "maoDeObra": 16.22648,
           "acabamento": 0.409276,
           "risco": 0.409276,
           "indireto": 0,
-          "operacional": 27.2331,
-          "lucro": 172.7669,
-          "margem": 0.863834,
-          "atacado": 40.84965,
-          "equilibrio": 30.258996
+          "operacional": 43.4596,
+          "lucro": 156.5404,
+          "margem": 0.782702,
+          "atacado": 65.1894,
+          "equilibrio": 48.288439
         }
       }
     },
@@ -1634,26 +1634,26 @@
         "custoPorGrama": 0.05932
       },
       "esperadoDoOraculo": {
-        "preco": 139.2,
-        "unitario": 17.4,
+        "preco": 145.68,
+        "unitario": 18.21,
         "peloMinimo": false,
         "placas": 1,
         "pecasPorPlaca": 8,
         "quantidade": 8,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 37.9648,
           "maquina": 24.731666,
           "energia": 3.118223,
-          "maoDeObra": 0,
+          "maoDeObra": 3.245296,
           "acabamento": 1.89824,
           "risco": 1.89824,
           "indireto": 0,
-          "operacional": 69.6111,
-          "lucro": 69.5889,
-          "margem": 0.49992,
-          "atacado": 104.41665,
-          "equilibrio": 77.345658
+          "operacional": 72.8564,
+          "lucro": 72.8236,
+          "margem": 0.499887,
+          "atacado": 109.2846,
+          "equilibrio": 80.951547
         }
       }
     },
@@ -1681,26 +1681,26 @@
         "custoPorGrama": 0.15
       },
       "esperadoDoOraculo": {
-        "preco": 179.51,
-        "unitario": 179.51,
+        "preco": 180.32,
+        "unitario": 180.32,
         "peloMinimo": false,
         "placas": 1,
         "pecasPorPlaca": 1,
         "quantidade": 1,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 60.5805,
           "maquina": 20.527282,
           "energia": 2.588125,
-          "maoDeObra": 0,
+          "maoDeObra": 0.405662,
           "acabamento": 3.029025,
           "risco": 3.029025,
           "indireto": 0,
-          "operacional": 89.7539,
-          "lucro": 89.7561,
-          "margem": 0.500006,
-          "atacado": 134.63085,
-          "equilibrio": 99.726545
+          "operacional": 90.1596,
+          "lucro": 90.1604,
+          "margem": 0.500002,
+          "atacado": 135.2394,
+          "equilibrio": 100.177323
         }
       }
     },
@@ -1728,26 +1728,26 @@
         "custoPorGrama": 0.0658
       },
       "esperadoDoOraculo": {
-        "preco": 17.63,
-        "unitario": 17.63,
+        "preco": 18.44,
+        "unitario": 18.44,
         "peloMinimo": false,
         "placas": 1,
         "pecasPorPlaca": 1,
         "quantidade": 1,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 6.58,
           "maquina": 1.228974,
           "energia": 0.348674,
-          "maoDeObra": 0,
+          "maoDeObra": 0.405662,
           "acabamento": 0.329,
           "risco": 0.329,
           "indireto": 0,
-          "operacional": 8.8157,
-          "lucro": 8.8143,
-          "margem": 0.49996,
-          "atacado": 13.22355,
-          "equilibrio": 9.795221
+          "operacional": 9.2214,
+          "lucro": 9.2186,
+          "margem": 0.499924,
+          "atacado": 13.8321,
+          "equilibrio": 10.245998
         }
       }
     },
@@ -1822,26 +1822,26 @@
         "custoPorGrama": 0.0658
       },
       "esperadoDoOraculo": {
-        "preco": 50.95,
-        "unitario": 10.19,
+        "preco": 55,
+        "unitario": 11,
         "peloMinimo": false,
         "placas": 5,
         "pecasPorPlaca": 1,
         "quantidade": 5,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 5.922,
           "maquina": 6.18291,
           "energia": 0.77955,
-          "maoDeObra": 0,
+          "maoDeObra": 2.02831,
           "acabamento": 0.2961,
           "risco": 0.2961,
           "indireto": 12,
-          "operacional": 25.4766,
-          "lucro": 25.4734,
-          "margem": 0.499968,
-          "atacado": 38.2149,
-          "equilibrio": 28.30733
+          "operacional": 27.5049,
+          "lucro": 27.4951,
+          "margem": 0.49991,
+          "atacado": 41.25735,
+          "equilibrio": 30.560996
         }
       }
     },
@@ -1869,26 +1869,26 @@
         "custoPorGrama": 0.0658
       },
       "esperadoDoOraculo": {
-        "preco": 26.95,
-        "unitario": 5.39,
+        "preco": 31,
+        "unitario": 6.2,
         "peloMinimo": false,
         "placas": 5,
         "pecasPorPlaca": 1,
         "quantidade": 5,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 5.922,
           "maquina": 6.18291,
           "energia": 0.77955,
-          "maoDeObra": 0,
+          "maoDeObra": 2.02831,
           "acabamento": 0.2961,
           "risco": 0.2961,
           "indireto": 0,
-          "operacional": 13.4766,
-          "lucro": 13.4734,
-          "margem": 0.49994,
-          "atacado": 20.2149,
-          "equilibrio": 14.973998
+          "operacional": 15.5049,
+          "lucro": 15.4951,
+          "margem": 0.499841,
+          "atacado": 23.25735,
+          "equilibrio": 17.227664
         }
       }
     },
@@ -1916,26 +1916,26 @@
         "custoPorGrama": 0.0658
       },
       "esperadoDoOraculo": {
-        "preco": 6.81,
-        "unitario": 6.81,
+        "preco": 7.62,
+        "unitario": 7.62,
         "peloMinimo": false,
         "placas": 1,
         "pecasPorPlaca": 1,
         "quantidade": 1,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 2.632,
           "maquina": 0,
           "energia": 0.510255,
-          "maoDeObra": 0,
+          "maoDeObra": 0.405662,
           "acabamento": 0.1316,
           "risco": 0.1316,
           "indireto": 0,
-          "operacional": 3.4055,
-          "lucro": 3.4045,
-          "margem": 0.499926,
-          "atacado": 5.10825,
-          "equilibrio": 3.783888
+          "operacional": 3.8112,
+          "lucro": 3.8088,
+          "margem": 0.499842,
+          "atacado": 5.7168,
+          "equilibrio": 4.234666
         }
       }
     },
@@ -1963,26 +1963,26 @@
         "custoPorGrama": 0.29676
       },
       "esperadoDoOraculo": {
-        "preco": 806.79,
-        "unitario": 806.79,
+        "preco": 807.6,
+        "unitario": 807.6,
         "peloMinimo": false,
         "placas": 1,
         "pecasPorPlaca": 1,
         "quantidade": 1,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 296.76,
           "maquina": 59.95,
           "energia": 17.0085,
-          "maoDeObra": 0,
+          "maoDeObra": 0.405662,
           "acabamento": 14.838,
           "risco": 14.838,
           "indireto": 0,
-          "operacional": 403.3945,
-          "lucro": 403.3955,
-          "margem": 0.5,
-          "atacado": 605.09175,
-          "equilibrio": 448.216066
+          "operacional": 403.8002,
+          "lucro": 403.7998,
+          "margem": 0.499999,
+          "atacado": 605.7003,
+          "equilibrio": 448.666844
         }
       }
     },
@@ -2010,26 +2010,26 @@
         "custoPorGrama": 0.0658
       },
       "esperadoDoOraculo": {
-        "preco": 14110,
-        "unitario": 14.11,
+        "preco": 14920,
+        "unitario": 14.92,
         "peloMinimo": false,
         "placas": 50,
         "pecasPorPlaca": 20,
         "quantidade": 1000,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 2961,
           "maquina": 3372.5,
           "energia": 425.2125,
-          "maoDeObra": 0,
+          "maoDeObra": 405.662,
           "acabamento": 148.05,
           "risco": 148.05,
           "indireto": 0,
-          "operacional": 7054.8125,
-          "lucro": 7055.1875,
-          "margem": 0.500013,
-          "atacado": 10582.21875,
-          "equilibrio": 7838.679771
+          "operacional": 7460.4745,
+          "lucro": 7459.5255,
+          "margem": 0.499968,
+          "atacado": 11190.71175,
+          "equilibrio": 8289.415282
         }
       }
     },
@@ -2057,26 +2057,26 @@
         "custoPorGrama": 0.0658
       },
       "esperadoDoOraculo": {
-        "preco": 23.92,
-        "unitario": 23.92,
+        "preco": 24.73,
+        "unitario": 24.73,
         "peloMinimo": false,
         "placas": 1,
         "pecasPorPlaca": 1,
         "quantidade": 1,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 0.329,
           "maquina": 10.297366,
           "energia": 1.298314,
-          "maoDeObra": 0,
+          "maoDeObra": 0.405662,
           "acabamento": 0.01645,
           "risco": 0.01645,
           "indireto": 0,
-          "operacional": 11.9575,
-          "lucro": 11.9625,
-          "margem": 0.500104,
-          "atacado": 17.93625,
-          "equilibrio": 13.286109
+          "operacional": 12.3632,
+          "lucro": 12.3668,
+          "margem": 0.500072,
+          "atacado": 18.5448,
+          "equilibrio": 13.736887
         }
       }
     },
@@ -2104,26 +2104,26 @@
         "custoPorGrama": 0.0658
       },
       "esperadoDoOraculo": {
-        "preco": 27.11,
-        "unitario": 27.11,
+        "preco": 27.92,
+        "unitario": 27.92,
         "peloMinimo": false,
         "placas": 1,
         "pecasPorPlaca": 1,
         "quantidade": 1,
-        "horasMaoDeObra": 0,
+        "horasMaoDeObra": 0.03333333333333333,
         "decomposicao": {
           "material": 0.329,
           "maquina": 11.713816,
           "energia": 1.476903,
-          "maoDeObra": 0,
+          "maoDeObra": 0.405662,
           "acabamento": 0.01645,
           "risco": 0.01645,
           "indireto": 0,
-          "operacional": 13.5525,
-          "lucro": 13.5575,
-          "margem": 0.500092,
-          "atacado": 20.32875,
-          "equilibrio": 15.058331
+          "operacional": 13.9582,
+          "lucro": 13.9618,
+          "margem": 0.500064,
+          "atacado": 20.9373,
+          "equilibrio": 15.509109
         }
       }
     }

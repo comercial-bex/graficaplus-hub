@@ -4,7 +4,7 @@ import { custoDeEmbalagemDoItem } from "../src/domain/impressao3d/custo-administ
 import { horasDeMaoDeObraPorPeca } from "../src/domain/impressao3d/preco";
 
 describe("custos opcionais iniciais no orçamento 3D", () => {
-  it("sem horas e com embalagem desligada, o custo operacional vazio é zero", () => {
+  it("sem horas e com embalagem desligada, o custo vazio é só os 2 minutos de mão de obra padrão", () => {
     const maoDeObra = laborCost([
       { minutos: horasDeMaoDeObraPorPeca(0) * 60, custoHoraSnapshot: 40 },
     ]);
@@ -16,9 +16,10 @@ describe("custos opcionais iniciais no orçamento 3D", () => {
       maoDeObra: maoDeObra.toString(),
       indiretosRateados: embalagem.toString(),
     });
-    expect(maoDeObra.toNumber()).toBe(0);
+    // 2 min a R$ 40/h (decisão de 30/10, restabelecida em 13/11/2026)
+    expect(maoDeObra.toNumber()).toBeCloseTo((2 * 40) / 60, 3);
     expect(embalagem.toNumber()).toBe(0);
-    expect(custo.toNumber()).toBe(0);
+    expect(custo.toNumber()).toBeCloseTo(maoDeObra.toNumber(), 3);
   });
 
   it("meia hora informada custa R$ 20 por peça com taxa de R$ 40/h", () => {

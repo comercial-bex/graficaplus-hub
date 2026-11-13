@@ -38,7 +38,7 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { FieldTooltip } from "@/components/bex/FieldTooltip";
 import { Dropzone, type DropzoneStatus } from "@/components/bex/Dropzone";
 import { runSlicerOcr, parseTempoLivre, formatMinutos } from "@/domain/impressao3d/ocr";
-import { PRECO_MINIMO_POR_PECA } from "@/domain/impressao3d/preco";
+import { POS_PROCESSAMENTO_PADRAO_MIN, PRECO_MINIMO_POR_PECA } from "@/domain/impressao3d/preco";
 import {
   BUCKET_DOS_ARQUIVOS_3D,
   caminhoDoArquivo3d,
@@ -1285,7 +1285,7 @@ export function Calculadora3D({
                   label="Mão de obra (horas)"
                   hint={
                     "Só o pós-processamento manual por peça (remoção de suporte, lixa, montagem). " +
-                    "Em branco ou 0: sem mão de obra."
+                    `Em branco ou 0, vale o padrão de ${POS_PROCESSAMENTO_PADRAO_MIN} minutos por peça.`
                   }
                   value={f.mo_horas}
                   onChange={(v) => set("mo_horas", v)}
