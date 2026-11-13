@@ -27,6 +27,9 @@ import { join } from "node:path";
  */
 const ASSINATURAS: Record<string, string[]> = {
   abrir_aprovacao: ["p_token"],
+  // Proposta docs/proposta-credito-de-entrada-e-atendente.sql (ainda não aplicada).
+  parceiro_dar_credito_de_entrada: ["p_ids"],
+  parceiros_atribuir_atendente_padrao: ["p_ids"],
   ajustar_estoque_material: ["p_material_id", "p_quantidade_contada", "p_motivo"],
   anexar_comprovante_parcela: ["p_conta_id", "p_comprovante_url"],
   aplicar_custo_hora_sugerido: ["p_maquina_id"],

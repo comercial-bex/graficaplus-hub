@@ -305,3 +305,48 @@ export async function buscarContaParaParceiro(busca: string): Promise<UsuarioEnc
   if (error) throw error;
   return (data ?? []) as UsuarioEncontrado[];
 }
+
+// ─── Crédito de entrada e atendente padrão ──────────────────────────────────
+// As colunas e funções destes recursos entram por uma proposta SQL aplicada à
+// mão depois do código (docs/proposta-credito-de-entrada-e-atendente.sql).
+// Enquanto não entram, a leitura devolve "desligado" e os botões explicam.
+
+export const CHAVE_PROGRAMA_PUBLICO = ["programa-parceiros-publico"] as const;
+
+/** As regras públicas do programa (a mesma RPC da página /seja-parceiro). */
+export async function carregarProgramaPublico(): Promise<Record<string, unknown> | null> {
+  const { data, error } = await (supabase.rpc as any)("programa_parceiros_publico");
+  if (error) throw error;
+  return (data ?? null) as Record<string, unknown> | null;
+}
+
+/** A função ainda não existe no banco (proposta não aplicada). */
+export function ehFuncaoAusente(erro: unknown): boolean {
+  const e = erro as { code?: string; message?: string } | null;
+  return e?.code === "PGRST202" || e?.code === "42883" || /could not find the function/i.test(e?.message ?? "");
+}
+
+export type ResultadoDaEntrada = {
+  concedidos: number;
+  total: number;
+  negados: { parceiro_id: string; nome: string | null; motivo: string }[];
+};
+
+export async function darCreditoDeEntrada(ids: string[]): Promise<ResultadoDaEntrada> {
+  const { data, error } = await (supabase.rpc as any)("parceiro_dar_credito_de_entrada", { p_ids: ids });
+  if (error) {
+    if (ehFuncaoAusente(error)) throw new Error("O crédito de entrada ainda não foi ativado no banco.");
+    throw error;
+  }
+  const r = (data ?? {}) as Partial<ResultadoDaEntrada>;
+  return { concedidos: Number(r.concedidos) || 0, total: Number(r.total) || 0, negados: r.negados ?? [] };
+}
+
+export async function atribuirAtendentePadrao(ids: string[]): Promise<number> {
+  const { data, error } = await (supabase.rpc as any)("parceiros_atribuir_atendente_padrao", { p_ids: ids });
+  if (error) {
+    if (ehFuncaoAusente(error)) throw new Error("O atendente padrão ainda não foi ativado no banco.");
+    throw error;
+  }
+  return Number(data) || 0;
+}

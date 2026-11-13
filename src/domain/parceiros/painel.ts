@@ -93,7 +93,7 @@ export type PedidoDoParceiro = {
   enviado_em: string;
 };
 
-export type TipoDeCredito = "cashback" | "recompensa" | "uso" | "estorno_uso" | "ajuste";
+export type TipoDeCredito = "cashback" | "recompensa" | "uso" | "estorno_uso" | "ajuste" | "entrada";
 
 export type LancamentoDeCredito = {
   tipo: TipoDeCredito;
@@ -336,4 +336,5 @@ export const ROTULO_DO_CREDITO: Record<TipoDeCredito, string> = {
   uso: "Usado em pedido",
   estorno_uso: "Crédito devolvido",
   ajuste: "Ajuste da gráfica",
+  entrada: "Crédito de entrada",
 };
