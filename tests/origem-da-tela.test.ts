@@ -136,6 +136,21 @@ describe("a tela e o registro da rota", () => {
     expect(/\btext-(xs|sm)\b/.test(tela)).toBe(false);
     expect(/text-\[(\d+)px\]/.test(tela) ? Number(/text-\[(\d+)px\]/.exec(tela)![1]) >= 16 : true).toBe(true);
   });
+  it("palavras: o dono escolhe o tipo com dois botões grandes e a lista mostra o tipo em texto", () => {
+    expect(tela).toContain("Marca como cliente final");
+    expect(tela).toContain("Marca como parceiro");
+    expect(tela).toContain('adicionar("cliente_final")');
+    expect(tela).toContain('adicionar("parceiro")');
+    expect(tela).toContain("Marca como {rotuloDoTipo(p.tipo).toLowerCase()}");
+    expect(tela).toContain("vence a de parceiro");
+    // ligar e desligar não zeram o tipo da palavra
+    expect(tela).toContain("mutacao.mutate({ palavra: p.palavra, tipo: p.tipo, ativo: !p.ativo })");
+  });
+  it("palavras: sem parênteses nos textos de tela", () => {
+    const i = tela.indexOf("function BlocoPalavras");
+    const textos = [...tela.slice(i).matchAll(/>\s*([^<>{}\n][^<>{}]*?)\s*</g)].map((m) => m[1]);
+    for (const t of textos.filter((x) => /^[A-ZÁÉÍÓÚ]/.test(x))) expect(t, t).not.toMatch(/[()]/);
+  });
   it("erro de leitura e de gravação aparece em texto, sem engolir", () => {
     expect(tela).toContain("Não consegui carregar os anúncios");
     expect(tela).toContain("Não consegui carregar os conjuntos");

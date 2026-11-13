@@ -55,6 +55,14 @@ export function normalizarTexto(v: unknown): string {
     .trim();
 }
 
+/** Palavra cadastrada com a intenção que ela revela. */
+export type PalavraComTipo = { palavra: string; tipo: TipoDeContato };
+
+function casaPalavra(textoNormalizado: string, palavra: unknown): boolean {
+  const n = normalizarTexto(palavra);
+  return n !== "" && textoNormalizado.includes(` ${n}`);
+}
+
 /**
  * A palavra casa quando começa uma palavra do texto (fronteira só à esquerda,
  * como no banco): "parceria" casa "parcerias", mas "ser parceiro" não casa
@@ -63,10 +71,35 @@ export function normalizarTexto(v: unknown): string {
 export function textoTemPalavra(texto: unknown, palavras: readonly string[]): boolean {
   const t = ` ${normalizarTexto(texto)}`;
   if (t.trim() === "") return false;
-  return palavras.some((p) => {
-    const n = normalizarTexto(p);
-    return n !== "" && t.includes(` ${n}`);
-  });
+  return palavras.some((p) => casaPalavra(t, p));
+}
+
+/**
+ * Tipo que as palavras da tabela dão ao texto. Palavra de parceiro vence
+ * palavra de cliente final se as duas casarem. Palavra de tipo desconhecido
+ * é ignorada. Nulo quando nenhuma casa.
+ */
+export function tipoPelasPalavras(
+  texto: unknown,
+  palavras: readonly PalavraComTipo[],
+): TipoDeContato | null {
+  const t = ` ${normalizarTexto(texto)}`;
+  if (t.trim() === "") return null;
+  return palavraDoTipo(t, palavras, "parceiro") ? "parceiro" : palavraDoTipo(t, palavras, "cliente_final") ? "cliente_final" : null;
+}
+
+/** Só diz se alguma palavra daquele tipo casa. Usado pela prioridade com telefone de parceiro no meio. */
+export function textoTemPalavraDoTipo(
+  texto: unknown,
+  palavras: readonly PalavraComTipo[],
+  tipo: TipoDeContato,
+): boolean {
+  const t = ` ${normalizarTexto(texto)}`;
+  return t.trim() !== "" && palavraDoTipo(t, palavras, tipo);
+}
+
+function palavraDoTipo(t: string, palavras: readonly PalavraComTipo[], tipo: TipoDeContato): boolean {
+  return palavras.some((p) => p.tipo === tipo && casaPalavra(t, p.palavra));
 }
 
 /** Validação da palavra na tela, antes de enviar (o banco valida de novo). */

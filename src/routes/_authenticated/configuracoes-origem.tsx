@@ -913,7 +913,7 @@ function BlocoPalavras(props: {
   carregando: boolean;
   erro: unknown;
   aoTentar: () => void;
-  palavras: { palavra: string; ativo: boolean }[];
+  palavras: { palavra: string; ativo: boolean; tipo: TipoDeContato }[];
   aoMudar: () => void;
 }) {
   const gravar = useServerFn(salvarPalavra);
@@ -923,13 +923,16 @@ function BlocoPalavras(props: {
     nova,
     props.palavras.map((p) => p.palavra),
   );
+  const existente = previa.guardada ? props.palavras.find((p) => p.palavra === previa.guardada) : undefined;
+  const jaExistia = existente !== undefined;
 
   const mutacao = useMutation({
-    mutationFn: (v: { palavra: string; ativo?: boolean; remover?: boolean }) => gravar({ data: v }),
+    mutationFn: (v: { palavra: string; tipo?: TipoDeContato; ativo?: boolean; remover?: boolean }) => gravar({ data: v }),
     onSuccess: (_r, v) => {
       setErro(null);
       if (v.remover) toast.success("Palavra removida.");
       else if (v.ativo === false) toast.success("Palavra desligada.");
+      else if (jaExistia) toast.success("Tipo da palavra mudado.");
       else toast.success("Palavra salva.");
       props.aoMudar();
     },
@@ -940,18 +943,17 @@ function BlocoPalavras(props: {
     },
   });
 
-  function adicionar(e: React.FormEvent) {
-    e.preventDefault();
+  function adicionar(tipo: TipoDeContato) {
     setErro(null);
     if (previa.erro || !previa.guardada) {
       setErro(previa.erro ?? "Escreva a palavra.");
       return;
     }
-    if (previa.repetida) {
-      setErro("Esta palavra já está na lista.");
+    if (existente && existente.tipo === tipo) {
+      setErro(`Esta palavra já está na lista como ${rotuloDoTipo(tipo).toLowerCase()}.`);
       return;
     }
-    mutacao.mutate({ palavra: previa.guardada, ativo: true }, { onSuccess: () => setNova("") });
+    mutacao.mutate({ palavra: previa.guardada, tipo, ativo: existente?.ativo ?? true }, { onSuccess: () => setNova("") });
   }
 
   return (
@@ -959,8 +961,8 @@ function BlocoPalavras(props: {
       <CardHeader className="space-y-3">
         <CardTitle className="text-xl">Palavras que identificam o tipo</CardTitle>
         <p className="text-base text-foreground">
-          Se a primeira mensagem tiver uma destas palavras e o anúncio não disser o tipo, o contato fica marcado como
-          Parceiro. Não importa acento nem letra maiúscula.
+          Cada palavra mostra o que a pessoa quer. Se a primeira mensagem tiver uma destas palavras e o anúncio não
+          disser o tipo, o contato fica marcado conforme a palavra. Não importa acento nem letra maiúscula.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -986,18 +988,19 @@ function BlocoPalavras(props: {
                   {p.palavra}
                   {!p.ativo && <span className="ml-2 font-normal">Desligada</span>}
                 </span>
+                <span className="px-1 text-base font-normal">Marca como {rotuloDoTipo(p.tipo).toLowerCase()}</span>
                 <Button
                   type="button"
                   variant="outline"
                   className={BOTAO}
                   disabled={mutacao.isPending}
-                  onClick={() => mutacao.mutate({ palavra: p.palavra, ativo: !p.ativo })}
+                  onClick={() => mutacao.mutate({ palavra: p.palavra, tipo: p.tipo, ativo: !p.ativo })}
                 >
                   {p.ativo ? "Desligar" : "Ligar"}
                 </Button>
                 <ConfirmarAcao
                   titulo="Remover esta palavra?"
-                  descricao={`A palavra ${p.palavra} deixa de marcar contato como Parceiro. Você pode adicionar de novo depois.`}
+                  descricao={`A palavra ${p.palavra} deixa de marcar contato como ${rotuloDoTipo(p.tipo).toLowerCase()}. Você pode adicionar de novo depois.`}
                   rotuloConfirmar="Remover"
                   destrutivo
                   aoConfirmar={() => mutacao.mutate({ palavra: p.palavra, remover: true })}
@@ -1011,48 +1014,71 @@ function BlocoPalavras(props: {
           </ul>
         )}
 
-        <form onSubmit={adicionar} className="space-y-2" noValidate>
+        <div className="space-y-2">
           <Label htmlFor="nova-palavra" className="block text-base font-semibold">
             Nova palavra
           </Label>
-          <div className="flex flex-wrap items-start gap-3">
-            <Input
-              id="nova-palavra"
-              className={cn(CAMPO, "min-w-0 flex-1 basis-60")}
-              value={nova}
-              maxLength={100}
-              placeholder="Por exemplo: quero ser parceiro"
-              onChange={(e) => {
-                setNova(e.target.value);
-                setErro(null);
-              }}
-              aria-invalid={previa.erro ? true : undefined}
-              aria-describedby="nova-palavra-previa"
-            />
-            <Button type="submit" className={BOTAO} disabled={mutacao.isPending}>
+          <Input
+            id="nova-palavra"
+            className={cn(CAMPO, "w-full")}
+            value={nova}
+            maxLength={100}
+            placeholder="Por exemplo: quero comprar agora"
+            onChange={(e) => {
+              setNova(e.target.value);
+              setErro(null);
+            }}
+            aria-invalid={previa.erro ? true : undefined}
+            aria-describedby="nova-palavra-previa"
+          />
+          <p id="nova-palavra-previa" className="min-h-6 text-base text-foreground" aria-live="polite">
+            {previa.erro
+              ? previa.erro
+              : previa.guardada
+                ? existente
+                  ? `Esta palavra já está na lista como ${rotuloDoTipo(existente.tipo).toLowerCase()}. Escolher o outro tipo muda a palavra de tipo.`
+                  : `Será guardada assim: ${previa.guardada}`
+                : ""}
+          </p>
+          <p className="text-base font-semibold text-foreground">O que esta palavra mostra?</p>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              className={cn(BOTAO, "flex-1 basis-60")}
+              disabled={mutacao.isPending}
+              onClick={() => adicionar("cliente_final")}
+            >
               {mutacao.isPending ? (
                 <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
               ) : (
                 <Plus className="h-5 w-5" aria-hidden="true" />
               )}
-              Adicionar
+              Marca como cliente final
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(BOTAO, "flex-1 basis-60")}
+              disabled={mutacao.isPending}
+              onClick={() => adicionar("parceiro")}
+            >
+              {mutacao.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Plus className="h-5 w-5" aria-hidden="true" />
+              )}
+              Marca como parceiro
             </Button>
           </div>
-          <p id="nova-palavra-previa" className="min-h-6 text-base text-foreground" aria-live="polite">
-            {previa.erro
-              ? previa.erro
-              : previa.guardada
-                ? previa.repetida
-                  ? `Esta palavra já está na lista: ${previa.guardada}`
-                  : `Será guardada assim: ${previa.guardada}`
-                : ""}
-          </p>
           <ErroDeGravacao mensagem={erro} />
-        </form>
+        </div>
 
         <p className="text-base text-muted-foreground">
-          Só existe a palavra para Parceiro. Cliente final é o que sobra quando não há sinal, e fica como Tipo a
-          confirmar até a equipe marcar.
+          Como o sistema decide, nesta ordem. Primeiro vale o que a equipe marcou na mão. Depois vale o anúncio. Depois
+          vale uma palavra de parceiro. Depois vale o telefone de quem já está cadastrado como parceiro. Por último
+          vale uma palavra de cliente final. Se a mensagem tiver palavra de parceiro e de cliente final ao mesmo tempo,
+          vence a de parceiro. Sem nenhum sinal, o contato fica como Tipo a confirmar. O sistema nunca pergunta o tipo
+          ao contato e o tipo não muda o preço.
         </p>
       </CardContent>
     </Card>

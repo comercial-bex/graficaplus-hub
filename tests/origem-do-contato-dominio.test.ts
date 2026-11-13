@@ -4,6 +4,8 @@ import {
   normalizarTexto,
   produtoDoAnuncio,
   textoTemPalavra,
+  textoTemPalavraDoTipo,
+  tipoPelasPalavras,
   tipoDoAnuncio,
   validarPalavra,
 } from "../src/domain/whatsapp/origem-do-contato";
@@ -31,6 +33,29 @@ describe("validarPalavra", () => {
     expect(validarPalavra("abc").ok).toBe(false);
     expect(validarPalavra("a b c")).toMatchObject({ ok: false });
     expect(validarPalavra("Quero ser Parceiro!")).toEqual({ ok: true, palavra: "quero ser parceiro" });
+  });
+});
+
+describe("tipoPelasPalavras", () => {
+  const lista = [
+    { palavra: "ser parceiro", tipo: "parceiro" as const },
+    { palavra: "quero saber mais", tipo: "cliente_final" as const },
+  ];
+  it("devolve o tipo da palavra que casa e parceiro vence", () => {
+    expect(tipoPelasPalavras("Quero saber mais!", lista)).toBe("cliente_final");
+    expect(tipoPelasPalavras("quero ser parceiro", lista)).toBe("parceiro");
+    expect(tipoPelasPalavras("quero saber mais, quero ser parceiro", lista)).toBe("parceiro");
+  });
+  it("sem casar, texto vazio ou lista vazia dão nulo", () => {
+    expect(tipoPelasPalavras("bom dia", lista)).toBeNull();
+    expect(tipoPelasPalavras("", lista)).toBeNull();
+    expect(tipoPelasPalavras(null, lista)).toBeNull();
+    expect(tipoPelasPalavras("quero saber mais", [])).toBeNull();
+    expect(tipoPelasPalavras("qualquer coisa", [{ palavra: "  ", tipo: "parceiro" }])).toBeNull();
+  });
+  it("textoTemPalavraDoTipo olha só o tipo pedido", () => {
+    expect(textoTemPalavraDoTipo("quero saber mais", lista, "parceiro")).toBe(false);
+    expect(textoTemPalavraDoTipo("quero saber mais", lista, "cliente_final")).toBe(true);
   });
 });
 

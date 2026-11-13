@@ -2,8 +2,9 @@ import {
   ehOrigemDoTipo,
   ehTipoDeContato,
   rotuloDoTipo,
-  textoTemPalavra,
+  textoTemPalavraDoTipo,
   type OrigemDoTipo,
+  type PalavraComTipo,
   type TipoDeContato,
 } from "@/domain/whatsapp/origem-do-contato";
 
@@ -29,10 +30,12 @@ export type ResultadoDoTipo = { tipo: TipoDoLead | null; origem: OrigemDoTipo | 
  * nada de lista fixa aqui. A primeira que tiver resposta vence:
  *  0. etiqueta que a equipe marcou na mão (nunca desfeita por regra automática)
  *  1. anuncio: tipo do conjunto do anúncio (anuncioTipo)
- *  2. palavra: palavra da tabela na primeira mensagem, só aponta para parceiro
+ *  2. palavra de PARCEIRO da tabela na primeira mensagem
  *  3. telefone: cadastrado como parceiro
- *  4. sem sinal: tipo nulo ("tipo a confirmar")
- * Nunca classifica cliente final por palavra ou telefone.
+ *  4. palavra de CLIENTE FINAL da tabela na primeira mensagem
+ *  5. sem sinal: tipo nulo ("tipo a confirmar")
+ * Palavra de parceiro vence palavra de cliente final se as duas casarem.
+ * Telefone não classifica cliente final.
  */
 export function classificarLead({
   tipoManual,
@@ -44,15 +47,16 @@ export function classificarLead({
   tipoManual?: unknown;
   anuncioTipo?: unknown;
   textoInicial?: string | null;
-  palavras?: readonly string[];
+  palavras?: readonly PalavraComTipo[];
   telefoneEhDeParceiro?: boolean;
 }): ResultadoDoTipo {
   const manual = normalizarTipo(tipoManual);
   if (manual) return { tipo: manual, origem: "manual" };
   const doAnuncio = normalizarTipo(anuncioTipo);
   if (doAnuncio) return { tipo: doAnuncio, origem: "anuncio" };
-  if (textoTemPalavra(textoInicial, palavras)) return { tipo: "parceiro", origem: "palavra" };
+  if (textoTemPalavraDoTipo(textoInicial, palavras, "parceiro")) return { tipo: "parceiro", origem: "palavra" };
   if (telefoneEhDeParceiro) return { tipo: "parceiro", origem: "telefone" };
+  if (textoTemPalavraDoTipo(textoInicial, palavras, "cliente_final")) return { tipo: "cliente_final", origem: "palavra" };
   return { tipo: null, origem: null };
 }
 
