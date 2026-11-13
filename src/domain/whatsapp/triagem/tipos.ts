@@ -220,6 +220,11 @@ export type ContextoDaTriagem = {
   automaticasDeFora?: number;
   /** `leads.tipo` da Onda A. Nulo ou ausente: sem Onda A, o ramo é cliente final. */
   leadTipo?: "parceiro" | "cliente" | null;
+  /**
+   * De onde veio o tipo parceiro do lead: `anuncio` (anúncio mapeado) ou `palavra` (palavra escrita). É o
+   * motivo gravado no ramo. Ausente com `leadTipo` parceiro vale como anúncio, o caso do ensaio e da tela.
+   */
+  leadOrigem?: "anuncio" | "palavra" | null;
 };
 
 export type MotivoDoAviso =

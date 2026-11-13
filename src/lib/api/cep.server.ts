@@ -38,9 +38,12 @@ export function normalizarRespostaCEP(cep: string, r: Record<string, unknown>): 
   };
 }
 
-async function buscar(url: string): Promise<{ status: number; corpo: Record<string, unknown> | null }> {
+async function buscar(
+  url: string,
+  tempoMs = 6000,
+): Promise<{ status: number; corpo: Record<string, unknown> | null }> {
   const controlador = new AbortController();
-  const expirar = setTimeout(() => controlador.abort(), 6000);
+  const expirar = setTimeout(() => controlador.abort(), tempoMs);
   try {
     const resposta = await fetch(url, {
       headers: {
@@ -55,6 +58,30 @@ async function buscar(url: string): Promise<{ status: number; corpo: Record<stri
   } finally {
     clearTimeout(expirar);
   }
+}
+
+/**
+ * A mesma consulta, para o servidor chamar sem passar pela server function (a triagem do WhatsApp,
+ * 13/11/2026). Tempo curto em cada serviço e FALHA SILENCIOSA: devolve nulo para CEP desconhecido,
+ * serviço fora do ar ou tempo esgotado, e nunca lança. Quem chama segue só com o CEP.
+ */
+export async function consultarCepRapido(cepBruto: string, tempoMs = 2500): Promise<DadosCEP | null> {
+  const cep = apenasDigitos(cepBruto);
+  if (cep.length !== 8) return null;
+  try {
+    const a = await buscar(`https://brasilapi.com.br/api/cep/v2/${cep}`, tempoMs);
+    if (a.corpo) return normalizarRespostaCEP(cep, a.corpo);
+    if (a.status === 404) return null;
+  } catch {
+    // BrasilAPI fora do ar ou lenta: o ViaCEP é a segunda chance
+  }
+  try {
+    const b = await buscar(`https://viacep.com.br/ws/${cep}/json/`, tempoMs);
+    if (b.corpo && b.corpo.erro !== true && b.corpo.erro !== "true") return normalizarRespostaCEP(cep, b.corpo);
+  } catch {
+    // sem endereço: a triagem guarda só o CEP
+  }
+  return null;
 }
 
 export const consultarCEP = createServerFn({ method: "POST" })

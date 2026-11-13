@@ -518,6 +518,40 @@ export function telefoneDoChatUtilizavel(chat: {
   return !!chave && CELULAR_BR.test(chave);
 }
 
+/** O celular brasileiro (sem o 55) que o texto carrega, ou nulo. Decide só pelo formato. */
+export function celularBrasileiro(valor: string | null | undefined): string | null {
+  const chave = chaveWhatsApp(valor);
+  return chave && CELULAR_BR.test(chave) ? chave : null;
+}
+
+/**
+ * O valor tem cara de lid (o identificador interno do WhatsApp) e não de telefone?
+ * Decide pelo FORMATO, nunca por a conversa ter ou não um `chat_lid` guardado: quase toda
+ * conversa tem um, e junto dele o telefone real (em 13/11/2026, 142 das 145 conversas com
+ * lid tinham celular brasileiro normal). Tem cara de lid:
+ *   - qualquer coisa com "@" (o sufixo de endereço do WhatsApp, como "@lid");
+ *   - dígitos que não formam celular brasileiro e têm de 12 a 15 posições. Número de fora
+ *     cai aqui também: de longe ele é igual a um lid, e a triagem não manda nada para ele.
+ * Celular brasileiro, com ou sem 55, nunca tem cara de lid.
+ */
+export function telefoneComCaraDeLid(valor: string | null | undefined): boolean {
+  const bruto = (valor ?? "").trim();
+  if (!bruto) return false;
+  if (bruto.includes("@")) return true;
+  if (celularBrasileiro(bruto)) return false;
+  const digitos = bruto.replace(/\D/g, "");
+  return digitos.length >= 12 && digitos.length <= 15;
+}
+
+/**
+ * A triagem só escreve para celular brasileiro. Qualquer outra coisa (lid, número de fora,
+ * telefone fixo, vazio) fica sem mensagem do robô: o consumidor da fila de envio aceita 12 a
+ * 15 dígitos como número de fora, e um lid mandado assim falha no Z-API.
+ */
+export function triagemPodeFalarCom(valor: string | null | undefined): boolean {
+  return celularBrasileiro(valor) !== null;
+}
+
 export function finalDoTelefone(telefone: string | null | undefined): string {
   const d = (telefone ?? "").replace(/\D/g, "");
   return d.slice(-4);

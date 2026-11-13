@@ -220,6 +220,9 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/configuracoes-empresa", permissions: ["configuracoes.manage"] },
   { path: "/configuracoes-api", permissions: ["configuracoes.manage"] },
   { path: "/configuracoes-origem", permissions: ["configuracoes.manage"] },
+  // Qualquer uma das duas abre a tela: o servidor lê o painel e aceita o botão Desligar tudo com qualquer uma delas.
+  // Quem só tem whatsapp.manage liga, sobe e desce; quem só tem configuracoes.manage edita textos e horário.
+  { path: "/configuracoes-triagem", permissions: ["configuracoes.manage", "whatsapp.manage"] },
   // Lista vazia = qualquer conta com papel: é o "Meu perfil" de cada um. A
   // seção da empresa, dentro da tela, continua pedindo configuracoes.manage.
   { path: "/configuracoes", permissions: [] },

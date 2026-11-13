@@ -18,6 +18,13 @@ const banco = vi.hoisted(() => {
     orcamentos: [] as Record<string, unknown>[],
     ultimaIa: null as Record<string, unknown> | null,
     rpcs: [] as { nome: string; params: Record<string, unknown> | undefined }[],
+    /** As duas consultas de leitura da triagem e do horário: ficam fora de `rpcs`, que lista só o que a assistente grava. */
+    consultas: [] as { nome: string; params: Record<string, unknown> | undefined }[],
+    /** O que triagem_dono_da_conversa devolve; `erro` simula o banco recusando a leitura. */
+    dono: "assistente" as unknown,
+    erroDoDono: false,
+    /** O que whatsapp_dentro_do_horario devolve; nulo = leitura sem resposta útil (vale a conta antiga). */
+    dentroDoHorario: null as unknown,
     logs: [] as Record<string, unknown>[],
     leituras: [] as string[],
     from(tabela: string) {
@@ -59,6 +66,16 @@ const banco = vi.hoisted(() => {
       return cadeia;
     },
     rpc(nome: string, params?: Record<string, unknown>) {
+      if (nome === "triagem_dono_da_conversa") {
+        estado.consultas.push({ nome, params });
+        return Promise.resolve(
+          estado.erroDoDono ? { data: null, error: { message: "falhou" } } : { data: estado.dono, error: null },
+        );
+      }
+      if (nome === "whatsapp_dentro_do_horario") {
+        estado.consultas.push({ nome, params });
+        return Promise.resolve({ data: estado.dentroDoHorario, error: null });
+      }
       estado.rpcs.push({ nome, params });
       return Promise.resolve({ data: nome === "whatsapp_ia_enviar" ? { mensagem_id: "m-ia" } : { ok: true }, error: null });
     },
@@ -121,6 +138,10 @@ beforeEach(() => {
   ];
   banco.ultimaIa = null;
   banco.rpcs = [];
+  banco.consultas = [];
+  banco.dono = "assistente";
+  banco.erroDoDono = false;
+  banco.dentroDoHorario = null;
   banco.logs = [];
   banco.leituras = [];
   despacho.vezes = 0;
@@ -143,6 +164,75 @@ describe("a assistente pelo servidor", () => {
     expect(banco.rpcs).toEqual([]);
     expect(banco.logs).toEqual([]);
     expect(banco.leituras).not.toContain("orcamentos");
+  });
+
+  it("desligada: nem pergunta quem é o dono da conversa", async () => {
+    banco.config = { ia_ativa: false };
+    await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
+    expect(banco.consultas).toEqual([]);
+  });
+
+  describe("quem manda na conversa é UMA fonte, triagem_dono_da_conversa", () => {
+    async function rodar() {
+      let chamouIa = false;
+      const r = await rodarAssistente("c-1", "m-1", {
+        agora: QUARTA_10H,
+        chave: "k",
+        buscar: (async () => {
+          chamouIa = true;
+          return new Response("{}");
+        }) as unknown as typeof fetch,
+      });
+      return { r, chamouIa };
+    }
+
+    it.each(["triagem", "ninguem"])("dono %s: a assistente não lê, não chama a IA e não grava nada", async (dono) => {
+      banco.dono = dono;
+      const { r, chamouIa } = await rodar();
+      expect(r).toEqual({ acao: "nada", motivo: `dono_${dono}` });
+      expect(chamouIa).toBe(false);
+      expect(banco.rpcs).toEqual([]);
+      expect(banco.logs).toEqual([]);
+      expect(banco.leituras).toEqual(["whatsapp_configuracoes"]);
+      expect(banco.consultas[0]).toEqual({ nome: "triagem_dono_da_conversa", params: { p_conversa_id: "c-1" } });
+    });
+
+    it("erro de leitura ou resposta estranha é silêncio: na dúvida, ninguém fala", async () => {
+      banco.erroDoDono = true;
+      expect((await rodar()).r).toEqual({ acao: "nada", motivo: "dono_indefinido" });
+      banco.erroDoDono = false;
+      banco.dono = { ok: true };
+      expect((await rodar()).r).toEqual({ acao: "nada", motivo: "dono_indefinido" });
+      expect(banco.rpcs).toEqual([]);
+    });
+
+    it("dono assistente: segue o caminho de sempre", async () => {
+      banco.dono = "assistente";
+      const r = await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
+      expect(r).toMatchObject({ acao: "respondeu" });
+    });
+  });
+
+  describe("o horário vem da função única do banco", () => {
+    it("a função diz que está fechado: vale a função, mesmo com a conta antiga dizendo aberto", async () => {
+      banco.dentroDoHorario = false;
+      const r = await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
+      expect(r).toMatchObject({ acao: "classificou", motivo: "fora_do_horario" });
+      expect(banco.consultas.some((c) => c.nome === "whatsapp_dentro_do_horario")).toBe(true);
+    });
+
+    it("a função diz que está aberto: vale a função, mesmo fora das colunas antigas", async () => {
+      banco.dentroDoHorario = true;
+      banco.config = { ...banco.config, dias_semana: [6, 7] };
+      const r = await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
+      expect(r).toMatchObject({ acao: "respondeu" });
+    });
+
+    it("sem resposta útil da função, vale a conta antiga", async () => {
+      banco.dentroDoHorario = null;
+      const r = await rodarAssistente("c-1", "m-1", { agora: QUARTA_10H, chave: "k", buscar: iaResponde(decisaoBoa) });
+      expect(r).toMatchObject({ acao: "respondeu" });
+    });
   });
 
   it("desligada: nem lê a conversa", async () => {

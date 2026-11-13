@@ -670,6 +670,10 @@ export const dicas = {
     menu: "Quais anúncios trazem cliente final e quais trazem parceiro.",
     tela: "Ligue cada anúncio ao seu conjunto de anúncios. O tipo, cliente final ou parceiro, vale para o conjunto inteiro e é só uma etiqueta para a equipe. Trocar o criativo mantendo o mesmo anúncio não exige nada aqui. O preço de parceiro só vale para quem tem cadastro de parceiro.",
   },
+  "/configuracoes-triagem": {
+    menu: "Liga e desliga o robô de boas-vindas do WhatsApp e edita o que ele diz.",
+    tela: "O robô de boas-vindas só responde quem escreveu primeiro, pede nome, CEP e telefone e nunca fala valor. Ele sobe um degrau por vez: ensaio, teste, parcial e ligada. O botão vermelho Desligar tudo para na hora. Os textos, o quadro de respostas e o horário são editados aqui, e o simulador mostra a conversa sem mandar nada a ninguém.",
+  },
   "/configuracoes-empresa": {
     menu: "Dados da empresa usados nos documentos.",
     tela: "Nome, CNPJ, endereço, telefones e logotipo que aparecem no orçamento e na ordem de serviço impressos.",

@@ -152,6 +152,22 @@ export async function processarWebhookZapi(request: Request): Promise<Response> 
   // do celular, nem modelo de empresa, nem reenvio. Roda aqui dentro, com
   // teto de tempo, e nunca derruba o 200: a mensagem já está gravada.
   const alvo = alvoDoAssistente(evento, resultado);
+
+  // A triagem de boas-vindas (Onda B): DEPOIS de gravar a mensagem e ANTES da assistente. Com a triagem desligada (o
+  // estado de nascença) ela lê a configuração e sai. Nunca derruba o 200: `triagemSemDerrubar` não lança e tem teto de
+  // tempo. A assistente consulta a mesma fonte de "quem responde" (triagem_dono_da_conversa) dentro de `rodarAssistente`,
+  // então triagem ativa e assistente nunca respondem à mesma mensagem.
+  if (alvo) {
+    try {
+      const { triagemSemDerrubar } = await import("@/lib/api/whatsapp-triagem.server");
+      resultado.triagem = await triagemSemDerrubar(alvo.conversaId, alvo.mensagemId, {
+        ehGrupo: eventoDeGrupo(evento),
+      });
+    } catch (e) {
+      resultado.triagem = { acao: "erro", etapa: "importacao", erro: e instanceof Error ? e.name : "erro" };
+    }
+  }
+
   if (alvo) {
     try {
       const { assistenteSemDerrubar } = await import("@/lib/api/whatsapp-assistente.server");
@@ -161,6 +177,11 @@ export async function processarWebhookZapi(request: Request): Promise<Response> 
     }
   }
   return json(200, { ok: true, value: true, tipo: evento.tipo, ...resultado });
+}
+
+/** O telefone do evento é de grupo (`...-group`, `...@g.us`)? A mensagem de grupo já é descartada antes, mas a triagem confere. */
+export function eventoDeGrupo(evento: EventoZapi): boolean {
+  return evento.tipo === "mensagem" && /(-group|@g\.us)/i.test(evento.telefone);
 }
 
 /** A mensagem que a assistente deve olhar, ou `null`. */

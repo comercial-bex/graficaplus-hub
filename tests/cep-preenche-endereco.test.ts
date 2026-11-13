@@ -92,7 +92,9 @@ describe("as telas e o servidor", () => {
     expect(SERVIDOR).toContain("https://brasilapi.com.br/api/cep/v2/");
     expect(SERVIDOR).toContain("https://viacep.com.br/ws/");
     expect(SERVIDOR).toContain('"User-Agent"');
-    expect(SERVIDOR).toContain("setTimeout(() => controlador.abort(), 6000)");
+    // o prazo é parâmetro desde 13/11/2026 (a triagem do WhatsApp usa um mais curto); o padrão da tela continua 6 s
+    expect(SERVIDOR).toContain("tempoMs = 6000");
+    expect(SERVIDOR).toContain("setTimeout(() => controlador.abort(), tempoMs)");
     // CEP que a BrasilAPI diz não existir (404) não vai para a segunda consulta
     expect(SERVIDOR).toContain("a.status !== 404");
   });

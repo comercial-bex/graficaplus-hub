@@ -792,6 +792,30 @@ describe("ramo parceiro", () => {
     expect(r.resultado.envio?.codigos).toEqual(["parceiro_nome"]);
   });
 
+  it("o motivo do ramo é a origem real: palavra escrita grava palavra, anúncio grava anuncio_mapeado", () => {
+    const base = {
+      ramoAtual: "cliente" as const,
+      motivoAtual: "padrao" as const,
+      leadTipo: "parceiro" as const,
+      texto: "oi",
+      passo: null,
+      nomeJaInformado: false,
+      quadro: SEMENTES_DO_QUADRO,
+    };
+    expect(escolherRamo({ ...base, leadOrigem: "palavra" })).toEqual({
+      ramo: "parceiro",
+      motivo: "palavra",
+      subiu: true,
+    });
+    for (const leadOrigem of ["anuncio" as const, null, undefined]) {
+      expect(escolherRamo({ ...base, leadOrigem })).toEqual({
+        ramo: "parceiro",
+        motivo: "anuncio_mapeado",
+        subiu: true,
+      });
+    }
+  });
+
   it("parceiro nunca desce para cliente final", () => {
     expect(
       escolherRamo({

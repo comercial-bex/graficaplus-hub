@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- `rpc as any`: funções da caixa v3 fora dos tipos gerados; é a forma que tests/rpc-assinaturas lê */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { rotuloDe } from "@/domain/os/etapas";
+import { assistentePodeFalar, dentroDoHorarioPeloBanco } from "@/lib/api/whatsapp-triagem.server";
 import {
   CONFIG_PADRAO,
   FERRAMENTA_DO_ASSISTENTE,
@@ -312,6 +313,12 @@ export async function rodarAssistente(
     const config = await lerConfiguracao();
     if (!config.ia_ativa) return { acao: "nada", motivo: "ia_desligada" };
 
+    // QUEM MANDA NA CONVERSA é uma fonte só, `triagem_dono_da_conversa` (13/11/2026). Triagem ativa, conversa que a triagem
+    // já entregou à equipe, robô de empresa, grupo e contato bloqueado: a assistente não responde. Vale para o webhook e
+    // para a reprocessagem manual (POST /api/whatsapp/agente), porque as duas passam por aqui. Erro de leitura é silêncio.
+    const dono = await assistentePodeFalar(conversaId);
+    if (!dono.pode) return { acao: "nada", motivo: dono.motivo };
+
     const db = supabaseAdmin as any;
     const { data: conversa, error: erroConversa } = await db
       .from("whatsapp_conversas")
@@ -338,12 +345,16 @@ export async function rodarAssistente(
       .limit(1)
       .maybeSingle();
 
+    // O horário vem da função única do banco (whatsapp_dentro_do_horario, a mesma que a triagem usa). Se a leitura falhar,
+    // vale a conta antiga sobre as colunas de whatsapp_configuracoes.
+    const dentroPeloBanco = await dentroDoHorarioPeloBanco(agora);
     const portao = portaoDoAssistente({
       config,
       conversa,
       mensagem,
       ultimaRespostaIaEm: (ultimaIa as { created_at?: string } | null)?.created_at ?? null,
       agora,
+      dentroDoHorario: dentroPeloBanco ?? undefined,
     });
     if (!portao.age) return { acao: "nada", motivo: portao.motivo };
 

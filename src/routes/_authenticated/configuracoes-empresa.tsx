@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Megaphone, Plug } from "lucide-react";
+import { Bot, Megaphone, Plug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -261,6 +261,12 @@ function ConfiguracoesEmpresaPage() {
             <Button asChild variant="outline">
               <Link to="/configuracoes-origem">
                 <Megaphone className="h-4 w-4 mr-1" aria-hidden="true" /> Origem dos contatos
+              </Link>
+            </Button>
+            {/* Robô de boas-vindas (13/11): liga, textos e simulador. Fora do menu; abre por aqui. */}
+            <Button asChild variant="outline">
+              <Link to="/configuracoes-triagem">
+                <Bot className="h-4 w-4 mr-1" aria-hidden="true" /> Robô de boas-vindas
               </Link>
             </Button>
             {podeEditar && (

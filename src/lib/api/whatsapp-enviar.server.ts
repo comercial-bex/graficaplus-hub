@@ -477,8 +477,8 @@ export async function tokenDoServidorConfere(request: Request): Promise<boolean>
  * Quem usa é a assistente de IA (`whatsapp-assistente.server.ts`): a resposta
  * dela sai na hora, em vez de esperar o job de 2 min ou uma aba aberta.
  */
-export async function rodadaDoServidor(): Promise<Response> {
-  return rodada({ tipo: "servidor" });
+export async function rodadaDoServidor(opcoes: { varrer?: boolean } = {}): Promise<Response> {
+  return rodada({ tipo: "servidor" }, opcoes);
 }
 
 /* ------------------------------------------------------------------ */
@@ -623,6 +623,8 @@ function pedidoDaLinha(linha: LinhaDaFila, telefoneDaConversa: string): PedidoDe
     texto: (p.texto as string) ?? (p.message as string) ?? undefined,
     documento: (p.documento as string) ?? (p.document as string) ?? undefined,
     nomeArquivo: (p.nomeArquivo as string) ?? (p.fileName as string) ?? undefined,
+    // atraso de digitação: só a triagem grava `atraso_s` (junto de `triagem_id`); o aviso de pedido sai como sempre
+    atrasoS: typeof p.triagem_id === "string" && typeof p.atraso_s === "number" ? p.atraso_s : undefined,
   };
 }
 
@@ -689,7 +691,21 @@ async function lerAutor(usuarioId: string): Promise<Autor> {
 /* A rodada                                                            */
 /* ------------------------------------------------------------------ */
 
-async function rodada(quem: Quem): Promise<Response> {
+async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Response> {
+  // A varredura da triagem de boas-vindas (expira o que ficou sem resposta, cancela fila que sobrou, aplica o freio e
+  // enfileira o aviso do grupo, tudo no banco) roda a cada rodada do SERVIDOR, sem cron novo. Antes de qualquer retorno
+  // antecipado: expirar não depende do Z-API estar conectado. Nunca lança. A rodada imediata da triagem (logo depois de
+  // enfileirar uma pergunta) passa varrer: false, para não varrer a cada mensagem de contato. Com a triagem DESLIGADA a
+  // varredura nem chama o banco (`varrerTriagemSeLigada` lê só o estado), salvo para parar conversa que ficou aberta.
+  let varredura: Record<string, unknown> | null = null;
+  if (quem.tipo === "servidor" && opcoes.varrer !== false) {
+    try {
+      const { varrerTriagemSeLigada } = await import("@/lib/api/whatsapp-triagem.server");
+      varredura = await varrerTriagemSeLigada();
+    } catch {
+      varredura = { erro: true };
+    }
+  }
   const { token, clientToken, telefonePadrao } = credenciais();
   if (!token) {
     // Falar claro: sem isto, o sintoma seria "a fila não anda" e ninguém
@@ -755,8 +771,36 @@ async function rodada(quem: Quem): Promise<Response> {
 
   const resultados: ResultadoDaLinha[] = [];
   const autores = new Map<string, Autor>();
+  // O módulo da triagem é importado uma vez por rodada, só quando aparece linha de triagem. Se a importação falhar, a
+  // linha de triagem ESPERA (adia) e a fila segue: uma falha de módulo não pode parar o aviso de pedido nem a IA.
+  let moduloDaTriagem: typeof import("@/lib/api/whatsapp-triagem.server") | null | undefined;
 
   for (const linha of (linhas ?? []) as LinhaDaFila[]) {
+    // PERGUNTA OU DESPEDIDA DA TRIAGEM (13/11/2026): antes de reservar, confere se a triagem ainda vale. Entre enfileirar
+    // e enviar a equipe pode ter respondido, a escada pode ter descido ou a triagem pode ter parado; nesse caso a linha é
+    // cancelada (e a mensagem pendente que nunca saiu é apagada, pelo banco). A despedida (triagem já concluída, entregue
+    // à equipe ou parada pelo contato) também sai: é a última mensagem dela. Se a conferência não conseguiu ler, a linha espera.
+    if (typeof linha.payload?.triagem_id === "string") {
+      if (moduloDaTriagem === undefined) {
+        try {
+          moduloDaTriagem = await import("@/lib/api/whatsapp-triagem.server");
+        } catch (e) {
+          moduloDaTriagem = null;
+          anotarErro(erros, "whatsapp_fila_envio", linha.id, `módulo da triagem não carregou: ${e instanceof Error ? e.name : "erro"}`);
+        }
+      }
+      if (moduloDaTriagem === null) continue;
+      const conferencia = await moduloDaTriagem.conferirLinhaDeTriagem(linha);
+      if (conferencia.acao === "adia") continue;
+      if (conferencia.acao === "cancela") {
+        try {
+          if (linha.conversa_id) await moduloDaTriagem.cancelarFilaDaTriagem(linha.conversa_id);
+        } catch (e) {
+          anotarErro(erros, "whatsapp_fila_envio", linha.id, `falha ao cancelar a triagem: ${e instanceof Error ? e.message : "erro"}`);
+        }
+        continue;
+      }
+    }
     // A RESERVA: só segue quem virou a linha de pendente para enviando. Se
     // outra chamada chegou antes, esta pula — e o cliente recebe uma vez só.
     const tentativas = (linha.tentativas ?? 0) + 1;
@@ -776,7 +820,8 @@ async function rodada(quem: Quem): Promise<Response> {
     // falha definitiva, com o motivo na linha.
     // 'auto:' (27/10/2026): resposta automática do sistema (toque num botão do Pix), sem autor
     // e sem assinatura de pessoa, como a da assistente de IA.
-    const daIa = /^(ia|auto):/.test(linha.idempotency_key ?? "");
+    // 'triagem:' (13/11/2026): a pergunta da triagem de boas-vindas, também sem autor e sem assinatura de pessoa.
+    const daIa = /^(ia|auto|triagem):/.test(linha.idempotency_key ?? "");
     if (!linha.conversa_id || (!linha.created_by && !daIa)) {
       resultados.push(
         await marcarFalha(
@@ -949,6 +994,7 @@ async function rodada(quem: Quem): Promise<Response> {
   const corpoResposta: Resposta = {
     ok: erros.length === 0 && !avisos.erro && !automacoes.erro,
     despachante: quem.tipo,
+    ...(varredura ? { triagem: varredura } : {}),
     enviadas: resultados.length - falhas.length,
     falhas: falhas.length,
     fila_vazia: resultados.length === 0,

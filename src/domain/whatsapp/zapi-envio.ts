@@ -35,7 +35,20 @@ export type PedidoDeEnvio = {
    * "mention-participant": só dígitos, com o 55). Destino de pessoa ignora a lista.
    */
   mencionar?: string[];
+  /**
+   * Atraso de digitação, em segundos (triagem de boas-vindas, 13/11/2026). Só vale para texto. Vira
+   * `delayTyping` e `delayMessage` do send-text do Z-API, que aceitam de 1 a 15; fora disso (ou
+   * ausente) o corpo continua exatamente { phone, message }, como o dos avisos de pedido.
+   */
+  atrasoS?: number;
 };
+
+/** O atraso que o Z-API aceita: inteiro de 1 a 15. Qualquer outro valor é ignorado. */
+export function atrasoValidoDoZapi(v: unknown): number | null {
+  if (typeof v !== "number" || !Number.isFinite(v)) return null;
+  const n = Math.round(v);
+  return n >= 1 && n <= 15 ? n : null;
+}
 
 /**
  * O telefone como o Z-API quer: com o código do país.
@@ -107,6 +120,10 @@ export function montarEnvio(
     // Menção só em grupo: para pessoa o corpo continua { phone, message }.
     const mentioned = ehGrupoZapi(pedido.para) ? numerosParaMencionar(pedido.mencionar) : [];
     if (mentioned.length > 0) return { url: `${base}/send-text`, corpo: { phone, message, mentioned } };
+    const atraso = ehGrupoZapi(pedido.para) ? null : atrasoValidoDoZapi(pedido.atrasoS);
+    if (atraso !== null) {
+      return { url: `${base}/send-text`, corpo: { phone, message, delayTyping: atraso, delayMessage: atraso } };
+    }
     return { url: `${base}/send-text`, corpo: { phone, message } };
   }
 
