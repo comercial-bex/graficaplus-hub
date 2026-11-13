@@ -203,6 +203,23 @@ const ASSINATURAS: Record<string, string[]> = {
   whatsapp_ia_classificar: ["p_conversa_id", "p_intencao", "p_fila"],
   whatsapp_ia_enviar: ["p_conversa_id", "p_texto", "p_payload"],
   whatsapp_ia_transferir: ["p_conversa_id", "p_motivo"],
+  // Triagem de boas-vindas (migrações 20261113130000, 20261113131000 e 20261113132000, aplicadas), lidas do banco vivo
+  // em 13/11/2026 com pg_get_function_identity_arguments. Só service_role executa: o webhook, o despachante e as
+  // funções de servidor de src/lib/api/whatsapp-triagem.server.ts e whatsapp-triagem.functions.ts chamam.
+  triagem_ler_ou_abrir: ["p_conversa_id", "p_mensagem_id", "p_contexto"],
+  triagem_aplicar: ["p_triagem_id", "p_versao", "p_resultado"],
+  triagem_dono_da_conversa: ["p_conversa_id"],
+  triagem_varrer: [],
+  triagem_desligar: ["p_motivo", "p_usuario"],
+  triagem_config_salvar: ["p_usuario", "p_config"],
+  triagem_passo_salvar: ["p_usuario", "p_codigo", "p_ramo", "p_texto", "p_variantes", "p_repeticao", "p_ativo"],
+  triagem_resposta_salvar: ["p_usuario", "p_passo", "p_intencao", "p_frase", "p_casamento", "p_ativo"],
+  _triagem_degrau_permite: ["p_conversa", "p_modo"],
+  _triagem_humano_na_conversa: ["p_conversa"],
+  _triagem_cancelar_pendentes: ["p_conversa"],
+  whatsapp_dentro_do_horario: ["p_momento"],
+  whatsapp_horario_salvar: ["p_usuario", "p_dia", "p_abre", "p_fecha", "p_ativo"],
+  whatsapp_feriado_salvar: ["p_usuario", "p_data", "p_nome", "p_fechado", "p_abre", "p_fecha", "p_remover"],
   whatsapp_equipe: [],
   whatsapp_minhas_filas: [],
   whatsapp_contagem_por_fila: [],
@@ -453,6 +470,27 @@ describe("toda chamada de RPC usa os nomes de parâmetro que a função tem", ()
     expect(chamadasStatus.length).toBeGreaterThanOrEqual(2);
     for (const c of chamadasStatus) {
       expect(c.params.sort(), `${c.arquivo} destoa`).toEqual(["novo_status", "os_id"]);
+    }
+  });
+});
+
+describe("a triagem chama as funções do banco pelos nomes que elas têm", () => {
+  const chamadas = chamadasRpc();
+  const doBanco = ["triagem_ler_ou_abrir", "triagem_aplicar", "triagem_dono_da_conversa", "triagem_varrer", "triagem_desligar",
+    "triagem_config_salvar", "triagem_passo_salvar", "triagem_resposta_salvar", "_triagem_degrau_permite",
+    "_triagem_humano_na_conversa", "_triagem_cancelar_pendentes", "whatsapp_dentro_do_horario", "whatsapp_horario_salvar",
+    "whatsapp_feriado_salvar"];
+
+  it("o teste enxerga as chamadas da triagem — não pode passar por não achar nada", () => {
+    const achadas = new Set(chamadas.map((c) => c.rpc));
+    for (const nome of doBanco) expect(achadas.has(nome), `nenhuma chamada a ${nome} foi encontrada em src`).toBe(true);
+  });
+
+  it("e as chamadas só usam parâmetros da assinatura", () => {
+    for (const c of chamadas.filter((x) => doBanco.includes(x.rpc))) {
+      const esperados = ASSINATURAS[c.rpc];
+      expect(esperados, c.rpc).toBeDefined();
+      expect(c.params.filter((p) => !esperados.includes(p)), `${c.arquivo}: ${c.rpc}`).toEqual([]);
     }
   });
 });

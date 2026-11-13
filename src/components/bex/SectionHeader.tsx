@@ -23,6 +23,7 @@ export function SectionHeader({
   ajuda,
   actions,
   className,
+  legivel = false,
 }: {
   breadcrumb?: string;
   title: string;
@@ -31,6 +32,11 @@ export function SectionHeader({
   ajuda?: string;
   actions?: React.ReactNode;
   className?: string;
+  /**
+   * Opcional, desligado por padrão: caminho e descrição em 16 px, para as telas escritas para quem
+   * enxerga mal (o robô de boas-vindas). As demais telas não passam e ficam como sempre.
+   */
+  legivel?: boolean;
 }) {
   const trilha = trilhaDaTela(title, breadcrumb);
   return (
@@ -50,7 +56,12 @@ export function SectionHeader({
             <DicaIcone texto={ajuda} rotulo={title} lado="bottom" className="h-5 w-5" />
           </div>
           <nav aria-label="Onde você está" className="mt-1">
-            <ol className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+            <ol
+              className={cn(
+                "flex min-w-0 flex-wrap items-center gap-x-1.5 text-muted-foreground",
+                legivel ? "text-base" : "text-sm",
+              )}
+            >
               {trilha.map((parte, i) => {
                 const ultimo = i === trilha.length - 1;
                 return (
@@ -64,7 +75,16 @@ export function SectionHeader({
               })}
             </ol>
           </nav>
-          {description && <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{description}</p>}
+          {description && (
+            <p
+              className={cn(
+                "mt-2 max-w-2xl",
+                legivel ? "text-base text-foreground" : "text-sm text-muted-foreground",
+              )}
+            >
+              {description}
+            </p>
+          )}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>

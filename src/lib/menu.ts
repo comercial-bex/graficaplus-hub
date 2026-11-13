@@ -392,6 +392,11 @@ export const FORA_DO_MENU: Record<string, { titulo: string; motivo: string }> = 
     motivo:
       "abre por Dados da empresa: o menu aprovado pelo dono não ganha item sem ele decidir; a proposta é uma aba de WhatsApp ou item em Administração",
   },
+  "/configuracoes-triagem": {
+    titulo: "Robô de boas-vindas",
+    motivo:
+      "abre por Dados da empresa: o menu aprovado pelo dono não ganha item sem ele decidir; a proposta é uma aba de WhatsApp ou item em Administração",
+  },
   "/preencher-pastas": {
     titulo: "Preencher as pastas",
     motivo: "é a cobrança da pasta do produto: abre pela pendência no painel de cada papel",

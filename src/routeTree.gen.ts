@@ -34,6 +34,7 @@ import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_auth
 import { Route as AuthenticatedConfiguracoesApiRouteImport } from './routes/_authenticated/configuracoes-api'
 import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConfiguracoesOrigemRouteImport } from './routes/_authenticated/configuracoes-origem'
+import { Route as AuthenticatedConfiguracoesTriagemRouteImport } from './routes/_authenticated/configuracoes-triagem'
 import { Route as AuthenticatedConflitosAgendaRouteImport } from './routes/_authenticated/conflitos-agenda'
 import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_authenticated/contas-bancarias'
 import { Route as AuthenticatedCustosProducaoRouteImport } from './routes/_authenticated/custos-producao'
@@ -261,6 +262,12 @@ const AuthenticatedConfiguracoesOrigemRoute =
   AuthenticatedConfiguracoesOrigemRouteImport.update({
     id: '/configuracoes-origem',
     path: '/configuracoes-origem',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesTriagemRoute =
+  AuthenticatedConfiguracoesTriagemRouteImport.update({
+    id: '/configuracoes-triagem',
+    path: '/configuracoes-triagem',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedConflitosAgendaRoute =
@@ -803,6 +810,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/configuracoes-origem': typeof AuthenticatedConfiguracoesOrigemRoute
+  '/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
@@ -924,6 +932,7 @@ export interface FileRoutesByTo {
   '/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/configuracoes-origem': typeof AuthenticatedConfiguracoesOrigemRoute
+  '/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
@@ -1048,6 +1057,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/_authenticated/configuracoes-origem': typeof AuthenticatedConfiguracoesOrigemRoute
+  '/_authenticated/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/_authenticated/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/_authenticated/contas-bancarias': typeof AuthenticatedContasBancariasRoute
   '/_authenticated/custos-producao': typeof AuthenticatedCustosProducaoRoute
@@ -1172,6 +1182,7 @@ export interface FileRouteTypes {
     | '/configuracoes-api'
     | '/configuracoes-empresa'
     | '/configuracoes-origem'
+    | '/configuracoes-triagem'
     | '/conflitos-agenda'
     | '/contas-bancarias'
     | '/custos-producao'
@@ -1293,6 +1304,7 @@ export interface FileRouteTypes {
     | '/configuracoes-api'
     | '/configuracoes-empresa'
     | '/configuracoes-origem'
+    | '/configuracoes-triagem'
     | '/conflitos-agenda'
     | '/contas-bancarias'
     | '/custos-producao'
@@ -1416,6 +1428,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes-api'
     | '/_authenticated/configuracoes-empresa'
     | '/_authenticated/configuracoes-origem'
+    | '/_authenticated/configuracoes-triagem'
     | '/_authenticated/conflitos-agenda'
     | '/_authenticated/contas-bancarias'
     | '/_authenticated/custos-producao'
@@ -1726,6 +1739,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes-origem'
       fullPath: '/configuracoes-origem'
       preLoaderRoute: typeof AuthenticatedConfiguracoesOrigemRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/configuracoes-triagem': {
+      id: '/_authenticated/configuracoes-triagem'
+      path: '/configuracoes-triagem'
+      fullPath: '/configuracoes-triagem'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesTriagemRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/conflitos-agenda': {
@@ -2420,6 +2440,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesApiRoute: typeof AuthenticatedConfiguracoesApiRoute
   AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
   AuthenticatedConfiguracoesOrigemRoute: typeof AuthenticatedConfiguracoesOrigemRoute
+  AuthenticatedConfiguracoesTriagemRoute: typeof AuthenticatedConfiguracoesTriagemRoute
   AuthenticatedConflitosAgendaRoute: typeof AuthenticatedConflitosAgendaRoute
   AuthenticatedContasBancariasRoute: typeof AuthenticatedContasBancariasRoute
   AuthenticatedCustosProducaoRoute: typeof AuthenticatedCustosProducaoRoute
@@ -2504,6 +2525,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesEmpresaRoute:
     AuthenticatedConfiguracoesEmpresaRoute,
   AuthenticatedConfiguracoesOrigemRoute: AuthenticatedConfiguracoesOrigemRoute,
+  AuthenticatedConfiguracoesTriagemRoute:
+    AuthenticatedConfiguracoesTriagemRoute,
   AuthenticatedConflitosAgendaRoute: AuthenticatedConflitosAgendaRoute,
   AuthenticatedContasBancariasRoute: AuthenticatedContasBancariasRoute,
   AuthenticatedCustosProducaoRoute: AuthenticatedCustosProducaoRoute,

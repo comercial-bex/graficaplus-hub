@@ -19,12 +19,16 @@ import { cn } from "@/lib/utils";
  * Substitui o `window.confirm` do navegador: aquela caixa não herda o visual,
  * não anuncia direito para leitor de tela e some em navegadores embutidos.
  * Embrulhe o botão que dispara a ação; a ação só roda no "Confirmar".
+ *
+ * `grande` (opcional, desligado por padrão): letra de 16 px na explicação e botões de 44 px,
+ * para as telas escritas para quem enxerga mal. Quem não passa continua com o tamanho de sempre.
  */
 export function ConfirmarAcao({
   titulo,
   descricao,
   rotuloConfirmar = "Confirmar",
   destrutivo = false,
+  grande = false,
   aoConfirmar,
   children,
 }: {
@@ -32,6 +36,7 @@ export function ConfirmarAcao({
   descricao?: string;
   rotuloConfirmar?: string;
   destrutivo?: boolean;
+  grande?: boolean;
   aoConfirmar: () => void;
   children: ReactNode;
 }) {
@@ -41,13 +46,20 @@ export function ConfirmarAcao({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{titulo}</AlertDialogTitle>
-          {descricao ? <AlertDialogDescription>{descricao}</AlertDialogDescription> : null}
+          {descricao ? (
+            <AlertDialogDescription className={cn(grande && "text-base text-foreground")}>
+              {descricao}
+            </AlertDialogDescription>
+          ) : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Voltar</AlertDialogCancel>
+          <AlertDialogCancel className={cn(grande && "h-11 min-h-11 text-base")}>Voltar</AlertDialogCancel>
           <AlertDialogAction
             onClick={aoConfirmar}
-            className={cn(destrutivo && buttonVariants({ variant: "destructive" }))}
+            className={cn(
+              destrutivo && buttonVariants({ variant: "destructive" }),
+              grande && "h-11 min-h-11 text-base",
+            )}
           >
             {rotuloConfirmar}
           </AlertDialogAction>

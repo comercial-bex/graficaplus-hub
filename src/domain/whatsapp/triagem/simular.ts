@@ -6,7 +6,8 @@ import {
   type ResultadoDoPasso,
   type TipoDeEntrada,
 } from "./tipos";
-import { estadoInicial, processarRajada, proximoPasso } from "./maquina";
+import { triagemPodeFalarCom } from "./extrair";
+import { entregaSemNumero, estadoInicial, processarRajada, proximoPasso } from "./maquina";
 import { SEMENTES_DO_QUADRO } from "./quadro-sementes";
 import { PASSOS_SEMENTE } from "./textos-sementes";
 import { HORARIO_SEMENTE } from "./horario";
@@ -88,6 +89,37 @@ export function digitar(
   const e = entradaDe(base, texto, o.tipo ?? "texto", o.origem);
   const entrada = o.id === undefined ? e : { ...e, id: o.id };
   const resultado = proximoPasso(sessao.estado, entrada, agora, sessao.ctx);
+  return { sessao: seguir(base, texto ?? `[${o.tipo ?? "texto"}]`, resultado), resultado };
+}
+
+/**
+ * `digitar` do jeito que o robô de verdade se comporta: com um telefone que não é celular brasileiro (lid,
+ * número de fora) ele NÃO escreve, entrega a conversa à equipe com o evento e fica em silêncio. É o que o
+ * orquestrador faz antes de chamar o motor. A tela usa esta; os testes do motor seguem com `digitar`, que
+ * exercita o ramo `telefone_direto` do motor puro.
+ */
+export function digitarComoRobo(
+  sessao: SessaoSimulada,
+  texto: string | null,
+  o: { tipo?: TipoDeEntrada; esperaS?: number; origem?: string; id?: string | null } = {},
+): { sessao: SessaoSimulada; resultado: ResultadoDoPasso } {
+  if (triagemPodeFalarCom(sessao.ctx.telefoneDoChat.normalizado)) return digitar(sessao, texto, o);
+  const agora = sessao.agora + (o.esperaS ?? 30) * 1000;
+  const base = { ...sessao, agora };
+  // quem já foi entregue à equipe não muda de novo: o aviso é uma vez só
+  const resultado =
+    sessao.estado.status === "entregue_equipe"
+      ? ({
+          estado: sessao.estado,
+          acao: "silencio",
+          envio: null,
+          gravar: {},
+          eventos: [],
+          avisarGrupo: null,
+          bloquearContato: false,
+          motivo: "ja_entregue_a_equipe",
+        } satisfies ResultadoDoPasso)
+      : entregaSemNumero(sessao.estado);
   return { sessao: seguir(base, texto ?? `[${o.tipo ?? "texto"}]`, resultado), resultado };
 }
 

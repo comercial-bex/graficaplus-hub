@@ -126,6 +126,11 @@ export function portaoDoAssistente(e: {
   /** Quando a assistente respondeu pela última vez nesta conversa. */
   ultimaRespostaIaEm: string | null;
   agora: Date;
+  /**
+   * O horário já decidido pela função única do banco (`whatsapp_dentro_do_horario`). Quando vem, vale ele; sem ele
+   * (leitura falhou), vale a conta antiga sobre as colunas de `whatsapp_configuracoes`.
+   */
+  dentroDoHorario?: boolean;
 }): Portao {
   const { config, conversa, mensagem, agora } = e;
   if (!config.ia_ativa) return { age: false, motivo: "ia_desligada" };
@@ -140,7 +145,7 @@ export function portaoDoAssistente(e: {
     if (passou >= 0 && passou < INTERVALO_MINIMO_MS) return { age: true, responde: false, motivo: "rajada" };
   }
   if (!textoDaMensagem(mensagem)) return { age: true, responde: false, motivo: "so_midia" };
-  if (!dentroDoHorario(config, agora)) return { age: true, responde: false, motivo: "fora_do_horario" };
+  if (!(e.dentroDoHorario ?? dentroDoHorario(config, agora))) return { age: true, responde: false, motivo: "fora_do_horario" };
   return { age: true, responde: true };
 }
 

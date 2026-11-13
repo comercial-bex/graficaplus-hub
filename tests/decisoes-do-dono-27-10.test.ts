@@ -98,7 +98,8 @@ describe("botões do Pix: Já paguei, Ver orçamento, Falar com a equipe", () =>
   it("fila: o código vai sem assinatura, a resposta automática tem chave 'auto:' e o botão cai para texto se o Z-API recusar", () => {
     const f = le("src/lib/api/whatsapp-enviar.server.ts");
     expect(f).toContain("linha.payload?.sem_assinatura !== true");
-    expect(f).toContain("/^(ia|auto):/.test(linha.idempotency_key");
+    // 'triagem:' entrou em 13/11/2026 (a pergunta da triagem de boas-vindas), pela mesma porta estreita
+    expect(f).toContain("/^(ia|auto|triagem):/.test(linha.idempotency_key");
     expect(f).toContain("textoDeReservaDosBotoes(pedido.texto");
     const o = le("src/lib/api/orcamento-whatsapp.functions.ts");
     expect(o).toContain('"pix_sinal_codigo", { sem_assinatura: true }');

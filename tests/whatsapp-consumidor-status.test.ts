@@ -381,7 +381,8 @@ describe("a porta lateral da fila está fechada no consumidor", () => {
     // toda resposta dela virar "pedido de fora".
     // 27/10/2026: 'auto:' é a resposta automática do sistema (toque num botão do Pix); mesma porta
     // estreita da IA — só service_role enfileira sem autor, e a chave é a única exceção.
-    expect(fonte).toMatch(/const daIa = \/\^\(ia\|auto\):\/\.test\(linha\.idempotency_key \?\? ""\)/);
+    // 13/11/2026: 'triagem:' é a pergunta da triagem de boas-vindas; a mesma porta estreita, só service_role enfileira.
+    expect(fonte).toMatch(/const daIa = \/\^\(ia\|auto\|triagem\):\/\.test\(linha\.idempotency_key \?\? ""\)/);
     expect(fonte).toMatch(/if \(!linha\.conversa_id \|\| \(!linha\.created_by && !daIa\)\)/);
     expect(fonte).toMatch(/sem conversa ou sem autor/);
     expect(fonte).toMatch(

@@ -96,6 +96,7 @@ export function escolherRamo(a: {
   ramoAtual: Ramo;
   motivoAtual: MotivoDoRamo;
   leadTipo?: "parceiro" | "cliente" | null;
+  leadOrigem?: "anuncio" | "palavra" | null;
   texto: string | null;
   passo: PassoDaTriagem | null;
   nomeJaInformado: boolean;
@@ -105,7 +106,11 @@ export function escolherRamo(a: {
   // só antes de qualquer pergunta respondida: nunca sobe depois do passo do nome
   const podeSubir = a.passo === null || (a.passo === "nome" && !a.nomeJaInformado);
   if (podeSubir && a.leadTipo === "parceiro")
-    return { ramo: "parceiro", motivo: "anuncio_mapeado", subiu: true };
+    return {
+      ramo: "parceiro",
+      motivo: a.leadOrigem === "palavra" ? "palavra" : "anuncio_mapeado",
+      subiu: true,
+    };
   // pedido misto ("quero ser parceiro e saber o valor") não troca o ramo: vai para a equipe com a pergunta de preço
   if (podeSubir && ehPalavraDeParceiro(a.texto, a.quadro)) {
     return { ramo: subirRamo(a.ramoAtual, "parceiro"), motivo: "palavra", subiu: true };
@@ -994,6 +999,7 @@ export function proximoPasso(
     ramoAtual: r.e.ramo,
     motivoAtual: r.e.ramoMotivo,
     leadTipo: ctx.leadTipo,
+    leadOrigem: ctx.leadOrigem,
     texto: ehTexto ? texto : null,
     passo: estado.passo,
     nomeJaInformado: r.e.dados.nomeInformado !== null,
@@ -1105,5 +1111,37 @@ export function processarRajada(
     eventos,
     avisarGrupo: aviso,
     bloquearContato: bloquear,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Telefone que o robô não alcança                                     */
+/* ------------------------------------------------------------------ */
+
+/** O motivo que fica no evento e no fim da triagem quando o telefone da conversa não é um celular brasileiro. */
+export const MOTIVO_SEM_NUMERO = "sem_numero_alcancavel";
+
+/**
+ * Conversa cujo telefone tem cara de lid, número de fora ou não é celular: a triagem NÃO escreve
+ * (o consumidor da fila trataria 12 a 15 dígitos como número de fora e o Z-API recusaria um lid).
+ * A conversa vai para a equipe, com o evento `pulou` e o aviso de grupo marcado, e sem mensagem.
+ */
+export function entregaSemNumero(estado: EstadoDaTriagem): ResultadoDoPasso {
+  return {
+    estado: { ...estado, status: "entregue_equipe", motivoFim: MOTIVO_SEM_NUMERO },
+    acao: "silencio",
+    envio: null,
+    gravar: {},
+    eventos: [
+      {
+        tipo: "pulou",
+        passo: estado.passo,
+        intencao: null,
+        detalhe: { motivo: MOTIVO_SEM_NUMERO },
+      },
+    ],
+    avisarGrupo: { motivo: "entregue_equipe", marcas: ["sem_numero_valido"] },
+    bloquearContato: false,
+    motivo: MOTIVO_SEM_NUMERO,
   };
 }
