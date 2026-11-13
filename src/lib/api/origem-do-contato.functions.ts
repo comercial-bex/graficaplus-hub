@@ -72,7 +72,7 @@ export type AnuncioDaTela = {
   produto_efetivo: string | null;
 };
 
-export type PalavraDaTela = { palavra: string; ativo: boolean };
+export type PalavraDaTela = { palavra: string; ativo: boolean; tipo: TipoDeContato };
 
 const COLUNAS_CONJUNTO = "conjunto_id, nome, campanha_id, campanha_nome, tipo, produto_padrao, ativo";
 const COLUNAS_ANUNCIO =
@@ -121,7 +121,7 @@ export const listarPalavras = createServerFn({ method: "GET" })
     await exigir(context.supabase, context.userId, "configuracoes.manage");
     const { data, error } = await (context.supabase as any)
       .from("palavras_de_origem")
-      .select("palavra, ativo")
+      .select("palavra, ativo, tipo")
       .order("palavra");
     if (error) throw new Error(error.message);
     return (data ?? []) as PalavraDaTela[];
@@ -212,6 +212,7 @@ export const salvarPalavra = createServerFn({ method: "POST" })
       .object({
         palavra: z.string().max(100),
         ativo: z.boolean().default(true),
+        tipo: TIPO.default("parceiro"),
         remover: z.boolean().default(false),
       })
       .parse(d),
@@ -223,7 +224,7 @@ export const salvarPalavra = createServerFn({ method: "POST" })
     const db = context.supabase as any;
     const { error } = data.remover
       ? await db.rpc("origem_remover_palavra", { p_palavra: v.palavra })
-      : await db.rpc("origem_salvar_palavra", { p_palavra: v.palavra, p_ativo: data.ativo });
+      : await db.rpc("origem_salvar_palavra", { p_palavra: v.palavra, p_ativo: data.ativo, p_tipo: data.tipo });
     if (error) throw new Error(error.message);
     return { ok: true as const, palavra: v.palavra };
   });

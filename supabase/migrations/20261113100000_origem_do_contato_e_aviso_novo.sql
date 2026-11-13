@@ -1,5 +1,5 @@
--- AINDA NÃO APLICADA. O dono ensaia (docs/ensaio-origem-do-contato.md) e aplica; depois troca esta
--- linha por "APLICADA em <data>". ORDEM: aplicar ESTA migração ANTES de publicar o front.
+-- APLICADA em 13/11/2026. O dono ensaiou (docs/ensaio-origem-do-contato.md) e aplicou.
+-- ORDEM que valeu: aplicar ESTA migração ANTES de publicar o front.
 --
 -- ORIGEM DO CONTATO E AVISO NOVO NO GRUPO (12/11/2026)
 --

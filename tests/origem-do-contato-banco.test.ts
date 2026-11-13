@@ -66,9 +66,9 @@ const DA_TELA = [
 ] as const;
 
 describe("cabeçalho e transação", () => {
-  it("diz que ainda não foi aplicada e manda aplicar antes de publicar o front", () => {
+  it("diz que foi aplicada em 13 de novembro de 2026 e que a ordem era aplicar antes de publicar o front", () => {
     const cabecalho = BRUTO.split("\n").slice(0, 12).join("\n");
-    expect(cabecalho).toMatch(/^-- AINDA NÃO APLICADA/);
+    expect(cabecalho).toMatch(/^-- APLICADA em 13\/11\/2026\./);
     expect(BRUTO).toMatch(/ANTES de publicar o front/);
   });
 

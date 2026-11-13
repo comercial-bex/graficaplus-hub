@@ -10,7 +10,16 @@ import {
   tipoDoLead,
 } from "../src/domain/crm/tipo-do-lead";
 
-const PALAVRAS = ["quero ser parceiro", "ser parceiro", "terceirizado", "parceria"];
+const PALAVRAS = [
+  { palavra: "quero ser parceiro", tipo: "parceiro" },
+  { palavra: "ser parceiro", tipo: "parceiro" },
+  { palavra: "terceirizado", tipo: "parceiro" },
+  { palavra: "parceria", tipo: "parceiro" },
+  { palavra: "quero comprar agora", tipo: "cliente_final" },
+  { palavra: "quero fazer um orcamento", tipo: "cliente_final" },
+  { palavra: "quero saber mais", tipo: "cliente_final" },
+  { palavra: "gostei do outro", tipo: "cliente_final" },
+] as const;
 
 describe("duas modalidades", () => {
   it("só cliente_final e parceiro existem; o resto é nulo", () => {
@@ -38,7 +47,7 @@ describe("duas modalidades", () => {
   });
 });
 
-describe("prioridade do tipo: anúncio, palavra, telefone, sem sinal", () => {
+describe("prioridade do tipo: manual, anúncio, palavra de parceiro, telefone, palavra de cliente final, sem sinal", () => {
   it("1. anúncio mapeado vence palavra e telefone", () => {
     const r = classificarLead({ anuncioTipo: "cliente_final", textoInicial: "quero ser parceiro", palavras: PALAVRAS, telefoneEhDeParceiro: true });
     expect(r).toEqual({ tipo: "cliente_final", origem: "anuncio" });
@@ -57,7 +66,7 @@ describe("prioridade do tipo: anúncio, palavra, telefone, sem sinal", () => {
     expect(tipoDoLead({})).toBeNull();
   });
   it("anúncio sem tipo (sem conjunto) cai para a palavra", () => {
-    expect(classificarLead({ anuncioTipo: null, textoInicial: "ser parceira", palavras: ["ser parceira"] })).toEqual({ tipo: "parceiro", origem: "palavra" });
+    expect(classificarLead({ anuncioTipo: null, textoInicial: "ser parceira", palavras: [{ palavra: "ser parceira", tipo: "parceiro" }] })).toEqual({ tipo: "parceiro", origem: "palavra" });
   });
   it("etiqueta manual vence qualquer regra automática", () => {
     const r = classificarLead({ tipoManual: "cliente_final", anuncioTipo: "parceiro", textoInicial: "quero ser parceiro", palavras: PALAVRAS, telefoneEhDeParceiro: true });
@@ -76,6 +85,30 @@ describe("prioridade do tipo: anúncio, palavra, telefone, sem sinal", () => {
     expect(t("")).toBeNull();
     expect(tipoDoLead({ textoInicial: null, palavras: PALAVRAS })).toBeNull();
   });
+  it("palavra de cliente final marca cliente final pela palavra", () => {
+    for (const t of ["Quero comprar agora", "oi, quero fazer um orçamento!", "QUERO SABER MAIS", "gostei do outro, tem?"]) {
+      expect(classificarLead({ textoInicial: t, palavras: PALAVRAS }), t).toEqual({ tipo: "cliente_final", origem: "palavra" });
+    }
+  });
+  it("palavra de parceiro vence palavra de cliente final na mesma mensagem", () => {
+    const r = classificarLead({ textoInicial: "quero saber mais, quero ser parceiro", palavras: PALAVRAS });
+    expect(r).toEqual({ tipo: "parceiro", origem: "palavra" });
+  });
+  it("telefone de parceiro vence palavra de cliente final, mas não palavra de parceiro", () => {
+    expect(classificarLead({ textoInicial: "quero comprar agora", palavras: PALAVRAS, telefoneEhDeParceiro: true })).toEqual({ tipo: "parceiro", origem: "telefone" });
+  });
+  it("anúncio e etiqueta manual vencem a palavra de cliente final", () => {
+    expect(classificarLead({ anuncioTipo: "parceiro", textoInicial: "quero comprar agora", palavras: PALAVRAS })).toEqual({ tipo: "parceiro", origem: "anuncio" });
+    expect(classificarLead({ tipoManual: "parceiro", textoInicial: "quero comprar agora", palavras: PALAVRAS })).toEqual({ tipo: "parceiro", origem: "manual" });
+  });
+  it("palavra de cliente final tem fronteira só à esquerda e palavra inativa nem chega aqui", () => {
+    expect(tipoDoLead({ textoInicial: "oi quero saber maisa coisa", palavras: PALAVRAS })).toBe("cliente_final");
+    expect(tipoDoLead({ textoInicial: "superquero comprar agora", palavras: PALAVRAS })).toBeNull();
+    expect(tipoDoLead({ textoInicial: "quero comprar agora", palavras: [{ palavra: "quero ser parceiro", tipo: "parceiro" }] })).toBeNull();
+  });
+  it("tipo de palavra desconhecido é ignorado", () => {
+    expect(tipoDoLead({ textoInicial: "quero comprar agora", palavras: [{ palavra: "quero comprar agora", tipo: "cliente" as never }] })).toBeNull();
+  });
   it("sem lista de palavras (tabela vazia) a palavra não classifica nada", () => {
     expect(tipoDoLead({ textoInicial: "quero ser parceiro" })).toBeNull();
     expect(tipoDoLead({ textoInicial: "quero ser parceiro", palavras: [] })).toBeNull();
@@ -83,6 +116,7 @@ describe("prioridade do tipo: anúncio, palavra, telefone, sem sinal", () => {
   it("não há lista fixa de anúncios ou de palavras no código", () => {
     const fonte = readFileSync("src/domain/crm/tipo-do-lead.ts", "utf8");
     expect(fonte).not.toMatch(/quero ser parceir/i);
+    expect(fonte).not.toMatch(/quero comprar agora/i);
     expect(fonte).not.toMatch(/\b\d{12,}\b/);
   });
 });

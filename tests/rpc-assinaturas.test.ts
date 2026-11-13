@@ -127,7 +127,8 @@ const ASSINATURAS: Record<string, string[]> = {
   ],
   origem_vincular_anuncio: ["p_anuncio_id", "p_conjunto_id"],
   origem_salvar_anuncio: ["p_anuncio_id", "p_nome_interno", "p_produto", "p_ativo"],
-  origem_salvar_palavra: ["p_palavra", "p_ativo"],
+  // Migração 20261113120000: ganhou p_tipo (padrão parceiro); a assinatura de 2 parâmetros foi apagada.
+  origem_salvar_palavra: ["p_palavra", "p_ativo", "p_tipo"],
   origem_remover_palavra: ["p_palavra"],
   whatsapp_definir_tipo_do_contato: ["p_conversa_id", "p_usuario", "p_tipo"],
   // Migração 20261007150000 (WhatsApp, onda 1): o cartão de medidas do Monitor

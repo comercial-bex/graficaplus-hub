@@ -42,6 +42,10 @@ describe("funções de servidor da origem do contato", () => {
       expect(funcoes).toContain(`"${rpc}"`);
     }
   });
+  it("salvarPalavra lê e repassa o tipo da palavra", () => {
+    expect(funcoes).toContain('.select("palavra, ativo, tipo")');
+    expect(funcoes).toContain("p_tipo: data.tipo");
+  });
   it("ids de conjunto e de anúncio são numéricos", () => {
     expect(funcoes).toContain("\\d{6,40}");
   });
