@@ -120,7 +120,7 @@ function FunilPage() {
       if (error) throw error;
       const recebidas = (data ?? []) as Linha[];
       const tipos = await lerTiposDosLeads(recebidas.map((l) => l.lead_id));
-      return recebidas.map((l) => ({ ...l, tipo: tipos.get(l.lead_id) ?? "cliente" }));
+      return recebidas.map((l) => ({ ...l, tipo: tipos.get(l.lead_id) ?? null }));
     },
   });
 

@@ -666,6 +666,10 @@ export const dicas = {
     menu: "Token pessoal para ler os dados da gráfica de fora do sistema.",
     tela: "Gere um token pessoal para Claude, planilha ou outro programa ler clientes, orçamentos, OS e contas. É só leitura e vale com a sua permissão. O token aparece uma vez, na hora de gerar: guarde como senha. Revogar vale na hora.",
   },
+  "/configuracoes-origem": {
+    menu: "Quais anúncios trazem cliente final e quais trazem parceiro.",
+    tela: "Ligue cada anúncio ao seu conjunto de anúncios. O tipo, cliente final ou parceiro, vale para o conjunto inteiro e é só uma etiqueta para a equipe. Trocar o criativo mantendo o mesmo anúncio não exige nada aqui. O preço de parceiro só vale para quem tem cadastro de parceiro.",
+  },
   "/configuracoes-empresa": {
     menu: "Dados da empresa usados nos documentos.",
     tela: "Nome, CNPJ, endereço, telefones e logotipo que aparecem no orçamento e na ordem de serviço impressos.",

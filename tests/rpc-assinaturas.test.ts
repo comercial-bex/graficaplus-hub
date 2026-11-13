@@ -116,6 +116,20 @@ const ASSINATURAS: Record<string, string[]> = {
     "p_origem",
   ],
   whatsapp_registrar_status: ["p_instancia_id", "p_ids", "p_status", "p_momento"],
+  // NÃO muda com a migração 20261113100000: continuam os 12 parâmetros (a origem do contato entra por
+  // p_payload plano, sem parâmetro novo, para não criar sobrecarga e quebrar o PostgREST).
+  // Migração 20261113100000 (origem do contato): a tela de origem chama as cinco origem_* com a sessão de
+  // quem clicou (configuracoes.manage dentro de cada uma); a normalização é pura; marcar o tipo na caixa
+  // só o servidor chama (src/lib/api/whatsapp-tipo-do-contato.functions.ts).
+  bex_normalizar_texto: ["p_texto"],
+  origem_salvar_conjunto: [
+    "p_conjunto_id", "p_nome", "p_tipo", "p_campanha_id", "p_campanha_nome", "p_produto_padrao", "p_ativo",
+  ],
+  origem_vincular_anuncio: ["p_anuncio_id", "p_conjunto_id"],
+  origem_salvar_anuncio: ["p_anuncio_id", "p_nome_interno", "p_produto", "p_ativo"],
+  origem_salvar_palavra: ["p_palavra", "p_ativo"],
+  origem_remover_palavra: ["p_palavra"],
+  whatsapp_definir_tipo_do_contato: ["p_conversa_id", "p_usuario", "p_tipo"],
   // Migração 20261007150000 (WhatsApp, onda 1): o cartão de medidas do Monitor
   // (sem parâmetros) e a varredura das automações, que o consumidor do envio
   // chama a cada rodada (antes, só a função process-automations chamava).

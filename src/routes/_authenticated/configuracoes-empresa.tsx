@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plug } from "lucide-react";
+import { Megaphone, Plug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -255,6 +255,12 @@ function ConfiguracoesEmpresaPage() {
             <Button asChild variant="outline">
               <Link to="/configuracoes-api">
                 <Plug className="h-4 w-4 mr-1" aria-hidden="true" /> API e MCP
+              </Link>
+            </Button>
+            {/* Origem dos contatos (12/11): anúncio para conjunto para tipo. Fora do menu; abre por aqui. */}
+            <Button asChild variant="outline">
+              <Link to="/configuracoes-origem">
+                <Megaphone className="h-4 w-4 mr-1" aria-hidden="true" /> Origem dos contatos
               </Link>
             </Button>
             {podeEditar && (
