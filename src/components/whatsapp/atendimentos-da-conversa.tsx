@@ -1,4 +1,6 @@
 import { History } from "lucide-react";
+import { AjudaDaSecao } from "@/components/whatsapp/ajuda-da-secao";
+import { DICAS_WA_GAVETA } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 import { diaEHora } from "@/domain/whatsapp/caixa-de-entrada";
@@ -19,7 +21,7 @@ const ROTULO_ORIGEM: Record<string, string> = {
 };
 
 /**
- * Os atendimentos da conversa (WA-AAMM-NNNN): cada ciclo aberto → resolvido é
+ * Os atendimentos da conversa (WA-AAMM-NNNN): cada ciclo aberto e resolvido é
  * um registro novo e imutável. O atual mostra há quanto tempo está aberto e
  * quanto levou a primeira resposta; os anteriores, o período e o motivo.
  */
@@ -39,18 +41,24 @@ export function AtendimentosDaConversa({
   const anteriores = lista.filter((a) => a.fechado_em);
 
   return (
-    <section className="space-y-2 border-b p-4">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-        <History className="h-3.5 w-3.5" /> Atendimentos
-      </div>
+    <section className="space-y-2 border-b p-4" aria-labelledby="gaveta-atendimentos">
+      {/* Título de 15 px com a primeira letra maiúscula, sem caixa-alta espaçada
+          (onda 1, 12/11/2026: o dono enxerga mal e o espaçamento corta a palavra). */}
+      <h3
+        id="gaveta-atendimentos"
+        className="flex items-center gap-2 text-sm font-semibold text-foreground"
+      >
+        <History className="h-4 w-4" /> Atendimentos
+        <AjudaDaSecao texto={DICAS_WA_GAVETA.atendimentos} rotulo="Atendimentos" />
+      </h3>
       {atendimentos.isError ? (
-        <p className="text-xs text-destructive">
+        <p className="text-sm text-destructive">
           Não foi possível carregar os atendimentos: {mensagemErro(atendimentos.error)}
         </p>
       ) : atendimentos.isPending ? (
         <Carregando />
       ) : lista.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {semMensagemDoCliente
             ? "A gráfica começou esta conversa com um aviso automático. O atendimento abre quando o cliente responder."
             : "Nenhum atendimento registrado. O primeiro abre quando o cliente escrever."}
@@ -58,24 +66,32 @@ export function AtendimentosDaConversa({
       ) : (
         <>
           {atual ? <Atual a={atual} nomes={nomes} /> : (
-            <p className="text-xs text-muted-foreground">Nenhum atendimento aberto agora.</p>
+            <p className="text-sm text-muted-foreground">Nenhum atendimento aberto agora.</p>
           )}
           {anteriores.length > 0 && (
-            <ul className="space-y-1.5 pt-1">
-              {anteriores.slice(0, 6).map((a) => (
-                <li key={a.id} className="text-xs">
-                  <span className="font-mono">{a.numero}</span>{" "}
-                  <span className="text-muted-foreground">
-                    · {diaEHora(a.aberto_em)} → {a.fechado_em ? diaEHora(a.fechado_em) : "—"} ·{" "}
-                    {rotuloDoMotivo(a.motivo_resolucao)}
-                    {a.nota_resolucao ? ` (${a.nota_resolucao})` : ""}
-                  </span>
-                </li>
-              ))}
-              {anteriores.length > 6 && (
-                <li className="text-xs text-muted-foreground">e mais {anteriores.length - 6} anteriores.</li>
-              )}
-            </ul>
+            // Os anteriores ficam recolhidos: quem atende quer o atual (a1 8.6).
+            <details className="group pt-1">
+              <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-foreground">
+                Atendimentos anteriores ({anteriores.length})
+              </summary>
+              <ul className="space-y-2 pb-1">
+                {anteriores.slice(0, 6).map((a) => (
+                  <li key={a.id} className="text-sm">
+                    <span className="font-medium">{a.numero}</span>
+                    <span className="block text-muted-foreground">
+                      {diaEHora(a.aberto_em)} a {a.fechado_em ? diaEHora(a.fechado_em) : "sem data"}.{" "}
+                      {rotuloDoMotivo(a.motivo_resolucao)}
+                      {a.nota_resolucao ? ` (${a.nota_resolucao})` : ""}
+                    </span>
+                  </li>
+                ))}
+                {anteriores.length > 6 && (
+                  <li className="text-sm text-muted-foreground">
+                    e mais {anteriores.length - 6} anteriores.
+                  </li>
+                )}
+              </ul>
+            </details>
           )}
         </>
       )}
@@ -90,13 +106,13 @@ function Atual({ a, nomes }: { a: AtendimentoResumo; nomes: Map<string, string> 
   return (
     <div className="space-y-1 rounded-md border p-2.5 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono font-semibold">{a.numero}</span>
+        <span className="font-semibold">{a.numero}</span>
         <span className={cn("rounded border px-1.5 py-0.5 text-xs", setor.cor)}>{setor.rotulo}</span>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {ROTULO_ORIGEM[a.origem_abertura] ?? a.origem_abertura} · há {aberto?.texto ?? "—"}
+      <p className="text-sm text-muted-foreground">
+        {ROTULO_ORIGEM[a.origem_abertura] ?? a.origem_abertura} · há {aberto?.texto ?? "instantes"}
       </p>
-      <p className="text-xs">
+      <p className="text-sm">
         1ª resposta:{" "}
         {primeira ? (
           <strong>{primeira}</strong>

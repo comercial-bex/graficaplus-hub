@@ -254,6 +254,32 @@ async function primeiraPaginaDoPdf(bytes: Uint8Array, recortar = false): Promise
   }
 }
 
+/**
+ * A capa de um PDF para o cartão do WhatsApp (onda 1, 12/11/2026): a 1ª página
+ * desenhada pelo pdf.js, no tamanho de miniatura, mais o número de páginas
+ * (que o cartão mostra como "PDF · 18 páginas"). Quem chama já conferiu o
+ * limite de tamanho (`LIMITE_DA_CAPA_BYTES`, em domain/whatsapp/documento.ts).
+ * Rejeita quando o PDF está protegido ou quebrado: o cartão diz "Sem prévia".
+ */
+export async function capaDoPdf(
+  bytes: Uint8Array,
+  ladoMaximo = 480,
+): Promise<{ src: string; paginas: number }> {
+  const pdfjs = await carregarPdfjs();
+  const tarefa = pdfjs.getDocument({ data: bytes });
+  try {
+    const documento = await tarefa.promise;
+    const pagina = await documento.getPage(1);
+    const base = pagina.getViewport({ scale: 1 });
+    const viewport = pagina.getViewport({ scale: ladoMaximo / Math.max(base.width, base.height) });
+    const { canvas } = novoCanvas(viewport.width, viewport.height);
+    await pagina.render({ canvas, viewport }).promise;
+    return { src: canvasParaDataUrl(canvas), paginas: documento.numPages };
+  } finally {
+    await tarefa.destroy();
+  }
+}
+
 export type OpcoesDaArte = {
   /**
    * Auto-recorte das margens lisas (ver recorte.ts). Ligado para as artes dos

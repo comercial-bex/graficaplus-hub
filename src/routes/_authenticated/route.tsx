@@ -23,6 +23,8 @@ import { getRoutePermissions, permissionLabels } from "@/lib/permissions";
 // referência de "onde estou", já que o menu fica recolhido. Antes vinha do
 // pedaço da URL, e o celular mostrava "Breakdown-3d" e "A-receber".
 import { nomeDaTela } from "@/lib/menu";
+import { ehTelaCheia } from "@/lib/tela-cheia";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -42,6 +44,10 @@ function AuthenticatedLayout() {
   const canAccessRoute =
     requiredPermissions !== null &&
     (requiredPermissions.length === 0 || requiredPermissions.some(hasPermission));
+  // A caixa do WhatsApp ocupa a janela inteira abaixo do topo e a página não
+  // rola (12/11/2026). Só quando a pessoa pode abri-la: o "Acesso restrito" é
+  // uma página comum, com a rolagem de sempre.
+  const telaCheia = canAccessRoute && ehTelaCheia(pathname);
 
   // O parceiro revendedor não usa o sistema da equipe: o painel dele mora em
   // /parceiro. Sem o desvio, o login o mandaria ao /dashboard e ele cairia no
@@ -119,14 +125,21 @@ function AuthenticatedLayout() {
         { "--sidebar-width": LARGURA_DO_MENU, "--sidebar-width-icon": LARGURA_DO_TRILHO } as CSSProperties
       }
     >
-      <div className="min-h-screen flex w-full bg-background">
+      <div
+        className={cn(
+          "flex w-full bg-background",
+          // Telas cheias (a caixa do WhatsApp): a casca tem a altura da janela e
+          // quem rola é o que está dentro dela, não a página (12/11/2026).
+          telaCheia ? "h-dvh overflow-hidden" : "min-h-screen",
+        )}
+      >
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={cn("flex-1 flex flex-col min-w-0", telaCheia && "min-h-0")}>
           {/* Topo azul-marinho (#121f3b), como o do Holdprint que o dono aprovou
               em 31/10/2026; letra clara com contraste calculado em tests/casca-topo-e-cabecalho. */}
           <header className="h-14 flex items-center gap-2 md:gap-3 bg-topbar text-topbar-foreground px-2 md:px-4 sticky top-0 z-30 relative shadow-sm">
             {/* No celular o gatilho do menu é o alvo principal: 44px */}
-            <SidebarTrigger className="h-11 w-11 text-topbar-foreground hover:bg-white/10 hover:text-white md:h-9 md:w-9" />
+            <SidebarTrigger className="h-11 w-11 text-topbar-foreground hover:bg-white/10 hover:text-white" />
             {!noInicio && (
               <button
                 type="button"
@@ -159,7 +172,19 @@ function AuthenticatedLayout() {
             />
           </header>
           {/* Fundo liso: o fundo de pontos poluía a tela (31/10/2026, pedido do dono). */}
-          <main className="flex-1 p-4 md:p-7 lg:p-8 overflow-auto bg-background">
+          <main
+            className={cn(
+              "flex-1 bg-background",
+              // `relative`: o texto `sr-only` (position: absolute) de dentro de uma
+              // lista que rola, sem um pai posicionado, tem a janela como bloco de
+              // referência e fazia a PÁGINA rolar (medido no laboratório em
+              // 12/11/2026: 1144 px de rolagem com a janela de 800). Com o <main>
+              // posicionado e `overflow-hidden`, nada escapa.
+              telaCheia
+                ? "relative flex min-h-0 flex-col overflow-hidden p-0"
+                : "p-4 md:p-7 lg:p-8 overflow-auto",
+            )}
+          >
             {canAccessRoute ? (
               <>
                 <AlertaWhatsapp />

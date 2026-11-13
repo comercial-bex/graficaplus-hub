@@ -322,3 +322,134 @@
   animation: bloco-entra 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   @media (prefers-reduced-motion: reduce) { animation: none; }
 }
+
+/* ===================================================================== */
+/* Caixa do WhatsApp, onda 1 (12/11/2026). Cada construtor escreve SÓ no   */
+/* bloco com o nome dele, entre o "início" e o "fim". Fora dos blocos,     */
+/* ninguém mexe neste arquivo nesta onda.                                  */
+/* ===================================================================== */
+
+/* ---- início CONVERSA: as cores da conversa no jeito do WhatsApp ---- */
+/* Contraste conferido pela fórmula de luminância (WCAG) em 12/11/2026:
+   claro: texto #111b21 dá 17,5 na entrada #ffffff, 15,8 na saída #d9fdd3 e
+   14,6 no fundo #efeae2; hora #54656f dá 6,1 / 5,5 / 5,1 e 5,4 na nota
+   #fff3c4; o azul do "lida" #0068c9 dá 5,0 na saída e 5,5 no branco (o
+   #53bdeb do WhatsApp dá 1,9 na saída e foi trocado); falha #b42318, 5,9;
+   contador #008069 com número branco, 4,9; o verde de texto #00735e dá 5,8
+   no cartão e 4,8 na linha selecionada (o #008069 daria só 4,05 nela).
+   escuro: texto #e9edef dá 12,1 na entrada #202c33, 6,8 na saída #005c4b e
+   15,8 no fundo #0b141a; a hora #aebac1 dá só 4,0 na saída, então a hora
+   da saída é #d1d7db (5,5); "lida" #7cd3f7, 4,8 na saída; falha #ffb4b4,
+   4,7; o contador #00a884 leva número escuro #111b21 (5,8; com branco
+   daria 3,0). Realce da busca: #111b21 em #ffe08a, 13,5; #e9edef em
+   #6b5500, 6,1. */
+@theme inline {
+  --color-chat-fundo: var(--chat-fundo);
+  --color-chat-entrada: var(--chat-entrada);
+  --color-chat-saida: var(--chat-saida);
+  --color-chat-texto: var(--chat-texto);
+  --color-chat-hora: var(--chat-hora);
+  --color-chat-hora-saida: var(--chat-hora-saida);
+  --color-chat-tique-lida: var(--chat-tique-lida);
+  --color-chat-falha: var(--chat-falha);
+  --color-chat-nota: var(--chat-nota);
+  --color-chat-nota-texto: var(--chat-nota-texto);
+  --color-chat-pilula: var(--chat-pilula);
+  --color-chat-pilula-texto: var(--chat-pilula-texto);
+  --color-chat-contador: var(--chat-contador);
+  --color-chat-contador-texto: var(--chat-contador-texto);
+  --color-chat-verde-texto: var(--chat-verde-texto);
+  --color-chat-realce: var(--chat-realce);
+}
+:root {
+  --chat-fundo: #efeae2;
+  --chat-entrada: #ffffff;
+  --chat-saida: #d9fdd3;
+  --chat-texto: #111b21;
+  --chat-hora: #54656f;
+  --chat-hora-saida: #54656f;
+  --chat-tique-lida: #0068c9;
+  --chat-falha: #b42318;
+  --chat-nota: #fff3c4;
+  --chat-nota-texto: #111b21;
+  --chat-pilula: #ffffff;
+  --chat-pilula-texto: #54656f;
+  --chat-contador: #008069;
+  --chat-contador-texto: #ffffff;
+  --chat-verde-texto: #00735e;
+  --chat-realce: #ffe08a;
+}
+.dark {
+  --chat-fundo: #0b141a;
+  --chat-entrada: #202c33;
+  --chat-saida: #005c4b;
+  --chat-texto: #e9edef;
+  --chat-hora: #aebac1;
+  --chat-hora-saida: #d1d7db;
+  --chat-tique-lida: #7cd3f7;
+  --chat-falha: #ffb4b4;
+  --chat-nota: #3b3415;
+  --chat-nota-texto: #e9edef;
+  --chat-pilula: #182229;
+  --chat-pilula-texto: #aebac1;
+  --chat-contador: #00a884;
+  --chat-contador-texto: #111b21;
+  --chat-verde-texto: #06cf9c;
+  --chat-realce: #6b5500;
+}
+/* ---- fim CONVERSA ---- */
+
+/* ---- início MIDIA: cores do cartão de documento, do tocador e do visor ---- */
+/* Cartão do documento, tocador de voz e visor (onda 1, 12/11/2026). O cartão
+   tem fundo PRÓPRIO, para valer igual sobre a bolha de entrada e a de saída.
+   Contrastes conferidos por conta (tests/whatsapp-midia-cores.test.ts):
+   claro: texto #111b21 em #f0f2f5 dá 15,6; apoio #54656f dá 5,4; botão
+   branco em #008069 dá 4,9; ponteiro #008069 dá 4,4 (mínimo 3 para forma).
+   escuro: texto #e9edef em #111b21 dá 14,8; apoio #aebac1 dá 8,8; botão
+   #111b21 em #00a884 dá 5,8. As fichas de tipo levam letra branca e
+   passam de 5,0 nos dois temas. */
+:root {
+  --midia-cartao: #f0f2f5;
+  --midia-cartao-texto: #111b21;
+  --midia-cartao-apoio: #54656f;
+  --midia-borda: #aab6bd;
+  --midia-trilho: #68798a;
+  --midia-ponteiro: #008069;
+  --midia-botao: #008069;
+  --midia-botao-texto: #ffffff;
+  --midia-botao-hover: #006b58;
+  --midia-ficha-texto: #ffffff;
+  --midia-ficha-pdf: #b42318;
+  --midia-ficha-word: #1d4ed8;
+  --midia-ficha-planilha: #15803d;
+  --midia-ficha-apresentacao: #c2410c;
+  --midia-ficha-compactado: #6d28d9;
+  --midia-ficha-projeto: #0f766e;
+  --midia-ficha-outro: #475569;
+}
+.dark {
+  --midia-cartao: #111b21;
+  --midia-cartao-texto: #e9edef;
+  --midia-cartao-apoio: #aebac1;
+  --midia-borda: #3b4a54;
+  --midia-trilho: #667781;
+  --midia-ponteiro: #00a884;
+  --midia-botao: #00a884;
+  --midia-botao-texto: #111b21;
+  --midia-botao-hover: #06cf9c;
+  --midia-ficha-texto: #ffffff;
+  --midia-ficha-pdf: #b42318;
+  --midia-ficha-word: #1d4ed8;
+  --midia-ficha-planilha: #15803d;
+  --midia-ficha-apresentacao: #c2410c;
+  --midia-ficha-compactado: #6d28d9;
+  --midia-ficha-projeto: #0f766e;
+  --midia-ficha-outro: #475569;
+}
+/* ---- fim MIDIA ---- */
+
+/* ---- início MOLDURA: a tela cheia, a lista e as abas compactas ---- */
+/* ---- fim MOLDURA ---- */
+
+/* ---- início GAVETA: os dados do contato ---- */
+/* ---- fim GAVETA ---- */

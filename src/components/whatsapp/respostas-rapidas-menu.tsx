@@ -19,6 +19,9 @@ import {
   type RespostaRapida,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
 import { Carregando } from "@/components/bex/Carregando";
+import { Dica } from "@/components/bex/Dica";
+import { DICAS_WA_CONVERSA } from "@/lib/dicas";
+import { cn } from "@/lib/utils";
 
 /**
  * As respostas rápidas, finalmente usadas por alguém.
@@ -26,13 +29,19 @@ import { Carregando } from "@/components/bex/Carregando";
  * `respostas_rapidas` era cadastrada em /respostas-rapidas e nenhuma tela lia.
  * Escolher uma COLOCA o texto na caixa de resposta — não envia: quem atende
  * confere e ajusta antes (nome do cliente, prazo, valor).
+ *
+ * Onda 1 (12/11/2026): o botão passa a 44 px (alvo de toque) e mora dentro da
+ * caixa de resposta; o "/" no começo da caixa abre a lista pelo teclado (que a
+ * própria caixa desenha), e este botão é o caminho do mouse e do dedo.
  */
 export function RespostasRapidasMenu({
   onEscolher,
   desabilitado,
+  className,
 }: {
   onEscolher: (texto: string) => void;
   desabilitado?: boolean;
+  className?: string;
 }) {
   const [aberto, setAberto] = useState(false);
   const { hasPermission } = useAuth();
@@ -49,17 +58,20 @@ export function RespostasRapidasMenu({
 
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          disabled={desabilitado}
-          aria-label="Respostas rápidas"
-        >
-          <ListChecks className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
+      <Dica texto={DICAS_WA_CONVERSA.respostas_rapidas}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled={desabilitado}
+            aria-label="Respostas rápidas"
+            className={cn("size-11 shrink-0", className)}
+          >
+            <ListChecks className="h-5 w-5" />
+          </Button>
+        </PopoverTrigger>
+      </Dica>
       <PopoverContent className="w-[360px] p-0" align="start" side="top">
         {respostas.isError ? (
           <div className="p-3 text-sm text-destructive">
@@ -71,11 +83,11 @@ export function RespostasRapidasMenu({
           <div className="space-y-2 p-3 text-sm">
             <p className="text-muted-foreground">Nenhuma resposta rápida ativa cadastrada.</p>
             {podeCadastrar ? (
-              <Link to="/respostas-rapidas" className="text-xs font-medium text-link underline">
+              <Link to="/respostas-rapidas" className="text-sm font-medium text-link underline">
                 Cadastrar respostas rápidas
               </Link>
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Peça a um administrador para cadastrar.
               </p>
             )}

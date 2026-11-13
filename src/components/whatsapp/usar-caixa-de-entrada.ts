@@ -290,7 +290,7 @@ export async function acionarEnvio(): Promise<
 > {
   const { data: sessao, error } = await supabase.auth.getSession();
   if (error || !sessao.session) {
-    return { falhaDeRede: "sessão expirada — entre de novo" };
+    return { falhaDeRede: "sessão expirada, entre de novo" };
   }
   try {
     const resposta = await fetch("/api/whatsapp/enviar", {
@@ -356,6 +356,11 @@ export type FiltroDaLista = {
   userId: string | null;
   /** `null` = todos os setores. */
   setores?: Setor[] | null;
+  /**
+   * Chip "Não lidas" (12/11/2026): só estas conversas. `undefined` = sem o
+   * filtro; lista vazia = nenhuma (a consulta devolve zero linhas, não tudo).
+   */
+  naoLidasIds?: string[];
 };
 
 /**
@@ -373,10 +378,21 @@ async function clientesComONome(termo: string): Promise<string[]> {
 }
 
 function filtrarConsulta(q: any, f: FiltroDaLista, clientesDaBusca: string[] = []) {
-  q = f.status === "resolvida" ? q.in("status", ["resolvida", "arquivada"]) : q.eq("status", f.status);
+  // Chip "Não lidas": a RPC whatsapp_nao_lidas conta conversas abertas E pendentes;
+  // a lista tem de cobrir as duas, senão o número do chip e do título da aba
+  // ("(3) WhatsApp") ficava maior que a lista (revisão da onda 1, 12/11/2026).
+  q =
+    f.status === "resolvida"
+      ? q.in("status", ["resolvida", "arquivada"])
+      : f.naoLidasIds && f.status === "aberta"
+        ? q.in("status", ["aberta", "pendente"])
+        : q.eq("status", f.status);
   if (f.fila === "minhas") q = q.eq("responsavel_id", f.userId ?? "00000000-0000-0000-0000-000000000000");
   if (f.fila === "nao_atribuidas") q = q.is("responsavel_id", null);
   if (f.setores && f.setores.length) q = q.in("fila", f.setores);
+  if (f.naoLidasIds) {
+    q = q.in("id", f.naoLidasIds.length ? f.naoLidasIds : ["00000000-0000-0000-0000-000000000000"]);
+  }
   const termo = termoSeguro(f.busca);
   if (termo) {
     const digitos = termo.replace(/\D/g, "");
@@ -390,7 +406,7 @@ function filtrarConsulta(q: any, f: FiltroDaLista, clientesDaBusca: string[] = [
 
 export function useConversasPaginadas(f: FiltroDaLista) {
   return useInfiniteQuery({
-    queryKey: [...CHAVES.conversas, "pag", f.fila, f.status, f.busca, f.userId, (f.setores ?? []).join(",")] as const,
+    queryKey: [...CHAVES.conversas, "pag", f.fila, f.status, f.busca, f.userId, (f.setores ?? []).join(","), f.naoLidasIds ? [...f.naoLidasIds].sort().join(",") : "-"] as const,
     initialPageParam: 0,
     refetchInterval: INTERVALO_MS,
     // Espera as filas da pessoa: ao abrir, a lista disparava com setor nulo e
@@ -441,6 +457,50 @@ export function useContadores(
         contar("todas", "resolvida"),
       ]);
       return { minhas, nao_atribuidas: naoAtribuidas, todas, aberta, pendente, resolvida };
+    },
+  });
+}
+
+/**
+ * O tique da linha da lista (12/11/2026): a direção e a situação da ÚLTIMA
+ * mensagem de cada conversa visível, numa consulta só. A conversa não guarda
+ * isso (só o texto e a hora), e tique inventado é pior que tique nenhum: sem a
+ * resposta, a linha fica sem tique.
+ *
+ * Só a janela dos últimos 7 dias e as 1.000 mensagens mais novas (o corte do
+ * PostgREST): conversa parada há mais que isso não mostra tique. As colunas são
+ * as quatro que o tique precisa.
+ */
+const JANELA_DOS_TIQUES_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_CONVERSAS_COM_TIQUE = 150;
+
+export type UltimaMensagemDaConversa = { direcao: MensagemDaCaixa["direcao"]; status: string };
+
+export function useUltimaMensagemDasConversas(ids: readonly string[]) {
+  const alvo = [...new Set(ids)].slice(0, MAX_CONVERSAS_COM_TIQUE);
+  return useQuery({
+    queryKey: [...CHAVES.conversas, "ultima-mensagem", alvo.join(",")] as const,
+    enabled: alvo.length > 0,
+    // O "entregue" e o "lida" mudam a mensagem, não a conversa: o tempo real da
+    // lista não avisa. Um intervalo curto mantém os tiques em dia.
+    refetchInterval: 30_000,
+    placeholderData: (anterior) => anterior,
+    queryFn: async () => {
+      const desde = new Date(Date.now() - JANELA_DOS_TIQUES_MS).toISOString();
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_mensagens")
+        .select("conversa_id, direcao, status, created_at")
+        .in("conversa_id", alvo)
+        .gte("created_at", desde)
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      const mapa = new Map<string, UltimaMensagemDaConversa>();
+      // Da mais nova para a mais antiga: a primeira de cada conversa é a última.
+      for (const l of (data ?? []) as { conversa_id: string; direcao: MensagemDaCaixa["direcao"]; status: string }[]) {
+        if (!mapa.has(l.conversa_id)) mapa.set(l.conversa_id, { direcao: l.direcao, status: l.status });
+      }
+      return mapa;
     },
   });
 }

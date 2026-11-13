@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { lerEstadoDoMenuNoNavegador } from "@/lib/estado-do-menu";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -71,7 +72,11 @@ const SidebarProvider = React.forwardRef<
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen);
+    // Lê o cookie `sidebar_state` ao nascer (12/11/2026): ele era gravado e
+    // nunca lido, e o menu abria sempre aberto. É seguro contra descompasso de
+    // hidratação porque o layout autenticado só monta este provedor depois do
+    // `loading` do useAuth, que só vira falso no navegador.
+    const [_open, _setOpen] = React.useState(() => lerEstadoDoMenuNoNavegador() ?? defaultOpen);
     const open = openProp ?? _open;
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {

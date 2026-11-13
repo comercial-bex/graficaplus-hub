@@ -1,53 +1,20 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import {
-  Archive,
-  ArrowLeft,
-  ArrowRightLeft,
-  Bot,
-  CheckCheck,
-  Clock,
-  Hand,
-  Loader2,
-  Lock,
-  PanelRightClose,
-  PanelRightOpen,
-  Paperclip,
-  RefreshCw,
-  RotateCcw,
-  Send,
-  StickyNote,
-} from "lucide-react";
-import { Dica } from "@/components/bex/Dica";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { StatusChip } from "@/components/bex/StatusChip";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import { SeloParceiro } from "@/components/crm/selo-parceiro";
-import { ehLeadParceiro } from "@/domain/crm/tipo-do-lead";
 import { mensagemErro } from "@/lib/erros";
 import {
   ANEXO_TIPOS,
-  autorDoBalao,
-  conteudoDaMensagem,
   desfechoDoEnvio,
-  diaEHora,
-  fraseDoEvento,
   nomeDaConversa,
   podeResponder,
   quandoFoi,
-  seloDoStatus,
-  telefoneLegivel,
   validarAnexo,
   type ConversaDaCaixa,
   type Desfecho,
-  type EventoDaConversa,
   type Liberacao,
   type MensagemDaCaixa,
 } from "@/domain/whatsapp/caixa-de-entrada";
@@ -65,12 +32,21 @@ import {
   useEventosDaConversa,
   useFotosDosContatos,
   useMensagensPaginadas,
-  useRespostasRapidas,
+  useNaoLidasPorMim,
   useTempoRealDaConversa,
   type InstanciaDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
-import { FotoDoContato } from "@/components/whatsapp/foto-do-contato";
-import { MidiaDaMensagem } from "@/components/whatsapp/midia-da-mensagem";
+import { chaveDoRascunho, lerRascunho, gravarRascunho } from "@/components/whatsapp/rascunhos";
+import {
+  andarNaBusca,
+  ocorrenciasDaBusca,
+  resumoDaBusca,
+} from "@/domain/whatsapp/busca-na-conversa";
+import { montarLinhaDoTempo, type ItemCru } from "@/domain/whatsapp/linha-do-tempo";
+import { fotosDaConversa, legendaDaBolha } from "@/domain/whatsapp/midia";
+import { precisaConfirmarBarra } from "@/domain/whatsapp/teclado";
+import type { ModoDaCaixa } from "@/domain/whatsapp/moldura";
+import { oQueDaPraFazer, type DialogoDaConversa } from "@/domain/whatsapp/acoes-de-trabalho";
 import {
   acaoNaConversa,
   enfileirarArquivo,
@@ -79,14 +55,20 @@ import {
 } from "@/lib/api/whatsapp-caixa.functions";
 import { atendidoPermitido, infoDoSetor, type MotivoResolucao } from "@/domain/whatsapp/filas";
 import {
+  DialogoAtalhos,
   DialogoResolver,
   DialogoTransferir,
   FaixaDoModo,
-  useAtalhosDaConversa,
 } from "@/components/whatsapp/acoes-da-conversa";
-import { semAssinatura } from "@/domain/whatsapp/assistente";
-import { RespostasRapidasMenu } from "@/components/whatsapp/respostas-rapidas-menu";
-import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import {
+  BarraDeBuscaNaConversa,
+  CabecalhoDaConversa,
+} from "@/components/whatsapp/cabecalho-da-conversa";
+import {
+  CaixaDeResposta,
+  type OpcoesDoEnvio,
+} from "@/components/whatsapp/caixa-de-resposta";
+import { LinhaDoTempo, type ControleDaLinha } from "@/components/whatsapp/linha-do-tempo";
 
 function avisar(d: Desfecho) {
   if (d.tom === "sucesso") toast.success(d.texto);
@@ -94,13 +76,42 @@ function avisar(d: Desfecho) {
   else toast.warning(d.texto);
 }
 
-type ItemDaLinha =
-  | { tipo: "msg"; quando: string; m: MensagemDaCaixa }
-  | { tipo: "evento"; quando: string; e: EventoDaConversa };
+/**
+ * O que a moldura (whatsapp.tsx) passa à conversa. Contrato da onda 1
+ * (12/11/2026): MOLDURA passa, CONVERSA usa. Nesta etapa final as quatro props
+ * novas são obrigatórias e `painelAberto`, `onAlternarPainel` e `acoes` foram
+ * apagadas (o painel virou a gaveta da moldura).
+ */
+export type PropsDaConversaAberta = {
+  conversa: ConversaDaCaixa;
+  instancia: InstanciaDaCaixa | null;
+  conexaoComFalha: boolean;
+  temPermissaoDeResponder: boolean;
+  /** Volta à lista: o botão Voltar de 44 px do modo estreito. (O Esc é da moldura.) */
+  onVoltar: () => void;
+  /** Aberta pela Nova conversa: o cursor já vai para a resposta. */
+  focarResposta?: boolean;
+  className?: string;
+  /** O modo da área: no estreito aparece o Voltar e o Orçamento vai para o menu de três pontos. */
+  modo: ModoDaCaixa;
+  /** Abre ou fecha os dados do contato (clique no nome ou na foto; "Dados do contato" no menu). */
+  onAlternarDados: () => void;
+  /** Os dados do contato estão abertos (aria-expanded do nome). */
+  dadosAbertos: boolean;
+  /** Abre um diálogo de trabalho (orçamento, OS, vincular cliente); quem desenha é a gaveta. */
+  onAbrirDialogo: (d: DialogoDaConversa) => void;
+};
 
 /**
- * A conversa aberta: histórico (mensagens + eventos da equipe), responsável,
- * situação, resposta, nota interna e anexo.
+ * A conversa aberta no jeito do WhatsApp (onda 1, 12/11/2026): cabeçalho de uma
+ * linha, linha do tempo com as cores --chat-*, caixa de resposta que cresce.
+ * Este arquivo é o orquestrador: consultas, ações, envio e o estado que liga os
+ * pedaços. O desenho está em cabecalho-da-conversa.tsx, linha-do-tempo.tsx,
+ * bolha-da-mensagem.tsx e caixa-de-resposta.tsx.
+ *
+ * O texto da caixa NÃO é estado daqui: mora em rascunhos.ts, por conversa. Assim
+ * cada tecla não renderiza as centenas de bolhas, e trocar de conversa não
+ * perde o que se começou a escrever.
  */
 export function ConversaAberta({
   conversa,
@@ -108,27 +119,15 @@ export function ConversaAberta({
   conexaoComFalha,
   temPermissaoDeResponder,
   onVoltar,
-  painelAberto,
-  onAlternarPainel,
   focarResposta = false,
-  acoes,
   className,
-}: {
-  conversa: ConversaDaCaixa;
-  instancia: InstanciaDaCaixa | null;
-  conexaoComFalha: boolean;
-  temPermissaoDeResponder: boolean;
-  onVoltar: () => void;
-  painelAberto: boolean;
-  onAlternarPainel: () => void;
-  /** Aberta pela Nova conversa: o cursor já vai para a resposta. */
-  focarResposta?: boolean;
-  /** O painel da conversa (cliente, etiquetas, orçamento): no celular abre numa gaveta. */
-  acoes?: React.ReactNode;
-  className?: string;
-}) {
+  modo: modoDaCaixa,
+  onAlternarDados,
+  dadosAbertos,
+  onAbrirDialogo,
+}: PropsDaConversaAberta) {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const meuId = user?.id ?? null;
   const acao = useServerFn(acaoNaConversa);
   const enviarArquivo = useServerFn(enfileirarArquivo);
@@ -136,28 +135,33 @@ export function ConversaAberta({
   const mensagens = useMensagensPaginadas(conversa.id);
   const eventos = useEventosDaConversa(conversa.id);
   const equipe = useEquipe();
-  const respostas = useRespostasRapidas();
   const config = useConfiguracoesWhatsapp();
   const atendimentos = useAtendimentos(conversa.id);
+  const naoLidasPorMim = useNaoLidasPorMim();
   useTempoRealDaConversa(conversa.id);
   const [transferirAberto, setTransferirAberto] = useState(false);
   const [resolverAberto, setResolverAberto] = useState(false);
+  const [atalhosAberto, setAtalhosAberto] = useState(false);
 
-  const [modo, setModo] = useState<"mensagem" | "nota">("mensagem");
-  const [texto, setTexto] = useState("");
+  // Volta no modo nota se havia nota por escrever: o texto dela não pode cair na caixa do cliente.
+  const [modo, setModo] = useState<"mensagem" | "nota">(() =>
+    lerRascunho(chaveDoRascunho(conversa.id, true)).trim() ? "nota" : "mensagem",
+  );
   const [enviando, setEnviando] = useState(false);
   const [tentando, setTentando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
-  const rolagemRef = useRef<HTMLDivElement>(null);
-  const noFimRef = useRef(true);
-  const alturaAntesRef = useRef<number | null>(null);
-  const anexoRef = useRef<HTMLInputElement>(null);
+  const controleDaLinha = useRef<ControleDaLinha | null>(null);
   // Aberta pela Nova conversa: o cursor vai para a resposta quando o diálogo
   // já fechou (o `autoFocus` na montagem perdia para o foco preso do diálogo).
   const respostaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (focarResposta && temPermissaoDeResponder) respostaRef.current?.focus();
   }, [focarResposta, temPermissaoDeResponder]);
+
+  // Busca dentro da conversa (a lupa do cabeçalho).
+  const [buscaAberta, setBuscaAberta] = useState(false);
+  const [termo, setTermo] = useState("");
+  const [atual, setAtual] = useState(-1);
 
   const nomes = useMemo(() => mapaDeNomes(equipe.data), [equipe.data]);
   const rotulos = useMemo(() => mapaDeRotulos(equipe.data), [equipe.data]);
@@ -172,15 +176,24 @@ export function ConversaAberta({
         }
       : podeResponder(instancia, temPermissaoDeResponder);
   const nome = nomeDaConversa(conversa);
-  const fotos = useFotosDosContatos([conversa.foto_path]);
+  const fotosDoContato = useFotosDosContatos([conversa.foto_path]);
   // A assinatura de quem está olhando, como o despachante vai montar (o aviso
   // de transferência sai com ela).
   const eu = (equipe.data ?? []).find((p) => p.id === user?.id) ?? null;
   const minhaAssinatura = eu ? assinaturaDaPessoa({ nome: eu.nome, papeis: eu.papeis, fila: conversa.fila }) : null;
   // "assumida por Yvens · Gerência": quem está com a conversa e de que setor.
   const responsavel = conversa.responsavel_id
-    ? (rotulos.get(conversa.responsavel_id) ?? "Equipe")
+    ? `assumida por ${rotulos.get(conversa.responsavel_id) ?? "Equipe"}`
     : null;
+
+  // O que dá para fazer além de responder; sem permissão o item continua à
+  // vista, desabilitado e com o motivo (contrato, 3.3).
+  const disponivel = oQueDaPraFazer({
+    podeResponder: temPermissaoDeResponder,
+    podeOrcar: hasPermission("orcamentos.create"),
+    podeAbrirOs: hasPermission("os.create"),
+    clienteId: conversa.cliente_id ?? null,
+  });
 
   const recarregar = () => {
     void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) });
@@ -188,11 +201,24 @@ export function ConversaAberta({
     void qc.invalidateQueries({ queryKey: ["wa-caixa-eventos", conversa.id] });
   };
 
-  // Abrir marca como lida PARA QUEM ABRIU (cada um tem a sua leitura) — e,
-  // para quem responde, zera o contador geral, como antes. De novo quando
-  // chega mensagem com a conversa aberta.
+  // O divisor "Mensagens não lidas": `marcarLidaPorMim` zera o contador ao
+  // abrir, então o número é guardado ANTES da primeira marcação (senão o
+  // divisor nasce e some no mesmo instante). A leitura é a de quem olha
+  // (`nao_lidas` da conversa é de todos). Como a consulta pode ainda não ter
+  // chegado, a marcação espera por ela (ou pela falha dela).
+  const naoLidasNaAbertura = useRef<number | null>(null);
+  if (naoLidasNaAbertura.current === null && (naoLidasPorMim.isSuccess || naoLidasPorMim.isError)) {
+    naoLidasNaAbertura.current = naoLidasPorMim.data?.get(conversa.id) ?? 0;
+  }
+  const naoLidasAoAbrir = naoLidasNaAbertura.current ?? 0;
+  const sabeOsNaoLidas = naoLidasNaAbertura.current !== null;
+
+  // Abrir marca como lida PARA QUEM ABRIU (cada um tem a sua leitura) e, para
+  // quem responde, zera o contador geral, como antes. De novo quando chega
+  // mensagem com a conversa aberta.
   const qtdMensagens = (mensagens.data?.pages ?? []).reduce((n, p) => n + p.length, 0);
   useEffect(() => {
+    if (!sabeOsNaoLidas) return;
     marcarLida({ data: { conversaId: conversa.id } })
       .then(() => qc.invalidateQueries({ queryKey: CHAVES.naoLidas }))
       .then(() => {
@@ -200,54 +226,53 @@ export function ConversaAberta({
       })
       .catch((e: unknown) => toast.error(`Não foi possível marcar como lida: ${mensagemErro(e)}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversa.id, qtdMensagens]);
+  }, [conversa.id, qtdMensagens, sabeOsNaoLidas]);
 
-  const linha: ItemDaLinha[] = useMemo(() => {
-    const msgs = (mensagens.data?.pages ?? []).flat();
-    const maisAntiga = msgs.length ? msgs[msgs.length - 1].created_at : null;
-    const itens: ItemDaLinha[] = msgs.map((m) => ({ tipo: "msg", quando: quandoFoi(m), m }));
+  const mensagensCarregadas = useMemo(
+    () => (mensagens.data?.pages ?? []).flat(),
+    [mensagens.data],
+  );
+  const fotos = useMemo(() => fotosDaConversa(mensagensCarregadas), [mensagensCarregadas]);
+
+  const itens = useMemo(() => {
+    const maisAntiga = mensagensCarregadas.length
+      ? mensagensCarregadas[mensagensCarregadas.length - 1].created_at
+      : null;
+    const crus: ItemCru[] = mensagensCarregadas.map((m) => ({ tipo: "msg", quando: quandoFoi(m), m }));
     for (const e of eventos.data ?? []) {
       // Eventos mais antigos que a mensagem mais antiga carregada esperam o
-      // "mensagens anteriores" — senão apareceriam soltos no topo.
+      // "mensagens anteriores"; senão apareceriam soltos no topo.
       if (mensagens.hasNextPage && maisAntiga && e.created_at < maisAntiga) continue;
-      itens.push({ tipo: "evento", quando: e.created_at, e });
+      crus.push({ tipo: "evento", quando: e.created_at, e });
     }
-    return itens.sort((a, b) => a.quando.localeCompare(b.quando));
-  }, [mensagens.data, eventos.data, mensagens.hasNextPage]);
+    return montarLinhaDoTempo(crus, { naoLidas: naoLidasAoAbrir });
+  }, [mensagensCarregadas, eventos.data, mensagens.hasNextPage, naoLidasAoAbrir]);
 
-  // Rola para o fim só se a pessoa já estava no fim; ao carregar anteriores,
-  // mantém a posição de leitura.
-  useLayoutEffect(() => {
-    const el = rolagemRef.current;
-    if (!el) return;
-    if (alturaAntesRef.current != null) {
-      el.scrollTop = el.scrollHeight - alturaAntesRef.current;
-      alturaAntesRef.current = null;
-      return;
-    }
-    if (noFimRef.current) el.scrollTop = el.scrollHeight;
-  }, [linha.length]);
-
+  // A busca acha entre as mensagens carregadas (as anteriores entram com "Mensagens anteriores").
+  const ocorrencias = useMemo(
+    () =>
+      buscaAberta
+        ? ocorrenciasDaBusca(
+            mensagensCarregadas
+              .slice()
+              .sort((a, b) => quandoFoi(a).localeCompare(quandoFoi(b)))
+              .map((m) => ({ id: m.id, texto: legendaDaBolha(m) })),
+            termo,
+          )
+        : [],
+    [buscaAberta, mensagensCarregadas, termo],
+  );
+  // A busca começa na ocorrência mais nova, como no WhatsApp.
   useEffect(() => {
-    noFimRef.current = true;
-  }, [conversa.id]);
+    setAtual(ocorrencias.length ? ocorrencias.length - 1 : -1);
+  }, [ocorrencias.length, termo]);
+  const termoAtivo = buscaAberta && termo.trim() ? termo : null;
+  const ocorrenciaAtualId = termoAtivo ? (ocorrencias[atual] ?? null) : null;
 
-  function aoRolar() {
-    const el = rolagemRef.current;
-    if (!el) return;
-    noFimRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-  }
-
-  // Foto, vídeo e áudio carregam depois de a bolha estar na tela e a fazem
-  // crescer: quem estava no fim da conversa continua no fim.
-  function manterNoFim() {
-    const el = rolagemRef.current;
-    if (el && noFimRef.current) el.scrollTop = el.scrollHeight;
-  }
-
-  function carregarAnteriores() {
-    alturaAntesRef.current = rolagemRef.current?.scrollHeight ?? null;
-    void mensagens.fetchNextPage();
+  function fecharBusca() {
+    setBuscaAberta(false);
+    setTermo("");
+    setAtual(-1);
   }
 
   async function executar(dados: AcaoNaConversa, sucesso: string): Promise<boolean> {
@@ -276,7 +301,7 @@ export function ConversaAberta({
     try {
       const r = await acao({ data: dados });
       if (r.aviso?.enfileirado) {
-        toast.success(`${sucesso} — o aviso ao cliente está saindo.`);
+        toast.success(`${sucesso}. O aviso ao cliente está saindo.`);
         void acionarEnvio();
       } else if (r.aviso) {
         toast.warning(`${sucesso}, mas o aviso ao cliente não saiu: ${r.aviso.motivo ?? "motivo não informado"}.`);
@@ -294,15 +319,26 @@ export function ConversaAberta({
     }
   }
 
-  async function enviar() {
-    const limpo = texto.trim();
+  function apagarRascunho() {
+    gravarRascunho(chaveDoRascunho(conversa.id, modo === "nota"), "");
+  }
+
+  /**
+   * Envia o que está na caixa (nota interna ou mensagem). Texto que começa com
+   * "/" no modo mensagem só sai com `confirmouBarra`: a caixa pergunta antes e
+   * esta guarda fica por segurança, porque no laboratório de 11/11 o "/pix"
+   * foi ao cliente literal.
+   */
+  async function enviar(opcoes?: OpcoesDoEnvio) {
+    const limpo = lerRascunho(chaveDoRascunho(conversa.id, modo === "nota")).trim();
     if (!limpo || enviando) return;
     if (modo === "nota") {
       setEnviando(true);
       try {
         await acao({ data: { acao: "nota", conversaId: conversa.id, texto: limpo } });
-        setTexto("");
-        noFimRef.current = true;
+        apagarRascunho();
+        setModo("mensagem");
+        controleDaLinha.current?.irParaOFim();
         recarregar();
       } catch (e) {
         toast.error(mensagemErro(e));
@@ -311,6 +347,7 @@ export function ConversaAberta({
       }
       return;
     }
+    if (precisaConfirmarBarra(limpo) && !opcoes?.confirmouBarra) return;
     if (!liberacao.liberado) return;
     setEnviando(true);
     try {
@@ -321,8 +358,8 @@ export function ConversaAberta({
         toast.error(mensagemErro(e));
         return;
       }
-      setTexto("");
-      noFimRef.current = true;
+      apagarRascunho();
+      controleDaLinha.current?.irParaOFim();
       recarregar();
       const http = await acionarEnvio();
       avisar(desfechoDoEnvio(http, enfileirada.fila_id, enfileirada.mensagem_id));
@@ -347,11 +384,11 @@ export function ConversaAberta({
           tipo: ANEXO_TIPOS[arquivo.type],
           caminho,
           nomeArquivo: arquivo.name,
-          legenda: texto.trim() || undefined,
+          legenda: lerRascunho(conversa.id).trim() || undefined,
         },
       });
-      setTexto("");
-      noFimRef.current = true;
+      apagarRascunho();
+      controleDaLinha.current?.irParaOFim();
       recarregar();
       const http = await acionarEnvio();
       avisar(desfechoDoEnvio(http, r.fila_id, r.mensagem_id));
@@ -360,7 +397,6 @@ export function ConversaAberta({
       toast.error(`O arquivo não foi enviado: ${mensagemErro(e)}`);
     } finally {
       setEnviando(false);
-      if (anexoRef.current) anexoRef.current.value = "";
     }
   }
 
@@ -368,8 +404,8 @@ export function ConversaAberta({
     setTentando(true);
     try {
       const http = await acionarEnvio();
-      const atual = await mensagens.refetch();
-      const depois = (atual.data?.pages ?? []).flat().find((x) => x.id === m.id);
+      const atualizado = await mensagens.refetch();
+      const depois = (atualizado.data?.pages ?? []).flat().find((x) => x.id === m.id);
       if (
         depois?.status === "enviada" ||
         depois?.status === "entregue" ||
@@ -392,212 +428,75 @@ export function ConversaAberta({
     }
   }
 
-  // Atalho "/": digitar "/" no começo abre as respostas rápidas filtradas.
-  const atalho = modo === "mensagem" && texto.startsWith("/") ? texto.slice(1).toLowerCase() : null;
-  const sugestoes =
-    atalho === null
-      ? []
-      : (respostas.data ?? [])
-          .filter((r) => `${r.titulo} ${r.categoria}`.toLowerCase().includes(atalho))
-          .slice(0, 6);
+  // As bolhas são memorizadas: estas funções precisam manter a identidade entre
+  // renders, senão a lista inteira redesenha a cada mensagem nova.
+  const tentarDeNovoRef = useRef(tentarDeNovo);
+  tentarDeNovoRef.current = tentarDeNovo;
+  const aoTentarDeNovo = useCallback((m: MensagemDaCaixa) => void tentarDeNovoRef.current(m), []);
+  const aoReescrever = useCallback(
+    (texto: string) => {
+      gravarRascunho(conversa.id, texto);
+      setModo("mensagem");
+      setTimeout(() => respostaRef.current?.focus(), 0);
+    },
+    [conversa.id],
+  );
+  const aoArquivar = useCallback(
+    () => void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) }),
+    [qc, conversa.id],
+  );
 
   const resolver = (motivo: MotivoResolucao, nota?: string) =>
     executar({ acao: "resolver", conversaId: conversa.id, motivo, nota }, "Atendimento resolvido");
 
-  const acaoStatus = (status: "aberta" | "pendente" | "arquivada", rotulo: string) =>
-    void executar({ acao: "status", conversaId: conversa.id, status }, rotulo);
-
   const aberta = conversa.status === "aberta" || conversa.status === "pendente";
   const atendimentoAtual = (atendimentos.data ?? []).find((a) => !a.fechado_em) ?? null;
-  const podeAtendido = atendidoPermitido((mensagens.data?.pages ?? []).flat());
-  const setorAtual = conversa.fila ? infoDoSetor(conversa.fila) : null;
-
-  const assumir = () =>
-    void executar({ acao: "assumir", conversaId: conversa.id }, "Você assumiu o atendimento");
-
-  useAtalhosDaConversa(temPermissaoDeResponder, {
-    assumir: conversa.responsavel_id !== meuId ? assumir : undefined,
-    transferir: () => setTransferirAberto(true),
-    resolver: aberta ? () => setResolverAberto(true) : undefined,
-  });
+  const podeAtendido = atendidoPermitido(mensagensCarregadas);
 
   return (
-    <Card className={cn("flex flex-col overflow-hidden", className)}>
-      <div className={cn("space-y-2 border-b p-3", ehLeadParceiro(conversa.lead?.tipo) && "border-l-4 border-l-lead-parceiro")}>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={onVoltar}
-            aria-label="Voltar às conversas"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <FotoDoContato nome={nome} url={conversa.foto_path ? fotos.data?.get(conversa.foto_path) : null} />
-          <div className="min-w-0 flex-1">
-            {/* Sem `truncate`: a 375 px o nome ficava cortado atrás dos botões.
-                Quebra em até duas linhas e o cabeçalho se acomoda. */}
-            <div className="line-clamp-2 break-words font-medium leading-tight">{nome}</div>
-            <SeloParceiro tipo={conversa.lead?.tipo} />
-            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-              <span>{telefoneLegivel(conversa.telefone)}</span>
-              {conversa.cliente && (
-                <Link
-                  to="/clientes/$id"
-                  params={{ id: conversa.cliente.id }}
-                  className="underline underline-offset-2"
-                >
-                  ver cliente
-                </Link>
-              )}
-              <span>· {responsavel ? `assumida por ${responsavel}` : "sem responsável"}</span>
-              {setorAtual && (
-                <span className="inline-flex items-center gap-1">
-                  · <span className={cn("h-1.5 w-1.5 rounded-full", setorAtual.ponto)} aria-hidden />
-                  Fila {setorAtual.rotulo}
-                </span>
-              )}
-              {atendimentoAtual && <span className="font-mono">· {atendimentoAtual.numero}</span>}
-            </div>
-          </div>
-          {conversa.status !== "aberta" && (
-            <StatusChip
-              label={conversa.status}
-              tone={conversa.status === "pendente" ? "amber" : "muted"}
-            />
-          )}
-          <Dica texto={painelAberto ? "Recolher o painel do cliente" : "Abrir o painel do cliente"} className="hidden xl:inline-flex">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onAlternarPainel}
-              aria-label={painelAberto ? "Recolher painel lateral" : "Abrir painel lateral"}
-            >
-              {painelAberto ? (
-                <PanelRightClose className="h-4 w-4" />
-              ) : (
-                <PanelRightOpen className="h-4 w-4" />
-              )}
-            </Button>
-          </Dica>
-          {acoes && (
-            // Abaixo de 1280 px o painel da conversa (cliente, etiquetas,
-            // orçamento, histórico) não cabe ao lado do chat: abre numa gaveta.
-            // Até 11/11/2026 a gaveta parava em 1024 px e, entre 1024 e
-            // 1279 px, o painel descia para baixo da conversa dentro da mesma
-            // altura fixa e espremia as mensagens numa faixa.
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="xl:hidden"
-                >
-                  <PanelRightOpen className="mr-1 h-4 w-4" aria-hidden />
-                  Ações
-                </Button>
-              </SheetTrigger>
-              <SheetContent
-                side="right"
-                className="w-[92vw] max-w-md overflow-y-auto p-0 sm:max-w-md"
-              >
-                <SheetHeader className="p-4 pb-0 text-left">
-                  <SheetTitle>Ações da conversa</SheetTitle>
-                </SheetHeader>
-                {acoes}
-              </SheetContent>
-            </Sheet>
-          )}
-        </div>
-        {temPermissaoDeResponder && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {/* O nome de cada ação à vista em todo tamanho: no celular era só o
-                ícone, e o nome morava no title, que o dedo não abre. A tecla de
-                atalho fica na dica — é coisa de teclado. */}
-            {conversa.responsavel_id !== meuId && (
-              <Dica texto="Assumir a conversa (tecla R)">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  disabled={ocupado}
-                  onClick={assumir}
-                  aria-keyshortcuts="R"
-                >
-                  <Hand className="mr-1 h-3.5 w-3.5" aria-hidden />
-                  Assumir
-                </Button>
-              </Dica>
-            )}
-            <Dica texto="Transferir para uma pessoa ou outra fila (tecla T)">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                disabled={ocupado}
-                onClick={() => setTransferirAberto(true)}
-                aria-keyshortcuts="T"
-              >
-                <ArrowRightLeft className="mr-1 h-3.5 w-3.5" aria-hidden />
-                Transferir
-              </Button>
-            </Dica>
-            <span className="ml-auto" />
-            {conversa.status === "aberta" && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs"
-                disabled={ocupado}
-                onClick={() => acaoStatus("pendente", "Marcada como pendente")}
-              >
-                <Clock className="mr-1 h-3.5 w-3.5" aria-hidden />
-                Marcar pendente
-              </Button>
-            )}
-            {aberta && (
-              <Dica texto="Resolver com o motivo (tecla E)">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  disabled={ocupado}
-                  onClick={() => setResolverAberto(true)}
-                  aria-keyshortcuts="E"
-                >
-                  <CheckCheck className="mr-1 h-3.5 w-3.5" aria-hidden />
-                  Resolver
-                </Button>
-              </Dica>
-            )}
-            {conversa.status !== "arquivada" && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs"
-                disabled={ocupado}
-                onClick={() => acaoStatus("arquivada", "Conversa arquivada")}
-              >
-                <Archive className="mr-1 h-3.5 w-3.5" aria-hidden />
-                Arquivar
-              </Button>
-            )}
-            {conversa.status !== "aberta" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                disabled={ocupado}
-                onClick={() => acaoStatus("aberta", "Conversa reaberta")}
-              >
-                <RotateCcw className="mr-1 h-3.5 w-3.5" aria-hidden />
-                Reabrir
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
+    <Card className={cn("@container/conversa flex min-h-0 flex-col overflow-hidden", className)}>
+      <CabecalhoDaConversa
+        conversa={conversa}
+        nome={nome}
+        fotoUrl={conversa.foto_path ? fotosDoContato.data?.get(conversa.foto_path) : null}
+        responsavel={responsavel}
+        modo={modoDaCaixa}
+        dadosAbertos={dadosAbertos}
+        temPermissaoDeResponder={temPermissaoDeResponder}
+        meuId={meuId}
+        ocupado={ocupado}
+        iaLigada={config.data?.ia_ativa === true}
+        disponivel={disponivel}
+        buscaAberta={buscaAberta}
+        onVoltar={onVoltar}
+        onAlternarDados={onAlternarDados}
+        onAbrirDialogo={onAbrirDialogo}
+        onAssumir={() =>
+          void executar({ acao: "assumir", conversaId: conversa.id }, "Você assumiu o atendimento")
+        }
+        onTransferir={() => setTransferirAberto(true)}
+        onResolver={() => setResolverAberto(true)}
+        onStatus={(status, rotulo) =>
+          void executar({ acao: "status", conversaId: conversa.id, status }, rotulo)
+        }
+        onDevolver={() =>
+          void executar({ acao: "devolver_ia", conversaId: conversa.id }, "Conversa devolvida à assistente")
+        }
+        onAtalhos={() => setAtalhosAberto(true)}
+        onAlternarBusca={() => (buscaAberta ? fecharBusca() : setBuscaAberta(true))}
+      />
+
+      {buscaAberta && (
+        <BarraDeBuscaNaConversa
+          termo={termo}
+          onTermo={setTermo}
+          resumo={resumoDaBusca(atual, ocorrencias.length, termo)}
+          temOcorrencias={ocorrencias.length > 0}
+          onAnterior={() => setAtual((a) => andarNaBusca(a, ocorrencias.length, -1))}
+          onProxima={() => setAtual((a) => andarNaBusca(a, ocorrencias.length, 1))}
+          onFechar={fecharBusca}
+        />
+      )}
 
       <FaixaDoModo
         iaLigada={config.data?.ia_ativa === true}
@@ -644,294 +543,45 @@ export function ConversaAberta({
           />
         </>
       )}
+      <DialogoAtalhos aberto={atalhosAberto} onAberto={setAtalhosAberto} />
 
-      <div
-        ref={rolagemRef}
-        onScroll={aoRolar}
-        className="min-h-0 flex-1 space-y-2.5 overflow-auto bg-muted/30 p-4"
-      >
-        {mensagens.isError ? (
-          <FalhaDeConsulta
-            titulo="Não foi possível carregar as mensagens"
-            erro={mensagens.error}
-            onTentarDeNovo={() => void mensagens.refetch()}
-          />
-        ) : mensagens.isPending ? (
-          <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Carregando as mensagens…
-          </div>
-        ) : linha.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Nenhuma mensagem gravada nesta conversa.
-          </p>
-        ) : (
-          <>
-            {mensagens.hasNextPage && (
-              <div className="flex justify-center">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  onClick={carregarAnteriores}
-                  disabled={mensagens.isFetchingNextPage}
-                >
-                  {mensagens.isFetchingNextPage && (
-                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                  )}
-                  Mensagens anteriores
-                </Button>
-              </div>
-            )}
-            {linha.map((item) => {
-              if (item.tipo === "evento") {
-                const e = item.e;
-                if (e.tipo === "nota") {
-                  return (
-                    <div
-                      key={e.id}
-                      className="mx-auto max-w-[85%] rounded-md border border-warning/40 bg-warning/10 p-2.5 text-sm text-foreground"
-                    >
-                      <div className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-                        <Lock className="h-3 w-3" /> Nota de{" "}
-                        {(e.de_usuario && nomes.get(e.de_usuario)) || "Equipe"} · visível só para a
-                        equipe
-                      </div>
-                      <div className="whitespace-pre-wrap break-words">
-                        {fraseDoEvento(e, nomes, setoresDaEquipe)}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {diaEHora(e.created_at)}
-                      </div>
-                    </div>
-                  );
-                }
-                return (
-                  <div key={e.id} className="py-0.5 text-center text-xs text-muted-foreground">
-                    {fraseDoEvento(e, nomes, setoresDaEquipe)} · {diaEHora(e.created_at)}
-                  </div>
-                );
-              }
-              const m = item.m;
-              const nossa = m.direcao === "saida";
-              const selo = seloDoStatus(m);
-              const temMidia = !!m.storage_path || !!m.media_url;
-              const autor = autorDoBalao(m, nomes);
-              const naoSuportada = m.tipo === "sistema" && !m.texto;
-              return (
-                <div key={m.id} className={cn("flex", nossa ? "justify-end" : "justify-start")}>
-                  <div
-                    className={cn(
-                      "max-w-[80%] rounded-lg border p-2.5 text-sm text-foreground",
-                      !nossa
-                        ? "bg-card"
-                        : m.origem === "ia"
-                          ? "border-status-cyan/25 bg-status-cyan/5"
-                          : "border-positive/25 bg-positive/10",
-                    )}
-                  >
-                    {autor && (
-                      <div className="mb-0.5 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-                        {m.origem === "ia" && <Bot className="h-3 w-3" aria-hidden />}
-                        {autor}
-                      </div>
-                    )}
-                    <div
-                      className={cn(
-                        "whitespace-pre-wrap break-words",
-                        naoSuportada && "italic text-muted-foreground",
-                      )}
-                    >
-                      {m.origem === "ia" ? semAssinatura(conteudoDaMensagem(m)) : conteudoDaMensagem(m)}
-                    </div>
-                    {temMidia && (
-                      <MidiaDaMensagem
-                        m={m}
-                        aoMudarAltura={manterNoFim}
-                        aoArquivar={() =>
-                          void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) })
-                        }
-                      />
-                    )}
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span>{diaEHora(quandoFoi(m))}</span>
-                      {selo && (
-                        <span className="font-semibold uppercase tracking-wide">{selo.texto}</span>
-                      )}
-                    </div>
-                    {nossa && m.erro && m.status !== "enviada" && (
-                      <div className="mt-1 rounded bg-destructive/10 px-1.5 py-1 text-xs text-destructive">
-                        Motivo: {m.erro}
-                      </div>
-                    )}
-                    {nossa && temPermissaoDeResponder && m.status === "pendente" && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="mt-2 h-7 text-xs"
-                        onClick={() => tentarDeNovo(m)}
-                        // Bloqueado, o motivo já está à vista no rodapé da conversa.
-                        disabled={tentando || !liberacao.liberado}
-                      >
-                        <RefreshCw className={cn("mr-1 h-3 w-3", tentando && "animate-spin")} />{" "}
-                        Tentar de novo
-                      </Button>
-                    )}
-                    {nossa && temPermissaoDeResponder && m.status === "falha" && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="mt-2 h-7 text-xs"
-                        onClick={() => setTexto(m.texto ?? "")}
-                      >
-                        Reescrever na caixa de resposta
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </>
-        )}
-      </div>
+      <LinhaDoTempo
+        conversaId={conversa.id}
+        itens={itens}
+        carregando={mensagens.isPending}
+        erro={mensagens.isError ? mensagens.error : null}
+        onTentarCarregarDeNovo={() => void mensagens.refetch()}
+        temAnteriores={!!mensagens.hasNextPage}
+        carregandoAnteriores={mensagens.isFetchingNextPage}
+        onCarregarAnteriores={() => void mensagens.fetchNextPage()}
+        nomes={nomes}
+        setoresDaEquipe={setoresDaEquipe}
+        meuId={meuId}
+        podeResponder={temPermissaoDeResponder}
+        liberado={liberacao.liberado}
+        tentando={tentando}
+        fotos={fotos}
+        realce={termoAtivo}
+        ocorrenciaAtualId={ocorrenciaAtualId}
+        aoArquivar={aoArquivar}
+        onTentarDeNovo={aoTentarDeNovo}
+        onReescrever={aoReescrever}
+        controle={controleDaLinha}
+      />
 
-      <div className="space-y-2 border-t p-3">
-        {temPermissaoDeResponder && (
-          <div className="flex gap-1 text-xs" role="tablist" aria-label="Tipo de escrita">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={modo === "mensagem"}
-              onClick={() => setModo("mensagem")}
-              className={cn(
-                "rounded px-2 py-1",
-                modo === "mensagem"
-                  ? "bg-muted font-semibold"
-                  : "text-muted-foreground hover:bg-muted/60",
-              )}
-            >
-              Mensagem
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={modo === "nota"}
-              onClick={() => setModo("nota")}
-              className={cn(
-                "inline-flex items-center gap-1 rounded px-2 py-1",
-                modo === "nota"
-                  ? "bg-warning/15 font-semibold"
-                  : "text-muted-foreground hover:bg-muted/60",
-              )}
-            >
-              <StickyNote className="h-3 w-3" /> Nota
-            </button>
-            {modo === "nota" && (
-              <span className="ml-2 self-center text-xs text-muted-foreground">
-                <Lock className="mr-0.5 inline h-3 w-3" />A nota fica só na equipe — nunca vai para
-                o cliente.
-              </span>
-            )}
-          </div>
-        )}
-        {sugestoes.length > 0 && (
-          <div className="rounded-md border bg-popover p-1 shadow-sm">
-            {sugestoes.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-muted"
-                onClick={() => setTexto(r.texto)}
-              >
-                <span className="font-medium">{r.titulo}</span>{" "}
-                <span className="text-muted-foreground">— {r.texto.slice(0, 70)}</span>
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="flex items-end gap-2">
-          {modo === "mensagem" && (
-            <>
-              <RespostasRapidasMenu
-                desabilitado={!temPermissaoDeResponder}
-                onEscolher={(t) =>
-                  setTexto((atual) => (atual.trim() ? `${atual.trimEnd()}\n${t}` : t))
-                }
-              />
-              <input
-                ref={anexoRef}
-                type="file"
-                className="hidden"
-                accept="application/pdf,image/jpeg,image/png,image/webp"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void anexar(f);
-                }}
-              />
-              <Dica texto="Anexar PDF ou imagem (até 10 MB). O texto escrito vira a legenda.">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  disabled={!liberacao.liberado || enviando}
-                  onClick={() => anexoRef.current?.click()}
-                  aria-label="Anexar PDF ou imagem, até 10 MB"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-              </Dica>
-            </>
-          )}
-          <Textarea
-            rows={2}
-            ref={respostaRef}
-            className={cn(
-              "min-h-[44px] flex-1 resize-none",
-              modo === "nota" && "border-warning/50 bg-warning/5",
-            )}
-            placeholder={
-              !temPermissaoDeResponder
-                ? "Seu perfil só lê as conversas"
-                : modo === "nota"
-                  ? "Nota interna para a equipe… (Ctrl+Enter grava)"
-                  : "Escreva a resposta… “/” abre respostas rápidas · Ctrl+Enter envia"
-            }
-            value={texto}
-            disabled={!temPermissaoDeResponder || enviando}
-            onChange={(e) => setTexto(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                void enviar();
-              }
-            }}
-            aria-label={modo === "nota" ? "Nota interna" : "Resposta"}
-          />
-          {(modo === "nota" ? temPermissaoDeResponder : liberacao.liberado) && (
-            <Button
-              onClick={() => void enviar()}
-              disabled={enviando || !texto.trim()}
-              variant={modo === "nota" ? "outline" : "default"}
-            >
-              {enviando ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              ) : modo === "nota" ? (
-                <StickyNote className="mr-1 h-4 w-4" />
-              ) : (
-                <Send className="mr-1 h-4 w-4" />
-              )}
-              {modo === "nota" ? "Gravar nota" : "Enviar"}
-            </Button>
-          )}
-        </div>
-        {modo === "mensagem" && !liberacao.liberado && (
-          <div className="space-y-1">
-            <Button disabled className="h-auto w-full whitespace-normal py-2">
-              {liberacao.rotulo}
-            </Button>
-            <p className="text-xs text-muted-foreground">{liberacao.motivo}</p>
-          </div>
-        )}
-      </div>
+      <CaixaDeResposta
+        conversaId={conversa.id}
+        modo={modo}
+        onModo={setModo}
+        enviando={enviando}
+        temPermissaoDeResponder={temPermissaoDeResponder}
+        liberacao={liberacao}
+        disponivel={disponivel}
+        onAbrirDialogo={onAbrirDialogo}
+        onEnviar={(opcoes) => void enviar(opcoes)}
+        onAnexar={(arquivo) => void anexar(arquivo)}
+        respostaRef={respostaRef}
+      />
     </Card>
   );
 }

@@ -12,9 +12,31 @@
  * alguém a abre (`precisaArquivar`), para o arquivo não sumir do histórico.
  */
 
-import type { MensagemDaCaixa } from "@/domain/whatsapp/caixa-de-entrada";
+import {
+  MENSAGEM_NAO_SUPORTADA,
+  quandoFoi,
+  rotuloDoTipo,
+  type MensagemDaCaixa,
+} from "@/domain/whatsapp/caixa-de-entrada";
 
 export type CategoriaDaMidia = "imagem" | "video" | "audio" | "documento" | "outra";
+
+/**
+ * Contrato da onda 1 (12/11/2026), dono MIDIA. A CONVERSA chama estas duas
+ * para desenhar a bolha: a figurinha vem sem fundo de bolha (como no
+ * WhatsApp), e o visor de fotos anda entre as fotos carregadas da conversa.
+ */
+export function bolhaSemFundo(m: Pick<MensagemDaCaixa, "tipo">): boolean {
+  return m.tipo === "sticker";
+}
+
+/** As fotos carregadas da conversa, da mais antiga para a mais nova (o visor anda nelas). */
+export function fotosDaConversa<T extends MensagemDaCaixa>(mensagens: readonly T[]): T[] {
+  return mensagens
+    .filter((m) => m.tipo === "imagem" && temArquivo(m))
+    .slice()
+    .sort((a, b) => quandoFoi(a).localeCompare(quandoFoi(b)));
+}
 
 /** Figurinha é imagem; localização e contato não têm arquivo para mostrar. */
 export function categoriaDaMidia(tipo: string): CategoriaDaMidia {
@@ -111,4 +133,63 @@ export function nomeParaBaixar(
   const base = NOME_BASE[m.tipo] ?? "arquivo";
   const quando = m.recebido_em ?? m.enviado_em ?? m.created_at;
   return `${base}-${carimbo(quando)}.${extensao}`;
+}
+
+/**
+ * A frase para a mensagem de mídia que chegou SEM o arquivo (o Z-API não
+ * mandou o link, ou a cópia falhou antes de existir). Vale dizer o que houve:
+ * bolha vazia se lê como "o cliente não mandou nada".
+ */
+const SEM_ARQUIVO: Record<string, string> = {
+  imagem: "A foto não chegou com o arquivo. Peça para o cliente enviar de novo.",
+  sticker: "A figurinha não chegou com o arquivo.",
+  video: "O vídeo não chegou com o arquivo. Peça para o cliente enviar de novo.",
+  audio: "O áudio não chegou com o arquivo. Peça para o cliente enviar de novo.",
+  documento: "O documento não chegou com o arquivo. Peça para o cliente enviar de novo.",
+};
+
+const SEM_ARQUIVO_DA_EQUIPE = "O arquivo desta mensagem não foi guardado.";
+
+function semExtensao(nome: string): string {
+  return nome.replace(/\.[A-Za-z0-9]{1,5}$/, "");
+}
+
+function mesmoNome(a: string, b: string): boolean {
+  const x = a.trim().toLowerCase();
+  const y = b.trim().toLowerCase();
+  return x === y || semExtensao(x) === semExtensao(y);
+}
+
+/**
+ * O texto que vai EMBAIXO da mídia na bolha (onda 1, 12/11/2026). Dono: MIDIA.
+ *
+ * - Texto ou legenda da mensagem: vai como veio, MENOS quando é igual ao nome
+ *   do arquivo (o cartão do documento já mostra o nome; repetir é ruído).
+ * - Mídia que aparece (tem arquivo) e não tem texto: vazio. O "[Documento]"
+ *   que a bolha mostrava some, e o tipo fica no `aria-label` da mídia.
+ * - Mídia sem arquivo: uma frase clara do que houve, nunca bolha vazia.
+ * - Localização e contato sem texto: dizem o que são, sem colchete.
+ * - Aviso do sistema sem texto: a frase de mensagem não suportada.
+ */
+export function legendaDaBolha(m: MensagemDaCaixa): string {
+  const texto = m.texto?.trim() || m.legenda?.trim() || "";
+  const categoria = categoriaDaMidia(m.tipo);
+  if (categoria !== "outra" && temArquivo(m)) {
+    if (!texto) return "";
+    return mesmoNome(texto, nomeParaBaixar(m)) ? "" : texto;
+  }
+  if (texto) return texto;
+  if (m.tipo === "sistema") return MENSAGEM_NAO_SUPORTADA;
+  if (categoria !== "outra") {
+    return m.direcao === "saida" ? SEM_ARQUIVO_DA_EQUIPE : (SEM_ARQUIVO[m.tipo] ?? SEM_ARQUIVO_DA_EQUIPE);
+  }
+  if (m.tipo === "localizacao") return "Localização enviada.";
+  if (m.tipo === "contato") return "Contato enviado.";
+  return rotuloDoTipo(m.tipo);
+}
+
+/** O nome que o leitor de tela diz para a mídia da bolha: "Foto", "Documento: planta.pdf". */
+export function rotuloAcessivelDaMidia(m: MensagemDaCaixa): string {
+  const rotulo = rotuloDoTipo(m.tipo);
+  return m.tipo === "documento" ? `${rotulo}: ${nomeParaBaixar(m)}` : rotulo;
 }

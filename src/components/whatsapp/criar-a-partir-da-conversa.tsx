@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ import {
   type MensagemDaCaixa,
 } from "@/domain/whatsapp/caixa-de-entrada";
 import { CHAVES, ligarConversaAOs } from "@/components/whatsapp/usar-caixa-de-entrada";
+import { FECHAR_DE_44_PX } from "@/components/whatsapp/fechar-de-44-px";
 
 /**
  * "Criar orçamento" a partir da conversa.
@@ -56,13 +57,21 @@ import { CHAVES, ligarConversaAOs } from "@/components/whatsapp/usar-caixa-de-en
 export function CriarOrcamentoDaConversa({
   conversa,
   mensagens,
+  aberto: abertoPeloPai,
+  onAberto,
 }: {
   conversa: ConversaDaCaixa;
   mensagens: MensagemDaCaixa[];
+  /** Controlado (onda 1, 12/11/2026): quem abre é o menu da conversa, o [+] ou a gaveta; sem botão próprio. */
+  aberto?: boolean;
+  onAberto?: (aberto: boolean) => void;
 }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [aberto, setAberto] = useState(false);
+  const [abertoInterno, setAbertoInterno] = useState(false);
+  const controlado = abertoPeloPai !== undefined;
+  const aberto = controlado ? abertoPeloPai : abertoInterno;
+  const setAberto = (v: boolean) => (controlado ? onAberto?.(v) : setAbertoInterno(v));
   const [gravando, setGravando] = useState(false);
   const [form, setForm] = useState({
     titulo: "",
@@ -100,19 +109,23 @@ export function CriarOrcamentoDaConversa({
   // EM ANDAMENTO segura o botão.
   const conferindoRascunhos = rascunhosDaConversa.isFetching;
 
-  function abrir() {
-    // O rascunho nasce da conversa NA HORA de abrir: mensagens que chegaram
-    // depois entram, e o que a pessoa editar fica até ela fechar.
+  // O rascunho nasce da conversa NA HORA de abrir: mensagens que chegaram
+  // depois entram, e o que a pessoa editar fica até ela fechar. Com o diálogo
+  // controlado, quem abre é de fora, então o preenchimento mora no efeito da
+  // abertura (a transição de fechado para aberto), igual nos dois modos.
+  useEffect(() => {
+    if (!aberto) return;
     setForm({
       titulo: tituloSugerido(conversa),
       contatoNome: conversa.nome_contato ?? conversa.lead?.nome ?? "",
       contatoTelefone: telefoneLegivel(conversa.telefone),
       pedido: pedidoDaConversa(mensagens),
     });
-    setAberto(true);
     // Outra pessoa pode ter aberto um rascunho nesta conversa enquanto isso.
     void rascunhosDaConversa.refetch();
-  }
+    // Só na abertura: editar o formulário ou chegar mensagem não pode refazê-lo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto]);
 
   function continuarNo(id: string) {
     setAberto(false);
@@ -147,7 +160,7 @@ export function CriarOrcamentoDaConversa({
         .select("id")
         .single();
       if (error) throw error;
-      toast.success("Orçamento criado com o pedido da conversa — lance os produtos");
+      toast.success("Orçamento criado com o pedido da conversa. Lance os produtos.");
       setAberto(false);
       void qc.invalidateQueries({ queryKey: ["orcamentos"] });
       // Na volta à conversa, o rascunho novo já aparece como "Continuar no #N".
@@ -166,11 +179,17 @@ export function CriarOrcamentoDaConversa({
 
   return (
     <>
-      <Button variant="outline" size="sm" className="w-full justify-start" onClick={abrir}>
-        <FileText className="mr-2 h-4 w-4" /> Criar orçamento
-      </Button>
+      {!controlado && (
+        <Button
+          variant="outline"
+          className="h-11 w-full justify-start"
+          onClick={() => setAberto(true)}
+        >
+          <FileText className="mr-2 h-4 w-4" /> Criar orçamento
+        </Button>
+      )}
       <Dialog open={aberto} onOpenChange={(v) => !gravando && setAberto(v)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className={`max-w-lg ${FECHAR_DE_44_PX}`}>
           <DialogHeader>
             <DialogTitle>Novo orçamento a partir da conversa</DialogTitle>
             <DialogDescription>
@@ -191,13 +210,13 @@ export function CriarOrcamentoDaConversa({
                   {rascunhos.map((r, i) => (
                     <Button
                       key={r.id}
-                      size="sm"
+                      className="h-11"
                       variant={i === 0 ? "default" : "outline"}
                       onClick={() => continuarNo(r.id)}
                     >
                       Continuar no #{r.numero}
                       <span className="ml-1 text-xs font-normal opacity-80">
-                        · {new Date(r.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        · {new Date(r.created_at).toLocaleString("pt-BR", { timeZone: "America/Belem", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </Button>
                   ))}
@@ -210,13 +229,14 @@ export function CriarOrcamentoDaConversa({
               </p>
             ) : (
               <div className="grid gap-3 rounded-lg border border-border/60 p-3 sm:grid-cols-2">
-                <p className="text-xs text-muted-foreground sm:col-span-2">
+                <p className="text-sm text-muted-foreground sm:col-span-2">
                   Conversa sem cliente cadastrado: o orçamento sai como contato avulso. O cliente só
                   é exigido na conversão em OS.
                 </p>
                 <div className="space-y-2">
                   <Label htmlFor="wa-orc-nome">Nome do contato *</Label>
                   <Input
+                    className="h-11 text-base"
                     id="wa-orc-nome"
                     value={form.contatoNome}
                     onChange={(e) => setForm({ ...form, contatoNome: e.target.value })}
@@ -225,6 +245,7 @@ export function CriarOrcamentoDaConversa({
                 <div className="space-y-2">
                   <Label htmlFor="wa-orc-tel">Telefone</Label>
                   <Input
+                    className="h-11 text-base"
                     id="wa-orc-tel"
                     value={form.contatoTelefone}
                     onChange={(e) => setForm({ ...form, contatoTelefone: e.target.value })}
@@ -235,6 +256,7 @@ export function CriarOrcamentoDaConversa({
             <div className="space-y-2">
               <Label htmlFor="wa-orc-titulo">Título *</Label>
               <Input
+                className="h-11 text-base"
                 id="wa-orc-titulo"
                 value={form.titulo}
                 onChange={(e) => setForm({ ...form, titulo: e.target.value })}
@@ -249,16 +271,22 @@ export function CriarOrcamentoDaConversa({
                 onChange={(e) => setForm({ ...form, pedido: e.target.value })}
                 placeholder="Nenhuma mensagem do cliente com texto nesta conversa."
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Últimas mensagens do cliente, com dia e hora. Edite o que quiser antes de criar.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAberto(false)} disabled={gravando}>
+            <Button
+              variant="ghost"
+              className="h-11"
+              onClick={() => setAberto(false)}
+              disabled={gravando}
+            >
               Cancelar
             </Button>
             <Button
+              className="h-11"
               variant={rascunhos.length > 0 ? "outline" : "default"}
               onClick={() => void criar()}
               disabled={gravando || conferindoRascunhos}
@@ -294,14 +322,22 @@ export function CriarOrcamentoDaConversa({
 export function CriarOsDaConversa({
   conversa,
   mensagens,
+  aberto: abertoPeloPai,
+  onAberto,
 }: {
   conversa: ConversaDaCaixa & { cliente_id: string };
   mensagens: MensagemDaCaixa[];
+  /** Controlado (onda 1, 12/11/2026), como no orçamento: sem botão próprio. */
+  aberto?: boolean;
+  onAberto?: (aberto: boolean) => void;
 }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { canSeePrices } = useAuth();
-  const [aberto, setAberto] = useState(false);
+  const [abertoInterno, setAbertoInterno] = useState(false);
+  const controlado = abertoPeloPai !== undefined;
+  const aberto = controlado ? abertoPeloPai : abertoInterno;
+  const setAberto = (v: boolean) => (controlado ? onAberto?.(v) : setAbertoInterno(v));
   const [gravando, setGravando] = useState(false);
   const [form, setForm] = useState({
     titulo: "",
@@ -312,7 +348,9 @@ export function CriarOsDaConversa({
     saida: "retirada" as "retirada" | "entrega" | "instalacao",
   });
 
-  function abrir() {
+  // Preenche na abertura (efeito da transição para aberto), nos dois modos.
+  useEffect(() => {
+    if (!aberto) return;
     setForm({
       titulo: tituloSugerido(conversa),
       briefing: pedidoDaConversa(mensagens),
@@ -321,8 +359,8 @@ export function CriarOsDaConversa({
       valor_total: "",
       saida: "retirada",
     });
-    setAberto(true);
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto]);
 
   async function criar() {
     const titulo = form.titulo.trim();
@@ -366,22 +404,29 @@ export function CriarOsDaConversa({
 
   return (
     <>
-      <Button variant="outline" size="sm" className="w-full justify-start" onClick={abrir}>
-        <ClipboardList className="mr-2 h-4 w-4" /> Criar OS
-      </Button>
+      {!controlado && (
+        <Button
+          variant="outline"
+          className="h-11 w-full justify-start"
+          onClick={() => setAberto(true)}
+        >
+          <ClipboardList className="mr-2 h-4 w-4" /> Criar OS
+        </Button>
+      )}
       <Dialog open={aberto} onOpenChange={(v) => !gravando && setAberto(v)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className={`max-w-lg ${FECHAR_DE_44_PX}`}>
           <DialogHeader>
             <DialogTitle>Nova OS a partir da conversa</DialogTitle>
             <DialogDescription>
-              Cliente: {conversa.cliente?.nome ?? "vinculado"}. A OS nasce sem itens e sem orçamento
-              — use para serviço já combinado. Para preço por produto, crie o orçamento.
+              Cliente: {conversa.cliente?.nome ?? "vinculado"}. A OS nasce sem itens e sem orçamento.
+              Use para serviço já combinado. Para preço por produto, crie o orçamento.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="wa-os-titulo">Título *</Label>
               <Input
+                className="h-11 text-base"
                 id="wa-os-titulo"
                 value={form.titulo}
                 onChange={(e) => setForm({ ...form, titulo: e.target.value })}
@@ -400,6 +445,7 @@ export function CriarOsDaConversa({
               <div className="space-y-2">
                 <Label htmlFor="wa-os-prazo">Prazo entrega</Label>
                 <Input
+                  className="h-11 text-base"
                   id="wa-os-prazo"
                   type="date"
                   value={form.prazo_entrega}
@@ -412,14 +458,14 @@ export function CriarOsDaConversa({
                   value={form.prioridade}
                   onValueChange={(v) => setForm({ ...form, prioridade: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 — Urgente</SelectItem>
-                    <SelectItem value="2">2 — Alta</SelectItem>
-                    <SelectItem value="3">3 — Normal</SelectItem>
-                    <SelectItem value="4">4 — Baixa</SelectItem>
+                    <SelectItem value="1">1 · Urgente</SelectItem>
+                    <SelectItem value="2">2 · Alta</SelectItem>
+                    <SelectItem value="3">3 · Normal</SelectItem>
+                    <SelectItem value="4">4 · Baixa</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -429,7 +475,7 @@ export function CriarOsDaConversa({
             <div className="space-y-2">
               <Label>Como a peça sai *</Label>
               <Select value={form.saida} onValueChange={(v: any) => setForm({ ...form, saida: v })}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -443,6 +489,7 @@ export function CriarOsDaConversa({
               <div className="space-y-2">
                 <Label htmlFor="wa-os-valor">Valor total (R$)</Label>
                 <Input
+                  className="h-11 text-base"
                   id="wa-os-valor"
                   type="number"
                   step="0.01"
@@ -453,10 +500,15 @@ export function CriarOsDaConversa({
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAberto(false)} disabled={gravando}>
+            <Button
+              variant="ghost"
+              className="h-11"
+              onClick={() => setAberto(false)}
+              disabled={gravando}
+            >
               Cancelar
             </Button>
-            <Button onClick={() => void criar()} disabled={gravando}>
+            <Button className="h-11" onClick={() => void criar()} disabled={gravando}>
               Criar OS
             </Button>
           </DialogFooter>

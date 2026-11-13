@@ -20,9 +20,9 @@ import { cn } from "@/lib/utils";
 import { abrirConversaPeloNumero } from "@/lib/api/whatsapp-caixa.functions";
 import { lerNumeroColado } from "@/domain/whatsapp/numero-colado";
 import { CHAVES } from "@/components/whatsapp/usar-caixa-de-entrada";
-import { digitando } from "@/components/whatsapp/acoes-da-conversa";
 import { Dica } from "@/components/bex/Dica";
 import { dicaAcao } from "@/lib/dicas";
+import { FECHAR_DE_44_PX } from "@/components/whatsapp/fechar-de-44-px";
 
 type ConversaDoNumero = {
   id: string;
@@ -121,7 +121,7 @@ export function NovaConversa({
     try {
       const r = await abrir({ data: { telefone: lido.chave, nome: nome.trim() || undefined } });
       const quem = r.cliente?.trim() || nome.trim() || lido.legivel;
-      toast.success(r.nova ? `Conversa com ${quem} criada. Escreva a primeira mensagem.` : `A conversa com ${quem} já existia — aberta para você continuar.`);
+      toast.success(r.nova ? `Conversa com ${quem} criada. Escreva a primeira mensagem.` : `A conversa com ${quem} já existia. Aberta para você continuar.`);
       void qc.invalidateQueries({ queryKey: CHAVES.conversas });
       abertaRef.current = r.id;
       onAberto(false);
@@ -137,7 +137,7 @@ export function NovaConversa({
   return (
     <Dialog open={aberto} onOpenChange={onAberto}>
       <DialogContent
-        className="sm:max-w-md"
+        className={`sm:max-w-md ${FECHAR_DE_44_PX}`}
         onCloseAutoFocus={(e) => {
           const id = abertaRef.current;
           if (!id) return;
@@ -149,7 +149,7 @@ export function NovaConversa({
         <DialogHeader>
           <DialogTitle>Nova conversa</DialogTitle>
           <DialogDescription>
-            Cole o número do jeito que veio — com ou sem +55, o link wa.me ou só o celular. Nada é enviado
+            Cole o número do jeito que veio: com ou sem +55, o link wa.me ou só o celular. Nada é enviado
             até você escrever na conversa.
           </DialogDescription>
         </DialogHeader>
@@ -191,14 +191,14 @@ export function NovaConversa({
                     {existente.isPending
                       ? "Conferindo se já existe…"
                       : existente.isError
-                        ? "Não deu para conferir agora — ao abrir, o sistema procura a conversa desse número."
+                        ? "Não deu para conferir agora. Ao abrir, o sistema procura a conversa desse número."
                         : conversa
-                          ? `Já existe conversa${nomeConhecido ? ` com ${nomeConhecido}` : ""} — abre a mesma${conversa.status === "resolvida" || conversa.status === "arquivada" ? ", reaberta" : ""}.`
+                          ? `Já existe conversa${nomeConhecido ? ` com ${nomeConhecido}` : ""}. Abre a mesma${conversa.status === "resolvida" || conversa.status === "arquivada" ? ", reaberta" : ""}.`
                           : clientes.length === 1
-                            ? `É o cliente ${clientes[0].nome.trim()} — a conversa já nasce ligada a ele.`
+                            ? `É o cliente ${clientes[0].nome.trim()}. A conversa já nasce ligada a ele.`
                             : clientes.length > 1
-                              ? `${clientes.length} clientes têm esse número — a conversa nasce sem cliente; ligue depois no painel.`
-                              : "Contato novo — a conversa entra na fila Comercial."}
+                              ? `${clientes.length} clientes têm esse número. A conversa nasce sem cliente; ligue depois nos dados do contato.`
+                              : "Contato novo. A conversa entra na fila Comercial."}
                   </p>
                 </div>
               ) : (
@@ -238,31 +238,23 @@ export function NovaConversa({
   );
 }
 
-/** N abre a Nova conversa — fora de campo de texto e sem outro diálogo aberto. */
-export function useAtalhoNovaConversa(ativo: boolean, abrir: () => void) {
-  const atual = useRef(abrir);
-  atual.current = abrir;
-  useEffect(() => {
-    if (!ativo) return;
-    function aoTeclar(e: KeyboardEvent) {
-      if (e.ctrlKey || e.altKey || e.metaKey || e.repeat || digitando(e.target)) return;
-      if (document.querySelector("[role='dialog']")) return;
-      if (e.key.toLowerCase() !== "n") return;
-      e.preventDefault();
-      atual.current();
-    }
-    window.addEventListener("keydown", aoTeclar);
-    return () => window.removeEventListener("keydown", aoTeclar);
-  }, [ativo]);
-}
-
-/** O botão que abre a Nova conversa, ao lado da busca da caixa. */
+/**
+ * O botão que abre a Nova conversa, no topo da lista (44 px). Só o ícone, como
+ * no WhatsApp; o nome vai no aria-label e na dica. A tecla N saiu em
+ * 12/11/2026 (decisão do dono: nenhuma letra solta faz ação).
+ */
 export function BotaoNovaConversa({ onClick, className }: { onClick: () => void; className?: string }) {
   return (
     <Dica texto={dicaAcao("/whatsapp", "nova_conversa")} className={cn("shrink-0", className)}>
-      <Button type="button" variant="outline" size="sm" className="h-9" onClick={onClick}>
-        <MessageSquarePlus className="mr-1 h-4 w-4" />
-        Nova
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-11"
+        aria-label="Nova conversa"
+        onClick={onClick}
+      >
+        <MessageSquarePlus className="size-6" aria-hidden />
       </Button>
     </Dica>
   );
