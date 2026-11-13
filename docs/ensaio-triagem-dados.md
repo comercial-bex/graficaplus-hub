@@ -239,6 +239,8 @@ Esperado: `{"abre": "8h", "dias": "de segunda a sexta", "fecha": "18h"}`, true, 
 
 ## 4. ENSAIO: uma conversa de teste inteira pelas funções da B4
 
+> **Rodado no banco vivo em 13/11/2026:** as três migrações foram aplicadas e este bloco passou inteiro, 47 provas, sem a 10b. O banco vivo tem o gatilho `tg_cliente_precisa_de_whatsapp`, que recusa cliente sem `telefone` válido, por isso as fixtures das provas 18b e 29 trazem `telefone`. A prova 10b não foi rodada no banco vivo, porque desliga um gatilho de `whatsapp_conversas`. Sem usuário gestor no banco, a parte "gestor não liga o robô" da prova 38 ficou sem prova.
+
 Rode inteiro. Usa telefones fictícios (`55969999900NN`), liga a triagem em `teste` só para eles, simula as conversas e termina em `RAISE EXCEPTION`, que desfaz TUDO: a configuração volta a `desligada`, nenhuma conversa, mensagem, fila, notificação, triagem, evento nem bloqueio fica no banco. Pré-requisitos: pelo menos uma instância de WhatsApp e um usuário com o papel `admin` (sem ele o bloco para com `FALHOU`, porque as provas da exclusão da equipe, da permissão de desligar e da escada não provariam nada). Se existir um usuário com `configuracoes.manage` e sem `whatsapp.manage` (o gestor), a prova 38 também prova que ele não liga o robô. O bloco muda temporariamente o telefone do admin para provar a exclusão da equipe, e o erro final desfaz isso também.
 
 Provas novas da terceira revisão (41 a 43, mais mudanças na 38): descer a escada vale para a triagem em curso, recomposição da última mensagem nos cancelamentos em lote, dono da conversa sem linha de triagem, os sete freios que exigem `whatsapp.manage` e o gatilho da configuração que recusa pular degrau. A partir desta revisão o gatilho da configuração recusa subir mais de um degrau também num `UPDATE` direto, por isso o ensaio sobe de `desligada` para `ensaio` e só depois para `teste`.
@@ -494,7 +496,7 @@ BEGIN
   v_r := array_append(v_r, (format('18) grupo: motivo %s, dono %s', v_s ->> 'motivo', v_s ->> 'dono'))::text);
 
   -- cliente cadastrado que escreve de um número que o vínculo da conversa não acha (só telefone_2)
-  INSERT INTO public.clientes (nome, telefone_2) VALUES ('Cliente Ensaio', '96999990030');
+  INSERT INTO public.clientes (nome, telefone, telefone_2) VALUES ('Cliente Ensaio', '96999990031', '96999990030');
   INSERT INTO public.whatsapp_conversas (instancia_id, telefone) VALUES (v_inst, '5596999990030') RETURNING id INTO v_c9;
   UPDATE public.whatsapp_triagem_config SET numeros_teste = numeros_teste || ARRAY['96999990030'];
   INSERT INTO public.whatsapp_mensagens (conversa_id, instancia_id, zapi_message_id, direcao, tipo, status, texto, origem, recebido_em)
@@ -701,7 +703,7 @@ BEGIN
   v_r := array_append(v_r, (format('28) conversa fechada pela equipe e reaberta pela mensagem nova (responsável e modo já zerados): motivo %s, nenhuma triagem', v_s ->> 'motivo'))::text);
 
   -- 29) PORTÃO NO MEIO DO FLUXO: cliente vinculado depois de a triagem abrir, e bloqueio manual novo
-  INSERT INTO public.clientes (nome) VALUES ('Cliente Ensaio 2') RETURNING id INTO v_cli;
+  INSERT INTO public.clientes (nome, telefone) VALUES ('Cliente Ensaio 2', '96999990032') RETURNING id INTO v_cli;
   INSERT INTO public.whatsapp_conversas (instancia_id, telefone) VALUES (v_inst, '5596999990018') RETURNING id INTO v_ca;
   INSERT INTO public.whatsapp_mensagens (conversa_id, instancia_id, zapi_message_id, direcao, tipo, status, texto, origem, recebido_em)
   VALUES (v_ca, v_inst, 'ENSAIO-29-A', 'entrada', 'texto', 'recebida', 'Oi', 'humano', now()) RETURNING id INTO v_m;
