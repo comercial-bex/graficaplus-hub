@@ -128,6 +128,7 @@ import { Route as ApiWhatsappFotosRouteImport } from './routes/api.whatsapp.foto
 import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
 import { Route as ParceiroOrcamentosIndexRouteImport } from './routes/parceiro.orcamentos.index'
 import { Route as ParceiroOrcamentosIdRouteImport } from './routes/parceiro.orcamentos.$id'
+import { Route as SejaParceiroTsxBaseRouteImport } from './routes/seja-parceiro.tsx.base'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -764,6 +765,11 @@ const ParceiroOrcamentosIdRoute = ParceiroOrcamentosIdRouteImport.update({
   path: '/orcamentos/$id',
   getParentRoute: () => ParceiroRoute,
 } as any)
+const SejaParceiroTsxBaseRoute = SejaParceiroTsxBaseRouteImport.update({
+  id: '/tsx/base',
+  path: '/tsx/base',
+  getParentRoute: () => SejaParceiroRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -771,7 +777,7 @@ export interface FileRoutesByFullPath {
   '/parceiro': typeof ParceiroRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/seja-parceiro': typeof SejaParceiroRoute
+  '/seja-parceiro': typeof SejaParceiroRouteWithChildren
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
@@ -879,6 +885,7 @@ export interface FileRoutesByFullPath {
   '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
+  '/seja-parceiro/tsx/base': typeof SejaParceiroTsxBaseRoute
   '/catalogos/': typeof AuthenticatedCatalogosIndexRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
@@ -890,7 +897,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/seja-parceiro': typeof SejaParceiroRoute
+  '/seja-parceiro': typeof SejaParceiroRouteWithChildren
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
@@ -998,6 +1005,7 @@ export interface FileRoutesByTo {
   '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
+  '/seja-parceiro/tsx/base': typeof SejaParceiroTsxBaseRoute
   '/catalogos': typeof AuthenticatedCatalogosIndexRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/orcamentos': typeof AuthenticatedOrcamentosIndexRoute
@@ -1012,7 +1020,7 @@ export interface FileRoutesById {
   '/parceiro': typeof ParceiroRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/seja-parceiro': typeof SejaParceiroRoute
+  '/seja-parceiro': typeof SejaParceiroRouteWithChildren
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/_authenticated/a-receber': typeof AuthenticatedAReceberRoute
@@ -1120,6 +1128,7 @@ export interface FileRoutesById {
   '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
+  '/seja-parceiro/tsx/base': typeof SejaParceiroTsxBaseRoute
   '/_authenticated/catalogos/': typeof AuthenticatedCatalogosIndexRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
@@ -1242,6 +1251,7 @@ export interface FileRouteTypes {
     | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
+    | '/seja-parceiro/tsx/base'
     | '/catalogos/'
     | '/clientes/'
     | '/orcamentos/'
@@ -1361,6 +1371,7 @@ export interface FileRouteTypes {
     | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
+    | '/seja-parceiro/tsx/base'
     | '/catalogos'
     | '/clientes'
     | '/orcamentos'
@@ -1482,6 +1493,7 @@ export interface FileRouteTypes {
     | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
+    | '/seja-parceiro/tsx/base'
     | '/_authenticated/catalogos/'
     | '/_authenticated/clientes/'
     | '/_authenticated/orcamentos/'
@@ -1496,7 +1508,7 @@ export interface RootRouteChildren {
   ParceiroRoute: typeof ParceiroRouteWithChildren
   PrivacidadeRoute: typeof PrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  SejaParceiroRoute: typeof SejaParceiroRoute
+  SejaParceiroRoute: typeof SejaParceiroRouteWithChildren
   SignupRoute: typeof SignupRoute
   Tv2Route: typeof Tv2Route
   ApiMcpRoute: typeof ApiMcpRoute
@@ -2361,6 +2373,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParceiroOrcamentosIdRouteImport
       parentRoute: typeof ParceiroRoute
     }
+    '/seja-parceiro/tsx/base': {
+      id: '/seja-parceiro/tsx/base'
+      path: '/tsx/base'
+      fullPath: '/seja-parceiro/tsx/base'
+      preLoaderRoute: typeof SejaParceiroTsxBaseRouteImport
+      parentRoute: typeof SejaParceiroRoute
+    }
   }
 }
 
@@ -2554,6 +2573,18 @@ const ParceiroRouteWithChildren = ParceiroRoute._addFileChildren(
   ParceiroRouteChildren,
 )
 
+interface SejaParceiroRouteChildren {
+  SejaParceiroTsxBaseRoute: typeof SejaParceiroTsxBaseRoute
+}
+
+const SejaParceiroRouteChildren: SejaParceiroRouteChildren = {
+  SejaParceiroTsxBaseRoute: SejaParceiroTsxBaseRoute,
+}
+
+const SejaParceiroRouteWithChildren = SejaParceiroRoute._addFileChildren(
+  SejaParceiroRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -2561,7 +2592,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParceiroRoute: ParceiroRouteWithChildren,
   PrivacidadeRoute: PrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  SejaParceiroRoute: SejaParceiroRoute,
+  SejaParceiroRoute: SejaParceiroRouteWithChildren,
   SignupRoute: SignupRoute,
   Tv2Route: Tv2Route,
   ApiMcpRoute: ApiMcpRoute,
