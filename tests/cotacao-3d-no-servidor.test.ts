@@ -617,7 +617,8 @@ describe("as taxas certas, lidas do jeito certo", () => {
     const e = corpus.sinteticos.find((s) => s.id.startsWith("s06"))!.entradas;
     bancoDoCaso(e);
     const comManual = await cotar({ data: pedidoDoCaso(e) });
-    expect(comManual.preco).toBe(17.63);
+    // 17,63 até 12/11; +0,81 = 2 min de mão de obra padrão × R$ 12,17/h × markup 2 (restabelecido em 13/11).
+    expect(comManual.preco).toBe(18.44);
   });
 });
 
@@ -712,7 +713,8 @@ describe("cadastro zerado: preço sai, e o aviso também (como a calculadora de 
     const e = corpus.sinteticos.find((s) => s.id.startsWith("s10"))!.entradas;
     bancoDoCaso(e);
     const r = await cotar({ data: pedidoDoCaso(e) });
-    expect(r.preco).toBe(6.81);
+    // 6,81 até 12/11; +0,81 dos 2 minutos de mão de obra padrão.
+    expect(r.preco).toBe(7.62);
     expect(r.avisos).toEqual(["impressora_sem_custo_hora"]);
   });
 

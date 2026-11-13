@@ -14,11 +14,22 @@ import { D, type Decimal } from "./decimal";
 export const PRECO_MINIMO_POR_PECA = 5;
 
 /**
- * Horas de pós-processamento por peça: somente as informadas.
- * Em branco, zero ou inválidas não geram custo de mão de obra.
+ * Pós-processamento por peça quando ninguém informa horas.
+ *
+ * Decisão do dono de 30/10/2026 (2 minutos por peça), trocada por "só as informadas" em 05/11 e
+ * RESTABELECIDA em 13/11/2026: desde a onda C (11/11) o vendedor não escolhe horas, então "só as informadas"
+ * zerava a mão de obra de toda cotação feita por quem vende (23 de 27 peças sem mão de obra).
+ */
+export const POS_PROCESSAMENTO_PADRAO_MIN = 2;
+
+/**
+ * Horas de pós-processamento por peça: as informadas, ou o padrão de 2 minutos quando o campo está em
+ * branco, zero ou inválido. Sem isto o 3D sai sem nenhuma mão de obra (só material, máquina e energia).
  */
 export function horasDeMaoDeObraPorPeca(horasInformadas: number): number {
-  return Number.isFinite(horasInformadas) && horasInformadas > 0 ? horasInformadas : 0;
+  return Number.isFinite(horasInformadas) && horasInformadas > 0
+    ? horasInformadas
+    : POS_PROCESSAMENTO_PADRAO_MIN / 60;
 }
 
 /**

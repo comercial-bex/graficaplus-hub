@@ -355,9 +355,17 @@ describe("o teste tem dentes: mandar SEGUNDOS em vez de minutos é pego", () => 
 });
 
 describe("o preço gravado: só 13 dos 24 ainda são a regra de hoje, e os outros 11 têm motivo conhecido", () => {
+  // Os preços gravados são de antes de 13/11/2026, quando a mão de obra só entrava se alguém digitasse horas.
+  // Para provar que o resto da conta não mudou, o módulo roda com taxa de mão de obra ZERO nos cálculos que
+  // gravaram mão de obra zero (os 2 minutos padrão valem hoje, mas não existiam nesses preços).
   const comModulo = corpus.registros.map((r) => ({
     r,
-    m: calcularPeca3D(entradasDoModulo(r.entradas)),
+    m: calcularPeca3D(
+      entradasDoModulo({
+        ...r.entradas,
+        moCustoHora: r.gravado.maoDeObra > 0 ? r.entradas.moCustoHora : 0,
+      }),
+    ),
   }));
 
   it("nos 13 que batem, o módulo dá o total e o unitário gravados, ao centavo", () => {
@@ -371,8 +379,8 @@ describe("o preço gravado: só 13 dos 24 ainda são a regra de hoje, e os outro
 
   it("4 gravaram o total sem arredondar (antes de 14/10): o unitário é o mesmo e o total difere menos de um centavo", () => {
     const semArredondar = comModulo.filter(
-      ({ r }) =>
-        !r.bateComHoje && !r.peloMinimoHoje && (r.motivoSeNaoBate ?? "").includes("sem arredondar"),
+      ({ r, m }) =>
+        !r.bateComHoje && !m.peloMinimo && (r.motivoSeNaoBate ?? "").includes("sem arredondar"),
     );
     expect(semArredondar.map(({ r }) => r.n)).toEqual([1, 2, 3, 4]);
     for (const { r, m } of semArredondar) {
@@ -382,7 +390,8 @@ describe("o preço gravado: só 13 dos 24 ainda são a regra de hoje, e os outro
   });
 
   it("7 são de antes do piso de R$ 5,00 por peça (30/10): hoje valem o piso", () => {
-    const peloPiso = comModulo.filter(({ r }) => !r.bateComHoje && r.peloMinimoHoje);
+    // Pelo módulo SEM os 2 minutos (como eram esses preços): com a mão de obra de hoje, só 2 dos 7 ainda ficam no piso.
+    const peloPiso = comModulo.filter(({ r, m }) => !r.bateComHoje && m.peloMinimo);
     expect(peloPiso.map(({ r }) => r.n)).toEqual([8, 11, 12, 13, 15, 16, 17]);
     for (const { r, m } of peloPiso) {
       expect(m.peloMinimo).toBe(true);

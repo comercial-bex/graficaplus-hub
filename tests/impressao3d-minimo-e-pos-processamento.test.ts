@@ -1,9 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { D } from "../src/domain/impressao3d/decimal";
+import { calcularPeca3D, type EntradasDaPeca3D } from "../src/domain/impressao3d/calcular-peca";
 import {
   fecharPreco,
   horasDeMaoDeObraPorPeca,
+  POS_PROCESSAMENTO_PADRAO_MIN,
   PRECO_MINIMO_POR_PECA,
 } from "../src/domain/impressao3d/preco";
 
@@ -37,16 +39,66 @@ describe("preço mínimo por peça no 3D", () => {
 });
 
 describe("mão de obra por peça no 3D", () => {
-  it("zero não acrescenta horas automáticas", () => {
-    expect(horasDeMaoDeObraPorPeca(0)).toBe(0);
+  // Decisão do dono de 30/10/2026, restabelecida em 13/11/2026 (a troca de 05/11 para "só as informadas"
+  // zerava a mão de obra de quem cota sem ver custo, desde que a conta passou para o servidor em 11/11).
+  const PADRAO = POS_PROCESSAMENTO_PADRAO_MIN / 60;
+
+  it("o padrão é de 2 minutos por peça", () => {
+    expect(POS_PROCESSAMENTO_PADRAO_MIN).toBe(2);
   });
-  it("horas inválidas não geram mão de obra", () => {
-    expect(horasDeMaoDeObraPorPeca(NaN)).toBe(0);
-    expect(horasDeMaoDeObraPorPeca(Infinity)).toBe(0);
-    expect(horasDeMaoDeObraPorPeca(-1)).toBe(0);
+  it("em branco ou zero valem os 2 minutos", () => {
+    expect(horasDeMaoDeObraPorPeca(0)).toBe(PADRAO);
+  });
+  it("horas inválidas também caem no padrão, nunca em zero", () => {
+    expect(horasDeMaoDeObraPorPeca(NaN)).toBe(PADRAO);
+    expect(horasDeMaoDeObraPorPeca(Infinity)).toBe(PADRAO);
+    expect(horasDeMaoDeObraPorPeca(-1)).toBe(PADRAO);
   });
   it("horas informadas valem como informadas", () => {
     expect(horasDeMaoDeObraPorPeca(0.5)).toBe(0.5);
+  });
+});
+
+describe("a conta da peça 3D leva a mão de obra padrão", () => {
+  const base: EntradasDaPeca3D = {
+    gramasModelo: 50,
+    pesoSuporteG: 0,
+    pesoPurgaG: 0,
+    tempoMinutos: 120,
+    quantidade: 10,
+    pecasPorPlaca: 10,
+    moHoras: 0,
+    embalagemIncluida: false,
+    custoPorGrama: 0.1,
+    custoHoraMaquina: 1.349,
+    potenciaW: 150,
+    tarifaKwh: 1.1339,
+    moCustoHora: 12.17,
+    embalagemValor: 0,
+    pctAcabamento: 5,
+    pctFalha: 5,
+    markup: 2,
+    markupAtacado: 1.5,
+  };
+
+  it("quem não informa horas (o vendedor) paga 2 minutos por peça vezes a quantidade", () => {
+    const r = calcularPeca3D(base);
+    // 10 peças × 2 min × R$ 12,17/h
+    expect(r.maoDeObra.toNumber()).toBeCloseTo((10 * 2 * 12.17) / 60, 3);
+    expect(r.horasMaoDeObra).toBe(2 / 60);
+  });
+
+  it("os 2 minutos são o mesmo que digitar 2 minutos: a gerência e o vendedor cotam o mesmo preço", () => {
+    const vendedor = calcularPeca3D({ ...base, moHoras: 0 });
+    const gerencia = calcularPeca3D({ ...base, moHoras: 2 / 60 });
+    expect(vendedor.preco.toNumber()).toBe(gerencia.preco.toNumber());
+  });
+
+  it("horas informadas mandam: 10 minutos custam mais que o padrão", () => {
+    const padrao = calcularPeca3D(base);
+    const dez = calcularPeca3D({ ...base, moHoras: 10 / 60 });
+    expect(dez.maoDeObra.toNumber()).toBeGreaterThan(padrao.maoDeObra.toNumber());
+    expect(dez.horasMaoDeObra).toBe(10 / 60);
   });
 });
 
