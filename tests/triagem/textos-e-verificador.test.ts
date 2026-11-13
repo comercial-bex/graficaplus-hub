@@ -44,7 +44,19 @@ describe("verificarTexto: ramo cliente final", () => {
     ["preço especial de atacado", "preco_diferenciado"],
     ["Oi — tudo bem?", "travessao"],
     ["Oi – tudo bem?", "travessao"],
+    ["Oi ― tudo bem?", "travessao"],
+    ["Oi ‒ tudo bem?", "travessao"],
+    ["Oi − tudo bem?", "travessao"],
+    ["Oi ⸺ tudo bem?", "travessao"],
+    ["Oi ﹘ tudo bem?", "travessao"],
     ["vá em frente →", "seta"],
+    ["vá em frente ➜", "seta"],
+    ["vá em frente ➡", "seta"],
+    ["vá em frente ⟶", "seta"],
+    ["vá em frente ⤴", "seta"],
+    ["vá em frente ⬅", "seta"],
+    ["isso => aquilo", "seta"],
+    ["isso <- aquilo", "seta"],
     ["isso -> aquilo", "seta"],
     ["Oi (tudo bem)", "parenteses"],
     ["Olá, {{primeiro_nome}}", "variavel_sem_preencher"],
@@ -52,6 +64,13 @@ describe("verificarTexto: ramo cliente final", () => {
     ["   ", "vazio"],
   ])("reprova %j (%s)", (texto, regra) => {
     expect(regras(texto)).toContain(regra);
+  });
+
+  it("o hífen comum e os emojis que não são seta passam (Ana-Clara, guarda-chuva, certo, ok)", () => {
+    for (const t of ["Prazer, Ana-Clara!", "Traga o guarda-chuva", "Tudo certo ✅", "Ok ✓", "Bom dia ☀"]) {
+      expect(regras(t), t).not.toContain("travessao");
+      expect(regras(t), t).not.toContain("seta");
+    }
   });
 
   it("reprova texto acima de 600 caracteres", () => {

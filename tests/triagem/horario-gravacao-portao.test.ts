@@ -52,7 +52,33 @@ describe("horário de atendimento em Belém", () => {
     };
     expect(dentroDoHorario(belem("2026-11-14T10:00:00"), comSabado)).toBe(true);
     expect(dentroDoHorario(belem("2026-11-14T13:00:00"), comSabado)).toBe(false);
-    expect(horarioEmTexto(comSabado)?.dias).toBe("de segunda a sábado");
+    // sábado fecha ao meio-dia: o texto não pode dizer que ele vai até as 18h
+    expect(horarioEmTexto(comSabado)).toEqual({
+      abre: "8h",
+      fecha: "18h",
+      dias: "de segunda a sexta, e aos sábados das 8h às 12h",
+    });
+  });
+  it("dias ativos com horários diferentes são agrupados por horário", () => {
+    const semana = (f: (d: number) => { abre: string; fecha: string; ativo: boolean }) => ({
+      semana: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ diaSemana: d, ...f(d) })),
+    });
+    // mesmo horário em todos os dias ativos: texto de sempre
+    expect(
+      horarioEmTexto(semana((d) => ({ abre: "08:00", fecha: "18:00", ativo: d >= 1 && d <= 6 }))),
+    ).toEqual({ abre: "8h", fecha: "18h", dias: "de segunda a sábado" });
+    // sexta fecha mais cedo: o grupo maior (segunda a quinta) manda em abre e fecha
+    expect(
+      horarioEmTexto(
+        semana((d) => ({ abre: "08:00", fecha: d === 5 ? "16:00" : "18:00", ativo: d >= 1 && d <= 5 })),
+      ),
+    ).toEqual({ abre: "8h", fecha: "18h", dias: "de segunda a quinta, e às sextas das 8h às 16h" });
+    // só sábado e domingo, horários diferentes, empate de tamanho: ganha o que começa mais cedo na semana (domingo)
+    expect(
+      horarioEmTexto(
+        semana((d) => ({ abre: "09:00", fecha: d === 6 ? "13:00" : "12:30", ativo: d === 0 || d === 6 })),
+      ),
+    ).toEqual({ abre: "9h", fecha: "12h30", dias: "aos domingos, e aos sábados das 9h às 13h" });
   });
   it("feriado fechado e feriado com horário próprio", () => {
     const f = {
