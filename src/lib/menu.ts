@@ -387,6 +387,11 @@ export const FORA_DO_MENU: Record<string, { titulo: string; motivo: string }> = 
     titulo: "API e MCP",
     motivo: "abre por Dados da empresa: token pessoal de leitura; o menu é o que o dono aprovou no cenário B",
   },
+  "/configuracoes-origem": {
+    titulo: "Origem dos contatos",
+    motivo:
+      "abre por Dados da empresa: o menu aprovado pelo dono não ganha item sem ele decidir; a proposta é uma aba de WhatsApp ou item em Administração",
+  },
   "/preencher-pastas": {
     titulo: "Preencher as pastas",
     motivo: "é a cobrança da pasta do produto: abre pela pendência no painel de cada papel",

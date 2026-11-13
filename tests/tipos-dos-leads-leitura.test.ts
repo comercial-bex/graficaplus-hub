@@ -16,9 +16,11 @@ describe("leitura tolerante de tipos de leads", () => {
     consultar.mockResolvedValue({ data: null, error: { code: "42703", message: "column leads.tipo does not exist" } });
     expect(await lerTiposDosLeads(["lead1"])).toEqual(new Map());
   });
-  it("lê parceiro persistido e normaliza ausência para cliente", async () => {
-    consultar.mockResolvedValue({ data: [{ id: "lead1", tipo: "parceiro" }, { id: "lead2" }], error: null });
-    expect(await lerTiposDosLeads(["lead1", "lead2"])).toEqual(new Map([["lead1", "parceiro"], ["lead2", "cliente"]]));
+  it("lê os dois tipos persistidos e deixa ausência e valor antigo fora do mapa", async () => {
+    consultar.mockResolvedValue({ data: [
+      { id: "lead1", tipo: "parceiro" }, { id: "lead2" }, { id: "lead3", tipo: "cliente_final" }, { id: "lead4", tipo: "cliente" }, { id: "lead5", tipo: null },
+    ], error: null });
+    expect(await lerTiposDosLeads(["lead1", "lead2", "lead3", "lead4", "lead5"])).toEqual(new Map([["lead1", "parceiro"], ["lead3", "cliente_final"]]));
   });
   it("não disfarça erros de permissão como cliente", async () => {
     const error = { code: "42501", message: "permission denied" };

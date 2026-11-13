@@ -356,8 +356,11 @@ async function gravarMensagem(
   // O evento cru já está em whatsapp_webhook_eventos; na mensagem fica o
   // ponteiro. Fora da chamada para o objeto dela não ter chave aninhada —
   // senão tests/rpc-assinaturas desiste de conferir os parâmetros.
-  // Campos de Click-to-WhatsApp (canal_origem, tipo_origem, anuncio_id)
-  // entram planos, só quando existem; o banco usa para a origem do lead.
+  // Campos de Click-to-WhatsApp entram planos, só quando existem:
+  // canal_origem, tipo_origem, anuncio_id, anuncio_titulo, anuncio_corpo,
+  // anuncio_link, ctwa_clid e entry_point. O banco usa para a origem do lead,
+  // o catálogo de anúncios e o aviso da equipe. camposDeOrigem nunca lança e
+  // devolve {} sem sinal: faltar campo não atrapalha o recebimento.
   const ponteiro = {
     fonte: "whatsapp_webhook_eventos",
     chave: `msg:${evento.messageId}`,
