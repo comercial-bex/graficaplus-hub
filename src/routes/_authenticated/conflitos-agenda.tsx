@@ -508,7 +508,7 @@ function ConflitosAgendaPage() {
             <span className="font-medium text-foreground">
               "Esta máquina já tem reserva nesse horário"
             </span>
-            . A reserva errada não chega a ser gravada — não existe mais o caso de dois revendedores
+            . A reserva errada não chega a ser gravada — não existe mais o caso de dois parceiros
             marcados na mesma plotter às 14h e ninguém perceber até a hora de imprimir.
           </p>
           <ul className="list-disc space-y-1 pl-5">

@@ -184,8 +184,8 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/processos", permissions: ["custos.read"] },
   // A cobrança da pasta do produto chega a cada área: produção, atendimento, financeiro e gerência.
   { path: "/preencher-pastas", permissions: ["os.read", "orcamentos.read", "financeiro.read", "custos.read"] },
-  // Compras diretas dos parceiros: aba de Parceiros revendedores, então a mesma permissão dela (parceiros.read).
-  // Com orcamentos.read o financeiro passava a ver "Parceiros revendedores" no menu sem poder abrir a tela.
+  // Compras diretas dos parceiros: aba de Parceiros, então a mesma permissão dela (parceiros.read).
+  // Com orcamentos.read o financeiro passava a ver "Parceiros" no menu sem poder abrir a tela.
   { path: "/vendas-diretas", permissions: ["parceiros.read"] },
   { path: "/aprovacoes", permissions: ["orcamentos.read", "arquivos.approve"] },
   // Metragem por cliente é número de venda (Vendas › Números de venda): pede

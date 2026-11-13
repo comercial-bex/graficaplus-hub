@@ -128,7 +128,7 @@ function ParceirosPage() {
       <SectionHeader
         breadcrumb="Comercial"
         title="Parceiros"
-        description="Revendedores que compram da gráfica e vendem com a própria marca."
+        description="Parceiros que compram da gráfica e vendem com a própria marca."
         ajuda={dicaTela("/parceiros")}
         actions={
           podeEditar ? (

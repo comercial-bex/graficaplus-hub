@@ -42,7 +42,7 @@ describe("a página do convite", () => {
     expect(CONVITE).toContain("p_origem: origem");
     expect(CONVITE).toContain("mascaraWhatsapp(e.target.value)");
     expect(CONVITE).toContain('to="/privacidade"');
-    expect(CONVITE).toContain("Seja parceiro revendedor da Bex Print");
+    expect(CONVITE).toContain("Seja parceiro da Bex Print");
     const PRIMEIRO_ACESSO = readFileSync("src/components/parceiro/completar-cadastro.tsx", "utf8");
     expect(PRIMEIRO_ACESSO).toContain('htmlFor="acesso-ramo"');
     expect(PRIMEIRO_ACESSO).toContain('id="acesso-ramo"');

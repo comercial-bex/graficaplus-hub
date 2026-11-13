@@ -16,9 +16,9 @@ export const Route = createFileRoute("/_authenticated/vendas-diretas")({
   head: () => ({
     meta: [
       { title: "Vendas diretas — BEX PRINT OS" },
-      { name: "description", content: "Compras feitas pelos parceiros revendedores direto com a gráfica." },
+      { name: "description", content: "Compras feitas pelos parceiros direto com a gráfica." },
       { property: "og:title", content: "Vendas diretas — BEX PRINT OS" },
-      { property: "og:description", content: "Compras diretas dos revendedores, com pagamento e ordem de serviço." },
+      { property: "og:description", content: "Compras diretas dos parceiros, com pagamento e ordem de serviço." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -63,7 +63,7 @@ function VendasDiretas() {
       <SectionHeader
         breadcrumb="Comercial"
         title="Vendas diretas"
-        description="Compras dos parceiros revendedores direto com a gráfica, com a forma de pagamento escolhida."
+        description="Compras dos parceiros direto com a gráfica, com a forma de pagamento escolhida."
         ajuda={dicaTela("/vendas-diretas")}
       />
       <DataPanel busca={busca} onBusca={setBusca} placeholder="Parceiro ou número">

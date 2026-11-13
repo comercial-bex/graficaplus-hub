@@ -33,7 +33,7 @@ export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso
   somarFornecedores(b);
   if (temCatalogo) somarCatalogo(b);
   enxugarDeNovembro(b);
-  return b;
+  return renomearParceiros(b);
 }
 
 function somarCatalogo(b: ResumoDoMenu): void {
@@ -288,4 +288,9 @@ function somarTabelaDePrecos(b: ResumoDoMenu): void {
     sub.itens.splice(sub.itens.indexOf("Simulador de preço"), 0, "Tabela de preços");
     b.itens += 1;
   }
+}
+
+/** O menu aprovado em 05/10 chamava o item de "Parceiros revendedores"; a palavra saiu da tela (só parceiro e cliente final). */
+function renomearParceiros(b: ResumoDoMenu): ResumoDoMenu {
+  return JSON.parse(JSON.stringify(b).replaceAll("Parceiros revendedores", "Parceiros")) as ResumoDoMenu;
 }

@@ -24,7 +24,7 @@ import {
 const campoCls = "border-border bg-background";
 
 /**
- * Cadastro de revendedor por convite de outro revendedor.
+ * Cadastro de parceiro por convite de outro parceiro.
  *
  * O laço é o do começo das redes sociais: cada parceiro tem um link só dele e
  * manda para quem quiser; quem entra por ali fica ligado a quem convidou, e
@@ -63,15 +63,16 @@ function erroDoCadastro(msg: string): string {
   return msg;
 }
 
-const DESCRICAO = "Preço de revendedor, orçamento com a sua marca e crédito a cada compra. Cadastre-se em 30 segundos e o painel é liberado na hora.";
+const DESCRICAO = "Preço de parceiro, orçamento com a sua marca e crédito a cada compra. Cadastre-se em 30 segundos e o painel é liberado na hora.";
 
 export const Route = createFileRoute("/convite/$codigo")({
   head: () => ({
     meta: [
-      { title: "Seja revendedor — BEX PRINT" },
+      { title: "Seja parceiro — BEX PRINT" },
       { name: "description", content: DESCRICAO },
-      { property: "og:title", content: "Seja revendedor da Bex Print" },
+      { property: "og:title", content: "Seja parceiro da Bex Print" },
       { property: "og:description", content: DESCRICAO },
+      { name: "twitter:description", content: DESCRICAO },
       { property: "og:image", content: `https://bexprint.com.br${BANNER_DO_CONVITE}` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -80,9 +81,9 @@ export const Route = createFileRoute("/convite/$codigo")({
   component: ConvitePage,
 });
 
-/** O que o revendedor ganha, em três linhas: é o argumento da página, acima do formulário. */
+/** O que o parceiro ganha, em três linhas: é o argumento da página, acima do formulário. */
 const GANHOS = [
-  { icone: BadgePercent, texto: "Preço de revendedor, abaixo do balcão" },
+  { icone: BadgePercent, texto: "Preço de parceiro, abaixo do balcão" },
   { icone: FileText, texto: "Orçamento em PDF com a sua marca" },
   { icone: Gift, texto: "Crédito a cada pedido pago" },
 ];
@@ -281,7 +282,7 @@ function ConvitePage() {
           <h1 className="text-xl font-semibold">Cadastro feito — acesso liberado</h1>
           <p className="text-sm text-muted-foreground">
             Bem-vindo, <strong className="text-card-foreground">{nome.trim()}</strong>. Seu painel de
-            revendedor já está liberado.
+            parceiro já está liberado.
           </p>
           <p className="flex items-start gap-2 rounded-lg border border-border bg-background p-3 text-left text-sm">
             <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-bex-cyan" aria-hidden="true" />
@@ -310,8 +311,8 @@ function ConvitePage() {
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-status-cyan">Convite de parceiro</p>
         <h1 className="mt-1 text-balance text-2xl font-semibold leading-tight tracking-tight">
           {daCasa
-            ? "Seja parceiro revendedor da Bex Print"
-            : `${convite.data.convidado_por} te indicou para o clube de revendedores`}
+            ? "Seja parceiro da Bex Print"
+            : `${convite.data.convidado_por} te indicou para o clube de parceiros`}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Programa exclusivo para quem trabalha com impressão e comunicação visual.
@@ -394,7 +395,7 @@ function ConvitePage() {
             </>
           ) : (
             <>
-              Quero ser revendedor <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              Quero ser parceiro <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </>
           )}
         </button>

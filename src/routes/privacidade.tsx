@@ -65,7 +65,7 @@ function PrivacidadePage() {
           </Secao>
 
           <Secao titulo="2. Quais dados coletamos">
-            <p>No cadastro de parceiro revendedor, coletamos:</p>
+            <p>No cadastro de parceiro, coletamos:</p>
             <ul className="list-disc space-y-1 pl-5">
               <li>nome da empresa;</li>
               <li>CNPJ ou CPF;</li>
@@ -78,7 +78,7 @@ function PrivacidadePage() {
 
           <Secao titulo="3. Para que usamos">
             <ul className="list-disc space-y-1 pl-5">
-              <li>criar e operar sua conta de parceiro revendedor;</li>
+              <li>criar e operar sua conta de parceiro;</li>
               <li>fazer contato comercial pelo WhatsApp e por e-mail;</li>
               <li>elaborar orçamentos e atender pedidos;</li>
               <li>controlar cashback e créditos da sua conta.</li>

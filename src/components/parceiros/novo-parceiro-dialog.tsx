@@ -108,7 +108,7 @@ export function NovoParceiroDialog({
         <DialogHeader>
           <DialogTitle>Novo parceiro</DialogTitle>
           <DialogDescription>
-            Escolha o cliente que vai revender. As compras dele contam para o nível e as metas.
+            Escolha o cliente que vai ser parceiro. As compras dele contam para o nível e as metas.
           </DialogDescription>
         </DialogHeader>
 
