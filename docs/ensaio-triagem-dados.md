@@ -1304,3 +1304,19 @@ Cada item abaixo foi levantado pelas revisões e fica de fora de propósito. Nin
 - **Botões desabilitados** da tela usam `opacity-50`. O contraste de WCAG não se aplica a controle desabilitado, mas fica fraco para quem enxerga mal. Não foi mexido.
 - **Equipe devolve o ramo ao cliente, página de privacidade e retenção das triagens** (itens 1, 2 e 7 acima): abertos.
 
+
+### 8.2 Registro de 14/11/2026: B7 a B10 no ar e prova sem sessão da página `seja-parceiro`
+
+**Feito e provado em 14/11/2026**
+
+- **B7, gravar no cadastro** (#461, migração `20261114100000`, aplicada depois de ensaio com desfazer no banco vivo, provas 0 a 13). Só preenche campo vazio ou marcador, nunca sobrescreve, nunca copia o telefone alternativo, nunca derruba a mensagem. Triagem desligada: nada é gravado.
+- **B8, aviso do grupo com resumo** (mesma migração). Primeiro nome, tipo, anúncio e produto saneados, primeira vez, pediu preço, telefone outro, pediu equipe e link da conversa. Sem CEP, telefone nem sobrenome.
+- **B9, selo na caixa** e **B10, métricas** (#462, migração `20261114110000` com três views fechadas para o servidor). Painel só de leitura com o denominador de cada taxa.
+- Depois da aplicação: estado `desligada`, 0 triagens, 0 eventos, mensagens reais seguiram entrando (14 em 15 minutos) e o webhook de #460 foi confirmado com tráfego real (35 mensagens em 12 horas, 0 erro).
+
+**Prova por requisição sem sessão da página `seja-parceiro` (item 3 do 8.1), feita em 14/11/2026**
+
+- A página responde 200 sem login. O pacote `seja-parceiro-*.js` publicado contém os textos "Tabela de parceiro", "Preço abaixo do balcão", e, quando existem níveis cadastrados, a faixa "de X% até Y%, conforme o seu nível" lida de `desconto_pct`, além de "preço de parceiro" no texto de apresentação. Não há valor em reais.
+- Conclusão: a página NÃO está limpa. Qualquer visitante, inclusive cliente final, vê que existe preço diferenciado e a faixa de desconto. O anúncio de parceiro abre o WhatsApp direto, mas a página continua pública. **Decisão do dono pendente**: manter, tirar a faixa de percentual, ou tirar também as palavras "tabela" e "preço". Nada foi alterado.
+
+**Continua pendente depois de 14/11/2026**: itens 1, 2, 7 e 9 do 8, e os pendentes do 8.1, sem mudança. Resposta pelo `chat_lid`, tempos e freios na tela, idade máxima da fila e o ensaio das 16 conversas de robô seguem abertos.
