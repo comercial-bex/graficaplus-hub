@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bot, Megaphone, Plug } from "lucide-react";
+import { Bot, ListChecks, Megaphone, Plug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -267,6 +267,12 @@ function ConfiguracoesEmpresaPage() {
             <Button asChild variant="outline">
               <Link to="/configuracoes-triagem">
                 <Bot className="h-4 w-4 mr-1" aria-hidden="true" /> Robô de boas-vindas
+              </Link>
+            </Button>
+            {/* Respostas do agente (14/11): fila de aprovação, uma por vez. Fora do menu; abre por aqui. */}
+            <Button asChild variant="outline">
+              <Link to="/configuracoes-agente-base">
+                <ListChecks className="h-4 w-4 mr-1" aria-hidden="true" /> Respostas do agente
               </Link>
             </Button>
             {podeEditar && (
