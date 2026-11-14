@@ -62,6 +62,7 @@ const CONHECIDOS: Record<string, string> = {
   "src/domain/financeiro/schemas.ts": "schema sem consumidor",
   "src/domain/orcamentos/schemas.ts": "schema sem consumidor",
   "src/domain/whatsapp/schemas.ts": "schema sem consumidor",
+  "src/domain/parceiros/chamado-do-parceiro.ts": "espelho da proposta docs/proposta-parceiro-sempre-atendido.sql (não aplicada); a tela passa a usar quando a seção A entrar",
 };
 
 function arquivosDe(dir: string): string[] {
