@@ -280,6 +280,12 @@ export async function conferirLinhaDeTriagem(
   linha: { conversa_id: string | null; payload: Record<string, unknown> | null },
   db: Db = supabaseAdmin,
 ): Promise<ConferenciaDaLinha> {
+  // A linha do AGENTE (C3) usa a mesma fila e a mesma chave `triagem:`, e leva `agente: true`. A triagem dela já terminou,
+  // então quem decide se sai é a conferência do agente (degrau dele, equipe na conversa, bloqueio, telefone), nunca a da triagem.
+  if (linha.payload?.agente === true) {
+    const { conferirLinhaDoAgente } = await import("@/lib/api/agente-escolhe.server");
+    return conferirLinhaDoAgente(linha, db);
+  }
   const triagemId = typeof linha.payload?.triagem_id === "string" ? linha.payload.triagem_id : null;
   if (!triagemId || !linha.conversa_id) return { acao: "cancela", motivo: "linha_sem_triagem" };
   try {

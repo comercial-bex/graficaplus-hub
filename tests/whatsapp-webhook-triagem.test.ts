@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { hashDoSegredo } from "../src/domain/whatsapp/segredo-webhook";
 
 /**
- * O webhook chama a triagem DEPOIS de gravar a mensagem e ANTES da assistente, e a triagem
- * nunca derruba o 200. Os eventos são os de tests/fixtures/zapi-eventos-06-10.json.
+ * O webhook chama a triagem DEPOIS de gravar a mensagem e ANTES da assistente, com o agente que escolhe
+ * respostas aprovadas (C3) entre as duas, e nenhum deles derruba o 200. Os eventos são os de tests/fixtures/zapi-eventos-06-10.json.
  *   mensagem de pessoa        triagem e assistente, nessa ordem, com os ids da mensagem gravada
  *   triagem que lança         200, o erro vai na resposta e a assistente ainda é chamada
  *   eco, modelo e repetida    nenhuma das duas é chamada
@@ -21,6 +21,7 @@ const banco = vi.hoisted(() => ({
 const ordem = vi.hoisted(() => ({
   chamadas: [] as string[],
   triagem: null as null | ((...a: unknown[]) => unknown),
+  agente: null as null | ((...a: unknown[]) => unknown),
 }));
 
 vi.mock("@/integrations/supabase/client.server", () => {
@@ -87,6 +88,13 @@ vi.mock("@/lib/api/whatsapp-triagem.server", () => ({
     return { acao: "nada", motivo: "desligada" };
   },
 }));
+vi.mock("@/lib/api/agente-escolhe.server", () => ({
+  agenteSemDerrubar: async (...a: unknown[]) => {
+    ordem.chamadas.push(`agente:${JSON.stringify(a)}`);
+    if (ordem.agente) return ordem.agente(...a);
+    return { acao: "nada", motivo: "desligada" };
+  },
+}));
 vi.mock("@/lib/api/whatsapp-assistente.server", () => ({
   assistenteSemDerrubar: async (...a: unknown[]) => {
     ordem.chamadas.push(`assistente:${JSON.stringify(a)}`);
@@ -107,6 +115,7 @@ beforeEach(async () => {
   (globalThis as { __hash?: string }).__hash = await hashDoSegredo(SEGREDO);
   ordem.chamadas.length = 0;
   ordem.triagem = null;
+  ordem.agente = null;
   banco.gravada = { duplicada: false, mensagem_id: "msg-1", conversa_id: "conv-1" };
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -131,17 +140,30 @@ const pessoa = (texto = "oi") => ({
   text: { message: texto },
 });
 
-describe("a triagem entra no webhook antes da assistente", () => {
-  it("mensagem de pessoa: triagem primeiro, depois a assistente, com os ids da mensagem gravada", async () => {
+describe("a triagem entra no webhook antes da assistente, e o agente entre as duas", () => {
+  it("mensagem de pessoa: triagem, agente e assistente, nessa ordem, com os ids da mensagem gravada", async () => {
     const r = await receber(pessoa());
     expect(r.status).toBe(200);
-    expect(ordem.chamadas).toHaveLength(2);
+    expect(ordem.chamadas).toHaveLength(3);
     expect(ordem.chamadas[0]).toBe('triagem:["conv-1","msg-1",{"ehGrupo":false}]');
-    expect(ordem.chamadas[1]).toBe('assistente:["conv-1","msg-1"]');
+    expect(ordem.chamadas[1]).toBe('agente:["conv-1","msg-1"]');
+    expect(ordem.chamadas[2]).toBe('assistente:["conv-1","msg-1"]');
     expect(await r.json()).toMatchObject({
       triagem: { acao: "nada", motivo: "desligada" },
+      agente: { acao: "nada", motivo: "desligada" },
       assistente: { acao: "nada" },
     });
+  });
+
+  it("agente que lança: o 200 continua, o erro vai na resposta e a assistente ainda roda", async () => {
+    ordem.agente = () => {
+      throw new Error("banco fora");
+    };
+    const r = await receber(pessoa());
+    expect(r.status).toBe(200);
+    const corpo = await r.json();
+    expect(corpo.agente).toMatchObject({ acao: "erro" });
+    expect(ordem.chamadas.some((c) => c.startsWith("assistente:"))).toBe(true);
   });
 
   it("triagem que lança: o 200 continua, o erro vai na resposta e a assistente ainda roda", async () => {
@@ -168,14 +190,16 @@ describe("a triagem entra no webhook antes da assistente", () => {
     expect(ordem.chamadas).toEqual([]);
   });
 
-  it("a ordem no código: a triagem vem antes da assistente, as duas dentro de try/catch", () => {
+  it("a ordem no código: a triagem vem antes do agente e o agente antes da assistente, as três dentro de try/catch", () => {
     const src = readFileSync("src/lib/api/whatsapp-webhook.server.ts", "utf8");
     const t = src.indexOf("triagemSemDerrubar(");
+    const g = src.indexOf("agenteSemDerrubar(");
     const a = src.indexOf("assistenteSemDerrubar(");
     expect(t).toBeGreaterThan(0);
-    expect(a).toBeGreaterThan(t);
-    const trecho = src.slice(src.lastIndexOf("try {", t), t);
-    expect(trecho).toContain("whatsapp-triagem.server");
+    expect(g).toBeGreaterThan(t);
+    expect(a).toBeGreaterThan(g);
+    expect(src.slice(src.lastIndexOf("try {", t), t)).toContain("whatsapp-triagem.server");
+    expect(src.slice(src.lastIndexOf("try {", g), g)).toContain("agente-escolhe.server");
   });
 });
 

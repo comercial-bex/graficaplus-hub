@@ -223,6 +223,9 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   // Qualquer uma das duas abre a tela: o servidor lê o painel e aceita o botão Desligar tudo com qualquer uma delas.
   // Quem só tem whatsapp.manage liga, sobe e desce; quem só tem configuracoes.manage edita textos e horário.
   { path: "/configuracoes-triagem", permissions: ["configuracoes.manage", "whatsapp.manage"] },
+  // Agente de respostas (C4): qualquer uma das duas abre a tela; ligar, subir e descer é só whatsapp.manage, conferido no servidor e no banco.
+  // Desligar tudo aceita as duas. "/configuracoes-agente" não casa "/configuracoes-agente-base": o prefixo exige a barra.
+  { path: "/configuracoes-agente", permissions: ["configuracoes.manage", "whatsapp.manage"] },
   // Respostas do agente: qualquer uma das duas abre a tela e edita rascunho; APROVAR é só whatsapp.manage, conferido no servidor e no banco.
   { path: "/configuracoes-agente-base", permissions: ["configuracoes.manage", "whatsapp.manage"] },
   // Lista vazia = qualquer conta com papel: é o "Meu perfil" de cada um. A

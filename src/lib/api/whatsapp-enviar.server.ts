@@ -706,6 +706,17 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
       varredura = { erro: true };
     }
   }
+  // A varredura do agente (C3): freio por falhas de envio e retenção dos eventos. Só com o agente ligado em algum degrau;
+  // desligado, a rodada lê a configuração e nada mais. Nunca lança.
+  let varreduraDoAgente: Record<string, unknown> | null = null;
+  if (quem.tipo === "servidor" && opcoes.varrer !== false) {
+    try {
+      const { varrerAgenteSeLigado } = await import("@/lib/api/agente-escolhe.server");
+      varreduraDoAgente = await varrerAgenteSeLigado();
+    } catch {
+      varreduraDoAgente = { erro: true };
+    }
+  }
   const { token, clientToken, telefonePadrao } = credenciais();
   if (!token) {
     // Falar claro: sem isto, o sintoma seria "a fila não anda" e ninguém
@@ -995,6 +1006,7 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
     ok: erros.length === 0 && !avisos.erro && !automacoes.erro,
     despachante: quem.tipo,
     ...(varredura ? { triagem: varredura } : {}),
+    ...(varreduraDoAgente ? { agente: varreduraDoAgente } : {}),
     enviadas: resultados.length - falhas.length,
     falhas: falhas.length,
     fila_vazia: resultados.length === 0,

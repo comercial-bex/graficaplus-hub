@@ -34,6 +34,7 @@ import { ConfirmarAcao } from "@/components/bex/ConfirmarAcao";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { SeloParceiro } from "@/components/crm/selo-parceiro";
 import { SeloDaTriagem } from "@/components/whatsapp/selo-da-triagem";
+import { SeloDoAgente } from "@/components/whatsapp/selo-do-agente";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -241,6 +242,7 @@ export function CabecalhoDaConversa(p: PropsDoCabecalho) {
               </span>
             </span>
             <SeloDaTriagem conversaId={conversa.id} />
+            <SeloDoAgente conversaId={conversa.id} />
           </span>
         </button>
       </Dica>

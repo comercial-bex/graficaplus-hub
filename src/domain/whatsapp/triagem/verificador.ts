@@ -124,6 +124,8 @@ const SO_DO_CODIGO: readonly Regra[] = [
         "\\bvalidade\\b",
         "\\bvalid[oa]s?\\s+(?:por|ate)\\b",
         "\\bdaqui\\s+a\\b",
+        // C3.1: "no outro dia" e "no dia seguinte" (o espelho de prazo_prometido do validador do banco)
+        "\\bno\\s+(?:outro\\s+dia|dia\\s+seguinte)\\b",
       ].join("|"),
     ),
     ramos: "todos",
@@ -169,6 +171,9 @@ const SO_DO_CODIGO: readonly Regra[] = [
         "\\b(?:promoc(?:ao|oes)|promo|gratis|gratuit[oa]s?|de graca|sem custo|a partir de|orcamento fechado|preco|precos|precific\\w*|valor de)\\b",
         "\\b(?:e|eh|esta|estao|ta|ficou|fica|ficam|ficaram|saiu|sai|saem|sao|foi|ser|seria|mais|menos|muito|bem|tao|pouco|super)\\s+(?:barat(?:o|a|os|as|inho|inha|issimo|issima)|car(?:o|a|os|as|issimo|issima))\\b(?![^.!;\\n]*\\?)",
         "\\b(?:barat(?:o|a|os|as|inho|inha)|car(?:o|a|os|as))\\s+(?:demais|bastante)\\b(?![^.!;\\n]*\\?)",
+        // C3.1: condição de preço sem número: "competitivo", "custa pouco" (o espelho de condicao_de_preco do banco)
+        "\\bcompetitiv\\w*\\b",
+        "\\b(?:custa|custam)\\s+(?:muito\\s+)?pouco\\b",
       ].join("|"),
     ),
     ramos: "todos",
@@ -195,6 +200,21 @@ const SO_DO_CODIGO: readonly Regra[] = [
     ),
     ramos: "todos",
   },
+  // C3.1: o agente nunca faz, prepara, passa, monta nem calcula orçamento, valor ou preço. Espelho de orcamento_feito_pelo_agente do
+  // validador do banco (`_agente_problemas_de_texto`). Só o verbo conjugado em primeira pessoa (ou "vou", "vamos", "posso" mais o
+  // infinitivo): "Para a equipe montar o orçamento" e "a equipe faz o orçamento" passam, porque quem faz é a equipe.
+  {
+    regra: "orcamento_feito_pelo_agente",
+    teste: new RegExp(
+      [
+        "\\b(?:faco|fazemos|fiz|fizemos|farei|faremos|preparo|preparamos|preparei|prepararei|passo|passamos|passei|passarei|monto|montamos|montei|montarei|calculo|calculamos|calculei|calcularei)\\s+(?:(?:te|lhe|ja|logo)\\s+)?(?:(?:o|a|um|uma|seu|sua|o seu|a sua|esse|este)\\s+)?(?:orcamentos?|valor(?:es)?|precos?|cotacao)\\b",
+        "\\b(?:vou|vamos|posso|irei|iremos)\\s+(?:(?:te|lhe|ja)\\s+)?(?:fazer|preparar|passar|montar|calcular|enviar|mandar)\\s+(?:(?:te|lhe)\\s+)?(?:(?:o|a|um|uma|seu|sua)\\s+)?(?:orcamentos?|valor(?:es)?|precos?|cotacao)\\b",
+      ].join("|"),
+    ),
+    ramos: "todos",
+  },
+  // C3.1: taxa cobrada ("taxa de entrega", "taxa de urgência"). Espelho de taxa_cobrada do banco. "taxa" sem "de" passa.
+  { regra: "taxa_cobrada", teste: /\btaxas?\s+de\b/, ramos: "todos" },
   // Forma de pagamento sem as palavras que o banco já conhece: "à vista", "cartão de crédito", "pagamento na entrega",
   // "metade na entrada", "sinal", "em 3x", "em três vezes". "entrada" e "valor" soltos passam.
   {
