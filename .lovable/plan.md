@@ -1,142 +1,87 @@
-> **EM ESPERA.** A triagem de boas-vindas e a base de respostas aprovadas (migrações 20261113130000 a 20261114120000, desligadas) já cobrem a conversa por mensagem; este roteiro deve entrar como conteúdo dessa triagem, não como um agente paralelo. Nada deste plano está implementado além da tela de ensaio, se houver.
+# Parceiro nunca sem atendimento: chamado automático, cadastro completo, boas-vindas e promoção da semana
 
-# Agente de cadastro de parceiros no WhatsApp — modo de teste (v2, roteiro do dono)
+Regra geral: nada sai para ninguém por causa deste trabalho até o dono ligar o modo. Todo SQL vai primeiro para `docs/proposta-parceiro-sempre-atendido.sql` (seções A a E, cada uma com DESFAZER que traz o corpo vivo e o hash), revisado contra o banco vivo e aplicado por você, uma seção por vez. Não mexe na triagem, na caixa de entrada (telas e escritas) nem em orçamentos.
 
-Objetivo: o anúncio de parceiros (mesma imagem e texto) passa a abrir o WhatsApp com "Quero ser parceiro Bex Print". Um agente conduz o cadastro por partes. Nesta versão só existe a tela de ensaio: nada sai pelo WhatsApp, nenhum parceiro é criado e o banco não muda (todo SQL é proposta).
+## O que foi conferido no repositório (14/11/2026)
+- `_wa_abrir_atendimento(conversa, origem, usuario)` (drizzle 0002): é idempotente (devolve o atendimento aberto, se houver) e só zera `responsavel_id` e volta a `modo='auto'` quando `origem='mensagem_recebida'` e já existiu um atendimento antes. Com `origem='manual'` ela NÃO mexe no responsável: dá para reaproveitar sem alterar o corpo.
+- Enum `whatsapp_origem_abertura` = `mensagem_recebida | manual | reaberto`. Não vamos criar valor novo (ADD VALUE não roda na mesma transação e mexeria no outro fluxo): usamos `manual`.
+- `whatsapp_atendimentos.tipo_contato` CHECK `cliente_final|parceiro`; `origem_do_tipo` CHECK `anuncio|palavra|telefone|manual`. Usamos `parceiro` + `telefone` (o casamento é pelo telefone do cadastro). Nenhum CHECK muda.
+- `_wa_mensagem_antes_inserir`: mensagem de entrada usa o atendimento ativo se existir. Então, com o chamado já aberto, a primeira resposta do parceiro cai nele, sem abrir outro e sem perder o responsável.
+- `whatsapp_automacao_bloqueios` (telefone_hash, lid_hash, conversa_id, motivo `parar|robo|manual`, origem default `triagem`): serve para o SAIR. Usamos `motivo='parar'`, `origem='parceiros'`. Nenhum CHECK muda.
+- Cobrança de orçamento: `whatsapp_configuracoes.cobranca_modo` `desligada|ensaio|ligada` com `cobranca_ligada_em`/`cobranca_ensaio_desde` e salvar por função. Esse é o padrão que vamos copiar.
+- Convite curto (20261103300000/400000): `parceiro_acesso` leva a senha provisória; no primeiro acesso, `ocultar_senha_provisoria_do_parceiro` apaga a senha da fila, da mensagem, do log e da prévia.
+- `whatsapp_conversas.chat_lid` existe (índice único por instância).
 
-## 1) Roteiro da conversa (definido pelo dono)
+## Consultas de leitura antes de escrever o SQL (nenhuma altera nada)
+1. Hash (md5 do corpo, espaços colapsados) da versão viva de: `_wa_abrir_atendimento`, `tg_atendimento_avisa_grupo`, `tg_atendimento_traz_contexto`, `tg_parceiro_boas_vindas`, `tg_parceiro_entrada`, `_parceiro_conceder_entrada`, `parceiro_enviar_pedido`, `parceiro_completar_cadastro`, `parceiro_programa_salvar` (ou equivalente), `parceiros_pendentes`. Conferir também se migrações posteriores (20261007, 20261021, 20261113100000/132000) redefiniram `_wa_abrir_atendimento`.
+2. Os 15 ativos com login: telefone normalizado, conversa casada por cada variante (com/sem 55, com/sem nono dígito, `chat_lid`), contagem de entrada/saída, atendimento aberto, `responsavel_id`, mensagem `parceiro_acesso` na fila e na conversa. Só contagens no retorno, sem telefones.
+3. Colunas reais de `parceiros` e `clientes` usadas para "completo" e quantos dos 15 já passam na regra.
+4. `whatsapp_horarios_atendimento`/`whatsapp_feriados` (existe função pronta de "está no horário"? `_whatsapp_hora_em_texto`/`_whatsapp_dias_em_texto` sugerem que sim), `whatsapp_instancias.status`, e quantos envios a instância 1205 fez nos últimos 30 dias (base do teto).
+5. `notificacao_templates`: colunas, chaves existentes, e se a fila aceita `agendar_para`.
 
-Regras: uma pergunta curta por mensagem, tom simpático, apresenta-se como assistente. Cada resposta é guardada na hora; se a pessoa parar, retoma de onde parou. Não repete o que já foi dito e aproveita várias respostas numa mensagem. "SAIR" ou "atendente" funcionam a qualquer momento.
+## Etapas e ordem de aplicação
 
-| Passo | Pergunta | Obrigatório |
-|---|---|---|
-| 0 | Saudação, apresentação como assistente, aviso LGPD com link de privacidade e opção SAIR | sim (aceite) |
-| 1 | Nome | sim |
-| 2 | "O número que você está usando agora (final XXXX) é o mesmo para o cadastro? 1 Sim / 2 Não, é outro" — se 2, pede com DDD e valida | sim |
-| 3 | E-mail (acesso ao painel), validado com sugestão de correção | sim — aqui nasce o pré-cadastro |
-| 4 | Empresa ou marca | não |
-| 5 | Ramo: 1 gráfica/comunicação visual, 2 agência, 3 designer, 4 revenda de brindes, 5 outro (pergunta qual) | não |
-| 6 | Cidade e UF | não |
-| 7 | Instagram ou site (@, link ou "não tenho") | não |
-| 8 | CNPJ ou CPF | não |
-| 9 | Volume mensal de pedidos: 1 até 5, 2 de 6 a 20, 3 mais de 20 | não |
-| 10 | Aceite de promoções (sim/não, com data e hora; "não" = nunca recebe promoção) | não |
-| 11 | Resumo e "1 está certo / 2 corrigir" (corrigir: pergunta qual campo e volta só nele) | — |
-| 12 | "Seu cadastro foi enviado, a equipe confirma e libera o acesso." Entrega à equipe com tudo preenchido | — |
+### 1. Código só (sem banco): regras puras e telas tolerantes
+- `src/domain/parceiros/cadastro-completo.ts`: `faltasDoCadastro(parceiro)` → lista de campos que faltam; `cadastroCompleto`.
+- `src/domain/parceiros/telefone-do-parceiro.ts`: variantes do número (com/sem 55, com/sem nono dígito) — espelho da função SQL.
+- `src/domain/parceiros/promocao-da-semana.ts`: escolhe destinatários no ensaio (consentimento, sem bloqueio, sem envio nos últimos 7 dias, teto da rodada) e monta o texto.
+- Testes em `tests/` para cada regra (valores do dono). Telas tratam coluna/função ausente como "recurso desligado", como no crédito de entrada.
 
-Mapeamento do ramo: 1 comunicacao_visual, 2 agencia, 3 designer, 4 revendedor_brindes, 5 outro + ramo_outro.
+### 2. Seção A (SQL): chamado automático + backfill sem mensagem
+- `_parceiro_casar_conversa(p_parceiro)` (interna): procura a conversa pelas variantes; se não acha, cria a conversa (instância padrão, telefone normalizado com 55) SEM mensagem. Nunca cria duplicata: usa o mesmo índice único de telefone/instância.
+- `_parceiro_garantir_chamado(p_parceiro)` (interna, SECURITY DEFINER, `search_path=public`, só service_role): casa a conversa → `_wa_abrir_atendimento(conversa,'manual', atendente)` → grava no atendimento `tipo_contato='parceiro'`, `origem_do_tipo='telefone'`, `responsavel_id=atendente` (só se vazio) e na conversa `responsavel_id=atendente` (só se vazio), `modo='humano'`. Liga a conversa ao cliente/parceiro, se a coluna de vínculo existir. À prova de falha: erro vira aviso, nunca derruba o cadastro.
+- Gatilho novo `tg_parceiro_chamado` AFTER INSERT/UPDATE em `parceiros`, com a MESMA condição do crédito (ativo + login + atendente). Nenhuma função existente é alterada nesta seção.
+- Aviso ao grupo: abrir o chamado dispara `tg_atendimento_avisa_grupo`. No backfill isso enviaria 14 avisos ao grupo da equipe. Proposta: a sessão do backfill liga uma marca local (`set_config('bex.sem_aviso_grupo','1',true)`) e o aviso ganha UMA linha que respeita a marca (mudança mínima, com hash e DESFAZER). Alternativa sem tocar no aviso: aceitar os avisos (ver pergunta 3).
+- Mensagem de acesso dentro da conversa: hoje sai pela `notificacoes_fila`. A seção confirma (consulta 2) se o envio já grava em `whatsapp_mensagens`; se não grava, o gatilho passa a gravar a mensagem de saída na conversa (`origem='sistema'`) ao enviar, sem a senha (texto já ocultado).
+- Backfill: bloco comentado `SELECT _parceiro_garantir_chamado(id) FROM parceiros WHERE <condição>` — idempotente (rodar duas vezes não muda nada), não insere em fila nem em mensagens. Os 4 sem conversa ganham conversa vazia; os 10 ganham atendimento.
 
-Exceções:
-- Silêncio: um lembrete após cerca de 30 min, depois pausa; retoma de onde parou quando a pessoa voltar.
-- Fora do horário (8h–18h, seg–sex, fuso de Belém): continua coletando e avisa que a equipe responde no próximo dia útil.
-- Áudio, imagem ou arquivo: "Recebi, vou passar para a equipe" e transfere.
-- Duas respostas ininteligíveis seguidas: transfere.
-- Preço, desconto, crédito, prazo, pagamento, reclamação ou dúvida fora do programa: transfere.
+### 3. Seção B (SQL + tela): nunca sem atendente
+- Ao salvar o programa: não aceitar `atendente_padrao_id` vazio enquanto `entrada_ativa` ou o convite curto estiver ativo; não aceitar usuário inativo (mudança mínima na função de salvar o programa, ou CHECK por gatilho na `parceiro_programa`).
+- Usuário desativado: gatilho em `usuarios` (ativo vira false) bloqueia se for o atendente padrão ("troque o atendente padrão antes"); os parceiros dele continuam com ele até a equipe reatribuir, e a fila mostra "atendente inativo".
+- `parceiro_enviar_pedido`: mantém a recusa sem responsável (vira caso impossível), mas antes tenta preencher com o atendente padrão. Uma linha nova, com hash/DESFAZER. Recomendo isso em vez de remover a trava.
+- Tela da aba Programa: seletor obrigatório, aviso se o atendente estiver inativo; o botão "atribuir os sem atendente" continua.
 
-## 2) Travas
+### 4. Seção C (SQL + tela): cadastro completo, sem envio
+- Campos de "completo" (proposta, confirmar na consulta 3): nome da marca, nome do responsável, telefone, e-mail, cidade, UF, ramo de atuação, comprovação (Instagram/site ou "não tenho" marcado). CPF/CNPJ fica opcional (ver pergunta 5).
+- `parceiro_faltas_do_cadastro(p_parceiro) → jsonb {completo, faltam[]}` (espelho da regra pura, testes cruzados).
+- Templates novos em `notificacao_templates`: `parceiro_continue_cadastro` (cita o que falta + link da área) e `parceiro_cadastro_completo` (confirma, cita crédito de entrada e o atendente pelo primeiro nome). Só texto; perguntas nunca, porque não há robô.
+- Quando sai: `continue` 24 h depois da ativação se incompleto (no máximo 2 vezes, intervalo de 3 dias); `completo` uma vez, quando passa a completo. Idempotência: tabela `parceiro_avisos (parceiro_id, tipo, enviado_em)` com índice único. Só dentro do horário de atendimento e fora de feriados; fora do horário fica para o próximo horário.
+- Tudo atrás de `parceiro_programa.avisos_modo` `desligada|ensaio|ligada`, default `desligada`. No ensaio só lista quem receberia e o texto.
 
-- Só fala do que está no programa público de parceiros; nunca escreve valores, percentuais, datas de entrega, Pix ou promessa de aprovação.
-- Checagem final do texto (mesma da assistente atual): R$, %, datas ou "desconto" bloqueiam a resposta e transferem.
-- Confiança abaixo de 0,6 transfere.
-- A IA só interpreta a resposta e extrai campos; a ordem dos passos, a validação e o texto das perguntas vêm de regras fixas no sistema. Assim o roteiro não varia e o custo cai.
+### 5. Seção D (SQL + tela): promoção da semana, nasce desligada
+- Tabela `parceiro_promocoes` (titulo, texto, valida_de, valida_ate, ativa, aprovada_por, aprovada_em, criado_por). Editar o texto apaga a aprovação.
+- Tabela `parceiro_promocao_envios` (promocao_id, parceiro_id, rodada_id, status, enviado_em) com índice que impede 2 envios para o mesmo parceiro na mesma semana.
+- `parceiro_programa.promocao_modo` `desligada|ensaio|ligada` + `promocao_teto_rodada` (proposta 30), `promocao_intervalo_seg` (proposta 90 a 180 s, com variação), dia/hora da rodada.
+- Função `parceiro_promocao_rodada()` (cron semanal): só roda com modo ligada, promoção aprovada e válida, dentro do horário, instância conectada (aborta e registra o motivo se não estiver). No ensaio devolve só a lista e o texto.
+- Destinatários: ativos, com consentimento registrado, sem bloqueio (telefone_hash/lid_hash/conversa), sem envio nos últimos 7 dias.
+- Consentimento: coluna `parceiros.aceita_promocoes_em` + `aceita_promocoes_origem` (`cadastro`|`whatsapp`). Checkbox desmarcado no cadastro curto (texto aprovado pelo dono). SIM pela conversa: como não há robô, a equipe marca na ficha "respondeu SIM" (um clique). SAIR: a equipe (ou a palavra SAIR, quando a triagem for ligada) grava em `whatsapp_automacao_bloqueios` com `origem='parceiros'`; toda promoção termina com "Responda SAIR para não receber mais".
+- Tela: aba Programa → "Promoção da semana": editor, botão Aprovar (só `parceiros.manage`), seletor de modo, prévia de ensaio com contagem e texto.
 
-## 3) Onde guardar — pré-cadastro por partes (proposta)
+### 6. Seção E (SQL + texto): boas-vindas nova
+- Texto novo do `parceiro_acesso` (mesma chave, para não mexer no gatilho): saudação, link, e-mail, senha provisória, crédito (valor, validade, pedido mínimo, até X% do pedido, lido de `parceiro_programa`), nome do atendente, e "responda esta mensagem para falar com ele".
+- Só troca o texto do template e as variáveis passadas pelo gatilho (diff mínimo, hash/DESFAZER). Envio continua igual: é a mensagem que já sai hoje, então não é envio novo.
+- Senha em texto: recomendo link de primeiro acesso de uso único (definir senha na página) no lugar da senha. Isso muda o fluxo de acesso, então fica só como proposta. Enquanto isso, a ocultação no primeiro acesso continua.
 
-**Opção A, recomendada: nova tabela `parceiro_pre_cadastros`**, uma linha por conversa:
-- ligação: conversa_id, lead_id, telefone_conversa;
-- andamento: etapa_atual (0–12), situacao (coletando, minimo_completo, enviado, aprovado, recusado, saiu, transferido), tentativas_invalidas, ultimo_contato_em, lembrete_enviado_em;
-- consentimento: aceite_lgpd_em;
-- dados: nome, telefone_confirmado (sim/não), telefone_cadastro, email, empresa, ramo_atuacao, ramo_outro, cidade, uf, instagram_ou_site (normalizado), documento, volume_mensal (ate_5, 6_20, mais_20);
-- promoções: aceita_promocoes (sim/não/vazio) e aceite_promocoes_em;
-- origem: fonte (anuncio, convite, texto, telefone), anuncio_id, codigo_convite;
-- revisão: aprovado_por, aprovado_em, parceiro_id, motivo_recusa.
-- Acesso: leitura e decisão só para a equipe com permissão de parceiros; gravação só pelo sistema. Um pré-cadastro aberto por telefone.
-- Prós: não mexe em parceiros nem cria contas, guarda quem ainda não virou parceiro e prova o consentimento. Contra: precisa de uma tela de aprovação.
+## Riscos e o que não foi confirmado
+- Não confirmei o corpo vivo de nenhuma função nem os hashes; a versão de `_wa_abrir_atendimento` pode ter mudado depois da 0002 (aparece em 4 migrações).
+- Não confirmei se o envio da fila grava a mensagem em `whatsapp_mensagens` (afeta a "mensagem de acesso dentro da conversa").
+- Casamento de telefone: número fixo/errado no cadastro gera conversa "fantasma"; parceiro com dois números; `chat_lid` só existe depois que o contato escreve. Mitigação: casar só número móvel de 13 dígitos, e mostrar na ficha "conversa criada pelo cadastro".
+- Criar conversa sem mensagem pode mostrar itens vazios na caixa de entrada (que não vamos alterar). Confirmar como a lista ordena conversas sem mensagem.
+- Aviso ao grupo no backfill (14 avisos de uma vez) se a marca de silêncio não for aprovada.
+- Banimento: o 1205 é o número de todo o atendimento, pela Z-API (não oficial). Disparo em massa para quem nunca respondeu (10 de 15 hoje) é o principal motivo de bloqueio. Teto proposto: até 30 por rodada, 1 por semana por parceiro, intervalo de 90 a 180 s, só para quem tem consentimento, e pausar sozinho se 2 ou mais pessoas bloquearem/disserem SAIR na rodada. Migrar para a API oficial do WhatsApp (modelos aprovados pelo Meta) quando passar de 50 parceiros com consentimento ou na primeira restrição do número. Ideal: número separado para promoções.
+- O crédito e o chamado dependem do mesmo trio (ativo + login + atendente); um parceiro sem telefone válido terá crédito e não terá chamado. A fila deve mostrar isso.
 
-**Opção B, complementar, na aprovação:** colunas novas em `parceiros` — instagram_ou_site, aceita_promocoes, aceite_promocoes_em, volume_mensal, pre_cadastro_id. Só são preenchidas quando a equipe aprova.
+## Perguntas para o dono (com recomendação)
+1. Origem do chamado automático: usar `manual` (existente) ou criar um valor novo "cadastro_parceiro"? Recomendo `manual`, sem mexer no enum.
+2. A conversa do parceiro começa em `modo humano` com o atendente como responsável? Recomendo sim.
+3. No backfill, o grupo da equipe deve receber os 14 avisos? Recomendo não (marca de silêncio, uma linha no aviso).
+4. Atendente padrão obrigatório sempre, ou só com entrada/convite ativos? Recomendo sempre, e bloquear desativar o usuário que é atendente padrão.
+5. "Completo" exige CPF/CNPJ? Recomendo não exigir (está como opcional no roteiro do dono); exigir comprovação do ramo (Instagram/site ou "não tenho").
+6. Quantos "continue seu cadastro" e em que intervalo? Recomendo 2 no máximo: 24 h e 4 dias depois da ativação.
+7. Teto da promoção: 30 por rodada e intervalo de 90 a 180 s? Recomendo sim, e pausa automática com 2 SAIR na rodada.
+8. Consentimento pela conversa: a equipe marca na ficha (sem robô)? Recomendo sim até a triagem ser ligada.
+9. Trocar a senha provisória por link de primeiro acesso? Recomendo sim, em pacote separado, depois deste.
+10. Aceita usar um segundo número (ou a API oficial) só para promoções? Recomendo avaliar antes de ligar a promoção.
 
-**Opção C:** guardar como nota na conversa. Descartada: sem filtro, aprovação ou prova de consentimento.
-
-Arquivo: `docs/proposta-pre-cadastro-parceiro.sql`, com tabela, acessos, regras de acesso, colunas da opção B, reversão e testes manuais. Não aplicado.
-
-**Teste no ensaio:** cada turno vai para a tabela de ensaios que já existe (a mesma do atendente de orçamento), com a ficha parcial nos dados do turno. Não cria pré-cadastro real.
-
-## 4) Pontos pedidos
-
-**(b) Telefone da conversa vira telefone do cadastro.** Se a resposta do passo 2 for "1/sim", grava telefone_confirmado = sim e copia o telefone da conversa, já no formato normalizado que o WhatsApp usa. Se for "2", pede o número com DDD, valida com `whatsappValido`/`mascaraWhatsapp` e grava esse; o da conversa continua guardado em telefone_conversa. O "final XXXX" mostra só os 4 últimos dígitos.
-
-**(c) Reaproveitar `cadastro-rapido.ts`.**
-- Validação: `validarCadastroRapido` (nome, telefone, e-mail), `nomeParecendoEndereco` (nome que parece endereço), `sugerirEmail` ("você quis dizer …@gmail.com?").
-- Complemento: `validarComplemento` (ramo, contra a lista `RAMOS` de `ramo.ts`).
-- Funções novas pequenas no mesmo domínio: CPF/CNPJ com dígito verificador, normalização de Instagram/site (mesma regra de comprovacao_url), UF válida.
-- O agente não duplica nenhuma dessas regras.
-
-**(d) Aprovação com um clique.** Na tela de Parceiros, uma aba "Pré-cadastros" mostra a ficha, a origem e um link para a conversa.
-- "Aprovar" chama uma função do sistema que confere a permissão de quem clicou e cria o parceiro com os dados (`origem_cadastro = 'whatsapp'`, código de convite novo, `validado_em` preenchido se a equipe confirmar o ramo).
-- Sem conta e sem senha: a equipe libera o acesso pelo cadastro rápido que já existe, ou manda o link `/convite/<codigo>`.
-- "Recusar" pede o motivo.
-- Nada disso é automático na v1.
-
-**(e) Tela de ensaio com a ficha ao vivo.** Rota nova "Ensaio do agente de parceiros", restrita à equipe.
-- À esquerda: a conversa simulada, com botões de atalho (SAIR, áudio simulado, silêncio de 30 min, fora do horário) e um campo para simular o telefone da conversa.
-- À direita: a ficha atualizada a cada resposta. Cada campo aparece como vazio, preenchido ou inválido; também mostra o passo atual, o selo "mínimo completo" a partir do passo 3, a fonte, o aceite de promoções com data e o motivo de qualquer transferência e a confiança.
-- Botões "Recomeçar" e "Baixar conversa". Nada é enviado.
-
-**(f) Convivência com a marcação de parceiro (`proposta-tipo-do-lead-parceiro.sql`).**
-- A marcação continua sendo a única fonte do selo e da cor: `leads.tipo` e a lista de anúncios de parceiro. O agente não cria outra marca.
-- O agente só começa em conversas cujo lead já está como parceiro. Ele lê a marcação e não a altera.
-- O pré-cadastro guarda `lead_id`, e a aprovação liga o parceiro ao lead (lead continua parceiro).
-- Divergência de regra de texto: o dono agora citou "parceiro/revendedor/terceirizado", mas o ajuste anterior aceita só "quero ser parceir", justamente para "meu parceiro me indicou" não marcar parceiro. Proposta: manter a frase específica e acrescentar "quero ser revendedor" e "sou terceirizado". As palavras soltas não marcam. Confirmar antes de mexer na proposta.
-- Ordem de aplicação: primeiro a proposta de marcação, depois a de pré-cadastro, que depende de `leads.tipo` e de `anuncios_de_parceiro`.
-
-## 5) Evolução em etapas
-1. Ensaio: só a tela de teste (esta versão).
-2. Rascunho: em conversas reais marcadas como parceiro, o agente sugere a resposta, a equipe aprova o envio, e o pré-cadastro começa a ser gravado.
-3. Automático: só em conversas de parceiro, com a chave geral da IA ligada. Fora do horário segue coletando e avisa sobre o próximo dia útil.
-
-## 6) Custos e riscos
-- Cadastro completo: cerca de 14 a 20 trocas. Como a IA só extrai campos, a estimativa é de 8 a 15 mil tokens, menos de R$ 0,30 por cadastro no modelo leve atual. O consumo aparece no ensaio.
-- Mensagens em sequência: junta mensagens seguidas por alguns segundos e responde no máximo uma vez a cada 30 s (regra atual), com limite de conversas por hora. Sem saldo de IA, transfere.
-- Lembrete de silêncio: no máximo um por conversa, só dentro de 24 h da última mensagem da pessoa.
-- Z-API (não oficial): risco de bloqueio do número com volume alto. O agente só responde quem escreveu primeiro, nunca dispara em massa, respeita SAIR e o "não" às promoções. Com volume grande de anúncios, recomenda-se a API oficial da Meta.
-
-## 7) Arquivos, testes e fora do escopo
-
-**Novos:**
-- `src/domain/whatsapp/agente-parceiro.ts`: passos, interpretação de "1/2/sim/não", extração de várias respostas, retomada, travas e decisão de transferência.
-- `src/lib/api/agente-parceiro-ensaio.functions.ts`: restrito à equipe, sem envio.
-- `src/routes/_authenticated/agente-parceiro-ensaio.tsx`.
-- `docs/proposta-pre-cadastro-parceiro.sql`: não aplicado.
-
-**Ajustados:**
-- `src/domain/parceiros/cadastro-rapido.ts`: documento, Instagram/site e UF.
-- `src/lib/dicas.ts`.
-- Item de menu.
-- `roadmap.md`.
-- `AGENTS.md`: regra de que o agente de parceiros só lê a marcação de parceiro e só grava no pré-cadastro.
-
-**Testes (`tests/agente-parceiro.test.ts`):**
-- SAIR e atendente em qualquer passo;
-- passo 2 com "1", "sim", "2" seguido de número válido e inválido;
-- mínimo completo no passo 3;
-- várias respostas numa mensagem pulam passos;
-- retomada no passo certo;
-- mapeamento de ramo 1–5 e "outro";
-- Instagram com @, link e "não tenho";
-- CPF e CNPJ válidos e inválidos;
-- volume 1–3;
-- promoções sim/não com data;
-- correção no resumo;
-- duas respostas ininteligíveis transferem;
-- áudio transfere;
-- preço, desconto e prazo transferem;
-- bloqueio de R$, % e datas;
-- fora do horário continua coletando;
-- lembrete único.
-
-**Fora da v1:** envio real, gravação de pré-cadastro em produção, criação de conta ou senha, leitura de áudio e imagem, etapas 2 e 3, aplicação de SQL, publicação.
-
-## Decisões pendentes do dono
-1. Regra de texto: manter frases específicas, como proposto em (f), ou aceitar as palavras soltas?
-2. Opção A + B para guardar os dados.
-3. Lembrete de silêncio: só um, ou um segundo no dia seguinte?
+## Fora do escopo
+Triagem, robô conversacional, caixa de entrada (telas e escritas), orçamentos, publicação, ligar qualquer modo, rodar backfill.
