@@ -84,7 +84,7 @@ export function validarTextoEditavel(texto: string, ramo: Ramo): ProblemaDeEdica
     if (!permitidas.includes(v)) problemas.push({ regra: "variavel_nao_permitida", detalhe: v });
   }
   const { texto: montado } = preencher(t, VALORES_DE_EXEMPLO);
-  for (const p of verificarTexto(montado, ramo).problemas)
+  for (const p of verificarTexto(montado, ramo, [], { escopo: "triagem" }).problemas)
     problemas.push({ regra: p.regra, detalhe: p.trecho });
   return problemas;
 }

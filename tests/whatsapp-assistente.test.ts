@@ -9,6 +9,7 @@ import {
   montarPergunta,
   motivoParaBarrar,
   orcamentoParaContexto,
+  permitidos,
   portaoDoAssistente,
   type ContextoDaConversa,
   type DecisaoDaIa,
@@ -19,7 +20,7 @@ import {
  *   - ela não fala com conversa que tem gente atendendo (responsável ou modo humano);
  *   - rajada: respondeu há menos de 30 s, só classifica;
  *   - fora do horário só classifica (o aviso único é do servidor);
- *   - a resposta que cita valor ou data fora do banco NÃO sai — vira transferência.
+ *   - a resposta que cita valor, prazo ou data NÃO sai (C1: nada é permitido) — vira transferência.
  */
 
 // Terça, 07/10/2026, 10:00 em Macapá (UTC−3) = 13:00 UTC.
@@ -107,26 +108,10 @@ describe("portões: quando a assistente fica quieta", () => {
 const contexto: ContextoDaConversa = {
   cliente: "Max Lima",
   orcamentos: [
-    orcamentoParaContexto({
-      numero: 70,
-      titulo: "banner cantinho",
-      status: "aprovado",
-      valor_total: 30.6,
-      validade_dias: 7,
-      enviado_em: "2026-10-05T12:00:00Z",
-      created_at: "2026-10-05T12:00:00Z",
-    }),
-    orcamentoParaContexto({
-      numero: 74,
-      titulo: "banner de vende-se",
-      status: "rascunho",
-      valor_total: 20,
-      validade_dias: 7,
-      enviado_em: null,
-      created_at: "2026-10-06T12:00:00Z",
-    }),
+    orcamentoParaContexto({ numero: 70, titulo: "banner cantinho", status: "aprovado" }),
+    orcamentoParaContexto({ numero: 74, titulo: "banner de vende-se", status: "rascunho" }),
   ],
-  os: [{ numero: 12, titulo: "banner cantinho", etapa: "Em produção", prazo: "10/10/2026" }],
+  os: [{ numero: 12, titulo: "banner cantinho", etapa: "Em produção" }],
   historico: [],
   grafica: { endereco: null, horario: null },
 };
@@ -138,20 +123,22 @@ const base: DecisaoDaIa = {
   fila_sugerida: "producao",
   confianca: 0.9,
   acao: "responder",
-  resposta: "Olá, Max! A OS 12 está em produção, com previsão para 10/10.",
+  resposta: "Olá, Max! A OS 12 está em produção. A equipe passa os detalhes com você.",
   motivo_transferencia: "",
 };
 
 describe("o contexto não entrega o que não é do cliente", () => {
-  it("rascunho não leva valor; aprovado leva o valor em reais", () => {
-    expect(contexto.orcamentos[0].valor).toBe("R$ 30,60");
-    expect(contexto.orcamentos[1].valor).toBeNull();
+  it("o orçamento leva só a situação: sem valor e sem validade, em nenhum status", () => {
+    expect(contexto.orcamentos[0]).toEqual({ numero: 70, titulo: "banner cantinho", status: "aprovado" });
     expect(contexto.orcamentos[1].status).toBe("em preparação");
+    expect(Object.keys(contexto.orcamentos[0]).sort()).toEqual(["numero", "status", "titulo"]);
+    expect(Object.keys(contexto.os[0]).sort()).toEqual(["etapa", "numero", "titulo"]);
   });
 
   it("a pergunta leva as regras, os dados e a mensagem nova", () => {
     const p = montarPergunta(contexto, "meu banner ficou pronto?", "Bex Print · assistente");
-    expect(p[0].content).toContain("Nunca invente preço");
+    expect(p[0].content).toContain("NUNCA escreva valor");
+    expect(p[0].content).toContain("NUNCA pergunte se a pessoa é parceira");
     expect(p[1].content).toContain('"numero":70');
     expect(p[1].content).toContain("meu banner ficou pronto?");
     expect(FERRAMENTA_DO_ASSISTENTE.function.parameters.required).toContain("acao");
@@ -159,17 +146,18 @@ describe("o contexto não entrega o que não é do cliente", () => {
 });
 
 describe("as travas depois da IA", () => {
-  it("resposta com prazo que está no banco sai", () => {
+  it("resposta limpa sai", () => {
     expect(decidirAcao(base, contexto)).toEqual({ tipo: "responder", texto: base.resposta });
   });
 
-  it("valor inventado vira transferência", () => {
+  it("valor vira transferência, mesmo o que já foi dito antes: nada é permitido", () => {
     const a = decidirAcao({ ...base, resposta: "Fica R$ 45,00 o banner." }, contexto);
     expect(a.tipo).toBe("transferir");
-    expect(motivoParaBarrar("Fica R$ 30,60, como combinado.", contexto)).toBeNull();
+    expect(motivoParaBarrar("Fica R$ 30,60, como combinado.", contexto)).toContain("moeda");
+    expect(permitidos(contexto)).toEqual({ valores: new Set(), datas: new Set() });
   });
 
-  it("data inventada vira transferência", () => {
+  it("data vira transferência", () => {
     expect(decidirAcao({ ...base, resposta: "Fica pronto dia 15/10." }, contexto)).toMatchObject({
       tipo: "transferir",
     });

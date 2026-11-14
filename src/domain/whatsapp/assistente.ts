@@ -16,9 +16,19 @@
  *
  * DEPOIS DA IA (`decidirAcao`): ela pode errar, então a resposta só sai se
  * passar pelas travas daqui. Assunto financeiro, confiança abaixo de 0,6,
- * pedido de transferência ou resposta que cita valor/data que não está nos
- * dados do banco viram TRANSFERÊNCIA para a equipe, com o motivo gravado.
+ * pedido de transferência ou resposta reprovada pelo verificador único
+ * (`triagem/verificador.ts`, ramo cliente final, a lista mais estrita) viram
+ * TRANSFERÊNCIA para a equipe, com o motivo gravado.
+ *
+ * REGRA DO DONO (C1, 14/11/2026): a assistente NUNCA cita preço, validade, prazo,
+ * data nem faz orçamento. O objetivo dela é entender o que o contato precisa e dar
+ * uma expectativa de produtos; preço e prazo são da equipe. Por isso o contexto que
+ * a IA enxerga não traz valor nem data (`permitidos` é vazio por construção), e
+ * TODO texto que sai (resposta, aviso fora do horário, frase de transferência) passa
+ * por `verificarSaida` já montado, com a assinatura.
  */
+
+import { verificarTexto, type RegraDoBanco } from "./triagem/verificador";
 
 export const ASSINATURA_PADRAO = "Bex Print · assistente";
 export const FRASE_DE_TRANSFERENCIA = "Vou chamar alguém da equipe para continuar com você.";
@@ -153,16 +163,14 @@ export function portaoDoAssistente(e: {
 /* O que vai para a IA                                                 */
 /* ------------------------------------------------------------------ */
 
+/** Só a situação: valor, validade e prazo NÃO vão para a IA (regra do dono, C1). */
 export type OrcamentoNoContexto = {
   numero: number;
   titulo: string | null;
   status: string;
-  /** Só de orçamento que JÁ FOI para o cliente (enviado, aprovado, convertido). */
-  valor: string | null;
-  validade: string | null;
 };
 
-export type OsNoContexto = { numero: number; titulo: string | null; etapa: string; prazo: string | null };
+export type OsNoContexto = { numero: number; titulo: string | null; etapa: string };
 
 export type ContextoDaConversa = {
   cliente: string | null;
@@ -208,9 +216,6 @@ export function roteirosDaConversa(
     .map(({ r }) => ({ produto: r.produto, como_medir: r.como_medir, perguntas: r.perguntas }));
 }
 
-/** Status em que o valor do orçamento já é do cliente — rascunho não é. */
-const ORCAMENTO_COM_VALOR_PUBLICO = new Set(["enviado", "aprovado", "convertido"]);
-
 const ROTULO_ORCAMENTO: Record<string, string> = {
   rascunho: "em preparação",
   enviado: "enviado, aguardando aprovação",
@@ -220,55 +225,36 @@ const ROTULO_ORCAMENTO: Record<string, string> = {
   convertido: "aprovado e virou ordem de serviço",
 };
 
-export function reais(v: number): string {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+/**
+ * O título é digitado pela equipe e pode ter preço ou data ("Banner R$ 50", "entrega sexta"). Título que o verificador
+ * reprova não vai para a IA.
+ */
+export function tituloSeguro(titulo: string | null | undefined): string | null {
+  const t = (titulo ?? "").trim();
+  if (!t) return null;
+  return verificarTexto(t, "cliente").problemas.some((p) => p.regra !== "acima_de_600_caracteres") ? null : t.slice(0, 120);
 }
 
-export function dataBR(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  // Data pura (prazo_entrega é `date`): sem fuso, senão 07/10 vira 06/10.
-  const so = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (so) return `${so[3]}/${so[2]}/${so[1]}`;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("pt-BR", { timeZone: FUSO, day: "2-digit", month: "2-digit", year: "numeric" });
+export function orcamentoParaContexto(o: { numero: number; titulo: string | null; status: string }): OrcamentoNoContexto {
+  return { numero: o.numero, titulo: tituloSeguro(o.titulo), status: ROTULO_ORCAMENTO[o.status] ?? o.status };
 }
 
-export function orcamentoParaContexto(o: {
-  numero: number;
-  titulo: string | null;
-  status: string;
-  valor_total: number | null;
-  validade_dias: number | null;
-  enviado_em: string | null;
-  created_at: string;
-}): OrcamentoNoContexto {
-  const publico = ORCAMENTO_COM_VALOR_PUBLICO.has(o.status);
-  let validade: string | null = null;
-  if (publico && o.validade_dias && o.status === "enviado") {
-    const base = new Date(o.enviado_em ?? o.created_at);
-    if (!Number.isNaN(base.getTime())) {
-      validade = dataBR(new Date(base.getTime() + o.validade_dias * 86_400_000).toISOString());
-    }
-  }
-  return {
-    numero: o.numero,
-    titulo: o.titulo,
-    status: ROTULO_ORCAMENTO[o.status] ?? o.status,
-    valor: publico && o.valor_total != null ? reais(Number(o.valor_total)) : null,
-    validade,
-  };
+export function osParaContexto(o: { numero: number; titulo: string | null; etapa: string }): OsNoContexto {
+  return { numero: o.numero, titulo: tituloSeguro(o.titulo), etapa: o.etapa };
 }
 
 const INSTRUCOES = (assinatura: string) =>
   [
     `Você é "${assinatura}", a assistente virtual da Bex Print, gráfica e comunicação visual em Macapá (AP).`,
     "Você conversa pelo WhatsApp com clientes. Escreva em português do Brasil, curto (até 3 frases), cordial, sem gírias e sem emojis em excesso.",
-    "Use SOMENTE os dados do bloco DADOS. Nunca invente preço, valor, prazo, data, desconto, condição de pagamento ou disponibilidade.",
-    "Você PODE: cumprimentar; dizer a situação de um orçamento ou de uma ordem de serviço que está nos DADOS (com o valor e o prazo exatamente como aparecem lá); informar endereço e horário da gráfica se estiverem nos DADOS; pedir o que falta para um orçamento (produto, medidas, quantidade, se a arte está pronta).",
-    "Se o bloco DADOS trouxer roteiros de produto, use-os para escolher o que perguntar ao cliente, uma ou duas perguntas por vez. Eles nunca autorizam dar preço.",
-    "Você NÃO PODE: falar de pagamento, Pix, boleto, parcelamento ou desconto; prometer prazo; dar preço de algo que não está nos DADOS.",
-    "Escolha acao='transferir' quando: o cliente pede para falar com uma pessoa; demonstra irritação ou reclamação; o pedido de orçamento já tem produto, medida e quantidade (a equipe precisa orçar); o assunto é financeiro; ou você não tem certeza.",
+    "Escreva sem travessão, sem setas e sem parênteses.",
+    "Seu objetivo é entender o que o contato precisa e dar uma expectativa do que a Bex Print faz, falando dos produtos. Quem passa preço, prazo e orçamento é sempre a equipe.",
+    "Use SOMENTE os dados do bloco DADOS. Nunca invente nada.",
+    "NUNCA escreva valor, preço, orçamento fechado, prazo, data, dia da semana de entrega, validade, garantia, desconto, promoção, condição ou forma de pagamento, nem número que pareça isso. Se o contato perguntar, diga só que a equipe confirma isso com tudo certinho para o pedido, e siga com a pergunta de que você precisa.",
+    "NUNCA pergunte se a pessoa é parceira, cliente final ou de qualquer outro tipo, e nunca fale de tabela, desconto ou preço.",
+    "Você PODE: cumprimentar; dizer a situação de um orçamento ou de uma ordem de serviço que está nos DADOS, só pela etapa (sem valor e sem prazo); informar endereço e horário da gráfica se estiverem nos DADOS; descobrir o que falta para a equipe atender (produto, medidas, quantidade, se a arte está pronta).",
+    "Se o bloco DADOS trouxer roteiros de produto, use-os para escolher o que perguntar ao cliente, uma ou duas perguntas por vez. Eles nunca autorizam falar de preço ou prazo.",
+    "Escolha acao='transferir' quando: o cliente pede para falar com uma pessoa; demonstra irritação ou reclamação; o pedido já tem produto, medida e quantidade (a equipe precisa atender); o assunto é financeiro; ou você não tem certeza.",
     "Classifique a intenção: orcamento (quer preço ou pedir um serviço), acompanhamento_os (pergunta de pedido em andamento), financeiro (pagamento, nota, boleto), administrativo (fornecedor, currículo, outros assuntos da empresa) ou outro.",
     "fila_sugerida: comercial para orçamento e outro; producao para acompanhamento_os; financeiro para financeiro; administrativo para administrativo.",
     "confianca: de 0 a 1, o quanto você tem certeza de que a resposta está certa e completa só com os DADOS.",
@@ -311,8 +297,12 @@ export function montarPergunta(
     grafica: contexto.grafica,
     ...(contexto.roteiros && contexto.roteiros.length > 0 ? { roteiros_de_produto: contexto.roteiros } : {}),
   };
+  // Fala da equipe com preço, prazo ou data não vai para a IA: ela copiaria. A do cliente vai como está (a saída é verificada).
   const historico = contexto.historico
-    .map((h) => `${h.de === "cliente" ? "Cliente" : "Bex Print"}: ${h.texto}`)
+    .map((h) => {
+      const omitir = h.de === "grafica" && !verificarTexto(h.texto, "cliente").ok;
+      return `${h.de === "cliente" ? "Cliente" : "Bex Print"}: ${omitir ? "[mensagem da equipe omitida]" : h.texto}`;
+    })
     .join("\n");
   return [
     { role: "system", content: INSTRUCOES(assinatura) },
@@ -385,44 +375,39 @@ export function interpretarDecisao(argumentos: unknown): DecisaoDaIa | null {
 /* As travas depois da IA                                              */
 /* ------------------------------------------------------------------ */
 
-const PALAVRAS_PROIBIDAS = /\b(desconto|pix|boleto|parcel\w*|cart[aã]o de cr[eé]dito|cart[aã]o de d[eé]bito|juros|nota fiscal)\b/i;
-
-function soDigitos(v: string): string {
-  return v.replace(/\D/g, "");
-}
-
-/** Valores em reais e datas que a resposta PODE citar: os do contexto. */
-export function permitidos(contexto: ContextoDaConversa): { valores: Set<string>; datas: Set<string> } {
-  const valores = new Set<string>();
-  const datas = new Set<string>();
-  for (const o of contexto.orcamentos) {
-    if (o.valor) valores.add(soDigitos(o.valor));
-    if (o.validade) datas.add(o.validade);
-  }
-  for (const s of contexto.os) if (s.prazo) datas.add(s.prazo);
-  const comAno = [...datas];
-  for (const d of comAno) datas.add(d.slice(0, 5)); // "07/10" também vale
-  return { valores, datas };
+/**
+ * Valores e datas que a resposta PODE citar: nenhum. A assistente não fala preço nem data, e o contexto não os traz
+ * (C1). Fica a função, com o mesmo formato, para quem já a chama.
+ */
+export function permitidos(_contexto?: ContextoDaConversa): { valores: Set<string>; datas: Set<string> } {
+  return { valores: new Set<string>(), datas: new Set<string>() };
 }
 
 /**
- * A resposta pode sair? `null` = pode; senão, o motivo da transferência.
- * Valor em R$ ou data que não estão nos DADOS é invenção — não sai.
+ * Passa o texto JÁ MONTADO pelo verificador único, no ramo cliente final (a lista mais estrita). `extras` é a lista
+ * que o dono acrescentou na tabela `whatsapp_triagem_termos_proibidos`. Devolve só os NOMES das regras: o texto
+ * reprovado nunca vai para log nem para motivo.
  */
-export function motivoParaBarrar(resposta: string, contexto: ContextoDaConversa): string | null {
+export function verificarSaida(texto: string, extras: readonly RegraDoBanco[] = []): string[] {
+  return [...new Set(verificarTexto(texto, "cliente", extras).problemas.map((p) => p.regra))];
+}
+
+export function motivoDeTextoReprovado(regras: readonly string[]): string {
+  return `texto reprovado pelo verificador: ${regras.join(", ")}`;
+}
+
+/**
+ * A resposta pode sair? `null` = pode; senão, o motivo da transferência (com o nome das regras, nunca o trecho).
+ */
+export function motivoParaBarrar(
+  resposta: string,
+  _contexto?: ContextoDaConversa,
+  extras: readonly RegraDoBanco[] = [],
+): string | null {
   const texto = resposta.trim();
   if (!texto) return "a assistente não escreveu resposta";
-  if (PALAVRAS_PROIBIDAS.test(texto)) return "a resposta tocava em pagamento ou desconto";
-  const { valores, datas } = permitidos(contexto);
-  for (const m of texto.matchAll(/R\$\s*\d[\d.]*(?:,\d{1,2})?/g)) {
-    if (!valores.has(soDigitos(m[0]))) return `a resposta citava um valor (${m[0].trim()}) que não está no sistema`;
-  }
-  for (const m of texto.matchAll(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g)) {
-    const [d, mes, ano] = m[0].split("/");
-    const norm = `${d.padStart(2, "0")}/${mes.padStart(2, "0")}${ano ? `/${ano.length === 2 ? `20${ano}` : ano}` : ""}`;
-    if (!datas.has(norm)) return `a resposta citava uma data (${m[0]}) que não está no sistema`;
-  }
-  return null;
+  const regras = verificarSaida(texto, extras);
+  return regras.length > 0 ? motivoDeTextoReprovado(regras) : null;
 }
 
 export type Acao =
@@ -430,7 +415,11 @@ export type Acao =
   | { tipo: "transferir"; motivo: string };
 
 /** A decisão final, com as travas aplicadas por cima do que a IA quis. */
-export function decidirAcao(d: DecisaoDaIa, contexto: ContextoDaConversa): Acao {
+export function decidirAcao(
+  d: DecisaoDaIa,
+  contexto: ContextoDaConversa,
+  extras: readonly RegraDoBanco[] = [],
+): Acao {
   if (d.intencao === "financeiro") return { tipo: "transferir", motivo: "assunto financeiro" };
   if (d.acao === "transferir") {
     return { tipo: "transferir", motivo: d.motivo_transferencia || "a assistente pediu ajuda da equipe" };
@@ -438,7 +427,7 @@ export function decidirAcao(d: DecisaoDaIa, contexto: ContextoDaConversa): Acao 
   if (d.confianca < CONFIANCA_MINIMA) {
     return { tipo: "transferir", motivo: `confiança baixa (${Math.round(d.confianca * 100)}%)` };
   }
-  const barrar = motivoParaBarrar(d.resposta, contexto);
+  const barrar = motivoParaBarrar(d.resposta, contexto, extras);
   if (barrar) return { tipo: "transferir", motivo: barrar };
   return { tipo: "responder", texto: d.resposta };
 }

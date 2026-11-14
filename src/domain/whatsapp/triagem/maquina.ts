@@ -426,7 +426,7 @@ function enviar(
     ultimaVaga = true;
   }
   const c = compor(r, usar, ack);
-  const v = c.problema ? null : verificarTexto(c.texto, r.e.ramo);
+  const v = c.problema ? null : verificarTexto(c.texto, r.e.ramo, [], { escopo: "triagem" });
   if (c.problema || (v && !v.ok)) {
     r.eventos.push({
       tipo: "texto_barrado",
