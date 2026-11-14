@@ -39,7 +39,9 @@ import { lerTermosExtras } from "@/lib/api/termos-proibidos";
  * do horário, frase de transferência) passa por `verificarSaida` (o verificador único da triagem, ramo cliente final, mais
  * os termos que o dono acrescentou na tabela) JÁ MONTADO, com a assinatura. Texto reprovado nunca é enfileirado: vira log
  * com o NOME da regra (nunca o texto) e a conversa passa para a equipe em silêncio. A barreira no banco
- * (`whatsapp_ia_enviar`) ainda não confere o texto: é uma migração própria (docs/ensaio-endurecer-assistentes.md).
+ * (`whatsapp_ia_enviar`, migração 20261115130000) confere o mesmo texto com o validador do banco e recusa o que o código
+ * deixou passar; a recusa volta como `texto_reprovado_pela_barreira: <regras>` e segue o mesmo caminho do texto reprovado
+ * aqui (nada enfileirado, conversa para a equipe). Ver docs/ensaio-barreira-ia-enviar.md.
  *
  * O QUE GRAVA, sempre pelas funções SECURITY DEFINER da caixa v3 (só
  * service_role): `whatsapp_ia_classificar` (etiqueta e fila),
@@ -262,14 +264,42 @@ export async function perguntarAIa(
   };
 }
 
-async function enviar(conversaId: string, texto: string, payload: Record<string, unknown>): Promise<string> {
+/** O começo da mensagem com que a barreira do banco (`whatsapp_ia_enviar`) recusa um texto. Depois dele vêm só nomes de regra. */
+export const PREFIXO_DA_BARREIRA = "texto_reprovado_pela_barreira:";
+
+/**
+ * As regras de uma recusa da barreira do banco, ou `null` se a mensagem de erro é de outra coisa. Só entram nomes de regra
+ * (letras minúsculas, números e sublinhado): nada que pareça trecho de texto passa daqui para o log.
+ */
+export function regrasDaBarreira(mensagem: string | null | undefined): string[] | null {
+  const m = String(mensagem ?? "");
+  const i = m.indexOf(PREFIXO_DA_BARREIRA);
+  if (i < 0) return null;
+  const regras = m
+    .slice(i + PREFIXO_DA_BARREIRA.length)
+    .split(",")
+    .map((r) => r.trim())
+    .filter((r) => /^[a-z][a-z0-9_]{0,40}$/.test(r));
+  return regras.length > 0 ? regras : ["barreira_do_banco"];
+}
+
+async function enviar(
+  conversaId: string,
+  texto: string,
+  payload: Record<string, unknown>,
+): Promise<{ ok: true; mensagemId: string } | { ok: false; regras: string[] }> {
   const { data, error } = await (supabaseAdmin.rpc as any)("whatsapp_ia_enviar", {
     p_conversa_id: conversaId,
     p_texto: texto,
     p_payload: payload,
   });
-  if (error) throw new Error(`falha ao enfileirar a resposta: ${error.message}`);
-  return (data as { mensagem_id: string }).mensagem_id;
+  if (error) {
+    // O banco recusou o texto (o validador dele é mais estrito que o do código): é texto reprovado, não falha de infraestrutura.
+    const regras = regrasDaBarreira(error.message);
+    if (regras) return { ok: false, regras };
+    throw new Error(`falha ao enfileirar a resposta: ${error.message}`);
+  }
+  return { ok: true, mensagemId: (data as { mensagem_id: string }).mensagem_id };
 }
 
 /**
@@ -284,7 +314,8 @@ async function enviarVerificado(
 ): Promise<{ enviado: true; mensagemId: string } | { enviado: false; regras: string[] }> {
   const regras = verificarSaida(texto, extras);
   if (regras.length > 0) return { enviado: false, regras };
-  return { enviado: true, mensagemId: await enviar(conversaId, texto, payload) };
+  const envio = await enviar(conversaId, texto, payload);
+  return envio.ok ? { enviado: true, mensagemId: envio.mensagemId } : { enviado: false, regras: envio.regras };
 }
 
 async function transferir(conversaId: string, motivo: string): Promise<void> {

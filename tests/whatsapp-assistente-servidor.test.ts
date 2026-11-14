@@ -31,6 +31,9 @@ const banco = vi.hoisted(() => {
     erroDoDono: false,
     /** O que whatsapp_dentro_do_horario devolve; nulo = leitura sem resposta útil (vale a conta antiga). */
     dentroDoHorario: null as unknown,
+    /** A recusa que a barreira do banco devolve em whatsapp_ia_enviar (vazio = o banco aceita); `erroDeRede` simula outra falha. */
+    recusaDaBarreira: null as string | null,
+    erroDeEnfileirar: null as string | null,
     logs: [] as Record<string, unknown>[],
     leituras: [] as string[],
     from(tabela: string) {
@@ -86,6 +89,9 @@ const banco = vi.hoisted(() => {
         return Promise.resolve({ data: estado.dentroDoHorario, error: null });
       }
       estado.rpcs.push({ nome, params });
+      if (nome === "whatsapp_ia_enviar" && (estado.recusaDaBarreira || estado.erroDeEnfileirar)) {
+        return Promise.resolve({ data: null, error: { message: estado.recusaDaBarreira ?? estado.erroDeEnfileirar } });
+      }
       return Promise.resolve({ data: nome === "whatsapp_ia_enviar" ? { mensagem_id: "m-ia" } : { ok: true }, error: null });
     },
   };
@@ -104,7 +110,7 @@ vi.mock("@/lib/api/whatsapp-enviar.server", () => ({
   },
 }));
 
-import { rodarAssistente } from "@/lib/api/whatsapp-assistente.server";
+import { PREFIXO_DA_BARREIRA, regrasDaBarreira, rodarAssistente } from "@/lib/api/whatsapp-assistente.server";
 
 const QUARTA_10H = new Date("2026-10-07T13:00:00Z");
 
@@ -150,6 +156,8 @@ beforeEach(() => {
   banco.termos = [];
   banco.erroDosTermos = false;
   banco.selects = [];
+  banco.recusaDaBarreira = null;
+  banco.erroDeEnfileirar = null;
   banco.rpcs = [];
   banco.consultas = [];
   banco.dono = "assistente";
@@ -440,6 +448,51 @@ describe("C1: a assistente nunca cita preço, prazo nem data, e nada reprovado �
     expect(r.acao).toBe("transferiu");
     expect(enviados()).toEqual([]);
     expect(transferencias()).toHaveLength(1);
+  });
+
+  describe("a barreira do banco em whatsapp_ia_enviar (20261115130000)", () => {
+    const recusa = `${PREFIXO_DA_BARREIRA} preco_com_numero,prazo_prometido`;
+
+    it("o banco recusa a resposta que o código deixou passar: nada enfileirado, a equipe assume, e o motivo leva só o nome das regras", async () => {
+      banco.recusaDaBarreira = recusa;
+      const r = await rodar();
+      expect(r.acao).toBe("transferiu");
+      // a resposta e a frase de transferência foram pedidas ao banco e recusadas (a segunda também passa pela barreira)
+      expect(enviados()).toHaveLength(2);
+      expect(transferencias()).toHaveLength(1);
+      const motivo = String((transferencias()[0].params as { p_motivo: string }).p_motivo);
+      expect(motivo).toBe("texto reprovado pelo verificador: preco_com_numero, prazo_prometido");
+      const log = banco.logs.find((l) => l.etapa === "transferencia");
+      expect(log!.saida).toMatchObject({ sem_mensagem: true, frase_reprovada_pelas_regras: ["preco_com_numero", "prazo_prometido"] });
+      expect(JSON.stringify(log)).not.toContain("orçamento 70 está aprovado");
+      expect(despacho.vezes).toBe(1);
+    });
+
+    it("o banco recusa o aviso fora do horário: não sai, registra a regra e a equipe assume em silêncio", async () => {
+      banco.dentroDoHorario = false;
+      banco.recusaDaBarreira = `${PREFIXO_DA_BARREIRA} prazo_prometido`;
+      const r = await rodar();
+      expect(r).toMatchObject({ acao: "classificou", motivo: "fora_do_horario" });
+      expect(transferencias()).toHaveLength(1);
+      const log = banco.logs.find((l) => (l.saida as { aviso?: string } | null)?.aviso === "fora_horario");
+      expect(log!.saida).toMatchObject({ regras: ["prazo_prometido"], sem_mensagem: true });
+      expect(despacho.vezes).toBe(0);
+    });
+
+    it("outra falha ao enfileirar continua sendo falha de infraestrutura: erro, sem transferir às cegas", async () => {
+      banco.erroDeEnfileirar = "connection reset";
+      const r = await rodar();
+      expect(r.acao).toBe("erro");
+      expect(transferencias()).toHaveLength(0);
+    });
+
+    it("regrasDaBarreira só devolve nomes de regra, nunca um trecho de texto", () => {
+      expect(regrasDaBarreira(recusa)).toEqual(["preco_com_numero", "prazo_prometido"]);
+      expect(regrasDaBarreira("falha qualquer")).toBeNull();
+      expect(regrasDaBarreira(null)).toBeNull();
+      expect(regrasDaBarreira(`${PREFIXO_DA_BARREIRA} O valor fica em 50 reais!, preco_com_numero`)).toEqual(["preco_com_numero"]);
+      expect(regrasDaBarreira(`${PREFIXO_DA_BARREIRA} O valor fica em 50 reais!`)).toEqual(["barreira_do_banco"]);
+    });
   });
 
   describe("termos extras da tabela whatsapp_triagem_termos_proibidos", () => {
