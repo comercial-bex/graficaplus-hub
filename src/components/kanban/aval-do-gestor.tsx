@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Factory, Megaphone, UserCog, Wallet } from "lucide-react";
+import { BadgeCheck, Factory, Hourglass, Megaphone, Percent, UserCog, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
 import { itensDaRecusa } from "@/domain/os/etapas";
-import { formatarData } from "@/domain/os/prazo";
+import { formatarData, paradaHa } from "@/domain/os/prazo";
+import {
+  ROTULO_DO_ASSUNTO,
+  esperandoValidacaoSemPedido,
+  filaDoGestor,
+  type AssuntoDoGestor,
+  type PedidoAoGestor,
+} from "@/domain/os/fila-do-gestor";
 import {
   equipeParaEscolher,
   papeisEmTexto,
@@ -35,7 +42,10 @@ import {
  *    o aviso citando a pessoa. Quem não é gestor pede pelo grupo, citando o gestor —
  *    o que hoje é feito à mão no WhatsApp.
  *  - SALDO DEVEDOR: cliente que vai ficar devendo só produz com o aval do gestor,
- *    com o motivo registrado.
+ *    com o motivo registrado. MARGEM abaixo do mínimo, do mesmo jeito.
+ *  - QUEM APROVA é só o gestor; o admin só acompanha (decisão do dono). Cada pedido
+ *    ao gestor fica na fila (`os_pedidos_ao_gestor`), que o quadro mostra em
+ *    "Esperando o gestor" — chega no aplicativo mesmo sem o grupo do WhatsApp.
  *  - OPERADOR: mandar para a fila de produção abre a escolha de quem produz.
  *
  * Tudo passa por funções do banco que conferem o papel de quem chama (a tela só
@@ -50,7 +60,13 @@ type OsResumo = {
   operador_id?: string | null;
 };
 
-const CHAVES_DO_QUADRO = [["kanban-os"], ["kanban-bloqueios"], ["painel-producao"], ["os-autorizacoes"]];
+const CHAVES_DO_QUADRO = [
+  ["kanban-os"],
+  ["kanban-bloqueios"],
+  ["painel-producao"],
+  ["os-autorizacoes"],
+  ["os-pedidos-ao-gestor"],
+];
 
 function useInvalidarQuadro() {
   const qc = useQueryClient();
@@ -254,9 +270,10 @@ export function PedirAoGestor({
   rotulo = "Pedir ao gestor no grupo",
 }: {
   osId: string;
-  assunto: "atendimento" | "saldo_devedor";
+  assunto: AssuntoDoGestor;
   rotulo?: string;
 }) {
+  const invalidar = useInvalidarQuadro();
   const pedir = useMutation({
     mutationFn: async () => {
       const { data, error } = await (supabase.rpc as any)("pedir_aval_do_gestor", {
@@ -264,10 +281,15 @@ export function PedirAoGestor({
         p_assunto: assunto,
       });
       if (error) throw error;
-      return data as { novo_aviso?: boolean; gestores_citados?: number } | null;
+      return data as { novo_aviso?: boolean; gestores_citados?: number; grupo_ligado?: boolean } | null;
     },
     onSuccess: (r) => {
-      if (r && r.novo_aviso === false) {
+      invalidar();
+      if (r && r.grupo_ligado === false) {
+        toast.success("Pedido registrado: aparece para o gestor no quadro, em “Esperando o gestor”.", {
+          description: "O aviso no grupo da equipe está desligado (WhatsApp › Configurações).",
+        });
+      } else if (r && r.novo_aviso === false) {
         toast.info("Você já pediu há pouco: o aviso está na fila do grupo da equipe.");
       } else if ((r?.gestores_citados ?? 0) === 0) {
         toast.warning("Pedido enviado ao grupo da equipe, mas nenhum gestor tem celular no cadastro para ser citado.");
@@ -289,22 +311,38 @@ export function PedirAoGestor({
  * Saldo devedor
  * ------------------------------------------------------------------ */
 
-export function AutorizarSaldoDevedor({ osId }: { osId: string }) {
+const AUTORIZACAO = {
+  saldo_devedor: {
+    rpc: "autorizar_saldo_devedor",
+    botao: "Autorizar a ficar devendo",
+    pergunta: "Por que o cliente pode ficar devendo?",
+    exemplo: "Ex.: cliente antigo, paga na retirada",
+    feito: "Autorizado: esta OS produz com o cliente devendo.",
+    Icone: Wallet,
+  },
+  margem_baixa: {
+    rpc: "autorizar_margem_baixa",
+    botao: "Liberar a margem",
+    pergunta: "Por que a margem pode ficar abaixo do mínimo?",
+    exemplo: "Ex.: cliente grande, volume alto, parceria",
+    feito: "Margem liberada para esta OS.",
+    Icone: Percent,
+  },
+} as const;
+
+/** O aval do gestor com motivo: cliente devendo ou margem abaixo do mínimo. */
+function AutorizarComMotivo({ osId, tipo }: { osId: string; tipo: keyof typeof AUTORIZACAO }) {
   const invalidar = useInvalidarQuadro();
   const [abrindo, setAbrindo] = useState(false);
   const [motivo, setMotivo] = useState("");
+  const cfg = AUTORIZACAO[tipo];
   const autorizar = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase.rpc as any)("autorizar_saldo_devedor", {
-        p_os_id: osId,
-        p_motivo: motivo.trim(),
-      });
+      const { error } = await (supabase.rpc as any)(cfg.rpc, { p_os_id: osId, p_motivo: motivo.trim() });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Autorizado: esta OS produz com o cliente devendo.", {
-        description: "O motivo ficou registrado e o grupo da equipe recebeu o aviso.",
-      });
+      toast.success(cfg.feito, { description: "O motivo ficou registrado e o grupo da equipe recebeu o aviso." });
       setAbrindo(false);
       setMotivo("");
       invalidar();
@@ -315,25 +353,19 @@ export function AutorizarSaldoDevedor({ osId }: { osId: string }) {
   if (!abrindo) {
     return (
       <Button type="button" size="sm" variant="outline" onClick={() => setAbrindo(true)}>
-        <Wallet className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-        Autorizar a ficar devendo
+        <cfg.Icone className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+        {cfg.botao}
       </Button>
     );
   }
   const curto = motivo.trim().length < 5;
+  const id = `motivo-${tipo}-${osId}`;
   return (
     <div className="space-y-2 rounded-md border border-border bg-background/60 p-2.5">
-      <Label htmlFor={`motivo-saldo-${osId}`} className="text-xs">
-        Por que o cliente pode ficar devendo?
+      <Label htmlFor={id} className="text-xs">
+        {cfg.pergunta}
       </Label>
-      <Textarea
-        id={`motivo-saldo-${osId}`}
-        value={motivo}
-        onChange={(e) => setMotivo(e.target.value)}
-        placeholder="Ex.: cliente antigo, paga na retirada"
-        rows={2}
-        autoFocus
-      />
+      <Textarea id={id} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={cfg.exemplo} rows={2} autoFocus />
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" disabled={curto || autorizar.isPending} onClick={() => autorizar.mutate()}>
           {autorizar.isPending ? "Autorizando…" : "Autorizar"}
@@ -344,6 +376,16 @@ export function AutorizarSaldoDevedor({ osId }: { osId: string }) {
       </div>
     </div>
   );
+}
+
+/** Saldo devedor: `autorizar_saldo_devedor`. */
+export function AutorizarSaldoDevedor({ osId }: { osId: string }) {
+  return <AutorizarComMotivo osId={osId} tipo="saldo_devedor" />;
+}
+
+/** Margem abaixo do mínimo: `autorizar_margem_baixa`. */
+export function AutorizarMargemBaixa({ osId }: { osId: string }) {
+  return <AutorizarComMotivo osId={osId} tipo="margem_baixa" />;
 }
 
 /* ------------------------------------------------------------------ *
@@ -449,7 +491,7 @@ export function TrocarOperador({ os }: { os: OsResumo }) {
 
 type Autorizacao = {
   id: string;
-  tipo: "atendimento_validado" | "saldo_devedor";
+  tipo: "atendimento_validado" | "saldo_devedor" | "margem_baixa";
   autorizado_por: string;
   autorizado_em: string;
   motivo: string | null;
@@ -492,6 +534,11 @@ export function AutorizacoesDaOs({ osId }: { osId: string }) {
                   </>
                 )}
               </>
+            ) : a.tipo === "margem_baixa" ? (
+              <>
+                Margem liberada por <span className="font-medium text-foreground/85">{nome(a.autorizado_por)}</span> em{" "}
+                {formatarData(a.autorizado_em)}
+              </>
             ) : (
               <>
                 Pode produzir devendo · autorizado por{" "}
@@ -503,5 +550,111 @@ export function AutorizacoesDaOs({ osId }: { osId: string }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Esperando o gestor
+ * ------------------------------------------------------------------ */
+
+type OsDoQuadro = OsResumo & { titulo?: string | null; cliente_nome?: string | null };
+
+/**
+ * A fila do gestor, no topo do quadro (14/11/2026): o que pediram a ele (quem pediu,
+ * quando, o quê) e quantas OS do Atendimento esperam validação sem pedido. Só aparece
+ * pedido cuja trava continua (a entrada paga ou o preço revisto tiram o pedido da fila).
+ * O gestor resolve dali mesmo; os outros veem o que está parado no gestor.
+ */
+export function EsperandoOGestor({
+  os,
+  travas,
+  gestor,
+  onAbrirFicha,
+  onValidar,
+}: {
+  os: readonly OsDoQuadro[];
+  travas: ReadonlyMap<string, readonly { codigo: string }[]>;
+  gestor: boolean;
+  onAbrirFicha: (osId: string) => void;
+  onValidar: (os: OsDoQuadro) => void;
+}) {
+  const equipe = useEquipeDaProducao();
+  const pedidos = useQuery({
+    queryKey: ["os-pedidos-ao-gestor"],
+    staleTime: 30_000,
+    queryFn: async (): Promise<PedidoAoGestor[]> => {
+      const { data, error } = await (supabase as any)
+        .from("os_pedidos_ao_gestor")
+        .select("id, os_id, assunto, pedido_por, pedido_em")
+        .is("resolvido_em", null)
+        .order("pedido_em", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as PedidoAoGestor[];
+    },
+  });
+  // Sem a tabela (antes da migração) ou com a consulta caída: o quadro segue sem a faixa.
+  const porId = new Map(os.map((o) => [o.id, o]));
+  const fila = filaDoGestor(pedidos.data ?? [], travas).filter((p) => porId.has(p.os_id));
+  const semPedido = esperandoValidacaoSemPedido(pedidos.data ?? [], travas).filter((id) => porId.has(id));
+  if (pedidos.isError || (fila.length === 0 && (!gestor || semPedido.length === 0))) return null;
+
+  const nome = (id: string) => primeiroNome(equipe.data?.find((p) => p.id === id)?.nome ?? null);
+  const quando = (em: string) => {
+    const ha = paradaHa(em);
+    return ha === "agora" ? "agora há pouco" : ha ? `há ${ha}` : "";
+  };
+
+  return (
+    <details
+      open={gestor}
+      className="rounded-lg border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2"
+    >
+      <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+        <Hourglass className="h-4 w-4 shrink-0 text-[color:var(--bex-amber)]" aria-hidden />
+        {gestor ? "Esperando você (gestor)" : "Esperando o gestor"}
+        <span className="font-mono text-xs text-muted-foreground">
+          {fila.length} {fila.length === 1 ? "pedido" : "pedidos"}
+          {gestor && semPedido.length > 0 && ` · ${semPedido.length} no Atendimento sem validar`}
+        </span>
+      </summary>
+      {fila.length > 0 && (
+        <ul className="mt-2 space-y-1.5" aria-label="Pedidos ao gestor">
+          {fila.map((p) => {
+            const o = porId.get(p.os_id)!;
+            return (
+              <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-md bg-background/70 px-2.5 py-1.5 text-xs">
+                <span className="font-mono text-muted-foreground">#{o.numero ?? "—"}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="font-medium text-foreground">{ROTULO_DO_ASSUNTO[p.assunto]}</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {o.cliente_nome ?? o.titulo ?? "OS"} · pedido por {nome(p.pedido_por)} {quando(p.pedido_em)}
+                  </span>
+                </span>
+                {gestor && p.assunto === "atendimento" ? (
+                  <Button type="button" size="sm" className="h-8" onClick={() => onValidar(o)}>
+                    Validar
+                  </Button>
+                ) : (
+                  <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => onAbrirFicha(o.id)}>
+                    {gestor ? "Resolver" : "Ver"}
+                  </Button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {gestor && semPedido.length > 0 && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {semPedido.length === 1 ? "1 OS" : `${semPedido.length} OS`} no Atendimento ainda sem validação e sem pedido (
+          {semPedido
+            .slice(0, 6)
+            .map((id) => `#${porId.get(id)?.numero ?? "—"}`)
+            .join(", ")}
+          {semPedido.length > 6 && "…"}). Abra o cartão para validar.
+        </p>
+      )}
+    </details>
   );
 }

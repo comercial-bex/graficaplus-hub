@@ -24,6 +24,7 @@ import {
   ehImagemVisivel,
   ehMockup,
   ehPdf,
+  conferirMedidaDoPdf,
   extensao,
   formatoDoArquivo,
   resolucaoNoTamanho,
@@ -33,6 +34,7 @@ import {
 } from "@/domain/os/arquivos-da-os";
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 import { urlsParaVer } from "@/lib/baixar-arquivo";
+import { medirPdf } from "@/lib/pdf/medir-pdf";
 import { tamanhoLegivel } from "@/components/design/tipo-de-arquivo";
 import { BotaoAbrir, BotaoBaixar } from "@/components/arquivos/botoes-do-arquivo";
 import type { BloqueioOs } from "@/components/kanban/cartao-os";
@@ -43,6 +45,7 @@ import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { TrilhaDaOs } from "@/components/kanban/trilha-da-os";
 import {
   AutorizacoesDaOs,
+  AutorizarMargemBaixa,
   AutorizarSaldoDevedor,
   EscolherOperadorDialog,
   PedirAoGestor,
@@ -604,7 +607,7 @@ function AcaoDaPendencia({
   onAceiteAberto: (aberto: boolean) => void;
   onFechar: () => void;
   os: { id: string; numero?: number | null; designer_id?: string | null; operador_id?: string | null };
-  /** Gestor ou admin: valida o atendimento e autoriza o cliente a ficar devendo. */
+  /** Só o gestor: valida o atendimento e libera saldo devedor e margem (o admin só acompanha). */
   gestor: boolean;
 }) {
   switch (codigo) {
@@ -635,6 +638,18 @@ function AcaoDaPendencia({
             <AutorizarSaldoDevedor osId={osId} />
           ) : (
             <PedirAoGestor osId={osId} assunto="saldo_devedor" rotulo="Vai ficar devendo: pedir ao gestor" />
+          )}
+        </div>
+      );
+    case "margem_baixa":
+      // Margem abaixo do mínimo: revisar o preço na OS, ou o gestor libera (14/11/2026).
+      return (
+        <div className="flex flex-wrap items-start gap-2">
+          <IrPara osId={osId} rotulo="Revisar o preço" onFechar={onFechar} />
+          {gestor ? (
+            <AutorizarMargemBaixa osId={osId} />
+          ) : (
+            <PedirAoGestor osId={osId} assunto="margem_baixa" rotulo="Pedir ao gestor para liberar" />
           )}
         </div>
       );
@@ -685,6 +700,22 @@ function LinhaDeImpressao({
   const imagem = ehImagemVisivel(arquivo.nome, arquivo.mime_type, arquivo.caminho);
   const [px, setPx] = useState<{ largura: number; altura: number } | null>(null);
   const resolucao = imagem && px && medida ? resolucaoNoTamanho(px, medida) : null;
+  // PDF: a medida da 1ª página contra a da peça (bate, sangria, escala ou diferente).
+  const pdf = ehPdf(arquivo.nome, arquivo.mime_type, arquivo.caminho);
+  const [paginaPdf, setPaginaPdf] = useState<{ largura: number; altura: number; paginas: number } | null>(null);
+  useEffect(() => {
+    setPaginaPdf(null);
+    if (!pdf || !url || !medida) return;
+    let vivo = true;
+    // Falhou a leitura (PDF protegido, rede): fica sem a conferência, como antes.
+    medirPdf(url)
+      .then((m) => vivo && setPaginaPdf(m))
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [pdf, url, medida?.largura, medida?.altura]);
+  const conferenciaPdf = paginaPdf && medida ? conferirMedidaDoPdf(paginaPdf, medida) : null;
   const detalhe = [
     formatoDoArquivo(arquivo),
     tamanhoLegivel(arquivo.tamanho_bytes ?? null),
@@ -716,6 +747,12 @@ function LinhaDeImpressao({
         {resolucao && (
           <div className={resolucao.nivel === "baixa" ? "text-[color:var(--bex-amber)]" : "text-muted-foreground"}>
             {textoDaResolucao(resolucao)}
+          </div>
+        )}
+        {conferenciaPdf && (
+          <div className={conferenciaPdf.alerta ? "text-[color:var(--bex-amber)]" : "text-muted-foreground"}>
+            {conferenciaPdf.texto}
+            {paginaPdf && paginaPdf.paginas > 1 && ` O PDF tem ${paginaPdf.paginas} páginas.`}
           </div>
         )}
       </div>

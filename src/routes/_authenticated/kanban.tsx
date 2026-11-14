@@ -81,7 +81,11 @@ import { urlsAssinadas } from "@/lib/urls-dos-arquivos";
 import { IconeDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { legendaDeMaquinas } from "@/domain/producao/identidade-da-maquina";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
-import { EscolherOperadorDialog, ValidarAtendimentoDialog } from "@/components/kanban/aval-do-gestor";
+import {
+  EscolherOperadorDialog,
+  EsperandoOGestor,
+  ValidarAtendimentoDialog,
+} from "@/components/kanban/aval-do-gestor";
 import { ehGestor } from "@/domain/os/equipe-da-producao";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
@@ -692,6 +696,15 @@ function KanbanPage() {
           )}
         </div>
       </div>
+
+      {/* O que espera o gestor: pedidos de validação, saldo devedor e margem (14/11/2026). */}
+      <EsperandoOGestor
+        os={os as any[]}
+        travas={bloqueios}
+        gestor={gestor}
+        onAbrirFicha={setFichaId}
+        onValidar={(alvo) => setValidando(alvo)}
+      />
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         {/* Uma rolagem horizontal para o quadro inteiro — o padrão de todo

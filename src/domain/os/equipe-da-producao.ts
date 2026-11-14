@@ -3,10 +3,14 @@
  *
  * O dono pediu para escolher a pessoa — "não marque sempre pelo papel da pessoa,
  * pelo gestor": quem decide é o gestor, não o cadastro. Então a lista é a equipe
- * INTEIRA, e o papel só ordena: para a criação, quem tem o papel de designer vem
- * primeiro; para a máquina, quem tem o de operador. O resto da equipe fica logo
- * abaixo, escolhível do mesmo jeito (na Bex Print o vendedor também cria, e o
- * operador também atende).
+ * INTEIRA, e o papel só ordena: para a criação, quem é da criação (designer) ou do
+ * atendimento (vendedor — na Bex Print o atendimento também cria) vem primeiro; para
+ * a máquina, quem tem o papel de operador. O resto da equipe fica logo abaixo,
+ * escolhível do mesmo jeito.
+ *
+ * Quem APROVA é só o gestor (decisão do dono, 14/11/2026): "o administrador só
+ * visualiza a empresa". O admin não valida atendimento, não libera saldo devedor nem
+ * margem, e não é citado nos pedidos.
  */
 
 export type PessoaDaProducao = {
@@ -20,9 +24,9 @@ export type PessoaDaProducao = {
 
 export type FuncaoNaOs = "criacao" | "operador";
 
-const PAPEL_DA_FUNCAO: Record<FuncaoNaOs, string> = {
-  criacao: "designer",
-  operador: "operador",
+const PAPEIS_DA_FUNCAO: Record<FuncaoNaOs, readonly string[]> = {
+  criacao: ["designer", "vendedor"],
+  operador: ["operador"],
 };
 
 /** Os papéis no vocabulário da casa. */
@@ -52,15 +56,16 @@ export function equipeParaEscolher(
   equipe: readonly PessoaDaProducao[],
   funcao: FuncaoNaOs,
 ): { sugeridos: PessoaDaProducao[]; outros: PessoaDaProducao[] } {
-  const papel = PAPEL_DA_FUNCAO[funcao];
-  const sugeridos = equipe.filter((p) => p.papeis.includes(papel)).sort(porNome);
-  const outros = equipe.filter((p) => !p.papeis.includes(papel)).sort(porNome);
+  const papeis = PAPEIS_DA_FUNCAO[funcao];
+  const sugerido = (p: PessoaDaProducao) => p.papeis.some((papel) => papeis.includes(papel));
+  const sugeridos = equipe.filter(sugerido).sort(porNome);
+  const outros = equipe.filter((p) => !sugerido(p)).sort(porNome);
   return { sugeridos, outros };
 }
 
-/** Gestor ou admin: quem valida o atendimento e autoriza o cliente a ficar devendo. */
+/** Só o gestor aprova: valida o atendimento e libera saldo devedor e margem. O admin só acompanha. */
 export function ehGestor(papeis: readonly string[]): boolean {
-  return papeis.includes("gestor") || papeis.includes("admin");
+  return papeis.includes("gestor");
 }
 
 /** "Maiara Brito" → "Maiara". */
