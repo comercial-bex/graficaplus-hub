@@ -2544,8 +2544,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompromissosRoute: AuthenticatedCompromissosRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
-  AuthenticatedConfiguracoesAgenteRoute:
-    AuthenticatedConfiguracoesAgenteRoute,
+  AuthenticatedConfiguracoesAgenteRoute: AuthenticatedConfiguracoesAgenteRoute,
   AuthenticatedConfiguracoesAgenteBaseRoute:
     AuthenticatedConfiguracoesAgenteBaseRoute,
   AuthenticatedConfiguracoesApiRoute: AuthenticatedConfiguracoesApiRoute,
