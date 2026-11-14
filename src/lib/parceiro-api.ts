@@ -12,8 +12,8 @@ import { normalizarPrazos, type PrazoDeEntrega } from "@/domain/parceiros/prazo"
 /**
  * Conversa com o banco do clube de parceiros.
  *
- * As tabelas e funções do módulo ainda não estão nos tipos gerados do Supabase
- * (a migração é aplicada à mão), então as chamadas passam por `as any`. Os nomes
+ * As chamadas legadas do módulo passam por `as any`; os tipos gerados são
+ * atualizados pela ferramenta de migração. Os nomes
  * de parâmetro são conferidos por tests/rpc-assinaturas.test.ts — por isso cada
  * RPC é chamada com o nome literal, e não por um apelido que o teste não enxerga.
  */
@@ -307,9 +307,9 @@ export async function buscarContaParaParceiro(busca: string): Promise<UsuarioEnc
 }
 
 // ─── Crédito de entrada e atendente padrão ──────────────────────────────────
-// As colunas e funções destes recursos entram por uma proposta SQL aplicada à
-// mão depois do código (docs/proposta-credito-de-entrada-e-atendente.sql).
-// Enquanto não entram, a leitura devolve "desligado" e os botões explicam.
+// Colunas e funções aplicadas pela ferramenta de migração em 14/11/2026
+// (20261114170000 e 20261114170100; docs/proposta-credito-de-entrada-e-atendente.sql).
+// A leitura mantém a tolerância a campos ausentes em ambientes ainda sem o pacote.
 
 export const CHAVE_PROGRAMA_PUBLICO = ["programa-parceiros-publico"] as const;
 
@@ -320,7 +320,7 @@ export async function carregarProgramaPublico(): Promise<Record<string, unknown>
   return (data ?? null) as Record<string, unknown> | null;
 }
 
-/** A função ainda não existe no banco (proposta não aplicada). */
+/** Detecta função ausente em ambientes ainda sem a migração do recurso. */
 export function ehFuncaoAusente(erro: unknown): boolean {
   const e = erro as { code?: string; message?: string } | null;
   return e?.code === "PGRST202" || e?.code === "42883" || /could not find the function/i.test(e?.message ?? "");

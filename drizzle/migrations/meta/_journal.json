@@ -78,6 +78,20 @@
       "when": 1794365136946,
       "tag": "0010_origem_do_lead_whatsapp",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794672539656,
+      "tag": "0011_credito_de_entrada_parceiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794672579819,
+      "tag": "0012_atendente_padrao_parceiro",
+      "breakpoints": true
     }
   ]
 }

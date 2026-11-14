@@ -1,5 +1,6 @@
 -- =============================================================================
--- PROPOSTA (NÃO APLICADA): crédito de entrada do parceiro (A) e atendente padrão (B)
+-- APLICADA em 14/11/2026 pelos arquivos 20261114170000 e 20261114170100
+-- Crédito de entrada do parceiro (A) e atendente padrão (B)
 -- Escrita em 13/11/2026. Sem BEGIN/COMMIT: a ferramenta de migração roda cada
 -- seção como um bloco único. Aplicar A e B separadamente; B não depende de A.
 -- Crédito e validade começam só com parceiro ativo, login e atendente.

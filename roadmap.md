@@ -46,4 +46,4 @@
 - [x] Zerar mão de obra automática no 3D; embalagem opcional e preço oculto preservados; testes de custo inicial adicionados e suíte executada (05/11). Conferência visual não realizada: solicitante sem conta correspondente para acesso autorizado.
 - [x] Crédito de entrada do parceiro + atendente padrão: código pronto (tolerante ao banco sem as colunas); proposta em docs/proposta-credito-de-entrada-e-atendente.sql
 - [x] Ajuste do crédito: exigir atendente na proposta de concessão, excluir candidatos sem atendente e ocultar aviso desligado/vencido/sem saldo. Suíte: 6.607 aprovados, 1 pulado; 429 arquivos aprovados, 1 pulado. Tipos sem erros; lint de 4 arquivos sem erros/avisos. SQL não aplicado; telas autenticadas e concessão no banco não verificadas nesta tarefa; sem publicação.
-- [ ] Aplicar a proposta (seções A e B) — aguardando revisão e aplicação pelo responsável; depois definir o atendente padrão com o dono
+- [x] Aplicar as seções A e B, nesta ordem, pela ferramenta de migração (14/11): 0011 e 0012, com cópias nos arquivos 20261114170000 e 20261114170100. Sem concessão de crédito, atribuição de atendentes ou publicação; atendente padrão mantido NULO.

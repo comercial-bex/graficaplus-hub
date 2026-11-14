@@ -11895,11 +11895,17 @@ export type Database = {
       }
       parceiro_programa: {
         Row: {
+          atendente_padrao_id: string | null
           boas_vindas_ativa: boolean
           boas_vindas_pct: number
           boas_vindas_teto: number
           boas_vindas_validade_dias: number
           credito_max_pct_pedido: number
+          entrada_ativa: boolean
+          entrada_max_pct_pedido: number
+          entrada_pedido_minimo: number
+          entrada_validade_dias: number
+          entrada_valor: number
           id: boolean
           indicacao_ativa: boolean
           indicacao_compras: number
@@ -11909,11 +11915,17 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          atendente_padrao_id?: string | null
           boas_vindas_ativa?: boolean
           boas_vindas_pct?: number
           boas_vindas_teto?: number
           boas_vindas_validade_dias?: number
           credito_max_pct_pedido?: number
+          entrada_ativa?: boolean
+          entrada_max_pct_pedido?: number
+          entrada_pedido_minimo?: number
+          entrada_validade_dias?: number
+          entrada_valor?: number
           id?: boolean
           indicacao_ativa?: boolean
           indicacao_compras?: number
@@ -11923,11 +11935,17 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          atendente_padrao_id?: string | null
           boas_vindas_ativa?: boolean
           boas_vindas_pct?: number
           boas_vindas_teto?: number
           boas_vindas_validade_dias?: number
           credito_max_pct_pedido?: number
+          entrada_ativa?: boolean
+          entrada_max_pct_pedido?: number
+          entrada_pedido_minimo?: number
+          entrada_validade_dias?: number
+          entrada_valor?: number
           id?: boolean
           indicacao_ativa?: boolean
           indicacao_compras?: number
@@ -11936,7 +11954,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_programa_atendente_padrao_id_fkey"
+            columns: ["atendente_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parceiros: {
         Row: {
@@ -23099,6 +23125,10 @@ export type Database = {
         }
         Returns: string
       }
+      _parceiro_conceder_entrada: {
+        Args: { p_parceiro_id: string }
+        Returns: Json
+      }
       _reais: { Args: { p: number }; Returns: string }
       _triagem_bloqueado: { Args: { p_conversa: string }; Returns: boolean }
       _triagem_cancelar_pendentes: {
@@ -24370,6 +24400,10 @@ export type Database = {
         }
         Returns: string
       }
+      parceiro_dar_credito_de_entrada: {
+        Args: { p_ids: string[] }
+        Returns: Json
+      }
       parceiro_do_usuario: { Args: never; Returns: string }
       parceiro_entregar_conquista: {
         Args: { p_conquista_id: string; p_observacao: string }
@@ -24438,6 +24472,10 @@ export type Database = {
       parceiro_vincular_usuario: {
         Args: { p_parceiro_id: string; p_usuario_id: string }
         Returns: Json
+      }
+      parceiros_atribuir_atendente_padrao: {
+        Args: { p_ids: string[] }
+        Returns: number
       }
       parceiros_contador_periodo: {
         Args: { p_fim: string; p_inicio: string }
