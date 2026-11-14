@@ -226,6 +226,16 @@ const ASSINATURAS: Record<string, string[]> = {
   _triagem_degrau_permite: ["p_conversa", "p_modo"],
   _triagem_humano_na_conversa: ["p_conversa"],
   _triagem_cancelar_pendentes: ["p_conversa"],
+  // Migração 20261115100000 (C3, o agente que escolhe respostas aprovadas): só service_role executa.
+  // src/lib/api/agente-escolhe.server.ts chama.
+  agente_contexto: ["p_conversa_id", "p_mensagem_id"],
+  agente_registrar: ["p_conversa_id", "p_mensagem_id", "p_decisao"],
+  agente_evento: ["p_conversa_id", "p_mensagem_id", "p_tipo", "p_detalhe"],
+  agente_conferir_envio: ["p_conversa_id", "p_resposta_id", "p_versao"],
+  agente_config_salvar: ["p_usuario", "p_config"],
+  agente_desligar: ["p_motivo", "p_usuario"],
+  agente_varrer: [],
+  agente_resumo: ["p_dias"],
   whatsapp_dentro_do_horario: ["p_momento"],
   whatsapp_horario_salvar: ["p_usuario", "p_dia", "p_abre", "p_fecha", "p_ativo"],
   whatsapp_feriado_salvar: ["p_usuario", "p_data", "p_nome", "p_fechado", "p_abre", "p_fecha", "p_remover"],

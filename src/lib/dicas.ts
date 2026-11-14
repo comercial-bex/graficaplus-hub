@@ -674,6 +674,10 @@ export const dicas = {
     menu: "Liga e desliga o robô de boas-vindas do WhatsApp e edita o que ele diz.",
     tela: "O robô de boas-vindas só responde quem escreveu primeiro, pede nome, CEP e telefone e nunca fala valor. Ele sobe um degrau por vez: ensaio, teste, parcial e ligada. O botão vermelho Desligar tudo para na hora. Os textos, o quadro de respostas e o horário são editados aqui, e o simulador mostra a conversa sem mandar nada a ninguém.",
   },
+  "/configuracoes-agente": {
+    menu: "Liga e desliga o agente que responde com as respostas aprovadas, simula uma pergunta e mostra como ele está indo.",
+    tela: "O agente nunca escreve texto livre: só escolhe uma das respostas que você aprovou, palavra por palavra, ou passa a conversa para a equipe. Ele nunca diz preço, prazo, desconto nem orçamento, e na segunda pergunta de preço entrega à equipe. Sobe um degrau por vez: ensaio, teste, parcial e ligada. O botão vermelho Desligar tudo para na hora. Enquanto houver menos de 15 respostas aprovadas por tipo de contato, a tela avisa. O simulador mostra o que ele faria sem mandar nada a ninguém.",
+  },
   "/configuracoes-agente-base": {
     menu: "Leia e aprove, uma por vez, as respostas que o agente poderá usar depois.",
     tela: "Cada pergunta frequente tem uma resposta proposta, que nasce como rascunho. Só o dono aprova, uma de cada vez, e se alguém mudar uma letra da resposta aprovada ela volta a rascunho. Nenhuma resposta fala preço, prazo em número, desconto nem orçamento. O agente ainda está desligado: aprovar não muda o que nenhum contato recebe. O ensaio mostra qual resposta aprovada serviria para uma pergunta.",

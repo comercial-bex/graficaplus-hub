@@ -31,6 +31,7 @@ import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCompromissosRouteImport } from './routes/_authenticated/compromissos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
+import { Route as AuthenticatedConfiguracoesAgenteRouteImport } from './routes/_authenticated/configuracoes-agente'
 import { Route as AuthenticatedConfiguracoesAgenteBaseRouteImport } from './routes/_authenticated/configuracoes-agente-base'
 import { Route as AuthenticatedConfiguracoesApiRouteImport } from './routes/_authenticated/configuracoes-api'
 import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
@@ -244,6 +245,12 @@ const AuthenticatedConfiguracoes3dRoute =
   AuthenticatedConfiguracoes3dRouteImport.update({
     id: '/configuracoes-3d',
     path: '/configuracoes-3d',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesAgenteRoute =
+  AuthenticatedConfiguracoesAgenteRouteImport.update({
+    id: '/configuracoes-agente',
+    path: '/configuracoes-agente',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedConfiguracoesAgenteBaseRoute =
@@ -808,6 +815,7 @@ export interface FileRoutesByFullPath {
   '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-agente': typeof AuthenticatedConfiguracoesAgenteRoute
   '/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -930,6 +938,7 @@ export interface FileRoutesByTo {
   '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-agente': typeof AuthenticatedConfiguracoesAgenteRoute
   '/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -1055,6 +1064,7 @@ export interface FileRoutesById {
   '/_authenticated/compromissos': typeof AuthenticatedCompromissosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/_authenticated/configuracoes-agente': typeof AuthenticatedConfiguracoesAgenteRoute
   '/_authenticated/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/_authenticated/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -1180,6 +1190,7 @@ export interface FileRouteTypes {
     | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-agente'
     | '/configuracoes-agente-base'
     | '/configuracoes-api'
     | '/configuracoes-empresa'
@@ -1302,6 +1313,7 @@ export interface FileRouteTypes {
     | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-agente'
     | '/configuracoes-agente-base'
     | '/configuracoes-api'
     | '/configuracoes-empresa'
@@ -1426,6 +1438,7 @@ export interface FileRouteTypes {
     | '/_authenticated/compromissos'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
+    | '/_authenticated/configuracoes-agente'
     | '/_authenticated/configuracoes-agente-base'
     | '/_authenticated/configuracoes-api'
     | '/_authenticated/configuracoes-empresa'
@@ -1719,6 +1732,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes-3d'
       fullPath: '/configuracoes-3d'
       preLoaderRoute: typeof AuthenticatedConfiguracoes3dRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/configuracoes-agente': {
+      id: '/_authenticated/configuracoes-agente'
+      path: '/configuracoes-agente'
+      fullPath: '/configuracoes-agente'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesAgenteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes-agente-base': {
@@ -2438,6 +2458,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompromissosRoute: typeof AuthenticatedCompromissosRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
+  AuthenticatedConfiguracoesAgenteRoute: typeof AuthenticatedConfiguracoesAgenteRoute
   AuthenticatedConfiguracoesAgenteBaseRoute: typeof AuthenticatedConfiguracoesAgenteBaseRoute
   AuthenticatedConfiguracoesApiRoute: typeof AuthenticatedConfiguracoesApiRoute
   AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
@@ -2523,6 +2544,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompromissosRoute: AuthenticatedCompromissosRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
+  AuthenticatedConfiguracoesAgenteRoute: AuthenticatedConfiguracoesAgenteRoute,
   AuthenticatedConfiguracoesAgenteBaseRoute:
     AuthenticatedConfiguracoesAgenteBaseRoute,
   AuthenticatedConfiguracoesApiRoute: AuthenticatedConfiguracoesApiRoute,

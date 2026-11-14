@@ -52,6 +52,10 @@ function ConfiguracoesAgenteBasePage() {
           As respostas nunca falam preço, prazo em número, desconto nem orçamento. Quando a casa
           não sabe, a resposta diz que a equipe confirma.
         </p>
+        <p className="mt-2">
+          O conferidor automático é só uma última porta: ele barra o que já foi previsto e não
+          entende frase. A garantia de verdade é você ler cada resposta inteira antes de aprovar.
+        </p>
       </Aviso>
 
       {painel.isLoading ? (

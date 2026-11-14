@@ -168,6 +168,19 @@ export async function processarWebhookZapi(request: Request): Promise<Response> 
     }
   }
 
+  // O agente que ESCOLHE respostas aprovadas (C3): entre a triagem e a assistente de texto livre. Só age em conversa cuja
+  // triagem terminou e que o degrau da escada dele cobre; com o agente desligado (o estado de nascença) lê a configuração e
+  // sai. Nunca escreve texto livre: o banco enfileira o texto aprovado da base. Nunca derruba o 200: `agenteSemDerrubar` não
+  // lança e tem teto de tempo. A assistente consulta a mesma fonte de "quem responde" e fica em silêncio quando o dono é o agente.
+  if (alvo) {
+    try {
+      const { agenteSemDerrubar } = await import("@/lib/api/agente-escolhe.server");
+      resultado.agente = await agenteSemDerrubar(alvo.conversaId, alvo.mensagemId);
+    } catch (e) {
+      resultado.agente = { acao: "erro", etapa: "importacao", erro: e instanceof Error ? e.name : "erro" };
+    }
+  }
+
   if (alvo) {
     try {
       const { assistenteSemDerrubar } = await import("@/lib/api/whatsapp-assistente.server");

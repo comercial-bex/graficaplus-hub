@@ -269,6 +269,12 @@ function ConfiguracoesEmpresaPage() {
                 <Bot className="h-4 w-4 mr-1" aria-hidden="true" /> Robô de boas-vindas
               </Link>
             </Button>
+            {/* Agente de respostas (15/11): liga, simulador e métricas. Fora do menu; abre por aqui. */}
+            <Button asChild variant="outline">
+              <Link to="/configuracoes-agente">
+                <Bot className="h-4 w-4 mr-1" aria-hidden="true" /> Agente de respostas
+              </Link>
+            </Button>
             {/* Respostas do agente (14/11): fila de aprovação, uma por vez. Fora do menu; abre por aqui. */}
             <Button asChild variant="outline">
               <Link to="/configuracoes-agente-base">

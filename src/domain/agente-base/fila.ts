@@ -93,7 +93,9 @@ const EXPLICACAO_DO_AVISO: Record<string, string> = {
   valor_com_centavos: "Tem um número com cara de preço.",
   valor_depois_de_valor: "Fala em valor com número.",
   preco_com_numero: "Tem preço ou valor com número, mesmo escrito por extenso. O agente nunca fala valor.",
-  condicao_de_preco: "Fala em condição de preço, como grátis, promoção ou barato.",
+  condicao_de_preco:
+    "Fala em condição de preço, como grátis, promoção, barato, competitivo, custa pouco ou preço bom.",
+  taxa_cobrada: "Fala em taxa, como taxa de entrega ou de urgência. Isso é só com a equipe.",
   desconto: "Fala em desconto. O agente nunca fala desconto.",
   desconto_disfarcado: "Fala em abatimento ou condição especial, que é desconto disfarçado.",
   porcentagem: "Fala em porcentagem, que é desconto ou juros.",
@@ -105,8 +107,10 @@ const EXPLICACAO_DO_AVISO: Record<string, string> = {
   forma_de_pagamento: "Fala em forma de pagamento, como à vista, cartão, sinal ou em vezes. Isso é só com a equipe.",
   nota_fiscal: "Fala em nota fiscal. Isso é só com a equipe.",
   prazo_em_numero: "Promete prazo em número. O agente nunca promete prazo.",
-  prazo_prometido: "Promete prazo, com horas, dias ou minutos, ou com expressões como amanhã, mesmo dia e esta semana.",
-  orcamento_feito_pelo_agente: "Diz que o agente faz ou entrega orçamento. Só a equipe faz.",
+  prazo_prometido:
+    "Promete prazo, com horas, dias ou minutos, ou com expressões como amanhã, mesmo dia, sai hoje e no outro dia.",
+  orcamento_feito_pelo_agente:
+    "Diz que o agente faz, prepara, monta, calcula ou passa orçamento ou valor. Só a equipe faz.",
   parceiro: "Tem a palavra parceiro, que cliente final não pode ler.",
   parceria: "Tem a palavra parceria, que cliente final não pode ler.",
   terceirizado: "Tem a palavra terceirizado, que cliente final não pode ler.",

@@ -793,7 +793,8 @@ export async function rodarTriagem(
  */
 export function assistentePodeResponder(dono: unknown): { pode: boolean; motivo: string } {
   if (dono === "assistente") return { pode: true, motivo: "dono_assistente" };
-  if (dono === "triagem" || dono === "ninguem") return { pode: false, motivo: `dono_${dono}` };
+  // `agente` (C3): o agente que escolhe respostas aprovadas é o dono; a assistente de texto livre não fala por cima dele
+  if (dono === "triagem" || dono === "ninguem" || dono === "agente") return { pode: false, motivo: `dono_${dono}` };
   return { pode: false, motivo: "dono_indefinido" };
 }
 

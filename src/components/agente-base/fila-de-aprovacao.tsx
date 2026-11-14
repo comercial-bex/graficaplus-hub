@@ -460,8 +460,9 @@ function RespostaAberta({
           </p>
         ) : codigos.length === 0 ? (
           <p className="flex items-center gap-2 text-base text-foreground">
-            <Check className="h-5 w-5" aria-hidden="true" /> Nenhum aviso. O texto não fala valor,
-            desconto, prazo em número nem forma de pagamento.
+            <Check className="h-5 w-5" aria-hidden="true" /> O conferidor automático não achou nada.
+            Ele é só uma última porta e pega apenas o que já foi previsto. Quem garante que a
+            resposta não cita valor nem prazo é você, lendo a resposta inteira antes de aprovar.
           </p>
         ) : (
           <ul className="list-disc space-y-1 pl-6 text-base font-medium text-destructive">
