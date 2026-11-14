@@ -1,10 +1,6 @@
-import { faixaAplicada, type FaixaPreco } from "@/domain/orcamentos/faixas";
-import {
-  cobrancasDasRespostas,
-  type ProcessoDaResposta,
-  type ServicoDaResposta,
-} from "@/domain/orcamentos/cobranca-das-respostas";
 import { respostasDaIa, type ProdutoParaIa } from "@/domain/orcamentos/orcamento-com-ia";
+import { verificarSaida } from "@/domain/whatsapp/assistente";
+import type { RegraDoBanco } from "@/domain/whatsapp/triagem/verificador";
 
 /**
  * O atendente que conversa com o cliente e monta o orçamento (02/11/2026), em regras puras.
@@ -12,20 +8,15 @@ import { respostasDaIa, type ProdutoParaIa } from "@/domain/orcamentos/orcamento
  * Por enquanto só existe em ENSAIO: a tela responde para quem está testando e nada sai pelo WhatsApp. A assistente de
  * verdade (`assistente.ts`) continua como está, atrás de `whatsapp_configuracoes.ia_ativa`.
  *
- * A trava que manda em tudo: a IA nunca escreve valor. Ela conversa e diz o que entendeu; o valor é calculado aqui,
- * da tabela, e acrescentado ao texto. Valor, data, Pix ou desconto escritos por ela viram transferência para a equipe.
+ * A trava que manda em tudo (C1, 14/11/2026): o atendente NUNCA fala preço, prazo nem data, e não monta orçamento. Ele
+ * entende o que o contato precisa e registra o que já se sabe do pedido; quando o pedido está completo, passa para a
+ * equipe, que orça. Antes, este arquivo calculava o valor da tabela e o somava ao texto (11 de 31 respostas do ensaio
+ * saíram com valor); essa conta saiu, e a tabela de preços nem é mais lida aqui. O texto passa pelo verificador único
+ * (`triagem/verificador.ts`, ramo cliente final) antes de sair; reprovado, vira transferência com o nome da regra.
  */
 
 export type TipoDaMensagem = "texto" | "imagem" | "documento" | "audio" | "video" | "outro";
 export type FalaDaConversa = { de: "cliente" | "grafica"; texto: string };
-
-export type TabelaDoAtendente = {
-  precos: Map<string, { preco_base: number | null; area_minima: number | null; faixas: FaixaPreco[] }>;
-  processos: ProcessoDaResposta[];
-  servicos: ServicoDaResposta[];
-  /** O serviço que cobra cada acabamento, pelo nome do acabamento. */
-  acabamentos: Map<string, { id: string; nome: string; medida: "perimetro" | "area" | "peca"; preco: number | null }>;
-};
 
 export const FERRAMENTA_DO_ATENDENTE = {
   type: "function",
@@ -35,14 +26,10 @@ export const FERRAMENTA_DO_ATENDENTE = {
     parameters: {
       type: "object",
       properties: {
-        resposta: { type: "string", description: "O texto para o cliente, sem nenhum valor em reais." },
+        resposta: { type: "string", description: "O texto para o cliente, sem valor, preço, prazo nem data." },
         acao: { type: "string", enum: ["responder", "transferir"] },
         motivo_transferencia: { type: "string", description: "Por que a equipe precisa assumir." },
         confianca: { type: "number", minimum: 0, maximum: 1 },
-        orcamento_pronto: {
-          type: "boolean",
-          description: "true só quando produto, medida, quantidade e as perguntas do checklist estão resolvidos.",
-        },
         itens: {
           type: "array",
           items: {
@@ -67,7 +54,7 @@ export const FERRAMENTA_DO_ATENDENTE = {
         },
         sem_produto: { type: "array", items: { type: "string" }, description: "O que o cliente pediu e não está na lista." },
       },
-      required: ["resposta", "acao", "confianca", "orcamento_pronto", "itens", "sem_produto"],
+      required: ["resposta", "acao", "confianca", "itens", "sem_produto"],
     },
   },
 } as const;
@@ -80,8 +67,11 @@ const INSTRUCOES = [
   "Se o cliente não sabe a medida, sugira os tamanhos da lista dizendo para que serve cada um. Só preencha largura_m e altura_m com o que ele disse ou confirmou, em metros (80 cm = 0,8).",
   "Se o pedido passa do que a máquina faz, segundo o roteiro do produto, avise antes e ofereça a alternativa.",
   "Cada pergunta do checklist diz como tratá-la em 'como'. 'perguntar': se a conversa não respondeu, pergunte, seguindo a instrucao; registre a resposta em respostas, com o texto exato de uma das opcoes. 'seguir_cliente': registre só se o cliente falou disso, sem perguntar. O que está em ja_definido nunca se pergunta nem se menciona.",
-  "NUNCA escreva valor, preço, prazo, data, desconto ou forma de pagamento: o sistema acrescenta o valor quando o orçamento fica pronto. Se o cliente perguntar o preço antes, diga que falta só o que você está perguntando.",
-  "Marque orcamento_pronto=true quando produto, medida, quantidade e as perguntas 'perguntar' de cada item estiverem resolvidos. Nesse caso, escreva só uma frase curta confirmando o pedido; o valor entra depois dela.",
+  "Escreva sem travessão, sem setas e sem parênteses.",
+  "Seu objetivo é entender o que o cliente precisa e dar uma expectativa do que a Bex Print faz, falando dos produtos. Quem passa preço, prazo e orçamento é sempre a equipe.",
+  "NUNCA escreva valor, preço, orçamento fechado, prazo, data, dia da semana de entrega, validade, garantia, desconto, promoção ou forma de pagamento, nem número que pareça isso. Se o cliente perguntar, diga só que a equipe confirma isso com tudo certinho para o pedido, e siga com a pergunta de que você precisa.",
+  "NUNCA pergunte se a pessoa é parceira, cliente final ou de qualquer outro tipo, e nunca fale de tabela, desconto ou preço.",
+  "Quando produto, medida, quantidade e as perguntas 'perguntar' de cada item estiverem resolvidos, use acao='transferir' com o motivo 'pedido completo para a equipe'. Não monte orçamento.",
   "Mantenha em itens tudo o que já se sabe do pedido, a cada resposta, mesmo incompleto.",
   "Use acao='transferir' quando: o cliente pede uma pessoa; reclama ou está irritado; fala de desconto, pagamento ou nota; pede algo fora da lista; o produto pede visita técnica; ou você não tem certeza.",
   "confianca: de 0 a 1, o quanto você tem certeza de que a resposta está certa com o que foi dado.",
@@ -176,7 +166,6 @@ export type LeituraDoAtendente = {
   acao: "responder" | "transferir";
   motivo_transferencia: string | null;
   confianca: number;
-  orcamento_pronto: boolean;
   itens: ItemDoAtendente[];
   sem_produto: string[];
 };
@@ -223,154 +212,51 @@ export function interpretarAtendente(argumentos: unknown, produtos: ProdutoParaI
     acao: a.acao === "transferir" ? "transferir" : "responder",
     motivo_transferencia: typeof a.motivo_transferencia === "string" && a.motivo_transferencia.trim() ? a.motivo_transferencia.trim() : null,
     confianca: Number.isFinite(confianca) ? confianca : 0,
-    orcamento_pronto: a.orcamento_pronto === true,
     itens,
     sem_produto: [...textos(a.sem_produto), ...fora.map((x) => `Item fora da lista: ${x}`)],
   };
 }
 
-const centavos = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
-const ehArea = (u: string | null) => ["m2", "m²"].includes((u ?? "").trim().toLowerCase());
-
-export type LinhaDaPrevia = { descricao: string; quantidade: number; unidade: string; total: number };
-export type PreviaDoOrcamento = { linhas: LinhaDaPrevia[]; total: number; pendencias: string[] };
-
 /**
- * O valor do orçamento, com as mesmas contas do banco: área exata da peça com a mínima do produto, faixa por
- * quantidade e linha sem medida cobrando no mínimo 1. O que não dá para calcular vira pendência, nunca zero.
+ * O texto pode sair? Nulo = pode. Passa pelo verificador único, ramo cliente final, com os termos extras da tabela;
+ * o motivo leva o nome das regras, nunca o trecho.
  */
-export function previaDoOrcamento(itens: ItemDoAtendente[], produtos: ProdutoParaIa[], t: TabelaDoAtendente): PreviaDoOrcamento {
-  const linhas: LinhaDaPrevia[] = [];
-  const pendencias: string[] = [];
-  const noOrcamento: { id: string; produto_id: string; gerado_por_item_id: string | null }[] = [];
-  for (const [n, i] of itens.entries()) {
-    const preco = t.precos.get(i.produto_id);
-    const faixa = faixaAplicada(preco?.faixas ?? [], i.quantidade);
-    const area = ehArea(i.unidade);
-    const unitario = faixa ? (area ? (faixa.preco_m2_referencia ?? preco?.preco_base ?? null) : faixa.preco_unitario) : (preco?.preco_base ?? null);
-    if (unitario == null) {
-      pendencias.push(`${i.nome}: sem preço de tabela para ${i.quantidade} ${i.unidade ?? "un"}`);
-      continue;
-    }
-    if (area && !(i.largura_m && i.altura_m)) {
-      pendencias.push(`${i.nome}: falta a medida`);
-      continue;
-    }
-    const itemId = `item-${n}`;
-    noOrcamento.push({ id: itemId, produto_id: i.produto_id, gerado_por_item_id: null });
-    if (area) {
-      const peca = Math.max(Math.round(i.largura_m! * i.altura_m! * 1e6) / 1e6, preco?.area_minima ?? 0);
-      linhas.push({
-        descricao: `${i.nome} (${i.largura_m!.toLocaleString("pt-BR")} × ${i.altura_m!.toLocaleString("pt-BR")} m)`,
-        quantidade: i.quantidade,
-        unidade: "peça",
-        total: centavos(peca * i.quantidade * unitario),
-      });
-    } else {
-      linhas.push({ descricao: i.nome, quantidade: i.quantidade, unidade: i.unidade ?? "un", total: centavos(Math.max(i.quantidade, 1) * unitario) });
-    }
-    const peca = { largura: i.largura_m ?? 0, altura: i.altura_m ?? 0, quantidade: i.quantidade };
-    const produto = produtos.find((p) => p.id === i.produto_id);
-    for (const c of cobrancasDasRespostas({
-      perguntas: produto?.checklist ?? [],
-      respostas: i.respostas,
-      processos: t.processos,
-      servicos: t.servicos,
-      peca,
-      informadas: {},
-      linhasDoOrcamento: noOrcamento,
-      itemAtualId: itemId,
-    })) {
-      if (c.estado === "falta_quantidade") pendencias.push(`${c.nome}: quem atende informa a quantidade`);
-      if (c.estado === "falta_medida") pendencias.push(`${c.nome}: falta a medida da peça`);
-      if (c.estado !== "cobra" || !c.servico) continue;
-      noOrcamento.push({ id: `${itemId}-${c.processo_id}`, produto_id: c.servico.id, gerado_por_item_id: itemId });
-      linhas.push({ descricao: c.nome, quantidade: c.quantidade, unidade: c.servico.unidade, total: c.total });
-    }
-    for (const nome of i.acabamentos) {
-      const a = t.acabamentos.get(nome);
-      if (!a || a.preco == null) {
-        pendencias.push(`${nome}: acabamento sem preço`);
-        continue;
-      }
-      if (noOrcamento.some((l) => l.produto_id === a.id && l.gerado_por_item_id === itemId)) continue;
-      const contorno = 2 * ((i.largura_m ?? 0) + (i.altura_m ?? 0)) * i.quantidade;
-      const q = a.medida === "peca" ? i.quantidade : a.medida === "area" ? (i.largura_m ?? 0) * (i.altura_m ?? 0) * i.quantidade : contorno;
-      if (!(q > 0)) {
-        pendencias.push(`${nome}: falta a medida`);
-        continue;
-      }
-      // Bainha em só dois lados muda o contorno: quem atende confere antes de enviar.
-      linhas.push({ descricao: nome, quantidade: Math.round(q * 100) / 100, unidade: a.medida === "peca" ? "un" : a.medida === "area" ? "m²" : "m", total: centavos(Math.max(q, a.medida === "area" ? 0 : 1) * a.preco) });
-    }
-  }
-  return { linhas, total: centavos(linhas.reduce((s, l) => s + l.total, 0)), pendencias };
-}
-
-// Espaço comum no lugar do que o formatador põe: o texto vai para o WhatsApp.
-const reais = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(/\s/g, " ");
-
-/** O valor como vai ao cliente: vem da tabela, nunca da IA. */
-export function textoDoValor(p: PreviaDoOrcamento): string {
-  const itens = p.linhas.map((l) => {
-    const q = l.quantidade.toLocaleString("pt-BR");
-    return `• ${l.unidade === "peça" ? `${q} × ` : `${q} ${l.unidade} de `}${l.descricao}: ${reais(l.total)}`;
-  });
-  return [...itens, `*Total: ${reais(p.total)}*`].join("\n");
-}
-
-const PROIBIDAS = /\b(desconto|pix|boleto|parcel\w*|cart[aã]o|juros|nota fiscal|prazo de \d+|em \d+ dias?)\b/i;
-
-/** O texto da IA pode sair? Nulo = pode. Valor e data ela não escreve nunca: isso vem do sistema. */
-export function motivoParaBarrarAtendente(texto: string): string | null {
+export function motivoParaBarrarAtendente(texto: string, extras: readonly RegraDoBanco[] = []): string | null {
   if (!texto.trim()) return "a IA não escreveu resposta";
-  if (/R\$\s*\d|\b\d+[.,]\d{2}\s*reais\b|\b\d+\s*reais\b/i.test(texto)) return "a IA escreveu um valor por conta própria";
-  if (/\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/.test(texto)) return "a IA escreveu uma data por conta própria";
-  if (PROIBIDAS.test(texto)) return "a resposta tocava em pagamento, desconto ou prazo";
-  return null;
+  const regras = verificarSaida(texto, extras);
+  return regras.length > 0 ? `texto reprovado pelo verificador: ${regras.join(", ")}` : null;
 }
 
 export type DecisaoDoAtendente = {
   acao: "responder" | "transferir";
   texto: string;
   motivo: string | null;
-  previa: PreviaDoOrcamento | null;
 };
 
 export const FRASE_DE_PASSAGEM = "Vou chamar alguém da equipe para continuar com você.";
 const FRASE_DO_AUDIO = "Ainda não consigo ouvir áudio por aqui. Pode escrever? Se preferir, chamo alguém da equipe.";
 const FRASE_DO_ARQUIVO = "Recebi o arquivo, e a equipe confere a arte antes de produzir.";
 
-/** A decisão final, com as travas por cima do que a IA quis. */
+/** A decisão final, com as travas por cima do que a IA quis. Nunca leva valor, prazo ou data. */
 export function decidirAtendente(
   l: LeituraDoAtendente,
-  produtos: ProdutoParaIa[],
-  tabela: TabelaDoAtendente,
   tipo: TipoDaMensagem = "texto",
+  extras: readonly RegraDoBanco[] = [],
 ): DecisaoDoAtendente {
-  const transferir = (motivo: string, previa: PreviaDoOrcamento | null = null): DecisaoDoAtendente => ({
-    acao: "transferir",
-    texto: FRASE_DE_PASSAGEM,
-    motivo,
-    previa,
-  });
+  const transferir = (motivo: string): DecisaoDoAtendente => ({ acao: "transferir", texto: FRASE_DE_PASSAGEM, motivo });
   if (l.acao === "transferir") return transferir(l.motivo_transferencia ?? "a IA pediu ajuda da equipe");
   if (l.confianca < 0.6) return transferir(`confiança baixa (${Math.round(l.confianca * 100)}%)`);
-  const barrar = motivoParaBarrarAtendente(l.resposta);
-  if (barrar) return transferir(barrar);
   if (l.sem_produto.length > 0) return transferir(`fora do catálogo: ${l.sem_produto.join(", ")}`);
-  const previa = l.itens.length > 0 ? previaDoOrcamento(l.itens, produtos, tabela) : null;
   const inicio = tipo === "imagem" || tipo === "documento" ? `${FRASE_DO_ARQUIVO} ` : "";
-  if (!l.orcamento_pronto) return { acao: "responder", texto: `${inicio}${l.resposta}`, motivo: null, previa };
-  if (!previa || previa.linhas.length === 0 || previa.pendencias.length > 0) {
-    return transferir(`orçamento sem valor fechado: ${(previa?.pendencias ?? ["nenhum item"]).join("; ")}`, previa);
-  }
-  return { acao: "responder", texto: `${inicio}${l.resposta}\n\n${textoDoValor(previa)}`, motivo: null, previa };
+  const texto = `${inicio}${l.resposta}`;
+  const barrar = motivoParaBarrarAtendente(texto, extras);
+  if (barrar) return transferir(barrar);
+  return { acao: "responder", texto, motivo: null };
 }
 
 /** Áudio não passa pela IA: sem transcrição, ela responderia sem saber o que foi dito. */
 export function decisaoDoAudio(): DecisaoDoAtendente {
-  return { acao: "responder", texto: FRASE_DO_AUDIO, motivo: null, previa: null };
+  return { acao: "responder", texto: FRASE_DO_AUDIO, motivo: null };
 }
 
 /** Telefone, e-mail e documento não saem para a IA: na réplica, o texto vai sem eles. */

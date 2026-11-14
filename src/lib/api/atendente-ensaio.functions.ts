@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { acabamentoCobravel } from "@/domain/orcamentos/cobranca-do-acabamento";
-import type { FaixaPreco } from "@/domain/orcamentos/faixas";
 import type { ProdutoParaIa } from "@/domain/orcamentos/orcamento-com-ia";
 import {
   decidirAtendente,
@@ -15,13 +13,15 @@ import {
   type DecisaoDoAtendente,
   type FalaDaConversa,
   type ItemDoAtendente,
-  type TabelaDoAtendente,
   type TipoDaMensagem,
 } from "@/domain/whatsapp/atendente";
+import type { RegraDoBanco } from "@/domain/whatsapp/triagem/verificador";
+import { lerTermosExtras } from "@/lib/api/termos-proibidos";
 import { exigeQuemOrca, motorDaIa, produtosParaIa, type Motor } from "@/lib/api/orcamento-ia.functions";
 
 /**
- * O atendente em ENSAIO: conversa e calcula, mas nada aqui fala com o cliente nem cria orçamento. Nenhuma função deste
+ * O atendente em ENSAIO: conversa, mas nada aqui fala com o cliente nem cria orçamento, e desde a C1 (14/11/2026) nem calcula
+ * valor: a tabela de preços não é mais lida e a coluna `valor` do ensaio fica vazia. Nenhuma função deste
  * arquivo grava em `whatsapp_mensagens`, na fila de envio ou em `orcamentos`.
  */
 
@@ -32,45 +32,6 @@ export type RespostaDoEnsaio =
   | { estado: "sem_ia" | "sem_roteiro" | "limite" | "sem_saldo" }
   | { estado: "falhou"; detalhe: string };
 
-/** O preço de tudo que a conversa pode citar: produto, faixa, serviço de resposta e de acabamento. */
-async function tabelaDoAtendente(db: any, produtos: ProdutoParaIa[]): Promise<TabelaDoAtendente> {
-  const [precos, faixas, processos, acabamentos, servicos] = await Promise.all([
-    db.from("produtos_comercial").select("id, preco_base, area_minima_cobrada"),
-    db
-      .from("produto_faixas_preco")
-      .select("id, produto_id, quantidade_minima, preco_unitario, preco_m2_referencia, vigencia_inicio, vigencia_fim"),
-    db.from("processos").select("id, nome, medida_cobrada, produto_servico_id"),
-    db.from("acabamentos").select("nome, produto_servico_id").eq("ativo", true),
-    db.from("produtos_comercial").select("id, nome, unidade, preco_base").eq("tipo", "servico"),
-  ]);
-  for (const r of [precos, faixas, processos, acabamentos, servicos]) {
-    if (r.error) throw new Error("Não foi possível ler a tabela de preços.");
-  }
-  const mapa: TabelaDoAtendente["precos"] = new Map();
-  for (const p of produtos) {
-    const linha = (precos.data ?? []).find((x: any) => x.id === p.id);
-    mapa.set(p.id, {
-      preco_base: linha?.preco_base == null ? null : Number(linha.preco_base),
-      area_minima: linha?.area_minima_cobrada == null ? null : Number(linha.area_minima_cobrada),
-      faixas: ((faixas.data ?? []) as (FaixaPreco & { produto_id: string })[]).filter((f) => f.produto_id === p.id),
-    });
-  }
-  const dosAcabamentos: TabelaDoAtendente["acabamentos"] = new Map();
-  for (const a of (acabamentos.data ?? []) as { nome: string; produto_servico_id: string | null }[]) {
-    const regra = acabamentoCobravel(a.nome);
-    const s = (servicos.data ?? []).find((x: any) => x.id === a.produto_servico_id);
-    if (regra && s) {
-      dosAcabamentos.set(a.nome, { id: s.id, nome: s.nome, medida: regra.medida, preco: s.preco_base == null ? null : Number(s.preco_base) });
-    }
-  }
-  return {
-    precos: mapa,
-    processos: (processos.data ?? []) as TabelaDoAtendente["processos"],
-    servicos: (servicos.data ?? []) as TabelaDoAtendente["servicos"],
-    acabamentos: dosAcabamentos,
-  };
-}
-
 /** Uma resposta do atendente. Sem framework: é o que o teste exercita. */
 export async function responderNoEnsaio(
   a: {
@@ -78,8 +39,9 @@ export async function responderNoEnsaio(
     mensagem: string;
     tipo: TipoDaMensagem;
     produtos: ProdutoParaIa[];
-    tabela: TabelaDoAtendente;
     motor: Motor | null;
+    /** Os termos que o dono acrescentou na tabela, além da lista do código. */
+    extras?: readonly RegraDoBanco[];
   },
   buscar: typeof fetch = fetch,
 ): Promise<RespostaDoEnsaio> {
@@ -121,7 +83,7 @@ export async function responderNoEnsaio(
   if (!leitura) return { estado: "falhou", detalhe: "a IA não respondeu no formato combinado" };
   return {
     estado: "ok",
-    decisao: decidirAtendente(leitura, a.produtos, a.tabela, a.tipo),
+    decisao: decidirAtendente(leitura, a.tipo, a.extras ?? []),
     itens: leitura.itens,
     confianca: leitura.confianca,
   };
@@ -147,8 +109,8 @@ export const ensaiarAtendimento = createServerFn({ method: "POST" })
       mensagem: data.mensagem || `[${data.tipo} enviada]`,
       tipo: data.tipo,
       produtos,
-      tabela: await tabelaDoAtendente(db, produtos),
       motor: motorDaIa(),
+      extras: await lerTermosExtras(db),
     });
   });
 
@@ -183,8 +145,8 @@ export const repetirTurno = createServerFn({ method: "POST" })
       mensagem: t.mensagem,
       tipo: t.tipo,
       produtos,
-      tabela: await tabelaDoAtendente(db, produtos),
       motor: motorDaIa(),
+      extras: await lerTermosExtras(db),
     });
     if (r.estado !== "ok") return { total: turnos.length, falha: r.estado === "falhou" ? r.detalhe : r.estado };
     const { error: erro, data: gravada } = await db
@@ -200,7 +162,7 @@ export const repetirTurno = createServerFn({ method: "POST" })
           acao: r.decisao.acao,
           motivo: r.decisao.motivo,
           itens: r.itens,
-          valor: r.decisao.previa?.total ?? null,
+          valor: null,
           confianca: r.confianca,
           avaliacao: null,
         },

@@ -27,8 +27,6 @@ export const Route = createFileRoute("/_authenticated/atendente-ensaio")({
   ),
 });
 
-const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
 const FRASE_DA_FALHA: Record<string, string> = {
   sem_ia: "A IA não está ligada neste projeto: falta a chave no servidor.",
   sem_roteiro: "Nenhum produto está liberado para a IA.",
@@ -178,26 +176,6 @@ function Ensaio() {
                   ))}
                 </div>
               ))}
-              {ultima.decisao.previa && ultima.decisao.previa.linhas.length > 0 && (
-                <div className="rounded border p-2">
-                  <div className="font-medium">Conta da tabela</div>
-                  {ultima.decisao.previa.linhas.map((l, n) => (
-                    <div key={n} className="flex justify-between gap-2 text-xs">
-                      <span>{l.descricao}</span>
-                      <span className="font-mono">{brl(l.total)}</span>
-                    </div>
-                  ))}
-                  <div className="mt-1 flex justify-between gap-2 font-semibold">
-                    <span>Total</span>
-                    <span className="font-mono">{brl(ultima.decisao.previa.total)}</span>
-                  </div>
-                </div>
-              )}
-              {(ultima.decisao.previa?.pendencias ?? []).map((p) => (
-                <p key={p} className="text-xs text-destructive">
-                  {p}
-                </p>
-              ))}
             </>
           )}
         </CardContent>
@@ -227,7 +205,7 @@ function Replica() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("atendente_ensaios")
-        .select("id, conversa_id, ordem, mensagem_cliente, tipo_mensagem, resposta_ia, resposta_equipe, acao, motivo, valor, avaliacao")
+        .select("id, conversa_id, ordem, mensagem_cliente, tipo_mensagem, resposta_ia, resposta_equipe, acao, motivo, avaliacao")
         .order("ordem");
       if (error) throw error;
       return (data ?? []) as any[];

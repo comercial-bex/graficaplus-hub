@@ -420,8 +420,9 @@ export function extrairNome(
       return { ok: false, motivo: "palavra_barrada" };
   }
   // a mesma lista do banco: se o texto montado com este nome seria barrado pelo verificador (que o banco espelha),
-  // não é nome. Sem isto, "Pix" virava "Prazer, Pix!", o texto era barrado e a triagem desligava para todos.
-  const barradoPeloVerificador = (x: string) => !verificarTexto(x, "cliente").ok;
+  // não é nome. Sem isto, "Pix" virava "Prazer, Pix!", o texto era barrado e a triagem desligava para todos. Só as regras
+  // comuns (escopo "triagem"): as que o C1 acrescentou ao texto livre recusariam "Maria Barata", "Cara Silva" e "Hoje".
+  const barradoPeloVerificador = (x: string) => !verificarTexto(x, "cliente", [], { escopo: "triagem" }).ok;
   if (barradoPeloVerificador(tokens.join(" ")) || tokens.some(barradoPeloVerificador))
     return { ok: false, motivo: "palavra_barrada" };
   const principais = tokens.filter((_, i) => !CONECTORES.has(planos[i]));

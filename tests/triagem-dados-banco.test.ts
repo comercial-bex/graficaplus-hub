@@ -385,7 +385,9 @@ describe("triagem B1: sementes iguais às constantes TypeScript", () => {
     ];
     for (const ramo of ["cliente", "parceiro"] as const) {
       for (const p of [...provas, ...unicode]) {
-        const codigoOk = verificarTexto(p, ramo).ok;
+        // O código ganhou regras que a migração B1 ainda não semeia (REGRAS_SO_DO_CODIGO; C1,
+        // docs/ensaio-endurecer-assistentes.md): a paridade vale para as regras comuns, as do escopo "triagem".
+        const codigoOk = verificarTexto(p, ramo, [], { escopo: "triagem" }).ok;
         expect(!bancoReprova(p, ramo), `${ramo}: ${p}`).toBe(codigoOk);
       }
     }

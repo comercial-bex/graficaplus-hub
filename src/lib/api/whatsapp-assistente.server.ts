@@ -7,18 +7,22 @@ import {
   FERRAMENTA_DO_ASSISTENTE,
   FRASE_DE_TRANSFERENCIA,
   comAssinatura,
-  dataBR,
   decidirAcao,
   interpretarDecisao,
   montarPergunta,
+  motivoDeTextoReprovado,
   orcamentoParaContexto,
+  osParaContexto,
   portaoDoAssistente,
   roteirosDaConversa,
   textoDaMensagem,
+  verificarSaida,
   type ConfigAssistente,
   type ContextoDaConversa,
   type DecisaoDaIa,
 } from "@/domain/whatsapp/assistente";
+import type { RegraDoBanco } from "@/domain/whatsapp/triagem/verificador";
+import { lerTermosExtras } from "@/lib/api/termos-proibidos";
 
 /**
  * A assistente de IA do WhatsApp, do lado do servidor. As regras moram em
@@ -29,6 +33,13 @@ import {
  * (`assistenteSemDerrubar`). "Disparar e esquecer" não serve: o servidor corta
  * o que sobra depois da resposta. E a rota POST /api/whatsapp/agente, com o
  * token do despachante, para reprocessar uma mensagem à mão.
+ *
+ * REGRA DO DONO (C1, 14/11/2026): a assistente nunca cita preço, validade, prazo nem data, e nunca faz orçamento. O
+ * contexto não traz valor nem data (a consulta nem lê essas colunas), e TODO texto que vira mensagem (resposta, aviso fora
+ * do horário, frase de transferência) passa por `verificarSaida` (o verificador único da triagem, ramo cliente final, mais
+ * os termos que o dono acrescentou na tabela) JÁ MONTADO, com a assinatura. Texto reprovado nunca é enfileirado: vira log
+ * com o NOME da regra (nunca o texto) e a conversa passa para a equipe em silêncio. A barreira no banco
+ * (`whatsapp_ia_enviar`) ainda não confere o texto: é uma migração própria (docs/ensaio-endurecer-assistentes.md).
  *
  * O QUE GRAVA, sempre pelas funções SECURITY DEFINER da caixa v3 (só
  * service_role): `whatsapp_ia_classificar` (etiqueta e fila),
@@ -132,7 +143,7 @@ async function montarContexto(
     : `conversa_id.eq.${conversa.id}`;
   const { data: orcs, error: erroOrc } = await db
     .from("orcamentos")
-    .select("numero, titulo, status, valor_total, validade_dias, enviado_em, created_at")
+    .select("numero, titulo, status, created_at")
     .or(filtroOrc)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -142,24 +153,15 @@ async function montarContexto(
   if (conversa.cliente_id) {
     const { data: lista, error: erroOs } = await db
       .from("ordens_servico")
-      .select("numero, titulo, status, prazo_entrega, prazo_cliente")
+      .select("numero, titulo, status")
       .eq("cliente_id", conversa.cliente_id)
       .neq("status", "cancelado")
       .order("created_at", { ascending: false })
       .limit(5);
     if (erroOs) throw new Error(`falha ao ler as OS: ${erroOs.message}`);
-    os = ((lista ?? []) as {
-      numero: number;
-      titulo: string | null;
-      status: string;
-      prazo_entrega: string | null;
-      prazo_cliente: string | null;
-    }[]).map((o) => ({
-      numero: o.numero,
-      titulo: o.titulo,
-      etapa: rotuloDe(o.status),
-      prazo: dataBR(o.prazo_cliente ?? o.prazo_entrega),
-    }));
+    os = ((lista ?? []) as { numero: number; titulo: string | null; status: string }[]).map((o) =>
+      osParaContexto({ numero: o.numero, titulo: o.titulo, etapa: rotuloDe(o.status) }),
+    );
   }
 
   // As 10 mensagens anteriores à nova, para a IA entender o assunto.
@@ -196,7 +198,7 @@ async function montarContexto(
   return {
     cliente,
     roteiros,
-    orcamentos: ((orcs ?? []) as Parameters<typeof orcamentoParaContexto>[0][]).map(orcamentoParaContexto),
+    orcamentos: ((orcs ?? []) as Parameters<typeof orcamentoParaContexto>[0][]).map((o) => orcamentoParaContexto(o)),
     os,
     historico,
     grafica: { endereco: config.endereco, horario: config.horario_texto },
@@ -270,6 +272,21 @@ async function enviar(conversaId: string, texto: string, payload: Record<string,
   return (data as { mensagem_id: string }).mensagem_id;
 }
 
+/**
+ * A porta única de texto para o cliente: confere o texto JÁ MONTADO e só então enfileira. Reprovado: não enfileira, e o
+ * log leva o nome da regra, nunca o texto.
+ */
+async function enviarVerificado(
+  conversaId: string,
+  texto: string,
+  payload: Record<string, unknown>,
+  extras: readonly RegraDoBanco[],
+): Promise<{ enviado: true; mensagemId: string } | { enviado: false; regras: string[] }> {
+  const regras = verificarSaida(texto, extras);
+  if (regras.length > 0) return { enviado: false, regras };
+  return { enviado: true, mensagemId: await enviar(conversaId, texto, payload) };
+}
+
 async function transferir(conversaId: string, motivo: string): Promise<void> {
   const { error } = await (supabaseAdmin.rpc as any)("whatsapp_ia_transferir", {
     p_conversa_id: conversaId,
@@ -309,6 +326,10 @@ export async function rodarAssistente(
   opcoes: { agora?: Date; chave?: string; buscar?: typeof fetch; modelo?: string } = {},
 ): Promise<ResultadoDoAssistente> {
   const agora = opcoes.agora ?? new Date();
+  // Os termos extras da tabela, lidos uma vez e só quando um texto vai ser conferido. Falha de leitura é lista vazia:
+  // vale a lista do código, que nunca fica mais frouxa.
+  let extrasLidos: RegraDoBanco[] | null = null;
+  const termos = async (): Promise<RegraDoBanco[]> => (extrasLidos ??= await lerTermosExtras(supabaseAdmin));
   try {
     const config = await lerConfiguracao();
     if (!config.ia_ativa) return { acao: "nada", motivo: "ia_desligada" };
@@ -375,10 +396,25 @@ export async function rodarAssistente(
             .maybeSingle()
         : { data: { id: "sem-atendimento" } };
       if (!jaAvisou) {
-        await enviar(conversaId, comAssinatura(config.mensagem_fora_horario, config.assinatura), {
-          ia: { fora_horario: true },
-        });
-        avisouForaDoHorario = true;
+        const aviso = await enviarVerificado(
+          conversaId,
+          comAssinatura(config.mensagem_fora_horario, config.assinatura),
+          { ia: { fora_horario: true } },
+          await termos(),
+        );
+        if (aviso.enviado) avisouForaDoHorario = true;
+        else {
+          // O aviso configurado tem preço, prazo ou outro termo proibido: não sai, e a equipe assume em silêncio.
+          const motivo = `aviso fora do horário: ${motivoDeTextoReprovado(aviso.regras)}`;
+          await registrarLog({
+            conversa_id: conversaId,
+            mensagem_id: mensagemId,
+            etapa: "resposta",
+            saida: { aviso: "fora_horario", regras: aviso.regras, sem_mensagem: true },
+            erro: motivo,
+          });
+          await transferir(conversaId, motivo);
+        }
       }
     }
 
@@ -443,31 +479,44 @@ export async function rodarAssistente(
       return { acao: "classificou", motivo: "alguém da equipe assumiu enquanto a IA pensava", intencao: decisao.intencao };
     }
 
-    const acao = decidirAcao(decisao, contexto);
+    const extras = await termos();
+    let acao = decidirAcao(decisao, contexto, extras);
     if (acao.tipo === "responder") {
-      const id = await enviar(conversaId, comAssinatura(acao.texto, config.assinatura), {
-        ia: { intencao: decisao.intencao, confianca: decisao.confianca, log_id: logId },
-      });
-      await registrarLog({
-        conversa_id: conversaId,
-        mensagem_id: mensagemId,
-        etapa: "resposta",
-        entrada: acao.texto,
-        saida: { mensagem_id: id },
-      });
-      await despacharAgora();
-      return { acao: "respondeu", mensagem_id: id, intencao: decisao.intencao };
+      const envio = await enviarVerificado(
+        conversaId,
+        comAssinatura(acao.texto, config.assinatura),
+        { ia: { intencao: decisao.intencao, confianca: decisao.confianca, log_id: logId } },
+        extras,
+      );
+      if (envio.enviado) {
+        await registrarLog({
+          conversa_id: conversaId,
+          mensagem_id: mensagemId,
+          etapa: "resposta",
+          entrada: acao.texto,
+          saida: { mensagem_id: envio.mensagemId },
+        });
+        await despacharAgora();
+        return { acao: "respondeu", mensagem_id: envio.mensagemId, intencao: decisao.intencao };
+      }
+      // A resposta passou, mas o texto montado (com a assinatura) não: transfere, sem enfileirar nada.
+      acao = { tipo: "transferir", motivo: motivoDeTextoReprovado(envio.regras) };
     }
 
-    await enviar(conversaId, comAssinatura(FRASE_DE_TRANSFERENCIA, config.assinatura), {
-      ia: { intencao: decisao.intencao, confianca: decisao.confianca, log_id: logId, transferencia: true },
-    });
+    const frase = await enviarVerificado(
+      conversaId,
+      comAssinatura(FRASE_DE_TRANSFERENCIA, config.assinatura),
+      { ia: { intencao: decisao.intencao, confianca: decisao.confianca, log_id: logId, transferencia: true } },
+      extras,
+    );
     await transferir(conversaId, acao.motivo);
     await registrarLog({
       conversa_id: conversaId,
       mensagem_id: mensagemId,
       etapa: "transferencia",
-      saida: { motivo: acao.motivo },
+      saida: frase.enviado
+        ? { motivo: acao.motivo }
+        : { motivo: acao.motivo, sem_mensagem: true, frase_reprovada_pelas_regras: frase.regras },
     });
     await despacharAgora();
     return { acao: "transferiu", motivo: acao.motivo };

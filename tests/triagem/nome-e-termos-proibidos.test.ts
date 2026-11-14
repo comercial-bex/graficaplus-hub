@@ -105,3 +105,23 @@ describe("nome x termos proibidos do banco", () => {
     }
   });
 });
+
+describe("nome x regras novas do texto livre (C1): quem se chama Barata, Caro ou Segunda passa do passo do nome", () => {
+  it.each(["Maria Barata", "Ana Caro", "João Barato", "Cara Silva", "Sandra Barbosa", "Maria Segunda", "Carlos Sexta", "Pila Santos", "Marcos Sinal"])(
+    "%j é aceito como nome",
+    (nome) => {
+      const r = extrairNome(nome);
+      expect(r.ok, nome).toBe(true);
+    },
+  );
+  it("o texto montado com esses nomes passa na triagem (escopo comum)", () => {
+    for (const nome of ["Barata", "Caro", "Cara", "Segunda", "Barato"]) {
+      expect(verificarTexto(`Prazer, ${nome}!`, "cliente", [], { escopo: "triagem" }).ok, nome).toBe(true);
+    }
+  });
+  it("palavras que o banco proíbe continuam recusadas como nome", () => {
+    for (const nome of ["Pix", "Desconto", "Hoje", "Amanhã", "Tabela", "Parceiro"]) {
+      expect(extrairNome(nome).ok, nome).toBe(false);
+    }
+  });
+});
