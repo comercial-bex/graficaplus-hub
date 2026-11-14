@@ -483,6 +483,8 @@ DROP TRIGGER IF EXISTS tg_os_pronta_avisa_atendimento ON public.ordens_servico;
 CREATE TRIGGER tg_os_pronta_avisa_atendimento
   AFTER UPDATE OF status ON public.ordens_servico
   FOR EACH ROW EXECUTE FUNCTION public.tg_os_pronta_avisa_atendimento();
+-- Função de gatilho nasce fechada (a seção 5 confere com has_function_privilege).
+REVOKE ALL ON FUNCTION public.tg_os_pronta_avisa_atendimento() FROM PUBLIC, anon, authenticated;
 
 -- ---------------------------------------------------------------- 3
 -- A etapa nova: `briefing_ok` vira "Atendimento validado". A TV agrupa a etapa
