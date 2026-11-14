@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   DESCRICAO_ETAPA,
   ETAPAS_QUADRO,
@@ -68,7 +68,7 @@ import {
   proximaColuna,
   type ColunaAlvo,
 } from "@/domain/kanban/navegacao-teclado";
-import { type CSSProperties, useState, useMemo, useRef, useCallback } from "react";
+import { type CSSProperties, useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Search, AlertTriangle, X, Pause, SlidersHorizontal } from "lucide-react";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
@@ -81,9 +81,18 @@ import { urlsAssinadas } from "@/lib/urls-dos-arquivos";
 import { IconeDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { legendaDeMaquinas } from "@/domain/producao/identidade-da-maquina";
 import { FalhaDeConsulta } from "@/components/whatsapp/falha-de-consulta";
+import {
+  EscolherOperadorDialog,
+  EsperandoOGestor,
+  ValidarAtendimentoDialog,
+} from "@/components/kanban/aval-do-gestor";
+import { ehGestor } from "@/domain/os/equipe-da-producao";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Quadro de produção — BEX PRINT OS" }] }),
+  // ?os=<id> abre a ficha da OS: é o link dos avisos no grupo da equipe (14/11/2026).
+  validateSearch: (busca: Record<string, unknown>): { os?: string } =>
+    typeof busca.os === "string" && /^[0-9a-f-]{36}$/i.test(busca.os) ? { os: busca.os } : {},
   component: KanbanPage,
 });
 
@@ -151,11 +160,23 @@ function KanbanPage() {
   // canSeePrices: vê preço de venda (vendedor, gestão, financeiro). O quadro só
   // mostra valor da OS e dos itens — preço, nunca custo nem margem — então a
   // leitura segue o nível de visão, não o flag de financeiro.
-  const { canSeePrices, canSeeFinancials, nivelDeVisao, hasPermission } = useAuth();
+  const { canSeePrices, canSeeFinancials, nivelDeVisao, hasPermission, roles } = useAuth();
+  const gestor = ehGestor(roles);
+  const { os: osDaUrl } = Route.useSearch();
+  const navigate = useNavigate();
   const [activeOs, setActiveOs] = useState<any>(null);
   const [cancelando, setCancelando] = useState<{ id: string; numero: number | null } | null>(null);
   const [motivoDoCancelamento, setMotivoDoCancelamento] = useState("");
   const [fichaId, setFichaId] = useState<string | null>(null);
+  // Soltar o cartão em "Atendimento validado" ou na "Fila de produção" não muda o
+  // status direto: abre o aval do gestor ou a escolha do operador (14/11/2026).
+  const [validando, setValidando] = useState<any>(null);
+  const [mandandoParaFila, setMandandoParaFila] = useState<any>(null);
+
+  // O link do aviso no grupo abre a ficha da OS.
+  useEffect(() => {
+    if (osDaUrl) setFichaId(osDaUrl);
+  }, [osDaUrl]);
 
   // Mouse e toque têm regras diferentes de propósito. No mouse, 5px de
   // movimento levantam o cartão e clique parado nunca vira arrasto. No toque,
@@ -490,6 +511,8 @@ function KanbanPage() {
       .select("evento")
       .eq("entidade", "ordem_servico")
       .eq("entidade_id", osId)
+      // O aviso do grupo da equipe também é da OS, mas não é aviso ao cliente.
+      .neq("evento", "aviso_grupo_equipe")
       .gte("created_at", antes)
       .limit(1);
     if (erroAviso) {
@@ -515,6 +538,21 @@ function KanbanPage() {
     // Soltar na coluna onde já está não é movimento. Sem esta guarda, largar o
     // cartão de volta rebaixaria uma OS "Em impressão" para "Em produção".
     if (etapaDe(atual.status) === etapa) return;
+    // Sair do Atendimento para "Atendimento validado" é o aval do gestor, com quem faz a criação.
+    if (etapa === "validado" && etapaDe(atual.status) === "entrada") {
+      if (gestor) setValidando(atual);
+      else
+        toast.info("Só o gestor valida o atendimento", {
+          description: "Peça pelo grupo da equipe: o botão está na ficha, em “Para produzir”.",
+          action: { label: "Abrir a ficha", onClick: () => setFichaId(osId) },
+        });
+      return;
+    }
+    // A fila de produção pede quem vai produzir.
+    if (etapa === "fila_producao") {
+      setMandandoParaFila(atual);
+      return;
+    }
     mover(osId, statusPadraoDaEtapa(etapa, atual));
   }
 
@@ -659,6 +697,15 @@ function KanbanPage() {
         </div>
       </div>
 
+      {/* O que espera o gestor: pedidos de validação, saldo devedor e margem (14/11/2026). */}
+      <EsperandoOGestor
+        os={os as any[]}
+        travas={bloqueios}
+        gestor={gestor}
+        onAbrirFicha={setFichaId}
+        onValidar={(alvo) => setValidando(alvo)}
+      />
+
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         {/* Uma rolagem horizontal para o quadro inteiro — o padrão de todo
             Kanban. A versão anterior tinha CINCO barras de rolagem, uma por
@@ -759,7 +806,10 @@ function KanbanPage() {
         podeFinalizar={hasPermission("arquivos.finalize")}
         podeAceitar={hasPermission("os.update")}
         aberto={fichaId !== null}
-        onFechar={() => setFichaId(null)}
+        onFechar={() => {
+          setFichaId(null);
+          if (osDaUrl) void navigate({ to: "/kanban", search: {}, replace: true });
+        }}
         onMudarStatus={(osId, novo) => {
           // Cancelar tira a OS do quadro: um toque no seletor não basta.
           if (novo === "cancelado") {
@@ -771,6 +821,13 @@ function KanbanPage() {
           void mover(osId, novo);
         }}
       />
+
+      {validando && (
+        <ValidarAtendimentoDialog os={validando} aberto onAberto={(v) => !v && setValidando(null)} />
+      )}
+      {mandandoParaFila && (
+        <EscolherOperadorDialog os={mandandoParaFila} aberto onAberto={(v) => !v && setMandandoParaFila(null)} />
+      )}
 
       <AlertDialog open={!!cancelando} onOpenChange={(aberto) => !aberto && setCancelando(null)}>
         <AlertDialogContent>

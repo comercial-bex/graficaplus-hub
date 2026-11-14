@@ -64,9 +64,27 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
     queryKey: ["parceiro-programa", "atendente-padrao"],
     queryFn: async (): Promise<string | null> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).from("parceiro_programa").select("*").maybeSingle();
+      const { data, error } = await (supabase as any)
+        .from("parceiro_programa")
+        .select("*")
+        .maybeSingle();
       if (error) throw error;
       return (data?.atendente_padrao_id as string | null | undefined) ?? null;
+    },
+  });
+  // Atendente padrão desativado: avisa, porque os parceiros novos ficariam sem quem atender.
+  const { data: padraoInativo = false } = useQuery({
+    queryKey: ["parceiro-programa", "atendente-padrao-ativo", padrao],
+    enabled: !!padrao,
+    queryFn: async (): Promise<boolean> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("usuarios")
+        .select("ativo")
+        .eq("id", padrao)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? data.ativo === false : false;
     },
   });
   const semAtendente = pendentes.filter((p) => p.status === "ativo");
@@ -74,7 +92,9 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
   const atribuirPadrao = useMutation({
     mutationFn: () => atribuirAtendentePadrao(semAtendente.map((p) => p.id)),
     onSuccess: (n) => {
-      toast.success(n === 1 ? "1 parceiro ganhou atendente." : `${n} parceiros ganharam atendente.`);
+      toast.success(
+        n === 1 ? "1 parceiro ganhou atendente." : `${n} parceiros ganharam atendente.`,
+      );
       qc.invalidateQueries({ queryKey: ["parceiros-pendentes"] });
       qc.invalidateQueries({ queryKey: ["parceiros-resumo"] });
     },
@@ -99,79 +119,101 @@ export function FilaDeAprovacao({ podeAprovar }: { podeAprovar: boolean }) {
     onError: (e) => toast.error(mensagemErro(e)),
   });
 
-  if (pendentes.length === 0) return null;
+  const avisoInativo = padraoInativo ? (
+    <div
+      role="alert"
+      className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm"
+    >
+      <strong>O atendente padrão está inativo.</strong> Escolha outra pessoa na aba Programa para
+      que nenhum parceiro novo fique sem atendimento.
+    </div>
+  ) : null;
+
+  if (pendentes.length === 0) return avisoInativo;
 
   return (
-    <div className="rounded-xl border border-[color:var(--bex-cyan)]/40 bg-[color:var(--bex-cyan)]/5 p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <UserPlus className="h-4 w-4 text-[color:var(--bex-cyan)]" />
-        <h2 className="font-semibold">
-          {pendentes.length === 1
-            ? "1 parceiro novo sem atendente"
-            : `${pendentes.length} parceiros novos sem atendente`}
-        </h2>
-        {podeAprovar && padrao && semAtendente.length > 0 && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="ml-auto"
-            onClick={() => atribuirPadrao.mutate()}
-            disabled={atribuirPadrao.isPending}
-          >
-            Atribuir ao atendente padrão
-          </Button>
-        )}
-      </div>
-      <p className="mt-0.5 text-sm text-muted-foreground">
-        Cadastraram-se pelo link de convite e já entram no painel. Falta alguém da gráfica
-        acolher: assuma e chame no WhatsApp.
-      </p>
+    <>
+      {avisoInativo}
+      <div className="rounded-xl border border-[color:var(--bex-cyan)]/40 bg-[color:var(--bex-cyan)]/5 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <UserPlus className="h-4 w-4 text-[color:var(--bex-cyan)]" />
+          <h2 className="font-semibold">
+            {pendentes.length === 1
+              ? "1 parceiro novo sem atendente"
+              : `${pendentes.length} parceiros novos sem atendente`}
+          </h2>
+          {podeAprovar && padrao && semAtendente.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-auto"
+              onClick={() => atribuirPadrao.mutate()}
+              disabled={atribuirPadrao.isPending}
+            >
+              Atribuir ao atendente padrão
+            </Button>
+          )}
+        </div>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Cadastraram-se pelo link de convite e já entram no painel. Falta alguém da gráfica
+          acolher: assuma e chame no WhatsApp.
+        </p>
 
-      <div className="mt-3 space-y-2">
-        {pendentes.map((p) => (
-          <div
-            key={p.id}
-            className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{p.nome}</span>
-                {!p.tem_login && (
-                  <Badge variant="outline" className="h-5 text-xs">
-                    sem login
-                  </Badge>
-                )}
+        <div className="mt-3 space-y-2">
+          {pendentes.map((p) => (
+            <div
+              key={p.id}
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{p.nome}</span>
+                  {!p.tem_login && (
+                    <Badge variant="outline" className="h-5 text-xs">
+                      sem login
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {[
+                    p.documento,
+                    [p.cidade, p.estado].filter(Boolean).join("/"),
+                    p.telefone,
+                    p.email,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "sem dados de contato"}
+                </p>
+                <p className="mt-0.5 text-xs">
+                  <span className="text-muted-foreground">Indicado por </span>
+                  <strong>{p.convidado_por}</strong>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {new Date(p.criado_em).toLocaleDateString("pt-BR")}
+                  </span>
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {[p.documento, [p.cidade, p.estado].filter(Boolean).join("/"), p.telefone, p.email]
-                  .filter(Boolean)
-                  .join(" · ") || "sem dados de contato"}
-              </p>
-              <p className="mt-0.5 text-xs">
-                <span className="text-muted-foreground">Indicado por </span>
-                <strong>{p.convidado_por}</strong>
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {new Date(p.criado_em).toLocaleDateString("pt-BR")}
-                </span>
-              </p>
-            </div>
 
-            {podeAprovar && p.status === "pendente" && (
-              <Button size="sm" onClick={() => aprovar.mutate(p.id)} disabled={aprovar.isPending}>
-                <Check className="mr-1 h-3.5 w-3.5" />
-                Liberar
-              </Button>
-            )}
-            {podeAprovar && p.status !== "pendente" && (
-              <Button size="sm" onClick={() => assumir.mutate(p.id)} disabled={assumir.isPending || !user}>
-                <UserPlus className="mr-1 h-3.5 w-3.5" />
-                Assumir
-              </Button>
-            )}
-          </div>
-        ))}
+              {podeAprovar && p.status === "pendente" && (
+                <Button size="sm" onClick={() => aprovar.mutate(p.id)} disabled={aprovar.isPending}>
+                  <Check className="mr-1 h-3.5 w-3.5" />
+                  Liberar
+                </Button>
+              )}
+              {podeAprovar && p.status !== "pendente" && (
+                <Button
+                  size="sm"
+                  onClick={() => assumir.mutate(p.id)}
+                  disabled={assumir.isPending || !user}
+                >
+                  <UserPlus className="mr-1 h-3.5 w-3.5" />
+                  Assumir
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

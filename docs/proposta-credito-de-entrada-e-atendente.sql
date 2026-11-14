@@ -1,7 +1,11 @@
 -- =============================================================================
--- PROPOSTA (NÃO APLICADA): crédito de entrada do parceiro (A) e atendente padrão (B)
+-- APLICADA em 14/11/2026 pelos arquivos 20261114170000 e 20261114170100
+-- Crédito de entrada do parceiro (A) e atendente padrão (B)
 -- Escrita em 13/11/2026. Sem BEGIN/COMMIT: a ferramenta de migração roda cada
 -- seção como um bloco único. Aplicar A e B separadamente; B não depende de A.
+-- Crédito e validade começam só com parceiro ativo, login e atendente.
+-- Com A e B aplicadas, o BEFORE do padrão preenche NEW.responsavel_id antes
+-- do AFTER; o botão de atribuição faz UPDATE de responsavel_id e também concede.
 --
 -- Corpos vivos conferidos antes de escrever (md5 de prosrc com espaços colapsados):
 --   parceiro_enviar_pedido     = 079b320bd6a9d15636a87819e21ffa04
@@ -69,6 +73,9 @@ BEGIN
   END IF;
   IF v_p.status <> 'ativo' OR v_p.usuario_id IS NULL THEN
     RETURN jsonb_build_object('concedido', false, 'motivo', 'Parceiro sem acesso ativo.');
+  END IF;
+  IF v_p.responsavel_id IS NULL THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Sem atendente: o crédito começa a valer quando alguém da gráfica assumir.');
   END IF;
   IF EXISTS (SELECT 1 FROM public.parceiro_creditos WHERE parceiro_id = v_p.id AND tipo = 'entrada') THEN
     RETURN jsonb_build_object('concedido', false, 'motivo', 'Já recebeu o crédito de entrada.');
@@ -145,7 +152,7 @@ $$;
 REVOKE ALL ON FUNCTION public.parceiro_dar_credito_de_entrada(uuid[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.parceiro_dar_credito_de_entrada(uuid[]) TO authenticated, service_role;
 
--- A.5 Gatilho: concede na ativação, mesma condição de tg_parceiro_boas_vindas.
+-- A.5 Gatilho: concede quando ativo, com login e atendente; validade começa aí.
 CREATE OR REPLACE FUNCTION public.tg_parceiro_entrada()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -153,8 +160,8 @@ CREATE OR REPLACE FUNCTION public.tg_parceiro_entrada()
  SET search_path = public
 AS $$
 BEGIN
-  IF NEW.status <> 'ativo' OR NEW.usuario_id IS NULL THEN RETURN NEW; END IF;
-  IF TG_OP = 'UPDATE' AND OLD.usuario_id IS NOT NULL AND OLD.status = 'ativo' THEN RETURN NEW; END IF;
+  IF NEW.status <> 'ativo' OR NEW.usuario_id IS NULL OR NEW.responsavel_id IS NULL THEN RETURN NEW; END IF;
+  IF TG_OP = 'UPDATE' AND OLD.usuario_id IS NOT NULL AND OLD.status = 'ativo' AND OLD.responsavel_id IS NOT NULL THEN RETURN NEW; END IF;
   -- Acessório: nunca derruba o cadastro do parceiro.
   BEGIN
     PERFORM public._parceiro_conceder_entrada(NEW.id);
@@ -167,7 +174,7 @@ $$;
 REVOKE ALL ON FUNCTION public.tg_parceiro_entrada() FROM PUBLIC, anon, authenticated;
 
 CREATE TRIGGER tg_parceiro_entrada
-  AFTER INSERT OR UPDATE OF usuario_id, status ON public.parceiros
+  AFTER INSERT OR UPDATE OF usuario_id, status, responsavel_id ON public.parceiros
   FOR EACH ROW EXECUTE FUNCTION public.tg_parceiro_entrada();
 
 -- A.6 parceiro_enviar_pedido: só o teto de crédito muda na 1ª compra (linhas [entrada]).
@@ -573,6 +580,7 @@ $function$;
 --     'credito_max_pct_pedido', (SELECT p.credito_max_pct_pedido FROM public.parceiro_programa p LIMIT 1))
 -- $function$;
 --
+-- O gatilho é novo: DESFAZER continua sendo só DROP, inclusive após incluir responsavel_id.
 -- DROP TRIGGER IF EXISTS tg_parceiro_entrada ON public.parceiros;
 -- DROP FUNCTION IF EXISTS public.tg_parceiro_entrada();
 -- DROP FUNCTION IF EXISTS public.parceiro_dar_credito_de_entrada(uuid[]);
@@ -591,7 +599,9 @@ $function$;
 --
 -- Testes manuais sugeridos (A), com parceiro fictício em ambiente de teste:
 --   1) SELECT public.programa_parceiros_publico()->'entrada';  -- {ativa:true, valor:50, ...}
---   2) Ativar parceiro de teste com login: 1 linha 'entrada' de +50, expira em 30 dias.
+--   2) Parceiro ativo com login sem atendente: sem lançamento; ao atribuir o atendente:
+--      1 lançamento de +50 com expira_em daquele momento + 30 dias.
+--      Conferir tanto atribuição pelo BEFORE do padrão quanto pelo botão da fila (UPDATE).
 --   3) Repetir a ativação: continua 1 linha (índice único + checagem).
 --   4) Pedido de R$ 149,99 na 1ª compra: crédito até 15% (22,50). Pedido de R$ 150: até 75,00.
 --   5) Recusar o 1º pedido (status 'rejeitado'): estorno do 'uso'; o próximo volta a ser 1ª compra.

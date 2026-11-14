@@ -44,6 +44,7 @@
 
 export const ETAPAS = [
   "entrada",
+  "validado",
   "pre_impressao",
   "fila_producao",
   "producao",
@@ -63,6 +64,7 @@ export type Etapa = (typeof ETAPAS)[number];
  */
 export const ROTULO_ETAPA: Record<Etapa, string> = {
   entrada: "Atendimento",
+  validado: "Atendimento validado",
   pre_impressao: "Criação",
   fila_producao: "Fila de produção",
   producao: "Produção",
@@ -73,6 +75,7 @@ export const ROTULO_ETAPA: Record<Etapa, string> = {
 
 export const DESCRICAO_ETAPA: Record<Etapa, string> = {
   entrada: "Pedido recebido, briefing e arquivos do cliente conferidos.",
+  validado: "O gestor conferiu o pacote e escolheu quem faz a criação. Daqui a OS vai para a criação.",
   pre_impressao: "Criação e revisão da arte, até o cliente aprovar. Aqui a peça vira arquivo de produção.",
   fila_producao: "Arte aprovada e arquivo fechado: esperando a vez na máquina.",
   producao: "A máquina que a peça usa. São caminhos PARALELOS — cada peça passa por um.",
@@ -101,7 +104,9 @@ export type StatusOs = {
 export const STATUS: StatusOs[] = [
   { status: "entrada", rotulo: "Entrada", etapa: "entrada", setor: "Atendimento" },
   { status: "aguardando_briefing", rotulo: "Aguardando briefing", etapa: "entrada", setor: "Atendimento" },
-  { status: "briefing_ok", rotulo: "Briefing OK", etapa: "entrada", setor: "Atendimento" },
+  // Atendimento validado (14/11/2026): só o gestor põe a OS aqui, escolhendo quem
+  // faz a criação (`validar_atendimento`). Era um status do enum que ninguém usava.
+  { status: "briefing_ok", rotulo: "Atendimento validado", etapa: "validado", setor: "Gestão" },
 
   { status: "design", rotulo: "Design", etapa: "pre_impressao", setor: "Design" },
   { status: "aguardando_aprovacao_arte", rotulo: "Aprovação de arte", etapa: "pre_impressao", setor: "Design" },
@@ -202,7 +207,8 @@ export function fluxoParaEscolher(statusAtual?: string | null) {
 }
 
 /**
- * As colunas do quadro: as cinco etapas do fluxo.
+ * As colunas do quadro: as etapas do fluxo (sete desde 14/11/2026, com
+ * "Atendimento validado" entre o Atendimento e a Criação, a pedido do dono).
  *
  * `fora_do_fluxo` NÃO é coluna. Uma OS pausada não é um estágio da produção, é
  * uma exceção — vira selo no cartão e filtro, e some do caminho de todo dia.
@@ -234,6 +240,8 @@ export function statusPadraoDaEtapa(
   switch (etapa) {
     case "entrada":
       return "entrada";
+    case "validado":
+      return "briefing_ok";
     case "pre_impressao":
       return "design";
     case "fila_producao":
@@ -330,6 +338,8 @@ export const ROTULO_BLOQUEIO: Record<string, string> = {
   custos_operacionais: "Sem custo lançado (ou o custo todo foi estornado)",
   pagamentos_pendentes: "Pagamentos pendentes",
   sem_responsavel: "Sem responsável definido",
+  // Sair do Atendimento pede o aval do gestor (14/11/2026).
+  atendimento_nao_validado: "Atendimento não validado pelo gestor",
   sem_pagamento: "Nenhum pagamento registrado",
   arte_nao_aprovada: "Arte ainda não aprovada",
   sem_arquivo_final: "Sem arquivo final de produção",
@@ -376,6 +386,7 @@ export function traduzirBloqueios(mensagem: string): string | null {
  * completo de cada uma (e o como resolver) continua na ficha e para o leitor de tela.
  */
 const NOME_CURTO_DA_TRAVA: Record<string, string> = {
+  atendimento_nao_validado: "validação do gestor",
   sem_pagamento: "pagamento",
   arte_nao_aprovada: "aceite da arte",
   sem_arquivo_final: "arquivo final",

@@ -170,6 +170,247 @@ export type Database = {
           },
         ]
       }
+      agente_base_respostas: {
+        Row: {
+          aprovada_em: string | null
+          aprovada_por: string | null
+          atualizado_em: string
+          atualizado_por: string | null
+          contagem_ocorrencias: number
+          criado_em: string
+          criado_por: string | null
+          familia: string | null
+          frases_gatilho: string[]
+          id: string
+          origem: string
+          pergunta: string
+          produto_id: string | null
+          ramos: Database["public"]["Enums"]["triagem_ramo"][]
+          resposta: string
+          status: Database["public"]["Enums"]["agente_resposta_status"]
+          tema: string
+          texto_aprovado: string | null
+          versao: number
+        }
+        Insert: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          atualizado_em?: string
+          atualizado_por?: string | null
+          contagem_ocorrencias?: number
+          criado_em?: string
+          criado_por?: string | null
+          familia?: string | null
+          frases_gatilho?: string[]
+          id?: string
+          origem?: string
+          pergunta: string
+          produto_id?: string | null
+          ramos?: Database["public"]["Enums"]["triagem_ramo"][]
+          resposta: string
+          status?: Database["public"]["Enums"]["agente_resposta_status"]
+          tema: string
+          texto_aprovado?: string | null
+          versao?: number
+        }
+        Update: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          atualizado_em?: string
+          atualizado_por?: string | null
+          contagem_ocorrencias?: number
+          criado_em?: string
+          criado_por?: string | null
+          familia?: string | null
+          frases_gatilho?: string[]
+          id?: string
+          origem?: string
+          pergunta?: string
+          produto_id?: string | null
+          ramos?: Database["public"]["Enums"]["triagem_ramo"][]
+          resposta?: string
+          status?: Database["public"]["Enums"]["agente_resposta_status"]
+          tema?: string
+          texto_aprovado?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_base_respostas_aprovada_por_fkey"
+            columns: ["aprovada_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_base_respostas_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_base_respostas_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_base_respostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "agente_base_respostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_base_respostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_base_respostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_base_respostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_base_respostas_historico: {
+        Row: {
+          em: string
+          evento: string
+          familia: string | null
+          frases_gatilho: string[]
+          id: string
+          por: string | null
+          produto_id: string | null
+          ramos: Database["public"]["Enums"]["triagem_ramo"][]
+          resposta: string
+          resposta_id: string
+          status: Database["public"]["Enums"]["agente_resposta_status"]
+          versao: number
+        }
+        Insert: {
+          em?: string
+          evento: string
+          familia?: string | null
+          frases_gatilho: string[]
+          id?: string
+          por?: string | null
+          produto_id?: string | null
+          ramos: Database["public"]["Enums"]["triagem_ramo"][]
+          resposta: string
+          resposta_id: string
+          status: Database["public"]["Enums"]["agente_resposta_status"]
+          versao: number
+        }
+        Update: {
+          em?: string
+          evento?: string
+          familia?: string | null
+          frases_gatilho?: string[]
+          id?: string
+          por?: string | null
+          produto_id?: string | null
+          ramos?: Database["public"]["Enums"]["triagem_ramo"][]
+          resposta?: string
+          resposta_id?: string
+          status?: Database["public"]["Enums"]["agente_resposta_status"]
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_base_respostas_historico_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "agente_base_respostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      anuncios_origem: {
+        Row: {
+          anuncio_id: string
+          ativo: boolean
+          conjunto_definido_por: string
+          conjunto_id: string | null
+          corpo_criativo: string | null
+          created_at: string
+          meta_sincronizado_em: string | null
+          meta_situacao: string | null
+          nome_interno: string | null
+          primeira_vez: string | null
+          produto: string | null
+          titulo_criativo: string | null
+          total_contatos: number
+          ultima_vez: string | null
+          ultimo_link: string | null
+          updated_at: string
+        }
+        Insert: {
+          anuncio_id: string
+          ativo?: boolean
+          conjunto_definido_por?: string
+          conjunto_id?: string | null
+          corpo_criativo?: string | null
+          created_at?: string
+          meta_sincronizado_em?: string | null
+          meta_situacao?: string | null
+          nome_interno?: string | null
+          primeira_vez?: string | null
+          produto?: string | null
+          titulo_criativo?: string | null
+          total_contatos?: number
+          ultima_vez?: string | null
+          ultimo_link?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anuncio_id?: string
+          ativo?: boolean
+          conjunto_definido_por?: string
+          conjunto_id?: string | null
+          corpo_criativo?: string | null
+          created_at?: string
+          meta_sincronizado_em?: string | null
+          meta_situacao?: string | null
+          nome_interno?: string | null
+          primeira_vez?: string | null
+          produto?: string | null
+          titulo_criativo?: string | null
+          total_contatos?: number
+          ultima_vez?: string | null
+          ultimo_link?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anuncios_origem_conjunto_id_fkey"
+            columns: ["conjunto_id"]
+            isOneToOne: false
+            referencedRelation: "conjuntos_anuncio"
+            referencedColumns: ["conjunto_id"]
+          },
+        ]
+      }
       api_acoes: {
         Row: {
           acao: string
@@ -2814,6 +3055,45 @@ export type Database = {
           },
         ]
       }
+      conjuntos_anuncio: {
+        Row: {
+          ativo: boolean
+          campanha_id: string | null
+          campanha_nome: string | null
+          conjunto_id: string
+          created_at: string
+          meta_sincronizado_em: string | null
+          nome: string
+          produto_padrao: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          campanha_id?: string | null
+          campanha_nome?: string | null
+          conjunto_id: string
+          created_at?: string
+          meta_sincronizado_em?: string | null
+          nome: string
+          produto_padrao?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          campanha_id?: string | null
+          campanha_nome?: string | null
+          conjunto_id?: string
+          created_at?: string
+          meta_sincronizado_em?: string | null
+          nome?: string
+          produto_padrao?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contas_bancarias: {
         Row: {
           agencia: string | null
@@ -5290,6 +5570,9 @@ export type Database = {
           telefone_normalizado: string | null
           telefone_original: string | null
           temporario: boolean
+          tipo: string | null
+          tipo_definido_em: string | null
+          tipo_origem: string | null
           updated_at: string
           valor_potencial: number | null
         }
@@ -5318,6 +5601,9 @@ export type Database = {
           telefone_normalizado?: string | null
           telefone_original?: string | null
           temporario?: boolean
+          tipo?: string | null
+          tipo_definido_em?: string | null
+          tipo_origem?: string | null
           updated_at?: string
           valor_potencial?: number | null
         }
@@ -5346,6 +5632,9 @@ export type Database = {
           telefone_normalizado?: string | null
           telefone_original?: string | null
           temporario?: boolean
+          tipo?: string | null
+          tipo_definido_em?: string | null
+          tipo_origem?: string | null
           updated_at?: string
           valor_potencial?: number | null
         }
@@ -10925,6 +11214,27 @@ export type Database = {
           },
         ]
       }
+      palavras_de_origem: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          palavra: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          palavra: string
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          palavra?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       parceiro_campanhas: {
         Row: {
           ativa: boolean
@@ -11585,11 +11895,17 @@ export type Database = {
       }
       parceiro_programa: {
         Row: {
+          atendente_padrao_id: string | null
           boas_vindas_ativa: boolean
           boas_vindas_pct: number
           boas_vindas_teto: number
           boas_vindas_validade_dias: number
           credito_max_pct_pedido: number
+          entrada_ativa: boolean
+          entrada_max_pct_pedido: number
+          entrada_pedido_minimo: number
+          entrada_validade_dias: number
+          entrada_valor: number
           id: boolean
           indicacao_ativa: boolean
           indicacao_compras: number
@@ -11599,11 +11915,17 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          atendente_padrao_id?: string | null
           boas_vindas_ativa?: boolean
           boas_vindas_pct?: number
           boas_vindas_teto?: number
           boas_vindas_validade_dias?: number
           credito_max_pct_pedido?: number
+          entrada_ativa?: boolean
+          entrada_max_pct_pedido?: number
+          entrada_pedido_minimo?: number
+          entrada_validade_dias?: number
+          entrada_valor?: number
           id?: boolean
           indicacao_ativa?: boolean
           indicacao_compras?: number
@@ -11613,11 +11935,17 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          atendente_padrao_id?: string | null
           boas_vindas_ativa?: boolean
           boas_vindas_pct?: number
           boas_vindas_teto?: number
           boas_vindas_validade_dias?: number
           credito_max_pct_pedido?: number
+          entrada_ativa?: boolean
+          entrada_max_pct_pedido?: number
+          entrada_pedido_minimo?: number
+          entrada_validade_dias?: number
+          entrada_valor?: number
           id?: boolean
           indicacao_ativa?: boolean
           indicacao_compras?: number
@@ -11626,7 +11954,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_programa_atendente_padrao_id_fkey"
+            columns: ["atendente_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parceiros: {
         Row: {
@@ -16503,7 +16839,10 @@ export type Database = {
         Row: {
           aberto_em: string
           aberto_por: string | null
+          anuncio_id: string | null
+          anuncio_titulo: string | null
           conversa_id: string
+          ctwa_clid: string | null
           fechado_em: string | null
           fechado_por: string | null
           fila: Database["public"]["Enums"]["whatsapp_fila"]
@@ -16517,16 +16856,26 @@ export type Database = {
           orcamento_dispensado_motivo: string | null
           orcamento_dispensado_por: string | null
           origem_abertura: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          origem_canal: string | null
+          origem_do_tipo: string | null
+          origem_entrada: string | null
           pediu_orcamento_em: string | null
           pediu_orcamento_por: string | null
+          primeira_mensagem: string | null
+          primeira_mensagem_tipo: string | null
           primeira_resposta_em: string | null
+          produto: string | null
           reaberto_de: string | null
           responsavel_id: string | null
+          tipo_contato: string | null
         }
         Insert: {
           aberto_em?: string
           aberto_por?: string | null
+          anuncio_id?: string | null
+          anuncio_titulo?: string | null
           conversa_id: string
+          ctwa_clid?: string | null
           fechado_em?: string | null
           fechado_por?: string | null
           fila?: Database["public"]["Enums"]["whatsapp_fila"]
@@ -16540,16 +16889,26 @@ export type Database = {
           orcamento_dispensado_motivo?: string | null
           orcamento_dispensado_por?: string | null
           origem_abertura?: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          origem_canal?: string | null
+          origem_do_tipo?: string | null
+          origem_entrada?: string | null
           pediu_orcamento_em?: string | null
           pediu_orcamento_por?: string | null
+          primeira_mensagem?: string | null
+          primeira_mensagem_tipo?: string | null
           primeira_resposta_em?: string | null
+          produto?: string | null
           reaberto_de?: string | null
           responsavel_id?: string | null
+          tipo_contato?: string | null
         }
         Update: {
           aberto_em?: string
           aberto_por?: string | null
+          anuncio_id?: string | null
+          anuncio_titulo?: string | null
           conversa_id?: string
+          ctwa_clid?: string | null
           fechado_em?: string | null
           fechado_por?: string | null
           fila?: Database["public"]["Enums"]["whatsapp_fila"]
@@ -16563,11 +16922,18 @@ export type Database = {
           orcamento_dispensado_motivo?: string | null
           orcamento_dispensado_por?: string | null
           origem_abertura?: Database["public"]["Enums"]["whatsapp_origem_abertura"]
+          origem_canal?: string | null
+          origem_do_tipo?: string | null
+          origem_entrada?: string | null
           pediu_orcamento_em?: string | null
           pediu_orcamento_por?: string | null
+          primeira_mensagem?: string | null
+          primeira_mensagem_tipo?: string | null
           primeira_resposta_em?: string | null
+          produto?: string | null
           reaberto_de?: string | null
           responsavel_id?: string | null
+          tipo_contato?: string | null
         }
         Relationships: [
           {
@@ -16610,6 +16976,58 @@ export type Database = {
             columns: ["reaberto_de"]
             isOneToOne: false
             referencedRelation: "whatsapp_atendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_automacao_bloqueios: {
+        Row: {
+          conversa_id: string | null
+          criado_em: string
+          id: string
+          lid_hash: string | null
+          motivo: string
+          origem: string
+          telefone_hash: string | null
+        }
+        Insert: {
+          conversa_id?: string | null
+          criado_em?: string
+          id?: string
+          lid_hash?: string | null
+          motivo: string
+          origem?: string
+          telefone_hash?: string | null
+        }
+        Update: {
+          conversa_id?: string | null
+          criado_em?: string
+          id?: string
+          lid_hash?: string | null
+          motivo?: string
+          origem?: string
+          telefone_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_automacao_bloqueios_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_automacao_bloqueios_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_automacao_bloqueios_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
             referencedColumns: ["id"]
           },
         ]
@@ -17187,6 +17605,44 @@ export type Database = {
           },
         ]
       }
+      whatsapp_feriados: {
+        Row: {
+          abre: string | null
+          atualizado_em: string
+          atualizado_por: string | null
+          data: string
+          fecha: string | null
+          fechado: boolean
+          nome: string
+        }
+        Insert: {
+          abre?: string | null
+          atualizado_em?: string
+          atualizado_por?: string | null
+          data: string
+          fecha?: string | null
+          fechado?: boolean
+          nome: string
+        }
+        Update: {
+          abre?: string | null
+          atualizado_em?: string
+          atualizado_por?: string | null
+          data?: string
+          fecha?: string | null
+          fechado?: boolean
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_feriados_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_fila_envio: {
         Row: {
           conversa_id: string | null
@@ -17261,6 +17717,41 @@ export type Database = {
             columns: ["mensagem_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_horarios_atendimento: {
+        Row: {
+          abre: string
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          dia_semana: number
+          fecha: string
+        }
+        Insert: {
+          abre?: string
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          dia_semana: number
+          fecha?: string
+        }
+        Update: {
+          abre?: string
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          dia_semana?: number
+          fecha?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_horarios_atendimento_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -17729,6 +18220,523 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_triagem_config: {
+        Row: {
+          agente_apos_triagem: boolean
+          atraso_max_s: number
+          atraso_min_s: number
+          atualizado_em: string
+          atualizado_por: string | null
+          avisar_grupo: boolean
+          ddd_padrao: string | null
+          desligada_em: string | null
+          desligada_por: string | null
+          espera_resposta_min: number
+          estado: Database["public"]["Enums"]["triagem_estado"]
+          exibir_telefone: string
+          freio_erros_hora: number
+          freio_falhas_envio: number
+          id: boolean
+          intervalo_minimo_s: number
+          link_parceiro: string | null
+          max_mensagens: number
+          max_novas_por_dia: number
+          max_novas_por_hora: number
+          max_tentativas_por_passo: number
+          numeros_teste: string[]
+          percentual: number
+          resposta_rapida_demais_ms: number
+          retencao_eventos_dias: number
+          retomar_ate_horas: number
+          vale_a_partir_de: string | null
+        }
+        Insert: {
+          agente_apos_triagem?: boolean
+          atraso_max_s?: number
+          atraso_min_s?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          avisar_grupo?: boolean
+          ddd_padrao?: string | null
+          desligada_em?: string | null
+          desligada_por?: string | null
+          espera_resposta_min?: number
+          estado?: Database["public"]["Enums"]["triagem_estado"]
+          exibir_telefone?: string
+          freio_erros_hora?: number
+          freio_falhas_envio?: number
+          id?: boolean
+          intervalo_minimo_s?: number
+          link_parceiro?: string | null
+          max_mensagens?: number
+          max_novas_por_dia?: number
+          max_novas_por_hora?: number
+          max_tentativas_por_passo?: number
+          numeros_teste?: string[]
+          percentual?: number
+          resposta_rapida_demais_ms?: number
+          retencao_eventos_dias?: number
+          retomar_ate_horas?: number
+          vale_a_partir_de?: string | null
+        }
+        Update: {
+          agente_apos_triagem?: boolean
+          atraso_max_s?: number
+          atraso_min_s?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          avisar_grupo?: boolean
+          ddd_padrao?: string | null
+          desligada_em?: string | null
+          desligada_por?: string | null
+          espera_resposta_min?: number
+          estado?: Database["public"]["Enums"]["triagem_estado"]
+          exibir_telefone?: string
+          freio_erros_hora?: number
+          freio_falhas_envio?: number
+          id?: boolean
+          intervalo_minimo_s?: number
+          link_parceiro?: string | null
+          max_mensagens?: number
+          max_novas_por_dia?: number
+          max_novas_por_hora?: number
+          max_tentativas_por_passo?: number
+          numeros_teste?: string[]
+          percentual?: number
+          resposta_rapida_demais_ms?: number
+          retencao_eventos_dias?: number
+          retomar_ate_horas?: number
+          vale_a_partir_de?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_triagem_config_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_triagem_eventos: {
+        Row: {
+          conversa_id: string | null
+          criado_em: string
+          detalhe: Json
+          id: string
+          intencao: Database["public"]["Enums"]["triagem_intencao"] | null
+          mensagem_id: string | null
+          passo: string | null
+          tipo: Database["public"]["Enums"]["triagem_evento_tipo"]
+          triagem_id: string | null
+        }
+        Insert: {
+          conversa_id?: string | null
+          criado_em?: string
+          detalhe?: Json
+          id?: string
+          intencao?: Database["public"]["Enums"]["triagem_intencao"] | null
+          mensagem_id?: string | null
+          passo?: string | null
+          tipo: Database["public"]["Enums"]["triagem_evento_tipo"]
+          triagem_id?: string | null
+        }
+        Update: {
+          conversa_id?: string | null
+          criado_em?: string
+          detalhe?: Json
+          id?: string
+          intencao?: Database["public"]["Enums"]["triagem_intencao"] | null
+          mensagem_id?: string | null
+          passo?: string | null
+          tipo?: Database["public"]["Enums"]["triagem_evento_tipo"]
+          triagem_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_triagem_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagem_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagem_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagem_eventos_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagem_eventos_triagem_id_fkey"
+            columns: ["triagem_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_triagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_triagem_passos: {
+        Row: {
+          ajuda_para_dono: string | null
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          codigo: string
+          id: string
+          ordem: number
+          ramo: Database["public"]["Enums"]["triagem_ramo"]
+          repeticao: string | null
+          texto: string
+          variantes: string[]
+          versao: number
+        }
+        Insert: {
+          ajuda_para_dono?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          codigo: string
+          id?: string
+          ordem?: number
+          ramo: Database["public"]["Enums"]["triagem_ramo"]
+          repeticao?: string | null
+          texto: string
+          variantes?: string[]
+          versao?: number
+        }
+        Update: {
+          ajuda_para_dono?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          codigo?: string
+          id?: string
+          ordem?: number
+          ramo?: Database["public"]["Enums"]["triagem_ramo"]
+          repeticao?: string | null
+          texto?: string
+          variantes?: string[]
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_triagem_passos_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_triagem_respostas: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          casamento: Database["public"]["Enums"]["triagem_casamento"]
+          criado_em: string
+          frase: string
+          id: string
+          intencao: Database["public"]["Enums"]["triagem_intencao"]
+          passo: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          casamento: Database["public"]["Enums"]["triagem_casamento"]
+          criado_em?: string
+          frase: string
+          id?: string
+          intencao: Database["public"]["Enums"]["triagem_intencao"]
+          passo?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          casamento?: Database["public"]["Enums"]["triagem_casamento"]
+          criado_em?: string
+          frase?: string
+          id?: string
+          intencao?: Database["public"]["Enums"]["triagem_intencao"]
+          passo?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_triagem_termos_proibidos: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          id: string
+          motivo: string
+          ramo: string
+          regra: string
+          sobre: string
+          termo: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          motivo: string
+          ramo: string
+          regra: string
+          sobre?: string
+          termo: string
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          motivo?: string
+          ramo?: string
+          regra?: string
+          sobre?: string
+          termo?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      whatsapp_triagens: {
+        Row: {
+          atendimento_id: string | null
+          atualizado_em: string
+          audios: number
+          aviso_grupo_decidido: boolean
+          aviso_grupo_enviado_em: string | null
+          aviso_grupo_marcas: string[]
+          aviso_grupo_motivo: string | null
+          aviso_grupo_rodada: number
+          avisos_arquivo: number
+          avisos_audio: number
+          cep: string | null
+          cep_endereco: Json | null
+          concluida_em: string | null
+          conversa_id: string
+          criado_em: string
+          endereco_recusado: boolean
+          endereco_texto: string | null
+          etapas_esgotadas_seguidas: number
+          figurinhas: number
+          id: string
+          iniciada_em: string
+          lead_id: string | null
+          mandou_audio: boolean
+          mensagens_enviadas: number
+          modo: string
+          motivo_fim: string | null
+          nome_completo: boolean
+          nome_informado: string | null
+          origem_anuncio: Json | null
+          passo: string | null
+          pediu_equipe: boolean
+          pediu_parceria: boolean
+          pediu_preco: boolean
+          pediu_tabela_especial: boolean
+          perguntas_de_preco: number
+          primeira_mensagem_id: string | null
+          primeira_vez: string | null
+          ramo: Database["public"]["Enums"]["triagem_ramo"]
+          ramo_motivo: string
+          reclamou: boolean
+          status: Database["public"]["Enums"]["triagem_status"]
+          telefone_alternativo: string | null
+          telefone_alternativo_verificado: boolean
+          telefone_chat: string | null
+          telefone_confirmado: string | null
+          tentativas_passo: number
+          ultima_entrada_em: string | null
+          ultima_entrada_hash: string | null
+          ultima_entrada_id: string | null
+          ultima_pergunta_em: string | null
+          ultima_pergunta_mensagem_id: string | null
+          ultimo_envio_em: string | null
+          versao: number
+        }
+        Insert: {
+          atendimento_id?: string | null
+          atualizado_em?: string
+          audios?: number
+          aviso_grupo_decidido?: boolean
+          aviso_grupo_enviado_em?: string | null
+          aviso_grupo_marcas?: string[]
+          aviso_grupo_motivo?: string | null
+          aviso_grupo_rodada?: number
+          avisos_arquivo?: number
+          avisos_audio?: number
+          cep?: string | null
+          cep_endereco?: Json | null
+          concluida_em?: string | null
+          conversa_id: string
+          criado_em?: string
+          endereco_recusado?: boolean
+          endereco_texto?: string | null
+          etapas_esgotadas_seguidas?: number
+          figurinhas?: number
+          id?: string
+          iniciada_em?: string
+          lead_id?: string | null
+          mandou_audio?: boolean
+          mensagens_enviadas?: number
+          modo: string
+          motivo_fim?: string | null
+          nome_completo?: boolean
+          nome_informado?: string | null
+          origem_anuncio?: Json | null
+          passo?: string | null
+          pediu_equipe?: boolean
+          pediu_parceria?: boolean
+          pediu_preco?: boolean
+          pediu_tabela_especial?: boolean
+          perguntas_de_preco?: number
+          primeira_mensagem_id?: string | null
+          primeira_vez?: string | null
+          ramo?: Database["public"]["Enums"]["triagem_ramo"]
+          ramo_motivo?: string
+          reclamou?: boolean
+          status?: Database["public"]["Enums"]["triagem_status"]
+          telefone_alternativo?: string | null
+          telefone_alternativo_verificado?: boolean
+          telefone_chat?: string | null
+          telefone_confirmado?: string | null
+          tentativas_passo?: number
+          ultima_entrada_em?: string | null
+          ultima_entrada_hash?: string | null
+          ultima_entrada_id?: string | null
+          ultima_pergunta_em?: string | null
+          ultima_pergunta_mensagem_id?: string | null
+          ultimo_envio_em?: string | null
+          versao?: number
+        }
+        Update: {
+          atendimento_id?: string | null
+          atualizado_em?: string
+          audios?: number
+          aviso_grupo_decidido?: boolean
+          aviso_grupo_enviado_em?: string | null
+          aviso_grupo_marcas?: string[]
+          aviso_grupo_motivo?: string | null
+          aviso_grupo_rodada?: number
+          avisos_arquivo?: number
+          avisos_audio?: number
+          cep?: string | null
+          cep_endereco?: Json | null
+          concluida_em?: string | null
+          conversa_id?: string
+          criado_em?: string
+          endereco_recusado?: boolean
+          endereco_texto?: string | null
+          etapas_esgotadas_seguidas?: number
+          figurinhas?: number
+          id?: string
+          iniciada_em?: string
+          lead_id?: string | null
+          mandou_audio?: boolean
+          mensagens_enviadas?: number
+          modo?: string
+          motivo_fim?: string | null
+          nome_completo?: boolean
+          nome_informado?: string | null
+          origem_anuncio?: Json | null
+          passo?: string | null
+          pediu_equipe?: boolean
+          pediu_parceria?: boolean
+          pediu_preco?: boolean
+          pediu_tabela_especial?: boolean
+          perguntas_de_preco?: number
+          primeira_mensagem_id?: string | null
+          primeira_vez?: string | null
+          ramo?: Database["public"]["Enums"]["triagem_ramo"]
+          ramo_motivo?: string
+          reclamou?: boolean
+          status?: Database["public"]["Enums"]["triagem_status"]
+          telefone_alternativo?: string | null
+          telefone_alternativo_verificado?: boolean
+          telefone_chat?: string | null
+          telefone_confirmado?: string | null
+          tentativas_passo?: number
+          ultima_entrada_em?: string | null
+          ultima_entrada_hash?: string | null
+          ultima_entrada_id?: string | null
+          ultima_pergunta_em?: string | null
+          ultima_pergunta_mensagem_id?: string | null
+          ultimo_envio_em?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_triagens_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_atendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: true
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: true
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagens_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagens_primeira_mensagem_id_fkey"
+            columns: ["primeira_mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagens_ultima_entrada_id_fkey"
+            columns: ["ultima_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_triagens_ultima_pergunta_mensagem_id_fkey"
+            columns: ["ultima_pergunta_mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensagens"
             referencedColumns: ["id"]
           },
         ]
@@ -21077,6 +22085,52 @@ export type Database = {
           },
         ]
       }
+      triagem_metricas_30_dias: {
+        Row: {
+          abandonadas: number | null
+          concluidas: number | null
+          concluidas_com_tempo: number | null
+          entregues_equipe: number | null
+          enviou_boas_vindas: number | null
+          mediana_segundos_ate_concluir: number | null
+          pausadas_humano: number | null
+          pediu_preco: number | null
+          puladas: number | null
+          ramo: string | null
+          respondeu_nome: number | null
+          triadas: number | null
+          triagens_com_pausa_humano: number | null
+        }
+        Relationships: []
+      }
+      triagem_metricas_dia: {
+        Row: {
+          abandonadas: number | null
+          concluidas: number | null
+          concluidas_com_tempo: number | null
+          dia: string | null
+          em_andamento: number | null
+          entregues_equipe: number | null
+          enviou_boas_vindas: number | null
+          paradas_pelo_contato: number | null
+          pausadas_desligada: number | null
+          pausadas_humano: number | null
+          pediu_preco: number | null
+          puladas: number | null
+          ramo: string | null
+          respondeu_nome: number | null
+          soma_segundos_ate_concluir: number | null
+          triadas: number | null
+        }
+        Relationships: []
+      }
+      triagem_metricas_pausas_dia: {
+        Row: {
+          dia: string | null
+          triagens_com_pausa_humano: number | null
+        }
+        Relationships: []
+      }
       vw_aprovacoes_orcamento: {
         Row: {
           ajustes_abertos: number | null
@@ -22054,6 +23108,14 @@ export type Database = {
       }
     }
     Functions: {
+      _agente_frases_ok: { Args: { p_frases: string[] }; Returns: boolean }
+      _agente_problemas_de_texto: {
+        Args: {
+          p_ramos: Database["public"]["Enums"]["triagem_ramo"][]
+          p_texto: string
+        }
+        Returns: string[]
+      }
       _apply_pending_migration: { Args: { p_sql: string }; Returns: undefined }
       _dias: { Args: { p: number }; Returns: string }
       _os_enfileirar_aviso: {
@@ -22063,7 +23125,73 @@ export type Database = {
         }
         Returns: string
       }
+      _parceiro_conceder_entrada: {
+        Args: { p_parceiro_id: string }
+        Returns: Json
+      }
       _reais: { Args: { p: number }; Returns: string }
+      _triagem_bloqueado: { Args: { p_conversa: string }; Returns: boolean }
+      _triagem_cancelar_pendentes: {
+        Args: { p_conversa: string }
+        Returns: number
+      }
+      _triagem_conhecido: { Args: { p_conversa: string }; Returns: string }
+      _triagem_degrau_permite: {
+        Args: { p_conversa: string; p_modo: string }
+        Returns: boolean
+      }
+      _triagem_desligar_config: {
+        Args: { p_motivo: string; p_usuario: string }
+        Returns: boolean
+      }
+      _triagem_desligar_interno: {
+        Args: { p_motivo: string; p_usuario: string }
+        Returns: Json
+      }
+      _triagem_em_andamento: { Args: { p_conversa: string }; Returns: boolean }
+      _triagem_hash: { Args: { p_valor: string }; Returns: string }
+      _triagem_humano_na_conversa: {
+        Args: { p_conversa: string }
+        Returns: boolean
+      }
+      _triagem_lista_limpa: {
+        Args: { p_formato: string; p_lista: Json }
+        Returns: Json
+      }
+      _triagem_nome_e_marcador: { Args: { p_nome: string }; Returns: boolean }
+      _triagem_nome_valido: { Args: { p_nome: string }; Returns: boolean }
+      _triagem_normalizar_frase: { Args: { p_texto: string }; Returns: string }
+      _triagem_numeros_validos: {
+        Args: { p_numeros: string[] }
+        Returns: boolean
+      }
+      _triagem_parece_robo: { Args: { p_texto: string }; Returns: string }
+      _triagem_pausar: {
+        Args: {
+          p_motivo: string
+          p_status: Database["public"]["Enums"]["triagem_status"]
+          p_triagem: string
+        }
+        Returns: boolean
+      }
+      _triagem_problemas_de_texto: {
+        Args: {
+          p_modelo: boolean
+          p_ramo: Database["public"]["Enums"]["triagem_ramo"]
+          p_texto: string
+        }
+        Returns: string[]
+      }
+      _triagem_recompor_ultima: {
+        Args: { p_conversas: string[]; p_textos: string[] }
+        Returns: undefined
+      }
+      _triagem_sorteio: { Args: { p_conversa: string }; Returns: number }
+      _triagem_texto_de_aviso: {
+        Args: { p_max: number; p_texto: string }
+        Returns: string
+      }
+      _triagem_texto_plano: { Args: { p_texto: string }; Returns: string }
       _wa_abrir_atendimento: {
         Args: {
           p_conversa_id: string
@@ -22071,6 +23199,15 @@ export type Database = {
           p_usuario: string
         }
         Returns: string
+      }
+      _wa_classificar_contato: {
+        Args: {
+          p_anuncio: string
+          p_cliente: string
+          p_lead: string
+          p_texto: string
+        }
+        Returns: Json
       }
       _wa_enfileirar_mensagem_da_equipe: {
         Args: {
@@ -22083,10 +23220,21 @@ export type Database = {
         Returns: Json
       }
       _wa_exigir_resposta: { Args: { p_usuario: string }; Returns: undefined }
+      _wa_registrar_anuncio: {
+        Args: {
+          p_anuncio: string
+          p_conta: boolean
+          p_payload: Json
+          p_quando: string
+        }
+        Returns: undefined
+      }
       _wa_telefone_da_equipe: {
         Args: { p_telefone_normalizado: string }
         Returns: boolean
       }
+      _whatsapp_dias_em_texto: { Args: { p_dias: number[] }; Returns: string }
+      _whatsapp_hora_em_texto: { Args: { p_hora: string }; Returns: string }
       abrir_aprovacao: { Args: { p_token: string }; Returns: Json }
       agendar_os_interno: {
         Args: { p_a_partir_de?: string; p_os_id: string }
@@ -22094,6 +23242,39 @@ export type Database = {
       }
       agendar_os_na_maquina: {
         Args: { p_a_partir_de?: string; p_os_id: string }
+        Returns: Json
+      }
+      agente_resposta_aprovar: {
+        Args: {
+          p_id: string
+          p_texto_novo?: string
+          p_usuario: string
+          p_versao_vista: number
+        }
+        Returns: Json
+      }
+      agente_resposta_arquivar: {
+        Args: { p_id: string; p_usuario: string }
+        Returns: Json
+      }
+      agente_resposta_rascunho: {
+        Args: { p_id: string; p_usuario: string }
+        Returns: Json
+      }
+      agente_resposta_salvar: {
+        Args: {
+          p_familia: string
+          p_frases: string[]
+          p_id: string
+          p_origem?: string
+          p_pergunta: string
+          p_produto_id: string
+          p_ramos: Database["public"]["Enums"]["triagem_ramo"][]
+          p_resposta: string
+          p_tema: string
+          p_usuario: string
+          p_versao_vista?: number
+        }
         Returns: Json
       }
       ajustar_estoque_material: {
@@ -22255,6 +23436,7 @@ export type Database = {
         Args: { p_area_cobrada: number; p_quantidade: number }
         Returns: number
       }
+      bex_normalizar_texto: { Args: { p_texto: string }; Returns: string }
       bloco_da_tv: {
         Args: { p_status: Database["public"]["Enums"]["status_os"] }
         Returns: string
@@ -22998,6 +24180,36 @@ export type Database = {
         Args: { p_guardado: Json; p_vivo: Json }
         Returns: Json
       }
+      origem_remover_palavra: { Args: { p_palavra: string }; Returns: Json }
+      origem_salvar_anuncio: {
+        Args: {
+          p_anuncio_id: string
+          p_ativo: boolean
+          p_nome_interno: string
+          p_produto: string
+        }
+        Returns: Json
+      }
+      origem_salvar_conjunto: {
+        Args: {
+          p_ativo: boolean
+          p_campanha_id: string
+          p_campanha_nome: string
+          p_conjunto_id: string
+          p_nome: string
+          p_produto_padrao: string
+          p_tipo: string
+        }
+        Returns: Json
+      }
+      origem_salvar_palavra: {
+        Args: { p_ativo: boolean; p_palavra: string; p_tipo?: string }
+        Returns: Json
+      }
+      origem_vincular_anuncio: {
+        Args: { p_anuncio_id: string; p_conjunto_id: string }
+        Returns: Json
+      }
       os_bloqueios_do_quadro: {
         Args: never
         Returns: {
@@ -23188,6 +24400,10 @@ export type Database = {
         }
         Returns: string
       }
+      parceiro_dar_credito_de_entrada: {
+        Args: { p_ids: string[] }
+        Returns: Json
+      }
       parceiro_do_usuario: { Args: never; Returns: string }
       parceiro_entregar_conquista: {
         Args: { p_conquista_id: string; p_observacao: string }
@@ -23256,6 +24472,10 @@ export type Database = {
       parceiro_vincular_usuario: {
         Args: { p_parceiro_id: string; p_usuario_id: string }
         Returns: Json
+      }
+      parceiros_atribuir_atendente_padrao: {
+        Args: { p_ids: string[] }
+        Returns: number
       }
       parceiros_contador_periodo: {
         Args: { p_fim: string; p_inicio: string }
@@ -23978,6 +25198,70 @@ export type Database = {
           tipo: string
         }[]
       }
+      triagem_aplicar: {
+        Args: { p_resultado: Json; p_triagem_id: string; p_versao: number }
+        Returns: Json
+      }
+      triagem_config_salvar: {
+        Args: { p_config: Json; p_usuario: string }
+        Returns: Json
+      }
+      triagem_desligar: {
+        Args: { p_motivo: string; p_usuario: string }
+        Returns: Json
+      }
+      triagem_dono_da_conversa: {
+        Args: { p_conversa_id: string }
+        Returns: string
+      }
+      triagem_enviar: {
+        Args: {
+          p_atraso_s: number
+          p_chave: string
+          p_codigos: string[]
+          p_ordem: number
+          p_passo: string
+          p_texto: string
+          p_triagem_id: string
+        }
+        Returns: Json
+      }
+      triagem_gravar_no_cadastro: {
+        Args: { p_triagem_id: string }
+        Returns: Json
+      }
+      triagem_ler_ou_abrir: {
+        Args: {
+          p_contexto?: Json
+          p_conversa_id: string
+          p_mensagem_id: string
+        }
+        Returns: Json
+      }
+      triagem_passo_salvar: {
+        Args: {
+          p_ativo?: boolean
+          p_codigo: string
+          p_ramo: Database["public"]["Enums"]["triagem_ramo"]
+          p_repeticao?: string
+          p_texto: string
+          p_usuario: string
+          p_variantes?: string[]
+        }
+        Returns: Json
+      }
+      triagem_resposta_salvar: {
+        Args: {
+          p_ativo?: boolean
+          p_casamento: Database["public"]["Enums"]["triagem_casamento"]
+          p_frase: string
+          p_intencao: Database["public"]["Enums"]["triagem_intencao"]
+          p_passo: string
+          p_usuario: string
+        }
+        Returns: Json
+      }
+      triagem_varrer: { Args: never; Returns: Json }
       tv_aprovar_pareamento: {
         Args: { p_codigo: string; p_nome: string }
         Returns: Json
@@ -24173,6 +25457,14 @@ export type Database = {
         Args: { p_admin: string; p_filas: string[]; p_usuario_alvo: string }
         Returns: Json
       }
+      whatsapp_definir_tipo_do_contato: {
+        Args: { p_conversa_id: string; p_tipo: string; p_usuario: string }
+        Returns: Json
+      }
+      whatsapp_dentro_do_horario: {
+        Args: { p_momento?: string }
+        Returns: boolean
+      }
       whatsapp_despachante_token_situacao: {
         Args: { p_token?: string }
         Returns: string
@@ -24191,6 +25483,18 @@ export type Database = {
           papeis: string[]
         }[]
       }
+      whatsapp_feriado_salvar: {
+        Args: {
+          p_abre?: string
+          p_data: string
+          p_fecha?: string
+          p_fechado?: boolean
+          p_nome: string
+          p_remover?: boolean
+          p_usuario: string
+        }
+        Returns: Json
+      }
       whatsapp_fotos_pendentes: {
         Args: { p_limite?: number }
         Returns: {
@@ -24199,6 +25503,17 @@ export type Database = {
           telefone: string
           ultima_foto: string
         }[]
+      }
+      whatsapp_horario_em_texto: { Args: never; Returns: Json }
+      whatsapp_horario_salvar: {
+        Args: {
+          p_abre: string
+          p_ativo: boolean
+          p_dia: number
+          p_fecha: string
+          p_usuario: string
+        }
+        Returns: Json
       }
       whatsapp_ia_classificar: {
         Args: { p_conversa_id: string; p_fila: string; p_intencao: string }
@@ -24330,6 +25645,7 @@ export type Database = {
       }
     }
     Enums: {
+      agente_resposta_status: "rascunho" | "aprovada" | "arquivada"
       app_role:
         | "admin"
         | "gestor"
@@ -24446,6 +25762,50 @@ export type Database = {
         | "reuniao"
         | "whatsapp"
         | "ligacao"
+      triagem_casamento: "igual" | "comeca" | "contem"
+      triagem_estado: "desligada" | "ensaio" | "teste" | "parcial" | "ligada"
+      triagem_evento_tipo:
+        | "entrada"
+        | "interpretada"
+        | "envio_enfileirado"
+        | "envio_ensaio"
+        | "pulou"
+        | "pausa"
+        | "texto_barrado"
+        | "erro"
+        | "gate"
+        | "aviso_grupo"
+        | "nome_nao_gravado"
+        | "expirou"
+        | "freio"
+      triagem_intencao:
+        | "sim"
+        | "nao"
+        | "mudar"
+        | "primeira_vez"
+        | "ja_cliente"
+        | "pular"
+        | "recusar"
+        | "parar"
+        | "falar_com_equipe"
+        | "parceiro"
+        | "pergunta_preco"
+        | "saudacao"
+        | "agradecimento"
+        | "automatica"
+        | "reclamacao"
+        | "nao_sei"
+      triagem_ramo: "cliente" | "parceiro"
+      triagem_status:
+        | "ativa"
+        | "concluida"
+        | "expirada"
+        | "pausada_humano"
+        | "pausada_desligada"
+        | "parada_pelo_contato"
+        | "entregue_equipe"
+        | "pulada"
+        | "ensaio"
       whatsapp_automacao_gatilho:
         | "mensagem_recebida"
         | "palavra_chave"
@@ -24624,6 +25984,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agente_resposta_status: ["rascunho", "aprovada", "arquivada"],
       app_role: [
         "admin",
         "gestor",
@@ -24751,6 +26112,53 @@ export const Constants = {
         "reuniao",
         "whatsapp",
         "ligacao",
+      ],
+      triagem_casamento: ["igual", "comeca", "contem"],
+      triagem_estado: ["desligada", "ensaio", "teste", "parcial", "ligada"],
+      triagem_evento_tipo: [
+        "entrada",
+        "interpretada",
+        "envio_enfileirado",
+        "envio_ensaio",
+        "pulou",
+        "pausa",
+        "texto_barrado",
+        "erro",
+        "gate",
+        "aviso_grupo",
+        "nome_nao_gravado",
+        "expirou",
+        "freio",
+      ],
+      triagem_intencao: [
+        "sim",
+        "nao",
+        "mudar",
+        "primeira_vez",
+        "ja_cliente",
+        "pular",
+        "recusar",
+        "parar",
+        "falar_com_equipe",
+        "parceiro",
+        "pergunta_preco",
+        "saudacao",
+        "agradecimento",
+        "automatica",
+        "reclamacao",
+        "nao_sei",
+      ],
+      triagem_ramo: ["cliente", "parceiro"],
+      triagem_status: [
+        "ativa",
+        "concluida",
+        "expirada",
+        "pausada_humano",
+        "pausada_desligada",
+        "parada_pelo_contato",
+        "entregue_equipe",
+        "pulada",
+        "ensaio",
       ],
       whatsapp_automacao_gatilho: [
         "mensagem_recebida",

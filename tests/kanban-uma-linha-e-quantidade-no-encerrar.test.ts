@@ -7,7 +7,8 @@ const apontamento = readFileSync("src/components/os/apontamento-card.tsx", "utf8
 
 describe("quadro de produção em uma linha e encerrar com quantidade (30/10/2026)", () => {
   it("o quadro não fixa o número de colunas: a sexta (Fila de produção) caía para a linha de baixo", () => {
-    expect(ETAPAS_QUADRO.length).toBe(6);
+    // Sete desde 14/11/2026 (Atendimento validado): o quadro continua sem número fixo de colunas.
+    expect(ETAPAS_QUADRO.length).toBe(7);
     expect(kanban).not.toMatch(/repeat\(5,/);
     expect(kanban).not.toMatch(/md:grid-cols/);
     // o nome da etapa quebra em duas linhas em vez de virar "FILA DE P…" na coluna estreita

@@ -101,6 +101,8 @@ interface OSDaFila {
   // Decidem se "Pronta" vira aguardando retirada, entrega ou instalação.
   precisa_entrega: boolean | null;
   precisa_instalacao: boolean | null;
+  /** Quem vai produzir, escolhido ao mandar para a fila (14/11/2026). */
+  operador_id?: string | null;
 }
 
 function useFila(status: readonly string[], chave: string) {
@@ -123,7 +125,7 @@ function useFila(status: readonly string[], chave: string) {
       const { data, error } = await (supabase as any)
         .from("ordens_servico_operacional")
         .select(
-          "id, numero, titulo, status, prazo_entrega, prioridade, cliente_nome, precisa_entrega, precisa_instalacao",
+          "id, numero, titulo, status, prazo_entrega, prioridade, cliente_nome, precisa_entrega, precisa_instalacao, operador_id",
         )
         .in("status", status)
         .order("prazo_entrega", { ascending: true, nullsFirst: false })
@@ -286,8 +288,11 @@ function LinhaOS({
   movendo,
   onPasso,
   impressao = [],
+  paraVoce = false,
 }: {
   os: OSDaFila;
+  /** O gestor (ou quem mandou para a fila) escolheu esta pessoa como operador. */
+  paraVoce?: boolean;
   bloqueios?: BloqueioOs[];
   /** Os apontamentos abertos DESTA OS. */
   abertos?: ApontamentoAberto[];
@@ -328,6 +333,7 @@ function LinhaOS({
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{os.cliente_nome ?? "Cliente não informado"}</span>
             <StatusChip label={rotuloDe(os.status)} tone={toneDoStatus(os.status)} />
+            {paraVoce && <StatusChip label="Para você" tone="lime" />}
             {/* `prioridade` é inteiro (1 = urgente). Comparado com a palavra
                 "urgente", como estava, o selo nunca aparecia. */}
             {os.prioridade === 1 && (
@@ -524,7 +530,7 @@ export function PainelProducao() {
   const travas = useBloqueios();
   const bloqueios = travas.data ?? new Map<string, BloqueioOs[]>();
   const apontamentos = useApontamentosAbertos();
-  const { canSeeFinancials, canSeePrices, hasPermission } = useAuth();
+  const { canSeeFinancials, canSeePrices, hasPermission, user } = useAuth();
   const [movendoId, setMovendoId] = useState<string | null>(null);
   /** A OS cujos botões de máquina estão abertos. */
   const [escolhendo, setEscolhendo] = useState<OSDaFila | null>(null);
@@ -536,7 +542,11 @@ export function PainelProducao() {
   };
   const abertos = abertosPorOs(apontamentos.data ?? []);
 
-  const fila = oficina.data ?? [];
+  // O que foi mandado para quem está logado vem primeiro (14/11/2026: "seleciono o
+  // Fernando para seguir para ele"). O resto segue na ordem do prazo, como antes.
+  const fila = [...(oficina.data ?? [])].sort(
+    (a, b) => Number(b.operador_id === user?.id) - Number(a.operador_id === user?.id),
+  );
   const arquivosDeImpressao = useArquivosDeImpressao(fila.map((os) => os.id));
   const prontasTodas = prontos.data ?? [];
   const retiradas = useRetiradasRegistradas(prontasTodas.map((os) => os.id));
@@ -805,6 +815,7 @@ export function PainelProducao() {
                   maquinaDesconhecida={apontamentos.isError || apontamentos.isLoading}
                   movendo={movendoId === os.id}
                   onPasso={darPasso}
+                  paraVoce={!!user?.id && os.operador_id === user.id}
                 />
               ))}
             </>

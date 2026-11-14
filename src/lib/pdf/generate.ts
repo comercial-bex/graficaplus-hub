@@ -11,6 +11,7 @@ import { dataBR, descreverEntrega, parcelasDoAcordo, validadeAte } from "./forma
 import { prepararImagensDoDocumento } from "./imagens";
 import { BUCKET_DOS_ARQUIVOS_3D } from "@/domain/impressao3d/arquivos";
 import type { TipoDeDocumento } from "@/domain/whatsapp/envio-de-documento";
+import { ehImagemVisivel, separarArquivos, type ArquivoDaOs } from "@/domain/os/arquivos-da-os";
 
 // As consultas abaixo usam listas de colunas montadas em constantes: o
 // gerador de tipos do supabase-js só entende o select literal, e as views nem
@@ -277,7 +278,17 @@ type LinhaDeItem = {
  */
 async function montarItens(
   linhas: LinhaDeItem[],
-  opcoes: { mostrarValores: boolean; artesDoOrcamento: boolean },
+  opcoes: {
+    mostrarValores: boolean;
+    artesDoOrcamento: boolean;
+    /**
+     * Via de PRODUÇÃO (14/11/2026): a imagem do item é o ARQUIVO DE IMPRESSÃO (o
+     * final de produção) quando ele é imagem — não o mockup do orçamento. Antes o
+     * PDF mostrava `itens_os.arquivo_id` e a ficha do quadro mandava imprimir
+     * outro arquivo.
+     */
+    impressaoDaOs?: string;
+  },
 ): Promise<DocItem[]> {
   const artesPorItem = new Map<string, string[]>();
   if (opcoes.artesDoOrcamento && linhas.length > 0) {
@@ -302,6 +313,27 @@ async function montarItens(
   // itens antigos (e os da OS) só têm arquivo_id
   for (const l of linhas) {
     if (l.arquivo_id && !artesPorItem.has(l.id)) artesPorItem.set(l.id, [l.arquivo_id]);
+  }
+
+  // Via de produção: o arquivo de impressão do item, se for imagem. Sem item no
+  // arquivo, só vale para OS de um item (não dá para adivinhar de qual é). Falhar
+  // aqui não derruba o PDF: fica o layout do item, como era.
+  if (opcoes.impressaoDaOs && linhas.length > 0) {
+    const { data, error } = await db
+      .from("arquivos")
+      .select("id, nome, caminho, bucket, mime_type, os_item_id, versao, created_at, final_producao, tipo, ativo, substituido_por, status")
+      .eq("os_id", opcoes.impressaoDaOs)
+      .eq("final_producao", true);
+    if (error) console.warn("[pdf] não leu os arquivos de impressão:", error);
+    const imagens = separarArquivos((data ?? []) as ArquivoDaOs[]).impressao.filter((a) =>
+      ehImagemVisivel(a.nome, a.mime_type, a.caminho),
+    );
+    for (const l of linhas) {
+      const doItem =
+        imagens.find((a) => a.os_item_id === l.id) ??
+        (linhas.length === 1 ? imagens.find((a) => !a.os_item_id) : undefined);
+      if (doItem) artesPorItem.set(l.id, [doItem.id]);
+    }
   }
 
   const capas = [...new Set([...artesPorItem.values()].map((artes) => artes[0]))];
@@ -754,7 +786,7 @@ export async function carregarPropsOS(
     carregarEmpresa(),
     // A via de produção não mostra valores, mas metragem e layout são o que a
     // oficina precisa — por isso seguem nos itens.
-    montarItens(linhas, { mostrarValores, artesDoOrcamento: false }),
+    montarItens(linhas, { mostrarValores, artesDoOrcamento: false, impressaoDaOs: mostrarValores ? undefined : osId }),
     lerIdentificacaoLegal(osId),
   ]);
   const total = mostrarValores ? numero(os.valor_total) : 0;

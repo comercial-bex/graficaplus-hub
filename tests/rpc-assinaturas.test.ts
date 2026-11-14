@@ -67,6 +67,15 @@ const ASSINATURAS: Record<string, string[]> = {
   materiais_faltantes_os: ["p_os_id"],
   os_bloqueios_do_quadro: [],
   os_bloqueios_para: ["os_id", "novo_status"], // sem p_
+  // Migração 20261114190000 (atendimento validado, operador e saldo devedor), ensaiada
+  // no Postgres em 14/11/2026. Chamadas pela ficha do quadro e pelo quadro
+  // (src/components/kanban/aval-do-gestor.tsx).
+  validar_atendimento: ["p_os_id", "p_designer_id", "p_motivo"],
+  pedir_aval_do_gestor: ["p_os_id", "p_assunto"],
+  autorizar_saldo_devedor: ["p_os_id", "p_motivo"],
+  mandar_para_fila_de_producao: ["p_os_id", "p_operador_id"],
+  definir_operador_da_os: ["p_os_id", "p_operador_id"],
+  equipe_da_producao: [],
   // Migração 20260916120000 (clube de parceiros), conferidas no Postgres em 16/09/2026.
   parceiro_ajustar_credito: ["p_parceiro_id", "p_valor", "p_descricao"],
   parceiro_catalogo: [],

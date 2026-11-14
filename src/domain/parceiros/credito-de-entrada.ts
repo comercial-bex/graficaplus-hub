@@ -1,5 +1,5 @@
 /**
- * Crédito de entrada do parceiro: um valor fixo ao ser ativado, que só vale
+ * Crédito de entrada do parceiro: um valor fixo quando ativo, com login e atendente, que só vale
  * junto com a 1ª compra (como o crédito inicial das campanhas de carteira).
  *
  * O servidor (`parceiro_enviar_pedido`) é a autoridade. Estas funções só
@@ -47,6 +47,23 @@ export const STATUS_QUE_NAO_CONTAM = ["rejeitado", "expirado"] as const;
 export function ehPrimeiraCompra(pedidos: { pedido_status: string }[]): boolean {
   return !pedidos.some(
     (p) => !(STATUS_QUE_NAO_CONTAM as readonly string[]).includes(p.pedido_status),
+  );
+}
+
+/** O aviso só vale enquanto o programa, o saldo e a validade permitem usar a entrada. */
+export function deveMostrarAvisoDeEntrada(args: {
+  entrada: ProgramaDeEntrada | null;
+  saldo: number;
+  validade: Date | null;
+  primeiraCompra: boolean;
+  agora?: Date;
+}): boolean {
+  return (
+    args.entrada?.ativa === true &&
+    args.saldo > 0 &&
+    args.primeiraCompra &&
+    args.validade !== null &&
+    args.validade.getTime() > (args.agora ?? new Date()).getTime()
   );
 }
 

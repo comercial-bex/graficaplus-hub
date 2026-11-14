@@ -196,3 +196,114 @@ export function formatoDoArquivo(a: Pick<ArquivoDaOs, "nome" | "mime_type" | "ca
   const ext = nome.includes(".") ? extensao(nome) : "";
   return ext && ext.length <= 5 ? ext.toUpperCase() : "Arquivo";
 }
+
+/* ------------------------------------------------------------------ */
+/* Conferência de resolução (14/11/2026)                               */
+/* ------------------------------------------------------------------ */
+
+export type Resolucao = { dpi: number; nivel: "baixa" | "grande_formato" | "boa" };
+
+/**
+ * A resolução da imagem no tamanho da peça — a conferência simples que os
+ * sistemas de gráfica chamam de preflight. Só para IMAGEM (PNG, JPG…): PDF,
+ * CDR e AI são vetor ou têm resolução própria, e o navegador não os mede.
+ *
+ * A imagem pode estar deitada ou em pé: o lado maior da imagem casa com o lado
+ * maior da peça. Vale o menor dos dois dpi (o lado que estica mais).
+ * Régua: abaixo de 72 dpi é baixa para imprimir; de 72 a 149 serve para grande
+ * formato visto de longe (lona, adesivo de parede); de 150 para cima, boa.
+ */
+export function resolucaoNoTamanho(
+  px: { largura: number; altura: number },
+  metros: { largura: number; altura: number },
+): Resolucao | null {
+  if (!(px.largura > 0 && px.altura > 0 && metros.largura > 0 && metros.altura > 0)) return null;
+  const [pxMaior, pxMenor] = px.largura >= px.altura ? [px.largura, px.altura] : [px.altura, px.largura];
+  const [mMaior, mMenor] =
+    metros.largura >= metros.altura ? [metros.largura, metros.altura] : [metros.altura, metros.largura];
+  const POLEGADA = 0.0254;
+  const dpi = Math.floor(Math.min(pxMaior / (mMaior / POLEGADA), pxMenor / (mMenor / POLEGADA)));
+  return { dpi, nivel: dpi < 72 ? "baixa" : dpi < 150 ? "grande_formato" : "boa" };
+}
+
+/** 1 ponto PDF = 1/72 de polegada. */
+export function pontosParaMm(pontos: number): number {
+  return (pontos * 25.4) / 72;
+}
+
+export type ConferenciaDoPdf = {
+  situacao: "bate" | "sangria" | "escala" | "diferente";
+  /** Só "diferente" pede atenção: as outras três imprimem certo. */
+  alerta: boolean;
+  texto: string;
+};
+
+const emCm = (mm: number) => (mm / 10).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+/**
+ * A página do PDF de impressão contra a medida da peça (14/11/2026) — o preflight
+ * de medida que faltava para PDF (a imagem já tinha a conferência de resolução).
+ *
+ * Deitado ou em pé tanto faz: o lado maior casa com o lado maior. Quatro respostas:
+ *   - bate: o PDF tem a medida da peça (tolerância de 1 mm ou 0,1%, o que for maior), sem sangria;
+ *   - sangria: a peça mais 1,5 a 10 mm em volta, igual nos dois lados;
+ *   - escala: a mesma proporção em outro tamanho — arte de lona feita em 1:10, por exemplo;
+ *   - diferente: a proporção não bate (mais de 2%), e a peça sairia esticada ou cortada.
+ */
+export function conferirMedidaDoPdf(
+  paginaMm: { largura: number; altura: number },
+  pecaM: { largura: number; altura: number },
+): ConferenciaDoPdf | null {
+  if (!(paginaMm.largura > 0 && paginaMm.altura > 0 && pecaM.largura > 0 && pecaM.altura > 0)) return null;
+  const [pM, pm] = paginaMm.largura >= paginaMm.altura ? [paginaMm.largura, paginaMm.altura] : [paginaMm.altura, paginaMm.largura];
+  const [qM, qm] = (pecaM.largura >= pecaM.altura ? [pecaM.largura, pecaM.altura] : [pecaM.altura, pecaM.largura]).map((m) => m * 1000);
+  const pagina = `${emCm(pM)} × ${emCm(pm)} cm`;
+  const peca = `${emCm(qM)} × ${emCm(qm)} cm`;
+  // 0,1%: com 0,5% um lado de 1,5 m aceitaria 7,5 mm e engoliria a sangria de 3 mm.
+  const tolerancia = (mm: number) => Math.max(1, mm * 0.001);
+
+  if (Math.abs(pM - qM) <= tolerancia(qM) && Math.abs(pm - qm) <= tolerancia(qm)) {
+    return { situacao: "bate", alerta: false, texto: `PDF na medida da peça (${peca}), sem sangria.` };
+  }
+  const sM = (pM - qM) / 2;
+  const sm = (pm - qm) / 2;
+  if (sM >= 1.5 && sm >= 1.5 && sM <= 10 && sm <= 10 && Math.abs(sM - sm) <= 1.5) {
+    return {
+      situacao: "sangria",
+      alerta: false,
+      texto: `PDF na medida da peça (${peca}) com sangria de ${Math.round((sM + sm) / 2)} mm em volta.`,
+    };
+  }
+  const rM = qM / pM;
+  const rm = qm / pm;
+  if (Math.abs(rM - rm) / Math.max(rM, rm) <= 0.02) {
+    const r = (rM + rm) / 2;
+    if (r > 1) {
+      const n = Math.round(r);
+      const escala = Math.abs(r - n) <= 0.03 * r ? `1:${n}` : `1:${r.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}`;
+      return {
+        situacao: "escala",
+        alerta: false,
+        texto: `PDF em escala ${escala} (${pagina} para ${peca}): imprima ampliando na mesma proporção.`,
+      };
+    }
+    return {
+      situacao: "escala",
+      alerta: false,
+      texto: `PDF maior que a peça, na mesma proporção (${pagina} para ${peca}): imprima reduzindo.`,
+    };
+  }
+  return {
+    situacao: "diferente",
+    alerta: true,
+    texto: `Proporção diferente da peça: o PDF tem ${pagina} e a peça ${peca}. Confira com a criação antes de imprimir.`,
+  };
+}
+
+export function textoDaResolucao(r: Resolucao): string {
+  if (r.nivel === "baixa")
+    return `≈ ${r.dpi} dpi no tamanho da peça: baixa para imprimir. Peça à criação um arquivo maior ou em vetor.`;
+  if (r.nivel === "grande_formato")
+    return `≈ ${r.dpi} dpi no tamanho da peça: serve para grande formato visto de longe, não para peça vista de perto.`;
+  return `≈ ${r.dpi} dpi no tamanho da peça: boa resolução.`;
+}

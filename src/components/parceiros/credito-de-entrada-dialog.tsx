@@ -36,10 +36,10 @@ export function CreditoDeEntradaDialog({ valor, disabled }: { valor: number; dis
   const candidatos = useQuery({
     queryKey: ["parceiros-candidatos-entrada"],
     enabled: aberto,
-    queryFn: async (): Promise<Candidato[]> => {
+    queryFn: async (): Promise<{ lista: Candidato[]; semAtendente: number }> => {
       const { data: ps, error } = await (supabase as any)
         .from("parceiros")
-        .select("id, marca_nome, cliente_id")
+        .select("id, marca_nome, cliente_id, responsavel_id")
         .eq("status", "ativo")
         .not("usuario_id", "is", null);
       if (error) throw error;
@@ -47,8 +47,9 @@ export function CreditoDeEntradaDialog({ valor, disabled }: { valor: number; dis
         id: string;
         marca_nome: string | null;
         cliente_id: string | null;
+        responsavel_id: string | null;
       }[];
-      if (lista.length === 0) return [];
+      if (lista.length === 0) return { lista: [], semAtendente: 0 };
       const ids = lista.map((p) => p.id);
       const [pedidos, creditos, clientes] = await Promise.all([
         (supabase as any)
@@ -71,21 +72,25 @@ export function CreditoDeEntradaDialog({ valor, disabled }: { valor: number; dis
         [...(pedidos.data ?? []), ...(creditos.data ?? [])].map((r: any) => r.parceiro_id),
       );
       const nomes = new Map<string, string>((clientes.data ?? []).map((c: any) => [c.id, c.nome]));
-      return lista
-        .filter((p) => !fora.has(p.id))
-        .map((p) => ({
-          id: p.id,
-          nome: p.marca_nome?.trim() || nomes.get(p.cliente_id ?? "") || "Parceiro sem nome",
-        }))
-        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      const semPedido = lista.filter((p) => !fora.has(p.id));
+      return {
+        semAtendente: semPedido.filter((p) => !p.responsavel_id).length,
+        lista: semPedido
+          .filter((p) => !!p.responsavel_id)
+          .map((p) => ({
+            id: p.id,
+            nome: p.marca_nome?.trim() || nomes.get(p.cliente_id ?? "") || "Parceiro sem nome",
+          }))
+          .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+      };
     },
   });
 
   useEffect(() => {
-    if (candidatos.data) setMarcados(new Set(candidatos.data.map((c) => c.id)));
+    if (candidatos.data) setMarcados(new Set(candidatos.data.lista.map((c) => c.id)));
   }, [candidatos.data]);
 
-  const lista = useMemo(() => candidatos.data ?? [], [candidatos.data]);
+  const lista = useMemo(() => candidatos.data?.lista ?? [], [candidatos.data]);
 
   async function confirmar() {
     setEnviando(true);
@@ -124,8 +129,8 @@ export function CreditoDeEntradaDialog({ valor, disabled }: { valor: number; dis
           <DialogHeader>
             <DialogTitle>Dar o crédito de entrada</DialogTitle>
             <DialogDescription>
-              Parceiros ativos, com acesso, que ainda não fizeram pedido nem receberam o crédito.
-              Desmarque cadastros de teste.
+              Parceiros ativos, com acesso e atendente, que ainda não fizeram pedido nem receberam o
+              crédito. Desmarque cadastros de teste.
             </DialogDescription>
           </DialogHeader>
 
@@ -182,6 +187,13 @@ export function CreditoDeEntradaDialog({ valor, disabled }: { valor: number; dis
                 <strong>{brl(marcados.size * valor)}</strong> no total
               </p>
             </div>
+          )}
+
+          {!resultado && !candidatos.error && (candidatos.data?.semAtendente ?? 0) > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {candidatos.data?.semAtendente} parceiro(s) ficam de fora até alguém assumir o
+              atendimento. A fila de parceiros novos resolve isso.
+            </p>
           )}
 
           <DialogFooter>

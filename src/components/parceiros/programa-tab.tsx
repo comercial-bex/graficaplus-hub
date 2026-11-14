@@ -58,15 +58,25 @@ interface Programa {
 }
 
 const CAMPOS_ENTRADA: (keyof Programa)[] = [
-  "entrada_ativa", "entrada_valor", "entrada_validade_dias", "entrada_pedido_minimo", "entrada_max_pct_pedido",
+  "entrada_ativa",
+  "entrada_valor",
+  "entrada_validade_dias",
+  "entrada_pedido_minimo",
+  "entrada_max_pct_pedido",
 ];
 
 type Atendente = { id: string; nome: string; atende: number };
 
 const CAMPOS: (keyof Programa)[] = [
-  "indicacao_ativa", "indicacao_pct", "indicacao_compras", "indicacao_teto",
-  "boas_vindas_ativa", "boas_vindas_pct", "boas_vindas_teto",
-  "boas_vindas_validade_dias", "credito_max_pct_pedido",
+  "indicacao_ativa",
+  "indicacao_pct",
+  "indicacao_compras",
+  "indicacao_teto",
+  "boas_vindas_ativa",
+  "boas_vindas_pct",
+  "boas_vindas_teto",
+  "boas_vindas_validade_dias",
+  "credito_max_pct_pedido",
 ];
 
 export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
@@ -107,11 +117,15 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
       if (ps.error) throw ps.error;
       const logins = new Set((ps.data ?? []).map((p: any) => p.usuario_id).filter(Boolean));
       const conta = new Map<string, number>();
-      for (const p of ps.data ?? []) if (p.responsavel_id) conta.set(p.responsavel_id, (conta.get(p.responsavel_id) ?? 0) + 1);
+      for (const p of ps.data ?? [])
+        if (p.responsavel_id) conta.set(p.responsavel_id, (conta.get(p.responsavel_id) ?? 0) + 1);
       return (us.data ?? [])
         .filter((u: any) => !logins.has(u.id))
         .map((u: any) => ({ id: u.id, nome: u.nome || "Sem nome", atende: conta.get(u.id) ?? 0 }))
-        .sort((a: Atendente, b: Atendente) => b.atende - a.atende || a.nome.localeCompare(b.nome, "pt-BR"));
+        .sort(
+          (a: Atendente, b: Atendente) =>
+            b.atende - a.atende || a.nome.localeCompare(b.nome, "pt-BR"),
+        );
     },
   });
 
@@ -123,8 +137,9 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
 
   // O teto do que a gráfica pode gastar para trazer um parceiro novo. São os
   // dois tetos somados, porque cada um acontece no máximo uma vez.
-  const custoMaximo = (r.indicacao_ativa ? num("indicacao_teto") : 0)
-    + (r.boas_vindas_ativa ? num("boas_vindas_teto") : 0);
+  const custoMaximo =
+    (r.indicacao_ativa ? num("indicacao_teto") : 0) +
+    (r.boas_vindas_ativa ? num("boas_vindas_teto") : 0);
 
   async function salvar() {
     if (!r) return;
@@ -177,8 +192,8 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
           <div>
             <h3 className="font-semibold">Custo máximo por parceiro novo</h3>
             <p className="text-sm text-muted-foreground">
-              Os dois bônus somados, e só depois de compra paga. Se o indicado nunca comprar,
-              o programa não custa nada.
+              Os dois bônus somados, e só depois de compra paga. Se o indicado nunca comprar, o
+              programa não custa nada.
             </p>
           </div>
           <span className="font-mono text-2xl font-bold text-[color:var(--bex-lime)]">
@@ -200,16 +215,28 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
           />
         </div>
         <p className="text-sm text-muted-foreground">
-          Quanto quem indicou ganha quando o indicado compra. Um nível só: quem indicou o
-          indicador não ganha nada.
+          Quanto quem indicou ganha quando o indicado compra. Um nível só: quem indicou o indicador
+          não ganha nada.
         </p>
         <div className="grid gap-4 sm:grid-cols-3">
-          {campo("indicacao_pct", "Percentual da compra", "%",
-            "1% é o que cabe: no Diamante a margem já cai a 28,9% no pior caso.")}
-          {campo("indicacao_compras", "Vale nas primeiras", "compras",
-            "Depois disso para de pagar, mesmo que o indicado siga comprando.")}
-          {campo("indicacao_teto", "Teto por indicado", "R$",
-            "Soma máxima que um único indicado pode gerar para quem o trouxe.")}
+          {campo(
+            "indicacao_pct",
+            "Percentual da compra",
+            "%",
+            "1% é o que cabe: no Diamante a margem já cai a 28,9% no pior caso.",
+          )}
+          {campo(
+            "indicacao_compras",
+            "Vale nas primeiras",
+            "compras",
+            "Depois disso para de pagar, mesmo que o indicado siga comprando.",
+          )}
+          {campo(
+            "indicacao_teto",
+            "Teto por indicado",
+            "R$",
+            "Soma máxima que um único indicado pode gerar para quem o trouxe.",
+          )}
         </div>
       </section>
 
@@ -229,12 +256,24 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
           Crédito de volta na primeira compra de quem entrou por convite. Só na primeira.
         </p>
         <div className="grid gap-4 sm:grid-cols-3">
-          {campo("boas_vindas_pct", "Percentual de volta", "%",
-            "A 10% a margem Bronze cai de 50,4% para 40,4%. A 100% ela vai a zero.")}
-          {campo("boas_vindas_teto", "Teto", "R$",
-            "Quanto a gráfica devolve, no máximo, por parceiro.")}
-          {campo("boas_vindas_validade_dias", "Validade", "dias",
-            "Sem prazo o crédito vira passivo eterno e perde a urgência que gera a 2ª compra.")}
+          {campo(
+            "boas_vindas_pct",
+            "Percentual de volta",
+            "%",
+            "A 10% a margem Bronze cai de 50,4% para 40,4%. A 100% ela vai a zero.",
+          )}
+          {campo(
+            "boas_vindas_teto",
+            "Teto",
+            "R$",
+            "Quanto a gráfica devolve, no máximo, por parceiro.",
+          )}
+          {campo(
+            "boas_vindas_validade_dias",
+            "Validade",
+            "dias",
+            "Sem prazo o crédito vira passivo eterno e perde a urgência que gera a 2ª compra.",
+          )}
         </div>
       </section>
 
@@ -244,13 +283,17 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
           Limite de uso por pedido
         </h3>
         <p className="text-sm text-muted-foreground">
-          O crédito nunca paga um pedido inteiro: abate até esta fatia de cada pedido, até
-          acabar. <strong>É o que mantém a margem acima do piso de 34,5%</strong> em todos os
-          níveis — sem ele, um parceiro junta crédito e leva um trabalho abaixo do custo.
+          O crédito nunca paga um pedido inteiro: abate até esta fatia de cada pedido, até acabar.{" "}
+          <strong>É o que mantém a margem acima do piso de 34,5%</strong> em todos os níveis — sem
+          ele, um parceiro junta crédito e leva um trabalho abaixo do custo.
         </p>
         <div className="grid gap-4 sm:grid-cols-3">
-          {campo("credito_max_pct_pedido", "Máximo por pedido", "%",
-            `Num pedido de R$ 1.000, o crédito abate no máximo ${brl(num("credito_max_pct_pedido") * 10)}.`)}
+          {campo(
+            "credito_max_pct_pedido",
+            "Máximo por pedido",
+            "%",
+            `Num pedido de R$ 1.000, o crédito abate no máximo ${brl(num("credito_max_pct_pedido") * 10)}.`,
+          )}
         </div>
       </section>
 
@@ -277,14 +320,37 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
             Ele nunca paga sozinho: o dinheiro de verdade cobre pelo menos o mesmo valor do crédito.
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {campo("entrada_valor", "Valor", "R$", "Quanto o parceiro ganha ao ser ativado. Uma vez por pessoa.")}
-            {campo("entrada_validade_dias", "Validade", "dias", "De 1 a 365. Prazo curto cria urgência para a 1ª compra.")}
-            {campo("entrada_pedido_minimo", "1ª compra mínima", "R$", "Em produtos. Não pode ser menor que o valor do crédito.")}
-            {campo("entrada_max_pct_pedido", "Cobre até", "%", "Na 1ª compra. Máximo 50%: acima disso o crédito pagaria mais que o dinheiro.")}
+            {campo(
+              "entrada_valor",
+              "Valor",
+              "R$",
+              "Quanto o parceiro ganha ao ser ativado. Uma vez por pessoa.",
+            )}
+            {campo(
+              "entrada_validade_dias",
+              "Validade",
+              "dias",
+              "De 1 a 365. Prazo curto cria urgência para a 1ª compra.",
+            )}
+            {campo(
+              "entrada_pedido_minimo",
+              "1ª compra mínima",
+              "R$",
+              "Em produtos. Não pode ser menor que o valor do crédito.",
+            )}
+            {campo(
+              "entrada_max_pct_pedido",
+              "Cobre até",
+              "%",
+              "Na 1ª compra. Máximo 50%: acima disso o crédito pagaria mais que o dinheiro.",
+            )}
           </div>
           {podeEditar && (
             <div className="flex justify-end">
-              <CreditoDeEntradaDialog valor={num("entrada_valor")} disabled={!data?.entrada_ativa} />
+              <CreditoDeEntradaDialog
+                valor={num("entrada_valor")}
+                disabled={!data?.entrada_ativa}
+              />
             </div>
           )}
         </section>
@@ -297,23 +363,23 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
             Atendente padrão
           </h3>
           <p className="text-sm text-muted-foreground">
-            Todo parceiro que entra sem atendente vai para esta pessoa. Sem atendente, o parceiro não
-            consegue fazer o primeiro pedido.
+            Todo parceiro que entra sem atendente vai para esta pessoa. É obrigatório: nenhum
+            parceiro pode ficar sem atendimento.
           </p>
           <div className="max-w-sm">
             <Select
-              value={r.atendente_padrao_id ?? "nenhum"}
+              value={r.atendente_padrao_id ?? undefined}
               disabled={!podeEditar}
-              onValueChange={(v) => setR({ ...r, atendente_padrao_id: v === "nenhum" ? null : v })}
+              onValueChange={(v) => setR({ ...r, atendente_padrao_id: v })}
             >
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="Escolha quem atende" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="nenhum">Ninguém (cada um assume pela fila)</SelectItem>
                 {(atendentes.data ?? []).map((a) => (
                   <SelectItem key={a.id} value={a.id}>
-                    {a.nome}{a.atende > 0 ? ` · atende ${a.atende}` : ""}
+                    {a.nome}
+                    {a.atende > 0 ? ` · atende ${a.atende}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -180,7 +180,8 @@ describe("o teste lê alguma coisa — não pode passar por não achar nada", ()
     expect(encerradasDoSql().length).toBe(3);
     const { excecoes, porEtapa } = regrasDoBloco();
     expect(excecoes.length).toBe(2);
-    expect(porEtapa.size).toBe(6);
+    // Sete etapas desde 14/11/2026 (Atendimento validado, bloco entrada_arte).
+    expect(porEtapa.size).toBe(7);
     expect(tiposDoSql().length).toBe(5);
   });
 
@@ -256,6 +257,8 @@ describe("bloco_da_tv: cada status em exatamente um bloco", () => {
   it("fora as exceções, o bloco segue a etapa do TypeScript", () => {
     const esperado: Record<string, string> = {
       entrada: "entrada_arte",
+      // Atendimento validado (14/11/2026): na parede, junto com a entrada e a arte.
+      validado: "entrada_arte",
       pre_impressao: "entrada_arte",
       fila_producao: "oficina",
       producao: "oficina",
