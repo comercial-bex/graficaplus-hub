@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ExternalLink, FileImage, FileText, Lock, Pause, X } from "lucide-react";
+import { Check, ExternalLink, FileImage, FileText, Lock, Pause, Printer, X } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +19,20 @@ import {
 import { etapaDe, fluxoParaEscolher, rotuloDe } from "@/domain/os/etapas";
 import { areaEmTexto, descreverItem, resumoDaProducao } from "@/domain/os/o-que-produzir";
 import { formatarData, paradaHa, prazoEmPalavras } from "@/domain/os/prazo";
-import { arquivosEmOrdem, ehImagemVisivel, ehPdf, extensao, type ArquivoDaOs } from "@/domain/os/arquivos-da-os";
+import {
+  ehArquivoDeImpressao,
+  ehImagemVisivel,
+  ehMockup,
+  ehPdf,
+  extensao,
+  formatoDoArquivo,
+  separarArquivos,
+  type ArquivoDaOs,
+} from "@/domain/os/arquivos-da-os";
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
-import { urlsAssinadas } from "@/lib/urls-dos-arquivos";
+import { urlsParaVer } from "@/lib/baixar-arquivo";
+import { tamanhoLegivel } from "@/components/design/tipo-de-arquivo";
+import { BotaoAbrir, BotaoBaixar } from "@/components/arquivos/botoes-do-arquivo";
 import type { BloqueioOs } from "@/components/kanban/cartao-os";
 import { AceiteDaArteRapido } from "@/components/kanban/aceite-da-arte-rapido";
 import { AnexarArquivoRapido } from "@/components/kanban/anexar-arquivo-rapido";
@@ -56,6 +67,18 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
  *    não libera a produção, e a ficha não deixa a pessoa descobrir isso depois.
  *  - O botão de anexar só aparece para quem pode: a ficha oferecia a todos e o banco
  *    recusava ("sem permissão").
+ *
+ * Mockup × arquivo de impressão (14/11/2026, pedido do dono): a esquerda era um
+ * bloco só, "Arte · o que vai ser impresso", com o mockup do orçamento ao lado do
+ * PDF da máquina, e o "Abrir" só abria (CDR/AI/3MF o navegador nem mostra). Agora
+ * são três partes, na ordem em que a produção precisa:
+ *   1. ARQUIVO DE IMPRESSÃO — o que vai para a máquina, com "Baixar" de verdade
+ *      (nome legível, qualquer formato, qualquer bucket). Versão antiga do mesmo
+ *      arquivo fica recolhida, com aviso de não imprimir.
+ *   2. MOCKUP — o visual que o cliente viu e aprovou, em tamanho de conferência,
+ *      com a situação da aprovação.
+ *   3. OUTROS ANEXOS — briefing, comprovante, o que veio pelo WhatsApp.
+ * A regra de quem é o quê está em domain/os/arquivos-da-os (`separarArquivos`).
  */
 
 /** As condições que o banco confere para a OS entrar em produção (os_bloqueios_para). */
@@ -101,7 +124,8 @@ export function FichaDaOs({
 }) {
   const [escolhido, setEscolhido] = useState(0);
   const [aceiteAberto, setAceiteAberto] = useState(false);
-  const arquivos = arquivosEmOrdem(os?.arquivos as ArquivoDaOs[] | undefined);
+  const { impressao, versoesAnteriores, mockups, anexos } = separarArquivos(os?.arquivos as ArquivoDaOs[] | undefined);
+  const todos = [...impressao, ...versoesAnteriores, ...mockups, ...anexos];
 
   // Outra OS aberta começa na primeira arte, com o registro do aceite fechado.
   useEffect(() => {
@@ -109,11 +133,13 @@ export function FichaDaOs({
     setAceiteAberto(false);
   }, [os?.id]);
 
+  // Para VER (miniatura, mockup): URL de 15 min, bucket por bucket. Baixar pede
+  // a sua própria URL na hora do clique — nunca vence na mão de quem baixa.
   const urls = useQuery({
-    queryKey: ["ficha-os-arquivos", os?.id, arquivos.map((a) => a.id).join(",")],
-    enabled: aberto && arquivos.length > 0,
+    queryKey: ["ficha-os-arquivos", os?.id, todos.map((a) => a.id).join(",")],
+    enabled: aberto && todos.length > 0,
     staleTime: 5 * 60_000,
-    queryFn: () => urlsAssinadas(arquivos.map((a) => a.caminho), 900),
+    queryFn: () => urlsParaVer(todos, 900),
   });
 
   if (!os) return null;
@@ -132,7 +158,12 @@ export function FichaDaOs({
   const certas = condicoes.filter((c) => !falta.has(c.codigo));
   // Pendência que o banco devolve e esta lista não conhece: aparece mesmo assim.
   const desconhecidas = bloqueios.filter((b) => !CONDICOES.some((c) => c.codigo === b.codigo));
-  const arquivo = arquivos[Math.min(escolhido, Math.max(arquivos.length - 1, 0))] ?? null;
+  const mockup = mockups[Math.min(escolhido, Math.max(mockups.length - 1, 0))] ?? null;
+  // Para a pendência "Sem arquivo final": o arquivo que está na tela (o mockup) ou o primeiro anexo.
+  const candidatoAFinal = mockup ?? anexos[0] ?? null;
+  const nomeDoItem = new Map<string, string>(
+    ((os.itens as any[]) ?? []).filter((i) => i?.id).map((i): [string, string] => [i.id as string, String(i.descricao ?? "").trim()]),
+  );
   // Tudo certo e ainda antes da fila: o próximo passo é um toque.
   const podeIrParaAFila =
     pendentes === 0 && desconhecidas.length === 0 && (etapaAtual === "entrada" || etapaAtual === "pre_impressao");
@@ -178,81 +209,134 @@ export function FichaDaOs({
         </DialogHeader>
 
         <div className="grid max-h-[calc(92dvh-6.5rem)] overflow-y-auto lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:overflow-hidden">
-          {/* ───── A arte: o que vai ser impresso ───── */}
-          <section aria-label="Arte da OS" className="space-y-3 border-b border-border p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
-            <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Arte · o que vai ser impresso
-            </h3>
-            {arquivo ? (
-              <>
-                <Visualizador arquivo={arquivo} url={urls.data?.get(arquivo.caminho) ?? null} carregando={urls.isPending} />
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="min-w-0">
-                    <div className="truncate font-medium text-foreground">{arquivo.nome}</div>
-                    <div className="text-muted-foreground">
-                      {arquivo.final_producao ? (
-                        <span className="text-[color:var(--status-positive)]">Arquivo final de produção</span>
-                      ) : (
-                        "Ainda não marcado como final de produção"
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {podeAnexar && <AnexarArquivoRapido osId={os.id} semArquivoFinal={!arquivos.some((a) => a.final_producao)} />}
-                    {urls.data?.get(arquivo.caminho) && (
-                      <Button asChild variant="outline" size="sm">
-                        <a href={urls.data.get(arquivo.caminho)} target="_blank" rel="noreferrer">
-                          <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir
-                        </a>
-                      </Button>
-                    )}
-                  </div>
+          {/* ───── Os arquivos: o que vai para a máquina, o que o cliente aprovou, o resto ───── */}
+          <section aria-label="Arquivos da OS" className="space-y-6 border-b border-border p-5 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+            <div className="space-y-2">
+              <h3 className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <Printer className="h-3.5 w-3.5" aria-hidden /> Arquivo de impressão · o que vai para a máquina
+              </h3>
+              {impressao.length > 0 ? (
+                <ul className="space-y-2" aria-label="Arquivos de impressão">
+                  {impressao.map((a) => (
+                    <LinhaDeImpressao
+                      key={a.id}
+                      arquivo={a}
+                      url={urls.data?.get(a.caminho) ?? null}
+                      item={a.os_item_id ? (nomeDoItem.get(a.os_item_id) ?? null) : null}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-md border border-dashed border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 p-3 text-xs">
+                  <p className="font-medium text-foreground">Sem arquivo de impressão</p>
+                  <p className="mt-0.5 text-muted-foreground">
+                    A máquina ainda não tem o que imprimir: falta o arquivo fechado (PDF, CDR, AI…) que a criação manda para a produção.
+                    {mockups.length > 0 && " O mockup abaixo é o visual que o cliente aprovou — não é o arquivo de impressão."}
+                  </p>
+                  {!podeAnexar && <p className="mt-1.5 italic text-muted-foreground">Peça a quem pode anexar o arquivo da arte.</p>}
                 </div>
-                {arquivos.length > 1 && (
-                  <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Arquivos da OS">
-                    {arquivos.map((a, i) => (
-                      <li key={a.id}>
-                        <button
-                          type="button"
-                          onClick={() => setEscolhido(i)}
-                          aria-pressed={i === escolhido}
-                          className={cn(
-                            "relative h-16 w-24 shrink-0 overflow-hidden rounded-md border bg-muted/50 text-xs text-muted-foreground",
-                            i === escolhido ? "border-[color:var(--bex-cyan)] ring-1 ring-[color:var(--bex-cyan)]" : "border-border hover:border-foreground/30",
-                          )}
-                        >
-                          {ehImagemVisivel(a.nome, a.mime_type, a.caminho) && urls.data?.get(a.caminho) ? (
-                            <img src={urls.data.get(a.caminho)} alt="" className="h-full w-full object-cover" loading="lazy" />
-                          ) : (
-                            <span className="flex h-full w-full flex-col items-center justify-center gap-0.5">
-                              <FileText className="h-4 w-4" aria-hidden />
-                              <span className="font-semibold uppercase">{extensao(a.nome) || "arq"}</span>
-                            </span>
-                          )}
-                          {a.final_producao && (
-                            <span className="absolute left-1 top-1 rounded bg-[color:var(--bex-lime)] px-1 text-xs font-semibold text-black">final</span>
-                          )}
-                        </button>
+              )}
+              {podeAnexar && <AnexarArquivoRapido osId={os.id} papel="impressao" atuais={impressao} rotulo={impressao.length > 0 ? "Nova versão ou outro arquivo" : undefined} />}
+              {versoesAnteriores.length > 0 && (
+                <details className="rounded-md border border-border/60 px-3 py-2 text-xs">
+                  <summary className="cursor-pointer text-muted-foreground">
+                    Versões anteriores ({versoesAnteriores.length}) — não imprimir
+                  </summary>
+                  <ul className="mt-2 space-y-1.5">
+                    {versoesAnteriores.map((a) => (
+                      <li key={a.id} className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-muted-foreground">
+                          {a.nome} · v{a.versao ?? 1}
+                        </span>
+                        <BotaoBaixar arquivo={a} variante="ghost" />
                       </li>
                     ))}
                   </ul>
-                )}
-              </>
-            ) : (
-              <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
-                <FileImage className="h-8 w-8 text-muted-foreground/60" aria-hidden />
-                <p className="text-sm font-medium text-foreground">Esta OS ainda não tem arquivo</p>
-                {podeAnexar ? (
-                  <>
-                    <p className="max-w-xs text-xs text-muted-foreground">
-                      Anexe aqui: o arquivo já fica marcado como final de produção.
-                    </p>
-                    <AnexarArquivoRapido osId={os.id} semArquivoFinal />
-                  </>
-                ) : (
-                  <p className="max-w-xs text-xs text-muted-foreground">Peça a quem pode anexar o arquivo da arte.</p>
-                )}
-              </div>
+                </details>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <FileImage className="h-3.5 w-3.5" aria-hidden /> Mockup · o que o cliente viu e aprovou
+              </h3>
+              {mockup ? (
+                <>
+                  <Visualizador arquivo={mockup} url={urls.data?.get(mockup.caminho) ?? null} carregando={urls.isPending} />
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-foreground">{mockup.nome}</div>
+                      <SituacaoDoMockup status={mockup.status} />
+                      {ehArquivoDeImpressao(mockup) && (
+                        <div className="text-muted-foreground">É também o arquivo de impressão.</div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <BotaoAbrir arquivo={mockup} />
+                      <BotaoBaixar arquivo={mockup} />
+                    </div>
+                  </div>
+                  {mockups.length > 1 && (
+                    <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Mockups da OS">
+                      {mockups.map((a, i) => (
+                        <li key={a.id}>
+                          <button
+                            type="button"
+                            onClick={() => setEscolhido(i)}
+                            aria-pressed={a.id === mockup.id}
+                            aria-label={`Ver o mockup ${a.nome}`}
+                            className={cn(
+                              "relative h-16 w-24 shrink-0 overflow-hidden rounded-md border bg-muted/50 text-xs text-muted-foreground",
+                              a.id === mockup.id ? "border-[color:var(--bex-cyan)] ring-1 ring-[color:var(--bex-cyan)]" : "border-border hover:border-foreground/30",
+                            )}
+                          >
+                            {ehImagemVisivel(a.nome, a.mime_type, a.caminho) && urls.data?.get(a.caminho) ? (
+                              <img src={urls.data.get(a.caminho)} alt="" className="h-full w-full object-cover" loading="lazy" />
+                            ) : (
+                              <span className="flex h-full w-full flex-col items-center justify-center gap-0.5">
+                                <FileText className="h-4 w-4" aria-hidden />
+                                <span className="font-semibold uppercase">{extensao(a.nome) || "arq"}</span>
+                              </span>
+                            )}
+                            {a.status === "aprovado" && (
+                              <span className="absolute left-1 top-1 rounded bg-[color:var(--bex-lime)] px-1 text-xs font-semibold text-black">aprovado</span>
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-2 rounded-md border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                  <p>
+                    Sem mockup. É o visual que o cliente vê e aprova (a peça aplicada); costuma vir do orçamento ou da criação.
+                  </p>
+                  {podeAnexar && <AnexarArquivoRapido osId={os.id} papel="mockup" />}
+                </div>
+              )}
+            </div>
+
+            {anexos.length > 0 && (
+              <details className="rounded-md border border-border/60 px-3 py-2 text-xs">
+                <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                  Outros anexos ({anexos.length})
+                </summary>
+                <ul className="mt-2 space-y-1.5">
+                  {anexos.map((a) => (
+                    <li key={a.id} className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate">
+                        <span className="text-foreground/85">{a.nome}</span>
+                        <span className="text-muted-foreground"> · {formatoDoArquivo(a)}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1">
+                        {podeFinalizar && <MarcarComoFinal arquivoId={a.id} nome={a.nome} rotulo="É o de impressão" compacto />}
+                        <BotaoBaixar arquivo={a} variante="ghost" />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </section>
 
@@ -294,8 +378,8 @@ export function FichaDaOs({
                           <AcaoDaPendencia
                             codigo={c.codigo}
                             osId={os.id}
-                            arquivo={arquivo}
-                            temArquivos={arquivos.length > 0}
+                            arquivo={candidatoAFinal}
+                            temArquivos={todos.length > 0}
                             podeAnexar={podeAnexar}
                             podeFinalizar={podeFinalizar}
                             podeAceitar={podeAceitar}
@@ -456,9 +540,10 @@ function AcaoDaPendencia({
         <Pedir texto="Peça a quem pode registrar o aceite da arte." />
       );
     case "sem_arquivo_final":
-      if (temArquivos && arquivo && podeFinalizar) return <MarcarComoFinal arquivoId={arquivo.id} nome={arquivo.nome} />;
-      // Sem arquivo nenhum, o botão de anexar já está na área da arte: aqui só aponta, para não haver dois iguais.
-      if (!temArquivos && podeAnexar) return <Pedir texto="Use o botão “Anexar arquivo” na área da arte." />;
+      if (temArquivos && arquivo && podeFinalizar)
+        return <MarcarComoFinal arquivoId={arquivo.id} nome={arquivo.nome} rotulo="Usar como arquivo de impressão" />;
+      // Sem arquivo nenhum, o botão de anexar já está na área do arquivo de impressão: aqui só aponta, para não haver dois iguais.
+      if (!temArquivos && podeAnexar) return <Pedir texto="Use o botão “Anexar arquivo de impressão”, à esquerda." />;
       return <Pedir texto={temArquivos ? "Peça a quem pode marcar o arquivo como final." : "Peça a quem pode anexar o arquivo."} />;
     case "sem_pagamento":
       return <IrPara osId={osId} rotulo="Registrar na OS" onFechar={onFechar} />;
@@ -491,6 +576,40 @@ function IrPara({ osId, rotulo, onFechar }: { osId: string; rotulo: string; onFe
   );
 }
 
+/** Uma linha do arquivo de impressão: miniatura (ou o formato), nome, tamanho, versão, item e o Baixar. */
+function LinhaDeImpressao({ arquivo, url, item }: { arquivo: ArquivoDaOs; url: string | null; item: string | null }) {
+  const imagem = ehImagemVisivel(arquivo.nome, arquivo.mime_type, arquivo.caminho);
+  const detalhe = [
+    formatoDoArquivo(arquivo),
+    tamanhoLegivel(arquivo.tamanho_bytes ?? null),
+    (arquivo.versao ?? 1) > 1 ? `v${arquivo.versao}` : null,
+    item,
+  ].filter(Boolean);
+  return (
+    <li className="flex flex-wrap items-center gap-3 rounded-md border border-[color:var(--status-positive)]/40 bg-[color:var(--status-positive)]/5 p-2.5">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded border border-border bg-muted/50 text-xs font-semibold uppercase text-muted-foreground">
+        {imagem && url ? <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" /> : formatoDoArquivo(arquivo)}
+      </div>
+      <div className="min-w-0 flex-1 text-xs">
+        <div className="truncate font-medium text-foreground">{arquivo.nome}</div>
+        <div className="text-muted-foreground">{detalhe.join(" · ")}</div>
+        {ehMockup(arquivo) && <div className="text-muted-foreground">É também o mockup que o cliente viu.</div>}
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <BotaoBaixar arquivo={arquivo} variante="default" />
+        {(imagem || ehPdf(arquivo.nome, arquivo.mime_type, arquivo.caminho)) && <BotaoAbrir arquivo={arquivo} />}
+      </div>
+    </li>
+  );
+}
+
+/** A situação do mockup na aprovação do cliente — em palavras, não só em cor. */
+function SituacaoDoMockup({ status }: { status?: string | null }) {
+  if (status === "aprovado") return <div className="text-[color:var(--status-positive)]">Aprovado pelo cliente</div>;
+  if (status === "rejeitado") return <div className="text-[color:var(--bex-amber)]">O cliente pediu ajuste</div>;
+  return <div className="text-muted-foreground">Ainda sem a aprovação do cliente neste arquivo</div>;
+}
+
 /** A arte em tamanho de conferência: imagem inteira (sem cortar) sobre fundo xadrez, para ver transparência. */
 function Visualizador({ arquivo, url, carregando }: { arquivo: ArquivoDaOs; url: string | null; carregando: boolean }) {
   const [quebrou, setQuebrou] = useState(false);
@@ -519,7 +638,7 @@ function Visualizador({ arquivo, url, carregando }: { arquivo: ArquivoDaOs; url:
               ? "Carregando a imagem…"
               : imagem
                 ? "Não foi possível mostrar a imagem agora."
-                : "Este formato não abre aqui. Use “Abrir” para ver o arquivo."}
+                : "Este formato não abre aqui. Use “Baixar” para ver o arquivo."}
           </span>
         </div>
       )}

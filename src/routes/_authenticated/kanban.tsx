@@ -239,7 +239,7 @@ function KanbanPage() {
         // impresso) e a ficha lista todos. Só colunas, nunca o conteúdo.
         supabase
           .from("arquivos")
-          .select("id, os_id, nome, caminho, mime_type, final_producao, created_at, tipo, status, ativo, substituido_por, os_item_id")
+          .select("id, os_id, nome, caminho, mime_type, final_producao, created_at, tipo, status, ativo, substituido_por, os_item_id, bucket, tamanho_bytes, versao")
           .in("os_id", ids),
         // OS interna (mostruário, uso interno, reposição): vem de uma view pequena.
         // Se falhar, o cartão aparece como venda — o quadro não cai por causa do selo.

@@ -36,6 +36,8 @@ import { MinhasComissoes } from "./MinhasComissoes";
 import { MinhaMeta } from "@/components/metas/minha-meta";
 import { cn } from "@/lib/utils";
 import { Carregando } from "@/components/bex/Carregando";
+import { BotaoBaixar } from "@/components/arquivos/botoes-do-arquivo";
+import { formatoDoArquivo, separarArquivos, type ArquivoDaOs } from "@/domain/os/arquivos-da-os";
 
 /**
  * Painel de quem imprime, acaba e entrega.
@@ -207,6 +209,38 @@ function useRetiradasRegistradas(ids: string[]) {
 }
 
 /**
+ * O arquivo de impressão de cada OS da fila (14/11/2026).
+ *
+ * Pedido do dono: o operador da máquina recebe o arquivo do atendimento e da
+ * criação e tem de BAIXAR o que vai imprimir. O painel não mostrava arquivo
+ * nenhum — era abrir a OS, achar a aba, apertar um "Baixar" que só abria uma
+ * aba. Aqui vem só o arquivo de impressão (o final de produção, ou o tipo
+ * "producao"), a versão mais nova de cada um (`separarArquivos`). O mockup do
+ * cliente fica na ficha do quadro; na máquina vai o arquivo fechado.
+ */
+function useArquivosDeImpressao(ids: string[]) {
+  return useQuery({
+    queryKey: ["painel-producao", "arquivos-de-impressao", ids],
+    enabled: ids.length > 0,
+    queryFn: async (): Promise<Map<string, ArquivoDaOs[]>> => {
+      const { data, error } = await (supabase as any)
+        .from("arquivos")
+        .select(
+          "id, os_id, nome, caminho, mime_type, final_producao, created_at, tipo, status, ativo, substituido_por, os_item_id, bucket, tamanho_bytes, versao",
+        )
+        .in("os_id", ids)
+        .or("final_producao.eq.true,tipo.eq.producao");
+      if (error) throw error;
+      const porOs = new Map<string, ArquivoDaOs[]>();
+      for (const a of (data ?? []) as (ArquivoDaOs & { os_id: string })[]) {
+        porOs.set(a.os_id, [...(porOs.get(a.os_id) ?? []), a]);
+      }
+      return new Map([...porOs].map(([osId, lista]) => [osId, separarArquivos(lista).impressao]));
+    },
+  });
+}
+
+/**
  * Quantos apontamentos JÁ FINALIZADOS a OS tem — só a contagem, sem custo.
  *
  * Devolve `null` quando a consulta falha: quem chama então não afirma nada
@@ -251,6 +285,7 @@ function LinhaOS({
   maquinaDesconhecida,
   movendo,
   onPasso,
+  impressao = [],
 }: {
   os: OSDaFila;
   bloqueios?: BloqueioOs[];
@@ -260,6 +295,8 @@ function LinhaOS({
   quem?: QuemAponta;
   /** A consulta dos apontamentos falhou: não dá para afirmar "sem máquina". */
   maquinaDesconhecida?: boolean;
+  /** O arquivo de impressão da OS (só na fila da oficina): o botão de baixar. */
+  impressao?: ArquivoDaOs[];
   movendo?: boolean;
   onPasso?: (os: OSDaFila, passo: Passo) => void;
 }) {
@@ -357,54 +394,68 @@ function LinhaOS({
         </span>
       </Link>
 
-      {passo && (
+      {(passo || impressao.length > 0) && (
         <div className="flex flex-col gap-1.5 md:w-48 md:shrink-0">
-          {/* Fora do Link (botão dentro de <a> é HTML inválido) e com stopPropagation
-              por garantia: o toque avança a OS, não abre a ficha. */}
-          <Button
-            type="button"
-            variant={travada || passos?.impedimento ? "outline" : "default"}
-            className="h-11 w-full"
-            disabled={travada || Boolean(passos?.impedimento) || movendo}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onPasso?.(os, passo);
-            }}
-          >
-            {movendo ? "Avançando..." : passo.rotulo}
-            {!movendo && !travada && !passos?.impedimento && <ArrowRight className="ml-1 h-4 w-4" />}
-          </Button>
-          {/* O motivo em texto visível: no celular não existe hover para ler um title. */}
-          {travada && (
-            <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--status-amber)]">
-              <Lock className="mt-0.5 h-3 w-3 shrink-0" />
-              <span>{bloqueios.map((b) => b.titulo).join(" · ")}</span>
-            </p>
-          )}
-          {!travada && passos?.impedimento && (
-            <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--status-amber)]">
-              <Lock className="mt-0.5 h-3 w-3 shrink-0" />
-              <span>{passos.impedimento}</span>
-            </p>
-          )}
-          {/* "Dizer a máquina" / "Outra máquina": abre os botões grandes. Do
-              mesmo tamanho do principal — é toque de oficina, não link. */}
-          {passos?.secundario && (
+          {passo && (
+            <>
+            {/* Fora do Link (botão dentro de <a> é HTML inválido) e com stopPropagation
+                por garantia: o toque avança a OS, não abre a ficha. */}
             <Button
               type="button"
-              variant="outline"
+              variant={travada || passos?.impedimento ? "outline" : "default"}
               className="h-11 w-full"
-              disabled={movendo}
+              disabled={travada || Boolean(passos?.impedimento) || movendo}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onPasso?.(os, passos.secundario!);
+                onPasso?.(os, passo);
               }}
             >
-              {passos.secundario.rotulo}
+              {movendo ? "Avançando..." : passo.rotulo}
+              {!movendo && !travada && !passos?.impedimento && <ArrowRight className="ml-1 h-4 w-4" />}
             </Button>
+            {/* O motivo em texto visível: no celular não existe hover para ler um title. */}
+            {travada && (
+              <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--status-amber)]">
+                <Lock className="mt-0.5 h-3 w-3 shrink-0" />
+                <span>{bloqueios.map((b) => b.titulo).join(" · ")}</span>
+              </p>
+            )}
+            {!travada && passos?.impedimento && (
+              <p className="flex items-start gap-1 text-xs leading-snug text-[color:var(--status-amber)]">
+                <Lock className="mt-0.5 h-3 w-3 shrink-0" />
+                <span>{passos.impedimento}</span>
+              </p>
+            )}
+            {/* "Dizer a máquina" / "Outra máquina": abre os botões grandes. Do
+                mesmo tamanho do principal — é toque de oficina, não link. */}
+            {passos?.secundario && (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 w-full"
+                disabled={movendo}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onPasso?.(os, passos.secundario!);
+                }}
+              >
+                {passos.secundario.rotulo}
+              </Button>
+            )}
+            </>
           )}
+          {/* O arquivo que vai para a máquina, baixado de verdade (14/11/2026).
+              Mais de um (frente e verso, várias peças): um botão para cada. */}
+          {impressao.map((a) => (
+            <BotaoBaixar
+              key={a.id}
+              arquivo={a}
+              rotulo={impressao.length > 1 ? `Baixar ${formatoDoArquivo(a)} · ${a.nome}` : `Baixar arquivo (${formatoDoArquivo(a)})`}
+              className="h-11 w-full justify-start truncate"
+            />
+          ))}
         </div>
       )}
     </div>
@@ -486,6 +537,7 @@ export function PainelProducao() {
   const abertos = abertosPorOs(apontamentos.data ?? []);
 
   const fila = oficina.data ?? [];
+  const arquivosDeImpressao = useArquivosDeImpressao(fila.map((os) => os.id));
   const prontasTodas = prontos.data ?? [];
   const retiradas = useRetiradasRegistradas(prontasTodas.map((os) => os.id));
   // Sem a consulta de retiradas (caiu ou ainda carregando), nada é escondido:
@@ -734,10 +786,17 @@ export function PainelProducao() {
                   aparecem livres, mas o banco confere de novo no toque.
                 </p>
               )}
+              {arquivosDeImpressao.isError && (
+                <p role="alert" className="text-xs text-[color:var(--status-amber)]">
+                  Não deu para carregar os arquivos de impressão ({mensagemErro(arquivosDeImpressao.error)}).
+                  Abra a OS para baixar.
+                </p>
+              )}
               {fila.map((os) => (
                 <LinhaOS
                   key={os.id}
                   os={os}
+                  impressao={arquivosDeImpressao.data?.get(os.id) ?? []}
                   bloqueios={(bloqueios.get(os.id) ?? []).map((b) =>
                     semDinheiro(b, canSeeFinancials, canSeePrices),
                   )}

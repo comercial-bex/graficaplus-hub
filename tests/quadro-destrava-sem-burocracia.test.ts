@@ -245,7 +245,7 @@ describe("a ficha enxuta: o que falta, com o botão que resolve", () => {
   });
 
   it("não duplica o botão de anexar: sem arquivo, a pendência aponta para o da área da arte", () => {
-    expect(FICHA).toContain("Use o botão “Anexar arquivo” na área da arte.");
+    expect(FICHA).toContain("Use o botão “Anexar arquivo de impressão”, à esquerda.");
   });
 });
 
