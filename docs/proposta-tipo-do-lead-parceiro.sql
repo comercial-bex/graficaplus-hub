@@ -1,6 +1,6 @@
--- PROPOSTA SOMENTE: NÃO APLICADA. Primeiro bloco sem controle de transação.
--- Função abaixo obtida por pg_get_functiondef em 11/11/2026, não da migração 0010.
--- Corpo atual: MD5 normalizado (espaços únicos + trim) f3fc4ed646de9084ff4ab6b364a23f94.
+-- SUPERADA em 13/11/2026 — NÃO APLICAR.
+-- A migração supabase/migrations/20261113100000_origem_do_contato_e_aviso_novo.sql (aplicada) já criou leads.tipo com os valores cliente_final e parceiro, a tabela palavras_de_origem, os conjuntos de anúncio e o novo corpo de whatsapp_registrar_mensagem.
+-- Aplicar este arquivo desfaria o corpo vivo da função e conflitaria com o CHECK de leads.tipo.
 -- Modificados: o INSERT de lead novo (coluna tipo, inclusive pela frase "quero ser parceir")
 -- e um UPDATE pequeno de leads.tipo para lead temporário 'cliente' que manda essa frase.
 -- Origem, campanha, assinatura, idempotência e demais operações permanecem intactas.

@@ -1,3 +1,5 @@
+> **EM ESPERA.** A triagem de boas-vindas e a base de respostas aprovadas (migrações 20261113130000 a 20261114120000, desligadas) já cobrem a conversa por mensagem; este roteiro deve entrar como conteúdo dessa triagem, não como um agente paralelo. Nada deste plano está implementado além da tela de ensaio, se houver.
+
 # Agente de cadastro de parceiros no WhatsApp — modo de teste (v2, roteiro do dono)
 
 Objetivo: o anúncio de parceiros (mesma imagem e texto) passa a abrir o WhatsApp com "Quero ser parceiro Bex Print". Um agente conduz o cadastro por partes. Nesta versão só existe a tela de ensaio: nada sai pelo WhatsApp, nenhum parceiro é criado e o banco não muda (todo SQL é proposta).
