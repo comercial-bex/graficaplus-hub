@@ -128,7 +128,10 @@ describe("o cartão e a ficha", () => {
   it("a ficha é janela (Dialog), com a arte à esquerda e a lista de conferência à direita", () => {
     expect(FICHA).toContain("Dialog");
     expect(FICHA).not.toContain("SheetContent");
-    expect(FICHA).toContain("Arte · o que vai ser impresso");
+    // 14/11/2026: "Arte · o que vai ser impresso" misturava o mockup do cliente com
+    // o arquivo da máquina; agora são dois blocos (tests/producao-mockup-e-arquivo-de-impressao).
+    expect(FICHA).toContain("Arquivo de impressão · o que vai para a máquina");
+    expect(FICHA).toContain("Mockup · o que o cliente viu e aprovou");
     expect(FICHA).toContain("Para produzir · falta");
     expect(FICHA).toContain("Para produzir · tudo certo");
   });

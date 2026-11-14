@@ -75,6 +75,8 @@ import {
 } from "@/domain/os/resultado";
 import { formatBRL } from "@/lib/produtos-catalogo";
 import { Carregando } from "@/components/bex/Carregando";
+import { BotaoBaixar } from "@/components/arquivos/botoes-do-arquivo";
+import { nomeSeguro } from "@/domain/portal/envio-de-arquivo";
 
 export const Route = createFileRoute("/_authenticated/os/$id")({
   head: () => ({ meta: [{ title: "OS — BEX PRINT OS" }] }),
@@ -693,6 +695,21 @@ function ResumoTab({ os }: { os: any }) {
   );
 }
 
+/**
+ * O tipo do arquivo em palavras (14/11/2026): "arte" e "producao" eram a mesma
+ * palavra para quem enviava. Mockup é o que o cliente vê e aprova; arquivo de
+ * impressão é o que vai para a máquina.
+ */
+const TIPOS_DE_ARQUIVO: [string, string][] = [
+  ["arte", "Mockup / arte (o cliente aprova)"],
+  ["producao", "Arquivo de impressão (vai para a máquina)"],
+  ["referencia", "Referência"],
+  ["briefing", "Briefing"],
+  ["orcamento", "Orçamento"],
+  ["comprovante", "Comprovante"],
+  ["outro", "Outro"],
+];
+
 function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -734,10 +751,14 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
     setUploading(true);
     try {
       const baseNome = substituir?.nome ?? file.name;
-      const path = `${osId}/${Date.now()}_${file.name}`;
+      // nomeSeguro: acento e símbolo no nome ("Fachada São José.pdf") faziam o
+      // Storage recusar com "Invalid key" (14/11/2026).
+      const path = `${osId}/${Date.now()}_${nomeSeguro(file.name)}`;
       const { error: upErr } = await supabase.storage.from("arquivos-clientes").upload(path, file);
       if (upErr) throw upErr;
       const versao = arquivos.filter((a: any) => a.nome === file.name).length + 1;
+      // O tipo escolhido no formulário era recolhido e NÃO gravado: tudo virava
+      // "outro" (14/11/2026). "producao" é o arquivo de impressão: já nasce final.
       const { data: novo, error } = await (supabase as any).from("arquivos").insert({
         os_id: osId,
         nome: file.name,
@@ -746,8 +767,20 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
         tamanho_bytes: file.size,
         enviado_por: userId,
         versao,
+        tipo: uploadMeta.tipo,
+        observacao: uploadMeta.observacao.trim() || null,
       }).select("id").single();
       if (error) throw error;
+      if (uploadMeta.tipo === "producao" && novo?.id) {
+        const { data: marcado } = await (supabase as any)
+          .from("arquivos")
+          .update({ final_producao: true })
+          .eq("id", novo.id)
+          .select("id");
+        if (!marcado || marcado.length === 0) {
+          toast.warning("Arquivo enviado, mas o seu perfil não pode marcá-lo como arquivo de impressão. Peça a quem pode.");
+        }
+      }
 
       if (substituir && novo?.id) {
         const { error: subErr } = await (supabase as any).from("arquivos").update({
@@ -828,16 +861,22 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
     );
   }
 
-  async function download(caminho: string) {
-    const { data } = await supabase.storage.from("arquivos-clientes").createSignedUrl(caminho, 60);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
-  }
+  // "Baixar" abria uma aba no bucket fixo e, se falhasse, não dizia nada:
+  // agora é o BotaoBaixar (baixa com o nome legível, do bucket da linha).
 
+  /** A marcação é conferida: a política de UPDATE barra em silêncio (0 linhas, sem erro). */
   async function marcarFinal(id: string) {
-    const { error } = await supabase.from("arquivos").update({ final_producao: true }).eq("id", id);
+    const { data, error } = await (supabase as any)
+      .from("arquivos")
+      .update({ final_producao: true })
+      .eq("id", id)
+      .select("id");
     if (error) return toast.error(mensagemErro(error));
+    if (!data || data.length === 0) {
+      return toast.error("Seu perfil não pode marcar o arquivo como final. Peça a quem pode.");
+    }
     qc.invalidateQueries({ queryKey: ["arquivos-os", osId] });
-    toast.success("Arquivo marcado como final de produção");
+    toast.success("Arquivo marcado como final de produção: é o que vai para a máquina.");
   }
 
   return (
@@ -850,7 +889,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
             <Select value={uploadMeta.tipo} onValueChange={(tipo) => setUploadMeta({ ...uploadMeta, tipo })}>
               <SelectTrigger id="os-7-tipo"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {['arte','briefing','referencia','producao','orcamento','comprovante','outro'].map((t) => <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>)}
+                {TIPOS_DE_ARQUIVO.map(([t, rotulo]) => <SelectItem key={t} value={t}>{rotulo}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -880,7 +919,7 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
               <TableHead>Versão</TableHead>
               <TableHead>Tamanho</TableHead>
               <TableHead>Aprovação</TableHead>
-              <TableHead>Final</TableHead>
+              <TableHead>Para quê</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -906,11 +945,17 @@ function ArquivosTab({ osId, userId }: { osId: string; userId?: string }) {
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell>{a.final_producao && <Badge>Final</Badge>}</TableCell>
+                <TableCell>
+                  {a.final_producao ? (
+                    <Badge>Impressão</Badge>
+                  ) : a.tipo === "arte" || a.tipo === "referencia" ? (
+                    <Badge variant="outline">Mockup</Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Anexo</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-right space-x-1">
-                  <Button size="sm" variant="ghost" onClick={() => download(a.caminho)}>
-                    Baixar
-                  </Button>
+                  <BotaoBaixar arquivo={a} variante="ghost" />
                   {/* O diálogo de aprovação existia inteiro e NINGUÉM abria: não
                       havia uma única chamada de setAprovar com um arquivo. Sem
                       esta porta, a única aprovação possível era a do link, e a

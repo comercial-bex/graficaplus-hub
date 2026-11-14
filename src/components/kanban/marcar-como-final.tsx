@@ -14,7 +14,19 @@ import { mensagemErro } from "@/lib/erros";
  * barra em silêncio (0 linhas, sem erro), e dizer "marcado" sem ter marcado é o defeito
  * que o sistema já teve.
  */
-export function MarcarComoFinal({ arquivoId, nome }: { arquivoId: string; nome: string }) {
+export function MarcarComoFinal({
+  arquivoId,
+  nome,
+  rotulo = "Marcar como final",
+  compacto = false,
+}: {
+  arquivoId: string;
+  nome: string;
+  /** "Usar como arquivo de impressão" na ficha (14/11/2026): diz o que a marcação faz. */
+  rotulo?: string;
+  /** Numa lista: só o botão, sem o nome embaixo. */
+  compacto?: boolean;
+}) {
   const qc = useQueryClient();
 
   const marcar = useMutation({
@@ -30,7 +42,7 @@ export function MarcarComoFinal({ arquivoId, nome }: { arquivoId: string; nome: 
       }
     },
     onSuccess: () => {
-      toast.success("Arquivo marcado como final de produção.");
+      toast.success(`${nome}: marcado como arquivo de impressão (final de produção).`);
       for (const chave of [["kanban-os"], ["kanban-bloqueios"], ["ficha-os-arquivos"], ["arquivos-os"]]) {
         void qc.invalidateQueries({ queryKey: chave });
       }
@@ -38,10 +50,17 @@ export function MarcarComoFinal({ arquivoId, nome }: { arquivoId: string; nome: 
     onError: (e: unknown) => toast.error(mensagemErro(e)),
   });
 
+  if (compacto) {
+    return (
+      <Button type="button" size="sm" variant="ghost" disabled={marcar.isPending} onClick={() => marcar.mutate()} aria-label={`${rotulo}: ${nome}`}>
+        {marcar.isPending ? "Marcando…" : rotulo}
+      </Button>
+    );
+  }
   return (
     <div className="min-w-0 space-y-1">
       <Button type="button" size="sm" disabled={marcar.isPending} onClick={() => marcar.mutate()}>
-        {marcar.isPending ? "Marcando…" : "Marcar como final"}
+        {marcar.isPending ? "Marcando…" : rotulo}
       </Button>
       <p className="truncate text-xs text-muted-foreground">{nome}</p>
     </div>
