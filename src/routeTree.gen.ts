@@ -31,10 +31,10 @@ import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCompromissosRouteImport } from './routes/_authenticated/compromissos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
+import { Route as AuthenticatedConfiguracoesAgenteBaseRouteImport } from './routes/_authenticated/configuracoes-agente-base'
 import { Route as AuthenticatedConfiguracoesApiRouteImport } from './routes/_authenticated/configuracoes-api'
 import { Route as AuthenticatedConfiguracoesEmpresaRouteImport } from './routes/_authenticated/configuracoes-empresa'
 import { Route as AuthenticatedConfiguracoesOrigemRouteImport } from './routes/_authenticated/configuracoes-origem'
-import { Route as AuthenticatedConfiguracoesAgenteBaseRouteImport } from './routes/_authenticated/configuracoes-agente-base'
 import { Route as AuthenticatedConfiguracoesTriagemRouteImport } from './routes/_authenticated/configuracoes-triagem'
 import { Route as AuthenticatedConflitosAgendaRouteImport } from './routes/_authenticated/conflitos-agenda'
 import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_authenticated/contas-bancarias'
@@ -131,7 +131,6 @@ import { Route as ApiWhatsappFotosRouteImport } from './routes/api.whatsapp.foto
 import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
 import { Route as ParceiroOrcamentosIndexRouteImport } from './routes/parceiro.orcamentos.index'
 import { Route as ParceiroOrcamentosIdRouteImport } from './routes/parceiro.orcamentos.$id'
-import { Route as SejaParceiroTsxBaseRouteImport } from './routes/seja-parceiro.tsx.base'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -247,6 +246,12 @@ const AuthenticatedConfiguracoes3dRoute =
     path: '/configuracoes-3d',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConfiguracoesAgenteBaseRoute =
+  AuthenticatedConfiguracoesAgenteBaseRouteImport.update({
+    id: '/configuracoes-agente-base',
+    path: '/configuracoes-agente-base',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesApiRoute =
   AuthenticatedConfiguracoesApiRouteImport.update({
     id: '/configuracoes-api',
@@ -263,12 +268,6 @@ const AuthenticatedConfiguracoesOrigemRoute =
   AuthenticatedConfiguracoesOrigemRouteImport.update({
     id: '/configuracoes-origem',
     path: '/configuracoes-origem',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedConfiguracoesAgenteBaseRoute =
-  AuthenticatedConfiguracoesAgenteBaseRouteImport.update({
-    id: '/configuracoes-agente-base',
-    path: '/configuracoes-agente-base',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedConfiguracoesTriagemRoute =
@@ -786,11 +785,6 @@ const ParceiroOrcamentosIdRoute = ParceiroOrcamentosIdRouteImport.update({
   path: '/orcamentos/$id',
   getParentRoute: () => ParceiroRoute,
 } as any)
-const SejaParceiroTsxBaseRoute = SejaParceiroTsxBaseRouteImport.update({
-  id: '/tsx/base',
-  path: '/tsx/base',
-  getParentRoute: () => SejaParceiroRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -798,7 +792,7 @@ export interface FileRoutesByFullPath {
   '/parceiro': typeof ParceiroRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/seja-parceiro': typeof SejaParceiroRouteWithChildren
+  '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
@@ -814,10 +808,10 @@ export interface FileRoutesByFullPath {
   '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/configuracoes-origem': typeof AuthenticatedConfiguracoesOrigemRoute
-  '/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
@@ -909,7 +903,6 @@ export interface FileRoutesByFullPath {
   '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
-  '/seja-parceiro/tsx/base': typeof SejaParceiroTsxBaseRoute
   '/catalogos/': typeof AuthenticatedCatalogosIndexRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
@@ -921,7 +914,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/seja-parceiro': typeof SejaParceiroRouteWithChildren
+  '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/a-receber': typeof AuthenticatedAReceberRoute
@@ -937,10 +930,10 @@ export interface FileRoutesByTo {
   '/compromissos': typeof AuthenticatedCompromissosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/configuracoes-origem': typeof AuthenticatedConfiguracoesOrigemRoute
-  '/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
@@ -1032,7 +1025,6 @@ export interface FileRoutesByTo {
   '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
-  '/seja-parceiro/tsx/base': typeof SejaParceiroTsxBaseRoute
   '/catalogos': typeof AuthenticatedCatalogosIndexRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/orcamentos': typeof AuthenticatedOrcamentosIndexRoute
@@ -1047,7 +1039,7 @@ export interface FileRoutesById {
   '/parceiro': typeof ParceiroRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/seja-parceiro': typeof SejaParceiroRouteWithChildren
+  '/seja-parceiro': typeof SejaParceiroRoute
   '/signup': typeof SignupRoute
   '/tv2': typeof Tv2Route
   '/_authenticated/a-receber': typeof AuthenticatedAReceberRoute
@@ -1063,10 +1055,10 @@ export interface FileRoutesById {
   '/_authenticated/compromissos': typeof AuthenticatedCompromissosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
+  '/_authenticated/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/_authenticated/configuracoes-api': typeof AuthenticatedConfiguracoesApiRoute
   '/_authenticated/configuracoes-empresa': typeof AuthenticatedConfiguracoesEmpresaRoute
   '/_authenticated/configuracoes-origem': typeof AuthenticatedConfiguracoesOrigemRoute
-  '/_authenticated/configuracoes-agente-base': typeof AuthenticatedConfiguracoesAgenteBaseRoute
   '/_authenticated/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/_authenticated/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/_authenticated/contas-bancarias': typeof AuthenticatedContasBancariasRoute
@@ -1158,7 +1150,6 @@ export interface FileRoutesById {
   '/api/whatsapp/fotos': typeof ApiWhatsappFotosRoute
   '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/parceiro/orcamentos/$id': typeof ParceiroOrcamentosIdRoute
-  '/seja-parceiro/tsx/base': typeof SejaParceiroTsxBaseRoute
   '/_authenticated/catalogos/': typeof AuthenticatedCatalogosIndexRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/orcamentos/': typeof AuthenticatedOrcamentosIndexRoute
@@ -1189,10 +1180,10 @@ export interface FileRouteTypes {
     | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-agente-base'
     | '/configuracoes-api'
     | '/configuracoes-empresa'
     | '/configuracoes-origem'
-    | '/configuracoes-agente-base'
     | '/configuracoes-triagem'
     | '/conflitos-agenda'
     | '/contas-bancarias'
@@ -1284,7 +1275,6 @@ export interface FileRouteTypes {
     | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
-    | '/seja-parceiro/tsx/base'
     | '/catalogos/'
     | '/clientes/'
     | '/orcamentos/'
@@ -1312,10 +1302,10 @@ export interface FileRouteTypes {
     | '/compromissos'
     | '/configuracoes'
     | '/configuracoes-3d'
+    | '/configuracoes-agente-base'
     | '/configuracoes-api'
     | '/configuracoes-empresa'
     | '/configuracoes-origem'
-    | '/configuracoes-agente-base'
     | '/configuracoes-triagem'
     | '/conflitos-agenda'
     | '/contas-bancarias'
@@ -1407,7 +1397,6 @@ export interface FileRouteTypes {
     | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
-    | '/seja-parceiro/tsx/base'
     | '/catalogos'
     | '/clientes'
     | '/orcamentos'
@@ -1437,10 +1426,10 @@ export interface FileRouteTypes {
     | '/_authenticated/compromissos'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
+    | '/_authenticated/configuracoes-agente-base'
     | '/_authenticated/configuracoes-api'
     | '/_authenticated/configuracoes-empresa'
     | '/_authenticated/configuracoes-origem'
-    | '/_authenticated/configuracoes-agente-base'
     | '/_authenticated/configuracoes-triagem'
     | '/_authenticated/conflitos-agenda'
     | '/_authenticated/contas-bancarias'
@@ -1532,7 +1521,6 @@ export interface FileRouteTypes {
     | '/api/whatsapp/fotos'
     | '/api/whatsapp/webhook'
     | '/parceiro/orcamentos/$id'
-    | '/seja-parceiro/tsx/base'
     | '/_authenticated/catalogos/'
     | '/_authenticated/clientes/'
     | '/_authenticated/orcamentos/'
@@ -1547,7 +1535,7 @@ export interface RootRouteChildren {
   ParceiroRoute: typeof ParceiroRouteWithChildren
   PrivacidadeRoute: typeof PrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  SejaParceiroRoute: typeof SejaParceiroRouteWithChildren
+  SejaParceiroRoute: typeof SejaParceiroRoute
   SignupRoute: typeof SignupRoute
   Tv2Route: typeof Tv2Route
   ApiMcpRoute: typeof ApiMcpRoute
@@ -1733,6 +1721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoes3dRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes-agente-base': {
+      id: '/_authenticated/configuracoes-agente-base'
+      path: '/configuracoes-agente-base'
+      fullPath: '/configuracoes-agente-base'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesAgenteBaseRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes-api': {
       id: '/_authenticated/configuracoes-api'
       path: '/configuracoes-api'
@@ -1752,13 +1747,6 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes-origem'
       fullPath: '/configuracoes-origem'
       preLoaderRoute: typeof AuthenticatedConfiguracoesOrigemRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/configuracoes-agente-base': {
-      id: '/_authenticated/configuracoes-agente-base'
-      path: '/configuracoes-agente-base'
-      fullPath: '/configuracoes-agente-base'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesAgenteBaseRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes-triagem': {
@@ -2433,13 +2421,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParceiroOrcamentosIdRouteImport
       parentRoute: typeof ParceiroRoute
     }
-    '/seja-parceiro/tsx/base': {
-      id: '/seja-parceiro/tsx/base'
-      path: '/tsx/base'
-      fullPath: '/seja-parceiro/tsx/base'
-      preLoaderRoute: typeof SejaParceiroTsxBaseRouteImport
-      parentRoute: typeof SejaParceiroRoute
-    }
   }
 }
 
@@ -2457,10 +2438,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompromissosRoute: typeof AuthenticatedCompromissosRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
+  AuthenticatedConfiguracoesAgenteBaseRoute: typeof AuthenticatedConfiguracoesAgenteBaseRoute
   AuthenticatedConfiguracoesApiRoute: typeof AuthenticatedConfiguracoesApiRoute
   AuthenticatedConfiguracoesEmpresaRoute: typeof AuthenticatedConfiguracoesEmpresaRoute
   AuthenticatedConfiguracoesOrigemRoute: typeof AuthenticatedConfiguracoesOrigemRoute
-  AuthenticatedConfiguracoesAgenteBaseRoute: typeof AuthenticatedConfiguracoesAgenteBaseRoute
   AuthenticatedConfiguracoesTriagemRoute: typeof AuthenticatedConfiguracoesTriagemRoute
   AuthenticatedConflitosAgendaRoute: typeof AuthenticatedConflitosAgendaRoute
   AuthenticatedContasBancariasRoute: typeof AuthenticatedContasBancariasRoute
@@ -2542,12 +2523,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompromissosRoute: AuthenticatedCompromissosRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
+  AuthenticatedConfiguracoesAgenteBaseRoute:
+    AuthenticatedConfiguracoesAgenteBaseRoute,
   AuthenticatedConfiguracoesApiRoute: AuthenticatedConfiguracoesApiRoute,
   AuthenticatedConfiguracoesEmpresaRoute:
     AuthenticatedConfiguracoesEmpresaRoute,
   AuthenticatedConfiguracoesOrigemRoute: AuthenticatedConfiguracoesOrigemRoute,
-  AuthenticatedConfiguracoesAgenteBaseRoute:
-    AuthenticatedConfiguracoesAgenteBaseRoute,
   AuthenticatedConfiguracoesTriagemRoute:
     AuthenticatedConfiguracoesTriagemRoute,
   AuthenticatedConflitosAgendaRoute: AuthenticatedConflitosAgendaRoute,
@@ -2641,18 +2622,6 @@ const ParceiroRouteWithChildren = ParceiroRoute._addFileChildren(
   ParceiroRouteChildren,
 )
 
-interface SejaParceiroRouteChildren {
-  SejaParceiroTsxBaseRoute: typeof SejaParceiroTsxBaseRoute
-}
-
-const SejaParceiroRouteChildren: SejaParceiroRouteChildren = {
-  SejaParceiroTsxBaseRoute: SejaParceiroTsxBaseRoute,
-}
-
-const SejaParceiroRouteWithChildren = SejaParceiroRoute._addFileChildren(
-  SejaParceiroRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -2660,7 +2629,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParceiroRoute: ParceiroRouteWithChildren,
   PrivacidadeRoute: PrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  SejaParceiroRoute: SejaParceiroRouteWithChildren,
+  SejaParceiroRoute: SejaParceiroRoute,
   SignupRoute: SignupRoute,
   Tv2Route: Tv2Route,
   ApiMcpRoute: ApiMcpRoute,
