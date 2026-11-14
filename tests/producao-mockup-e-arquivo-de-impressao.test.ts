@@ -164,6 +164,17 @@ describe("as telas", () => {
     expect(ANEXAR).toContain("final = !marcaErr && !!marcado && marcado.length > 0");
   });
 
+  it("nova versão só quando o nome aponta UM arquivo: mesmo nome em dois itens sobe como arquivo novo (revisão do PR #466)", () => {
+    expect(ANEXAR).toContain("const anterior = mesmoNome.length === 1 ? mesmoNome[0] : null;");
+    expect(ANEXAR).toContain("mesmoNome.length > 1");
+  });
+
+  it("arquivo de impressão sem a marcação de final pode ser marcado na própria ficha (revisão do PR #466)", () => {
+    expect(FICHA).toContain("impressao.find((a) => !a.final_producao) ?? mockup ?? anexos[0] ?? null");
+    expect(FICHA).toContain("{!arquivo.final_producao && podeFinalizar && (");
+    expect(FICHA).toContain("podeFinalizar={podeFinalizar}");
+  });
+
   it("a tela da OS: Baixar de verdade, tipo gravado, marcação conferida, nome seguro", () => {
     expect(OS).toContain('<BotaoBaixar arquivo={a} variante="ghost" />');
     expect(OS).not.toContain('window.open(data.signedUrl, "_blank")');

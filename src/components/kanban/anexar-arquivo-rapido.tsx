@@ -54,9 +54,13 @@ export function AnexarArquivoRapido({
     enviandoRef.current = true;
     setEnviando(true);
     try {
-      const anterior = deImpressao
-        ? (atuais.find((a) => a.nome.trim().toLowerCase() === arquivo.name.trim().toLowerCase()) ?? null)
-        : null;
+      // Nova versão só quando o nome aponta UM arquivo: com o mesmo nome em dois
+      // itens não dá para saber qual está sendo trocado — sobe como arquivo novo,
+      // sem substituir nenhum (revisão do PR #466).
+      const mesmoNome = deImpressao
+        ? atuais.filter((a) => a.nome.trim().toLowerCase() === arquivo.name.trim().toLowerCase())
+        : [];
+      const anterior = mesmoNome.length === 1 ? mesmoNome[0] : null;
       const caminho = `${osId}/${Date.now()}_${nomeSeguro(arquivo.name)}`;
       const { error: upErr } = await supabase.storage.from("arquivos-clientes").upload(caminho, arquivo);
       if (upErr) throw upErr;
@@ -108,6 +112,10 @@ export function AnexarArquivoRapido({
         }
       }
       if (!deImpressao) toast.success("Mockup anexado.");
+      else if (final && mesmoNome.length > 1)
+        toast.warning(
+          `Anexado como arquivo novo: há ${mesmoNome.length} arquivos de impressão com esse nome em itens diferentes. Marque a versão antiga como substituída na OS.`,
+        );
       else if (final)
         toast.success(anterior ? `Nova versão (v${(anterior.versao ?? 1) + 1}) anexada: é a que vai para a máquina.` : "Arquivo de impressão anexado: é o que vai para a máquina.");
       else toast.warning("Arquivo anexado, mas o seu perfil não pode marcá-lo como final de produção. Peça a quem pode.");

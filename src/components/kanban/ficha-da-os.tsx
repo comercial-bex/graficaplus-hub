@@ -159,8 +159,10 @@ export function FichaDaOs({
   // Pendência que o banco devolve e esta lista não conhece: aparece mesmo assim.
   const desconhecidas = bloqueios.filter((b) => !CONDICOES.some((c) => c.codigo === b.codigo));
   const mockup = mockups[Math.min(escolhido, Math.max(mockups.length - 1, 0))] ?? null;
-  // Para a pendência "Sem arquivo final": o arquivo que está na tela (o mockup) ou o primeiro anexo.
-  const candidatoAFinal = mockup ?? anexos[0] ?? null;
+  // Para a pendência "Sem arquivo final": primeiro o arquivo de impressão que subiu sem a
+  // marcação (o perfil de quem enviou não podia marcar), depois o mockup na tela, depois o
+  // primeiro anexo (revisão do PR #466).
+  const candidatoAFinal = impressao.find((a) => !a.final_producao) ?? mockup ?? anexos[0] ?? null;
   const nomeDoItem = new Map<string, string>(
     ((os.itens as any[]) ?? []).filter((i) => i?.id).map((i): [string, string] => [i.id as string, String(i.descricao ?? "").trim()]),
   );
@@ -223,6 +225,7 @@ export function FichaDaOs({
                       arquivo={a}
                       url={urls.data?.get(a.caminho) ?? null}
                       item={a.os_item_id ? (nomeDoItem.get(a.os_item_id) ?? null) : null}
+                      podeFinalizar={podeFinalizar}
                     />
                   ))}
                 </ul>
@@ -577,7 +580,17 @@ function IrPara({ osId, rotulo, onFechar }: { osId: string; rotulo: string; onFe
 }
 
 /** Uma linha do arquivo de impressão: miniatura (ou o formato), nome, tamanho, versão, item e o Baixar. */
-function LinhaDeImpressao({ arquivo, url, item }: { arquivo: ArquivoDaOs; url: string | null; item: string | null }) {
+function LinhaDeImpressao({
+  arquivo,
+  url,
+  item,
+  podeFinalizar,
+}: {
+  arquivo: ArquivoDaOs;
+  url: string | null;
+  item: string | null;
+  podeFinalizar: boolean;
+}) {
   const imagem = ehImagemVisivel(arquivo.nome, arquivo.mime_type, arquivo.caminho);
   const detalhe = [
     formatoDoArquivo(arquivo),
@@ -594,8 +607,14 @@ function LinhaDeImpressao({ arquivo, url, item }: { arquivo: ArquivoDaOs; url: s
         <div className="truncate font-medium text-foreground">{arquivo.nome}</div>
         <div className="text-muted-foreground">{detalhe.join(" · ")}</div>
         {ehMockup(arquivo) && <div className="text-muted-foreground">É também o mockup que o cliente viu.</div>}
+        {!arquivo.final_producao && (
+          <div className="text-[color:var(--bex-amber)]">Ainda não marcado como final de produção.</div>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
+        {!arquivo.final_producao && podeFinalizar && (
+          <MarcarComoFinal arquivoId={arquivo.id} nome={arquivo.nome} rotulo="Marcar como final" compacto />
+        )}
         <BotaoBaixar arquivo={arquivo} variante="default" />
         {(imagem || ehPdf(arquivo.nome, arquivo.mime_type, arquivo.caminho)) && <BotaoAbrir arquivo={arquivo} />}
       </div>
