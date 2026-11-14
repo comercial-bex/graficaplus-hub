@@ -232,9 +232,12 @@ describe("a ficha enxuta: o que falta, com o botão que resolve", () => {
     expect(FICHA).toContain("Ainda sem {emFrase(semDefinir)}");
   });
 
-  it("tudo certo e antes da fila: um toque envia para a fila de produção", () => {
-    expect(FICHA).toContain('(etapaAtual === "entrada" || etapaAtual === "pre_impressao")');
-    expect(FICHA).toContain('onMudarStatus(os.id, "aguardando_producao")');
+  it("tudo certo e antes da fila: o botão envia para a fila de produção, escolhendo o operador", () => {
+    // 14/11/2026: a fila pede quem vai produzir ("seleciono o Fernando para seguir para ele"):
+    // o botão abre a escolha do operador, e a OS validada também pode ir.
+    expect(FICHA).toContain('(etapaAtual === "entrada" || etapaAtual === "validado" || etapaAtual === "pre_impressao")');
+    expect(FICHA).toContain("onClick={() => setOperadorAberto(true)}");
+    expect(FICHA).toContain("<EscolherOperadorDialog os={os} aberto={operadorAberto} onAberto={setOperadorAberto} />");
     expect(FICHA).toContain("Enviar para a fila de produção");
   });
 

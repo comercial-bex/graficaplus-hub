@@ -72,16 +72,25 @@ diagramação).
 5. **Minha oficina**: cada OS da fila traz "Baixar arquivo (PDF)", um botão por
    arquivo de impressão.
 
-## Próximos passos (não entraram)
+## Depois do PR #466 (mesmo dia, PR seguinte)
 
-- **PDF de produção.** A imagem do layout vem de `itens_os.arquivo_id`, não do
-  arquivo de impressão. Pode mostrar um arquivo diferente do que a ficha manda
-  imprimir.
-- **Selo no cartão do quadro.** Mostrar "Mockup ✓ · Impressão ✗", como o YoPrint.
-  Hoje só a trava "Sem arquivo final" avisa.
-- **Arquivo de impressão só depois da aprovação.** É o que o shopVOX faz: subir o
-  arquivo fechado só com o mockup aprovado. Pede decisão do dono.
-- **Conferência automática do arquivo (preflight).** Resolução, sangria, cor e
-  tamanho contra a medida do item.
-- **Arquivos da OS 174.** As versões antigas continuam marcadas como final no banco.
-  A tela já mostra só a mais nova; a limpeza dos dados pede o OK do dono.
+Entraram:
+
+- **PDF de produção.** A imagem do item passou a ser o arquivo de impressão (final
+  de produção, quando é imagem), não o mockup do orçamento.
+- **Selo no cartão do quadro.** "Mockup ✓ · Impressão —", com ícone e palavra, da
+  criação até a máquina.
+- **Conferência de resolução (preflight simples).** A ficha mede a imagem de
+  impressão e confere a resolução no tamanho da peça.
+- **Arquivos da OS 174.** As versões 1 e 2 foram marcadas como substituídas pela 3,
+  com o OK do dono e registro em `logs_auditoria`.
+
+Continua em aberto:
+
+- **Arquivo de impressão só depois da aprovação**, como faz o shopVOX. Pede decisão
+  do dono.
+- **Preflight completo:** sangria, cor e PDF vetorial. Hoje só a resolução de imagem
+  é conferida.
+
+O aval do gestor, a escolha do operador e o saldo devedor estão em
+`docs/atendimento-validado-operador-e-saldo-devedor-14-11-2026.md`.
