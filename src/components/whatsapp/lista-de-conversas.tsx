@@ -36,6 +36,8 @@ import { rotuloDaPessoa } from "@/domain/whatsapp/equipe";
 import { cn } from "@/lib/utils";
 import { dicaTela, DICAS_WA_MOLDURA } from "@/lib/dicas";
 import { SeloParceiro } from "@/components/crm/selo-parceiro";
+import { SeloDaTriagemNaLista } from "@/components/whatsapp/selo-da-triagem";
+import { useTriagensDaCaixa } from "@/components/whatsapp/usar-triagens-da-caixa";
 import { ehLeadParceiro } from "@/domain/crm/tipo-do-lead";
 import {
   iniciais,
@@ -131,6 +133,8 @@ type PropsDaLinha = {
   /** O texto do rascunho desta conversa ("" = sem). Única coisa que muda a cada tecla. */
   rascunho: string;
   mostrarFila: boolean;
+  /** Estado da triagem de boas-vindas desta conversa; `undefined` = sem triagem real. */
+  triagem: string | undefined;
   onSelecionar: (id: string) => void;
 };
 
@@ -149,6 +153,7 @@ const LinhaDaConversa = memo(function LinhaDaConversa({
   ultima,
   rascunho,
   mostrarFila,
+  triagem,
   onSelecionar,
 }: PropsDaLinha) {
   const nome = nomeDaConversa(c);
@@ -257,6 +262,7 @@ const LinhaDaConversa = memo(function LinhaDaConversa({
             )}
           </span>
         </span>
+        <SeloDaTriagemNaLista status={triagem} className="mt-1 flex w-fit" />
       </span>
     </button>
   );
@@ -331,6 +337,8 @@ export function ListaDeConversas({
   const pessoas = new Map(equipe.map((p) => [p.id, p]));
   const fotos = useFotosDosContatos(conversas.map((c) => c.foto_path));
   const rascunhos = useRascunhos();
+  // UMA leitura das triagens para as conversas que a lista mostra, dividida entre todas as linhas.
+  const triagens = useTriagensDaCaixa(conversas.map((c) => c.id));
 
   // A linha é `memo`: o callback precisa ser o mesmo entre renderizações.
   const selecionarRef = useRef(onSelecionar);
@@ -625,6 +633,7 @@ export function ListaDeConversas({
               ultima={ultimasMensagens?.get(c.id)}
               rascunho={rascunhos.get(c.id) ?? ""}
               mostrarFila={mostrarFila && setor !== c.fila}
+              triagem={triagens.data?.porConversa.get(c.id)?.status}
               onSelecionar={selecionar}
             />
           ))

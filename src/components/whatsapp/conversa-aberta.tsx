@@ -36,6 +36,10 @@ import {
   useTempoRealDaConversa,
   type InstanciaDaCaixa,
 } from "@/components/whatsapp/usar-caixa-de-entrada";
+import {
+  CHAVE_METRICAS_DA_TRIAGEM,
+  CHAVE_TRIAGENS_DA_CAIXA,
+} from "@/components/whatsapp/usar-triagens-da-caixa";
 import { chaveDoRascunho, lerRascunho, gravarRascunho } from "@/components/whatsapp/rascunhos";
 import {
   andarNaBusca,
@@ -199,6 +203,9 @@ export function ConversaAberta({
     void qc.invalidateQueries({ queryKey: CHAVES.mensagens(conversa.id) });
     void qc.invalidateQueries({ queryKey: CHAVES.conversas });
     void qc.invalidateQueries({ queryKey: ["wa-caixa-eventos", conversa.id] });
+    // Responder ou assumir pausa o robô de boas-vindas: o selo e as métricas dele mudam na hora, não em um minuto.
+    void qc.invalidateQueries({ queryKey: CHAVE_TRIAGENS_DA_CAIXA });
+    void qc.invalidateQueries({ queryKey: CHAVE_METRICAS_DA_TRIAGEM });
   };
 
   // O divisor "Mensagens não lidas": `marcarLidaPorMim` zera o contador ao
