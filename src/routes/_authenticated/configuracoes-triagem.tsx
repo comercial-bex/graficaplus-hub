@@ -6,6 +6,7 @@ import { Carregando } from "@/components/bex/Carregando";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { lerPainelDaTriagem } from "@/lib/api/whatsapp-triagem.functions";
 import { Aviso, ErroDaTela } from "@/components/triagem/comum";
+import { MetricasDaTriagem } from "@/components/triagem/metricas-da-triagem";
 import { HorariosEFeriados } from "@/components/triagem/horarios-e-feriados";
 import { PainelDeLiga } from "@/components/triagem/painel-de-liga";
 import { QuadroDeRespostas } from "@/components/triagem/quadro-de-respostas";
@@ -70,6 +71,7 @@ function ConfiguracoesTriagemPage() {
       ) : (
         <>
           <PainelDeLiga painel={painel.data} aoMudar={recarregar} />
+          <MetricasDaTriagem />
           <Simulador painel={painel.data} />
           <TextosDasEtapas painel={painel.data} aoMudar={recarregar} />
           <QuadroDeRespostas painel={painel.data} aoMudar={recarregar} />

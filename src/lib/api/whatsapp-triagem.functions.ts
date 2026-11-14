@@ -1,10 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { diasAntesDeHojeBr } from "@/lib/hoje-br";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { DEGRAUS, ehDegrau, podeSubir, type Degrau } from "@/domain/whatsapp/triagem/escada";
 import { validarTextoEditavel } from "@/domain/whatsapp/triagem/textos";
 import { lerTodasAsLinhas } from "@/domain/whatsapp/triagem/paginar";
 import { explicarProblemaDeTexto } from "@/domain/whatsapp/triagem/tela";
+import type { LinhaDa30Dias, LinhaDoDia } from "@/domain/whatsapp/triagem/metricas";
 
 /**
  * A tela de configuração da triagem de boas-vindas (Onda B, PR B6), do lado do servidor.
@@ -572,4 +574,97 @@ export const salvarFeriadoDaTriagem = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return { ok: true as const };
+  });
+
+/* ------------------------------------------------------------------ */
+/* Métricas (B10): só leitura                                          */
+/* ------------------------------------------------------------------ */
+
+export type MetricasDaTriagem = {
+  dias: LinhaDoDia[];
+  janela: LinhaDa30Dias[];
+};
+
+const NUMERICAS_DIA = [
+  "triadas",
+  "puladas",
+  "em_andamento",
+  "concluidas",
+  "entregues_equipe",
+  "abandonadas",
+  "pausadas_humano",
+  "pausadas_desligada",
+  "paradas_pelo_contato",
+  "enviou_boas_vindas",
+  "respondeu_nome",
+  "pediu_preco",
+  "concluidas_com_tempo",
+  "soma_segundos_ate_concluir",
+] as const;
+
+const NUMERICAS_JANELA = [
+  "triadas",
+  "puladas",
+  "concluidas",
+  "entregues_equipe",
+  "abandonadas",
+  "pausadas_humano",
+  "triagens_com_pausa_humano",
+  "enviou_boas_vindas",
+  "respondeu_nome",
+  "pediu_preco",
+  "concluidas_com_tempo",
+] as const;
+
+/** Contagem que o banco devolve como texto ou número vira número; o que não for número vira 0 e não some a linha. */
+export function numero(v: unknown): number {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** View que ainda não existe é migração não aplicada: a tela diz isso, em vez de mostrar "sem dados". */
+export function erroDeMetrica(e: { message?: string; code?: string }): Error {
+  const falta =
+    e.code === "42P01" || e.code === "PGRST205" || /does not exist|schema cache/i.test(e.message ?? "");
+  return new Error(
+    falta
+      ? "As métricas da triagem ainda não foram instaladas no banco. Avise quem cuida do sistema."
+      : (e.message ?? "Não foi possível ler as métricas da triagem."),
+  );
+}
+
+/**
+ * Lê as views `triagem_metricas_dia` e `triagem_metricas_30_dias` com a chave do servidor, depois de
+ * conferir a mesma permissão da tela da triagem (uma das duas). As views só têm
+ * contagens e tempos: nada de nome, CEP, telefone ou texto. Erro de leitura
+ * VIRA ERRO (a tela mostra "não consegui carregar"), nunca lista vazia.
+ */
+export const lerMetricasDaTriagem = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<MetricasDaTriagem> => {
+    await exigirUma(context.supabase, context.userId, ["configuracoes.manage", "whatsapp.manage"]);
+    const db = await admin();
+    const desde = diasAntesDeHojeBr(29); // dia de Macapá, o mesmo recorte de 30 dias das views
+    const [dias, janela] = await Promise.all([
+      db.from("triagem_metricas_dia").select("*").gte("dia", desde).order("dia", { ascending: false }).limit(200),
+      db.from("triagem_metricas_30_dias").select("*").limit(10),
+    ]);
+    for (const r of [dias, janela]) if (r.error) throw erroDeMetrica(r.error);
+
+    return {
+      dias: ((dias.data ?? []) as Record<string, unknown>[]).map((l) => {
+        const saida: Record<string, unknown> = { dia: String(l.dia), ramo: l.ramo === "parceiro" ? "parceiro" : "cliente" };
+        for (const k of NUMERICAS_DIA) saida[k] = numero(l[k]);
+        return saida as unknown as LinhaDoDia;
+      }),
+      janela: ((janela.data ?? []) as Record<string, unknown>[]).map((l) => {
+        const saida: Record<string, unknown> = { ramo: l.ramo === "parceiro" ? "parceiro" : "cliente" };
+        for (const k of NUMERICAS_JANELA) saida[k] = numero(l[k]);
+        saida.mediana_segundos_ate_concluir =
+          l.mediana_segundos_ate_concluir === null || l.mediana_segundos_ate_concluir === undefined
+            ? null
+            : numero(l.mediana_segundos_ate_concluir);
+        return saida as unknown as LinhaDa30Dias;
+      }),
+    };
   });

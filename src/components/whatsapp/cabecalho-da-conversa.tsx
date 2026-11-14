@@ -33,6 +33,7 @@ import {
 import { ConfirmarAcao } from "@/components/bex/ConfirmarAcao";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { SeloParceiro } from "@/components/crm/selo-parceiro";
+import { SeloDaTriagem } from "@/components/whatsapp/selo-da-triagem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -239,6 +240,7 @@ export function CabecalhoDaConversa(p: PropsDoCabecalho) {
                 {p.responsavel ? p.responsavel : "sem responsável"}
               </span>
             </span>
+            <SeloDaTriagem conversaId={conversa.id} />
           </span>
         </button>
       </Dica>
