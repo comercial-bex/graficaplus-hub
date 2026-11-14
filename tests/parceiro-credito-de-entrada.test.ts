@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  deveMostrarAvisoDeEntrada,
   ehPrimeiraCompra,
   fraseDaEntrada,
   lerEntrada,
@@ -16,6 +17,40 @@ const entrada: ProgramaDeEntrada = {
 };
 const teto = (base: number, primeiraCompra = true, e: ProgramaDeEntrada | null = entrada) =>
   tetoDeCreditoDoPedido({ base, primeiraCompra, maxPctGeral: 15, entrada: e });
+
+describe("aviso do crédito de entrada", () => {
+  const args = {
+    entrada,
+    saldo: 50,
+    validade: new Date("2026-12-14T16:00:00Z"),
+    primeiraCompra: true,
+    agora: new Date("2026-11-14T16:00:00Z"),
+  };
+  it("mostra com programa ativo, saldo de R$50 e validade futura", () =>
+    expect(deveMostrarAvisoDeEntrada(args)).toBe(true));
+  it("oculta com programa desligado", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, entrada: { ...entrada, ativa: false } })).toBe(
+      false,
+    ));
+  it("oculta sem o bloco entrada", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, entrada: null })).toBe(false));
+  it("oculta crédito vencido", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, validade: new Date("2026-11-13T16:00:00Z") })).toBe(
+      false,
+    ));
+  it("oculta no instante em que vence", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, validade: args.agora })).toBe(false));
+  it("oculta com saldo zero", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, saldo: 0 })).toBe(false));
+  it("oculta com saldo negativo", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, saldo: -1 })).toBe(false));
+  it("oculta sem validade calculável", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, validade: null })).toBe(false));
+  it("oculta com data inválida", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, validade: new Date("inválida") })).toBe(false));
+  it("oculta depois da primeira compra", () =>
+    expect(deveMostrarAvisoDeEntrada({ ...args, primeiraCompra: false })).toBe(false));
+});
 
 describe("teto de crédito do pedido", () => {
   it("abaixo do pedido mínimo vale o teto geral de 15%", () => expect(teto(149.99)).toBe(22.5));

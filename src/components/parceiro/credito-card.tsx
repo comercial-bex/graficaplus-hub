@@ -5,24 +5,37 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
 import { brl } from "@/domain/parceiros/preco";
 import { ROTULO_DO_CREDITO, type PainelDoParceiro } from "@/domain/parceiros/painel";
-import { ehPrimeiraCompra, lerEntrada } from "@/domain/parceiros/credito-de-entrada";
+import {
+  deveMostrarAvisoDeEntrada,
+  ehPrimeiraCompra,
+  lerEntrada,
+} from "@/domain/parceiros/credito-de-entrada";
 import { CHAVE_PROGRAMA_PUBLICO, carregarProgramaPublico } from "@/lib/parceiro-api";
 
 /** Saldo de crédito e as últimas entradas e saídas, em linguagem de extrato. */
 export function CreditoCard({ painel }: { painel: PainelDoParceiro }) {
   const [tudo, setTudo] = useState(false);
   const linhas = tudo ? painel.extrato : painel.extrato.slice(0, 4);
-  const programa = useQuery({ queryKey: CHAVE_PROGRAMA_PUBLICO, queryFn: carregarProgramaPublico, staleTime: 5 * 60_000 });
+  const programa = useQuery({
+    queryKey: CHAVE_PROGRAMA_PUBLICO,
+    queryFn: carregarProgramaPublico,
+    staleTime: 5 * 60_000,
+  });
   const entrada = lerEntrada(programa.data);
   const lancamento = painel.extrato.find((l) => l.tipo === "entrada");
-  const mostrarEntrada = !!entrada && !!lancamento && ehPrimeiraCompra(painel.pedidos ?? []);
   const validade = (() => {
-    if (!mostrarEntrada || !entrada || !lancamento) return null;
+    if (!entrada || !lancamento) return null;
     const d = new Date(lancamento.created_at);
     if (Number.isNaN(d.getTime())) return null;
     d.setDate(d.getDate() + entrada.validade_dias);
     return d;
   })();
+  const mostrarEntrada = deveMostrarAvisoDeEntrada({
+    entrada,
+    saldo: Number(painel.saldo_credito),
+    validade,
+    primeiraCompra: ehPrimeiraCompra(painel.pedidos ?? []),
+  });
 
   return (
     <section className="flex flex-col rounded-2xl border border-border bg-card p-5 md:p-6">
@@ -57,7 +70,10 @@ export function CreditoCard({ painel }: { painel: PainelDoParceiro }) {
       {painel.extrato.length > 0 && (
         <ul className="mt-4 divide-y divide-border text-sm">
           {linhas.map((l, i) => (
-            <li key={`${l.created_at}-${i}`} className="flex items-start justify-between gap-3 py-2">
+            <li
+              key={`${l.created_at}-${i}`}
+              className="flex items-start justify-between gap-3 py-2"
+            >
               <div className="min-w-0">
                 <p className="truncate">{ROTULO_DO_CREDITO[l.tipo] ?? l.tipo}</p>
                 <p className="truncate text-xs text-muted-foreground">
