@@ -244,15 +244,16 @@ describe("quem faz: a equipe inteira, o papel só ordena", () => {
     expect(outros.map((p) => p.nome)).toEqual(["Cibele Oliveira", "Jhesselem Medeiros", "Maiara Brito", "Raymison Saraiva"]);
   });
 
-  it("para a criação, quem é da criação primeiro", () => {
+  it("para a criação, quem é da criação ou do atendimento primeiro (na Bex Print o atendimento também cria)", () => {
     const { sugeridos, outros } = equipeParaEscolher(equipe, "criacao");
-    expect(sugeridos.map((p) => p.nome)).toEqual(["Jhesselem Medeiros"]);
-    expect(outros).toHaveLength(4);
+    expect(sugeridos.map((p) => p.nome)).toEqual(["Jhesselem Medeiros", "Maiara Brito", "Raymison Saraiva"]);
+    expect(outros.map((p) => p.nome)).toEqual(["Cibele Oliveira", "Fernando Augusto"]);
   });
 
-  it("gestor é gestor ou admin; os papéis em palavras", () => {
+  it("só o gestor aprova: o admin só acompanha a empresa (decisão do dono); os papéis em palavras", () => {
     expect(ehGestor(["gestor"])).toBe(true);
-    expect(ehGestor(["admin"])).toBe(true);
+    expect(ehGestor(["gestor", "vendedor"])).toBe(true);
+    expect(ehGestor(["admin"])).toBe(false);
     expect(ehGestor(["vendedor", "financeiro"])).toBe(false);
     expect(papeisEmTexto(["gestor", "vendedor"])).toBe("Gestor · Atendimento");
     expect(primeiroNome("Maiara Brito")).toBe("Maiara");

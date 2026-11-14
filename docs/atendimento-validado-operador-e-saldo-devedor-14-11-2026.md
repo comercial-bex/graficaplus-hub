@@ -115,3 +115,63 @@ Todos usam o mesmo grupo do aviso de lead (`grupo_equipe_destino()`).
   - A fila com o Fernando citou o Fernando.
   - A troca para a Maiara citou a Maiara.
 - **OS 170.** Ao ficar pronta (retirada), citou o vendedor e o responsável.
+
+## Segunda rodada (14/11/2026): só o gestor aprova, fila do gestor, margem e PDF
+
+Decisão do dono, depois de publicado: "o administrador só visualiza a empresa; quem
+trata a aprovação é o gestor. Vai pelos papéis de atendimento e de gestor." E: "traga
+soluções para tudo que falta".
+
+### O que mudou
+
+- **Só o gestor aprova.** `eh_gestor` é só o papel gestor; o admin não valida, não
+  libera saldo devedor nem margem, e não é citado nos pedidos.
+- **"OS pronta" pelo papel.** O aviso cita o vendedor e o responsável da OS que são do
+  atendimento (papel vendedor) ou gestores. Se nenhum for, cita todo o atendimento. Um
+  operador marcado como responsável não é mais citado para entregar.
+- **Fila do gestor (`os_pedidos_ao_gestor`).**
+  - Cada "pedir ao gestor" fica registrado (quem pediu, quando, o quê), um aberto por
+    OS e assunto.
+  - A autorização do gestor fecha o pedido sozinha (gatilho em `os_autorizacoes`).
+  - O quadro mostra no topo a faixa **"Esperando você (gestor)"**. Nela ficam os pedidos
+    cuja trava continua: se a entrada foi paga ou o preço revisto, o pedido some. Também
+    mostra quantas OS do Atendimento esperam validação sem pedido.
+  - O gestor valida dali mesmo; os outros veem o que está parado no gestor.
+  - Com o grupo do WhatsApp desligado, o pedido fica só na fila, sem falhar.
+- **Margem abaixo do mínimo.** A pendência ganhou ação na ficha:
+  - "Revisar o preço";
+  - "Liberar a margem", só o gestor, com motivo (`autorizar_margem_baixa`, gravado em
+    `os_autorizacoes`);
+  - "Pedir ao gestor para liberar", para os outros.
+
+  O número da margem não vai ao grupo. A liberação antiga, por `aprovacoes`, continua
+  valendo.
+- **Conferência do PDF de impressão.** A ficha lê a 1ª página do PDF pelo link
+  assinado, sem baixar o arquivo inteiro, e compara com a medida do item. Os
+  resultados possíveis:
+  - **bate** (sem sangria);
+  - **com sangria de N mm**;
+  - **em escala 1:N** (arte de lona em escala);
+  - **proporção diferente**, em destaque, para conferir com a criação antes de
+    imprimir.
+
+### Ensaio no banco (rollback)
+
+- **Admin barrado.** O Harison (admin) não validou (42501).
+- **Fila sem duplicar.** O pedido da Maiara entrou uma vez só e saiu da fila quando o
+  Raymison validou.
+- **Margem.** Forçamos 5% na OS 226:
+  - a Maiara viu "Margem abaixo do mínimo" sem o número e conseguiu pedir;
+  - ela e o Harison não liberaram;
+  - o Raymison viu "5.00%" e liberou; a trava sumiu, o pedido fechou e um novo pedido
+    foi recusado.
+- **OS pronta (OS 170).** Citou só o Raymison (gestor e vendedor), não o Fernando
+  (operador).
+
+### Ainda em aberto, com a proposta
+
+- **Arquivo de impressão antes da aprovação.** Não precisa travar o envio: a trava
+  "Arte ainda não aprovada" já impede que o arquivo vá para a máquina antes do aceite
+  do cliente.
+- **Cor (CMYK) e fontes do PDF.** O navegador não lê isso de forma confiável. Fica para
+  o RIP da impressora ou para um conferidor no servidor, se o dono quiser.
