@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
+  resolucaoNoTamanho,
+  textoDaResolucao,
   bucketDoArquivo,
   ehArquivoDeImpressao,
   ehMockup,
@@ -189,5 +191,56 @@ describe("as telas", () => {
     expect(PAINEL).toContain("separarArquivos(lista).impressao");
     expect(PAINEL).toContain("<BotaoBaixar");
     expect(PAINEL).toContain("arquivosDeImpressao.isError");
+  });
+});
+
+describe("conferência de resolução (preflight simples)", () => {
+  it("faixa 1,50 × 0,50 m com imagem de 4500 × 1500 px: ~76 dpi, serve para grande formato", () => {
+    const r = resolucaoNoTamanho({ largura: 4500, altura: 1500 }, { largura: 1.5, altura: 0.5 });
+    expect(r).toEqual({ dpi: 76, nivel: "grande_formato" });
+    expect(textoDaResolucao(r!)).toContain("grande formato");
+  });
+
+  it("imagem em pé numa peça deitada: casa lado maior com lado maior", () => {
+    expect(resolucaoNoTamanho({ largura: 1500, altura: 4500 }, { largura: 1.5, altura: 0.5 })?.dpi).toBe(76);
+  });
+
+  it("print de WhatsApp (1280 px) numa placa de 0,60 m: baixa", () => {
+    const r = resolucaoNoTamanho({ largura: 1280, altura: 853 }, { largura: 0.6, altura: 0.4 });
+    expect(r?.nivel).toBe("baixa");
+    expect(textoDaResolucao(r!)).toContain("baixa para imprimir");
+  });
+
+  it("adesivo de 5 cm com 1000 px: boa", () => {
+    expect(resolucaoNoTamanho({ largura: 1000, altura: 1000 }, { largura: 0.05, altura: 0.05 })?.nivel).toBe("boa");
+  });
+
+  it("sem medida ou sem pixel: não afirma nada", () => {
+    expect(resolucaoNoTamanho({ largura: 0, altura: 10 }, { largura: 1, altura: 1 })).toBeNull();
+    expect(resolucaoNoTamanho({ largura: 10, altura: 10 }, { largura: 0, altura: 1 })).toBeNull();
+  });
+});
+
+describe("o resto das pendências da análise (14/11/2026)", () => {
+  const CARTAO = readFileSync("src/components/kanban/cartao-os.tsx", "utf8");
+  const PDF = readFileSync("src/lib/pdf/generate.ts", "utf8");
+  const FICHA = readFileSync("src/components/kanban/ficha-da-os.tsx", "utf8");
+
+  it("o cartão diz se tem mockup e arquivo de impressão, da criação até a máquina", () => {
+    expect(CARTAO).toContain('<SeloDoArquivo rotulo="Mockup"');
+    expect(CARTAO).toContain('<SeloDoArquivo rotulo="Impressão"');
+    expect(CARTAO).toContain('["pre_impressao", "fila_producao", "producao"].includes(etapaDe(os.status)');
+  });
+
+  it("o PDF de produção usa o arquivo de impressão (imagem) do item, não o mockup", () => {
+    expect(PDF).toContain("impressaoDaOs: mostrarValores ? undefined : osId");
+    expect(PDF).toContain('.eq("final_producao", true)');
+    // falhar ao ler não derruba o PDF
+    expect(PDF).toContain('console.warn("[pdf] não leu os arquivos de impressão:", error)');
+  });
+
+  it("a ficha mede a imagem de impressão e confere a resolução no tamanho da peça", () => {
+    expect(FICHA).toContain("resolucaoNoTamanho(px, medida)");
+    expect(FICHA).toContain("e.currentTarget.naturalWidth");
   });
 });

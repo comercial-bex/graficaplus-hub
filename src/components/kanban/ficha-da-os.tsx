@@ -26,7 +26,9 @@ import {
   ehPdf,
   extensao,
   formatoDoArquivo,
+  resolucaoNoTamanho,
   separarArquivos,
+  textoDaResolucao,
   type ArquivoDaOs,
 } from "@/domain/os/arquivos-da-os";
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
@@ -163,9 +165,18 @@ export function FichaDaOs({
   // marcação (o perfil de quem enviou não podia marcar), depois o mockup na tela, depois o
   // primeiro anexo (revisão do PR #466).
   const candidatoAFinal = impressao.find((a) => !a.final_producao) ?? mockup ?? anexos[0] ?? null;
+  const itensDaOs = ((os.itens as any[]) ?? []).filter((i) => i?.id);
   const nomeDoItem = new Map<string, string>(
-    ((os.itens as any[]) ?? []).filter((i) => i?.id).map((i): [string, string] => [i.id as string, String(i.descricao ?? "").trim()]),
+    itensDaOs.map((i): [string, string] => [i.id as string, String(i.descricao ?? "").trim()]),
   );
+  // A medida da peça do arquivo (para a conferência de resolução): a do item do
+  // arquivo; sem item no arquivo, só quando a OS tem um item só.
+  const medidaDo = (a: ArquivoDaOs): { largura: number; altura: number } | null => {
+    const item = a.os_item_id ? itensDaOs.find((i) => i.id === a.os_item_id) : itensDaOs.length === 1 ? itensDaOs[0] : null;
+    const largura = Number(item?.largura);
+    const altura = Number(item?.altura);
+    return largura > 0 && altura > 0 ? { largura, altura } : null;
+  };
   // Tudo certo e ainda antes da fila: o próximo passo é um toque.
   const podeIrParaAFila =
     pendentes === 0 && desconhecidas.length === 0 && (etapaAtual === "entrada" || etapaAtual === "pre_impressao");
@@ -226,6 +237,7 @@ export function FichaDaOs({
                       url={urls.data?.get(a.caminho) ?? null}
                       item={a.os_item_id ? (nomeDoItem.get(a.os_item_id) ?? null) : null}
                       podeFinalizar={podeFinalizar}
+                      medida={medidaDo(a)}
                     />
                   ))}
                 </ul>
@@ -585,13 +597,18 @@ function LinhaDeImpressao({
   url,
   item,
   podeFinalizar,
+  medida,
 }: {
   arquivo: ArquivoDaOs;
   url: string | null;
   item: string | null;
   podeFinalizar: boolean;
+  /** Largura e altura da peça em metros — para a conferência de resolução. */
+  medida: { largura: number; altura: number } | null;
 }) {
   const imagem = ehImagemVisivel(arquivo.nome, arquivo.mime_type, arquivo.caminho);
+  const [px, setPx] = useState<{ largura: number; altura: number } | null>(null);
+  const resolucao = imagem && px && medida ? resolucaoNoTamanho(px, medida) : null;
   const detalhe = [
     formatoDoArquivo(arquivo),
     tamanhoLegivel(arquivo.tamanho_bytes ?? null),
@@ -601,7 +618,17 @@ function LinhaDeImpressao({
   return (
     <li className="flex flex-wrap items-center gap-3 rounded-md border border-[color:var(--status-positive)]/40 bg-[color:var(--status-positive)]/5 p-2.5">
       <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded border border-border bg-muted/50 text-xs font-semibold uppercase text-muted-foreground">
-        {imagem && url ? <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" /> : formatoDoArquivo(arquivo)}
+        {imagem && url ? (
+          <img
+            src={url}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onLoad={(e) => setPx({ largura: e.currentTarget.naturalWidth, altura: e.currentTarget.naturalHeight })}
+          />
+        ) : (
+          formatoDoArquivo(arquivo)
+        )}
       </div>
       <div className="min-w-0 flex-1 text-xs">
         <div className="truncate font-medium text-foreground">{arquivo.nome}</div>
@@ -609,6 +636,11 @@ function LinhaDeImpressao({
         {ehMockup(arquivo) && <div className="text-muted-foreground">É também o mockup que o cliente viu.</div>}
         {!arquivo.final_producao && (
           <div className="text-[color:var(--bex-amber)]">Ainda não marcado como final de produção.</div>
+        )}
+        {resolucao && (
+          <div className={resolucao.nivel === "baixa" ? "text-[color:var(--bex-amber)]" : "text-muted-foreground"}>
+            {textoDaResolucao(resolucao)}
+          </div>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
