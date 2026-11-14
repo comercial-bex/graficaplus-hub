@@ -283,7 +283,9 @@ export function situacaoDoPedido(p: Pick<PedidoDoParceiro, "pedido_status" | "os
     return { rotulo: "Entregue", passo: 4, tom: "lime" };
   }
   switch (etapaDe(p.os_status)) {
+    // O parceiro não precisa saber do aval interno do gestor: segue "Recebido".
     case "entrada":
+    case "validado":
       return { rotulo: "Recebido", passo: 0, tom: "cyan" };
     case "pre_impressao":
       return p.os_status === "aguardando_aprovacao_arte"

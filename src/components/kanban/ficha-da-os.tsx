@@ -26,7 +26,9 @@ import {
   ehPdf,
   extensao,
   formatoDoArquivo,
+  resolucaoNoTamanho,
   separarArquivos,
+  textoDaResolucao,
   type ArquivoDaOs,
 } from "@/domain/os/arquivos-da-os";
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
@@ -39,7 +41,18 @@ import { AnexarArquivoRapido } from "@/components/kanban/anexar-arquivo-rapido";
 import { MarcarComoFinal } from "@/components/kanban/marcar-como-final";
 import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { TrilhaDaOs } from "@/components/kanban/trilha-da-os";
+import {
+  AutorizacoesDaOs,
+  AutorizarSaldoDevedor,
+  EscolherOperadorDialog,
+  PedirAoGestor,
+  TrocarOperador,
+  ValidarAtendimento,
+  ValidarAtendimentoDialog,
+} from "@/components/kanban/aval-do-gestor";
 import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
+import { ehGestor } from "@/domain/os/equipe-da-producao";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -79,10 +92,22 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
  *      com a situação da aprovação.
  *   3. OUTROS ANEXOS — briefing, comprovante, o que veio pelo WhatsApp.
  * A regra de quem é o quê está em domain/os/arquivos-da-os (`separarArquivos`).
+ *
+ * O aval do gestor e quem faz (14/11/2026, pedido do dono):
+ *   - Sair do Atendimento pede a validação do gestor: o gestor valida aqui mesmo,
+ *     escolhendo quem faz a criação; quem não é gestor pede pelo grupo da equipe.
+ *   - "Nenhum pagamento registrado" ganhou a saída do gestor: autorizar o cliente a
+ *     ficar devendo, com o motivo.
+ *   - "Enviar para a fila de produção" (e escolher a fila no seletor) abre a escolha
+ *     do operador; na fila e na máquina dá para trocar o operador.
+ * Os componentes estão em aval-do-gestor.tsx; as travas, no banco.
  */
 
 /** As condições que o banco confere para a OS entrar em produção (os_bloqueios_para). */
-const CONDICOES: { codigo: string; rotulo: string; soVenda?: boolean }[] = [
+const CONDICOES: { codigo: string; rotulo: string; soVenda?: boolean; soNaEntrada?: boolean }[] = [
+  // Só faz sentido enquanto a OS está no Atendimento: depois, "validado" seria
+  // afirmar de OS antiga uma validação que nunca houve.
+  { codigo: "atendimento_nao_validado", rotulo: "Atendimento validado pelo gestor", soVenda: true, soNaEntrada: true },
   { codigo: "sem_pagamento", rotulo: "Entrada paga", soVenda: true },
   { codigo: "arte_nao_aprovada", rotulo: "Arte aprovada pelo cliente", soVenda: true },
   { codigo: "sem_arquivo_final", rotulo: "Arquivo final de produção" },
@@ -124,6 +149,10 @@ export function FichaDaOs({
 }) {
   const [escolhido, setEscolhido] = useState(0);
   const [aceiteAberto, setAceiteAberto] = useState(false);
+  const [validarAberto, setValidarAberto] = useState(false);
+  const [operadorAberto, setOperadorAberto] = useState(false);
+  const { roles } = useAuth();
+  const gestor = ehGestor(roles);
   const { impressao, versoesAnteriores, mockups, anexos } = separarArquivos(os?.arquivos as ArquivoDaOs[] | undefined);
   const todos = [...impressao, ...versoesAnteriores, ...mockups, ...anexos];
 
@@ -131,6 +160,8 @@ export function FichaDaOs({
   useEffect(() => {
     setEscolhido(0);
     setAceiteAberto(false);
+    setValidarAberto(false);
+    setOperadorAberto(false);
   }, [os?.id]);
 
   // Para VER (miniatura, mockup): URL de 15 min, bucket por bucket. Baixar pede
@@ -152,7 +183,9 @@ export function FichaDaOs({
   const maquina = identidadeDaMaquina(os);
   const interna = os.finalidade && os.finalidade !== "venda";
   const falta = new Map(bloqueios.map((b) => [b.codigo, b]));
-  const condicoes = CONDICOES.filter((c) => !(interna && c.soVenda));
+  const condicoes = CONDICOES.filter((c) => !(interna && c.soVenda)).filter(
+    (c) => !c.soNaEntrada || etapaAtual === "entrada" || falta.has(c.codigo),
+  );
   const pendencias = condicoes.filter((c) => falta.has(c.codigo));
   const pendentes = pendencias.length;
   const certas = condicoes.filter((c) => !falta.has(c.codigo));
@@ -163,16 +196,29 @@ export function FichaDaOs({
   // marcação (o perfil de quem enviou não podia marcar), depois o mockup na tela, depois o
   // primeiro anexo (revisão do PR #466).
   const candidatoAFinal = impressao.find((a) => !a.final_producao) ?? mockup ?? anexos[0] ?? null;
+  const itensDaOs = ((os.itens as any[]) ?? []).filter((i) => i?.id);
   const nomeDoItem = new Map<string, string>(
-    ((os.itens as any[]) ?? []).filter((i) => i?.id).map((i): [string, string] => [i.id as string, String(i.descricao ?? "").trim()]),
+    itensDaOs.map((i): [string, string] => [i.id as string, String(i.descricao ?? "").trim()]),
   );
+  // A medida da peça do arquivo (para a conferência de resolução): a do item do
+  // arquivo; sem item no arquivo, só quando a OS tem um item só.
+  const medidaDo = (a: ArquivoDaOs): { largura: number; altura: number } | null => {
+    const item = a.os_item_id ? itensDaOs.find((i) => i.id === a.os_item_id) : itensDaOs.length === 1 ? itensDaOs[0] : null;
+    const largura = Number(item?.largura);
+    const altura = Number(item?.altura);
+    return largura > 0 && altura > 0 ? { largura, altura } : null;
+  };
   // Tudo certo e ainda antes da fila: o próximo passo é um toque.
+  // A fila pede o operador: o botão abre a escolha (14/11/2026).
   const podeIrParaAFila =
-    pendentes === 0 && desconhecidas.length === 0 && (etapaAtual === "entrada" || etapaAtual === "pre_impressao");
+    pendentes === 0 &&
+    desconhecidas.length === 0 &&
+    (etapaAtual === "entrada" || etapaAtual === "validado" || etapaAtual === "pre_impressao");
+  const podeTrocarOperador = etapaAtual === "fila_producao" || etapaAtual === "producao" || etapaAtual === "acabamento";
 
   const equipe: [string, string | null][] = [
     ["Responsável", os.responsavel?.nome ?? null],
-    ["Designer", os.designer?.nome ?? null],
+    ["Criação", os.designer?.nome ?? null],
     ["Operador", os.operador?.nome ?? null],
     ["Máquina", os.maquinas?.nome ?? (maquina ? `${maquina.curto} (não vinculada)` : null)],
   ];
@@ -184,6 +230,17 @@ export function FichaDaOs({
     if (novo === "arte_aprovada" && falta.has("arte_nao_aprovada") && podeAceitar) {
       setAceiteAberto(true);
       toast.info("Para marcar “Arte aprovada”, registre o aceite do cliente.");
+      return;
+    }
+    // "Atendimento validado" é o aval do gestor, com quem faz a criação: abre a validação.
+    if (novo === "briefing_ok" && etapaAtual === "entrada") {
+      if (gestor) setValidarAberto(true);
+      else toast.info("Só o gestor valida o atendimento. Use “Pedir a validação ao gestor”, em “Para produzir”.");
+      return;
+    }
+    // A fila de produção pede quem vai produzir.
+    if (novo === "aguardando_producao") {
+      setOperadorAberto(true);
       return;
     }
     onMudarStatus(os.id, novo);
@@ -226,6 +283,7 @@ export function FichaDaOs({
                       url={urls.data?.get(a.caminho) ?? null}
                       item={a.os_item_id ? (nomeDoItem.get(a.os_item_id) ?? null) : null}
                       podeFinalizar={podeFinalizar}
+                      medida={medidaDo(a)}
                     />
                   ))}
                 </ul>
@@ -389,6 +447,8 @@ export function FichaDaOs({
                             aceiteAberto={aceiteAberto}
                             onAceiteAberto={setAceiteAberto}
                             onFechar={onFechar}
+                            os={os}
+                            gestor={gestor}
                           />
                         </div>
                       </li>
@@ -415,7 +475,7 @@ export function FichaDaOs({
                 </p>
               )}
               {podeIrParaAFila && (
-                <Button type="button" className="mt-3 w-full" onClick={() => onMudarStatus(os.id, "aguardando_producao")}>
+                <Button type="button" className="mt-3 w-full" onClick={() => setOperadorAberto(true)}>
                   Enviar para a fila de produção
                 </Button>
               )}
@@ -467,6 +527,10 @@ export function FichaDaOs({
                   </p>
                 )}
                 {semDefinir.length > 0 && <p className="text-muted-foreground">Ainda sem {emFrase(semDefinir)}.</p>}
+                {podeTrocarOperador && <TrocarOperador os={os} />}
+              </div>
+              <div className="mt-2">
+                <AutorizacoesDaOs osId={os.id} />
               </div>
               {os.briefing && (
                 <div className="mt-3 rounded border border-border/60 bg-muted/30 px-2.5 py-2 text-xs leading-relaxed text-muted-foreground">{os.briefing}</div>
@@ -494,6 +558,9 @@ export function FichaDaOs({
               </Select>
               <p className="mt-1.5 text-xs text-muted-foreground">Também dá para arrastar o cartão.</p>
             </Bloco>
+
+            <ValidarAtendimentoDialog os={os} aberto={validarAberto} onAberto={setValidarAberto} />
+            <EscolherOperadorDialog os={os} aberto={operadorAberto} onAberto={setOperadorAberto} />
 
             <Link to="/os/$id" params={{ id: os.id }} className="block" onClick={onFechar}>
               <Button variant="outline" size="sm" className="w-full">
@@ -523,6 +590,8 @@ function AcaoDaPendencia({
   aceiteAberto,
   onAceiteAberto,
   onFechar,
+  os,
+  gestor,
 }: {
   codigo: string;
   osId: string;
@@ -534,8 +603,17 @@ function AcaoDaPendencia({
   aceiteAberto: boolean;
   onAceiteAberto: (aberto: boolean) => void;
   onFechar: () => void;
+  os: { id: string; numero?: number | null; designer_id?: string | null; operador_id?: string | null };
+  /** Gestor ou admin: valida o atendimento e autoriza o cliente a ficar devendo. */
+  gestor: boolean;
 }) {
   switch (codigo) {
+    case "atendimento_nao_validado":
+      return gestor ? (
+        <ValidarAtendimento os={os} />
+      ) : (
+        <PedirAoGestor osId={osId} assunto="atendimento" rotulo="Pedir a validação ao gestor" />
+      );
     case "arte_nao_aprovada":
       return podeAceitar ? (
         <AceiteDaArteRapido osId={osId} aberto={aceiteAberto} onAbertoChange={onAceiteAberto} />
@@ -549,7 +627,17 @@ function AcaoDaPendencia({
       if (!temArquivos && podeAnexar) return <Pedir texto="Use o botão “Anexar arquivo de impressão”, à esquerda." />;
       return <Pedir texto={temArquivos ? "Peça a quem pode marcar o arquivo como final." : "Peça a quem pode anexar o arquivo."} />;
     case "sem_pagamento":
-      return <IrPara osId={osId} rotulo="Registrar na OS" onFechar={onFechar} />;
+      // Cliente que vai ficar devendo: só o gestor libera (14/11/2026).
+      return (
+        <div className="flex flex-wrap items-start gap-2">
+          <IrPara osId={osId} rotulo="Registrar na OS" onFechar={onFechar} />
+          {gestor ? (
+            <AutorizarSaldoDevedor osId={osId} />
+          ) : (
+            <PedirAoGestor osId={osId} assunto="saldo_devedor" rotulo="Vai ficar devendo: pedir ao gestor" />
+          )}
+        </div>
+      );
     case "sem_responsavel":
       return <IrPara osId={osId} rotulo="Definir na OS" onFechar={onFechar} />;
     case "material_insuficiente":
@@ -585,13 +673,18 @@ function LinhaDeImpressao({
   url,
   item,
   podeFinalizar,
+  medida,
 }: {
   arquivo: ArquivoDaOs;
   url: string | null;
   item: string | null;
   podeFinalizar: boolean;
+  /** Largura e altura da peça em metros — para a conferência de resolução. */
+  medida: { largura: number; altura: number } | null;
 }) {
   const imagem = ehImagemVisivel(arquivo.nome, arquivo.mime_type, arquivo.caminho);
+  const [px, setPx] = useState<{ largura: number; altura: number } | null>(null);
+  const resolucao = imagem && px && medida ? resolucaoNoTamanho(px, medida) : null;
   const detalhe = [
     formatoDoArquivo(arquivo),
     tamanhoLegivel(arquivo.tamanho_bytes ?? null),
@@ -601,7 +694,17 @@ function LinhaDeImpressao({
   return (
     <li className="flex flex-wrap items-center gap-3 rounded-md border border-[color:var(--status-positive)]/40 bg-[color:var(--status-positive)]/5 p-2.5">
       <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded border border-border bg-muted/50 text-xs font-semibold uppercase text-muted-foreground">
-        {imagem && url ? <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" /> : formatoDoArquivo(arquivo)}
+        {imagem && url ? (
+          <img
+            src={url}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onLoad={(e) => setPx({ largura: e.currentTarget.naturalWidth, altura: e.currentTarget.naturalHeight })}
+          />
+        ) : (
+          formatoDoArquivo(arquivo)
+        )}
       </div>
       <div className="min-w-0 flex-1 text-xs">
         <div className="truncate font-medium text-foreground">{arquivo.nome}</div>
@@ -609,6 +712,11 @@ function LinhaDeImpressao({
         {ehMockup(arquivo) && <div className="text-muted-foreground">É também o mockup que o cliente viu.</div>}
         {!arquivo.final_producao && (
           <div className="text-[color:var(--bex-amber)]">Ainda não marcado como final de produção.</div>
+        )}
+        {resolucao && (
+          <div className={resolucao.nivel === "baixa" ? "text-[color:var(--bex-amber)]" : "text-muted-foreground"}>
+            {textoDaResolucao(resolucao)}
+          </div>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">

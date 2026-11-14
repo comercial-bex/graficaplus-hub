@@ -88,9 +88,11 @@ describe("o que dizer no lugar da capa", () => {
   });
 });
 
-describe("as seis etapas do quadro, que a TV agrupa em quatro blocos", () => {
+describe("as sete etapas do quadro, que a TV agrupa em quatro blocos", () => {
   it("a fila de produção é coluna própria, entre a arte e a produção", () => {
-    expect(ETAPAS_QUADRO).toEqual(["entrada", "pre_impressao", "fila_producao", "producao", "acabamento", "saida"]);
+    expect(ETAPAS_QUADRO).toEqual([
+      "entrada", "validado", "pre_impressao", "fila_producao", "producao", "acabamento", "saida",
+    ]);
     expect(etapaDe("aguardando_producao")).toBe("fila_producao");
     expect(ROTULO_ETAPA.fila_producao).toBe("Fila de produção");
     expect(statusPadraoDaEtapa("fila_producao")).toBe("aguardando_producao");

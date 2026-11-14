@@ -196,3 +196,40 @@ export function formatoDoArquivo(a: Pick<ArquivoDaOs, "nome" | "mime_type" | "ca
   const ext = nome.includes(".") ? extensao(nome) : "";
   return ext && ext.length <= 5 ? ext.toUpperCase() : "Arquivo";
 }
+
+/* ------------------------------------------------------------------ */
+/* Conferência de resolução (14/11/2026)                               */
+/* ------------------------------------------------------------------ */
+
+export type Resolucao = { dpi: number; nivel: "baixa" | "grande_formato" | "boa" };
+
+/**
+ * A resolução da imagem no tamanho da peça — a conferência simples que os
+ * sistemas de gráfica chamam de preflight. Só para IMAGEM (PNG, JPG…): PDF,
+ * CDR e AI são vetor ou têm resolução própria, e o navegador não os mede.
+ *
+ * A imagem pode estar deitada ou em pé: o lado maior da imagem casa com o lado
+ * maior da peça. Vale o menor dos dois dpi (o lado que estica mais).
+ * Régua: abaixo de 72 dpi é baixa para imprimir; de 72 a 149 serve para grande
+ * formato visto de longe (lona, adesivo de parede); de 150 para cima, boa.
+ */
+export function resolucaoNoTamanho(
+  px: { largura: number; altura: number },
+  metros: { largura: number; altura: number },
+): Resolucao | null {
+  if (!(px.largura > 0 && px.altura > 0 && metros.largura > 0 && metros.altura > 0)) return null;
+  const [pxMaior, pxMenor] = px.largura >= px.altura ? [px.largura, px.altura] : [px.altura, px.largura];
+  const [mMaior, mMenor] =
+    metros.largura >= metros.altura ? [metros.largura, metros.altura] : [metros.altura, metros.largura];
+  const POLEGADA = 0.0254;
+  const dpi = Math.floor(Math.min(pxMaior / (mMaior / POLEGADA), pxMenor / (mMenor / POLEGADA)));
+  return { dpi, nivel: dpi < 72 ? "baixa" : dpi < 150 ? "grande_formato" : "boa" };
+}
+
+export function textoDaResolucao(r: Resolucao): string {
+  if (r.nivel === "baixa")
+    return `≈ ${r.dpi} dpi no tamanho da peça: baixa para imprimir. Peça à criação um arquivo maior ou em vetor.`;
+  if (r.nivel === "grande_formato")
+    return `≈ ${r.dpi} dpi no tamanho da peça: serve para grande formato visto de longe, não para peça vista de perto.`;
+  return `≈ ${r.dpi} dpi no tamanho da peça: boa resolução.`;
+}

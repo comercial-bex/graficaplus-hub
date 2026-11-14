@@ -5,10 +5,10 @@ import { Card } from "@/components/ui/card";
 import { ROTULO_DA_FINALIDADE, type FinalidadeDaOS } from "@/domain/os/finalidade";
 import { StatusChip } from "@/components/bex/StatusChip";
 import { areaEmTexto, resumoDaProducao } from "@/domain/os/o-que-produzir";
-import { faltaEmPalavras } from "@/domain/os/etapas";
+import { etapaDe, faltaEmPalavras } from "@/domain/os/etapas";
 import { paradaHa, prazoEmPalavras } from "@/domain/os/prazo";
-import { semCapa } from "@/domain/os/arquivos-da-os";
-import { FileImage, Layers, Lock } from "lucide-react";
+import { semCapa, separarArquivos } from "@/domain/os/arquivos-da-os";
+import { Check, FileImage, Layers, Lock, Minus } from "lucide-react";
 import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { TrilhaDaOs } from "@/components/kanban/trilha-da-os";
 import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
@@ -73,6 +73,10 @@ export function CartaoOs({
   const pausada = os.status === "pausado";
   const maquina = identidadeDaMaquina(os);
   const interna = os.finalidade && os.finalidade !== "venda";
+  // Selo dos arquivos (14/11/2026, como o YoPrint): da criação até a máquina, o
+  // cartão diz se já tem o mockup do cliente e o arquivo de impressão.
+  const arquivos = separarArquivos(os.arquivos);
+  const mostraArquivos = ["pre_impressao", "fila_producao", "producao"].includes(etapaDe(os.status) ?? "");
 
   return (
     <Card
@@ -139,6 +143,13 @@ export function CartaoOs({
           </div>
         )}
 
+        {mostraArquivos && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs" aria-label="Arquivos da OS">
+            <SeloDoArquivo rotulo="Mockup" tem={arquivos.mockups.length > 0} />
+            <SeloDoArquivo rotulo="Impressão" tem={arquivos.impressao.some((a) => a.final_producao)} />
+          </div>
+        )}
+
         {/* Onde está: a trilha das seis etapas, e o passo exato dentro da etapa. */}
         <TrilhaDaOs status={os.status} compacta />
 
@@ -200,6 +211,17 @@ export function CartaoOs({
         )}
       </div>
     </Card>
+  );
+}
+
+/** "Mockup ✓" / "Impressão —": o ícone e a palavra, nunca só a cor. */
+function SeloDoArquivo({ rotulo, tem }: { rotulo: string; tem: boolean }) {
+  return (
+    <span className={tem ? "inline-flex items-center gap-0.5 text-[color:var(--status-positive)]" : "inline-flex items-center gap-0.5 text-muted-foreground"}>
+      {tem ? <Check className="h-3 w-3" aria-hidden /> : <Minus className="h-3 w-3" aria-hidden />}
+      {rotulo}
+      <span className="sr-only">{tem ? " anexado" : " ainda não anexado"}</span>
+    </span>
   );
 }
 
