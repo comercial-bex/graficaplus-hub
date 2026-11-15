@@ -1,0 +1,81 @@
+
+DECLARE
+  v_nivel jsonb := public.parceiro_nivel(p_parceiro_id);
+  v_desc numeric := COALESCE((v_nivel->>'desconto_pct')::numeric, 0);
+  v_desc_faixa numeric := COALESCE((v_nivel->>'desconto_faixa_pct')::numeric, 0);
+  v_ordem integer := COALESCE((v_nivel->>'ordem')::integer, 0);
+BEGIN
+  RETURN QUERY
+  WITH base AS (
+    SELECT p.id, p.nome, p.categoria::text AS categoria, p.unidade,
+           lower(p.unidade) IN ('m2', 'm²') AS por_area,
+           p.area_minima_cobrada AS area_minima,
+           COALESCE(pp.preco_base, p.preco_base) AS preco_base,
+           p.preco_parceiro AS preco_fixo,
+           CASE WHEN COALESCE(p.custo_medio, 0) > 0 AND COALESCE(p.margem_minima, 0) < 100
+                THEN round(p.custo_medio / (1 - COALESCE(p.margem_minima, 0) / 100), 2) END AS piso
+    FROM public.produtos p
+    LEFT JOIN public.produto_precos pp ON pp.produto_id = p.id
+    WHERE p.ativo
+  ),
+  oferta AS (
+    SELECT DISTINCT ON (o.produto_id) o.produto_id, o.id, o.titulo, o.preco_oferta
+    FROM public.parceiro_ofertas o
+    LEFT JOIN public.parceiro_niveis n ON n.id = o.nivel_minimo_id
+    WHERE o.ativa AND o.produto_id IS NOT NULL AND o.preco_oferta IS NOT NULL
+      AND now() >= o.inicio AND now() < o.fim
+      AND (n.id IS NULL OR v_ordem >= n.ordem)
+    ORDER BY o.produto_id, o.preco_oferta
+  ),
+  faixa AS (
+    SELECT f.produto_id,
+           jsonb_agg(jsonb_build_object(
+             'quantidade_minima', f.quantidade_minima,
+             'preco_referencia', round(f.preco_unitario, 4),
+             'preco_parceiro', round(CASE
+               WHEN ofe.preco_oferta IS NOT NULL THEN LEAST(
+                 GREATEST(round(f.preco_unitario * (1 - v_desc_faixa / 100), 4), COALESCE(b.piso, 0)),
+                 ofe.preco_oferta)
+               ELSE GREATEST(round(f.preco_unitario * (1 - v_desc_faixa / 100), 4), COALESCE(b.piso, 0))
+             END, 4)
+           ) ORDER BY f.quantidade_minima) AS lista
+    FROM public.produto_faixas_preco f
+    JOIN base b ON b.id = f.produto_id
+    LEFT JOIN oferta ofe ON ofe.produto_id = f.produto_id
+    WHERE (f.vigencia_inicio IS NULL OR f.vigencia_inicio <= public.hoje_br())
+      AND (f.vigencia_fim IS NULL OR f.vigencia_fim >= public.hoje_br())
+    GROUP BY f.produto_id
+  ),
+  tam AS (
+    SELECT t.produto_id,
+           jsonb_agg(jsonb_build_object('nome', t.nome, 'largura', t.largura, 'altura', t.altura, 'padrao', t.padrao)
+                     ORDER BY t.ordem, t.nome) AS lista
+    FROM public.produto_tamanhos t
+    GROUP BY t.produto_id
+  )
+  SELECT b.id, b.nome, b.categoria, b.unidade, b.por_area, b.area_minima,
+         CASE WHEN fx.lista IS NULL THEN b.preco_base END,
+         CASE WHEN fx.lista IS NULL THEN
+           CASE WHEN ofe.preco_oferta IS NOT NULL
+                     AND ofe.preco_oferta < COALESCE(b.preco_fixo, GREATEST(round(b.preco_base * (1 - v_desc / 100), 2), COALESCE(b.piso, 0)))
+                THEN round(ofe.preco_oferta, 4)
+                ELSE COALESCE(b.preco_fixo, GREATEST(round(b.preco_base * (1 - v_desc / 100), 2), COALESCE(b.piso, 0))) END
+         END,
+         CASE
+           WHEN fx.lista IS NOT NULL THEN 'faixa'
+           WHEN b.preco_fixo IS NOT NULL THEN 'tabela'
+           WHEN ofe.preco_oferta IS NOT NULL
+                AND ofe.preco_oferta < COALESCE(b.preco_fixo, GREATEST(round(b.preco_base * (1 - v_desc / 100), 2), COALESCE(b.piso, 0))) THEN 'oferta'
+           WHEN b.piso IS NOT NULL AND b.piso > round(b.preco_base * (1 - v_desc / 100), 2) THEN 'piso'
+           ELSE 'nivel'
+         END,
+         ofe.id, ofe.titulo,
+         fx.lista,
+         COALESCE(tm.lista, '[]'::jsonb)
+  FROM base b
+  LEFT JOIN faixa fx ON fx.produto_id = b.id
+  LEFT JOIN oferta ofe ON ofe.produto_id = b.id
+  LEFT JOIN tam tm ON tm.produto_id = b.id
+  WHERE fx.lista IS NOT NULL OR b.preco_base IS NOT NULL
+  ORDER BY b.categoria, b.nome;
+END

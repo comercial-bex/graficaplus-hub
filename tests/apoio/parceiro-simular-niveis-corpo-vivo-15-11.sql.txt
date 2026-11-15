@@ -1,0 +1,42 @@
+
+DECLARE v_uid uuid := public.require_permission('parceiros.manage');
+BEGIN
+  IF NOT (public.has_permission(v_uid, 'custos.read') OR public.can_see_financials(v_uid)
+          OR public.has_role(v_uid, 'admin')) THEN
+    RAISE EXCEPTION 'Simular níveis mostra custo e margem.' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
+  WITH base AS (
+    SELECT pr.nome, COALESCE(pp.preco_base, pr.preco_base) AS preco,
+           COALESCE(pr.custo_medio, 0) AS custo, COALESCE(pr.margem_minima, 0) AS mm
+    FROM public.produtos pr
+    LEFT JOIN public.produto_precos pp ON pp.produto_id = pr.id
+    WHERE pr.ativo AND COALESCE(pp.preco_base, pr.preco_base) > 0
+  ),
+  com_custo AS (SELECT * FROM base WHERE custo > 0),
+  regua AS (
+    SELECT n.nome, n.ordem,
+           COALESCE((SELECT (d->>'desconto_pct')::numeric FROM jsonb_array_elements(COALESCE(p_descontos, '[]'::jsonb)) d
+                      WHERE d->>'nome' = n.nome), n.desconto_pct) AS desconto
+    FROM public.parceiro_niveis n
+  ),
+  calc AS (
+    SELECT r.nome, r.ordem, r.desconto, b.nome AS produto, b.preco, b.custo,
+           round(b.custo / (1 - LEAST(b.mm, 99) / 100), 2) AS piso,
+           round(b.preco * (1 - r.desconto / 100), 2) AS com_desconto
+    FROM regua r CROSS JOIN com_custo b
+  ),
+  preco_final AS (SELECT c.*, GREATEST(c.com_desconto, c.piso) AS pago FROM calc c)
+  SELECT f.nome, f.ordem, f.desconto,
+         count(*)::integer,
+         (SELECT count(*)::integer FROM base WHERE custo <= 0),
+         count(*) FILTER (WHERE f.piso > f.com_desconto)::integer,
+         string_agg(f.produto, ', ' ORDER BY f.produto) FILTER (WHERE f.piso > f.com_desconto),
+         round(avg((f.preco - f.pago) / f.preco * 100), 1),
+         round(avg((f.pago - f.custo) / f.pago * 100), 1),
+         round(min((f.pago - f.custo) / f.pago * 100), 1)
+  FROM preco_final f
+  GROUP BY f.nome, f.ordem, f.desconto
+  ORDER BY f.ordem;
+END
