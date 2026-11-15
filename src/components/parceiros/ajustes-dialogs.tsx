@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -14,13 +14,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { mensagemErro } from "@/lib/erros";
 import { ajustarCredito, type ResumoDoParceiro } from "@/lib/parceiro-api";
 import { brl } from "@/domain/parceiros/preco";
 import { useEquipe, useNiveis } from "./dados";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
+import { Checkbox } from "@/components/ui/checkbox";
+import { detalhesValidacao, validarParceiro, preferenciaAvisos } from "@/lib/parceiro-avisos-api";
 
 /** Crédito manual: bonificação combinada fora das metas, ou correção. Sempre com motivo. */
 export function CreditoDialog({
@@ -67,7 +75,9 @@ export function CreditoDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Crédito · {parceiro.nome}</DialogTitle>
-          <DialogDescription>Saldo atual: {brl(parceiro.saldo_credito)}. O ajuste aparece no extrato do parceiro.</DialogDescription>
+          <DialogDescription>
+            Saldo atual: {brl(parceiro.saldo_credito)}. O ajuste aparece no extrato do parceiro.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-[auto_1fr] gap-2">
           <Select value={sinal} onValueChange={(v) => setSinal(v as "mais" | "menos")}>
@@ -128,10 +138,53 @@ export function CadastroDialog({
   const [status, setStatus] = useState<ResumoDoParceiro["status"]>("ativo");
   const [carregado, setCarregado] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [nota, setNota] = useState("");
+  const detalhes = useQuery({
+    queryKey: ["parceiro-validacao", parceiro?.id],
+    enabled: !!parceiro,
+    queryFn: () => (parceiro ? detalhesValidacao(parceiro.id) : Promise.resolve(null)),
+  });
+
+  async function registrarValidacao() {
+    if (!parceiro) return;
+    setSalvando(true);
+    try {
+      await validarParceiro(parceiro.id, nota);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["parceiro-validacao"] }),
+        qc.invalidateQueries({ queryKey: ["parceiros-ramo"] }),
+      ]);
+      toast.success("Validação registrada.");
+    } catch (e) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function mudarAvisos(sair: boolean) {
+    if (!parceiro) return;
+    setSalvando(true);
+    try {
+      await preferenciaAvisos(parceiro.id, sair);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["parceiro-validacao"] }),
+        qc.invalidateQueries({ queryKey: ["parceiro-aviso-publico"] }),
+      ]);
+      toast.success(
+        sair ? "Parceiro retirado dos próximos avisos." : "Parceiro pode receber avisos.",
+      );
+    } catch (e) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   useEffect(() => {
     if (!parceiro) return;
     setCarregado(false);
+    setNota("");
     (supabase as any)
       .from("parceiros")
       .select("responsavel_id, nivel_fixo_id, status")
@@ -177,9 +230,65 @@ export function CadastroDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Cadastro · {parceiro.nome}</DialogTitle>
-          <DialogDescription>Quem atende, o nível garantido e se o painel está liberado.</DialogDescription>
+          <DialogDescription>
+            Quem atende, o nível garantido e se o painel está liberado.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
+          <section className="space-y-2 border-b border-border pb-3">
+            <p className="font-medium">Conferência do parceiro</p>
+            {detalhes.error && (
+              <p className="text-sm text-destructive">{mensagemErro(detalhes.error)}</p>
+            )}
+            {detalhes.data?.comprovacao_url &&
+              (/^https?:\/\//i.test(detalhes.data.comprovacao_url) ? (
+                <a
+                  className="break-all text-sm text-link underline"
+                  href={detalhes.data.comprovacao_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {detalhes.data.comprovacao_url}
+                </a>
+              ) : (
+                <p className="break-all text-sm">{detalhes.data.comprovacao_url}</p>
+              ))}
+            {detalhes.data?.validado_em && (
+              <p className="text-sm text-muted-foreground">
+                Validado em {new Date(detalhes.data.validado_em).toLocaleString("pt-BR")} ·{" "}
+                {detalhes.data.validacao_nota}
+              </p>
+            )}
+            <Label htmlFor="parceiro-validacao-nota">O que foi conferido</Label>
+            <Input
+              id="parceiro-validacao-nota"
+              value={nota}
+              maxLength={1000}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Instagram conferido"
+              disabled={!detalhes.data}
+            />
+            <Button
+              variant="outline"
+              onClick={registrarValidacao}
+              disabled={!detalhes.data || !nota.trim() || salvando}
+            >
+              Validar
+            </Button>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={!!detalhes.data?.nao_receber_avisos_em}
+                disabled={!detalhes.data || salvando}
+                onCheckedChange={(v) => mudarAvisos(v === true)}
+              />
+              Não receber avisos
+            </label>
+            {detalhes.data === null && (
+              <p className="text-xs text-muted-foreground">
+                Validação e preferência de avisos aguardam ativação autorizada.
+              </p>
+            )}
+          </section>
           <div className="space-y-1.5">
             <Label>Atendente na gráfica</Label>
             <Select value={responsavel} onValueChange={setResponsavel} disabled={!carregado}>
@@ -213,7 +322,11 @@ export function CadastroDialog({
           </div>
           <div className="space-y-1.5">
             <Label>Situação</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as ResumoDoParceiro["status"])} disabled={!carregado}>
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v as ResumoDoParceiro["status"])}
+              disabled={!carregado}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -225,7 +338,8 @@ export function CadastroDialog({
             </Select>
             {status !== "ativo" && (
               <p className="text-xs text-muted-foreground">
-                Sem acesso, o parceiro não abre o painel. O histórico e o crédito continuam guardados.
+                Sem acesso, o parceiro não abre o painel. O histórico e o crédito continuam
+                guardados.
               </p>
             )}
           </div>

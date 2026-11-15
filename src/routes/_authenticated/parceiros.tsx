@@ -48,9 +48,25 @@ import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { resumoDosParceiros, type ResumoDoParceiro } from "@/lib/parceiro-api";
 import { brl } from "@/domain/parceiros/preco";
 import { sinalDeRetencao } from "@/domain/parceiros/retencao";
+import { AvisosTab } from "@/components/parceiros/avisos-tab";
 
 export const Route = createFileRoute("/_authenticated/parceiros")({
-  head: () => ({ meta: [{ title: "Parceiros — BEX PRINT OS" }] }),
+  head: () => ({
+    meta: [
+      { title: "Parceiros — BEX PRINT OS" },
+      {
+        name: "description",
+        content: "Gestão de parceiros, validação cadastral e avisos da Bex Print.",
+      },
+      { property: "og:title", content: "Parceiros — BEX PRINT OS" },
+      {
+        property: "og:description",
+        content: "Gestão da rede de parceiros e terceirizados da Bex Print.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ParceirosPage,
 });
 
@@ -71,8 +87,13 @@ function ParceirosPage() {
   const [acesso, setAcesso] = useState<ResumoDoParceiro | null>(null);
   const [credito, setCredito] = useState<ResumoDoParceiro | null>(null);
   const [cadastro, setCadastro] = useState<ResumoDoParceiro | null>(null);
+  const [aValidar, setAValidar] = useState(false);
 
-  const { data: parceiros = [], isLoading, error } = useQuery({
+  const {
+    data: parceiros = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["parceiros-resumo"],
     queryFn: resumoDosParceiros,
   });
@@ -93,7 +114,11 @@ function ParceirosPage() {
     () =>
       parceiros
         .map((p) => ({ parceiro: p, sinal: sinalDeRetencao(p) }))
-        .sort((a, b) => b.sinal.urgencia - a.sinal.urgencia || a.parceiro.nome.localeCompare(b.parceiro.nome, "pt-BR")),
+        .sort(
+          (a, b) =>
+            b.sinal.urgencia - a.sinal.urgencia ||
+            a.parceiro.nome.localeCompare(b.parceiro.nome, "pt-BR"),
+        ),
     [parceiros],
   );
 
@@ -106,7 +131,11 @@ function ParceirosPage() {
       // valor_total é preço de venda: existe nas views comercial e financeiro, não na operacional.
       // Pedir a coluna a uma view que não a tem derruba a consulta inteira (PostgREST).
       const { data, error: erro } = await fromFinancialView("orcamentos", nivelDeVisao)
-        .select(canSeePrices ? "id, numero, titulo, cliente_id, created_at, valor_total" : "id, numero, titulo, cliente_id, created_at")
+        .select(
+          canSeePrices
+            ? "id, numero, titulo, cliente_id, created_at, valor_total"
+            : "id, numero, titulo, cliente_id, created_at",
+        )
         .in("cliente_id", clientes)
         .eq("status", "aprovado")
         .is("os_id", null)
@@ -118,7 +147,9 @@ function ParceirosPage() {
 
   const ativos = parceiros.filter((p) => p.status === "ativo");
   const semLogin = ativos.filter((p) => !p.usuario_email).length;
-  const emRisco = comSinal.filter((x) => ["esfriando", "parado", "sem_compra"].includes(x.sinal.chave)).length;
+  const emRisco = comSinal.filter((x) =>
+    ["esfriando", "parado", "sem_compra"].includes(x.sinal.chave),
+  ).length;
   const aEntregar = parceiros.reduce((s, p) => s + Number(p.conquistas_a_entregar || 0), 0);
   const compras30 = parceiros.reduce((s, p) => s + Number(p.compras_30d || 0), 0);
   const nomePorCliente = new Map(parceiros.map((p) => [p.cliente_id, p.nome]));
@@ -149,6 +180,7 @@ function ParceirosPage() {
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="rede">Rede</TabsTrigger>
+            <TabsTrigger value="avisos">Avisos</TabsTrigger>
             <TabsTrigger value="metas">Metas</TabsTrigger>
             <TabsTrigger value="ofertas">Ofertas</TabsTrigger>
             <TabsTrigger value="niveis">Níveis</TabsTrigger>
@@ -162,7 +194,10 @@ function ParceirosPage() {
 
         <TabsContent value="rede" className="space-y-6 pt-4">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Dica texto="Parceiros com o painel liberado. Suspenso e encerrado ficam de fora." className="w-full">
+            <Dica
+              texto="Parceiros com o painel liberado. Suspenso e encerrado ficam de fora."
+              className="w-full"
+            >
               <KpiCard
                 className="w-full"
                 label="Parceiros ativos"
@@ -181,11 +216,26 @@ function ParceirosPage() {
                 tone="magenta"
               />
             </Dica>
-            <Dica texto="Sem comprar há mais de 30 dias, ou cadastrados há tempo e sem nenhum pedido. É a fila de quem ligar primeiro." className="w-full">
-              <KpiCard className="w-full" label="Esfriando ou parados" value={emRisco} icon={AlertTriangle} tone={emRisco > 0 ? "amber" : "muted"} />
+            <Dica
+              texto="Sem comprar há mais de 30 dias, ou cadastrados há tempo e sem nenhum pedido. É a fila de quem ligar primeiro."
+              className="w-full"
+            >
+              <KpiCard
+                className="w-full"
+                label="Esfriando ou parados"
+                value={emRisco}
+                icon={AlertTriangle}
+                tone={emRisco > 0 ? "amber" : "muted"}
+              />
             </Dica>
             <Dica texto={dicaAcao("/parceiros", "entregar recompensa")} className="w-full">
-              <KpiCard className="w-full" label="Recompensas a entregar" value={aEntregar} icon={Trophy} tone={aEntregar > 0 ? "amber" : "muted"} />
+              <KpiCard
+                className="w-full"
+                label="Recompensas a entregar"
+                value={aEntregar}
+                icon={Trophy}
+                tone={aEntregar > 0 ? "amber" : "muted"}
+              />
             </Dica>
           </div>
 
@@ -198,7 +248,11 @@ function ParceirosPage() {
           {pedidosParaOs.length > 0 && (
             <section className="rounded-xl border border-[color:var(--bex-cyan)]/40 bg-[color:var(--bex-cyan)]/5 p-4">
               <p className="font-semibold">
-                {pedidosParaOs.length} {pedidosParaOs.length === 1 ? "pedido de parceiro espera" : "pedidos de parceiros esperam"} virar OS
+                {pedidosParaOs.length}{" "}
+                {pedidosParaOs.length === 1
+                  ? "pedido de parceiro espera"
+                  : "pedidos de parceiros esperam"}{" "}
+                virar OS
               </p>
               <ul className="mt-2 divide-y divide-border text-sm">
                 {pedidosParaOs.map((o) => (
@@ -226,97 +280,135 @@ function ParceirosPage() {
               <Skeleton className="h-24" />
             </div>
           ) : error ? (
-            <p className="rounded-lg border border-border p-6 text-sm text-muted-foreground">{mensagemErro(error)}</p>
+            <p className="rounded-lg border border-border p-6 text-sm text-muted-foreground">
+              {mensagemErro(error)}
+            </p>
           ) : parceiros.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-10 text-center">
               <Handshake className="mx-auto h-10 w-10 text-muted-foreground" />
               <p className="mt-3 font-semibold">Nenhum parceiro ainda</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                Antes do primeiro: revise a aba Níveis. Depois cadastre o parceiro a partir de um cliente e crie o
-                login dele — o painel já abre com a tabela do nível.
+                Antes do primeiro: revise a aba Níveis. Depois cadastre o parceiro a partir de um
+                cliente e crie o login dele — o painel já abre com a tabela do nível.
               </p>
             </div>
           ) : (
-            <ul className="space-y-3">
-              {comSinal.map(({ parceiro: p, sinal }) => (
-                <li key={p.id} className="rounded-xl border border-border bg-card p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-base font-semibold">{p.nome}</p>
-                        {p.nivel?.nome && (
-                          <span
-                            className="rounded-full border px-2 py-0.5 text-xs font-medium"
-                            style={{ borderColor: p.nivel.cor ?? undefined, color: p.nivel.cor ?? undefined }}
-                          >
-                            {p.nivel.nome}
-                            {p.nivel.fixado ? " · garantido" : ""}
-                          </span>
-                        )}
-                        <StatusChip label={sinal.rotulo} tone={sinal.tom} />
+            <div className="space-y-3">
+              <Button
+                variant={aValidar ? "default" : "outline"}
+                onClick={() => setAValidar((v) => !v)}
+                aria-pressed={aValidar}
+              >
+                A validar
+              </Button>
+              <ul className="space-y-3">
+                {comSinal
+                  .filter(({ parceiro: p }) => !aValidar || !ramoPorId.get(p.id)?.validado_em)
+                  .map(({ parceiro: p, sinal }) => (
+                    <li key={p.id} className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-base font-semibold">{p.nome}</p>
+                            {p.nivel?.nome && (
+                              <span
+                                className="rounded-full border px-2 py-0.5 text-xs font-medium"
+                                style={{
+                                  borderColor: p.nivel.cor ?? undefined,
+                                  color: p.nivel.cor ?? undefined,
+                                }}
+                              >
+                                {p.nivel.nome}
+                                {p.nivel.fixado ? " · garantido" : ""}
+                              </span>
+                            )}
+                            <StatusChip label={sinal.rotulo} tone={sinal.tom} />
+                          </div>
+                          <p className="mt-0.5 text-sm text-muted-foreground">{sinal.detalhe}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            Cliente {p.cliente_nome}
+                            {p.responsavel_nome
+                              ? ` · atende ${p.responsavel_nome}`
+                              : " · sem atendente"}
+                            {p.usuario_email ? ` · login ${p.usuario_email}` : " · sem login"}
+                          </p>
+                          <RamoDoParceiroLinha
+                            dados={ramoPorId.get(p.id)}
+                            podeValidar={podeEditar}
+                          />
+                        </div>
+                        {podeEditar ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" aria-label={`Ações de ${p.nome}`}>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onSelect={() => setAcesso(p)}>
+                                <KeyRound className="mr-2 h-4 w-4" />{" "}
+                                {p.usuario_email ? "Trocar login" : "Dar acesso ao painel"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => setCredito(p)}>
+                                <Coins className="mr-2 h-4 w-4" /> Ajustar crédito
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => setCadastro(p)}>
+                                {p.status === "ativo" ? (
+                                  <Settings2 className="mr-2 h-4 w-4" />
+                                ) : (
+                                  <UserX className="mr-2 h-4 w-4" />
+                                )}
+                                Atendente, nível e situação
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link to="/clientes/$id" params={{ id: p.cliente_id }}>
+                                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir cliente
+                                </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : null}
                       </div>
-                      <p className="mt-0.5 text-sm text-muted-foreground">{sinal.detalhe}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Cliente {p.cliente_nome}
-                        {p.responsavel_nome ? ` · atende ${p.responsavel_nome}` : " · sem atendente"}
-                        {p.usuario_email ? ` · login ${p.usuario_email}` : " · sem login"}
-                      </p>
-                      <RamoDoParceiroLinha dados={ramoPorId.get(p.id)} podeValidar={podeEditar} />
-                    </div>
-                    {podeEditar ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" aria-label={`Ações de ${p.nome}`}>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => setAcesso(p)}>
-                            <KeyRound className="mr-2 h-4 w-4" /> {p.usuario_email ? "Trocar login" : "Dar acesso ao painel"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => setCredito(p)}>
-                            <Coins className="mr-2 h-4 w-4" /> Ajustar crédito
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => setCadastro(p)}>
-                            {p.status === "ativo" ? <Settings2 className="mr-2 h-4 w-4" /> : <UserX className="mr-2 h-4 w-4" />}
-                            Atendente, nível e situação
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link to="/clientes/$id" params={{ id: p.cliente_id }}>
-                              <ExternalLink className="mr-2 h-4 w-4" /> Abrir cliente
-                            </Link>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : null}
-                  </div>
 
-                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3 lg:grid-cols-6">
-                    <Metrica rotulo="Compras 30 dias" valor={p.compras_30d == null ? "—" : brl(p.compras_30d)} />
-                    <Metrica rotulo="Orçamentos 30 dias" valor={String(p.orcamentos_30d)} />
-                    <Metrica
-                      rotulo="m² orçados 30 dias"
-                      valor={Number(p.metragem_orcada_30d).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
-                    />
-                    <Metrica rotulo="Pedidos 30 dias" valor={String(p.pedidos_30d)} />
-                    <Metrica rotulo="Crédito" valor={brl(p.saldo_credito)} />
-                    <Metrica
-                      rotulo="Último acesso"
-                      valor={p.ultimo_acesso_em ? new Date(p.ultimo_acesso_em).toLocaleDateString("pt-BR") : "nunca"}
-                    />
-                  </dl>
-                </li>
-              ))}
-            </ul>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3 lg:grid-cols-6">
+                        <Metrica
+                          rotulo="Compras 30 dias"
+                          valor={p.compras_30d == null ? "—" : brl(p.compras_30d)}
+                        />
+                        <Metrica rotulo="Orçamentos 30 dias" valor={String(p.orcamentos_30d)} />
+                        <Metrica
+                          rotulo="m² orçados 30 dias"
+                          valor={Number(p.metragem_orcada_30d).toLocaleString("pt-BR", {
+                            maximumFractionDigits: 1,
+                          })}
+                        />
+                        <Metrica rotulo="Pedidos 30 dias" valor={String(p.pedidos_30d)} />
+                        <Metrica rotulo="Crédito" valor={brl(p.saldo_credito)} />
+                        <Metrica
+                          rotulo="Último acesso"
+                          valor={
+                            p.ultimo_acesso_em
+                              ? new Date(p.ultimo_acesso_em).toLocaleDateString("pt-BR")
+                              : "nunca"
+                          }
+                        />
+                      </dl>
+                    </li>
+                  ))}
+              </ul>
+            </div>
           )}
           <p className="text-xs text-muted-foreground">
-            Orçamentos e m² contam o que o parceiro orçou no painel dele — quanto trabalho ele está fazendo. Quem são os
-            clientes dele não aparece aqui: a carteira é do parceiro.
+            Orçamentos e m² contam o que o parceiro orçou no painel dele — quanto trabalho ele está
+            fazendo. Quem são os clientes dele não aparece aqui: a carteira é do parceiro.
           </p>
         </TabsContent>
 
         <TabsContent value="metas" className="pt-4">
           <MetasTab podeEditar={podeEditar} />
+        </TabsContent>
+        <TabsContent value="avisos" className="pt-4">
+          <AvisosTab podeEditar={podeEditar} />
         </TabsContent>
         <TabsContent value="ofertas" className="pt-4">
           <OfertasTab podeEditar={podeEditar} />
@@ -342,7 +434,10 @@ function ParceirosPage() {
         onOpenChange={setNovo}
         onCriado={async (id) => {
           // o passo seguinte natural é o login: abre direto, sem caçar na lista
-          const lista = await qc.fetchQuery({ queryKey: ["parceiros-resumo"], queryFn: resumoDosParceiros });
+          const lista = await qc.fetchQuery({
+            queryKey: ["parceiros-resumo"],
+            queryFn: resumoDosParceiros,
+          });
           const criado = lista.find((x) => x.id === id);
           if (criado) setAcesso(criado);
         }}
