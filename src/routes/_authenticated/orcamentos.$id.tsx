@@ -148,6 +148,7 @@ import {
 } from "@/components/orcamento/desconto-do-orcamento";
 import { gerarLinkPublicoOrcamento } from "@/lib/api/orcamento-publico.functions";
 import { StatusChip } from "@/components/bex/StatusChip";
+import { bloqueioDeAreaSemPreco } from "@/domain/orcamentos/trava-de-area-sem-preco";
 import {
   areaCobrada,
   areaUnitaria,
@@ -599,6 +600,13 @@ function OrcamentoDetailPage() {
     vendidoPorArea && precoM2Form > 0
       ? valorUnitarioComMinimo(dimensoesForm, precoM2Form, form.area_minima)
       : null;
+  // m² com largura e altura e sem preço por m² escapa da fórmula: bloqueia aqui e no salvar.
+  const bloqueioM2SemPreco = bloqueioDeAreaSemPreco({
+    unidade: form.unidade,
+    item: dimensoesForm,
+    precoM2: precoM2Form,
+    podeEditarPreco: canSeePrices,
+  });
   const areaFaturada = vendidoPorArea ? areaCobrada(dimensoesForm, form.area_minima) : 0;
 
   // O que já está preenchido nos detalhes opcionais aparece no título, mesmo fechado.
@@ -986,6 +994,7 @@ function OrcamentoDetailPage() {
     if (vendidoPorArea && areaUnitaria(dimensoesForm) <= 0) {
       return toast.error("Largura e altura devem ser maiores que zero.");
     }
+    if (bloqueioM2SemPreco) return toast.error(bloqueioM2SemPreco);
     // O material por fórmula vai por cima do que o item tinha: com a consulta das fórmulas ainda
     // pendente ou falha, a lista "válida" é vazia por falta de dado e o Salvar apagaria o custo delas.
     const leituraDasFormulas: LeituraDasFormulas = formulasDoItem.isSuccess ? "ok" : formulasDoItem.isError ? "erro" : "pendente";
@@ -2067,6 +2076,11 @@ function OrcamentoDetailPage() {
                     {/* Passo 4: preço, margem, detalhes e a conferência. */}
                     <div className={passoDoItem === 4 ? "space-y-4" : "hidden"} data-testid="passo-preco">
 
+                    {bloqueioM2SemPreco && (
+                      <p role="alert" data-testid="aviso-m2-sem-preco" className="text-base text-red-700 dark:text-red-400">
+                        {bloqueioM2SemPreco}
+                      </p>
+                    )}
                     {/* Preço de venda: o vendedor digita. Custo fica atrás de canSeeFinancials. */}
                     {(canSeePrices || canSeeFinancials) && (
                       <div className="grid grid-cols-12 gap-2 items-end">
@@ -2392,7 +2406,8 @@ function OrcamentoDetailPage() {
                             continuarLancando.current = true;
                             void salvarItem();
                           }}
-                          disabled={salvandoItem}
+                          className="min-h-11"
+                          disabled={salvandoItem || !!bloqueioM2SemPreco}
                         >
                           Adicionar e lançar outro
                         </Button>
@@ -2403,7 +2418,8 @@ function OrcamentoDetailPage() {
                           continuarLancando.current = false;
                           void salvarItem();
                         }}
-                        disabled={salvandoItem}
+                        className="min-h-11"
+                        disabled={salvandoItem || !!bloqueioM2SemPreco}
                       >
                         {salvandoItem ? (
                           <Loader2 className="h-4 w-4 mr-1 animate-spin" />

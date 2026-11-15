@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { mensagemErro } from "@/lib/erros";
 import { EnviarComprovanteDoCliente } from "@/components/pagamento/enviar-comprovante-do-cliente";
 import { LOGO_FUNDO_CLARO } from "@/lib/marca";
+import { dinheiroDaUnidade } from "@/lib/pdf/formato";
 import {
   obterOrcamentoPublico,
   responderOrcamentoPublico,
@@ -152,7 +153,7 @@ function OrcamentoPublicoPage() {
                   <div className="text-right shrink-0">
                     <div className="font-mono">{real(i.valor_total)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {real(i.valor_unitario)} un.
+                      {dinheiroDaUnidade(i.valor_unitario, i.quantidade, i.valor_total)} un.
                     </div>
                   </div>
                 </div>

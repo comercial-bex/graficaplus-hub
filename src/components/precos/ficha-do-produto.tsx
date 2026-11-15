@@ -12,6 +12,7 @@ import { Dica } from "@/components/bex/Dica";
 import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
 import { categoriaLabel } from "@/lib/produtos-catalogo";
 import {
+  pisoDaMargem,
   fatiasDoCusto,
   fichaDoProduto,
   lucroPorUnidade,
@@ -42,10 +43,7 @@ export function marcadoresDaLinha(l: Linha, piso: number | null): Marcador[] {
   return m;
 }
 
-export function pisoDaMargem(custo: number | null, margemMinima: number | null): number | null {
-  if (custo == null || custo <= 0 || margemMinima == null || margemMinima <= 0 || margemMinima >= 100) return null;
-  return Math.round((custo / (1 - margemMinima / 100)) * 100) / 100;
-}
+export { pisoDaMargem };
 
 export function FichaDoProduto({
   linha,

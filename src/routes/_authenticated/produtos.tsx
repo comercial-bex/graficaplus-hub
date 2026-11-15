@@ -93,6 +93,7 @@ import { GerarFotosQueFaltam } from "@/components/produtos/gerar-fotos-que-falta
 import { MiniaturaDoProduto } from "@/components/produtos/miniatura-do-produto";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { avisoDeMargem, fraseDoPiso } from "@/domain/precos/texto-da-margem";
 import { abasDoProduto, avisoDaFicha, sinalDoPreco, type AbaDoProduto } from "@/domain/catalogo/abas-do-produto";
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 import { mensagemErro } from "@/lib/erros";
@@ -1261,15 +1262,17 @@ function ProdutoFormDialog({
                     {formatBRL(preco - custo)}
                   </div>
                 </div>
-                {status === "ruim" && (
-                  <div className="col-span-3 text-xs text-red-600">
-                    ⚠ Margem abaixo do mínimo definido ({minima}%). Reveja o preço
-                    ou o custo.
+                {fraseDoPiso(custo, minima) && (
+                  <div className="col-span-3 text-base" data-testid="piso-do-produto">
+                    Piso de preço: {fraseDoPiso(custo, minima)}.
                   </div>
                 )}
-                {status === "alerta" && (
-                  <div className="col-span-3 text-xs text-amber-600">
-                    Margem perto do limite mínimo ({minima}%).
+                {avisoDeMargem(status, minima) && (
+                  <div
+                    className={`col-span-3 text-base ${status === "ruim" ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"}`}
+                    role="alert"
+                  >
+                    {avisoDeMargem(status, minima)}
                   </div>
                 )}
               </div>

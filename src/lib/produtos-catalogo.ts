@@ -79,14 +79,26 @@ export function calcMarkup(custo: number, preco: number) {
   return preco / custo;
 }
 
+/**
+ * Folga do amarelo, em pontos percentuais acima da margem mínima. Margem de
+ * 40 com mínimo de 40 até 42,99 é amarela: cumpre o piso, mas qualquer
+ * desconto ou alta de custo derruba. Antes o amarelo perdoava 10 pontos
+ * ABAIXO do mínimo e pintava de amarelo serviços vendidos abaixo do piso.
+ */
+export const FOLGA_DA_MARGEM = 3;
+
+/**
+ * Abaixo do mínimo é sempre vermelho. Amarelo só para quem cumpre o mínimo
+ * com folga menor que FOLGA_DA_MARGEM pontos. Verde acima disso.
+ */
 export function margemStatus(
   margem: number | null,
   minima: number,
 ): "ok" | "alerta" | "ruim" | "vazio" {
   if (margem === null) return "vazio";
-  if (margem >= minima) return "ok";
-  if (margem >= minima - 10) return "alerta";
-  return "ruim";
+  if (margem < minima) return "ruim";
+  if (margem < minima + FOLGA_DA_MARGEM) return "alerta";
+  return "ok";
 }
 
 export function formatBRL(v: number | null | undefined) {
