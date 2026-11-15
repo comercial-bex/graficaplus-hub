@@ -510,6 +510,10 @@ export const dicas = {
       sugestao: "Três caminhos, cada um com a conta: Bater = concorrente mais barato − R$ 1,50; Igualar = o mesmo preço; Piso = custo ÷ (1 − margem mínima do produto), o menor preço que ainda respeita a margem mínima. Em vermelho, quando a margem fica abaixo do mínimo do produto. Nada é gravado: é uma sugestão.",
     },
   },
+  "/precos-pendentes": {
+    menu: "Preços que o sistema acha errados, com o piso e a margem em barras, para aprovar ou recusar.",
+    tela: "Cada cartão é um produto com preço abaixo do piso ou longe da referência de metro quadrado. Três barras na mesma escala mostram o piso da margem, a margem de hoje e a margem se o preço novo for aprovado. Vermelho é abaixo do piso, amarelo é perto e verde é acima. Toque no ponto de interrogação de cada barra para ler o que ela quer dizer. Aprovar grava o preço novo no produto e não mexe em orçamento. Recusar pede o motivo. Só administrador e gerente decidem; quem não vê custo não abre a tela.",
+  },
   "/vendas-diretas": {
     menu: "Compras dos parceiros direto com a gráfica.",
     tela: "Cada compra direta de parceiro, com o total recalculado pela tabela do nível dele e a forma de pagamento: sinal de 50% (metade agora, restante na entrega) ou à vista. Com OS aberta, o link leva à produção; sem OS, converta o pedido em Orçamentos.",

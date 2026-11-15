@@ -176,6 +176,7 @@ describe("a árvore cobre o mapa de rotas, e o mapa cobre a árvore", () => {
       "/planilha-custos",
       "/custos-producao",
       "/tabela-de-precos",
+      "/precos-pendentes",
       "/precificacao",
     ]);
     expect(nomeDaTela("/processos")).toBe("Processos");
