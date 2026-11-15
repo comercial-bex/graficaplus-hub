@@ -23,7 +23,7 @@ import { duracaoEmPalavras, linhaDoTempo } from "../src/domain/os/linha-do-tempo
  *    não pôde (42501).
  */
 
-const SQL = readFileSync("supabase/migrations/20261115100000_maquina_na_fila_e_validacao_sem_atalho.sql", "utf8");
+const SQL = readFileSync("supabase/migrations/20261115140000_maquina_na_fila_e_validacao_sem_atalho.sql", "utf8");
 const FICHA = readFileSync("src/components/kanban/ficha-da-os.tsx", "utf8");
 const MAQUINA = readFileSync("src/components/kanban/maquina-da-os.tsx", "utf8");
 const KANBAN = readFileSync("src/routes/_authenticated/kanban.tsx", "utf8");
