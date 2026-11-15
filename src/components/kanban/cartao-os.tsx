@@ -8,7 +8,7 @@ import { areaEmTexto, resumoDaProducao } from "@/domain/os/o-que-produzir";
 import { etapaDe, faltaEmPalavras } from "@/domain/os/etapas";
 import { paradaHa, prazoEmPalavras } from "@/domain/os/prazo";
 import { semCapa, separarArquivos } from "@/domain/os/arquivos-da-os";
-import { Check, FileImage, Layers, Lock, Minus } from "lucide-react";
+import { Check, FileImage, Layers, Lock, Minus, UserRound } from "lucide-react";
 import { SeloDaMaquina } from "@/components/kanban/icone-da-maquina";
 import { TrilhaDaOs } from "@/components/kanban/trilha-da-os";
 import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
@@ -53,6 +53,7 @@ export function CartaoOs({
   bloqueios = [],
   dragging,
   onAbrir,
+  agora = null,
 }: {
   os: any;
   /** Vê preço de venda. O cartão só mostra o valor da OS — nunca custo nem margem. */
@@ -60,6 +61,8 @@ export function CartaoOs({
   bloqueios?: BloqueioOs[];
   dragging?: boolean;
   onAbrir?: () => void;
+  /** O próximo passo e com quem está (calculado no quadro: `quemFazAgora` + `comQuem`). */
+  agora?: { passo: string; comQuem: string; comigo: boolean } | null;
 }) {
   const prazo = prazoEmPalavras(os.prazo_entrega);
   const atrasada = prazo?.tom === "magenta";
@@ -150,8 +153,21 @@ export function CartaoOs({
           </div>
         )}
 
-        {/* Onde está: a trilha das seis etapas, e o passo exato dentro da etapa. */}
+        {/* Onde está: a trilha das etapas, e o passo exato dentro da etapa. */}
         <TrilhaDaOs status={os.status} compacta />
+
+        {/* Com quem está o próximo passo (15/11/2026) — o quadro calcula e passa pronto. */}
+        {agora && (
+          <div
+            className={`flex items-center gap-1.5 text-xs ${agora.comigo ? "font-medium text-[color:var(--status-positive)]" : "text-muted-foreground"}`}
+          >
+            <UserRound className="h-3 w-3 shrink-0" aria-hidden />
+            <span className="truncate">
+              <span className="sr-only">{agora.passo}: </span>
+              {agora.comQuem}
+            </span>
+          </div>
+        )}
 
         {(maquina || parada) && (
           <div className="flex flex-wrap items-center gap-1.5 text-xs md:text-xs">

@@ -76,6 +76,8 @@ const ASSINATURAS: Record<string, string[]> = {
   mandar_para_fila_de_producao: ["p_os_id", "p_operador_id"],
   definir_operador_da_os: ["p_os_id", "p_operador_id"],
   equipe_da_producao: [],
+  // Migração 20261115100000: o operador põe a OS na fila de uma máquina (ficha do quadro).
+  definir_maquina_da_os: ["p_os_id", "p_maquina_id"],
   // Migração 20260916120000 (clube de parceiros), conferidas no Postgres em 16/09/2026.
   parceiro_ajustar_credito: ["p_parceiro_id", "p_valor", "p_descricao"],
   parceiro_catalogo: [],

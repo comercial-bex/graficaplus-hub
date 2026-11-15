@@ -52,9 +52,14 @@ import {
   TrocarOperador,
   ValidarAtendimento,
   ValidarAtendimentoDialog,
+  useEquipeDaProducao,
+  usePedidosAoGestor,
 } from "@/components/kanban/aval-do-gestor";
+import { MaquinaDaOs } from "@/components/kanban/maquina-da-os";
+import { LinhaDoTempoDaOs } from "@/components/kanban/linha-do-tempo-da-os";
+import { comQuem, quemFazAgora } from "@/domain/os/quem-faz-agora";
 import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
-import { ehGestor } from "@/domain/os/equipe-da-producao";
+import { ehGestor, primeiroNome } from "@/domain/os/equipe-da-producao";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -154,8 +159,11 @@ export function FichaDaOs({
   const [aceiteAberto, setAceiteAberto] = useState(false);
   const [validarAberto, setValidarAberto] = useState(false);
   const [operadorAberto, setOperadorAberto] = useState(false);
-  const { roles } = useAuth();
+  const { roles, user } = useAuth();
   const gestor = ehGestor(roles);
+  // Quem faz o próximo passo (15/11/2026): os pedidos ao gestor e os nomes da equipe.
+  const pedidosAoGestor = usePedidosAoGestor();
+  const equipeDaOs = useEquipeDaProducao(aberto);
   const { impressao, versoesAnteriores, mockups, anexos } = separarArquivos(os?.arquivos as ArquivoDaOs[] | undefined);
   const todos = [...impressao, ...versoesAnteriores, ...mockups, ...anexos];
 
@@ -179,6 +187,14 @@ export function FichaDaOs({
   if (!os) return null;
 
   const etapaAtual = etapaDe(os.status);
+  const agora = quemFazAgora(os, {
+    travas: bloqueios,
+    pedidosAoGestor: (pedidosAoGestor.data ?? []).filter((p) => p.os_id === os.id).map((p) => p.assunto),
+  });
+  const nomeDaPessoa = (id: string) => {
+    const nome = equipeDaOs.data?.find((p) => p.id === id)?.nome;
+    return nome ? primeiroNome(nome) : null;
+  };
   const prazo = prazoEmPalavras(os.prazo_entrega);
   const producao = resumoDaProducao(os.itens);
   const parada = paradaHa(os.ultimo_movimento?.mudou_em ?? os.updated_at);
@@ -421,9 +437,24 @@ export function FichaDaOs({
                     {maquina && <SeloDaMaquina identidade={maquina} />}
                     {parada && <span className="font-mono">· parada há {parada}</span>}
                   </div>
+                  {/* O próximo passo e quem responde por ele (15/11/2026). */}
+                  {agora && (
+                    <p className="mt-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs">
+                      <span className="font-medium text-foreground">Agora: </span>
+                      {agora.passo}
+                      <span className="text-muted-foreground"> — {comQuem(agora, nomeDaPessoa, user?.id)}</span>
+                    </p>
+                  )}
                 </>
               )}
             </Bloco>
+
+            {/* A máquina: o operador escolhe (15/11/2026). */}
+            {(etapaAtual === "fila_producao" || etapaAtual === "producao") && (
+              <Bloco titulo="Máquina">
+                <MaquinaDaOs os={os} />
+              </Bloco>
+            )}
 
             <Bloco titulo={pendentes > 0 ? `Para produzir · falta ${pendentes} de ${condicoes.length}` : "Para produzir · tudo certo"}>
               {(pendentes > 0 || desconhecidas.length > 0) && (
@@ -538,6 +569,10 @@ export function FichaDaOs({
               {os.briefing && (
                 <div className="mt-3 rounded border border-border/60 bg-muted/30 px-2.5 py-2 text-xs leading-relaxed text-muted-foreground">{os.briefing}</div>
               )}
+            </Bloco>
+
+            <Bloco titulo="Quem fez o quê">
+              <LinhaDoTempoDaOs osId={os.id} />
             </Bloco>
 
             <Bloco titulo="Mover para">
