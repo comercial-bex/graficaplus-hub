@@ -5,6 +5,8 @@ import {
   normalizarTelefone,
   telefoneDoParceiro,
   variantesDoTelefone,
+  responsavelSincronizado,
+  temCompraRealAnterior,
 } from "@/domain/parceiros/chamado-do-parceiro";
 
 describe("telefone do parceiro", () => {
@@ -59,5 +61,62 @@ describe("condição do chamado automático", () => {
   it("troca de telefone tenta de novo; nada mudou não dispara", () => {
     expect(deveGarantirChamado({ ...ok, marca_telefone: "62900000000" }, ok)).toBe(true);
     expect(deveGarantirChamado(ok, ok)).toBe(false);
+  });
+  it("redistribuição entre dois atendentes dispara mesmo com telefone igual", () => {
+    expect(deveGarantirChamado(ok, { ...ok, responsavel_id: "u2" })).toBe(true);
+  });
+});
+
+describe("sincronização do responsável X -> Y", () => {
+  const args = { anterior: "X", novo: "Y", atual: "X", aberto: true };
+  it("troca somente onde o responsável atual ainda é X", () => {
+    expect(responsavelSincronizado(args)).toBe("Y");
+  });
+  it("preserva quem a equipe já assumiu", () => {
+    expect(responsavelSincronizado({ ...args, atual: "Z" })).toBe("Z");
+  });
+  it("não modifica atendimento fechado", () => {
+    expect(responsavelSincronizado({ ...args, aberto: false })).toBe("X");
+  });
+  it("não modifica responsável atual vazio na redistribuição", () => {
+    expect(responsavelSincronizado({ ...args, atual: null })).toBeNull();
+  });
+  it("ambos responsáveis precisam ser não nulos", () => {
+    expect(responsavelSincronizado({ ...args, anterior: null })).toBe("X");
+    expect(responsavelSincronizado({ ...args, novo: null })).toBe("X");
+  });
+  it("conversa e atendimento são atualizados independentemente", () => {
+    expect([
+      responsavelSincronizado(args),
+      responsavelSincronizado({ ...args, atual: "Z" }),
+    ]).toEqual(["Y", "Z"]);
+  });
+  it("repetir a redistribuição não troca de novo", () => {
+    expect(responsavelSincronizado({ ...args, atual: "Y" })).toBe("Y");
+  });
+});
+
+describe("primeira compra real — painel ou equipe", () => {
+  const compra = { id: "anterior", cliente_id: "cliente", status: "aprovado" };
+  it.each(["aprovado", "convertido"])("%s da equipe impede entrada", (status) => {
+    expect(temCompraRealAnterior("cliente", [{ ...compra, status }])).toBe(true);
+  });
+  it.each(["rejeitado", "expirado", "rascunho", "enviado", "cancelado"])(
+    "%s não conta como compra",
+    (status) => {
+      expect(temCompraRealAnterior("cliente", [{ ...compra, status }])).toBe(false);
+    },
+  );
+  it("exclui o próprio pedido recém-criado", () => {
+    expect(temCompraRealAnterior("cliente", [compra], "anterior")).toBe(false);
+  });
+  it("outro orçamento do mesmo cliente continua contando", () => {
+    expect(temCompraRealAnterior("cliente", [compra, { ...compra, id: "atual" }], "atual")).toBe(
+      true,
+    );
+  });
+  it("não mistura clientes nem corresponde cliente nulo", () => {
+    expect(temCompraRealAnterior("outro", [compra])).toBe(false);
+    expect(temCompraRealAnterior(null, [{ ...compra, cliente_id: null }])).toBe(false);
   });
 });

@@ -1,15 +1,27 @@
+-- DOCUMENTO DE REVISÃO — fonte executável única (NÃO APLICADA):
+-- supabase/migrations/20261115140000_parceiro_sempre_atendido.sql
+-- Cópia abaixo para conferência; A/B/C e DESFAZER coincidem com o arquivo pronto.
+
 -- =====================================================================================================
--- PROPOSTA — parceiro sempre atendido (seções A e B). NÃO APLICADA. Sem BEGIN/COMMIT.
--- Escrita em 14/11/2026. Não roda backfill, não envia mensagem, não mexe em WhatsApp/triagem/orçamentos.
+-- PROPOSTA — parceiro sempre atendido (seções A, B e C). NÃO APLICADA. Sem BEGIN/COMMIT.
+-- ATENÇÃO: prefixo 20261115140000 já usado por 20261115140000_maquina_na_fila_e_validacao_sem_atalho.sql.
+-- Nome solicitado preservado para revisão; resolver colisão antes de autorizar aplicação.
+-- Revisada em 15/11/2026. NÃO APLICAR sem nova autorização; não rodar backfill nem publicar.
+-- Arquivo pronto: supabase/migrations/20261115140000_parceiro_sempre_atendido.sql.
+-- Não altera funções do WhatsApp/triagem; altera somente as funções de parceiro indicadas em B/C.
 -- Hash = md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) — o mesmo método que dá d8b83a6f… para
 -- parceiro_enviar_pedido.
 --
--- CONFERIDO NO BANCO VIVO (14/11/2026, leitura apenas)
+-- FUNÇÕES E HASHES RECONFERIDOS NO BANCO VIVO (15/11/2026, leitura apenas)
+-- _parceiro_conceder_entrada: f7003bea46eef29008ce69dc21a08168; parceiro_enviar_pedido: d8b83a6fc83e950b63e69c746881e2f8.
+-- Ambas SECURITY DEFINER, search_path=public; ACL preservadas por CREATE OR REPLACE.
+-- Concessão: só service_role; pedido: authenticated + service_role (além do proprietário).
+-- Contagens/instância/atendente abaixo são a fotografia de 14/11, não uma nova medição.
 --  1. _wa_abrir_atendimento: md5 vivo b7cb044a43f39067edada667b581caeb. O corpo vivo é igual ao da
 --     drizzle 0002 (copiado abaixo, só para referência; esta proposta NÃO o altera).
 --     Com origem 'manual' ela não zera responsável nem modo; é idempotente (devolve o aberto).
 --  2. Ela NÃO grava em whatsapp_conversa_eventos (só insere o atendimento e atualiza a conversa).
---  3. Aviso ao grupo (tg_atendimento_avisa_grupo, md5 vivo 271c9edda544d4f703c2f49ac53b1e4f): a
+--  3. Aviso ao grupo (tg_atendimento_avisa_grupo, md5 vivo b9c0b4f7ba5d698552138ab05d29fc3e): a
 --     primeira linha é `IF v_grupo IS NULL OR NEW.origem_abertura::text = 'manual' THEN RETURN NEW`.
 --     ATENÇÃO: um atendimento aberto como 'manual' NÃO gera aviso nenhum. Se gerasse (origem não
 --     manual), com tipo_contato 'parceiro' + origem_do_tipo 'telefone' o título seria "🤝 PARCEIRO" e o
@@ -28,11 +40,8 @@
 --  8. parceiro_programa.atendente_padrao_id está preenchido com usuário ativo (o gatilho da seção B
 --     não trava a tabela no estado atual).
 --
--- DECISÃO PENDENTE (dono): o aviso ao grupo NÃO sai com 'manual'. Para sair sem tocar no aviso,
--- a alternativa seria abrir com 'mensagem_recebida' — mas aí, em conversa com atendimento anterior,
--- _wa_abrir_atendimento grava 'reaberto', zera o responsável e volta o modo para 'auto'. Não recomendo.
--- Recomendação: manter 'manual' e, se o grupo precisar saber, uma linha no aviso aceitando
--- 'manual' + tipo_contato 'parceiro' (exige liberar mudança em função do WhatsApp).
+-- DECISÃO CONFIRMADA (15/11): manter origem 'manual' e o aviso ao grupo intacto.
+-- Atendimentos manuais continuam gerando 0 avisos ao grupo e 0 mensagens ao parceiro.
 -- =====================================================================================================
 
 -- Referência: corpo vivo de _wa_abrir_atendimento (NÃO é executado; está comentado).
@@ -155,20 +164,60 @@ COMMENT ON FUNCTION public._parceiro_garantir_chamado(uuid) IS
 
 CREATE OR REPLACE FUNCTION public.tg_parceiro_chamado()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_n text;
+  v_conv uuid;
 BEGIN
-  -- Condição: ativo + responsável (+ celular válido, conferido dentro da função). Login não é exigido.
-  IF NEW.status = 'ativo' AND NEW.responsavel_id IS NOT NULL
-     AND (TG_OP = 'INSERT'
-          OR OLD.status IS DISTINCT FROM 'ativo'
-          OR OLD.responsavel_id IS NULL
-          OR OLD.marca_telefone IS DISTINCT FROM NEW.marca_telefone) THEN
-    PERFORM public._parceiro_garantir_chamado(NEW.id);
+  -- Ativo + responsável + celular válido; login não é exigido.
+  IF NEW.status = 'ativo' AND NEW.responsavel_id IS NOT NULL THEN
+    IF TG_OP = 'UPDATE' THEN
+      IF OLD.responsavel_id IS NOT NULL
+         AND OLD.responsavel_id IS DISTINCT FROM NEW.responsavel_id THEN
+        v_n := public._parceiro_celular(NEW.id);
+        IF v_n IS NULL THEN RETURN NULL; END IF;
+        -- Mesmo critério da função de garantia; não abre/reabre para redistribuir.
+        SELECT w.id INTO v_conv
+          FROM public.whatsapp_conversas w
+          LEFT JOIN public.whatsapp_instancias i ON i.id = w.instancia_id
+         WHERE w.telefone_normalizado = v_n
+         ORDER BY (i.ativa IS TRUE) DESC, w.ultima_mensagem_at DESC NULLS LAST
+         LIMIT 1;
+        -- Atualizações independentes e condicionais: preservar quem a equipe já assumiu.
+        UPDATE public.whatsapp_atendimentos
+           SET responsavel_id = NEW.responsavel_id
+         WHERE conversa_id = v_conv AND fechado_em IS NULL
+           AND responsavel_id = OLD.responsavel_id;
+        UPDATE public.whatsapp_conversas
+           SET responsavel_id = NEW.responsavel_id
+         WHERE id = v_conv AND responsavel_id = OLD.responsavel_id;
+        -- Sem chamado aberto (ou sem conversa), garantir normalmente.
+        IF NOT EXISTS (SELECT 1 FROM public.whatsapp_atendimentos
+                        WHERE conversa_id = v_conv AND fechado_em IS NULL) THEN
+          PERFORM public._parceiro_garantir_chamado(NEW.id);
+        END IF;
+      ELSIF OLD.status IS DISTINCT FROM 'ativo'
+         OR OLD.responsavel_id IS NULL
+         OR OLD.marca_telefone IS DISTINCT FROM NEW.marca_telefone THEN
+        PERFORM public._parceiro_garantir_chamado(NEW.id);
+      END IF;
+    ELSE
+      PERFORM public._parceiro_garantir_chamado(NEW.id);
+    END IF;
   END IF;
   RETURN NULL;
 EXCEPTION WHEN OTHERS THEN
   RAISE WARNING 'gatilho do chamado do parceiro % falhou: %', NEW.id, SQLERRM;
   RETURN NULL;
 END $$;
+-- TESTE DE MESA (dados fictícios; não executar em produção): parceiro ativo X -> Y.
+-- atendimento ABERTO=X, conversa=X: ambos Y; mesmo atendimento/id, sem novo chamado.
+-- atendimento ABERTO=Z, conversa=Z (equipe assumiu): ambos Z, nenhuma troca.
+-- atendimento ABERTO=X, conversa=Z: somente atendimento Y; conversa Z preservada.
+-- atendimento ABERTO=Z, conversa=X: somente conversa Y; atendimento Z preservado.
+-- responsável atual NULL: não sincroniza NULL -> Y; fechado_em preenchido: histórico intacto.
+-- sem atendimento aberto: garantir chamado normalmente; repetir Y -> Y não faz nada.
+-- X/NULL ou NULL/Y não são redistribuição; NULL/Y continua garantindo chamado.
+-- parceiro inativo ou celular inválido: nada muda; erro: WARNING, cadastro não cai.
 REVOKE ALL ON FUNCTION public.tg_parceiro_chamado() FROM PUBLIC, anon, authenticated;
 
 CREATE TRIGGER tg_parceiro_chamado
@@ -182,13 +231,6 @@ CREATE TRIGGER tg_parceiro_chamado
 -- SELECT p.id, public._parceiro_garantir_chamado(p.id)
 --   FROM public.parceiros p
 --  WHERE p.status = 'ativo' AND p.responsavel_id IS NOT NULL;
-
--- ----- DESFAZER A -----
--- DROP TRIGGER IF EXISTS tg_parceiro_chamado ON public.parceiros;
--- DROP FUNCTION IF EXISTS public.tg_parceiro_chamado();
--- DROP FUNCTION IF EXISTS public._parceiro_garantir_chamado(uuid);
--- DROP FUNCTION IF EXISTS public._parceiro_celular(uuid);
--- (Conversas/atendimentos já abertos ficam: são atendimento normal da caixa.)
 
 -- =====================================================================================================
 -- SEÇÃO B — NUNCA SEM ATENDENTE
@@ -213,8 +255,8 @@ CREATE TRIGGER tg_parceiro_programa_exige_atendente
   BEFORE UPDATE ON public.parceiro_programa
   FOR EACH ROW EXECUTE FUNCTION public.tg_parceiro_programa_exige_atendente();
 
--- parceiro_enviar_pedido: md5 vivo d8b83a6fc83e950b63e69c746881e2f8. Única mudança: o bloco marcado
--- [sempre-atendido] antes da recusa. Atenção: o UPDATE do responsável dispara tg_parceiro_entrada
+-- parceiro_enviar_pedido: md5 vivo d8b83a6fc83e950b63e69c746881e2f8. Um só corpo: blocos marcados
+-- [sempre-atendido] antes da recusa e [primeira-compra] no teto da entrada. Atenção: o UPDATE do responsável dispara tg_parceiro_entrada
 -- (pode conceder o crédito de entrada nesse momento) e tg_parceiro_chamado (abre o chamado).
 CREATE OR REPLACE FUNCTION public.parceiro_enviar_pedido(p_orcamento_id uuid, p_usar_credito numeric)
  RETURNS jsonb
@@ -377,16 +419,15 @@ BEGIN
     -- [entrada] Teto geral, igual ao de antes (sem linha no programa = 100%).
     SELECT * INTO v_prog FROM public.parceiro_programa WHERE id;
     v_teto_pct := COALESCE(v_prog.credito_max_pct_pedido, 100);
-    -- [entrada] Na 1ª compra (nenhum outro pedido valendo: recusado/expirado devolvem o
-    -- crédito em tg_parceiro_pedido_recusado e não contam) com base >= pedido mínimo,
-    -- o teto sobe para o da entrada. Sempre % de v_base (só produtos, sem a taxa de prazo).
+    -- [primeira-compra] Compra pelo painel OU pela equipe: só aprovado/convertido conta.
+    -- [primeira-compra] Excluir v_orc, criado acima; recusado/expirado não contam.
+    -- [entrada] Com base >= mínimo, teto da entrada; só produtos, sem taxa de prazo.
     IF COALESCE(v_prog.entrada_ativa, false)
        AND v_base >= v_prog.entrada_pedido_minimo
        AND NOT EXISTS (
-         SELECT 1 FROM public.parceiro_orcamentos po
-           JOIN public.orcamentos o ON o.id = po.pedido_orcamento_id
-          WHERE po.parceiro_id = v_parceiro AND po.id <> v_q.id
-            AND o.status::text NOT IN ('rejeitado', 'expirado')) THEN
+         SELECT 1 FROM public.orcamentos o                          -- [primeira-compra]
+          WHERE o.cliente_id = v_p.cliente_id AND o.id <> v_orc       -- [primeira-compra]
+            AND o.status::text IN ('aprovado', 'convertido')) THEN   -- [primeira-compra]
       v_teto_pct := GREATEST(v_teto_pct, v_prog.entrada_max_pct_pedido);
     END IF;
     v_credito := round(LEAST(p_usar_credito, v_saldo, round(v_base * v_teto_pct / 100, 2)), 2);
@@ -414,6 +455,170 @@ BEGIN
   );
 END
 $function$;
+
+-- =====================================================================================================
+-- SEÇÃO C — CRÉDITO DE ENTRADA SOMENTE PARA QUEM NUNCA COMPROU DE VERDADE
+-- Corpo vivo: md5 f7003bea46eef29008ce69dc21a08168 (15/11, mesmo método do topo).
+-- Só acrescenta a recusa depois de 'Já fez pedido'; nenhuma concessão/backfill agora.
+-- A outra mudança de primeira compra está no ÚNICO corpo do pedido da seção B.
+-- =====================================================================================================
+CREATE OR REPLACE FUNCTION public._parceiro_conceder_entrada(p_parceiro_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_prog public.parceiro_programa%ROWTYPE;
+  v_p public.parceiros%ROWTYPE;
+  v_doc text; v_tel text; v_email text;
+BEGIN
+  -- Serializa as concessões: a checagem de documento/telefone/e-mail repetido
+  -- olha OUTROS parceiros, e o índice único só protege o mesmo parceiro.
+  PERFORM pg_advisory_xact_lock(hashtext('parceiro_credito_de_entrada'));
+
+  SELECT * INTO v_prog FROM public.parceiro_programa WHERE id;
+  IF NOT FOUND OR NOT v_prog.entrada_ativa THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Crédito de entrada desligado no programa.');
+  END IF;
+
+  SELECT * INTO v_p FROM public.parceiros WHERE id = p_parceiro_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Parceiro não encontrado.');
+  END IF;
+  IF v_p.status <> 'ativo' OR v_p.usuario_id IS NULL THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Parceiro sem acesso ativo.');
+  END IF;
+  IF v_p.responsavel_id IS NULL THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Sem atendente: o crédito começa a valer quando alguém da gráfica assumir.');
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.parceiro_creditos WHERE parceiro_id = v_p.id AND tipo = 'entrada') THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Já recebeu o crédito de entrada.');
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.parceiro_orcamentos WHERE parceiro_id = v_p.id AND pedido_orcamento_id IS NOT NULL) THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Já fez pedido.');
+  END IF;
+  -- [primeira-compra] Compra pela equipe também impede crédito de entrada.
+  IF EXISTS (SELECT 1 FROM public.orcamentos o
+              WHERE o.cliente_id = v_p.cliente_id
+                AND o.status::text IN ('aprovado', 'convertido')) THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Já compra com a gráfica: o crédito é só para a 1ª compra.');
+  END IF;
+
+  -- Identidade: dados da marca, e na falta deles os do cliente ligado.
+  SELECT regexp_replace(COALESCE(NULLIF(btrim(v_p.marca_documento), ''), c.cpf_cnpj, c.documento, ''), '\D', '', 'g'),
+         regexp_replace(COALESCE(NULLIF(btrim(v_p.marca_telefone), ''), c.whatsapp_principal, c.telefone, ''), '\D', '', 'g'),
+         lower(btrim(COALESCE(NULLIF(btrim(v_p.marca_email), ''), c.email, '')))
+    INTO v_doc, v_tel, v_email
+    FROM (SELECT 1) x LEFT JOIN public.clientes c ON c.id = v_p.cliente_id;
+  v_doc   := CASE WHEN length(v_doc) >= 11 THEN v_doc END;
+  v_tel   := CASE WHEN length(v_tel) >= 10 THEN right(v_tel, 11) END;
+  v_email := NULLIF(v_email, '');
+
+  IF (v_doc IS NOT NULL OR v_tel IS NOT NULL OR v_email IS NOT NULL) AND EXISTS (
+    SELECT 1
+      FROM public.parceiro_creditos pc
+      JOIN public.parceiros o ON o.id = pc.parceiro_id
+      LEFT JOIN public.clientes c ON c.id = o.cliente_id
+      CROSS JOIN LATERAL (SELECT
+        regexp_replace(COALESCE(NULLIF(btrim(o.marca_documento), ''), c.cpf_cnpj, c.documento, ''), '\D', '', 'g') AS doc,
+        regexp_replace(COALESCE(NULLIF(btrim(o.marca_telefone), ''), c.whatsapp_principal, c.telefone, ''), '\D', '', 'g') AS tel,
+        lower(btrim(COALESCE(NULLIF(btrim(o.marca_email), ''), c.email, ''))) AS email) i
+     WHERE pc.tipo = 'entrada' AND o.id <> v_p.id
+       AND ((v_doc IS NOT NULL AND length(i.doc) >= 11 AND i.doc = v_doc)
+         OR (v_tel IS NOT NULL AND length(i.tel) >= 10 AND right(i.tel, 11) = v_tel)
+         OR (v_email IS NOT NULL AND i.email = v_email))) THEN
+    RETURN jsonb_build_object('concedido', false, 'motivo', 'Mesmo documento, telefone ou e-mail de quem já recebeu.');
+  END IF;
+
+  INSERT INTO public.parceiro_creditos (parceiro_id, tipo, valor, expira_em, descricao, criado_por)
+  VALUES (v_p.id, 'entrada', v_prog.entrada_valor, now() + make_interval(days => v_prog.entrada_validade_dias),
+          'Crédito de entrada: vale na 1ª compra', auth.uid());
+
+  RETURN jsonb_build_object('concedido', true, 'motivo', NULL, 'valor', v_prog.entrada_valor);
+END
+$function$;
+-- TESTE DE MESA C: cliente com aprovado/convertido pela equipe -> negar entrada.
+-- Só rejeitado/expirado/rascunho/enviado/cancelado -> não bloquear por esta regra nova.
+-- Pedido atual v_orc sozinho aprovado -> ainda 1ª compra; outro cliente -> não conta.
+-- Outro orçamento aprovado/convertido do mesmo cliente -> sem teto especial de 1ª compra.
+-- Sem cliente_id -> nenhuma correspondência; demais travas vivas seguem intactas.
+
+-- =====================================================================================================
+-- DESFAZER — TODO COMENTADO; reverter C, depois B, depois A. NÃO EXECUTAR AGORA.
+-- =====================================================================================================
+-- ----- DESFAZER C -----
+-- Recriar o corpo vivo (md5 f7003bea46eef29008ce69dc21a08168):
+-- CREATE OR REPLACE FUNCTION public._parceiro_conceder_entrada(p_parceiro_id uuid)
+--  RETURNS jsonb
+--  LANGUAGE plpgsql
+--  SECURITY DEFINER
+--  SET search_path TO 'public'
+-- AS $function$
+-- DECLARE
+--   v_prog public.parceiro_programa%ROWTYPE;
+--   v_p public.parceiros%ROWTYPE;
+--   v_doc text; v_tel text; v_email text;
+-- BEGIN
+--   -- Serializa as concessões: a checagem de documento/telefone/e-mail repetido
+--   -- olha OUTROS parceiros, e o índice único só protege o mesmo parceiro.
+--   PERFORM pg_advisory_xact_lock(hashtext('parceiro_credito_de_entrada'));
+--
+--   SELECT * INTO v_prog FROM public.parceiro_programa WHERE id;
+--   IF NOT FOUND OR NOT v_prog.entrada_ativa THEN
+--     RETURN jsonb_build_object('concedido', false, 'motivo', 'Crédito de entrada desligado no programa.');
+--   END IF;
+--
+--   SELECT * INTO v_p FROM public.parceiros WHERE id = p_parceiro_id;
+--   IF NOT FOUND THEN
+--     RETURN jsonb_build_object('concedido', false, 'motivo', 'Parceiro não encontrado.');
+--   END IF;
+--   IF v_p.status <> 'ativo' OR v_p.usuario_id IS NULL THEN
+--     RETURN jsonb_build_object('concedido', false, 'motivo', 'Parceiro sem acesso ativo.');
+--   END IF;
+--   IF v_p.responsavel_id IS NULL THEN
+--     RETURN jsonb_build_object('concedido', false, 'motivo', 'Sem atendente: o crédito começa a valer quando alguém da gráfica assumir.');
+--   END IF;
+--   IF EXISTS (SELECT 1 FROM public.parceiro_creditos WHERE parceiro_id = v_p.id AND tipo = 'entrada') THEN
+--     RETURN jsonb_build_object('concedido', false, 'motivo', 'Já recebeu o crédito de entrada.');
+--   END IF;
+--   IF EXISTS (SELECT 1 FROM public.parceiro_orcamentos WHERE parceiro_id = v_p.id AND pedido_orcamento_id IS NOT NULL) THEN
+--     RETURN jsonb_build_object('concedido', false, 'motivo', 'Já fez pedido.');
+--   END IF;
+--
+--   -- Identidade: dados da marca, e na falta deles os do cliente ligado.
+--   SELECT regexp_replace(COALESCE(NULLIF(btrim(v_p.marca_documento), ''), c.cpf_cnpj, c.documento, ''), '\D', '', 'g'),
+--          regexp_replace(COALESCE(NULLIF(btrim(v_p.marca_telefone), ''), c.whatsapp_principal, c.telefone, ''), '\D', '', 'g'),
+--          lower(btrim(COALESCE(NULLIF(btrim(v_p.marca_email), ''), c.email, '')))
+--     INTO v_doc, v_tel, v_email
+--     FROM (SELECT 1) x LEFT JOIN public.clientes c ON c.id = v_p.cliente_id;
+--   v_doc   := CASE WHEN length(v_doc) >= 11 THEN v_doc END;
+--   v_tel   := CASE WHEN length(v_tel) >= 10 THEN right(v_tel, 11) END;
+--   v_email := NULLIF(v_email, '');
+--
+--   IF (v_doc IS NOT NULL OR v_tel IS NOT NULL OR v_email IS NOT NULL) AND EXISTS (
+--     SELECT 1
+--       FROM public.parceiro_creditos pc
+--       JOIN public.parceiros o ON o.id = pc.parceiro_id
+--       LEFT JOIN public.clientes c ON c.id = o.cliente_id
+--       CROSS JOIN LATERAL (SELECT
+--         regexp_replace(COALESCE(NULLIF(btrim(o.marca_documento), ''), c.cpf_cnpj, c.documento, ''), '\D', '', 'g') AS doc,
+--         regexp_replace(COALESCE(NULLIF(btrim(o.marca_telefone), ''), c.whatsapp_principal, c.telefone, ''), '\D', '', 'g') AS tel,
+--         lower(btrim(COALESCE(NULLIF(btrim(o.marca_email), ''), c.email, ''))) AS email) i
+--      WHERE pc.tipo = 'entrada' AND o.id <> v_p.id
+--        AND ((v_doc IS NOT NULL AND length(i.doc) >= 11 AND i.doc = v_doc)
+--          OR (v_tel IS NOT NULL AND length(i.tel) >= 10 AND right(i.tel, 11) = v_tel)
+--          OR (v_email IS NOT NULL AND i.email = v_email))) THEN
+--     RETURN jsonb_build_object('concedido', false, 'motivo', 'Mesmo documento, telefone ou e-mail de quem já recebeu.');
+--   END IF;
+--
+--   INSERT INTO public.parceiro_creditos (parceiro_id, tipo, valor, expira_em, descricao, criado_por)
+--   VALUES (v_p.id, 'entrada', v_prog.entrada_valor, now() + make_interval(days => v_prog.entrada_validade_dias),
+--           'Crédito de entrada: vale na 1ª compra', auth.uid());
+--
+--   RETURN jsonb_build_object('concedido', true, 'motivo', NULL, 'valor', v_prog.entrada_valor);
+-- END
+-- $function$;
 
 -- ----- DESFAZER B -----
 -- DROP TRIGGER IF EXISTS tg_parceiro_programa_exige_atendente ON public.parceiro_programa;
@@ -466,14 +671,14 @@ $function$;
 --   IF v_p.responsavel_id IS NULL THEN
 --     RAISE EXCEPTION 'Seu cadastro ainda não tem um atendente na gráfica. Fale com a equipe antes do primeiro pedido.';
 --   END IF;
--- 
+--
 --   IF v_q.prazo <> 'normal'
 --      AND NOT EXISTS (SELECT 1 FROM public.prazos_de_entrega WHERE chave = v_q.prazo AND ativo) THEN
 --     RAISE EXCEPTION 'O prazo escolhido não está disponível. Escolha outro e envie de novo.';
 --   END IF;
--- 
+--
 --   v_nivel := public.parceiro_nivel(v_parceiro);
--- 
+--
 --   INSERT INTO public.orcamentos (
 --     cliente_id, vendedor_id, created_by, status, titulo, descricao, observacao_interna,
 --     aprovado_em, aprovado_por_nome, validade_dias, condicao_pagamento, prazo_tipo
@@ -486,7 +691,7 @@ $function$;
 --     now(), left(COALESCE(NULLIF(btrim(v_p.marca_nome), ''), 'Parceiro') || ' (painel do parceiro)', 120),
 --     7, '{"parcelas": 1}'::jsonb, v_q.prazo
 --   ) RETURNING id, numero INTO v_orc, v_numero;
--- 
+--
 --   FOR v_item IN
 --     SELECT * FROM public.parceiro_orcamento_itens WHERE orcamento_id = v_q.id ORDER BY ordem, created_at
 --   LOOP
@@ -494,7 +699,7 @@ $function$;
 --       v_livres := v_livres + 1;
 --       CONTINUE;
 --     END IF;
--- 
+--
 --     SELECT * INTO v_preco FROM public.parceiro_precos(v_parceiro) pr WHERE pr.produto_id = v_item.produto_id;
 --     IF NOT FOUND THEN
 --       RAISE EXCEPTION '"%" não está disponível na tabela de parceiro.', v_item.descricao;
@@ -502,7 +707,7 @@ $function$;
 --     IF v_preco.por_area AND (COALESCE(v_item.largura, 0) <= 0 OR COALESCE(v_item.altura, 0) <= 0) THEN
 --       RAISE EXCEPTION '"%" é vendido por m² e precisa de largura e altura.', v_item.descricao;
 --     END IF;
--- 
+--
 --     IF v_preco.faixas IS NOT NULL THEN
 --       v_faixa := NULL;
 --       SELECT f INTO v_faixa FROM jsonb_array_elements(v_preco.faixas) f
@@ -515,13 +720,13 @@ $function$;
 --     ELSE
 --       v_preco_un := v_preco.preco_parceiro;
 --     END IF;
--- 
+--
 --     v_area_peca := CASE WHEN v_preco.por_area
 --                         THEN GREATEST(round(v_item.largura * v_item.altura, 3), COALESCE(v_preco.area_minima, 0)) END;
 --     SELECT CASE WHEN v_preco.por_area THEN round(COALESCE(p.custo_medio, 0) * v_area_peca, 2)
 --                 ELSE COALESCE(p.custo_medio, 0) END
 --       INTO v_custo_un FROM public.produtos p WHERE p.id = v_item.produto_id;
--- 
+--
 --     INSERT INTO public.orcamento_itens (
 --       orcamento_id, produto_id, descricao, unidade, quantidade, largura, altura, acabamento,
 --       preco_m2, valor_unitario, custo_unitario, ordem, origem_calculo, produto_snapshot
@@ -537,18 +742,18 @@ $function$;
 --     );
 --     v_n_itens := v_n_itens + 1;
 --   END LOOP;
--- 
+--
 --   IF v_n_itens = 0 THEN
 --     RAISE EXCEPTION 'Nenhum item deste orçamento é produto da gráfica. Itens livres entram só no seu PDF.';
 --   END IF;
--- 
+--
 --   -- A linha da taxa já foi criada pelo gatilho dos itens (recalcular_taxa_prazo), pela mesma regra
 --   -- do orçamento da equipe. Aqui só se lê o que ela deu: a base (produtos) e a taxa.
 --   SELECT COALESCE(sum(valor_total) FILTER (WHERE origem_calculo IS DISTINCT FROM 'taxa_prazo'), 0),
 --          COALESCE(sum(valor_total) FILTER (WHERE origem_calculo = 'taxa_prazo'), 0)
 --     INTO v_base, v_taxa
 --     FROM public.orcamento_itens WHERE orcamento_id = v_orc;
--- 
+--
 --   IF v_taxa > 0 THEN
 --     SELECT nome, taxa_percentual INTO v_taxa_nome, v_taxa_pct
 --       FROM public.prazos_de_entrega WHERE chave = v_q.prazo;
@@ -558,11 +763,11 @@ $function$;
 --              replace(to_char(v_taxa, 'FM999999990.00'), '.', ','))
 --     WHERE id = v_orc;
 --   END IF;
--- 
--- 
+--
+--
 --   SELECT COALESCE(sum(valor_total), 0) INTO v_subtotal FROM public.orcamento_itens WHERE orcamento_id = v_orc;
 --   UPDATE public.orcamentos SET valor_subtotal = v_subtotal, valor_total = v_subtotal WHERE id = v_orc;
--- 
+--
 --   PERFORM public.parceiro_expirar_creditos(v_parceiro);
 --   IF COALESCE(p_usar_credito, 0) > 0 THEN
 --     SELECT COALESCE(sum(valor), 0) INTO v_saldo FROM public.parceiro_creditos WHERE parceiro_id = v_parceiro;
@@ -594,11 +799,11 @@ $function$;
 --       v_credito := 0;
 --     END IF;
 --   END IF;
--- 
+--
 --   UPDATE public.parceiro_orcamentos
 --      SET status = 'pedido_feito', pedido_orcamento_id = v_orc, credito_usado = v_credito, updated_at = now()
 --    WHERE id = v_q.id;
--- 
+--
 --   RETURN jsonb_build_object(
 --     'orcamento_id', v_orc, 'numero', v_numero, 'itens', v_n_itens,
 --     'itens_livres_fora_do_pedido', v_livres, 'total', v_subtotal, 'credito_usado', v_credito,
@@ -606,3 +811,10 @@ $function$;
 --   );
 -- END
 -- $function$;
+
+-- ----- DESFAZER A -----
+-- DROP TRIGGER IF EXISTS tg_parceiro_chamado ON public.parceiros;
+-- DROP FUNCTION IF EXISTS public.tg_parceiro_chamado();
+-- DROP FUNCTION IF EXISTS public._parceiro_garantir_chamado(uuid);
+-- DROP FUNCTION IF EXISTS public._parceiro_celular(uuid);
+-- (Conversas/atendimentos já abertos ficam: são atendimento normal da caixa.)

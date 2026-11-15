@@ -1,5 +1,5 @@
 /**
- * Espelho puro da proposta docs/proposta-parceiro-sempre-atendido.sql (seção A).
+ * Espelho puro da proposta docs/proposta-parceiro-sempre-atendido.sql (seções A/C).
  * O banco decide; isto só explica e testa a regra.
  */
 
@@ -44,13 +44,47 @@ type Estado = {
   marca_telefone?: string | null;
 };
 
-/** Condição do gatilho: ativo + responsável; dispara quando passa a valer ou o telefone muda. Login não conta. */
+/** Condição do gatilho: ativo + responsável; inclui redistribuição. Login não conta. */
 export function deveGarantirChamado(antes: Estado | null, depois: Estado): boolean {
   if (depois.status !== "ativo" || !depois.responsavel_id) return false;
   if (!antes) return true;
   return (
     antes.status !== "ativo" ||
     !antes.responsavel_id ||
+    antes.responsavel_id !== depois.responsavel_id ||
     (antes.marca_telefone ?? null) !== (depois.marca_telefone ?? null)
+  );
+}
+
+/** Espelho da atualização condicional X -> Y; quem já assumiu e históricos ficam intactos. */
+export function responsavelSincronizado(args: {
+  anterior: string | null;
+  novo: string | null;
+  atual: string | null;
+  aberto: boolean;
+}): string | null {
+  return args.aberto &&
+    args.anterior !== null &&
+    args.novo !== null &&
+    args.anterior !== args.novo &&
+    args.atual === args.anterior
+    ? args.novo
+    : args.atual;
+}
+
+/** Só orçamento aprovado/convertido do mesmo cliente conta; excluir o pedido em criação. */
+export function temCompraRealAnterior(
+  clienteId: string | null,
+  orcamentos: { id: string; cliente_id: string | null; status: string }[],
+  orcamentoAtual: string | null = null,
+): boolean {
+  return (
+    clienteId !== null &&
+    orcamentos.some(
+      (o) =>
+        o.cliente_id === clienteId &&
+        o.id !== orcamentoAtual &&
+        (o.status === "aprovado" || o.status === "convertido"),
+    )
   );
 }
