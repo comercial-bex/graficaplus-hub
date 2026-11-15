@@ -37,7 +37,7 @@ import {
   numeroEmTexto,
   statusEmTexto,
 } from "@/domain/whatsapp/triagem/tela";
-import { Aviso, BOTAO, CAMPO, ErroDeGravacao } from "./comum";
+import { Aviso, BOTAO, CAMPO, DESABILITADO, ErroDeGravacao } from "./comum";
 
 /**
  * O painel de ligar do robô de boas-vindas: o estado, o botão grande que sobe
@@ -103,7 +103,7 @@ export function PainelDeLiga({
     <Button
       type="button"
       size="lg"
-      className="min-h-14 w-full text-lg font-semibold sm:w-auto sm:min-w-72"
+      className={cn(DESABILITADO, "min-h-14 w-full text-lg font-semibold sm:w-auto sm:min-w-72")}
       disabled={!podeLigar || !subir.pode || mudarDegrau.isPending}
       onClick={confirmacao ? undefined : () => proximo && mudarDegrau.mutate(proximo)}
     >
@@ -215,7 +215,7 @@ export function PainelDeLiga({
                 type="button"
                 variant="destructive"
                 size="lg"
-                className="min-h-14 text-lg font-bold"
+                className={cn(DESABILITADO, "min-h-14 text-lg font-bold")}
                 disabled={atual === "desligada" || desligarTudo.isPending}
               >
                 {desligarTudo.isPending ? (

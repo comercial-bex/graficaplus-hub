@@ -5,6 +5,7 @@ import {
   CEP_PIOR_CASO_MS,
   ESPERA_MAXIMA_MS,
   linhaDeTriagemPodeSair,
+  MOTIVO_FILA_VELHA,
   MOTIVO_SEM_NUMERO,
   rodarTriagem,
   type LinhaDeEntrada,
@@ -277,8 +278,14 @@ export type ConferenciaDaLinha = { acao: "sai" | "cancela" | "adia"; motivo: str
  * `STATUS_TERMINAIS_QUE_FALAM`. Telefone com cara de lid cancela e deixa o evento `pulou`.
  */
 export async function conferirLinhaDeTriagem(
-  linha: { conversa_id: string | null; payload: Record<string, unknown> | null },
+  linha: {
+    conversa_id: string | null;
+    payload: Record<string, unknown> | null;
+    /** Quando a linha entrou na fila. Sem ela a idade é desconhecida e nada é cancelado por velhice. */
+    created_at?: string | null;
+  },
   db: Db = supabaseAdmin,
+  agora: Date = new Date(),
 ): Promise<ConferenciaDaLinha> {
   // A linha do AGENTE (C3) usa a mesma fila e a mesma chave `triagem:`, e leva `agente: true`. A triagem dela já terminou,
   // então quem decide se sai é a conferência do agente (degrau dele, equipe na conversa, bloqueio, telefone), nunca a da triagem.
@@ -315,16 +322,25 @@ export async function conferirLinhaDeTriagem(
       degrauPermite: degrau.data === true,
       humanoNaConversa: humano.data === true,
       telefoneAlcancavel: triagemPodeFalarCom(telefone),
+      idadeDaLinhaMs: idadeDaLinha(linha.created_at, agora),
     });
     if (d.sai) return { acao: "sai", motivo: d.motivo };
-    if (d.motivo === MOTIVO_SEM_NUMERO) await registrarPulo(db, triagemId, linha.conversa_id, d.motivo);
+    if (d.motivo === MOTIVO_SEM_NUMERO || d.motivo === MOTIVO_FILA_VELHA) await registrarPulo(db, triagemId, linha.conversa_id, d.motivo);
     return { acao: "cancela", motivo: d.motivo };
   } catch {
     return { acao: "adia", motivo: "excecao" };
   }
 }
 
-/** O rastro de uma linha que não saiu por falta de número: evento `pulou`, só com o motivo. Nunca lança. */
+/** Idade da linha em ms, ou nulo se a data faltar ou não for lida. Data no futuro (relógio torto) vale zero. */
+function idadeDaLinha(criadaEm: string | null | undefined, agora: Date): number | null {
+  if (typeof criadaEm !== "string") return null;
+  const t = Date.parse(criadaEm);
+  if (!Number.isFinite(t)) return null;
+  return Math.max(0, agora.getTime() - t);
+}
+
+/** O rastro de uma linha que não saiu (sem número ou fila velha): evento `pulou`, só com o motivo. Nunca lança. */
 async function registrarPulo(db: Db, triagemId: string, conversaId: string, motivo: string): Promise<void> {
   try {
     const { error } = await (db as any).from("whatsapp_triagem_eventos").insert({

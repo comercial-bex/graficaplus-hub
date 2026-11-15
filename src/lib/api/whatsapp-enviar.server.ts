@@ -586,6 +586,7 @@ type LinhaDaFila = {
   tentativas: number | null;
   created_by: string | null;
   idempotency_key: string | null;
+  created_at?: string | null;
 };
 
 /** O que aconteceu com cada linha — a caixa de entrada procura a dela aqui. */
@@ -769,7 +770,7 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
 
   const { data: linhas, error: erroFila } = await supabaseAdmin
     .from("whatsapp_fila_envio")
-    .select("id, conversa_id, mensagem_id, payload, tentativas, created_by, idempotency_key")
+    .select("id, conversa_id, mensagem_id, payload, tentativas, created_by, idempotency_key, created_at")
     .eq("status", "pendente")
     .lt("tentativas", FILA_MAX_TENTATIVAS)
     .order("created_at", { ascending: true })

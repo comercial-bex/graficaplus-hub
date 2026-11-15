@@ -730,12 +730,10 @@ describe("ramo parceiro", () => {
   });
 
   it.each([
-    "parceria",
     "parceiro",
     "parceira",
-    "terceirizado",
-    "terceirizada",
     "sou terceirizada",
+    "somos terceirizados de gráfica",
     "quero ser parceira",
   ])("%j abre o ramo parceiro", (fala) => {
     expect(digitar(iniciarSessao(), fala).sessao.estado.ramo).toBe("parceiro");
@@ -744,6 +742,9 @@ describe("ramo parceiro", () => {
   it.each([
     "meu parceiro indicou vocês",
     "parceria de marketing",
+    "parceria",
+    "terceirizado",
+    "terceirizada",
     "nota fiscal de parceiro",
     "sou revendedor",
     "quero ser revendedor",

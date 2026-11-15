@@ -11,11 +11,18 @@ import { Button } from "@/components/ui/button";
 
 /** Campo de texto e botão da tela: 16 px e alvo de 44 px. */
 export const CAMPO = "min-h-11 text-base md:text-base";
-export const BOTAO = "min-h-11 text-base";
+/**
+ * Botão desabilitado legível: o Button global apaga tudo com opacity-50, o que derruba o
+ * contraste. Aqui o texto fica na cor cheia sobre fundo neutro, com borda tracejada para
+ * mostrar que não dá para clicar. Só vale onde esta classe é usada; o Button global não muda.
+ */
+export const DESABILITADO =
+  "disabled:opacity-100 disabled:border disabled:border-dashed disabled:border-foreground/60 disabled:bg-muted disabled:text-foreground disabled:shadow-none";
+export const BOTAO = `min-h-11 text-base ${DESABILITADO}`;
 export const SELETOR =
-  "min-h-11 w-full rounded-md border border-input bg-card px-3 text-base text-foreground shadow-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-70";
+  "min-h-11 w-full rounded-md border border-input bg-card px-3 text-base text-foreground shadow-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:border-dashed disabled:bg-muted disabled:text-foreground";
 export const AREA_DE_TEXTO =
-  "min-h-28 w-full rounded-md border border-input bg-card px-3 py-2 text-base leading-relaxed text-foreground shadow-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-70";
+  "min-h-28 w-full rounded-md border border-input bg-card px-3 py-2 text-base leading-relaxed text-foreground shadow-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:border-dashed disabled:bg-muted disabled:text-foreground";
 
 export function ErroDaTela({
   erro,

@@ -490,6 +490,52 @@ describe("conferência da fila antes de despachar uma pergunta de triagem", () =
     }
   });
 
+  it("fila velha: pergunta com mais de 30 minutos cancela e deixa o evento pulou com fila_velha", async () => {
+    const agora = new Date("2026-11-14T12:00:00Z");
+    const velha = { ...linha, created_at: "2026-11-14T11:29:00Z" };
+    const b = banco({});
+    expect(await conferirLinhaDeTriagem(velha, b.db, agora)).toEqual({ acao: "cancela", motivo: "fila_velha" });
+    const insercao = b.chamadas.find((c) => c.tipo === "from" && c.nome === "whatsapp_triagem_eventos");
+    expect(insercao).toMatchObject({
+      inserido: { triagem_id: "t-1", conversa_id: "c-1", tipo: "pulou", detalhe: { motivo: "fila_velha" } },
+    });
+  });
+
+  it("fila nova, sem data ou com data ilegível não cancela por velhice", async () => {
+    const agora = new Date("2026-11-14T12:00:00Z");
+    for (const created_at of ["2026-11-14T11:31:00Z", "2026-11-14T12:05:00Z", null, "lixo"]) {
+      const b = banco({});
+      expect((await conferirLinhaDeTriagem({ ...linha, created_at }, b.db, agora)).acao, String(created_at)).toBe("sai");
+      expect(b.chamadas.find((c) => c.nome === "whatsapp_triagem_eventos")).toBeUndefined();
+    }
+  });
+
+  it("despedida de 2 horas ainda sai; de 7 horas cancela com fila_velha", async () => {
+    const agora = new Date("2026-11-14T12:00:00Z");
+    const t = { data: { status: "concluida", modo: "real" }, error: null };
+    const dois = { ...linha, created_at: "2026-11-14T10:00:00Z" };
+    const sete = { ...linha, created_at: "2026-11-14T05:00:00Z" };
+    expect(await conferirLinhaDeTriagem(dois, banco({ triagem: t }).db, agora)).toEqual({
+      acao: "sai",
+      motivo: "ok_despedida",
+    });
+    expect(await conferirLinhaDeTriagem(sete, banco({ triagem: t }).db, agora)).toEqual({
+      acao: "cancela",
+      motivo: "fila_velha",
+    });
+  });
+
+  it("a linha do agente não passa pela idade da triagem", async () => {
+    const agora = new Date("2026-11-14T12:00:00Z");
+    const b = banco({});
+    const r = await conferirLinhaDeTriagem(
+      { conversa_id: "c-1", payload: { agente: true, triagem_id: "t-1" }, created_at: "2026-11-13T00:00:00Z" },
+      b.db,
+      agora,
+    );
+    expect(r.motivo).not.toBe("fila_velha");
+  });
+
   it("celular brasileiro com ou sem 55 não é barrado", async () => {
     for (const telefone of ["96991112233", "5596991112233"]) {
       expect((await conferirLinhaDeTriagem(linha, banco({ telefone }).db)).acao).toBe("sai");

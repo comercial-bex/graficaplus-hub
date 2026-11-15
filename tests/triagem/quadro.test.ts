@@ -162,7 +162,6 @@ describe("interpretar: onde o quadro NÃO deve acertar", () => {
     expect(
       ler("tenho uma parceria antiga com a loja do meu primo e queria saber de um banner"),
     ).not.toBe("parceiro");
-    expect(ler("parceria")).toBe("parceiro");
     expect(ler("Parceiro!")).toBe("parceiro");
     // vocativo com cumprimento não é pedido de parceria
     for (const f of ["oi parceiro", "oi, Parceria!", "e aí parceiro", "Boa tarde, parceiro!"])
@@ -170,6 +169,44 @@ describe("interpretar: onde o quadro NÃO deve acertar", () => {
     for (const f of ["nao sou parceiro", "não quero ser parceiro", "sou parceiro de obra do João"])
       expect(ler(f), f).not.toBe("parceiro");
     expect(ler("quero ser parceiro")).toBe("parceiro");
+  });
+
+  it("parceria e terceirizado sozinhos não abrem o ramo; com contexto abrem", () => {
+    for (const f of ["parceria", "Parcerias!", "terceirizado", "Terceirizada", "terceirizados", "terceirizadas"])
+      expect(ler(f), f).not.toBe("parceiro");
+    // mesmo com o quadro antigo do banco, que ainda tem as palavras soltas como 'igual'
+    const antigo = [
+      ...SEMENTES_DO_QUADRO,
+      ...["parceria", "terceirizado"].map((frase) => ({
+        passo: null,
+        frase,
+        casamento: "igual" as const,
+        intencao: "parceiro" as const,
+        ativo: true,
+      })),
+    ];
+    expect(interpretar("parceria", "nome", antigo as never).intencao).not.toBe("parceiro");
+    expect(interpretar("terceirizado", "nome", antigo as never).intencao).not.toBe("parceiro");
+    expect(interpretar("quero fazer parceria com vocês", "nome", antigo as never).intencao).toBe("parceiro");
+    for (const f of [
+      "quero fazer parceria com vocês",
+      "somos terceirizados de gráfica",
+      "gostaria de ser terceirizado",
+      "tenho interesse em parceria",
+      "quero parceria",
+      "queria parceria",
+      "somos terceirizados",
+    ])
+      expect(ler(f), f).toBe("parceiro");
+    for (const f of [
+      "boa tarde parceria",
+      "parceria de marketing",
+      "quero uma parceria de marketing",
+      "nao quero parceria nenhuma",
+      "uma parceria muito boa",
+      "terceirizado da loja",
+    ])
+      expect(ler(f), f).not.toBe("parceiro");
   });
 
   it("revendedor nunca é parceiro, mas marca o termo sensível", () => {

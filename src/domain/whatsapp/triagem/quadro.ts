@@ -96,6 +96,55 @@ const MAX_PALAVRAS_CORTESIA = 5;
 /** Palavra de parceiro só vale em mensagem curta; "meu parceiro indicou vocês, uma parceria..." não. */
 const MAX_PALAVRAS_PARCEIRO = 9;
 
+/**
+ * "parceria" e "terceirizado" sozinhos podem ser qualquer coisa ("terceirizado" de uma
+ * empresa, "parceria" de marketing). Só abrem o ramo parceiro com contexto: ao menos 2 palavras
+ * e uma palavra de apoio que mostre que a pessoa fala de si ("quero parceria", "somos terceirizados").
+ * "parceiro" e "parceira" soltos continuam valendo, são as palavras do dono.
+ */
+const PALAVRAS_FRACAS_DE_PARCEIRO = [
+  "parceria",
+  "parcerias",
+  "terceirizado",
+  "terceirizada",
+  "terceirizados",
+  "terceirizadas",
+];
+const MIN_PALAVRAS_COM_CONTEXTO = 2;
+const APOIO_DE_PARCEIRO = [
+  "quero",
+  "queria",
+  "gostaria",
+  "sou",
+  "somos",
+  "trabalho",
+  "trabalhamos",
+  "interesse",
+  "programa",
+  "cadastro",
+  "cadastrar",
+  "proposta",
+  "fazer",
+  "ser",
+  "virar",
+  "tornar",
+];
+
+function ehPalavraFraca(l: Linha): boolean {
+  return l.intencao === "parceiro" && l.casamento === "igual" && PALAVRAS_FRACAS_DE_PARCEIRO.includes(l.frase);
+}
+
+/** Palavra fraca dentro de uma mensagem de 2 palavras ou mais, com palavra de apoio, sem negar nem mudar de sentido. */
+function palavraFracaComContexto(normalizado: string, l: Linha): boolean {
+  if (contarPalavras(normalizado) < MIN_PALAVRAS_COM_CONTEXTO) return false;
+  const palavras = normalizado.split(" ");
+  if (!palavras.some((p) => APOIO_DE_PARCEIRO.includes(p))) return false;
+  const aberta: Linha = { ...l, casamento: "contem" };
+  if (!casa(normalizado, aberta)) return false;
+  if (negada(normalizado, aberta)) return false;
+  return !outroSentidoDeParceiro(normalizado, aberta);
+}
+
 const TERMOS_SENSIVEIS =
   /\b(parceir\w*|parceri\w*|terceiriz\w*|revend\w*|revenda|tabela\w*|diferenciad\w*|atacado)\b/;
 
@@ -263,6 +312,8 @@ export function interpretar(
         l.intencao === "parceiro" && l.casamento === "igual" && /^parce(i|ri)/.test(l.frase)
           ? [normalizado]
           : versoes;
+      // a palavra fraca sozinha não decide, nem se o quadro vivo ainda a tiver como 'igual'
+      if (ehPalavraFraca(l)) continue;
       for (const v of candidatasDaFrase) {
         if (!casa(v, l)) continue;
         if (PODE_SER_NEGADA.includes(l.intencao) && negada(v, l)) continue;
@@ -270,6 +321,13 @@ export function interpretar(
         (l.casamento === "igual" ? iguais : outras).add(l.intencao);
         break;
       }
+    }
+    // palavra fraca de parceiro ("parceria", "terceirizado"): só com contexto, e vem do código, não do quadro
+    if (camada.includes("parceiro") && palavras <= MAX_PALAVRAS_PARCEIRO) {
+      const comContexto = PALAVRAS_FRACAS_DE_PARCEIRO.some((frase) =>
+        palavraFracaComContexto(normalizado, { intencao: "parceiro", frase, casamento: "igual" }),
+      );
+      if (comContexto) outras.add("parceiro");
     }
     // cortesia que sobra numa mensagem com conteúdo ("oi, quero um banner") não decide nada
     if (
