@@ -1,4 +1,4 @@
--- PROPOSTA NÃO APLICADA — 15/11/2026. Depende do pacote parceiro_sempre_atendido.
+-- APLICADA em 15/11/2026. Depende do pacote parceiro_sempre_atendido.
 -- Nenhum envio/backfill/publicação nesta preparação. Funções chamadas somente por ação humana.
 -- Templates são configuração deste pacote. Alterar parceiro_acesso também afeta pendentes
 -- que usam esse modelo; nenhuma fila/destinatário é alterado e nada é enviado agora.
@@ -55,7 +55,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
  AND public._parceiro_celular(p.id) IS NOT NULL
  AND (p_publico='ativos' OR (p_publico='sem_compra' AND NOT b.comprou)
  OR (p_publico='com_credito' AND s.disponivel>0)
- OR (p_publico='terceirizados' AND p.usuario_id IS NULL AND b.comprou))
+ OR (p_publico='terceirizados' AND b.comprou))
  ORDER BY 2,p.id
 $$;
 REVOKE ALL ON FUNCTION public._parceiro_aviso_publico(text) FROM PUBLIC,anon,authenticated;

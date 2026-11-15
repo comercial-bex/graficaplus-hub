@@ -27,7 +27,7 @@ export function pertenceAoPublico(p: DestinatarioAviso, publico: PublicoAviso): 
     publico === "ativos" ||
     (publico === "sem_compra" && !p.comprou) ||
     (publico === "com_credito" && p.credito > 0) ||
-    (publico === "terceirizados" && !p.usuario_id && p.comprou)
+    (publico === "terceirizados" && p.comprou)
   );
 }
 export function montarTextoAviso(texto: string, p: DestinatarioAviso): string {

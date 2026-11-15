@@ -43,10 +43,10 @@ describe("público cadastrado", () => {
     expect(pertenceAoPublico(p, "com_credito")).toBe(true);
     expect(pertenceAoPublico({ ...p, credito: 0 }, "com_credito")).toBe(false);
   });
-  it("terceirizado já compra e não tem login", () => {
+  it("terceirizado já compra, com ou sem login", () => {
     expect(pertenceAoPublico({ ...p, comprou: true }, "terceirizados")).toBe(true);
     expect(pertenceAoPublico({ ...p, comprou: true, usuario_id: "login" }, "terceirizados")).toBe(
-      false,
+      true,
     );
     expect(pertenceAoPublico(p, "terceirizados")).toBe(false);
   });

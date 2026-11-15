@@ -1,5 +1,8 @@
 # Roadmap
 
+## Aplicação de Avisos e validação (15/11)
+- [x] Terceirizados inclui compradores com ou sem login; pacote aplicado como 0014, ACL/SECURITY DEFINER/search_path conferidos e 13 testes aprovados. Nenhum aviso/envio/validação registrado; sem publicação. Comparação das cópias detectou dois espaços extras de indentação no SQL enviado, sem diferença lógica; cabeçalho da fonte marcado APLICADA.
+
 ## Identificação de parceiros (11/11)
 - [x] Preparar domínio, selo e filtro tolerantes à ausência de leads.tipo no Funil, Leads e WhatsApp.
 - [x] Escrever proposta SQL com função atual, permissões, backfill opcional, reversão e testes manuais; não aplicada.

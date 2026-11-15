@@ -11633,6 +11633,107 @@ export type Database = {
         }
         Relationships: []
       }
+      parceiro_aviso_envios: {
+        Row: {
+          aviso_id: string
+          notificacao_id: string
+          parceiro_id: string
+        }
+        Insert: {
+          aviso_id: string
+          notificacao_id: string
+          parceiro_id: string
+        }
+        Update: {
+          aviso_id?: string
+          notificacao_id?: string
+          parceiro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_aviso_envios_aviso_id_fkey"
+            columns: ["aviso_id"]
+            isOneToOne: false
+            referencedRelation: "parceiro_avisos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_aviso_envios_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacoes_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_aviso_envios_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_avisos_pendentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_aviso_envios_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiro_avisos: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          enviado_em: string | null
+          enviado_por: string | null
+          id: string
+          publico: string
+          status: string
+          texto: string
+          titulo: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          enviado_em?: string | null
+          enviado_por?: string | null
+          id?: string
+          publico: string
+          status?: string
+          texto: string
+          titulo: string
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          enviado_em?: string | null
+          enviado_por?: string | null
+          id?: string
+          publico?: string
+          status?: string
+          texto?: string
+          titulo?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_avisos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_avisos_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parceiro_campanhas: {
         Row: {
           ativa: boolean
@@ -12382,6 +12483,7 @@ export type Database = {
           marca_nome: string | null
           marca_rodape: string | null
           marca_telefone: string | null
+          nao_receber_avisos_em: string | null
           nivel_fixo_id: string | null
           origem_cadastro: Json | null
           ramo_atuacao: string | null
@@ -12391,7 +12493,9 @@ export type Database = {
           ultimo_acesso_em: string | null
           updated_at: string
           usuario_id: string | null
+          validacao_nota: string | null
           validado_em: string | null
+          validado_por: string | null
         }
         Insert: {
           cliente_id: string
@@ -12412,6 +12516,7 @@ export type Database = {
           marca_nome?: string | null
           marca_rodape?: string | null
           marca_telefone?: string | null
+          nao_receber_avisos_em?: string | null
           nivel_fixo_id?: string | null
           origem_cadastro?: Json | null
           ramo_atuacao?: string | null
@@ -12421,7 +12526,9 @@ export type Database = {
           ultimo_acesso_em?: string | null
           updated_at?: string
           usuario_id?: string | null
+          validacao_nota?: string | null
           validado_em?: string | null
+          validado_por?: string | null
         }
         Update: {
           cliente_id?: string
@@ -12442,6 +12549,7 @@ export type Database = {
           marca_nome?: string | null
           marca_rodape?: string | null
           marca_telefone?: string | null
+          nao_receber_avisos_em?: string | null
           nivel_fixo_id?: string | null
           origem_cadastro?: Json | null
           ramo_atuacao?: string | null
@@ -12451,7 +12559,9 @@ export type Database = {
           ultimo_acesso_em?: string | null
           updated_at?: string
           usuario_id?: string | null
+          validacao_nota?: string | null
           validado_em?: string | null
+          validado_por?: string | null
         }
         Relationships: [
           {
@@ -12500,6 +12610,13 @@ export type Database = {
             foreignKeyName: "parceiros_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: true
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_validado_por_fkey"
+            columns: ["validado_por"]
+            isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
@@ -23604,6 +23721,17 @@ export type Database = {
         }
         Returns: string
       }
+      _parceiro_aviso_publico: {
+        Args: { p_publico: string }
+        Returns: {
+          comprou: boolean
+          credito: number
+          id: string
+          nome: string
+          telefone: string
+          ultimo_aviso: string
+        }[]
+      }
       _parceiro_celular: { Args: { p_parceiro: string }; Returns: string }
       _parceiro_conceder_entrada: {
         Args: { p_parceiro_id: string }
@@ -24866,6 +24994,20 @@ export type Database = {
         Args: { p_cliente: string }
         Returns: string
       }
+      parceiro_aviso_enviar: {
+        Args: { p_aviso: string; p_ids: string[] }
+        Returns: Json
+      }
+      parceiro_aviso_historico: { Args: never; Returns: Json }
+      parceiro_aviso_publico: { Args: { p_publico: string }; Returns: Json }
+      parceiro_aviso_salvar: {
+        Args: { p_publico: string; p_texto: string; p_titulo: string }
+        Returns: string
+      }
+      parceiro_avisos_preferencia: {
+        Args: { p_parceiro: string; p_sair: boolean }
+        Returns: undefined
+      }
       parceiro_cadastrar_por_convite: {
         Args: {
           p_cidade?: string
@@ -25014,6 +25156,10 @@ export type Database = {
           quais_travam: string
           travados_no_piso: number
         }[]
+      }
+      parceiro_validar: {
+        Args: { p_nota: string; p_parceiro: string }
+        Returns: undefined
       }
       parceiro_venda_direta: {
         Args: { p_itens: Json; p_observacao?: string; p_pagamento: string }
