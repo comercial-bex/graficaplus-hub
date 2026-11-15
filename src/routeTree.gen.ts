@@ -73,6 +73,7 @@ import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authe
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
 import { Route as AuthenticatedPosVendaRouteImport } from './routes/_authenticated/pos-venda'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
+import { Route as AuthenticatedPrecosPendentesRouteImport } from './routes/_authenticated/precos-pendentes'
 import { Route as AuthenticatedPreencherPastasRouteImport } from './routes/_authenticated/preencher-pastas'
 import { Route as AuthenticatedProcessosRouteImport } from './routes/_authenticated/processos'
 import { Route as AuthenticatedProducao3dRouteImport } from './routes/_authenticated/producao-3d'
@@ -481,6 +482,12 @@ const AuthenticatedPrecificacaoRoute =
     path: '/precificacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPrecosPendentesRoute =
+  AuthenticatedPrecosPendentesRouteImport.update({
+    id: '/precos-pendentes',
+    path: '/precos-pendentes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPreencherPastasRoute =
   AuthenticatedPreencherPastasRouteImport.update({
     id: '/preencher-pastas',
@@ -857,6 +864,7 @@ export interface FileRoutesByFullPath {
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/precos-pendentes': typeof AuthenticatedPrecosPendentesRoute
   '/preencher-pastas': typeof AuthenticatedPreencherPastasRoute
   '/processos': typeof AuthenticatedProcessosRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
@@ -980,6 +988,7 @@ export interface FileRoutesByTo {
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/pos-venda': typeof AuthenticatedPosVendaRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/precos-pendentes': typeof AuthenticatedPrecosPendentesRoute
   '/preencher-pastas': typeof AuthenticatedPreencherPastasRoute
   '/processos': typeof AuthenticatedProcessosRoute
   '/producao-3d': typeof AuthenticatedProducao3dRoute
@@ -1106,6 +1115,7 @@ export interface FileRoutesById {
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
   '/_authenticated/pos-venda': typeof AuthenticatedPosVendaRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/_authenticated/precos-pendentes': typeof AuthenticatedPrecosPendentesRoute
   '/_authenticated/preencher-pastas': typeof AuthenticatedPreencherPastasRoute
   '/_authenticated/processos': typeof AuthenticatedProcessosRoute
   '/_authenticated/producao-3d': typeof AuthenticatedProducao3dRoute
@@ -1232,6 +1242,7 @@ export interface FileRouteTypes {
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
+    | '/precos-pendentes'
     | '/preencher-pastas'
     | '/processos'
     | '/producao-3d'
@@ -1355,6 +1366,7 @@ export interface FileRouteTypes {
     | '/portal-cliente'
     | '/pos-venda'
     | '/precificacao'
+    | '/precos-pendentes'
     | '/preencher-pastas'
     | '/processos'
     | '/producao-3d'
@@ -1480,6 +1492,7 @@ export interface FileRouteTypes {
     | '/_authenticated/portal-cliente'
     | '/_authenticated/pos-venda'
     | '/_authenticated/precificacao'
+    | '/_authenticated/precos-pendentes'
     | '/_authenticated/preencher-pastas'
     | '/_authenticated/processos'
     | '/_authenticated/producao-3d'
@@ -2028,6 +2041,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/precos-pendentes': {
+      id: '/_authenticated/precos-pendentes'
+      path: '/precos-pendentes'
+      fullPath: '/precos-pendentes'
+      preLoaderRoute: typeof AuthenticatedPrecosPendentesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/preencher-pastas': {
       id: '/_authenticated/preencher-pastas'
       path: '/preencher-pastas'
@@ -2500,6 +2520,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
   AuthenticatedPosVendaRoute: typeof AuthenticatedPosVendaRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
+  AuthenticatedPrecosPendentesRoute: typeof AuthenticatedPrecosPendentesRoute
   AuthenticatedPreencherPastasRoute: typeof AuthenticatedPreencherPastasRoute
   AuthenticatedProcessosRoute: typeof AuthenticatedProcessosRoute
   AuthenticatedProducao3dRoute: typeof AuthenticatedProducao3dRoute
@@ -2589,6 +2610,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
   AuthenticatedPosVendaRoute: AuthenticatedPosVendaRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
+  AuthenticatedPrecosPendentesRoute: AuthenticatedPrecosPendentesRoute,
   AuthenticatedPreencherPastasRoute: AuthenticatedPreencherPastasRoute,
   AuthenticatedProcessosRoute: AuthenticatedProcessosRoute,
   AuthenticatedProducao3dRoute: AuthenticatedProducao3dRoute,

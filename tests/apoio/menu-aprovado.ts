@@ -185,10 +185,11 @@ function enxugarDeNovembro(b: ResumoDoMenu): void {
   fundirEmHub(
     b,
     "Financeiro",
-    { titulo: "Produtos e serviços", abasNovasSeAberto: 1 },
+    { titulo: "Produtos e serviços", abasNovasSeAberto: 2 },
     [
       { titulo: "Planilha de custos", url: "/planilha-custos" },
       { titulo: "Tabela de preços", url: "/tabela-de-precos" },
+      { titulo: "Preços pendentes", url: "/precos-pendentes" },
       { titulo: "Simulador de preço", url: "/precificacao" },
     ],
     ["Preço e custo"],
