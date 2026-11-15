@@ -21,6 +21,11 @@ export type PedidoDeEnvio = {
   tipo: TipoEnvio;
   /** Telefone do destinatário, em qualquer formatação. */
   para: string;
+  /**
+   * O `chat_lid` da conversa ("253386293268636@lid"), só para a triagem. Vale apenas para TEXTO e só quando `para`
+   * não é celular: o Z-API aceita o lid no campo `phone` (developer.z-api.io/en/tips/lid). Celular tem a vez.
+   */
+  paraLid?: string;
   /** Corpo da mensagem (texto) ou legenda (pdf). */
   texto?: string;
   /** URL pública do PDF, ou data URI. Só para tipo "pdf". */
@@ -66,6 +71,17 @@ export function telefoneParaZapi(valor: string | null | undefined): string | nul
   return numeroEstrangeiro(valor) ?? numeroRecebidoDeFora(valor);
 }
 
+function celularBrDoZapi(valor: string | null | undefined): boolean {
+  const chave = chaveWhatsApp(valor);
+  return !!chave && /^[1-9][1-9]9[0-9]{8}$/.test(chave);
+}
+
+/** O lid no formato gravado ("253386293268636@lid"), ou nulo. É o único jeito de o Z-API receber um lid no `phone`. */
+export function lidParaZapi(valor: string | null | undefined): string | null {
+  const t = (valor ?? "").trim();
+  return /^\d{6,20}@lid$/.test(t) ? t : null;
+}
+
 /**
  * Os números do `mentioned`: só dígitos, 12 ou 13 (55 + DDD + número), sem repetir, na ordem
  * recebida. Qualquer outra coisa cai.
@@ -104,7 +120,10 @@ export function montarEnvio(
   pedido: PedidoDeEnvio,
   credenciais: { instanceId: string; token: string },
 ): EnderecoZapi | { erro: string } {
-  const phone = ehGrupoZapi(pedido.para) ? pedido.para.trim() : telefoneParaZapi(pedido.para);
+  // Com `paraLid` (só a triagem) e o telefone da conversa fora do padrão de celular brasileiro, vai para o lid, igual à
+  // conferência (`destinoDaTriagem`): número de fora ou fixo guardado junto de um lid NÃO recebe a mensagem da triagem.
+  const lid = pedido.tipo === "texto" && !ehGrupoZapi(pedido.para) && !celularBrDoZapi(pedido.para) ? lidParaZapi(pedido.paraLid) : null;
+  const phone = lid ?? (ehGrupoZapi(pedido.para) ? pedido.para.trim() : telefoneParaZapi(pedido.para));
   if (!phone) {
     return { erro: `"${pedido.para ?? ""}" não é um celular que recebe WhatsApp` };
   }

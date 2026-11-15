@@ -553,6 +553,34 @@ export function triagemPodeFalarCom(valor: string | null | undefined): boolean {
   return celularBrasileiro(valor) !== null;
 }
 
+/** O lid como o Z-API o manda no webhook e como fica gravado em `whatsapp_conversas.chat_lid`: só dígitos e "@lid". */
+const FORMATO_DO_LID = /^\d{6,20}@lid$/;
+
+/** O texto é um lid no formato gravado ("253386293268636@lid")? Qualquer outra coisa não serve de destino. */
+export function lidValido(valor: string | null | undefined): string | null {
+  const t = (valor ?? "").trim();
+  return FORMATO_DO_LID.test(t) ? t : null;
+}
+
+/**
+ * Para onde a triagem escreve nesta conversa. O Z-API aceita no campo `phone` do envio de texto o número
+ * real OU o próprio lid ("999999999999999@lid"), conforme a documentação oficial (developer.z-api.io/en/tips/lid).
+ *   - telefone é celular brasileiro: escreve para o telefone (como sempre foi);
+ *   - senão, há `chat_lid` no formato gravado: escreve para o lid;
+ *   - senão, não há destino: a conversa vai para a equipe sem mensagem.
+ * O celular tem a vez porque é o caminho já provado em produção.
+ */
+export type DestinoDaTriagem = { via: "telefone" } | { via: "lid"; lid: string } | null;
+
+export function destinoDaTriagem(
+  telefone: string | null | undefined,
+  chatLid: string | null | undefined,
+): DestinoDaTriagem {
+  if (triagemPodeFalarCom(telefone)) return { via: "telefone" };
+  const lid = lidValido(chatLid);
+  return lid ? { via: "lid", lid } : null;
+}
+
 export function finalDoTelefone(telefone: string | null | undefined): string {
   const d = (telefone ?? "").replace(/\D/g, "");
   return d.slice(-4);

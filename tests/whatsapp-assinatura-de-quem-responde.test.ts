@@ -65,7 +65,7 @@ describe("o setor da conversa (14/10/2026: transferiu do financeiro, cai na prod
 
   it("o despachante usa a fila de quando a pessoa escreveu (payload.fila) antes da fila atual", () => {
     const fonte = readFileSync("src/lib/api/whatsapp-enviar.server.ts", "utf8");
-    expect(fonte).toContain(".select(\"telefone, fila\")");
+    expect(fonte).toContain(".select(\"telefone, fila, chat_lid\")");
     expect(fonte).toMatch(/linha\.payload\?\.fila as string \| undefined\) \?\? \(conversa\?\.fila/);
   });
 });

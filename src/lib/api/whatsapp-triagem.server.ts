@@ -12,7 +12,7 @@ import {
   type PortaDaTriagem,
   type ResultadoDaLigacao,
 } from "@/domain/whatsapp/triagem/orquestrador";
-import { triagemPodeFalarCom } from "@/domain/whatsapp/triagem/extrair";
+import { destinoDaTriagem } from "@/domain/whatsapp/triagem/extrair";
 import { consultarCepRapido } from "@/lib/api/cep.server";
 
 /**
@@ -85,6 +85,16 @@ export function portaDaTriagem(db: Db = supabaseAdmin): PortaDaTriagem {
       });
       if (error) lancar(error);
       return data;
+    },
+
+    async lerChatLid(conversaId) {
+      const { data, error } = await (db as any)
+        .from("whatsapp_conversas")
+        .select("chat_lid")
+        .eq("id", conversaId)
+        .maybeSingle();
+      if (error) lancar(error);
+      return (data as { chat_lid?: string | null } | null)?.chat_lid ?? null;
     },
 
     async lerEntradas(ids) {
@@ -310,18 +320,21 @@ export async function conferirLinhaDeTriagem(
         p_modo: modo ?? "real",
       }),
       (db.rpc as any)("_triagem_humano_na_conversa", { p_conversa: linha.conversa_id }),
-      (db as any).from("whatsapp_conversas").select("telefone").eq("id", linha.conversa_id).maybeSingle(),
+      (db as any).from("whatsapp_conversas").select("telefone, chat_lid").eq("id", linha.conversa_id).maybeSingle(),
     ]);
     if (degrau.error || humano.error || conversa.error) {
       return { acao: "adia", motivo: "leitura_da_conferencia" };
     }
-    const telefone = (conversa.data as { telefone?: string | null } | null)?.telefone ?? null;
+    const dadosDaConversa = conversa.data as { telefone?: string | null; chat_lid?: string | null } | null;
+    const telefone = dadosDaConversa?.telefone ?? null;
+    const chatLid = dadosDaConversa?.chat_lid ?? null;
     const d = linhaDeTriagemPodeSair({
       statusDaTriagem: status,
       modoDaTriagem: modo,
       degrauPermite: degrau.data === true,
       humanoNaConversa: humano.data === true,
-      telefoneAlcancavel: triagemPodeFalarCom(telefone),
+      // celular brasileiro OU lid no formato gravado; o consumidor da fila escolhe o mesmo destino pela mesma regra
+      telefoneAlcancavel: destinoDaTriagem(telefone, chatLid) !== null,
       idadeDaLinhaMs: idadeDaLinha(linha.created_at, agora),
     });
     if (d.sai) return { acao: "sai", motivo: d.motivo };
