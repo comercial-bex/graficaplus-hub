@@ -344,6 +344,171 @@ export type Database = {
             referencedRelation: "agente_base_respostas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agente_base_respostas_historico_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "agente_metricas_respostas"
+            referencedColumns: ["resposta_id"]
+          },
+        ]
+      }
+      agente_config: {
+        Row: {
+          atraso_max_s: number
+          atraso_min_s: number
+          atualizado_em: string
+          atualizado_por: string | null
+          avisar_grupo: boolean
+          desligada_em: string | null
+          desligada_por: string | null
+          estado: Database["public"]["Enums"]["triagem_estado"]
+          freio_erros_hora: number
+          freio_falhas_envio: number
+          id: boolean
+          max_mensagens: number
+          max_por_dia: number
+          max_por_hora: number
+          numeros_teste: string[]
+          percentual: number
+          retencao_eventos_dias: number
+          vale_a_partir_de: string | null
+        }
+        Insert: {
+          atraso_max_s?: number
+          atraso_min_s?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          avisar_grupo?: boolean
+          desligada_em?: string | null
+          desligada_por?: string | null
+          estado?: Database["public"]["Enums"]["triagem_estado"]
+          freio_erros_hora?: number
+          freio_falhas_envio?: number
+          id?: boolean
+          max_mensagens?: number
+          max_por_dia?: number
+          max_por_hora?: number
+          numeros_teste?: string[]
+          percentual?: number
+          retencao_eventos_dias?: number
+          vale_a_partir_de?: string | null
+        }
+        Update: {
+          atraso_max_s?: number
+          atraso_min_s?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          avisar_grupo?: boolean
+          desligada_em?: string | null
+          desligada_por?: string | null
+          estado?: Database["public"]["Enums"]["triagem_estado"]
+          freio_erros_hora?: number
+          freio_falhas_envio?: number
+          id?: boolean
+          max_mensagens?: number
+          max_por_dia?: number
+          max_por_hora?: number
+          numeros_teste?: string[]
+          percentual?: number
+          retencao_eventos_dias?: number
+          vale_a_partir_de?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_config_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_eventos: {
+        Row: {
+          acao: string | null
+          codigo: string | null
+          conversa_id: string | null
+          criado_em: string
+          detalhe: Json
+          id: string
+          mensagem_id: string | null
+          motivo: string | null
+          ramo: string | null
+          resposta_id: string | null
+          saida_id: string | null
+          sensivel: boolean
+          tipo: string
+          versao: number | null
+        }
+        Insert: {
+          acao?: string | null
+          codigo?: string | null
+          conversa_id?: string | null
+          criado_em?: string
+          detalhe?: Json
+          id?: string
+          mensagem_id?: string | null
+          motivo?: string | null
+          ramo?: string | null
+          resposta_id?: string | null
+          saida_id?: string | null
+          sensivel?: boolean
+          tipo: string
+          versao?: number | null
+        }
+        Update: {
+          acao?: string | null
+          codigo?: string | null
+          conversa_id?: string | null
+          criado_em?: string
+          detalhe?: Json
+          id?: string
+          mensagem_id?: string | null
+          motivo?: string | null
+          ramo?: string | null
+          resposta_id?: string | null
+          saida_id?: string | null
+          sensivel?: boolean
+          tipo?: string
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_conversas_abertas"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "agente_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "rel_whatsapp_tempo_medio_resposta"
+            referencedColumns: ["conversa_id"]
+          },
+          {
+            foreignKeyName: "agente_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_eventos_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "agente_base_respostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_eventos_resposta_id_fkey"
+            columns: ["resposta_id"]
+            isOneToOne: false
+            referencedRelation: "agente_metricas_respostas"
+            referencedColumns: ["resposta_id"]
+          },
         ]
       }
       anuncios_origem: {
@@ -9802,6 +9967,124 @@ export type Database = {
           },
         ]
       }
+      os_autorizacoes: {
+        Row: {
+          autorizado_em: string
+          autorizado_por: string
+          designer_id: string | null
+          id: string
+          motivo: string | null
+          os_id: string
+          tipo: string
+          valor_em_aberto: number | null
+        }
+        Insert: {
+          autorizado_em?: string
+          autorizado_por: string
+          designer_id?: string | null
+          id?: string
+          motivo?: string | null
+          os_id: string
+          tipo: string
+          valor_em_aberto?: number | null
+        }
+        Update: {
+          autorizado_em?: string
+          autorizado_por?: string
+          designer_id?: string | null
+          id?: string
+          motivo?: string | null
+          os_id?: string
+          tipo?: string
+          valor_em_aberto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_autorizacoes_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_designer_id_fkey"
+            columns: ["designer_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "os_finalidade_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_previsto_realizado"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_autorizacoes_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_os"
+            referencedColumns: ["os_id"]
+          },
+        ]
+      }
       os_materiais_obrigatorios: {
         Row: {
           created_at: string
@@ -10098,6 +10381,121 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "vw_tarefas_kanban"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_pedidos_ao_gestor: {
+        Row: {
+          assunto: string
+          id: string
+          os_id: string
+          pedido_em: string
+          pedido_por: string
+          resolvido_em: string | null
+          resolvido_por: string | null
+        }
+        Insert: {
+          assunto: string
+          id?: string
+          os_id: string
+          pedido_em?: string
+          pedido_por: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+        }
+        Update: {
+          assunto?: string
+          id?: string
+          os_id?: string
+          pedido_em?: string
+          pedido_por?: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "os_finalidade_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_lucro_por_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_os_atrasadas"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "rel_previsto_realizado"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_operacional_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_os"
+            referencedColumns: ["os_id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_pedido_por_fkey"
+            columns: ["pedido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_pedidos_ao_gestor_resolvido_por_fkey"
+            columns: ["resolvido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -18975,6 +19373,51 @@ export type Database = {
           },
         ]
       }
+      agente_metricas_dia: {
+        Row: {
+          barradas: number | null
+          decisoes: number | null
+          dia: string | null
+          entregues: number | null
+          escolhidas: number | null
+          modo: string | null
+          ramo: string | null
+          sensiveis: number | null
+        }
+        Relationships: []
+      }
+      agente_metricas_motivos_30_dias: {
+        Row: {
+          acao: string | null
+          modo: string | null
+          motivo: string | null
+          n: number | null
+          ramo: string | null
+        }
+        Relationships: []
+      }
+      agente_metricas_respostas: {
+        Row: {
+          resposta_id: string | null
+          status: string | null
+          tema: string | null
+          ultimo_uso: string | null
+          usos_ensaio_30_dias: number | null
+          usos_real_30_dias: number | null
+          usos_total: number | null
+          versao: number | null
+        }
+        Relationships: []
+      }
+      agente_metricas_sem_resposta_dia: {
+        Row: {
+          dia: string | null
+          modo: string | null
+          perguntas_sem_resposta: number | null
+          ramo: string | null
+        }
+        Relationships: []
+      }
       itens_os_comercial: {
         Row: {
           acabamento: string | null
@@ -23108,6 +23551,25 @@ export type Database = {
       }
     }
     Functions: {
+      _agente_avisar_equipe: {
+        Args: {
+          p_conversa: string
+          p_entidade: string
+          p_ligado: boolean
+          p_motivo: string
+        }
+        Returns: string
+      }
+      _agente_cancelar_pendentes: {
+        Args: { p_conversa?: string }
+        Returns: number
+      }
+      _agente_cobre: { Args: { p_conversa: string }; Returns: boolean }
+      _agente_degrau_permite: { Args: { p_conversa: string }; Returns: boolean }
+      _agente_desligar_config: {
+        Args: { p_motivo: string; p_usuario: string }
+        Returns: boolean
+      }
       _agente_frases_ok: { Args: { p_frases: string[] }; Returns: boolean }
       _agente_problemas_de_texto: {
         Args: {
@@ -23116,8 +23578,25 @@ export type Database = {
         }
         Returns: string[]
       }
+      _agente_triagem_liberou: {
+        Args: { p_conversa: string }
+        Returns: boolean
+      }
       _apply_pending_migration: { Args: { p_sql: string }; Returns: undefined }
+      _citacao_no_texto: { Args: { p_usuario: string }; Returns: string }
       _dias: { Args: { p: number }; Returns: string }
+      _mencao_whatsapp: { Args: { p_usuario: string }; Returns: string }
+      _os_avisar_grupo: {
+        Args: {
+          p_chave: string
+          p_corpo: string
+          p_mencionar: string[]
+          p_os_id: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: string
+      }
       _os_enfileirar_aviso: {
         Args: {
           p_evento: string
@@ -23244,6 +23723,35 @@ export type Database = {
         Args: { p_a_partir_de?: string; p_os_id: string }
         Returns: Json
       }
+      agente_conferir_envio: {
+        Args: { p_conversa_id: string; p_resposta_id: string; p_versao: number }
+        Returns: Json
+      }
+      agente_config_salvar: {
+        Args: { p_config: Json; p_usuario: string }
+        Returns: Json
+      }
+      agente_contexto: {
+        Args: { p_conversa_id: string; p_mensagem_id: string }
+        Returns: Json
+      }
+      agente_desligar: {
+        Args: { p_motivo: string; p_usuario: string }
+        Returns: Json
+      }
+      agente_evento: {
+        Args: {
+          p_conversa_id: string
+          p_detalhe?: Json
+          p_mensagem_id: string
+          p_tipo: string
+        }
+        Returns: Json
+      }
+      agente_registrar: {
+        Args: { p_conversa_id: string; p_decisao: Json; p_mensagem_id: string }
+        Returns: Json
+      }
       agente_resposta_aprovar: {
         Args: {
           p_id: string
@@ -23277,6 +23785,8 @@ export type Database = {
         }
         Returns: Json
       }
+      agente_resumo: { Args: { p_dias?: number }; Returns: Json }
+      agente_varrer: { Args: never; Returns: Json }
       ajustar_estoque_material: {
         Args: {
           p_material_id: string
@@ -23340,6 +23850,14 @@ export type Database = {
       }
       automacao_contexto_os: {
         Args: { p_os: Database["public"]["Tables"]["ordens_servico"]["Row"] }
+        Returns: Json
+      }
+      autorizar_margem_baixa: {
+        Args: { p_motivo: string; p_os_id: string }
+        Returns: Json
+      }
+      autorizar_saldo_devedor: {
+        Args: { p_motivo: string; p_os_id: string }
         Returns: Json
       }
       avancar_os_status: {
@@ -23790,6 +24308,14 @@ export type Database = {
         }
         Returns: Json
       }
+      definir_maquina_da_os: {
+        Args: { p_maquina_id: string; p_os_id: string }
+        Returns: Json
+      }
+      definir_operador_da_os: {
+        Args: { p_operador_id: string; p_os_id: string }
+        Returns: Json
+      }
       delete_filamento_3d: {
         Args: { p_material_id: string }
         Returns: undefined
@@ -23833,6 +24359,7 @@ export type Database = {
         Args: { p_informado?: number; p_modo?: string; p_orcamento_id: string }
         Returns: Json
       }
+      eh_gestor: { Args: { p_usuario: string }; Returns: boolean }
       endereco_da_entrega: { Args: { p_os_id: string }; Returns: string }
       enfileirar_notificacao: {
         Args: {
@@ -23856,6 +24383,16 @@ export type Database = {
           p_gatilho: Database["public"]["Enums"]["automacao_gatilho"]
         }
         Returns: number
+      }
+      equipe_da_producao: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          id: string
+          nome: string
+          papeis: string[]
+          tem_whatsapp: boolean
+        }[]
       }
       equipe_para_venda: {
         Args: never
@@ -24067,6 +24604,10 @@ export type Database = {
         Args: { p_os_id: string; p_quantidade?: number }
         Returns: Json
       }
+      mandar_para_fila_de_producao: {
+        Args: { p_operador_id: string; p_os_id: string }
+        Returns: Json
+      }
       maquina_do_status: {
         Args: { p_status: Database["public"]["Enums"]["status_os"] }
         Returns: string
@@ -24230,6 +24771,10 @@ export type Database = {
       }
       os_e_impressao_3d: {
         Args: { p_orcamento_id: string; p_os_id: string }
+        Returns: boolean
+      }
+      os_espera_validacao_do_gestor: {
+        Args: { p_os_id: string }
         Returns: boolean
       }
       os_esta_encerrada: {
@@ -24519,6 +25064,10 @@ export type Database = {
           ultimo_acesso_em: string
           usuario_email: string
         }[]
+      }
+      pedir_aval_do_gestor: {
+        Args: { p_assunto: string; p_os_id: string }
+        Returns: Json
       }
       pendencias_de_decisoes: {
         Args: never
@@ -25343,6 +25892,10 @@ export type Database = {
         }[]
       }
       usuario_desativado: { Args: { _user_id: string }; Returns: boolean }
+      validar_atendimento: {
+        Args: { p_designer_id?: string; p_motivo?: string; p_os_id: string }
+        Returns: Json
+      }
       vencimentos_por_janela: { Args: never; Returns: Json }
       veredito_qualidade_os: { Args: { p_os_id: string }; Returns: string }
       vincular_cliente_do_contato: {
