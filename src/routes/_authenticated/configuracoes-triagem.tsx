@@ -10,6 +10,7 @@ import { MetricasDaTriagem } from "@/components/triagem/metricas-da-triagem";
 import { HorariosEFeriados } from "@/components/triagem/horarios-e-feriados";
 import { PainelDeLiga } from "@/components/triagem/painel-de-liga";
 import { QuadroDeRespostas } from "@/components/triagem/quadro-de-respostas";
+import { TemposEFreios } from "@/components/triagem/tempos-e-freios";
 import { Simulador } from "@/components/triagem/simulador";
 import { TextosDasEtapas } from "@/components/triagem/textos-das-etapas";
 
@@ -21,9 +22,9 @@ import { TextosDasEtapas } from "@/components/triagem/textos-das-etapas";
  * do servidor que confere a permissão (whatsapp.manage para ligar, subir, descer,
  * porcentagem, números de teste e freios; configuracoes.manage para textos,
  * quadro, link e horário; as duas podem desligar tudo). A rota abre com qualquer
- * uma das duas. Os tempos e os freios têm padrão no banco e o servidor sabe
- * salvá-los (`salvarConfigDaTriagem`), mas esta tela ainda NÃO tem campo para
- * eles: ficam para uma próxima etapa.
+ * uma das duas. Os tempos e os freios têm padrão no banco e a
+ * seção "Tempos e freios" os edita (`salvarConfigDaTriagem`): tempos com qualquer
+ * uma das duas permissões, freios só com whatsapp.manage (os outros veem em leitura).
  *
  * Letra de 16 px, contraste de 4,5 para 1 e alvos de 44 px: o dono enxerga mal.
  * Fica fora do menu e abre por Dados da empresa, como a Origem dos contatos.
@@ -76,6 +77,7 @@ function ConfiguracoesTriagemPage() {
           <TextosDasEtapas painel={painel.data} aoMudar={recarregar} />
           <QuadroDeRespostas painel={painel.data} aoMudar={recarregar} />
           <HorariosEFeriados painel={painel.data} aoMudar={recarregar} />
+          <TemposEFreios painel={painel.data} aoMudar={recarregar} />
         </>
       )}
     </div>

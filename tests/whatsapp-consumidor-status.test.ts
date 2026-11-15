@@ -386,7 +386,7 @@ describe("a porta lateral da fila está fechada no consumidor", () => {
     expect(fonte).toMatch(/if \(!linha\.conversa_id \|\| \(!linha\.created_by && !daIa\)\)/);
     expect(fonte).toMatch(/sem conversa ou sem autor/);
     expect(fonte).toMatch(
-      /\.select\("id, conversa_id, mensagem_id, payload, tentativas, created_by, idempotency_key"\)/,
+      /\.select\("id, conversa_id, mensagem_id, payload, tentativas, created_by, idempotency_key, created_at"\)/,
     );
   });
 });

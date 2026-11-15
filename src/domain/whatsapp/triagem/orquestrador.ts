@@ -811,7 +811,30 @@ export type SituacaoDaLinhaDeTriagem = {
    * brasileiro? Lid, número de fora e fixo não são: a triagem nunca manda para eles.
    */
   telefoneAlcancavel: boolean;
+  /**
+   * Há quanto tempo a linha espera na fila, em milissegundos. Nulo ou ausente quando não deu para saber: sem
+   * idade conhecida nada é cancelado por velhice (cancelar no escuro apagaria uma mensagem boa).
+   */
+  idadeDaLinhaMs?: number | null;
 };
+
+/** O motivo do evento `pulou` quando a linha de triagem esperou além do limite. */
+export const MOTIVO_FILA_VELHA = "fila_velha";
+
+/**
+ * Idade máxima de uma pergunta da triagem na fila: 30 minutos. A pergunta só faz sentido dentro da conversa que a
+ * motivou; com o celular desconectado do Z-API ela ficaria horas pendente e sairia fora de hora, depois de o contato
+ * ter ido embora ou a equipe ter assumido. O prazo de resposta do contato já é curto, então 30 minutos cobre uma
+ * queda rápida de conexão sem deixar a pergunta sair velha.
+ */
+export const IDADE_MAXIMA_PERGUNTA_NA_FILA_MS = 30 * 60 * 1000;
+
+/**
+ * Idade máxima da mensagem final já decidida (fechamento, link de parceiro, aviso de equipe, aviso de parar): 6 horas.
+ * Ela não depende de resposta do contato e é a despedida, então aguenta uma queda mais longa. Passando de 6 horas o
+ * assunto já esfriou e a equipe fala por si.
+ */
+export const IDADE_MAXIMA_DESPEDIDA_NA_FILA_MS = 6 * 60 * 60 * 1000;
 
 /**
  * Status em que a triagem JÁ TERMINOU e a mensagem que está na fila é a última dela. `triagem_aplicar` grava o
@@ -847,6 +870,10 @@ export function linhaDeTriagemPodeSair(s: SituacaoDaLinhaDeTriagem): {
     return { sai: false, motivo: `triagem_${s.statusDaTriagem}` };
   }
   if (!s.telefoneAlcancavel) return { sai: false, motivo: MOTIVO_SEM_NUMERO };
+  const limite = terminal ? IDADE_MAXIMA_DESPEDIDA_NA_FILA_MS : IDADE_MAXIMA_PERGUNTA_NA_FILA_MS;
+  if (typeof s.idadeDaLinhaMs === "number" && Number.isFinite(s.idadeDaLinhaMs) && s.idadeDaLinhaMs > limite) {
+    return { sai: false, motivo: MOTIVO_FILA_VELHA };
+  }
   if (s.humanoNaConversa) return { sai: false, motivo: "humano_na_conversa" };
   if (!s.degrauPermite) return { sai: false, motivo: "fora_do_degrau" };
   return { sai: true, motivo: terminal ? "ok_despedida" : "ok" };

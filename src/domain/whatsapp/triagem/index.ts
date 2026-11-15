@@ -11,3 +11,4 @@ export * from "./portao";
 export * from "./gravacao";
 export * from "./maquina";
 export * from "./simular";
+export * from "./limites-da-config";

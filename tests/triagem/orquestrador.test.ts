@@ -9,7 +9,10 @@ import {
   contextoDoBanco,
   entregaSemNumero,
   limparDetalhe,
+  IDADE_MAXIMA_DESPEDIDA_NA_FILA_MS,
+  IDADE_MAXIMA_PERGUNTA_NA_FILA_MS,
   linhaDeTriagemPodeSair,
+  MOTIVO_FILA_VELHA,
   MOTIVO_SEM_NUMERO,
   ramoDoLead,
   resultadoParaAplicar,
@@ -596,6 +599,51 @@ describe("quem manda e quando a fila pode despachar", () => {
         statusDaTriagem,
       ).toEqual({ sai: false, motivo: MOTIVO_SEM_NUMERO });
     }
+  });
+
+  it("os limites de idade: pergunta 30 minutos, despedida 6 horas", () => {
+    expect(IDADE_MAXIMA_PERGUNTA_NA_FILA_MS).toBe(30 * 60 * 1000);
+    expect(IDADE_MAXIMA_DESPEDIDA_NA_FILA_MS).toBe(6 * 60 * 60 * 1000);
+    expect(MOTIVO_FILA_VELHA).toBe("fila_velha");
+  });
+
+  it("pergunta velha cancela com fila_velha; no limite exato ainda sai", () => {
+    const L = IDADE_MAXIMA_PERGUNTA_NA_FILA_MS;
+    expect(linhaDeTriagemPodeSair({ ...ok, idadeDaLinhaMs: L })).toEqual({ sai: true, motivo: "ok" });
+    expect(linhaDeTriagemPodeSair({ ...ok, idadeDaLinhaMs: L + 1 })).toEqual({
+      sai: false,
+      motivo: "fila_velha",
+    });
+    expect(linhaDeTriagemPodeSair({ ...ok, idadeDaLinhaMs: 0 }).sai).toBe(true);
+  });
+
+  it("despedida aguenta mais que a pergunta e cancela depois de 6 horas", () => {
+    for (const statusDaTriagem of STATUS_TERMINAIS_QUE_FALAM) {
+      const s = { ...ok, statusDaTriagem };
+      expect(
+        linhaDeTriagemPodeSair({ ...s, idadeDaLinhaMs: IDADE_MAXIMA_PERGUNTA_NA_FILA_MS + 1 }),
+        statusDaTriagem,
+      ).toEqual({ sai: true, motivo: "ok_despedida" });
+      expect(
+        linhaDeTriagemPodeSair({ ...s, idadeDaLinhaMs: IDADE_MAXIMA_DESPEDIDA_NA_FILA_MS }).sai,
+      ).toBe(true);
+      expect(
+        linhaDeTriagemPodeSair({ ...s, idadeDaLinhaMs: IDADE_MAXIMA_DESPEDIDA_NA_FILA_MS + 1 }),
+        statusDaTriagem,
+      ).toEqual({ sai: false, motivo: "fila_velha" });
+    }
+  });
+
+  it("idade desconhecida não cancela; motivos anteriores têm prioridade sobre a idade", () => {
+    expect(linhaDeTriagemPodeSair({ ...ok, idadeDaLinhaMs: null }).sai).toBe(true);
+    expect(linhaDeTriagemPodeSair({ ...ok, idadeDaLinhaMs: Number.NaN }).sai).toBe(true);
+    const velha = IDADE_MAXIMA_DESPEDIDA_NA_FILA_MS * 10;
+    expect(linhaDeTriagemPodeSair({ ...ok, statusDaTriagem: "pulada", idadeDaLinhaMs: velha }).motivo).toBe(
+      "triagem_pulada",
+    );
+    expect(linhaDeTriagemPodeSair({ ...ok, telefoneAlcancavel: false, idadeDaLinhaMs: velha }).motivo).toBe(
+      MOTIVO_SEM_NUMERO,
+    );
   });
 });
 

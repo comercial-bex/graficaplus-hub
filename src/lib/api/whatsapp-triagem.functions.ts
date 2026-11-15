@@ -6,6 +6,11 @@ import { DEGRAUS, ehDegrau, podeSubir, type Degrau } from "@/domain/whatsapp/tri
 import { validarTextoEditavel } from "@/domain/whatsapp/triagem/textos";
 import { lerTodasAsLinhas } from "@/domain/whatsapp/triagem/paginar";
 import { explicarProblemaDeTexto } from "@/domain/whatsapp/triagem/tela";
+import {
+  CAMPOS_DE_FREIO,
+  ERRO_DE_ATRASO,
+  LIMITE_POR_CAMPO,
+} from "@/domain/whatsapp/triagem/limites-da-config";
 import type { LinhaDa30Dias, LinhaDoDia } from "@/domain/whatsapp/triagem/metricas";
 
 /**
@@ -314,6 +319,9 @@ export const desligarTudoDaTriagem = createServerFn({ method: "POST" })
 /* ------------------------------------------------------------------ */
 
 const inteiro = (min: number, max: number) => z.number().int().min(min).max(max);
+/** Tempos e freios: o mínimo e o máximo vêm de `limites-da-config.ts`, o mesmo que a tela mostra. */
+const limite = (campo: keyof typeof LIMITE_POR_CAMPO) =>
+  inteiro(LIMITE_POR_CAMPO[campo].min, LIMITE_POR_CAMPO[campo].max);
 
 const configSchema = z
   .object({
@@ -321,34 +329,24 @@ const configSchema = z
     numerosTeste: z.array(z.string().trim().min(8).max(20)).max(20),
     linkParceiro: z.string().trim().max(300).nullable(),
     avisarGrupo: z.boolean(),
-    esperaRespostaMin: inteiro(5, 1440),
-    retomarAteHoras: inteiro(1, 72),
-    intervaloMinimoS: inteiro(5, 300),
-    maxMensagens: inteiro(1, 12),
-    maxTentativasPorPasso: inteiro(1, 3),
-    maxNovasPorHora: inteiro(1, 100),
-    maxNovasPorDia: inteiro(1, 1000),
-    atrasoMinS: inteiro(1, 15),
-    atrasoMaxS: inteiro(1, 15),
-    freioFalhasEnvio: inteiro(1, 20),
-    freioErrosHora: inteiro(1, 200),
+    esperaRespostaMin: limite("esperaRespostaMin"),
+    retomarAteHoras: limite("retomarAteHoras"),
+    intervaloMinimoS: limite("intervaloMinimoS"),
+    maxMensagens: limite("maxMensagens"),
+    maxTentativasPorPasso: limite("maxTentativasPorPasso"),
+    maxNovasPorHora: limite("maxNovasPorHora"),
+    maxNovasPorDia: limite("maxNovasPorDia"),
+    atrasoMinS: limite("atrasoMinS"),
+    atrasoMaxS: limite("atrasoMaxS"),
+    freioFalhasEnvio: limite("freioFalhasEnvio"),
+    freioErrosHora: limite("freioErrosHora"),
   })
   .partial();
 
 export type ConfigParaSalvar = z.input<typeof configSchema>;
 
 /** Campos que mexem em quem recebe mensagem ou afrouxam freio: só quem pode ligar o robô (whatsapp.manage). */
-const SO_PARA_QUEM_LIGA = new Set([
-  "percentual",
-  "numerosTeste",
-  "intervaloMinimoS",
-  "maxMensagens",
-  "maxTentativasPorPasso",
-  "maxNovasPorHora",
-  "maxNovasPorDia",
-  "freioFalhasEnvio",
-  "freioErrosHora",
-]);
+const SO_PARA_QUEM_LIGA = new Set<string>(["percentual", "numerosTeste", ...CAMPOS_DE_FREIO]);
 
 const COLUNA_DO_CAMPO: Record<string, string> = {
   percentual: "percentual",
@@ -381,6 +379,13 @@ export const salvarConfigDaTriagem = createServerFn({ method: "POST" })
         "configuracoes.manage",
         "whatsapp.manage",
       ]);
+    }
+    if (
+      data.atrasoMinS !== undefined &&
+      data.atrasoMaxS !== undefined &&
+      data.atrasoMinS > data.atrasoMaxS
+    ) {
+      throw new Error(ERRO_DE_ATRASO);
     }
     if (data.linkParceiro && !/^https:\/\/[^\s]+$/.test(data.linkParceiro)) {
       throw new Error("O link de parceiro precisa começar com https:// e não ter espaços.");

@@ -537,6 +537,8 @@ const PARCEIRO = [
     "parceiro",
     "parceira",
     "parceiros",
+    // "parceria" e "terceirizado" soltos ficam aqui só para espelhar a migração e o banco vivo;
+    // o motor (quadro.ts) ignora essas linhas e exige contexto.
     "parceria",
     "parcerias",
     "terceirizado",
@@ -896,14 +898,10 @@ export const SEMENTES_DO_QUADRO: readonly RespostaDoQuadro[] = [
 ];
 
 /**
- * As palavras de parceiro que o dono listou. Servem só de documentação e de
+ * As palavras de parceiro que valem sozinhas. Servem só de documentação e de
  * teste: quem decide é a intenção `parceiro` do quadro, que exige mensagem curta.
- * A palavra "revendedor" fica de fora.
+ * "parceria" e "terceirizado" ficam de fora: sozinhas não abrem o ramo, só com
+ * contexto (ver `PALAVRAS_FRACAS_DE_PARCEIRO` em quadro.ts). A palavra "revendedor"
+ * também fica de fora.
  */
-export const PALAVRAS_DE_PARCEIRO = [
-  "parceiro",
-  "parceira",
-  "parceria",
-  "terceirizado",
-  "terceirizada",
-] as const;
+export const PALAVRAS_DE_PARCEIRO = ["parceiro", "parceira"] as const;
