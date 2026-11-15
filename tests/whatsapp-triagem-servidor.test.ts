@@ -403,13 +403,14 @@ describe("conferência da fila antes de despachar uma pergunta de triagem", () =
     erroDegrau?: boolean;
     erroHumano?: boolean;
     telefone?: string | null;
+    chatLid?: string | null;
     conversa?: Resp;
   }) {
     return bancoFalso({
       tabelas: {
         whatsapp_triagens: o.triagem ?? { data: { status: "ativa", modo: "real" }, error: null },
         whatsapp_conversas: o.conversa ?? {
-          data: { telefone: o.telefone === undefined ? "96991112233" : o.telefone },
+          data: { telefone: o.telefone === undefined ? "96991112233" : o.telefone, chat_lid: o.chatLid ?? null },
           error: null,
         },
       },
@@ -487,6 +488,35 @@ describe("conferência da fila antes de despachar uma pergunta de triagem", () =
         });
         expect(JSON.stringify(insercao)).not.toMatch(/2533|4477/);
       }
+    }
+  });
+
+  it("telefone sem cara de celular COM chat_lid válido sai, e as travas continuam valendo", async () => {
+    const chatLid = "253386293268636@lid";
+    for (const telefone of ["253386293268636", "447700900123", "1124256506", null]) {
+      const ok = banco({ telefone, chatLid });
+      expect(await conferirLinhaDeTriagem(linha, ok.db), String(telefone)).toEqual({ acao: "sai", motivo: "ok" });
+      expect(
+        await conferirLinhaDeTriagem(linha, banco({ telefone, chatLid, humano: true }).db),
+        "humano",
+      ).toEqual({ acao: "cancela", motivo: "humano_na_conversa" });
+      expect(
+        await conferirLinhaDeTriagem(linha, banco({ telefone, chatLid, degrau: false }).db),
+        "degrau",
+      ).toEqual({ acao: "cancela", motivo: "fora_do_degrau" });
+      expect(
+        await conferirLinhaDeTriagem(linha, banco({ telefone, chatLid, triagem: { data: { status: "ensaio", modo: "ensaio" }, error: null } }).db),
+        "ensaio",
+      ).toEqual({ acao: "cancela", motivo: "triagem_em_ensaio" });
+    }
+  });
+
+  it("chat_lid em formato estranho não vale como destino", async () => {
+    for (const chatLid of ["253386293268636", "abc@lid", "253386293268636@s.whatsapp.net"]) {
+      expect(await conferirLinhaDeTriagem(linha, banco({ telefone: "253386293268636", chatLid }).db), chatLid).toEqual({
+        acao: "cancela",
+        motivo: "sem_numero_alcancavel",
+      });
     }
   });
 

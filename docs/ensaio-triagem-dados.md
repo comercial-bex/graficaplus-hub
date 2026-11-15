@@ -1320,3 +1320,16 @@ Cada item abaixo foi levantado pelas revisões e fica de fora de propósito. Nin
 - Conclusão: a página NÃO está limpa. Qualquer visitante, inclusive cliente final, vê que existe preço diferenciado e a faixa de desconto. O anúncio de parceiro abre o WhatsApp direto, mas a página continua pública. **Decisão do dono pendente**: manter, tirar a faixa de percentual, ou tirar também as palavras "tabela" e "preço". Nada foi alterado.
 
 **Continua pendente depois de 14/11/2026**: itens 1, 2, 7 e 9 do 8, e os pendentes do 8.1, sem mudança. Resposta pelo `chat_lid`, tempos e freios na tela, idade máxima da fila e o ensaio das 16 conversas de robô seguem abertos.
+
+
+### 8.3 Registro de 15/11/2026: resposta pelo `chat_lid`
+
+**O que a documentação do Z-API diz** (developer.z-api.io/en/tips/lid, lida em 15/11/2026): o campo `phone` do envio de texto "pode conter o número real ou o próprio `@lid`", com exemplo `{ "phone": "999999999999999@lid", "message": "..." }`. O formato gravado em `whatsapp_conversas.chat_lid` ("253386293268636@lid") é o mesmo. A mesma página avisa que o retorno pode variar e que o `@lid` está sendo implantado aos poucos pelo WhatsApp, então o comportamento pode ser inconsistente.
+
+**O que mudou no código**
+- `destinoDaTriagem` (`extrair.ts`): celular brasileiro escreve para o telefone, como sempre; sem celular e com `chat_lid` no formato gravado escreve para o lid; sem nenhum dos dois não escreve.
+- Orquestrador: só entrega à equipe com `sem_numero_alcancavel` quando não há destino. A leitura do lid (`lerChatLid`) só acontece se o telefone não é celular e o instantâneo diz que há lid.
+- `conferirLinhaDeTriagem`: lê `telefone` e `chat_lid` e só cancela sem destino. Humano na conversa, degrau, ensaio e idade da fila continuam cancelando.
+- Consumidor da fila e `montarEnvio`: só para texto da triagem (nunca agente, aviso de pedido ou equipe), com telefone fora do padrão de celular, o `phone` do Z-API é o lid. Botões, imagem e PDF não usam o lid. O agente continua só com celular.
+
+**O que ainda NÃO está provado**: que o Z-API entrega de fato ao lid pela instância da empresa. Teste do dono, com a triagem em degrau de teste: uma conversa de um aparelho cujo contato só tem lid, ou um envio de teste direto pelo Z-API com `phone` igual a um lid conhecido, e conferir se a mensagem chega. Se o Z-API recusar, a linha vira falha definitiva com o erro na fila e a conversa fica com a equipe.

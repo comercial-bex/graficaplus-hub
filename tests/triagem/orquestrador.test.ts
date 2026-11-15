@@ -22,6 +22,8 @@ import {
 } from "../../src/domain/whatsapp/triagem/orquestrador";
 import { estadoInicial } from "../../src/domain/whatsapp/triagem/maquina";
 import {
+  destinoDaTriagem,
+  lidValido,
   telefoneComCaraDeLid,
   telefoneDoChatUtilizavel,
   triagemPodeFalarCom,
@@ -724,6 +726,70 @@ describe("o telefone da conversa decide pelo formato, nunca por ter um chat_lid 
     expect(aplicado.aviso_grupo).toEqual({ motivo: "entregue_equipe", marcas: ["sem_numero_valido"] });
     expect((b.triagem as Record<string, unknown>).status).toBe("entregue_equipe");
     expect((b.triagem as Record<string, unknown>).motivo_fim).toBe(MOTIVO_SEM_NUMERO);
+  });
+
+  it("lidValido e destinoDaTriagem: celular tem a vez, senão o lid no formato gravado, senão ninguém", () => {
+    expect(lidValido("253386293268636@lid")).toBe("253386293268636@lid");
+    for (const v of ["253386293268636", "abc@lid", "253386293268636@s.whatsapp.net", "123@lid", "", null, undefined])
+      expect(lidValido(v), String(v)).toBeNull();
+    const lid = "253386293268636@lid";
+    expect(destinoDaTriagem("96991112233", lid)).toEqual({ via: "telefone" });
+    expect(destinoDaTriagem("96991112233", null)).toEqual({ via: "telefone" });
+    for (const tel of ["253386293268636", "447700900123", "1124256506", null])
+      expect(destinoDaTriagem(tel, lid), String(tel)).toEqual({ via: "lid", lid });
+    expect(destinoDaTriagem("253386293268636", null)).toBeNull();
+    expect(destinoDaTriagem("253386293268636", "253386293268636")).toBeNull();
+  });
+
+  it("telefone sem cara de celular COM chat_lid válido: a triagem pergunta, sem número do chat, e não entrega à equipe", async () => {
+    const b = criarBanco();
+    b.extras.telefone = "253386293268636";
+    b.extras.temLid = true;
+    b.extras.chatLid = "253386293268636@lid";
+    const { r } = await fala(b, "Oi, bom dia");
+    expect(r).toMatchObject({ acao: "processada", enviou: true, passo: "nome" });
+    expect(b.enviados).toHaveLength(1);
+    expect(b.eventos.some((e) => e.tipo === "pulou")).toBe(false);
+    expect(b.chamadas).toContain("lerChatLid");
+    expect((b.triagem as Record<string, unknown>).status).toBe("ativa");
+  });
+
+  it("chat_lid em formato estranho, ou conversa sem lid: segue para a equipe como antes", async () => {
+    for (const [temLid, chatLid] of [
+      [true, "253386293268636"],
+      [true, null],
+      [false, "253386293268636@lid"],
+    ] as const) {
+      const b = criarBanco();
+      b.extras.telefone = "253386293268636";
+      b.extras.temLid = temLid;
+      b.extras.chatLid = chatLid;
+      const { r } = await fala(b, "Oi");
+      expect(r, String(chatLid)).toMatchObject({ acao: "processada", enviou: false, motivo: MOTIVO_SEM_NUMERO });
+      expect(b.enviados).toEqual([]);
+    }
+  });
+
+  it("celular brasileiro com chat_lid: nem lê o lid, escreve para o telefone", async () => {
+    const b = criarBanco();
+    b.extras.temLid = true;
+    b.extras.chatLid = "253386293268636@lid";
+    await fala(b, "Oi");
+    expect(b.chamadas).not.toContain("lerChatLid");
+    expect(b.enviados).toHaveLength(1);
+  });
+
+  it("falha ao ler o lid: erro registrado, nada enviado, nada aplicado", async () => {
+    const b = criarBanco();
+    b.extras.telefone = "253386293268636";
+    b.extras.temLid = true;
+    b.porta.lerChatLid = async () => {
+      throw new Error("banco fora");
+    };
+    const { r } = await fala(b, "Oi");
+    expect(r).toEqual({ acao: "erro", etapa: "ler_lid" });
+    expect(b.enviados).toEqual([]);
+    expect(b.aplicacoes).toEqual([]);
   });
 
   it("telefone vazio ou fixo também não recebe mensagem do robô", async () => {

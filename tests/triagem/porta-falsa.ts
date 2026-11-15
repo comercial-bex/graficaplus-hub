@@ -57,6 +57,8 @@ export type BancoFalso = {
   extras: {
     telefone?: string | null;
     temLid?: boolean;
+    /** O `chat_lid` gravado na conversa, lido por `lerChatLid`. Padrão nulo. */
+    chatLid?: string | null;
     leadTipo?: string | null;
     /** `leads.tipo_origem`: anuncio, palavra, telefone ou manual. Padrão anuncio. */
     leadOrigem?: string | null;
@@ -256,6 +258,11 @@ export function criarBanco(
         return { dono: "ninguem", motivo: "entrada_repetida", triagem_id: t.id };
       const ensaio = t.modo === "ensaio" || b.cfgEstado === "ensaio";
       return snapshot(ensaio ? "assistente" : "triagem", ensaio, mensagemId);
+    },
+
+    async lerChatLid() {
+      b.chamadas.push("lerChatLid");
+      return b.extras.chatLid ?? null;
     },
 
     async lerEntradas(ids) {

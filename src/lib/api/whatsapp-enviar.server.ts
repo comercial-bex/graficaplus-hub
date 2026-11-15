@@ -609,7 +609,7 @@ export type ResultadoDaLinha = {
  * número e o consumidor mandava: a porta lateral que a migração de 06/10
  * fecha no banco e este arquivo fecha aqui.
  */
-function pedidoDaLinha(linha: LinhaDaFila, telefoneDaConversa: string): PedidoDeEnvio {
+function pedidoDaLinha(linha: LinhaDaFila, telefoneDaConversa: string, chatLid: string | null = null): PedidoDeEnvio {
   const p = linha.payload ?? {};
   const tipo = p.tipo === "pdf" ? "pdf" : p.tipo === "imagem" ? "imagem" : p.tipo === "botoes" ? "botoes" : "texto";
   const botoes = Array.isArray(p.botoes)
@@ -621,6 +621,10 @@ function pedidoDaLinha(linha: LinhaDaFila, telefoneDaConversa: string): PedidoDe
     tipo,
     botoes,
     para: telefoneDaConversa,
+    // O lid só vale para a pergunta ou despedida da triagem (nunca para a linha do agente, nem para aviso de pedido, nem
+    // para o que a equipe escreve): `conferirLinhaDeTriagem` já conferiu o lid antes de a linha chegar aqui.
+    paraLid:
+      tipo === "texto" && typeof p.triagem_id === "string" && p.agente !== true ? (chatLid ?? undefined) : undefined,
     texto: (p.texto as string) ?? (p.message as string) ?? undefined,
     documento: (p.documento as string) ?? (p.document as string) ?? undefined,
     nomeArquivo: (p.nomeArquivo as string) ?? (p.fileName as string) ?? undefined,
@@ -849,7 +853,7 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
 
     const { data: conversa, error: erroConversa } = await supabaseAdmin
       .from("whatsapp_conversas")
-      .select("telefone, fila")
+      .select("telefone, fila, chat_lid")
       .eq("id", linha.conversa_id)
       .maybeSingle();
     if (erroConversa) {
@@ -866,7 +870,7 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
       continue;
     }
 
-    const pedido = pedidoDaLinha(linha, (conversa?.telefone as string) ?? "");
+    const pedido = pedidoDaLinha(linha, (conversa?.telefone as string) ?? "", (conversa?.chat_lid as string | null) ?? null);
     // Arquivo enviado pela caixa: mora no bucket privado. O Z-API baixa por
     // um link temporário (1 h), gerado aqui no servidor.
     const caminho = (linha.payload?.storage_path as string | undefined) ?? null;

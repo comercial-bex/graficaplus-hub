@@ -250,3 +250,41 @@ describe("botões de resposta", () => {
       .toHaveProperty("erro");
   });
 });
+
+describe("envio de texto para o lid (só a triagem)", () => {
+  const LID = "253386293268636@lid";
+  const corpo = (r: unknown) => (r as { corpo: Record<string, unknown> }).corpo;
+
+  it("telefone fora do padrão de celular com paraLid: o phone é o próprio lid", () => {
+    for (const para of ["253386293268636", "447700900123", "1124256506", ""]) {
+      const r = montarEnvio({ tipo: "texto", para, paraLid: LID, texto: "Oi" }, CRED);
+      expect(corpo(r), para).toEqual({ phone: LID, message: "Oi" });
+    }
+  });
+
+  it("celular brasileiro tem a vez, mesmo com paraLid", () => {
+    const r = montarEnvio({ tipo: "texto", para: "96991112233", paraLid: LID, texto: "Oi" }, CRED);
+    expect(corpo(r)).toEqual({ phone: "5596991112233", message: "Oi" });
+  });
+
+  it("sem paraLid o comportamento é o de sempre: número de fora vai pelo número, lixo é recusado", () => {
+    expect(corpo(montarEnvio({ tipo: "texto", para: "447700900123", texto: "Oi" }, CRED))).toEqual({
+      phone: "447700900123",
+      message: "Oi",
+    });
+    expect(montarEnvio({ tipo: "texto", para: "1124256506", texto: "Oi" }, CRED)).toHaveProperty("erro");
+  });
+
+  it("lid em formato estranho não vale, e só texto usa o lid", () => {
+    expect(montarEnvio({ tipo: "texto", para: "1124256506", paraLid: "253386293268636", texto: "Oi" }, CRED)).toHaveProperty("erro");
+    expect(montarEnvio({ tipo: "imagem", para: "1124256506", paraLid: LID, documento: "https://x/y.png" }, CRED)).toHaveProperty("erro");
+    expect(
+      montarEnvio({ tipo: "botoes", para: "1124256506", paraLid: LID, texto: "Oi", botoes: [{ id: "a", rotulo: "A" }] }, CRED),
+    ).toHaveProperty("erro");
+  });
+
+  it("o atraso de digitação da triagem acompanha o envio ao lid", () => {
+    const r = montarEnvio({ tipo: "texto", para: "1124256506", paraLid: LID, texto: "Oi", atrasoS: 4 }, CRED);
+    expect(corpo(r)).toMatchObject({ phone: LID, message: "Oi" });
+  });
+});

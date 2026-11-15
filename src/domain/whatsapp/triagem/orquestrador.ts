@@ -17,7 +17,7 @@ import {
   type TipoDeEntrada,
 } from "./tipos";
 import { DADOS_VAZIOS } from "./gravacao";
-import { extrairCep, telefoneComCaraDeLid, triagemPodeFalarCom } from "./extrair";
+import { destinoDaTriagem, extrairCep, telefoneComCaraDeLid, triagemPodeFalarCom } from "./extrair";
 import { md5 } from "./md5";
 import { normalizarTexto } from "./normalizar";
 import {
@@ -52,14 +52,16 @@ export { entregaSemNumero, MOTIVO_SEM_NUMERO };
  * silenciosa de propósito (não é erro de triagem e não conta no freio).
  *
  * REGRAS QUE ESTE ARQUIVO CARREGA (revisões de B5, 13/11/2026):
- *   - telefone com cara de lid, de fora, fixo ou vazio: a triagem NÃO escreve; entrega a conversa à equipe com o
- *     evento `pulou` (`entregaSemNumero`). Decide pelo formato, nunca por a conversa ter `chat_lid`;
+ *   - telefone que não é celular brasileiro (lid, de fora, fixo ou vazio): se a conversa tem `chat_lid` no formato
+ *     gravado ("...@lid"), a triagem escreve para o lid (o Z-API aceita o lid no campo phone, ver `destinoDaTriagem`);
+ *     sem lid válido ela NÃO escreve e entrega a conversa à equipe com o evento `pulou` (`entregaSemNumero`).
+ *     O celular sempre tem a vez. Decide pelo formato do telefone, nunca só por a conversa ter `chat_lid`;
  *   - ramo parceiro só por `leads.tipo_origem` anuncio ou palavra (`ramoDoLead`);
  *   - o ensaio não espera o intervalo mínimo;
  *   - `linhaDeTriagemPodeSair`: a despedida (status concluida, entregue_equipe, parada_pelo_contato) sai.
  *
- * PENDENTE (registrado em docs/ensaio-triagem-dados.md §8 e §8.1): responder pelo `chat_lid` (hoje essas conversas
- * vão para a equipe sem mensagem); idade máxima da mensagem na fila; prova sem sessão da página de parceiro; medir as
+ * PENDENTE (registrado em docs/ensaio-triagem-dados.md §8 e §8.1): provar com um envio de teste real que o Z-API
+ * entrega ao lid (ver §8.3); idade máxima da mensagem na fila; prova sem sessão da página de parceiro; medir as
  * conversas de robô no ensaio; tempos e freios sem campo na tela.
  */
 
@@ -89,6 +91,11 @@ export type PortaDaTriagem = {
     contexto: { eh_grupo: boolean },
   ): Promise<unknown>;
   lerEntradas(ids: string[]): Promise<LinhaDeEntrada[]>;
+  /**
+   * O `chat_lid` gravado na conversa, ou nulo. Só é chamado quando o telefone não é celular brasileiro e o
+   * instantâneo diz que há lid. Porta sem esta função vale como "sem lid": a conversa vai para a equipe.
+   */
+  lerChatLid?(conversaId: string): Promise<string | null>;
   /** Consulta de CEP com tempo curto. Pode devolver nulo ou lançar: o orquestrador ignora as duas coisas. */
   consultarCep(cep: string): Promise<EnderecoDoCep | null>;
   aplicar(triagemId: string, versao: number, resultado: Record<string, unknown>): Promise<unknown>;
@@ -666,8 +673,14 @@ async function umaTentativa(
     return { acao: "nada", motivo: "mensagem_nao_e_texto_ou_midia", dono };
   }
 
-  // telefone sem cara de celular brasileiro (lid, número de fora): nada de mensagem, a equipe assume
-  const semNumero = !triagemPodeFalarCom(ctxBase.telefoneDoChat.normalizado);
+  // Destino da mensagem: celular brasileiro, ou o lid quando o telefone não é celular e há `chat_lid` no formato gravado
+  // (o Z-API aceita o lid no campo phone). Sem nenhum dos dois, nada de mensagem e a equipe assume.
+  let semNumero = !triagemPodeFalarCom(ctxBase.telefoneDoChat.normalizado);
+  if (semNumero && objeto(snap.conversa)?.tem_chat_lid === true && porta.lerChatLid) {
+    const lerLid = porta.lerChatLid.bind(porta);
+    const lid = await noPasso("ler_lid", () => lerLid(a.conversaId));
+    semNumero = destinoDaTriagem(ctxBase.telefoneDoChat.normalizado, lid) === null;
+  }
 
   // intervalo mínimo entre duas mensagens automáticas: espera em vez de descartar a resposta. O ENSAIO não espera: nada
   // sai de verdade nele, e a espera (até 20 s dentro do webhook) atrasaria a resposta da assistente, que segue
