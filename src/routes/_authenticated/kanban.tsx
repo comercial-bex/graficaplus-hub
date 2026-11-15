@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   DESCRICAO_ETAPA,
   ETAPAS_QUADRO,
+  QUEM_FAZ_A_ETAPA,
   ROTULO_ETAPA,
   etapaDe,
   itensDaRecusa,
@@ -69,7 +70,7 @@ import {
   type ColunaAlvo,
 } from "@/domain/kanban/navegacao-teclado";
 import { type CSSProperties, useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Search, AlertTriangle, X, Pause, SlidersHorizontal } from "lucide-react";
+import { Search, AlertTriangle, X, Pause, SlidersHorizontal, UserRound } from "lucide-react";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { dicaTela } from "@/lib/dicas";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -85,8 +86,10 @@ import {
   EscolherOperadorDialog,
   EsperandoOGestor,
   ValidarAtendimentoDialog,
+  usePedidosAoGestor,
 } from "@/components/kanban/aval-do-gestor";
-import { ehGestor } from "@/domain/os/equipe-da-producao";
+import { ehGestor, primeiroNome } from "@/domain/os/equipe-da-producao";
+import { comQuem, ehComigo, quemFazAgora } from "@/domain/os/quem-faz-agora";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   head: () => ({ meta: [{ title: "Quadro de produção — BEX PRINT OS" }] }),
@@ -160,7 +163,7 @@ function KanbanPage() {
   // canSeePrices: vê preço de venda (vendedor, gestão, financeiro). O quadro só
   // mostra valor da OS e dos itens — preço, nunca custo nem margem — então a
   // leitura segue o nível de visão, não o flag de financeiro.
-  const { canSeePrices, canSeeFinancials, nivelDeVisao, hasPermission, roles } = useAuth();
+  const { canSeePrices, canSeeFinancials, nivelDeVisao, hasPermission, roles, user } = useAuth();
   const gestor = ehGestor(roles);
   const { os: osDaUrl } = Route.useSearch();
   const navigate = useNavigate();
@@ -229,6 +232,8 @@ function KanbanPage() {
   const [fResp, setFResp] = useState("todos");
   const [fPrio, setFPrio] = useState("todos");
   const [soAtrasadas, setSoAtrasadas] = useState(false);
+  // "Comigo" (15/11/2026): só as OS cujo próximo passo é de quem está logado.
+  const [soComigo, setSoComigo] = useState(false);
 
   // Carregando e falha não podem se ler como quadro vazio: o quadro dizia
   // "0/0 OS" e "— vazio —" nas colunas enquanto a consulta ainda corria
@@ -364,6 +369,7 @@ function KanbanPage() {
         responsavel: o.responsavel_id ? (mapaPessoas.get(o.responsavel_id as string) ?? null) : null,
         designer: o.designer_id ? (mapaPessoas.get(o.designer_id as string) ?? null) : null,
         operador: o.operador_id ? (mapaPessoas.get(o.operador_id as string) ?? null) : null,
+        vendedor: o.vendedor_id ? (mapaPessoas.get(o.vendedor_id as string) ?? null) : null,
         ultimo_movimento: (() => {
           const m = ultimos.get(o.id as string);
           return m
@@ -413,6 +419,34 @@ function KanbanPage() {
       (await supabase.from("usuarios").select("id, nome").eq("ativo", true).order("nome")).data ?? [],
   });
 
+  // Com quem está o próximo passo de cada OS (15/11/2026): a pessoa da OS, ou o
+  // gestor quando há pedido a ele e a trava continua. Calculado aqui e passado ao
+  // cartão pronto.
+  const pedidosAoGestor = usePedidosAoGestor();
+  const agoraPorOs = useMemo(() => {
+    const assuntos = new Map<string, string[]>();
+    for (const p of pedidosAoGestor.data ?? []) assuntos.set(p.os_id, [...(assuntos.get(p.os_id) ?? []), p.assunto]);
+    const mapa = new Map<string, { passo: string; comQuem: string; comigo: boolean }>();
+    for (const o of os as any[]) {
+      const passo = quemFazAgora(o, {
+        travas: bloqueios.get(o.id) ?? [],
+        pedidosAoGestor: (assuntos.get(o.id) ?? []) as any,
+      });
+      if (!passo) continue;
+      const nomes = new Map<string, string>(
+        [o.responsavel, o.designer, o.operador, o.vendedor]
+          .filter((p: any) => p?.id && p?.nome)
+          .map((p: any) => [p.id as string, primeiroNome(p.nome)]),
+      );
+      mapa.set(o.id, {
+        passo: passo.passo,
+        comQuem: comQuem(passo, (id) => nomes.get(id) ?? null, user?.id),
+        comigo: ehComigo(passo, user?.id, gestor),
+      });
+    }
+    return mapa;
+  }, [os, bloqueios, pedidosAoGestor.data, user?.id, gestor]);
+
   const filtered = useMemo(() => {
     return (os as any[]).filter((o) => {
       if (fCliente !== "todos" && o.cliente_id !== fCliente) return false;
@@ -426,6 +460,7 @@ function KanbanPage() {
         return false;
       if (fPrio !== "todos" && String(o.prioridade) !== fPrio) return false;
       if (soAtrasadas && !atrasado(o.prazo_entrega)) return false;
+      if (soComigo && !agoraPorOs.get(o.id)?.comigo) return false;
       if (search) {
         const s = search.toLowerCase();
         if (
@@ -437,7 +472,7 @@ function KanbanPage() {
       }
       return true;
     });
-  }, [os, fCliente, fResp, fPrio, soAtrasadas, search]);
+  }, [os, fCliente, fResp, fPrio, soAtrasadas, soComigo, agoraPorOs, search]);
 
   const atrasadasCount = useMemo(
     () => (os as any[]).filter((o) => atrasado(o.prazo_entrega)).length,
@@ -562,10 +597,11 @@ function KanbanPage() {
     setFResp("todos");
     setFPrio("todos");
     setSoAtrasadas(false);
+    setSoComigo(false);
   }
 
   const ativosFiltros =
-    fCliente !== "todos" || fResp !== "todos" || fPrio !== "todos" || soAtrasadas || search;
+    fCliente !== "todos" || fResp !== "todos" || fPrio !== "todos" || soAtrasadas || soComigo || search;
   // Quantos dos três Selects estão em uso: é o número do chip "N filtros" no
   // celular, onde os Selects ficam escondidos atrás do botão.
   const filtrosNoPopover = [fCliente, fResp, fPrio].filter((v) => v !== "todos").length;
@@ -689,6 +725,15 @@ function KanbanPage() {
           >
             <AlertTriangle className="mr-1 h-4 w-4" /> Atrasadas
           </Button>
+          <Button
+            variant={soComigo ? "secondary" : "outline"}
+            size="sm"
+            aria-pressed={soComigo}
+            onClick={() => setSoComigo(!soComigo)}
+            className="h-11 flex-1 md:h-9 md:flex-none"
+          >
+            <UserRound className="mr-1 h-4 w-4" /> Comigo
+          </Button>
           {ativosFiltros && (
             <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-11 md:h-9">
               <X className="mr-1 h-4 w-4" /> Limpar
@@ -753,6 +798,7 @@ function KanbanPage() {
               itens={noQuadro.filter((o: any) => etapaDe(o.status) === etapa)}
               carregando={carregandoOs}
               bloqueios={bloqueios}
+              agoraPorOs={agoraPorOs}
               canSeePrices={canSeePrices}
               onAbrir={setFichaId}
               containerRef={(el) => {
@@ -777,6 +823,7 @@ function KanbanPage() {
                   <CartaoArrastavel
                     os={o}
                     bloqueios={bloqueios.get(o.id) ?? []}
+                    agora={agoraPorOs.get(o.id) ?? null}
                     canSeePrices={canSeePrices}
                     onAbrir={() => setFichaId(o.id)}
                   />
@@ -882,6 +929,7 @@ function Coluna({
   etapa,
   itens,
   bloqueios,
+  agoraPorOs,
   canSeePrices,
   onAbrir,
   containerRef,
@@ -892,6 +940,7 @@ function Coluna({
   /** A consulta ainda corre: mostra o esqueleto, não "vazio". */
   carregando?: boolean;
   bloqueios: Map<string, BloqueioOs[]>;
+  agoraPorOs?: Map<string, { passo: string; comQuem: string; comigo: boolean }>;
   canSeePrices?: boolean;
   onAbrir: (id: string) => void;
   /** Ref do container da coluna — o chip de etapa do celular rola até aqui. */
@@ -938,6 +987,11 @@ function Coluna({
         <p className="mt-0.5 hidden line-clamp-2 text-xs leading-snug text-muted-foreground md:block">
           {DESCRICAO_ETAPA[etapa]}
         </p>
+        {/* Quem faz esta etapa (15/11/2026): o processo à vista, em todo tamanho de tela. */}
+        <p className="mt-0.5 text-xs leading-snug text-foreground/75">
+          <span className="text-muted-foreground">Quem faz: </span>
+          {QUEM_FAZ_A_ETAPA[etapa]}
+        </p>
         {/* A legenda mora aqui e só aqui: é na Produção que o ícone do cartão
             precisa ser lido, e uma legenda no topo do quadro estaria longe
             justamente de onde ela é usada. */}
@@ -974,6 +1028,7 @@ function Coluna({
             key={o.id}
             os={o}
             bloqueios={bloqueios.get(o.id) ?? []}
+            agora={agoraPorOs?.get(o.id) ?? null}
             canSeePrices={canSeePrices}
             onAbrir={() => onAbrir(o.id)}
           />
@@ -1015,11 +1070,13 @@ function Coluna({
 function CartaoArrastavel({
   os,
   bloqueios,
+  agora = null,
   canSeePrices,
   onAbrir,
 }: {
   os: any;
   bloqueios: BloqueioOs[];
+  agora?: { passo: string; comQuem: string; comigo: boolean } | null;
   canSeePrices?: boolean;
   onAbrir: () => void;
 }) {
@@ -1037,6 +1094,7 @@ function CartaoArrastavel({
       <CartaoOs
         os={os}
         bloqueios={bloqueios}
+        agora={agora}
         canSeePrices={canSeePrices}
         onAbrir={onAbrir}
       />

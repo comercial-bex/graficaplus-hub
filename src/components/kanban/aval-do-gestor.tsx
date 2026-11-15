@@ -557,6 +557,23 @@ export function AutorizacoesDaOs({ osId }: { osId: string }) {
  * Esperando o gestor
  * ------------------------------------------------------------------ */
 
+/** Os pedidos abertos ao gestor — uma consulta só, que o quadro, a faixa e os cartões dividem. */
+export function usePedidosAoGestor() {
+  return useQuery({
+    queryKey: ["os-pedidos-ao-gestor"],
+    staleTime: 30_000,
+    queryFn: async (): Promise<PedidoAoGestor[]> => {
+      const { data, error } = await (supabase as any)
+        .from("os_pedidos_ao_gestor")
+        .select("id, os_id, assunto, pedido_por, pedido_em")
+        .is("resolvido_em", null)
+        .order("pedido_em", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as PedidoAoGestor[];
+    },
+  });
+}
+
 type OsDoQuadro = OsResumo & { titulo?: string | null; cliente_nome?: string | null };
 
 /**
@@ -579,19 +596,7 @@ export function EsperandoOGestor({
   onValidar: (os: OsDoQuadro) => void;
 }) {
   const equipe = useEquipeDaProducao();
-  const pedidos = useQuery({
-    queryKey: ["os-pedidos-ao-gestor"],
-    staleTime: 30_000,
-    queryFn: async (): Promise<PedidoAoGestor[]> => {
-      const { data, error } = await (supabase as any)
-        .from("os_pedidos_ao_gestor")
-        .select("id, os_id, assunto, pedido_por, pedido_em")
-        .is("resolvido_em", null)
-        .order("pedido_em", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as PedidoAoGestor[];
-    },
-  });
+  const pedidos = usePedidosAoGestor();
   // Sem a tabela (antes da migração) ou com a consulta caída: o quadro segue sem a faixa.
   const porId = new Map(os.map((o) => [o.id, o]));
   const fila = filaDoGestor(pedidos.data ?? [], travas).filter((p) => porId.has(p.os_id));

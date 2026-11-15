@@ -84,6 +84,22 @@ export const DESCRICAO_ETAPA: Record<Etapa, string> = {
   fora_do_fluxo: "Parado ou cancelado — não conta como fila.",
 };
 
+/**
+ * Quem faz cada etapa (pedido do dono, 15/11/2026: "cenários de processos e quem
+ * executa cada processo"). Vai no cabeçalho de cada coluna do quadro; a pessoa de
+ * cada OS sai de `quemFazAgora` (domain/os/quem-faz-agora).
+ */
+export const QUEM_FAZ_A_ETAPA: Record<Etapa, string> = {
+  entrada: "Atendimento fecha o pacote; o gestor valida",
+  validado: "Criação (escolhida pelo gestor)",
+  pre_impressao: "Criação faz a arte; o atendimento consegue o aceite",
+  fila_producao: "Operador escolhe a máquina e começa",
+  producao: "Operador",
+  acabamento: "Operador acaba e confere",
+  saida: "Atendimento combina e entrega",
+  fora_do_fluxo: "Gestor decide a volta",
+};
+
 export type StatusOs = {
   /** valor exato do enum `status_os` — não pode divergir do banco */
   status: string;

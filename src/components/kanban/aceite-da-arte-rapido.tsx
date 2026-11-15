@@ -46,14 +46,20 @@ export function AceiteDaArteRapido({
         p_observacao: observacao.trim() || null,
       });
       if (error) throw error;
-      return data as { ja_aceita?: boolean; status?: string } | null;
+      return data as { ja_aceita?: boolean; status?: string; espera_validacao?: boolean } | null;
     },
     onSuccess: (resposta) => {
       if (resposta?.ja_aceita) {
         toast.info("O aceite desta OS já estava registrado.");
       } else {
+        // O banco devolve o status de verdade (15/11/2026): no Atendimento sem a
+        // validação do gestor, o aceite fica gravado e a OS não muda de etapa.
         toast.success("Aceite registrado.", {
-          description: resposta?.status === "arte_aprovada" ? "A OS foi para “Arte aprovada”." : undefined,
+          description: resposta?.espera_validacao
+            ? "A OS continua no Atendimento: falta o gestor validar para ela seguir."
+            : resposta?.status === "arte_aprovada"
+              ? "A OS foi para “Arte aprovada”."
+              : undefined,
         });
       }
       setObservacao("");
