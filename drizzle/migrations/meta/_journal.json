@@ -92,6 +92,13 @@
       "when": 1794672579819,
       "tag": "0012_atendente_padrao_parceiro",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794762349384,
+      "tag": "0013_parceiro_sempre_atendido",
+      "breakpoints": true
     }
   ]
 }

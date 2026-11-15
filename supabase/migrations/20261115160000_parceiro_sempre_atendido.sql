@@ -1,9 +1,9 @@
 -- =====================================================================================================
--- PROPOSTA — parceiro sempre atendido (seções A, B e C). NÃO APLICADA. Sem BEGIN/COMMIT.
+-- APLICADA em 15/11/2026 (drizzle 0013_parceiro_sempre_atendido). Seções A, B e C. Sem BEGIN/COMMIT. Backfill NÃO rodado.
 -- ATENÇÃO: prefixo 20261115140000 já usado por 20261115140000_maquina_na_fila_e_validacao_sem_atalho.sql.
 -- Nome solicitado preservado para revisão; resolver colisão antes de autorizar aplicação.
 -- Revisada em 15/11/2026. NÃO APLICAR sem nova autorização; não rodar backfill nem publicar.
--- Arquivo pronto: supabase/migrations/20261115140000_parceiro_sempre_atendido.sql.
+-- Arquivo pronto: supabase/migrations/20261115160000_parceiro_sempre_atendido.sql.
 -- Não altera funções do WhatsApp/triagem; altera somente as funções de parceiro indicadas em B/C.
 -- Hash = md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) — o mesmo método que dá d8b83a6f… para
 -- parceiro_enviar_pedido.

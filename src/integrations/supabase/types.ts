@@ -23604,9 +23604,14 @@ export type Database = {
         }
         Returns: string
       }
+      _parceiro_celular: { Args: { p_parceiro: string }; Returns: string }
       _parceiro_conceder_entrada: {
         Args: { p_parceiro_id: string }
         Returns: Json
+      }
+      _parceiro_garantir_chamado: {
+        Args: { p_parceiro: string }
+        Returns: string
       }
       _reais: { Args: { p: number }; Returns: string }
       _triagem_bloqueado: { Args: { p_conversa: string }; Returns: boolean }

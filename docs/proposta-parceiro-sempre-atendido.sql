@@ -1,5 +1,5 @@
 -- DOCUMENTO DE REVISÃO — fonte executável única (NÃO APLICADA):
--- supabase/migrations/20261115140000_parceiro_sempre_atendido.sql
+-- supabase/migrations/20261115160000_parceiro_sempre_atendido.sql
 -- Cópia abaixo para conferência; A/B/C e DESFAZER coincidem com o arquivo pronto.
 
 -- =====================================================================================================
@@ -7,7 +7,7 @@
 -- ATENÇÃO: prefixo 20261115140000 já usado por 20261115140000_maquina_na_fila_e_validacao_sem_atalho.sql.
 -- Nome solicitado preservado para revisão; resolver colisão antes de autorizar aplicação.
 -- Revisada em 15/11/2026. NÃO APLICAR sem nova autorização; não rodar backfill nem publicar.
--- Arquivo pronto: supabase/migrations/20261115140000_parceiro_sempre_atendido.sql.
+-- Arquivo pronto: supabase/migrations/20261115160000_parceiro_sempre_atendido.sql.
 -- Não altera funções do WhatsApp/triagem; altera somente as funções de parceiro indicadas em B/C.
 -- Hash = md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) — o mesmo método que dá d8b83a6f… para
 -- parceiro_enviar_pedido.
