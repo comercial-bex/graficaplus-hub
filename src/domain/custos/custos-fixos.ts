@@ -5,7 +5,8 @@
  * Pendente quer dizer valor vazio ou ainda sem confirmação de alguém. Enquanto houver pendente, o custo real é um piso
  * otimista e a tela de preços avisa.
  *
- * Quem grava: admin e gestor, com custos.update, e quem tiver custos.fixos.update, como o financeiro.
+ * Quem grava: quem tem custos.fixos.update (admin, gestor e financeiro, pela migração 20261116120000). É a mesma
+ * permissão que a função confirmar_custo_fixo exige no banco; custos.update sozinho não basta e não aparece botão.
  */
 
 export type GrupoDeCustoFixo = "espaco_e_energia" | "plotter" | "pessoal";
@@ -271,11 +272,7 @@ export function fraseDaConfirmacao(
 }
 
 export function podeEditarCustosFixos(a: { ehAdmin: boolean; permissoes: string[] }): boolean {
-  return (
-    a.ehAdmin ||
-    a.permissoes.includes("custos.fixos.update") ||
-    a.permissoes.includes("custos.update")
-  );
+  return a.ehAdmin || a.permissoes.includes("custos.fixos.update");
 }
 
 /** Mão de obra por hora com encargos, em reais, para a frase da tela. Nulo se faltar um dos dois. */

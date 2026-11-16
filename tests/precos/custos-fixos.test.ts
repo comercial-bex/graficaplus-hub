@@ -131,17 +131,26 @@ describe("textos", () => {
 });
 
 describe("a permissão custos.fixos.update", () => {
-  it("existe na lista, é conferida na tela e é de admin; a concessão ao gestor e ao financeiro vem da migração", () => {
+  it("existe na lista, é conferida na tela e é de admin, gestor e financeiro", () => {
     expect(permissions).toContain("custos.fixos.update");
     expect(CHAVES_CONFERIDAS_NA_TELA).toContain("custos.fixos.update");
     expect(rolePermissions.admin).toContain("custos.fixos.update");
+    expect(rolePermissions.gestor).toContain("custos.fixos.update");
+    expect(rolePermissions.financeiro).toContain("custos.fixos.update");
   });
-  it("edita admin, quem tem custos.fixos.update e quem tem custos.update", () => {
+  it("nenhum outro perfil a recebe, e o financeiro não ganha custos.update por isso", () => {
+    for (const [perfil, chaves] of Object.entries(rolePermissions)) {
+      if (["admin", "gestor", "financeiro"].includes(perfil)) continue;
+      expect(chaves as readonly string[], perfil).not.toContain("custos.fixos.update");
+    }
+    expect(rolePermissions.financeiro as readonly string[]).not.toContain("custos.update");
+  });
+  it("edita admin e quem tem custos.fixos.update; custos.update sozinho não basta, porque a função do banco exige a outra", () => {
     expect(podeEditarCustosFixos({ ehAdmin: true, permissoes: [] })).toBe(true);
     expect(podeEditarCustosFixos({ ehAdmin: false, permissoes: ["custos.fixos.update"] })).toBe(
       true,
     );
-    expect(podeEditarCustosFixos({ ehAdmin: false, permissoes: ["custos.update"] })).toBe(true);
+    expect(podeEditarCustosFixos({ ehAdmin: false, permissoes: ["custos.update"] })).toBe(false);
     expect(podeEditarCustosFixos({ ehAdmin: false, permissoes: ["custos.read"] })).toBe(false);
   });
 });

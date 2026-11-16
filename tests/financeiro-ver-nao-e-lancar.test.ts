@@ -494,11 +494,13 @@ describe("reserva estática do gestor = banco", () => {
   // migração 20261015140000 deu ao gestor reembolsos.request e
   // reembolsos.approve (a gerência decide o reembolso que aperta a margem): 73.
   // Nenhuma das duas é chave de pagamento — pagar a conta da sexta segue com o
-  // financeiro.
-  it("73 chaves, vê o financeiro e não tem nenhuma de pagamento", () => {
+  // financeiro. Em 16/11/2026 a migração 20261116120000 deu ao gestor custos.fixos.update
+  // (preencher e confirmar custo fixo, que não é custos.update nem pagamento): 74.
+  it("74 chaves, vê o financeiro e não tem nenhuma de pagamento", () => {
     const gestor = rolePermissions.gestor as readonly string[];
-    expect(gestor).toHaveLength(73);
-    expect(new Set(gestor).size).toBe(73);
+    expect(gestor).toHaveLength(74);
+    expect(new Set(gestor).size).toBe(74);
+    expect(gestor).toContain("custos.fixos.update");
     expect(gestor).toContain("reembolsos.approve");
     expect(gestor).not.toContain("reembolsos.pay");
     expect(gestor).toContain("financeiro.read");

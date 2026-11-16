@@ -34,8 +34,9 @@ import { TEXTO_DA_VELOCIDADE_DA_PLOTTER } from "@/domain/maquinas/velocidade-de-
  * Custos fixos da gráfica: os números que entram no custo real do produto e que o gestor e o financeiro preenchem.
  *
  * Sem tabela nova: são linhas de custos_tabela. Cada uma mostra o valor, de onde vem, se está pendente ou confirmada,
- * quem confirmou e quando. Salvar e confirmar chama a função confirmar_custo_fixo, que confere a permissão no banco.
- * Salvar sem confirmar mantém o item pendente e só passa pela escrita comum, que a RLS limita a quem tem custos.update.
+ * quem confirmou e quando. Os dois botões, salvar e confirmar e salvar sem confirmar, chamam a função confirmar_custo_fixo,
+ * que confere a permissão custos.fixos.update no banco e só aceita os códigos de custo fixo. Nenhum caminho faz UPDATE
+ * direto em custos_tabela: o financeiro não tem custos.update e não precisa dele.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- colunas e função novas ainda não estão nos tipos gerados
@@ -263,7 +264,6 @@ export function CustosFixosDaGrafica() {
     ehAdmin: hasRole("admin"),
     permissoes: [
       hasPermission("custos.fixos.update") ? "custos.fixos.update" : "",
-      hasPermission("custos.update") ? "custos.update" : "",
     ],
   });
   const [editando, setEditando] = useState<string | null>(null);
@@ -293,28 +293,12 @@ export function CustosFixosDaGrafica() {
 
   const salvar = useMutation({
     mutationFn: async (v: { item: ItemDeCustoFixo; valor: number; confirmar: boolean }) => {
-      const codigo = v.item.definicao.codigo;
-      if (v.confirmar) {
-        const { error } = await banco.rpc("confirmar_custo_fixo", {
-          p_codigo: codigo,
-          p_valor: v.valor,
-        });
-        if (error) throw new Error(mensagemDoSalvarCusto(String(error.message ?? "")));
-        return;
-      }
-      const id = v.item.linha?.id;
-      if (!id) throw new Error("Este custo ainda não existe no banco. Avise o suporte.");
-      // .select() de volta separa "gravou" de "a RLS recusou em silêncio".
-      const { data, error } = await banco
-        .from("custos_tabela")
-        .update({ valor: v.valor, confirmado_em: null, confirmado_por: null })
-        .eq("id", id)
-        .select("id");
+      const { error } = await banco.rpc("confirmar_custo_fixo", {
+        p_codigo: v.item.definicao.codigo,
+        p_valor: v.valor,
+        p_confirmar: v.confirmar,
+      });
       if (error) throw new Error(mensagemDoSalvarCusto(String(error.message ?? "")));
-      if (!data || data.length === 0)
-        throw new Error(
-          "Seu perfil não pode salvar sem confirmar. Use Salvar e confirmar, ou peça ao gestor.",
-        );
     },
     onSuccess: (_r, v) => {
       toast.success(
