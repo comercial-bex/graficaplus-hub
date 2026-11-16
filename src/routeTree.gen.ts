@@ -40,6 +40,7 @@ import { Route as AuthenticatedConfiguracoesOrigemRouteImport } from './routes/_
 import { Route as AuthenticatedConfiguracoesTriagemRouteImport } from './routes/_authenticated/configuracoes-triagem'
 import { Route as AuthenticatedConflitosAgendaRouteImport } from './routes/_authenticated/conflitos-agenda'
 import { Route as AuthenticatedContasBancariasRouteImport } from './routes/_authenticated/contas-bancarias'
+import { Route as AuthenticatedContasDeConsumoRouteImport } from './routes/_authenticated/contas-de-consumo'
 import { Route as AuthenticatedCustosProducaoRouteImport } from './routes/_authenticated/custos-producao'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
@@ -110,6 +111,7 @@ import { Route as AuthenticatedCatalogosGerenciarRouteImport } from './routes/_a
 import { Route as AuthenticatedCatalogosPedidosRouteImport } from './routes/_authenticated/catalogos.pedidos'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes.$id'
+import { Route as AuthenticatedContasDeConsumoIdRouteImport } from './routes/_authenticated/contas-de-consumo_.$id'
 import { Route as AuthenticatedOrcamento3dIdRouteImport } from './routes/_authenticated/orcamento-3d.$id'
 import { Route as AuthenticatedOrcamentosIndexRouteImport } from './routes/_authenticated/orcamentos.index'
 import { Route as AuthenticatedOrcamentosIdRouteImport } from './routes/_authenticated/orcamentos.$id'
@@ -302,6 +304,12 @@ const AuthenticatedContasBancariasRoute =
   AuthenticatedContasBancariasRouteImport.update({
     id: '/contas-bancarias',
     path: '/contas-bancarias',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContasDeConsumoRoute =
+  AuthenticatedContasDeConsumoRouteImport.update({
+    id: '/contas-de-consumo',
+    path: '/contas-de-consumo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCustosProducaoRoute =
@@ -684,6 +692,12 @@ const AuthenticatedClientesIdRoute = AuthenticatedClientesIdRouteImport.update({
   path: '/clientes/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedContasDeConsumoIdRoute =
+  AuthenticatedContasDeConsumoIdRouteImport.update({
+    id: '/contas-de-consumo_/$id',
+    path: '/contas-de-consumo/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOrcamento3dIdRoute =
   AuthenticatedOrcamento3dIdRouteImport.update({
     id: '/orcamento-3d/$id',
@@ -844,6 +858,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
+  '/contas-de-consumo': typeof AuthenticatedContasDeConsumoRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -912,6 +927,7 @@ export interface FileRoutesByFullPath {
   '/catalogos/gerenciar': typeof AuthenticatedCatalogosGerenciarRoute
   '/catalogos/pedidos': typeof AuthenticatedCatalogosPedidosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/contas-de-consumo/$id': typeof AuthenticatedContasDeConsumoIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
@@ -970,6 +986,7 @@ export interface FileRoutesByTo {
   '/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/contas-bancarias': typeof AuthenticatedContasBancariasRoute
+  '/contas-de-consumo': typeof AuthenticatedContasDeConsumoRoute
   '/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -1038,6 +1055,7 @@ export interface FileRoutesByTo {
   '/catalogos/gerenciar': typeof AuthenticatedCatalogosGerenciarRoute
   '/catalogos/pedidos': typeof AuthenticatedCatalogosPedidosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/contas-de-consumo/$id': typeof AuthenticatedContasDeConsumoIdRoute
   '/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/os/$id': typeof AuthenticatedOsIdRoute
@@ -1099,6 +1117,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes-triagem': typeof AuthenticatedConfiguracoesTriagemRoute
   '/_authenticated/conflitos-agenda': typeof AuthenticatedConflitosAgendaRoute
   '/_authenticated/contas-bancarias': typeof AuthenticatedContasBancariasRoute
+  '/_authenticated/contas-de-consumo': typeof AuthenticatedContasDeConsumoRoute
   '/_authenticated/custos-producao': typeof AuthenticatedCustosProducaoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/design': typeof AuthenticatedDesignRoute
@@ -1167,6 +1186,7 @@ export interface FileRoutesById {
   '/_authenticated/catalogos/gerenciar': typeof AuthenticatedCatalogosGerenciarRoute
   '/_authenticated/catalogos/pedidos': typeof AuthenticatedCatalogosPedidosRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/_authenticated/contas-de-consumo_/$id': typeof AuthenticatedContasDeConsumoIdRoute
   '/_authenticated/orcamento-3d/$id': typeof AuthenticatedOrcamento3dIdRoute
   '/_authenticated/orcamentos/$id': typeof AuthenticatedOrcamentosIdRoute
   '/_authenticated/os/$id': typeof AuthenticatedOsIdRoute
@@ -1228,6 +1248,7 @@ export interface FileRouteTypes {
     | '/configuracoes-triagem'
     | '/conflitos-agenda'
     | '/contas-bancarias'
+    | '/contas-de-consumo'
     | '/custos-producao'
     | '/dashboard'
     | '/design'
@@ -1296,6 +1317,7 @@ export interface FileRouteTypes {
     | '/catalogos/gerenciar'
     | '/catalogos/pedidos'
     | '/clientes/$id'
+    | '/contas-de-consumo/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
@@ -1354,6 +1376,7 @@ export interface FileRouteTypes {
     | '/configuracoes-triagem'
     | '/conflitos-agenda'
     | '/contas-bancarias'
+    | '/contas-de-consumo'
     | '/custos-producao'
     | '/dashboard'
     | '/design'
@@ -1422,6 +1445,7 @@ export interface FileRouteTypes {
     | '/catalogos/gerenciar'
     | '/catalogos/pedidos'
     | '/clientes/$id'
+    | '/contas-de-consumo/$id'
     | '/orcamento-3d/$id'
     | '/orcamentos/$id'
     | '/os/$id'
@@ -1482,6 +1506,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes-triagem'
     | '/_authenticated/conflitos-agenda'
     | '/_authenticated/contas-bancarias'
+    | '/_authenticated/contas-de-consumo'
     | '/_authenticated/custos-producao'
     | '/_authenticated/dashboard'
     | '/_authenticated/design'
@@ -1550,6 +1575,7 @@ export interface FileRouteTypes {
     | '/_authenticated/catalogos/gerenciar'
     | '/_authenticated/catalogos/pedidos'
     | '/_authenticated/clientes/$id'
+    | '/_authenticated/contas-de-consumo_/$id'
     | '/_authenticated/orcamento-3d/$id'
     | '/_authenticated/orcamentos/$id'
     | '/_authenticated/os/$id'
@@ -1833,6 +1859,13 @@ declare module '@tanstack/react-router' {
       path: '/contas-bancarias'
       fullPath: '/contas-bancarias'
       preLoaderRoute: typeof AuthenticatedContasBancariasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contas-de-consumo': {
+      id: '/_authenticated/contas-de-consumo'
+      path: '/contas-de-consumo'
+      fullPath: '/contas-de-consumo'
+      preLoaderRoute: typeof AuthenticatedContasDeConsumoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/custos-producao': {
@@ -2325,6 +2358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/contas-de-consumo_/$id': {
+      id: '/_authenticated/contas-de-consumo_/$id'
+      path: '/contas-de-consumo/$id'
+      fullPath: '/contas-de-consumo/$id'
+      preLoaderRoute: typeof AuthenticatedContasDeConsumoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/orcamento-3d/$id': {
       id: '/_authenticated/orcamento-3d/$id'
       path: '/orcamento-3d/$id'
@@ -2526,6 +2566,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesTriagemRoute: typeof AuthenticatedConfiguracoesTriagemRoute
   AuthenticatedConflitosAgendaRoute: typeof AuthenticatedConflitosAgendaRoute
   AuthenticatedContasBancariasRoute: typeof AuthenticatedContasBancariasRoute
+  AuthenticatedContasDeConsumoRoute: typeof AuthenticatedContasDeConsumoRoute
   AuthenticatedCustosProducaoRoute: typeof AuthenticatedCustosProducaoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
@@ -2582,6 +2623,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCatalogosGerenciarRoute: typeof AuthenticatedCatalogosGerenciarRoute
   AuthenticatedCatalogosPedidosRoute: typeof AuthenticatedCatalogosPedidosRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
+  AuthenticatedContasDeConsumoIdRoute: typeof AuthenticatedContasDeConsumoIdRoute
   AuthenticatedOrcamento3dIdRoute: typeof AuthenticatedOrcamento3dIdRoute
   AuthenticatedOrcamentosIdRoute: typeof AuthenticatedOrcamentosIdRoute
   AuthenticatedOsIdRoute: typeof AuthenticatedOsIdRoute
@@ -2618,6 +2660,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedConfiguracoesTriagemRoute,
   AuthenticatedConflitosAgendaRoute: AuthenticatedConflitosAgendaRoute,
   AuthenticatedContasBancariasRoute: AuthenticatedContasBancariasRoute,
+  AuthenticatedContasDeConsumoRoute: AuthenticatedContasDeConsumoRoute,
   AuthenticatedCustosProducaoRoute: AuthenticatedCustosProducaoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
@@ -2674,6 +2717,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCatalogosGerenciarRoute: AuthenticatedCatalogosGerenciarRoute,
   AuthenticatedCatalogosPedidosRoute: AuthenticatedCatalogosPedidosRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
+  AuthenticatedContasDeConsumoIdRoute: AuthenticatedContasDeConsumoIdRoute,
   AuthenticatedOrcamento3dIdRoute: AuthenticatedOrcamento3dIdRoute,
   AuthenticatedOrcamentosIdRoute: AuthenticatedOrcamentosIdRoute,
   AuthenticatedOsIdRoute: AuthenticatedOsIdRoute,

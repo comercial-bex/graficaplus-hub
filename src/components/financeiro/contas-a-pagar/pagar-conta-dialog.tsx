@@ -64,6 +64,7 @@ export function PagarContaDialog({
   contasBancarias,
   hoje,
   pacoteAtivo,
+  origemSugerida = null,
   onFechar,
   onPago,
 }: {
@@ -71,6 +72,11 @@ export function PagarContaDialog({
   contasBancarias: readonly ContaBancariaDaLista[];
   hoje: string;
   pacoteAtivo: boolean;
+  /**
+   * A conta bancária de onde esta conta costuma sair (a unidade de consumo diz). Só aparece como
+   * sugestão com um botão: a origem continua começando vazia e sendo escolhida por quem paga.
+   */
+  origemSugerida?: string | null;
   onFechar: () => void;
   onPago: () => void;
 }) {
@@ -138,6 +144,9 @@ export function PagarContaDialog({
   });
 
   const bancoEscolhido = contasBancarias.find((b) => b.conta_id === origem);
+  const sugerida = origemSugerida
+    ? contasBancarias.find((b) => b.conta_id === origemSugerida)
+    : undefined;
 
   return (
     <Dialog open={!!conta} onOpenChange={(aberto) => !aberto && !confirmar.isPending && onFechar()}>
@@ -196,6 +205,20 @@ export function PagarContaDialog({
                     ? "Nenhuma conta bancária cadastrada. Cadastre em Contas bancárias, ou pague em dinheiro com comprovante."
                     : "A conta bancária de onde o dinheiro saiu, ou dinheiro com comprovante."}
               </p>
+              {!origem && sugerida && (
+                <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  Costuma sair de {sugerida.nome}.
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                    onClick={() => setOrigem(sugerida.conta_id)}
+                  >
+                    Usar esta conta
+                  </Button>
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

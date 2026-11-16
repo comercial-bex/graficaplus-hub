@@ -42,6 +42,14 @@ const ASSINATURAS: Record<string, string[]> = {
     "p_conta_bancaria_id",
   ],
   breakdown_3d: ["p_inicio", "p_fim"],
+  // Contas de consumo (20261116220000).
+  lancar_fatura_consumo: [
+    "p_unidade_id", "p_competencia", "p_vencimento", "p_valor", "p_consumo", "p_bandeira_taxas",
+    "p_iluminacao_publica", "p_numero_nf",
+  ],
+  corrigir_dados_fatura_consumo: [
+    "p_conta_pagar_id", "p_consumo", "p_bandeira_taxas", "p_iluminacao_publica", "p_numero_nf",
+  ],
   buscar_usuario_para_portal: ["p_busca"],
   cancelar_aviso: ["p_id", "p_motivo"],
   cancelar_avisos_orfaos: [],

@@ -174,6 +174,9 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/compromissos", permissions: ["financeiro.read"] },
   // Conferência do caixa (Fase 2A): só leitura, a mesma porta do Caixa.
   { path: "/conferencia-do-caixa", permissions: ["financeiro.read"] },
+  // Contas de consumo: ver é quem vê o Caixa; cadastrar unidade (admin e gestor) e lançar fatura
+  // (financeiro) o banco confere de novo.
+  { path: "/contas-de-consumo", permissions: ["financeiro.read"] },
   // Reembolsos (15/10/2026): a mesa de quem DECIDE fica em Financeiro › Pagar e
   // caixa; o pedido de cada pessoa é /meus-reembolsos, no rodapé do menu, para
   // o operador não ganhar uma área Financeiro inteira por causa de um item. A
