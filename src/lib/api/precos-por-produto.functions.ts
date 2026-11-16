@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { mensagemDoPedido, type LinhaDePreco } from "@/domain/precos/painel-de-precos";
+import { avaliar, mensagemDoPedido, type LinhaDePreco } from "@/domain/precos/painel-de-precos";
 
 /**
  * Preços por produto, do lado do servidor.
@@ -105,11 +105,32 @@ export const proporPreco = createServerFn({ method: "POST" })
     await exigirVerCusto(supabase, userId);
     if (!(await quemPropoe(supabase, userId)))
       throw new Error("Só administrador ou gerente pede mudança de preço.");
+    // As mesmas regras da tela, conferidas aqui: quem chama a função direto não pula o motivo nem o balcão.
+    const preco = Math.round(data.preco * 100) / 100;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: p, error: erroProduto } = await (supabaseAdmin as Banco)
+      .from("produtos")
+      .select("custo_medio, margem_minima, preco_parceiro")
+      .eq("id", data.produtoId)
+      .maybeSingle();
+    if (erroProduto) throw new Error(erroProduto.message);
+    if (!p) throw new Error("Produto não encontrado.");
+    const a = avaliar(
+      {
+        custo: num(p.custo_medio),
+        margem_minima: num(p.margem_minima),
+        preco_parceiro: num(p.preco_parceiro),
+      },
+      preco,
+    );
+    if (a.parceiroAcima) throw new Error("O preço do parceiro ficaria acima do balcão. Isso não pode.");
+    if (a.situacao === "abaixo" && data.motivo.length < 3)
+      throw new Error("Abaixo do piso o motivo é obrigatório.");
     const motivo =
       data.motivo === "" ? "Ajuste de preço pedido na tela de preços por produto." : data.motivo;
     const { data: id, error } = await supabase.rpc("preco_proposta_criar", {
       p_produto_id: data.produtoId,
-      p_preco: data.preco,
+      p_preco: preco,
       p_motivo: motivo,
     });
     if (error) throw new Error(mensagemDoPedido(String(error.message ?? "")));

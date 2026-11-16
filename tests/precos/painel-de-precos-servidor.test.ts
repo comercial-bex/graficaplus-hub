@@ -14,6 +14,7 @@ const d = vi.hoisted(() => ({
   erroRpc: null as null | { message: string },
   produtos: [] as unknown[],
   cheios: [] as unknown[],
+  produtoPedido: null as unknown,
 }));
 
 vi.mock("@tanstack/react-start", () => ({
@@ -31,6 +32,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
       q.select = () =>
         tabela === "produto_custo_cheio" ? Promise.resolve({ data: d.cheios, error: null }) : q;
       q.eq = () => q;
+      q.maybeSingle = () => Promise.resolve({ data: d.produtoPedido, error: null });
       q.order = () => Promise.resolve({ data: d.produtos, error: null });
       q.update = () => {
         d.escritas += 1;
@@ -96,6 +98,8 @@ beforeEach(() => {
     },
   ];
   d.cheios = [{ produto_id: "a", custo_cheio: "38.2" }];
+  // custo 30, margem mínima 40: piso 50,00. Parceiro a 40.
+  d.produtoPedido = { custo_medio: "30", margem_minima: "40", preco_parceiro: "40" };
 });
 
 describe("ler os preços", () => {
@@ -128,6 +132,23 @@ describe("ler os preços", () => {
 });
 
 describe("pedir preço", () => {
+  it("abaixo do piso sem motivo é barrado no servidor, não só na tela", async () => {
+    await expect(propor(45, "")).rejects.toThrow("motivo é obrigatório");
+    expect(d.chamadas.some((c) => c.fn === "preco_proposta_criar")).toBe(false);
+  });
+  it("abaixo do piso com motivo passa, desde que o parceiro não passe do balcão", async () => {
+    await propor(45, "Concorrente baixou");
+    expect(d.chamadas.some((c) => c.fn === "preco_proposta_criar")).toBe(true);
+  });
+  it("parceiro acima do balcão novo é barrado no servidor", async () => {
+    d.produtoPedido = { custo_medio: "30", margem_minima: "40", preco_parceiro: "60" };
+    await expect(propor(55, "Motivo escrito")).rejects.toThrow("acima do balcão");
+    expect(d.chamadas.some((c) => c.fn === "preco_proposta_criar")).toBe(false);
+  });
+  it("produto que não existe é recusado", async () => {
+    d.produtoPedido = null;
+    await expect(propor()).rejects.toThrow("Produto não encontrado");
+  });
   it("chama só preco_proposta_criar com a assinatura combinada e nunca escreve em produtos", async () => {
     const r = await propor(70.4, "Custo subiu");
     expect(r).toEqual({ ok: true, id: "11111111-1111-4111-8111-111111111111" });

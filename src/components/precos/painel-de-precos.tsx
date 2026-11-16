@@ -221,7 +221,7 @@ function CampoDePreco({
         disabled={!podePropor}
         aria-label={`Preço do balcão de ${linha.nome}, em reais`}
         aria-invalid={e.previa.avaliacao.situacao === "abaixo" && e.digitou}
-        className="h-11 pl-10 text-base md:text-base"
+        className="h-11 pl-10 text-base disabled:opacity-100 disabled:text-foreground md:text-base"
       />
     </div>
   );

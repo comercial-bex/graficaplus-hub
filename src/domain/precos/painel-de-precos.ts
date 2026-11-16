@@ -221,7 +221,7 @@ export function previaDoPreco(l: LinhaDePreco, texto: string): Previa {
   else if (digitado != null) {
     if (avaliacao.situacao === "abaixo" && avaliacao.piso != null) {
       avisos.push(
-        `Abaixo do piso de ${reais(avaliacao.piso)}. Só o administrador aprova, e o motivo é obrigatório.`,
+        `Abaixo do piso de ${reais(avaliacao.piso)}. O motivo é obrigatório.`,
       );
     }
     if (avaliacao.parceiroAcima)
