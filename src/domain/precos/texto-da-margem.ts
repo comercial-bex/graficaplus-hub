@@ -14,7 +14,7 @@ export function complementoDaMargem(situacao: Situacao): string {
 export function fraseDoPiso(custo: number | null, margemMinima: number | null): string | null {
   const piso = pisoDaMargem(custo, margemMinima);
   if (piso == null) return null;
-  return `${formatBRL(piso)}, o menor preço que cumpre a margem mínima de ${Number(margemMinima)}%`;
+  return `${formatBRL(piso)}, o menor preço que cumpre a margem mínima de ${String(Number(margemMinima)).replace(".", ",")}%`;
 }
 
 /** Aviso de margem do diálogo de produto, sem parênteses. */

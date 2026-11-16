@@ -26,6 +26,11 @@ describe("margemStatus: abaixo do mínimo é sempre vermelho", () => {
   it("sem margem calculável é vazio", () => {
     expect(margemStatus(null, 40)).toBe("vazio");
   });
+  it("sem margem mínima definida, só prejuízo é vermelho e nunca amarelo", () => {
+    expect(margemStatus(0, 0)).toBe("ok");
+    expect(margemStatus(1, 0)).toBe("ok");
+    expect(margemStatus(-5, 0)).toBe("ruim");
+  });
   it("margem negativa é vermelha", () => {
     expect(margemStatus(-593, 40)).toBe("ruim");
   });

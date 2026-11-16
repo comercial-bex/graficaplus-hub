@@ -96,6 +96,8 @@ export function margemStatus(
   minima: number,
 ): "ok" | "alerta" | "ruim" | "vazio" {
   if (margem === null) return "vazio";
+  // Sem margem mínima definida não há piso para ficar perto dele: só prejuízo é vermelho.
+  if (!(minima > 0)) return margem < 0 ? "ruim" : "ok";
   if (margem < minima) return "ruim";
   if (margem < minima + FOLGA_DA_MARGEM) return "alerta";
   return "ok";
