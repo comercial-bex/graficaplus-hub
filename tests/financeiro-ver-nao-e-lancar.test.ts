@@ -246,6 +246,10 @@ const COBRA_RPC: Record<string, string[]> = {
   conciliar_transacao: ["pagamentos.confirm"],
   comissoes_pagar: ["pagamentos.confirm"],
   portal_conferir_comprovante: ["pagamentos.confirm"],
+  // Contas a pagar, fase 1 (migração 20261116160000). Estornar e remover anexo são só do admin
+  // (PAPEL, não chave): conferidos em contas-a-pagar-fase-1.test.ts.
+  pagar_conta_pagar: ["pagamentos.confirm"],
+  anexar_arquivo_conta_pagar: ["pagamentos.create", "pagamentos.update", "pagamentos.confirm"],
 };
 
 type Gravacao = { arquivo: string; alvo: string; chaves: string[] };
@@ -291,7 +295,11 @@ describe("tela: quem grava dinheiro confere a mesma chave que o banco", () => {
     const alvos = new Set(gravacoesDeDinheiro().map((g) => `${g.arquivo} ${g.alvo}`));
     for (const esperado of [
       "src/routes/_authenticated/fluxo-caixa.tsx contas_pagar.insert",
-      "src/routes/_authenticated/fluxo-caixa.tsx contas_pagar.update",
+      // "Pagar" saiu da tela (16/11): o diálogo confirma e o gancho grava, com a função do banco
+      // ou, antes de a migração ser aplicada, pelo caminho de antes.
+      "src/components/financeiro/contas-a-pagar/use-conta-a-pagar.ts contas_pagar.update",
+      "src/components/financeiro/contas-a-pagar/use-conta-a-pagar.ts rpc pagar_conta_pagar",
+      "src/components/financeiro/contas-a-pagar/use-conta-a-pagar.ts rpc anexar_arquivo_conta_pagar",
       "src/routes/_authenticated/fluxo-caixa.tsx caixa_movimentos.insert",
       "src/routes/_authenticated/financeiro.tsx pagamentos.insert",
       "src/routes/_authenticated/contas-bancarias.tsx contas_bancarias.insert",
@@ -367,7 +375,9 @@ describe("tela: os botões de lançar e dar baixa ficam atrás da chave", () => 
     // /fluxo-caixa
     ["src/routes/_authenticated/fluxo-caixa.tsx", "setMovOpen(true)", "podeLancar &&"],
     ["src/routes/_authenticated/fluxo-caixa.tsx", "setContaOpen(true)", "podeLancar &&"],
-    ["src/routes/_authenticated/fluxo-caixa.tsx", "pagar.mutate(", "podeDarBaixa &&"],
+    // "Pagar" só abre a confirmação; o botão continua atrás da chave de dar baixa.
+    ["src/routes/_authenticated/fluxo-caixa.tsx", "setPagando(c)", "podeDarBaixa &&"],
+    ["src/routes/_authenticated/fluxo-caixa.tsx", "setEstornando(c)", "podeEstornar &&"],
     // /financeiro
     ["src/routes/_authenticated/financeiro.tsx", "<DialogTrigger", "podeLancar &&"],
     ["src/routes/_authenticated/financeiro.tsx", "marcarPago(p)", "podeDarBaixa &&"],
