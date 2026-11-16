@@ -17,6 +17,7 @@ import {
   formatarCustoFixo,
   fraseDaConfirmacao,
   fraseDoContador,
+  haCustoFixoParaMostrar,
   itensDeCustoFixo,
   lerLinhaDeCustoFixo,
   lerValorDeCusto,
@@ -336,6 +337,9 @@ export function CustosFixosDaGrafica() {
         Não deu para carregar os custos fixos. {mensagemErro(dados.error)}
       </p>
     );
+
+  // Sem nenhuma linha legível a RLS escondeu tudo: o bloco some, em vez de acusar pendência falsa.
+  if (!haCustoFixoParaMostrar(dados.data?.linhas ?? [])) return null;
 
   return (
     <BlocoDeCustosFixos

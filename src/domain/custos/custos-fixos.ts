@@ -301,3 +301,11 @@ export function mensagemDoSalvarCusto(mensagem: string): string {
     ? "A confirmação de custos ainda não está ligada no banco. Avise o suporte e tente mais tarde."
     : mensagem;
 }
+
+/**
+ * Há custo fixo legível para mostrar? A RLS de custos_tabela devolve zero linha a quem não vê custo, sem erro.
+ * Mostrar o bloco assim diria "9 de 9 pendentes" a quem só não tem acesso: falha que se lê como vazio.
+ */
+export function haCustoFixoParaMostrar(linhas: LinhaDeCustoFixo[]): boolean {
+  return linhas.length > 0;
+}

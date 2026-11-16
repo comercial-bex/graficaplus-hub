@@ -226,3 +226,13 @@ describe("a ficha da plotter", () => {
     expect(ehPlotterI1600({})).toBe(false);
   });
 });
+
+describe("bloco some quando a RLS não deixa ler nenhum custo fixo", () => {
+  it("zero linha legível não mostra o bloco; com linha mostra", async () => {
+    const { haCustoFixoParaMostrar, lerLinhaDeCustoFixo } = await import("@/domain/custos/custos-fixos");
+    expect(haCustoFixoParaMostrar([])).toBe(false);
+    expect(
+      haCustoFixoParaMostrar([lerLinhaDeCustoFixo({ id: "1", codigo: "mo_custo_hora", valor: 9 })]),
+    ).toBe(true);
+  });
+});
