@@ -144,6 +144,13 @@ export type Database = {
             foreignKeyName: "acabamentos_produto_servico_id_fkey"
             columns: ["produto_servico_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "acabamentos_produto_servico_id_fkey"
+            columns: ["produto_servico_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -261,6 +268,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "agente_base_respostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -508,6 +522,150 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "agente_metricas_respostas"
             referencedColumns: ["resposta_id"]
+          },
+        ]
+      }
+      alertas_integridade: {
+        Row: {
+          avisado_em: string | null
+          chave: string
+          confirmado_em: string | null
+          detalhes: Json
+          em_resumo: boolean
+          estado_hash: string
+          fila_id: string | null
+          id: string
+          orcamento_id: string | null
+          primeiro_visto_em: string
+          produto_id: string | null
+          reenvios: number
+          resolvido_em: string | null
+          status: string
+          texto: string
+          tipo: string
+          ultimo_erro: string | null
+          ultimo_visto_em: string
+          urgente: boolean
+        }
+        Insert: {
+          avisado_em?: string | null
+          chave: string
+          confirmado_em?: string | null
+          detalhes?: Json
+          em_resumo?: boolean
+          estado_hash: string
+          fila_id?: string | null
+          id?: string
+          orcamento_id?: string | null
+          primeiro_visto_em?: string
+          produto_id?: string | null
+          reenvios?: number
+          resolvido_em?: string | null
+          status?: string
+          texto: string
+          tipo: string
+          ultimo_erro?: string | null
+          ultimo_visto_em?: string
+          urgente?: boolean
+        }
+        Update: {
+          avisado_em?: string | null
+          chave?: string
+          confirmado_em?: string | null
+          detalhes?: Json
+          em_resumo?: boolean
+          estado_hash?: string
+          fila_id?: string | null
+          id?: string
+          orcamento_id?: string | null
+          primeiro_visto_em?: string
+          produto_id?: string | null
+          reenvios?: number
+          resolvido_em?: string | null
+          status?: string
+          texto?: string
+          tipo?: string
+          ultimo_erro?: string | null
+          ultimo_visto_em?: string
+          urgente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_integridade_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_aprovacoes_orcamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_integridade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2138,6 +2296,13 @@ export type Database = {
             foreignKeyName: "catalogo_modelos_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "catalogo_modelos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -2239,6 +2404,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "checklist_modelos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -3901,41 +4073,55 @@ export type Database = {
           atualizado_por: string | null
           categoria: string
           codigo: string
+          confirmado_em: string | null
+          confirmado_por: string | null
           created_at: string
           descricao: string
           id: string
           observacao: string | null
           unidade: string
           updated_at: string
-          valor: number
+          valor: number | null
         }
         Insert: {
           ativo?: boolean
           atualizado_por?: string | null
           categoria?: string
           codigo: string
+          confirmado_em?: string | null
+          confirmado_por?: string | null
           created_at?: string
           descricao: string
           id?: string
           observacao?: string | null
           unidade?: string
           updated_at?: string
-          valor?: number
+          valor?: number | null
         }
         Update: {
           ativo?: boolean
           atualizado_por?: string | null
           categoria?: string
           codigo?: string
+          confirmado_em?: string | null
+          confirmado_por?: string | null
           created_at?: string
           descricao?: string
           id?: string
           observacao?: string | null
           unidade?: string
           updated_at?: string
-          valor?: number
+          valor?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "custos_tabela_confirmado_por_fkey"
+            columns: ["confirmado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       custos_tabela_historico: {
         Row: {
@@ -5683,6 +5869,13 @@ export type Database = {
             foreignKeyName: "itens_os_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "itens_os_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -6115,6 +6308,13 @@ export type Database = {
             foreignKeyName: "maquina_compatibilidades_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "maquina_compatibilidades_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -6172,6 +6372,8 @@ export type Database = {
           updated_at: string
           valor_aquisicao: number | null
           valor_residual: number | null
+          velocidade_calculo_m2_h: number | null
+          velocidade_calculo_texto: string | null
           velocidade_m2_h: number
           velocidade_mm_s: number | null
           vida_util_horas: number | null
@@ -6206,6 +6408,8 @@ export type Database = {
           updated_at?: string
           valor_aquisicao?: number | null
           valor_residual?: number | null
+          velocidade_calculo_m2_h?: number | null
+          velocidade_calculo_texto?: string | null
           velocidade_m2_h?: number
           velocidade_mm_s?: number | null
           vida_util_horas?: number | null
@@ -6240,6 +6444,8 @@ export type Database = {
           updated_at?: string
           valor_aquisicao?: number | null
           valor_residual?: number | null
+          velocidade_calculo_m2_h?: number | null
+          velocidade_calculo_texto?: string | null
           velocidade_m2_h?: number
           velocidade_mm_s?: number | null
           vida_util_horas?: number | null
@@ -8799,6 +9005,13 @@ export type Database = {
             foreignKeyName: "orcamento_itens_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -9921,6 +10134,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -12126,6 +12346,13 @@ export type Database = {
             foreignKeyName: "parceiro_ofertas_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "parceiro_ofertas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -12241,6 +12468,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "parceiro_orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -14099,6 +14333,113 @@ export type Database = {
         }
         Relationships: []
       }
+      precos_propostas: {
+        Row: {
+          created_at: string
+          custo: number | null
+          decidido_em: string | null
+          decidido_por: string | null
+          id: string
+          margem_atual: number | null
+          margem_minima: number | null
+          margem_proposta: number | null
+          motivo: string
+          nota: string | null
+          origem: string
+          piso: number | null
+          preco_atual: number
+          preco_proposto: number
+          produto_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          custo?: number | null
+          decidido_em?: string | null
+          decidido_por?: string | null
+          id?: string
+          margem_atual?: number | null
+          margem_minima?: number | null
+          margem_proposta?: number | null
+          motivo: string
+          nota?: string | null
+          origem: string
+          piso?: number | null
+          preco_atual: number
+          preco_proposto: number
+          produto_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          custo?: number | null
+          decidido_em?: string | null
+          decidido_por?: string | null
+          id?: string
+          margem_atual?: number | null
+          margem_minima?: number | null
+          margem_proposta?: number | null
+          motivo?: string
+          nota?: string | null
+          origem?: string
+          piso?: number | null
+          preco_atual?: number
+          preco_proposto?: number
+          produto_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "precos_propostas_decidido_por_fkey"
+            columns: ["decidido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processos: {
         Row: {
           ativo: boolean
@@ -14172,6 +14513,13 @@ export type Database = {
             columns: ["produto_servico_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "processos_produto_servico_id_fkey"
+            columns: ["produto_servico_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -14720,6 +15068,13 @@ export type Database = {
             foreignKeyName: "produto_acabamentos_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_acabamentos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -14795,6 +15150,13 @@ export type Database = {
             foreignKeyName: "produto_concorrentes_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_concorrentes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -14861,6 +15223,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_faixas_preco_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -14969,6 +15338,13 @@ export type Database = {
             foreignKeyName: "produto_ficha_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: true
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_ficha_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -15063,6 +15439,13 @@ export type Database = {
             foreignKeyName: "produto_formulas_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -15111,6 +15494,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: true
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_foto_reservas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -15211,6 +15601,13 @@ export type Database = {
             foreignKeyName: "produto_materiais_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_materiais_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -15298,6 +15695,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_perguntas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -15460,6 +15864,13 @@ export type Database = {
             foreignKeyName: "produto_precificacao_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_precificacao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -15532,6 +15943,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: true
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_precos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -15618,6 +16036,13 @@ export type Database = {
             foreignKeyName: "produto_precos_cliente_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_precos_cliente_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -15679,6 +16104,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_processos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -15751,6 +16183,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_tamanhos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -15830,6 +16269,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_terceirizados_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -16059,6 +16505,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "qualidade_checklists_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -19645,6 +20098,13 @@ export type Database = {
             foreignKeyName: "itens_os_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "itens_os_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -19776,6 +20236,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "itens_os_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -19952,6 +20419,13 @@ export type Database = {
             foreignKeyName: "itens_os_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "itens_os_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -20095,6 +20569,8 @@ export type Database = {
           updated_at: string | null
           valor_aquisicao: number | null
           valor_residual: number | null
+          velocidade_calculo_m2_h: number | null
+          velocidade_calculo_texto: string | null
           velocidade_m2_h: number | null
           velocidade_mm_s: number | null
           vida_util_horas: number | null
@@ -20129,6 +20605,8 @@ export type Database = {
           updated_at?: string | null
           valor_aquisicao?: number | null
           valor_residual?: number | null
+          velocidade_calculo_m2_h?: number | null
+          velocidade_calculo_texto?: string | null
           velocidade_m2_h?: number | null
           velocidade_mm_s?: number | null
           vida_util_horas?: number | null
@@ -20163,6 +20641,8 @@ export type Database = {
           updated_at?: string | null
           valor_aquisicao?: number | null
           valor_residual?: number | null
+          velocidade_calculo_m2_h?: number | null
+          velocidade_calculo_texto?: string | null
           velocidade_m2_h?: number | null
           velocidade_mm_s?: number | null
           vida_util_horas?: number | null
@@ -20483,6 +20963,13 @@ export type Database = {
             foreignKeyName: "orcamento_itens_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -20641,6 +21128,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -20847,6 +21341,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "orcamento_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -21406,6 +21907,13 @@ export type Database = {
             foreignKeyName: "ordens_servico_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -21598,6 +22106,13 @@ export type Database = {
             foreignKeyName: "ordens_servico_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
             referencedRelation: "produtos"
             referencedColumns: ["id"]
           },
@@ -21781,6 +22296,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
             referencedColumns: ["produto_id"]
           },
           {
@@ -22164,6 +22686,35 @@ export type Database = {
           sem_mao_de_obra: boolean | null
           sem_rateio: boolean | null
           tempo_producao_min: number | null
+        }
+        Relationships: []
+      }
+      produto_custo_real: {
+        Row: {
+          custo_incompleto: boolean | null
+          custo_ocupacao: number | null
+          custo_producao: number | null
+          custo_real: number | null
+          familia: string | null
+          margem_liquida_pct: number | null
+          material_sem_custo: boolean | null
+          multiplicador_regra_de_tres: number | null
+          nome: string | null
+          ocupacao_alvo_pct: number | null
+          parceiro_abaixo_do_piso: boolean | null
+          piso_custo_producao: number | null
+          preco_balcao: number | null
+          preco_minimo_recomendado: number | null
+          preco_regra_de_tres: number | null
+          produto_id: string | null
+          sem_mao_de_obra: boolean | null
+          sem_tinta: boolean | null
+          tempo_presumido: boolean | null
+          trava_que_manda: string | null
+          tres_x_material: number | null
+          velocidade_nominal_m2_h: number | null
+          velocidade_usada_m2_h: number | null
+          vezes_o_custo: number | null
         }
         Relationships: []
       }
@@ -23235,6 +23786,80 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_precos_propostas: {
+        Row: {
+          created_at: string | null
+          custo: number | null
+          decidido_em: string | null
+          decidido_por: string | null
+          id: string | null
+          margem_atual: number | null
+          margem_minima: number | null
+          margem_proposta: number | null
+          motivo: string | null
+          nota: string | null
+          origem: string | null
+          piso: number | null
+          preco_atual: number | null
+          preco_proposto: number | null
+          produto_ativo: boolean | null
+          produto_id: string | null
+          produto_nome: string | null
+          status: string | null
+          unidade: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "precos_propostas_decidido_por_fkey"
+            columns: ["decidido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precos_propostas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_reembolsos_por_produto: {
         Row: {
           categoria: string | null
@@ -23701,7 +24326,34 @@ export type Database = {
       }
       _apply_pending_migration: { Args: { p_sql: string }; Returns: undefined }
       _citacao_no_texto: { Args: { p_usuario: string }; Returns: string }
+      _custo_texto_limpo: { Args: { p_texto: string }; Returns: string }
       _dias: { Args: { p: number }; Returns: string }
+      _integridade_achados: {
+        Args: never
+        Returns: {
+          chave: string
+          cliente: string
+          estado: Json
+          linha: string
+          numero: number
+          orcamento_id: string
+          produto_id: string
+          tipo: string
+          urgente: boolean
+        }[]
+      }
+      _integridade_brl: { Args: { p_valor: number }; Returns: string }
+      _lembrete_custos_enfileirar: {
+        Args: {
+          p_chave: string
+          p_destino: string
+          p_entidade_id: string
+          p_evento: string
+          p_mencionar: Json
+          p_texto: string
+        }
+        Returns: string
+      }
       _mencao_whatsapp: { Args: { p_usuario: string }; Returns: string }
       _os_avisar_grupo: {
         Args: {
@@ -23740,6 +24392,14 @@ export type Database = {
       _parceiro_garantir_chamado: {
         Args: { p_parceiro: string }
         Returns: string
+      }
+      _preco_margem: {
+        Args: { p_custo: number; p_preco: number }
+        Returns: number
+      }
+      _preco_piso: {
+        Args: { p_custo: number; p_margem_minima: number }
+        Returns: number
       }
       _reais: { Args: { p: number }; Returns: string }
       _triagem_bloqueado: { Args: { p_conversa: string }; Returns: boolean }
@@ -23926,6 +24586,10 @@ export type Database = {
           p_motivo: string
           p_quantidade_contada: number
         }
+        Returns: Json
+      }
+      alerta_integridade_orcamentos: {
+        Args: { p_enfileirar?: boolean }
         Returns: Json
       }
       anexar_comprovante_parcela: {
@@ -24304,6 +24968,10 @@ export type Database = {
       conferir_retirada_compra: {
         Args: { p_id: string; p_obs?: string }
         Returns: undefined
+      }
+      confirmar_custo_fixo: {
+        Args: { p_codigo: string; p_confirmar?: boolean; p_valor: number }
+        Returns: Json
       }
       confirmar_envio_documento: {
         Args: { p_envio_id: string; p_usuario: string }
@@ -24729,6 +25397,10 @@ export type Database = {
         Returns: string[]
       }
       jsonb_sem_custo: { Args: { p_json: Json }; Returns: Json }
+      lembrete_diario_de_custos: {
+        Args: { p_enfileirar?: boolean; p_hoje?: string }
+        Returns: Json
+      }
       lembrete_orcamentos_aprovados_sem_os: { Args: never; Returns: Json }
       lembretes_da_equipe: { Args: never; Returns: Json }
       ler_item_3d: { Args: { p_orcamento_3d_id: string }; Returns: Json }
@@ -25220,6 +25892,14 @@ export type Database = {
         Args: { p_assunto: string; p_os_id: string }
         Returns: Json
       }
+      pendencias_de_custo: {
+        Args: never
+        Returns: {
+          codigo: string
+          rotulo: string
+          tipo: string
+        }[]
+      }
       pendencias_de_decisoes: {
         Args: never
         Returns: {
@@ -25438,6 +26118,15 @@ export type Database = {
           quantidade_minima: number
           vigencia_fim: string
         }[]
+      }
+      preco_proposta_aprovar: { Args: { p_id: string }; Returns: Json }
+      preco_proposta_criar: {
+        Args: { p_motivo: string; p_preco: number; p_produto_id: string }
+        Returns: string
+      }
+      preco_proposta_recusar: {
+        Args: { p_id: string; p_nota: string }
+        Returns: Json
       }
       previsoes_desatualizadas: {
         Args: never
