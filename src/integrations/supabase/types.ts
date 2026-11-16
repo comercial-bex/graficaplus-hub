@@ -3665,6 +3665,92 @@ export type Database = {
           },
         ]
       }
+      contas_pagar_anexos: {
+        Row: {
+          caminho: string
+          conta_pagar_id: string
+          enviado_em: string
+          enviado_por: string | null
+          enviado_por_nome: string | null
+          id: string
+          mime: string
+          nome_arquivo: string
+          tamanho_bytes: number
+          tipo: string
+        }
+        Insert: {
+          caminho: string
+          conta_pagar_id: string
+          enviado_em?: string
+          enviado_por?: string | null
+          enviado_por_nome?: string | null
+          id?: string
+          mime: string
+          nome_arquivo: string
+          tamanho_bytes: number
+          tipo: string
+        }
+        Update: {
+          caminho?: string
+          conta_pagar_id?: string
+          enviado_em?: string
+          enviado_por?: string | null
+          enviado_por_nome?: string | null
+          id?: string
+          mime?: string
+          nome_arquivo?: string
+          tamanho_bytes?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_anexos_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar_historico: {
+        Row: {
+          conta_pagar_id: string
+          data_pagamento: string | null
+          detalhes: Json
+          evento: string
+          id: string
+          motivo: string | null
+          ocorrido_em: string
+          usuario_id: string | null
+          usuario_nome: string | null
+          valor: number | null
+        }
+        Insert: {
+          conta_pagar_id: string
+          data_pagamento?: string | null
+          detalhes?: Json
+          evento: string
+          id?: string
+          motivo?: string | null
+          ocorrido_em?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor?: number | null
+        }
+        Update: {
+          conta_pagar_id?: string
+          data_pagamento?: string | null
+          detalhes?: Json
+          evento?: string
+          id?: string
+          motivo?: string | null
+          ocorrido_em?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       contas_receber: {
         Row: {
           cliente_id: string
@@ -24326,6 +24412,7 @@ export type Database = {
       }
       _apply_pending_migration: { Args: { p_sql: string }; Returns: undefined }
       _citacao_no_texto: { Args: { p_usuario: string }; Returns: string }
+      _contexto_conta_pagar: { Args: { p_conta_id: string }; Returns: Json }
       _custo_texto_limpo: { Args: { p_texto: string }; Returns: string }
       _dias: { Args: { p: number }; Returns: string }
       _integridade_achados: {
@@ -24590,6 +24677,15 @@ export type Database = {
       }
       alerta_integridade_orcamentos: {
         Args: { p_enfileirar?: boolean }
+        Returns: Json
+      }
+      anexar_arquivo_conta_pagar: {
+        Args: {
+          p_caminho: string
+          p_conta_id: string
+          p_nome_arquivo: string
+          p_tipo: string
+        }
         Returns: Json
       }
       anexar_comprovante_parcela: {
@@ -25208,6 +25304,10 @@ export type Database = {
         Args: { p_motivo: string; p_movimentacao_origem_id: string }
         Returns: Json
       }
+      estornar_conta_pagar: {
+        Args: { p_conta_id: string; p_motivo: string }
+        Returns: Json
+      }
       estornar_pagamento: {
         Args: { p_motivo: string; p_pagamento_id: string }
         Returns: Json
@@ -25651,6 +25751,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      pagar_conta_pagar: {
+        Args: {
+          p_conta_bancaria_id?: string
+          p_conta_id: string
+          p_data_pagamento: string
+          p_forma_pagamento?: string
+        }
+        Returns: Json
       }
       painel_funil_orcamentos: { Args: { p_dias?: number }; Returns: Json }
       parceiro_ajustar_credito: {
@@ -26341,6 +26450,10 @@ export type Database = {
           p_observacao?: string
           p_quantidade: number
         }
+        Returns: Json
+      }
+      remover_anexo_conta_pagar: {
+        Args: { p_anexo_id: string; p_motivo?: string }
         Returns: Json
       }
       remover_excecao_permissao: {
