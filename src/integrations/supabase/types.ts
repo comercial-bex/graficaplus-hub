@@ -3438,6 +3438,7 @@ export type Database = {
           banco: string | null
           conta: string | null
           created_at: string
+          extrato_conferido_ate: string | null
           id: string
           nome: string
           saldo_inicial: number
@@ -3451,6 +3452,7 @@ export type Database = {
           banco?: string | null
           conta?: string | null
           created_at?: string
+          extrato_conferido_ate?: string | null
           id?: string
           nome: string
           saldo_inicial?: number
@@ -3464,6 +3466,7 @@ export type Database = {
           banco?: string | null
           conta?: string | null
           created_at?: string
+          extrato_conferido_ate?: string | null
           id?: string
           nome?: string
           saldo_inicial?: number
