@@ -25,3 +25,34 @@ export const TEXTO_DA_VELOCIDADE_DA_PLOTTER = fraseDaVelocidade(
 export function ehPlotterI1600(m: { nome?: string | null; modelo?: string | null }): boolean {
   return /i\s?1600/i.test(`${m.nome ?? ""} ${m.modelo ?? ""}`);
 }
+
+const positivo = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+/**
+ * A velocidade em metros quadrados por hora que o CUSTO usa numa linha de impressão.
+ *
+ * - Sem velocidade de cálculo na máquina (coluna vazia, zero ou inexistente no banco), vale o que valia antes:
+ *   a do modo escolhido, ou a nominal da máquina.
+ * - Com velocidade de cálculo e sem modo, ela vale como está.
+ * - Com velocidade de cálculo e modo escolhido, o modo mantém a proporção: a margem de segurança da máquina
+ *   (cálculo dividido pela nominal) é aplicada sobre a velocidade do modo. Na i1600, Produção de 14 vira 10,
+ *   Rascunho de 28 vira 20 e Alta qualidade de 7 vira 5. Sem isso o modo padrão, que é igual à nominal,
+ *   ignoraria a decisão do dono.
+ *
+ * Devolve 0 quando nada permite calcular, e quem chama trata 0 como "sem velocidade", nunca como tempo zero.
+ */
+export function velocidadeUsadaNoCusto(a: {
+  nominal?: unknown;
+  calculo?: unknown;
+  modo?: unknown;
+}): number {
+  const nominal = positivo(a.nominal);
+  const calculo = positivo(a.calculo);
+  const modo = positivo(a.modo);
+  if (calculo === 0) return modo || nominal;
+  if (modo === 0 || nominal === 0) return calculo;
+  return modo * (calculo / nominal);
+}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
+import { velocidadeUsadaNoCusto } from "@/domain/maquinas/velocidade-de-calculo";
 import { mensagemErro } from "@/lib/erros";
 import {
   Dialog,
@@ -167,7 +168,9 @@ export function CalculadoraCusto({
       // O componente só abre para quem vê custo; custo por hora vem da visão `maquinas_financeiro`.
       const { data, error } = await supabase
         .from("maquinas_financeiro" as never)
-        .select("id, nome, custo_hora, potencia_kw, setup_min, velocidade_m2_h, base_cobranca, velocidade_mm_s, tempo_minimo_min")
+        // select("*") de propósito: velocidade_calculo_m2_h só existe depois da migração 20261116100000, e uma coluna
+        // nomeada que falta derruba a consulta inteira (e a calculadora sem máquina). Com "*" a coluna vem quando existe.
+        .select("*")
         .eq("ativa", true)
         .order("nome");
       if (error) throw error;
@@ -247,7 +250,12 @@ export function CalculadoraCusto({
     if (l.base === "area") {
       // O modo escolhido manda; sem modo cadastrado, a velocidade da máquina.
       const modo = modosDe(l.maquina_id).find((m) => m.id === l.modoId);
-      const velocidade = modo ? Number(modo.velocidade_m2_h) : Number(maq.velocidade_m2_h ?? 0);
+      // Velocidade de cálculo da máquina (i1600: 10 em vez de 14) quando existir; sem ela, como sempre foi.
+      const velocidade = velocidadeUsadaNoCusto({
+        nominal: maq.velocidade_m2_h,
+        calculo: maq.velocidade_calculo_m2_h,
+        modo: modo ? modo.velocidade_m2_h : null,
+      });
       const r = tempoImpressao({ areaM2: baseConsumo, velocidadeM2H: velocidade, setupMin: setup });
       const memoria = modo ? `${modo.nome}${modo.passadas ? ` (${modo.passadas} passadas)` : ""}: ${r.memoria}` : r.memoria;
       return r.derivado ? { horas: (r.minutos / 60).toFixed(3), memoria, derivado: true } : { memoria, derivado: false };
