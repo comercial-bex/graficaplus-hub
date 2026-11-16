@@ -36,8 +36,10 @@ const ASSINATURAS: Record<string, string[]> = {
   avancar_os_status: ["os_id", "novo_status"], // sem p_
   avisar_manualmente: ["p_id", "p_observacao"],
   baixar_estoque_os: ["p_os_id", "p_consumos"],
+  // Fase 2A (20261116210000): ganhou a conta de origem da saída.
   baixar_parcela_compromisso: [
     "p_conta_id", "p_data_pagamento", "p_comprovante_url", "p_forma_pagamento", "p_lancar_caixa",
+    "p_conta_bancaria_id",
   ],
   breakdown_3d: ["p_inicio", "p_fim"],
   buscar_usuario_para_portal: ["p_busca"],

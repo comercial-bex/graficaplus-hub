@@ -50,6 +50,12 @@ import {
 import { toast } from "sonner";
 import { pagoDoBem, resumoPatrimonio, type MaquinaPatrimonio } from "@/domain/financeiro/patrimonio";
 import {
+  FORMA_DINHEIRO,
+  ORIGEM_DINHEIRO,
+  problemaDaOrigem,
+  recusaDoBanco,
+} from "@/domain/financeiro/contas-a-pagar-anexos";
+import {
   custoMensal,
   parcelaAtual,
   pendencias,
@@ -144,6 +150,9 @@ function CompromissosPage() {
   const [baixa, setBaixa] = useState<any | null>(null);
   const [baixaData, setBaixaData] = useState(hoje());
   const [baixaCaixa, setBaixaCaixa] = useState(true);
+  // De onde saiu o dinheiro da parcela (Fase 2A): obrigatório quando a saída entra no caixa.
+  const [baixaOrigem, setBaixaOrigem] = useState("");
+  const [baixaTemArquivo, setBaixaTemArquivo] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
   const { data: compromissos = [], isLoading } = useQuery({
@@ -223,6 +232,23 @@ function CompromissosPage() {
       return data ?? [];
     },
   });
+
+  // As contas bancárias ativas: a origem da saída quando a baixa lança no caixa.
+  const { data: contasBancarias = [] } = useQuery({
+    queryKey: ["contas-bancarias-ativas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contas_bancarias")
+        .select("id, nome, banco")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const problemaDaBaixa = baixaCaixa
+    ? problemaDaOrigem(baixaOrigem, baixaTemArquivo ? 1 : 0)
+    : null;
 
   const recarregar = () => {
     qc.invalidateQueries({ queryKey: ["compromissos"] });
@@ -306,16 +332,27 @@ function CompromissosPage() {
   }
 
   const darBaixa = useMutation({
-    mutationFn: async (v: { id: string; data: string; caixa: boolean; arquivo: File | null }) => {
+    mutationFn: async (v: {
+      id: string;
+      data: string;
+      caixa: boolean;
+      origem: string;
+      arquivo: File | null;
+    }) => {
+      const dinheiro = v.caixa && v.origem === ORIGEM_DINHEIRO;
       const url = v.arquivo ? await subirComprovante(v.id, v.arquivo) : null;
       const { data, error } = await (supabase.rpc as any)("baixar_parcela_compromisso", {
         p_conta_id: v.id,
         p_data_pagamento: v.data,
         p_comprovante_url: url,
-        p_forma_pagamento: null,
+        p_forma_pagamento: dinheiro ? FORMA_DINHEIRO : null,
         p_lancar_caixa: v.caixa,
+        // Fase 2A: a saída que entra no caixa nasce com a conta de origem.
+        p_conta_bancaria_id: v.caixa && !dinheiro ? v.origem || null : null,
       });
       if (error) throw error;
+      const recusa = recusaDoBanco(data);
+      if (recusa) throw new Error(recusa);
       return data;
     },
     onSuccess: (r: any) => {
@@ -331,11 +368,13 @@ function CompromissosPage() {
   const anexar = useMutation({
     mutationFn: async (v: { id: string; arquivo: File }) => {
       const url = await subirComprovante(v.id, v.arquivo);
-      const { error } = await (supabase.rpc as any)("anexar_comprovante_parcela", {
+      const { data, error } = await (supabase.rpc as any)("anexar_comprovante_parcela", {
         p_conta_id: v.id,
         p_comprovante_url: url,
       });
       if (error) throw error;
+      const recusa = recusaDoBanco(data);
+      if (recusa) throw new Error(recusa);
     },
     onSuccess: () => {
       toast.success("Comprovante anexado");
@@ -365,6 +404,8 @@ function CompromissosPage() {
         p_ate: hoje(),
       });
       if (error) throw error;
+      const recusa = recusaDoBanco(data);
+      if (recusa) throw new Error(recusa);
       return data;
     },
     onSuccess: (r: any) => {
@@ -790,6 +831,8 @@ function CompromissosPage() {
                                         setBaixa(p);
                                         setBaixaData(p.vencimento);
                                         setBaixaCaixa(true);
+                                        setBaixaOrigem("");
+                                        setBaixaTemArquivo(false);
                                       }}
                                     >
                                       <CheckCheck className="h-3.5 w-3.5 mr-1" /> dar baixa
@@ -885,7 +928,10 @@ function CompromissosPage() {
                 id="comprovante-baixa"
                 type="file"
                 accept="image/*,application/pdf"
-                onChange={() => setEnviando(false)}
+                onChange={(e) => {
+                  setEnviando(false);
+                  setBaixaTemArquivo((e.target.files?.length ?? 0) > 0);
+                }}
               />
             </div>
 
@@ -907,18 +953,49 @@ function CompromissosPage() {
                 </span>
               </span>
             </label>
+
+            {baixaCaixa && (
+              <div className="space-y-1">
+                <Label className="text-xs" htmlFor="baixa-origem">
+                  De onde saiu o dinheiro (obrigatório)
+                </Label>
+                <Select value={baixaOrigem} onValueChange={setBaixaOrigem}>
+                  <SelectTrigger id="baixa-origem" aria-invalid={!baixaOrigem}>
+                    <SelectValue placeholder="Escolha a conta bancária ou dinheiro" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contasBancarias.map((b: { id: string; nome: string; banco: string | null }) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.banco ? `${b.nome} · ${b.banco}` : b.nome}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={ORIGEM_DINHEIRO}>Dinheiro / caixa físico</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p
+                  className={
+                    baixaOrigem && problemaDaBaixa
+                      ? "text-xs text-destructive"
+                      : "text-xs text-muted-foreground"
+                  }
+                >
+                  {problemaDaBaixa ?? "A saída entra no caixa com esta origem."}
+                </p>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setBaixa(null)}>Cancelar</Button>
             <Button
-              disabled={darBaixa.isPending || enviando || !baixaData}
+              disabled={darBaixa.isPending || enviando || !baixaData || !!problemaDaBaixa}
               onClick={() => {
                 const input = document.getElementById("comprovante-baixa") as HTMLInputElement | null;
                 darBaixa.mutate({
                   id: baixa.id,
                   data: baixaData,
                   caixa: baixaCaixa,
+                  origem: baixaOrigem,
                   arquivo: input?.files?.[0] ?? null,
                 });
               }}
