@@ -30,7 +30,13 @@ import {
   numeroParaMencao,
   type ConfigCobranca,
   type LinhaDaConfiguracao,
+  type PessoaDaEquipe,
 } from "@/domain/whatsapp/cobranca";
+import {
+  decidirAvisoPrivado,
+  ehAvisoPrivadoDoGerente,
+  numerosDaGerencia,
+} from "@/domain/whatsapp/aviso-privado";
 import { hashDoSegredo, hashesIguais } from "@/domain/whatsapp/segredo-webhook";
 import { assinarMensagem, assinaturaDaPessoa } from "@/domain/whatsapp/assinatura";
 import {
@@ -1083,6 +1089,14 @@ async function lerContextoDaCobranca(): Promise<ContextoDaCobranca | { erro: str
   return { cfg: configDaCobranca(cfgResp.data as LinhaDaConfiguracao), numerosDaEquipe };
 }
 
+/** Celulares de gestor e admin ativos, para o aviso privado do gerente. */
+async function lerGerencia(): Promise<Set<string> | { erro: string }> {
+  const resp = await (supabaseAdmin.rpc as any)("whatsapp_cobranca_equipe");
+  if (resp?.error) return { erro: `falha ao ler a gerência: ${resp.error.message}` };
+  if (!Array.isArray(resp?.data)) return { erro: "a gerência veio num formato inesperado" };
+  return numerosDaGerencia(resp.data as PessoaDaEquipe[]);
+}
+
 /**
  * A OUTRA fila: os avisos automáticos ao cliente.
  *
@@ -1171,6 +1185,8 @@ async function processarAvisosAoCliente(
   let enviados = 0;
   // Lido uma vez por rodada, e só se houver cobrança na fila.
   let contextoDaCobranca: ContextoDaCobranca | { erro: string } | null = null;
+  // Idem para o aviso privado do gerente.
+  let gerencia: Set<string> | { erro: string } | null = null;
 
   for (const linha of linhas) {
     const maximo = linha.max_tentativas ?? 5;
@@ -1206,6 +1222,33 @@ async function processarAvisosAoCliente(
       await gravarAviso(erros, linha.id, { status: "falhou", ultimo_erro: erro });
       detalhes.push({ evento: linha.evento, erro });
       continue;
+    }
+
+    // QUARTA TRAVA (15/11/2026): o aviso privado do gerente só vai para celular de gestor ou admin
+    // ativo. Esta regra não toca na trava do grupo acima: é outro evento, com outra porta.
+    // Qualquer outro destino (cliente, parceiro, vendedor) vira falha definitiva SEM chamar o Z-API.
+    let destinoDoEnvio = linha.destinatario;
+    const avisoPrivado = ehAvisoPrivadoDoGerente(linha);
+    if (avisoPrivado) {
+      gerencia ??= await lerGerencia();
+      if (!(gerencia instanceof Set)) {
+        // Sem conferir não envia. Devolve a linha à fila sem gastar a tentativa da reserva.
+        await gravarAviso(erros, linha.id, {
+          status: "pendente",
+          tentativas: linha.tentativas ?? 0,
+          ultimo_erro: gerencia.erro,
+          proxima_tentativa_em: proximaTentativaEm(agora, 1),
+        });
+        detalhes.push({ evento: linha.evento, erro: gerencia.erro });
+        continue;
+      }
+      const decisao = decidirAvisoPrivado(linha, gerencia);
+      if (!decisao.ok) {
+        await gravarAviso(erros, linha.id, { status: "falhou", ultimo_erro: decisao.erro });
+        detalhes.push({ evento: linha.evento, erro: decisao.erro });
+        continue;
+      }
+      destinoDoEnvio = decisao.para;
     }
 
     // A cobrança é conferida DE NOVO na hora de sair: a rodada decidiu minutos ou horas antes, e
@@ -1260,7 +1303,7 @@ async function processarAvisosAoCliente(
     const pedidosDeMencao = (variaveisDoEnvio as { mencionar?: unknown } | null)?.mencionar;
     const mencionar = numerosParaMencionar(Array.isArray(pedidosDeMencao) ? pedidosDeMencao : []);
     const montado = montarEnvio(
-      { tipo: "texto", para: linha.destinatario, texto: textoDoAviso, mencionar },
+      { tipo: "texto", para: destinoDoEnvio, texto: textoDoAviso, mencionar },
       { instanceId: instancia.zapi_instance_id, token },
     );
 
@@ -1324,7 +1367,8 @@ async function processarAvisosAoCliente(
     // Aviso no grupo da equipe NÃO vira conversa: registrar criaria uma "conversa de cliente"
     // com o id do grupo na caixa de entrada. Fica só o log do envio.
     const ponteiro = { fonte: "notificacoes_fila", id: linha.id };
-    const { data: registrada, error: erroRegistro } = ehGrupoZapi(request.phone)
+    // Aviso privado ao gerente também não: abriria uma conversa de cliente com o celular dele.
+    const { data: registrada, error: erroRegistro } = ehGrupoZapi(request.phone) || avisoPrivado
       ? { data: null, error: null }
       : await (supabaseAdmin.rpc as any)(
       "whatsapp_registrar_mensagem",

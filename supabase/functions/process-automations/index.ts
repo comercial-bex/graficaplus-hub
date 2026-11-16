@@ -23,6 +23,7 @@ type NotificacaoFila = {
   id: string;
   canal: string;
   destinatario: string | null;
+  evento?: string | null;
   template: string;
   variaveis: JsonRecord | null;
 };
@@ -236,6 +237,12 @@ async function drenarFilaNotificacoes(limite: number) {
         });
         resultados.push({ id: item.id, status: "ignorada" });
         continue;
+      }
+
+      // O aviso privado ao gerente só sai pelo despachante do app, que confere se o número é de
+      // gestor ou admin. Aqui nunca: sem essa conferência o texto poderia ir a qualquer número.
+      if (item.evento === "aviso_gerente_privado" || item.template === "aviso_gerente_privado") {
+        throw new Error("aviso privado do gerente só sai pelo despachante do app");
       }
 
       const mensagem = renderTemplate(template.corpo, (item.variaveis ?? {}) as JsonRecord).trim();
