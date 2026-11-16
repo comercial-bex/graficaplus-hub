@@ -1,7 +1,7 @@
 /**
  * Os custos fixos da gráfica que entram no custo real do produto. Funções puras, sem banco e sem tela.
  *
- * Cada um é uma linha de custos_tabela. Linha nova nasce com valor vazio e sem confirmação: a casa não inventa número.
+ * Cada um é uma linha de custos_tabela, inclusive a ocupação alvo e o multiplicador da regra de três, que mexem no preço mínimo recomendado. Linha nova nasce com valor vazio e sem confirmação: a casa não inventa número.
  * Pendente quer dizer valor vazio ou ainda sem confirmação de alguém. Enquanto houver pendente, o custo real é um piso
  * otimista e a tela de preços avisa.
  *
@@ -9,15 +9,21 @@
  * permissão que a função confirmar_custo_fixo exige no banco; custos.update sozinho não basta e não aparece botão.
  */
 
-export type GrupoDeCustoFixo = "espaco_e_energia" | "plotter" | "pessoal";
+export type GrupoDeCustoFixo = "espaco_e_energia" | "plotter" | "preco_minimo" | "pessoal";
 
 export const ROTULO_DO_GRUPO: Record<GrupoDeCustoFixo, string> = {
   espaco_e_energia: "Espaço e energia",
   plotter: "Plotter",
+  preco_minimo: "Ocupação e preço mínimo",
   pessoal: "Pessoal",
 };
 
-export const ORDEM_DOS_GRUPOS: GrupoDeCustoFixo[] = ["espaco_e_energia", "plotter", "pessoal"];
+export const ORDEM_DOS_GRUPOS: GrupoDeCustoFixo[] = [
+  "espaco_e_energia",
+  "plotter",
+  "preco_minimo",
+  "pessoal",
+];
 
 export type DefinicaoDeCustoFixo = {
   codigo: string;
@@ -30,6 +36,8 @@ export type DefinicaoDeCustoFixo = {
   aceitaZero: boolean;
   /** Só aparece, não se grava por esta tela. */
   somenteLeitura?: boolean;
+  /** Faixa aceita na tela, antes de ir ao banco. O banco confere de novo. */
+  faixa?: { minimo: number; maximo: number; frase: string };
 };
 
 export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
@@ -105,6 +113,26 @@ export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
     grupo: "plotter",
     fonte: "Gasto médio por mês com líquido e material de limpeza.",
     aceitaZero: false,
+  },
+  {
+    codigo: "ocupacao_alvo_pct",
+    rotulo: "Ocupação alvo",
+    unidade: "%",
+    grupo: "preco_minimo",
+    fonte:
+      "Parte das horas pagas em que a plotter, o impressor e o aluguel realmente trabalham. O ponto de partida é 50 por cento. O custo da conversão por metro quadrado é dividido por ela. Energia e perdas não são divididas.",
+    aceitaZero: false,
+    faixa: { minimo: 5, maximo: 100, frase: "Digite a ocupação de 5 a 100 por cento, por exemplo 50." },
+  },
+  {
+    codigo: "multiplicador_regra_de_tres",
+    rotulo: "Multiplicador da regra de três",
+    unidade: "vezes",
+    grupo: "preco_minimo",
+    fonte:
+      "Quantas vezes o material com perda e falha entra no preço mínimo recomendado. Hoje é 3. O preço mínimo é o maior entre este valor e o piso do custo de produção.",
+    aceitaZero: false,
+    faixa: { minimo: 1, maximo: 10, frase: "Digite um multiplicador de 1 a 10, por exemplo 3." },
   },
   {
     codigo: "mo_custo_hora",
@@ -221,6 +249,12 @@ export function lerValorDeCusto(texto: string, aceitaZero: boolean): number | nu
   const n = Number(normal);
   if (!Number.isFinite(n)) return null;
   return n > 0 || (aceitaZero && n === 0) ? n : null;
+}
+
+/** Frase de erro quando o número digitado está fora da faixa do custo, ou nulo quando serve. */
+export function fraseDaFaixaDoCusto(d: DefinicaoDeCustoFixo, valor: number | null): string | null {
+  if (valor == null || d.faixa == null) return null;
+  return valor < d.faixa.minimo || valor > d.faixa.maximo ? d.faixa.frase : null;
 }
 
 export function formatarCustoFixo(valor: number | null, unidade: string): string {

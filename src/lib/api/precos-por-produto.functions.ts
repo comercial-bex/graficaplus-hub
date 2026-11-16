@@ -4,10 +4,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { avaliar, mensagemDoPedido, type LinhaDePreco } from "@/domain/precos/painel-de-precos";
 import {
   COLUNAS_DO_CUSTO_REAL,
+  COLUNAS_DO_PRECO_MINIMO,
   lerCustoReal,
   mensagemDoCustoRealAusente,
+  mensagemDoPrecoMinimoAusente,
   type CustoRealDoProduto,
 } from "@/domain/precos/custo-real";
+import type { ParametrosDoMinimo, TaxasDeVenda } from "@/domain/precos/preco-minimo";
 
 /**
  * Preços por produto, do lado do servidor.
@@ -58,8 +61,28 @@ export type PainelPorProduto = {
   podePropor: boolean;
   /** Frase humana quando o banco ainda não entrega o custo real. Nulo quando está tudo ligado. */
   avisoDoCustoReal: string | null;
+  /** Frase humana quando o banco ainda não entrega o preço mínimo recomendado. Nulo quando está ligado. */
+  avisoDoMinimo: string | null;
+  /** Ocupação alvo e multiplicador que o banco usou, para o texto da tela. Nulos quando o banco não os entrega. */
+  parametrosDoMinimo: ParametrosDoMinimo;
   pendencias: PendenciaDeCusto[];
 };
+
+/** Imposto sobre a venda e taxa do cartão. Falha na leitura devolve nulo: a tela não inventa taxa. */
+async function lerTaxas(admin: Banco): Promise<TaxasDeVenda | null> {
+  const { data, error } = await admin
+    .from("custos_tabela")
+    .select("codigo, valor")
+    .eq("ativo", true)
+    .in("codigo", ["impostos_venda", "taxa_cartao"]);
+  if (error || !Array.isArray(data)) return null;
+  const valor = (codigo: string) => {
+    const l = (data as Array<{ codigo: string; valor: unknown }>).find((x) => x.codigo === codigo);
+    return num(l?.valor) ?? 0;
+  };
+  // Código ausente conta zero, como no banco: COALESCE(max(valor), 0).
+  return { impostoVendaPct: valor("impostos_venda"), taxaCartaoPct: valor("taxa_cartao") };
+}
 
 export const lerPrecosPorProduto = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -88,11 +111,24 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
     );
 
     // Custo real, da visão fechada para a chave do servidor. Visão ou coluna ausente vira frase humana.
+    // O preço mínimo vem em colunas novas no fim da visão: sem elas, a leitura cai para as colunas de antes.
     const reais = new Map<string, CustoRealDoProduto>();
     let avisoDoCustoReal: string | null = null;
-    const { data: dosReais, error: erroReal } = await admin
+    let avisoDoMinimo: string | null = null;
+    let { data: dosReais, error: erroReal } = await admin
       .from("produto_custo_real")
-      .select(COLUNAS_DO_CUSTO_REAL.join(", "));
+      .select([...COLUNAS_DO_CUSTO_REAL, ...COLUNAS_DO_PRECO_MINIMO].join(", "));
+    if (erroReal) {
+      const semMinimo = mensagemDoPrecoMinimoAusente(String(erroReal.message ?? ""));
+      if (semMinimo != null) {
+        const segunda = await admin
+          .from("produto_custo_real")
+          .select(COLUNAS_DO_CUSTO_REAL.join(", "));
+        if (!segunda.error) avisoDoMinimo = semMinimo;
+        dosReais = segunda.data;
+        erroReal = segunda.error;
+      }
+    }
     if (erroReal) {
       const humana = mensagemDoCustoRealAusente(String(erroReal.message ?? ""));
       if (humana == null) throw new Error(erroReal.message);
@@ -101,6 +137,15 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
       for (const r of (dosReais ?? []) as Array<Record<string, unknown>>)
         reais.set(String(r.produto_id), lerCustoReal(r));
     }
+
+    const taxas = avisoDoCustoReal == null ? await lerTaxas(admin) : null;
+    const dosParametros = [...reais.values()];
+    const parametrosDoMinimo: ParametrosDoMinimo = {
+      ocupacaoAlvoPct: dosParametros.find((r) => r.ocupacao_alvo_pct != null)?.ocupacao_alvo_pct ?? null,
+      multiplicador:
+        dosParametros.find((r) => r.multiplicador_regra_de_tres != null)
+          ?.multiplicador_regra_de_tres ?? null,
+    };
 
     // Itens de custo pendentes. Falha aqui não derruba a tela: sem a função, a lista sai vazia.
     let pendencias: PendenciaDeCusto[] = [];
@@ -124,8 +169,9 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
       margem_minima: num(r.margem_minima),
       preco_parceiro: num(r.preco_parceiro),
       real: reais.get(String(r.id)) ?? null,
+      taxas,
     }));
-    return { linhas, podePropor, avisoDoCustoReal, pendencias };
+    return { linhas, podePropor, avisoDoCustoReal, avisoDoMinimo, parametrosDoMinimo, pendencias };
   });
 
 export const proporPreco = createServerFn({ method: "POST" })

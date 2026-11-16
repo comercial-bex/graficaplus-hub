@@ -16,6 +16,11 @@ const d = vi.hoisted(() => ({
   cheios: [] as unknown[],
   reais: [] as unknown[],
   erroReal: null as null | { message: string },
+  /** Erro só da primeira leitura, a que pede as colunas do preço mínimo. A segunda, só as de antes, passa. */
+  erroSoDoMinimo: null as null | { message: string },
+  selecionadas: [] as string[],
+  taxas: [] as unknown[],
+  erroTaxas: null as null | { message: string },
   pendencias: [] as unknown[],
   erroPendencias: null as null | { message: string },
   chamadasDoAdmin: [] as string[],
@@ -41,12 +46,34 @@ vi.mock("@/integrations/supabase/client.server", () => ({
     },
     from: (tabela: string) => {
       const q: Record<string, unknown> = {};
-      q.select = () =>
-        tabela === "produto_custo_cheio"
-          ? Promise.resolve({ data: d.cheios, error: null })
-          : tabela === "produto_custo_real"
-            ? Promise.resolve({ data: d.erroReal ? null : d.reais, error: d.erroReal })
-            : q;
+      q.select = (colunas: string) => {
+        if (tabela === "produto_custo_cheio") return Promise.resolve({ data: d.cheios, error: null });
+        if (tabela === "produto_custo_real") {
+          d.selecionadas.push(colunas);
+          const pedeMinimo = colunas.includes("preco_minimo_recomendado");
+          const erro = d.erroReal ?? (pedeMinimo ? d.erroSoDoMinimo : null);
+          // Quem não pede as colunas do mínimo não as recebe, como o banco.
+          const linhas = pedeMinimo
+            ? d.reais
+            : (d.reais as Array<Record<string, unknown>>).map((r) =>
+                Object.fromEntries(
+                  Object.entries(r).filter(
+                    ([k]) =>
+                      !["custo_ocupacao", "tres_x_material", "piso_custo_producao", "preco_minimo_recomendado", "trava_que_manda", "ocupacao_alvo_pct", "multiplicador_regra_de_tres"].includes(k),
+                  ),
+                ),
+              );
+          return Promise.resolve({ data: erro ? null : linhas, error: erro });
+        }
+        if (tabela === "custos_tabela") {
+          const t: Record<string, unknown> = {};
+          t.eq = () => t;
+          t.in = () =>
+            Promise.resolve({ data: d.erroTaxas ? null : d.taxas, error: d.erroTaxas });
+          return t;
+        }
+        return q;
+      };
       q.eq = () => q;
       q.maybeSingle = () => Promise.resolve({ data: d.produtoPedido, error: null });
       q.order = () => Promise.resolve({ data: d.produtos, error: null });
@@ -130,9 +157,23 @@ beforeEach(() => {
       velocidade_nominal_m2_h: "14",
       tempo_presumido: false,
       parceiro_abaixo_do_piso: true,
+      custo_ocupacao: "5.27",
+      tres_x_material: "35.76",
+      piso_custo_producao: "42.98",
+      preco_minimo_recomendado: "42.98",
+      trava_que_manda: "piso_custo",
+      ocupacao_alvo_pct: "50",
+      multiplicador_regra_de_tres: "3",
     },
   ];
   d.erroReal = null;
+  d.erroSoDoMinimo = null;
+  d.selecionadas = [];
+  d.taxas = [
+    { codigo: "impostos_venda", valor: "4" },
+    { codigo: "taxa_cartao", valor: "7.5" },
+  ];
+  d.erroTaxas = null;
   d.pendencias = [];
   d.erroPendencias = null;
   d.chamadasDoAdmin = [];
@@ -168,13 +209,62 @@ describe("ler os preços", () => {
         velocidade_nominal_m2_h: 14,
         tempo_presumido: false,
         parceiro_abaixo_do_piso: true,
+        custo_ocupacao: 5.27,
+        tres_x_material: 35.76,
+        piso_custo_producao: 42.98,
+        preco_minimo_recomendado: 42.98,
+        trava_que_manda: "piso_custo",
+        ocupacao_alvo_pct: 50,
+        multiplicador_regra_de_tres: 3,
       },
+      taxas: { impostoVendaPct: 4, taxaCartaoPct: 7.5 },
     });
     expect(r.linhas[1].real).toBeNull();
     expect(r.avisoDoCustoReal).toBeNull();
     expect(r.linhas[1].custo).toBeNull();
     expect(r.linhas[1].preco).toBeNull();
     expect(r.linhas[1].custo_cheio).toBeNull();
+  });
+  it("entrega ocupação alvo e multiplicador para o texto da tela, e nenhum aviso quando o mínimo está ligado", async () => {
+    const r = await ler();
+    expect(r.parametrosDoMinimo).toEqual({ ocupacaoAlvoPct: 50, multiplicador: 3 });
+    expect(r.avisoDoMinimo).toBeNull();
+    expect(d.selecionadas).toHaveLength(1);
+    expect(d.selecionadas[0]).toContain("preco_minimo_recomendado");
+    expect(d.selecionadas[0]).toContain("trava_que_manda");
+  });
+  it("sem as colunas do mínimo no banco, o custo real continua e a tela recebe a frase humana", async () => {
+    d.erroSoDoMinimo = { message: 'column produto_custo_real.preco_minimo_recomendado does not exist' };
+    const r = await ler();
+    expect(r.avisoDoMinimo).toContain("preço mínimo recomendado ainda não está ligado");
+    expect(r.avisoDoMinimo).toContain("Avise o suporte");
+    expect(r.avisoDoCustoReal).toBeNull();
+    expect(r.linhas[0].real?.custo_real).toBe(34.15);
+    expect(r.linhas[0].real?.preco_minimo_recomendado).toBeNull();
+    expect(r.parametrosDoMinimo).toEqual({ ocupacaoAlvoPct: null, multiplicador: null });
+    expect(d.selecionadas).toHaveLength(2);
+    expect(d.selecionadas[1]).not.toContain("preco_minimo_recomendado");
+  });
+  it("permissão negada nas colunas do mínimo derruba, não vira silêncio", async () => {
+    d.erroSoDoMinimo = { message: "permission denied for view produto_custo_real" };
+    await expect(ler()).rejects.toThrow("permission denied");
+  });
+  it("sem a visão inteira, a frase é a do custo real e não a do mínimo", async () => {
+    d.erroReal = { message: 'relation "public.produto_custo_real" does not exist' };
+    const r = await ler();
+    expect(r.avisoDoCustoReal).toContain("custo real ainda não está ligado");
+    expect(r.avisoDoMinimo).toBeNull();
+  });
+  it("falha ao ler as taxas não derruba a tela: a linha vai sem taxas e não inventa percentual", async () => {
+    d.erroTaxas = { message: "falha de rede" };
+    const r = await ler();
+    expect(r.linhas[0].taxas).toBeNull();
+    expect(r.linhas[0].real?.preco_minimo_recomendado).toBe(42.98);
+  });
+  it("taxa que não existe em custos_tabela conta zero, como o banco", async () => {
+    d.taxas = [{ codigo: "impostos_venda", valor: "6" }];
+    const r = await ler();
+    expect(r.linhas[0].taxas).toEqual({ impostoVendaPct: 6, taxaCartaoPct: 0 });
   });
   it("quem não vê custo é recusado antes de ler, e a visão de custo real nem é consultada", async () => {
     d.verCusto = false;

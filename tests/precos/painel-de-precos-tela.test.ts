@@ -20,7 +20,12 @@ vi.mock("@tanstack/react-router", async (original) => {
 vi.mock("@/integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
 
 import { TooltipProvider } from "../../src/components/ui/tooltip";
-import { ListaDeAvisos, ListaDePrecos } from "../../src/components/precos/painel-de-precos";
+import {
+  ListaDeAvisos,
+  ListaDePrecos,
+  Previa,
+} from "../../src/components/precos/painel-de-precos";
+import { previaDoPreco } from "../../src/domain/precos/painel-de-precos";
 import { avisosDoProduto } from "../../src/domain/precos/custo-real";
 import { Route } from "../../src/routes/_authenticated/precos";
 import type { LinhaDePreco } from "../../src/domain/precos/painel-de-precos";
@@ -41,8 +46,29 @@ const real = (o: Partial<CustoRealDoProduto> = {}): CustoRealDoProduto => ({
   velocidade_nominal_m2_h: null,
   tempo_presumido: false,
   parceiro_abaixo_do_piso: false,
+  custo_ocupacao: null,
+  tres_x_material: null,
+  piso_custo_producao: null,
+  preco_minimo_recomendado: null,
+  trava_que_manda: null,
+  ocupacao_alvo_pct: null,
+  multiplicador_regra_de_tres: null,
   ...o,
 });
+const comMinimo = (o: Partial<CustoRealDoProduto> = {}) =>
+  real({
+    custo_producao: 22.45,
+    custo_real: 24.34,
+    custo_ocupacao: 5.27,
+    tres_x_material: 35.76,
+    piso_custo_producao: 42.98,
+    preco_minimo_recomendado: 42.98,
+    trava_que_manda: "piso_custo",
+    ocupacao_alvo_pct: 50,
+    multiplicador_regra_de_tres: 3,
+    ...o,
+  });
+const sp = (t: string) => t.replace(/\u00a0/g, " ");
 
 const base: LinhaDePreco = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -121,6 +147,7 @@ describe("a lista, em tabela e em cartões", () => {
       "Produto",
       "Custo real",
       "Preço de balcão",
+      "Preço mínimo recomendado",
       "Margem líquida",
       "Vezes o custo",
       "Preço pela regra de três",
@@ -196,7 +223,13 @@ describe("a lista, em tabela e em cartões", () => {
 
   it("tem explicação curta de custo real, margem líquida, vezes e regra de três, acessível por toque", () => {
     const h = lista();
-    for (const r of ["custo real", "margem líquida", "vezes o custo", "regra de três"])
+    for (const r of [
+      "custo real",
+      "preço mínimo recomendado",
+      "margem líquida",
+      "vezes o custo",
+      "regra de três",
+    ])
       expect(h).toContain(`aria-label="Explicar: ${r}"`);
   });
 
@@ -234,6 +267,8 @@ describe("a página", () => {
     linhas,
     podePropor: true,
     avisoDoCustoReal: null,
+    avisoDoMinimo: null,
+    parametrosDoMinimo: { ocupacaoAlvoPct: null, multiplicador: null },
     pendencias: [],
     ...p,
   });
@@ -333,5 +368,216 @@ describe("a página", () => {
 
   it("a lista vazia tem frase própria", () => {
     expect(pagina(painel({ linhas: [] }))).toContain("Nenhum produto com esse filtro.");
+  });
+});
+
+describe("a coluna Preço mínimo recomendado", () => {
+  const com = (preco: number, real = comMinimo()): LinhaDePreco => ({
+    ...base,
+    nome: "Lona 280g",
+    preco,
+    real,
+    taxas: { impostoVendaPct: 4, taxaCartaoPct: 7.5 },
+  });
+  const listaCom = (ls: LinhaDePreco[]) =>
+    sp(
+      renderToStaticMarkup(
+        createElement(
+          QueryClientProvider,
+          { client: qc() },
+          createElement(
+            TooltipProvider,
+            null,
+            createElement(ListaDePrecos, { linhas: ls, propor: async () => {}, podePropor: true }),
+          ),
+        ),
+      ),
+    );
+
+  it("mostra o mínimo, a diferença contra o balcão em palavras e a faixa, na tabela e no cartão", () => {
+    const h = listaCom([com(40), com(43), com(60)]);
+    expect((h.match(/data-testid="preco-minimo"/g) ?? []).length).toBe(6);
+    expect(h).toContain("R$ 42,98");
+    expect(h).toContain("R$ 2,98 abaixo do mínimo");
+    expect(h).toContain("R$ 17,02 acima do mínimo");
+    for (const faixa of ["abaixo", "no_minimo", "acima"])
+      expect(h, faixa).toContain(`data-faixa-do-minimo="${faixa}"`);
+    for (const rotulo of ["Abaixo do mínimo", "No mínimo", "Acima do mínimo"])
+      expect(h, rotulo).toContain(rotulo);
+    expect(h).toContain("<svg");
+  });
+
+  it("cada produto tem o botão de como chegou ao mínimo, de 44 px e com nome acessível", () => {
+    const h = listaCom([com(40)]);
+    expect(h).toContain('data-testid="como-chegou-ao-minimo"');
+    expect(h).toContain('aria-label="Como chegou ao preço mínimo de Lona 280g"');
+    expect(h).toContain("min-h-11 items-center gap-1.5");
+  });
+
+  it("produto sem mínimo diz isso em palavras e não mostra faixa", () => {
+    const h = listaCom([{ ...base, real: null, preco: 50 }]);
+    expect(h).toContain("Sem mínimo calculado");
+    expect(h).toContain('data-faixa-do-minimo="sem_dado"');
+  });
+
+  it("no cartão do celular o rótulo vem logo depois do preço de balcão", () => {
+    const h = listaCom([com(40)]);
+    const cartao = h.slice(h.indexOf('data-testid="cartao-de-preco"'));
+    const a = cartao.indexOf(">Preço de balcão</dt>");
+    const b = cartao.indexOf(">Preço mínimo recomendado</dt>");
+    const c = cartao.indexOf(">Margem líquida</dt>");
+    expect(a).toBeGreaterThan(0);
+    expect(b).toBeGreaterThan(a);
+    expect(c).toBeGreaterThan(b);
+  });
+
+  it("letra de 16 px, sem parênteses, travessão ou seta", () => {
+    const h = listaCom([com(40), com(60)]);
+    expect(h).not.toMatch(/[\s"]text-(xs|sm)[\s"]/);
+    const texto = h.replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/g, " ");
+    expect(texto).not.toMatch(/[()—–→←]/);
+  });
+});
+
+describe("a prévia da linha com o mínimo recomendado", () => {
+  const l: LinhaDePreco = {
+    ...base,
+    preco: 55,
+    real: comMinimo(),
+    taxas: { impostoVendaPct: 4, taxaCartaoPct: 7.5 },
+  };
+  const previa = (texto: string, linha: LinhaDePreco = l) => {
+    const p = previaDoPreco(linha, texto);
+    return sp(
+      renderToStaticMarkup(
+        createElement(Previa, {
+          linha,
+          e: {
+            texto,
+            setTexto: () => {},
+            motivo: "",
+            setMotivo: () => {},
+            enviando: false,
+            enviada: false,
+            erro: null,
+            previa: p,
+            digitou: true,
+            motivoOk: true,
+            podeEnviar: p.podePedir,
+            enviar: async () => {},
+          },
+        }),
+      ),
+    );
+  };
+
+  it("diz que o preço digitado está abaixo do mínimo, além do piso", () => {
+    const h = previa("40");
+    expect(h).toContain('data-testid="previa-do-minimo"');
+    expect(h).toContain('data-faixa-do-minimo="abaixo"');
+    expect(h).toContain("Mínimo recomendado R$ 42,98. O preço digitado está R$ 2,98 abaixo do mínimo.");
+    expect(h).toContain("Piso");
+  });
+  it("diz que está acima do mínimo", () => {
+    const h = previa("60");
+    expect(h).toContain('data-faixa-do-minimo="acima"');
+    expect(h).toContain("R$ 17,02 acima do mínimo");
+  });
+  it("abaixo do mínimo não pede motivo: só abaixo do piso pede", () => {
+    // Custo de 10 e margem mínima de 40 dão piso de 16,67: 40 está abaixo do mínimo recomendado e acima do piso.
+    const h = previa("40", { ...l, custo: 10 });
+    expect(h).toContain('data-faixa-do-minimo="abaixo"');
+    expect(h).not.toContain("Motivo do pedido");
+    // Abaixo do piso o motivo continua obrigatório, como antes.
+    expect(previa("40")).toContain("Motivo do pedido");
+  });
+  it("sem parênteses, travessão ou seta", () => {
+    const texto = previa("40").replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/g, " ");
+    expect(texto).not.toMatch(/[()—–→←]/);
+  });
+});
+
+describe("a página com o preço mínimo recomendado", () => {
+  const abaixoDoMinimo: LinhaDePreco = {
+    ...base,
+    id: "00000000-0000-4000-8000-0000000000aa",
+    nome: "Lona abaixo",
+    preco: 40,
+    real: comMinimo(),
+    taxas: { impostoVendaPct: 4, taxaCartaoPct: 7.5 },
+  };
+  const painel = (p: Partial<PainelPorProduto> = {}): PainelPorProduto => ({
+    linhas: [abaixoDoMinimo, { ...linhas[1], real: comMinimo(), preco: 90 }],
+    podePropor: true,
+    avisoDoCustoReal: null,
+    avisoDoMinimo: null,
+    parametrosDoMinimo: { ocupacaoAlvoPct: 50, multiplicador: 3 },
+    pendencias: [],
+    ...p,
+  });
+
+  it("o filtro por problema ganha Abaixo do mínimo recomendado, com a contagem", () => {
+    const h = pagina(painel());
+    expect(h).toContain('data-testid="numero-abaixo_do_minimo"');
+    expect(h).toContain("Abaixo do mínimo recomendado");
+    expect(h).toMatch(/data-testid="numero-abaixo_do_minimo"[^>]*><span[^>]*>1<\/span>/);
+  });
+
+  it("o texto de 16 px explica a fórmula e a ocupação com o número de hoje", () => {
+    const h = pagina(painel());
+    expect(h).toContain('data-testid="texto-do-preco-minimo"');
+    expect(h).toContain("Como sai o preço mínimo recomendado");
+    expect(h).toContain("maior entre dois valores");
+    expect(h).toContain(
+      "Nem a plotter, nem o impressor, nem o aluguel trabalham cem por cento do tempo que a gráfica paga",
+    );
+    expect(h).toContain("pela ocupação alvo, hoje 50 por cento");
+    expect(h).toContain("A energia e as perdas não sobem");
+    expect(h).toContain('href="/custos-producao"');
+    const trecho = h.slice(h.indexOf('data-testid="texto-do-preco-minimo"'));
+    const ate = trecho.slice(0, trecho.indexOf("</section>"));
+    expect(ate).not.toMatch(/[\s"]text-(xs|sm)[\s"]/);
+  });
+
+  it("a legenda diz as três faixas do mínimo em palavras", () => {
+    const h = pagina(painel());
+    for (const t of [
+      "Abaixo do mínimo: o balcão está abaixo do preço mínimo recomendado",
+      "No mínimo: o balcão está até dois por cento acima",
+      "Acima do mínimo: o balcão passa do mínimo recomendado",
+    ])
+      expect(h, t).toContain(t);
+  });
+
+  it("sem as colunas no banco, mostra a frase humana e esconde o número que diria zero à toa", () => {
+    const h = pagina(
+      painel({
+        avisoDoMinimo: "O preço mínimo recomendado ainda não está ligado no banco. Avise o suporte.",
+        parametrosDoMinimo: { ocupacaoAlvoPct: null, multiplicador: null },
+      }),
+    );
+    expect(h).toContain('data-testid="aviso-do-minimo"');
+    expect(h).toContain("Avise o suporte");
+    expect(h).not.toContain('data-testid="numero-abaixo_do_minimo"');
+    expect(h).not.toContain("pela ocupação alvo, hoje");
+  });
+
+  it("o mapa de margem e a lista seguem funcionando junto", () => {
+    const h = pagina(painel());
+    expect(h).toContain(">Mapa de margem<");
+    expect(h).toContain('data-testid="linha-de-preco"');
+    expect(h).toContain("2 produtos na lista.");
+  });
+
+  it("nenhum texto da tela usa parênteses, travessão ou seta", () => {
+    const h = pagina(painel());
+    const texto = h.replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/g, " ");
+    expect(texto).not.toMatch(/[()—–→←]/);
+  });
+
+  it("Propor preço continua só criando proposta: a página não grava preço", () => {
+    const h = pagina(painel());
+    expect(h).toContain("O preço só muda depois que alguém aprova em preços pendentes");
+    expect(h).toContain("Propor preço");
   });
 });

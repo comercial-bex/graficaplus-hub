@@ -36,6 +36,7 @@ import {
   type CelulaDoMapa,
 } from "@/domain/precos/custo-real";
 import { TEXTO_DA_VELOCIDADE_DA_PLOTTER } from "@/domain/maquinas/velocidade-de-calculo";
+import { LEGENDA_DO_MINIMO, textosDoPrecoMinimo } from "@/domain/precos/preco-minimo";
 
 export const Route = createFileRoute("/_authenticated/precos")({
   head: () => ({ meta: [{ title: "Preços por produto — BEX PRINT OS" }] }),
@@ -44,7 +45,13 @@ export const Route = createFileRoute("/_authenticated/precos")({
 
 const CHAVE_DOS_PRECOS = ["precos-por-produto"];
 
-const NUMEROS: Problema[] = ["abaixo", "sem_custo", "sem_preco", "parceiro_acima"];
+const NUMEROS: Problema[] = [
+  "abaixo",
+  "abaixo_do_minimo",
+  "sem_custo",
+  "sem_preco",
+  "parceiro_acima",
+];
 const ORDENS: Array<{ valor: Ordem; rotulo: string }> = [
   { valor: "problema", rotulo: "Problemas primeiro" },
   { valor: "nome", rotulo: "Nome" },
@@ -84,6 +91,7 @@ function PrecosPage() {
 
   const linhas = painel.data?.linhas;
   const contagem = useMemo(() => contar(linhas ?? []), [linhas]);
+  const textos = textosDoPrecoMinimo(painel.data?.parametrosDoMinimo ?? null);
   const familias = useMemo(() => familiasDe(linhas ?? []), [linhas]);
   const visiveis = useMemo(
     () => ordenar(filtrar(linhas ?? [], { familia, problema, busca, celula }), ordem),
@@ -100,7 +108,7 @@ function PrecosPage() {
       <SectionHeader
         breadcrumb="Custeio"
         title="Preços por produto"
-        description="Veja o custo real, a margem líquida e a regra de três de cada produto e peça a mudança de preço. O preço só muda depois que alguém aprova em preços pendentes."
+        description="Veja o custo real, a margem líquida, a regra de três e o preço mínimo recomendado de cada produto e peça a mudança de preço. O preço só muda depois que alguém aprova em preços pendentes."
         ajuda={dicaTela("/precos")}
         legivel
       />
@@ -116,11 +124,11 @@ function PrecosPage() {
       ) : painel.data ? (
         <>
           <div
-            className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+            className="grid grid-cols-2 gap-3 lg:grid-cols-5"
             role="group"
             aria-label="Problemas encontrados, toque para filtrar"
           >
-            {NUMEROS.map((p) => {
+            {NUMEROS.filter((p) => p !== "abaixo_do_minimo" || !painel.data.avisoDoMinimo).map((p) => {
               const ativo = problema === p;
               return (
                 <button
@@ -148,6 +156,16 @@ function PrecosPage() {
               data-testid="aviso-do-custo-real"
             >
               {painel.data.avisoDoCustoReal}
+            </p>
+          ) : null}
+
+          {painel.data.avisoDoMinimo ? (
+            <p
+              className="rounded-xl border border-[#8a5a00] bg-card p-4 font-semibold dark:border-[#f5b942]"
+              role="status"
+              data-testid="aviso-do-minimo"
+            >
+              {painel.data.avisoDoMinimo}
             </p>
           ) : null}
 
@@ -294,6 +312,20 @@ function PrecosPage() {
             </TabsContent>
           </Tabs>
 
+          <section
+            className="space-y-2 rounded-xl border border-border bg-card p-4"
+            data-testid="texto-do-preco-minimo"
+            aria-label="Como sai o preço mínimo recomendado"
+          >
+            <h2 className="text-base font-bold">Como sai o preço mínimo recomendado</h2>
+            <p>{textos.formula}</p>
+            <p data-testid="texto-da-ocupacao">{textos.ocupacao}</p>
+            <p>{textos.nomes}</p>
+            <Button asChild variant="outline" className="h-11 min-h-11 text-base">
+              <Link to="/custos-producao">Ajustar ocupação e multiplicador</Link>
+            </Button>
+          </section>
+
           <div className="space-y-2" data-testid="legendas">
             <ul className="space-y-1" aria-label="Legenda da margem líquida">
               {LEGENDA_DAS_SITUACOES.map((l) => (
@@ -302,6 +334,11 @@ function PrecosPage() {
             </ul>
             <ul className="space-y-1" aria-label="Legenda da diferença contra a regra de três">
               {LEGENDA_DA_REGRA.map((l) => (
+                <li key={l.faixa}>{l.texto}</li>
+              ))}
+            </ul>
+            <ul className="space-y-1" aria-label="Legenda do preço mínimo recomendado">
+              {LEGENDA_DO_MINIMO.map((l) => (
                 <li key={l.faixa}>{l.texto}</li>
               ))}
             </ul>

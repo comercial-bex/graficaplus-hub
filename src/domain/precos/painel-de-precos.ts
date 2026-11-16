@@ -12,6 +12,7 @@ import {
   leituraReal,
   mesmaCelula,
 } from "./custo-real";
+import { leituraDoMinimo, type LeituraDoMinimo, type TaxasDeVenda } from "./preco-minimo";
 import { FOLGA_AMARELA, type FaixaDaMargem, faixaDaMargem } from "./propostas";
 
 export type LinhaDePreco = {
@@ -28,10 +29,17 @@ export type LinhaDePreco = {
   preco_parceiro: number | null;
   /** Custo real da visão produto_custo_real. Ausente quando o banco ainda não entrega ou o produto não tem linha. */
   real?: CustoRealDoProduto | null;
+  /** Imposto sobre a venda e taxa do cartão de custos_tabela, para explicar e reproduzir o preço mínimo. */
+  taxas?: TaxasDeVenda | null;
 };
 
 export type Situacao = "abaixo" | "sem_custo" | "sem_preco" | "justa" | "boa";
-export type Problema = "abaixo" | "sem_custo" | "sem_preco" | "parceiro_acima";
+export type Problema =
+  | "abaixo"
+  | "abaixo_do_minimo"
+  | "sem_custo"
+  | "sem_preco"
+  | "parceiro_acima";
 export type FiltroDeProblema = "todos" | Problema;
 export type Ordem = "problema" | "nome" | "preco" | "margem";
 
@@ -46,6 +54,7 @@ export const ROTULO_DA_SITUACAO: Record<Situacao, string> = {
 export const ROTULO_DO_PROBLEMA: Record<FiltroDeProblema, string> = {
   todos: "Todos",
   abaixo: "Abaixo do piso",
+  abaixo_do_minimo: "Abaixo do mínimo recomendado",
   sem_custo: "Sem custo",
   sem_preco: "Sem preço",
   parceiro_acima: "Parceiro acima do balcão",
@@ -131,11 +140,23 @@ export function problemasDe(a: Avaliacao): Problema[] {
   return p;
 }
 
-const ORDEM_DO_PROBLEMA: Problema[] = ["abaixo", "sem_custo", "sem_preco", "parceiro_acima"];
+/** Os problemas de uma linha: os do piso sobre o material mais o de ficar abaixo do mínimo recomendado. */
+export function problemasDaLinha(l: LinhaDePreco): Problema[] {
+  const p = problemasDe(avaliarLinha(l));
+  if (leituraDoMinimo(l, l.preco).faixa === "abaixo") p.push("abaixo_do_minimo");
+  return p;
+}
 
-/** Posição de abertura: abaixo do piso, sem custo, sem preço, parceiro acima do balcão, o resto. */
-export function prioridade(a: Avaliacao): number {
-  const p = problemasDe(a);
+const ORDEM_DO_PROBLEMA: Problema[] = [
+  "abaixo",
+  "abaixo_do_minimo",
+  "sem_custo",
+  "sem_preco",
+  "parceiro_acima",
+];
+
+/** Posição de abertura: abaixo do piso, abaixo do mínimo, sem custo, sem preço, parceiro acima do balcão, o resto. */
+export function prioridade(p: Problema[]): number {
   const i = ORDEM_DO_PROBLEMA.findIndex((x) => p.includes(x));
   return i === -1 ? ORDEM_DO_PROBLEMA.length : i;
 }
@@ -143,8 +164,14 @@ export function prioridade(a: Avaliacao): number {
 export type Contagem = Record<Problema, number>;
 
 export function contar(linhas: LinhaDePreco[]): Contagem {
-  const c: Contagem = { abaixo: 0, sem_custo: 0, sem_preco: 0, parceiro_acima: 0 };
-  for (const l of linhas) for (const p of problemasDe(avaliarLinha(l))) c[p] += 1;
+  const c: Contagem = {
+    abaixo: 0,
+    abaixo_do_minimo: 0,
+    sem_custo: 0,
+    sem_preco: 0,
+    parceiro_acima: 0,
+  };
+  for (const l of linhas) for (const p of problemasDaLinha(l)) c[p] += 1;
   return c;
 }
 
@@ -170,7 +197,7 @@ export function filtrar(
   return linhas.filter((l) => {
     if (f.familia && (l.familia ?? "") !== f.familia) return false;
     if (q && !semAcento(l.nome).includes(q)) return false;
-    if (f.problema !== "todos" && !problemasDe(avaliarLinha(l)).includes(f.problema)) return false;
+    if (f.problema !== "todos" && !problemasDaLinha(l).includes(f.problema)) return false;
     if (f.celula && !mesmaCelula(celulaDoMapa(l, l.preco), f.celula)) return false;
     return true;
   });
@@ -193,7 +220,7 @@ export function ordenar(linhas: LinhaDePreco[], ordem: Ordem): LinhaDePreco[] {
     const aa = avaliarLinha(a);
     const bb = avaliarLinha(b);
     return (
-      prioridade(aa) - prioridade(bb) ||
+      prioridade(problemasDaLinha(a)) - prioridade(problemasDaLinha(b)) ||
       (aa.margem ?? Infinity) - (bb.margem ?? Infinity) ||
       nome(a, b)
     );
@@ -225,6 +252,8 @@ export type Previa = {
   exigeMotivo: boolean;
   /** Margem líquida, vezes o custo e regra de três para o preço digitado. */
   real: LeituraReal;
+  /** Preço mínimo recomendado contra o preço digitado, com a trava que manda. */
+  minimo: LeituraDoMinimo;
 };
 
 const reais = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -258,6 +287,7 @@ export function previaDoPreco(l: LinhaDePreco, texto: string): Previa {
     podePedir: digitado != null && mudou && !avaliacao.parceiroAcima,
     exigeMotivo: digitado != null && avaliacao.situacao === "abaixo",
     real: leituraReal(l, digitado ?? l.preco),
+    minimo: leituraDoMinimo(l, digitado ?? l.preco),
   };
 }
 

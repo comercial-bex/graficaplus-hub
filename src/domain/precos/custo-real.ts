@@ -12,6 +12,12 @@
  * A regra de três é referência, não meta automática. Nenhuma conta aqui grava preço.
  */
 import { fraseDaVelocidade } from "../maquinas/velocidade-de-calculo";
+import {
+  leituraDoMinimo,
+  ROTULO_DA_TRAVA,
+  type TaxasDeVenda,
+  type TravaDoMinimo,
+} from "./preco-minimo";
 import { faixaDaMargem, type FaixaDaMargem } from "./propostas";
 
 export { fraseDaVelocidade };
@@ -35,6 +41,14 @@ export type CustoRealDoProduto = {
   velocidade_nominal_m2_h: number | null;
   tempo_presumido: boolean;
   parceiro_abaixo_do_piso: boolean;
+  /** Preço mínimo recomendado. Nulo quando o banco ainda não entrega as colunas ou falta custo. */
+  custo_ocupacao: number | null;
+  tres_x_material: number | null;
+  piso_custo_producao: number | null;
+  preco_minimo_recomendado: number | null;
+  trava_que_manda: TravaDoMinimo | null;
+  ocupacao_alvo_pct: number | null;
+  multiplicador_regra_de_tres: number | null;
 };
 
 /** Colunas lidas da visão. A ordem não importa, mas o nome é o contrato com o banco. */
@@ -56,6 +70,20 @@ export const COLUNAS_DO_CUSTO_REAL = [
   "velocidade_nominal_m2_h",
   "tempo_presumido",
   "parceiro_abaixo_do_piso",
+] as const;
+
+/**
+ * Colunas que a migração do preço mínimo acrescenta no fim da visão. Lidas à parte: se o banco ainda não as tem, a
+ * tela cai para as colunas de cima e avisa que o mínimo não está ligado, em vez de perder o custo real inteiro.
+ */
+export const COLUNAS_DO_PRECO_MINIMO = [
+  "custo_ocupacao",
+  "tres_x_material",
+  "piso_custo_producao",
+  "preco_minimo_recomendado",
+  "trava_que_manda",
+  "ocupacao_alvo_pct",
+  "multiplicador_regra_de_tres",
 ] as const;
 
 const numero = (v: unknown): number | null => {
@@ -80,7 +108,31 @@ export function lerCustoReal(r: Record<string, unknown>): CustoRealDoProduto {
     velocidade_nominal_m2_h: numero(r.velocidade_nominal_m2_h),
     tempo_presumido: r.tempo_presumido === true,
     parceiro_abaixo_do_piso: r.parceiro_abaixo_do_piso === true,
+    custo_ocupacao: numero(r.custo_ocupacao),
+    tres_x_material: numero(r.tres_x_material),
+    piso_custo_producao: numero(r.piso_custo_producao),
+    preco_minimo_recomendado: numero(r.preco_minimo_recomendado),
+    trava_que_manda:
+      r.trava_que_manda === "regra_de_3" || r.trava_que_manda === "piso_custo"
+        ? r.trava_que_manda
+        : null,
+    ocupacao_alvo_pct: numero(r.ocupacao_alvo_pct),
+    multiplicador_regra_de_tres: numero(r.multiplicador_regra_de_tres),
   };
+}
+
+/** Erro de visão ou coluna que não existe no banco. Permissão negada NÃO conta: seria mascarar um GRANT quebrado. */
+function ehObjetoAusente(mensagem: string): boolean {
+  const m = mensagem.toLowerCase();
+  return (
+    !m.includes("permission denied") &&
+    (m.includes("does not exist") ||
+      m.includes("could not find") ||
+      m.includes("42p01") ||
+      m.includes("42703") ||
+      m.includes("pgrst204") ||
+      m.includes("pgrst205"))
+  );
 }
 
 /**
@@ -88,18 +140,15 @@ export function lerCustoReal(r: Record<string, unknown>): CustoRealDoProduto {
  * Devolve nulo quando o erro é de outra natureza, para quem chamou decidir.
  */
 export function mensagemDoCustoRealAusente(mensagem: string): string | null {
-  const m = mensagem.toLowerCase();
-  // Permissão negada NÃO é visão ausente: esconder isso seria mascarar um vazamento ou um GRANT quebrado.
-  const ausente =
-    !m.includes("permission denied") &&
-    (m.includes("does not exist") ||
-      m.includes("could not find") ||
-      m.includes("42p01") ||
-      m.includes("42703") ||
-      m.includes("pgrst204") ||
-      m.includes("pgrst205"));
-  return ausente
+  return ehObjetoAusente(mensagem)
     ? "O custo real ainda não está ligado no banco. A tabela mostra só o custo de antes. Avise o suporte."
+    : null;
+}
+
+/** Mesma conferência, para as colunas do preço mínimo. Nulo quando o erro é de outra natureza. */
+export function mensagemDoPrecoMinimoAusente(mensagem: string): string | null {
+  return ehObjetoAusente(mensagem)
+    ? "O preço mínimo recomendado ainda não está ligado no banco. As outras colunas seguem como estavam. Avise o suporte."
     : null;
 }
 
@@ -241,6 +290,7 @@ export type CodigoDeAviso =
   | "tempo_presumido"
   | "velocidade_com_margem"
   | "abaixo_da_regra_de_tres"
+  | "abaixo_do_minimo_recomendado"
   | "mercado_local_da_lona";
 
 export type AvisoDoProduto = { codigo: CodigoDeAviso; gravidade: Gravidade; frase: string };
@@ -257,6 +307,7 @@ export type EntradaDeAvisos = {
   margem_minima: number | null;
   preco_parceiro: number | null;
   real?: CustoRealDoProduto | null;
+  taxas?: TaxasDeVenda | null;
 };
 
 /** Os avisos de um produto para um preço dado, do mais grave ao mais leve. Sem aviso, lista vazia. */
@@ -343,6 +394,19 @@ export function avisosDoProduto(l: EntradaDeAvisos, preco: number | null): Aviso
       codigo: "abaixo_da_regra_de_tres",
       gravidade: "info",
       frase: `O balcão está ${reais(Math.abs(leitura.diferenca))} abaixo da regra de três, que vale ${reais(leitura.regra)}. A regra é só referência e não manda subir o preço.`,
+    });
+  }
+  const minimo = leituraDoMinimo(l, preco);
+  if (
+    minimo.faixa === "abaixo" &&
+    minimo.minimo != null &&
+    minimo.diferenca != null &&
+    minimo.trava != null
+  ) {
+    a.push({
+      codigo: "abaixo_do_minimo_recomendado",
+      gravidade: "media",
+      frase: `O balcão está ${reais(Math.abs(minimo.diferenca))} abaixo do preço mínimo recomendado de ${reais(minimo.minimo)}. Hoje manda ${ROTULO_DA_TRAVA[minimo.trava]}. É recomendação e não muda o preço sozinha.`,
     });
   }
   if (r?.tempo_presumido) {
