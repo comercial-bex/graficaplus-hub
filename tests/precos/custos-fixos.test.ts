@@ -8,10 +8,12 @@ vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({}) }));
 import { BlocoDeCustosFixos } from "../../src/components/custos/custos-fixos-da-grafica";
 import {
   CODIGOS_DE_CUSTO_FIXO,
+  CUSTOS_FIXOS,
   contagemDePendentes,
   estaPendente,
   formatarCustoFixo,
   fraseDaConfirmacao,
+  fraseDaFaixaDoCusto,
   fraseDoContador,
   itensDeCustoFixo,
   lerValorDeCusto,
@@ -39,7 +41,7 @@ const linha = (codigo: string, o: Partial<LinhaDeCustoFixo> = {}): LinhaDeCustoF
 });
 
 describe("os códigos do contrato com o banco", () => {
-  it("são os nove da migração, e os de pessoal só aparecem", () => {
+  it("são os nove da migração mais ocupação alvo e multiplicador, e os de pessoal só aparecem", () => {
     expect([...CODIGOS_DE_CUSTO_FIXO].sort()).toEqual(
       [
         "aluguel_espaco_mensal",
@@ -51,6 +53,8 @@ describe("os códigos do contrato com o banco", () => {
         "plotter_cabecote_custo",
         "plotter_cabecote_vida_m2",
         "plotter_limpeza_mensal",
+        "ocupacao_alvo_pct",
+        "multiplicador_regra_de_tres",
       ].sort(),
     );
   });
@@ -67,11 +71,11 @@ describe("pendente", () => {
     const itens = itensDeCustoFixo([
       linha("aluguel_espaco_mensal", { valor: 2000, confirmado_em: "2026-11-15T10:00:00Z" }),
     ]);
-    expect(itens).toHaveLength(11);
-    expect(contagemDePendentes(itens)).toEqual({ pendentes: 8, total: 9 });
-    expect(fraseDoContador({ pendentes: 8, total: 9 })).toBe("8 de 9 pendentes.");
-    expect(fraseDoContador({ pendentes: 0, total: 9 })).toBe(
-      "Os 9 custos fixos estão confirmados.",
+    expect(itens).toHaveLength(13);
+    expect(contagemDePendentes(itens)).toEqual({ pendentes: 10, total: 11 });
+    expect(fraseDoContador({ pendentes: 10, total: 11 })).toBe("10 de 11 pendentes.");
+    expect(fraseDoContador({ pendentes: 0, total: 11 })).toBe(
+      "Os 11 custos fixos estão confirmados.",
     );
   });
 });
@@ -184,11 +188,11 @@ const bloco = (
   );
 
 describe("a tela de custos fixos", () => {
-  it("mostra título, contador, três grupos, selos e quem confirmou", () => {
+  it("mostra título, contador, quatro grupos, selos e quem confirmou", () => {
     const h = bloco();
     expect(h).toContain("Custos fixos da gráfica");
-    expect(h).toContain("8 de 9 pendentes.");
-    for (const g of ["Espaço e energia", "Plotter", "Pessoal"]) expect(h).toContain(`>${g}<`);
+    expect(h).toContain("10 de 11 pendentes.");
+    for (const g of ["Espaço e energia", "Plotter", "Ocupação e preço mínimo", "Pessoal"]) expect(h).toContain(`>${g}<`);
     expect(h).toContain('data-estado="pendente"');
     expect(h).toContain('data-estado="confirmado"');
     expect(h).toContain("Pendente");
@@ -204,7 +208,7 @@ describe("a tela de custos fixos", () => {
   });
   it("quem edita vê o botão de 44 px; os de pessoal só leitura não têm botão", () => {
     const h = bloco();
-    expect((h.match(/>Editar /g) ?? []).length).toBe(9);
+    expect((h.match(/>Editar /g) ?? []).length).toBe(11);
     expect(h).not.toContain("Editar Mão de obra");
     expect(h).toContain("h-11 min-h-11");
   });
@@ -224,6 +228,82 @@ describe("a tela de custos fixos", () => {
     expect(h).not.toMatch(/[\s"]text-(xs|sm)[\s"]/);
     const texto = h.replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/g, " ");
     expect(texto).not.toMatch(/[()—–→←]/);
+  });
+});
+
+describe("ocupação alvo e multiplicador da regra de três", () => {
+  it("aparecem na tela com selo Pendente até alguém confirmar, mesmo com número provisório", () => {
+    const h = bloco({
+      linhas: [
+        linha("ocupacao_alvo_pct", { valor: 50 }),
+        linha("multiplicador_regra_de_tres", { valor: 3 }),
+      ],
+    });
+    for (const nome of ["Ocupação alvo", "Multiplicador da regra de três"]) expect(h).toContain(nome);
+    for (const codigo of ["ocupacao_alvo_pct", "multiplicador_regra_de_tres"]) {
+      const trecho = h.slice(h.indexOf(`data-testid="custo-fixo-${codigo}"`));
+      const ate = trecho.slice(0, trecho.indexOf("</li>"));
+      expect(ate, codigo).toContain('data-estado="pendente"');
+      expect(ate, codigo).toContain("Valor provisório. Falta confirmar.");
+    }
+    expect(h).toContain("50 por cento");
+    expect(h).toContain("3 vezes");
+  });
+  it("confirmados, o selo muda e o contador desce", () => {
+    const itens = itensDeCustoFixo([
+      linha("ocupacao_alvo_pct", { valor: 50, confirmado_em: "2026-11-16T12:00:00Z" }),
+      linha("multiplicador_regra_de_tres", { valor: 3, confirmado_em: "2026-11-16T12:00:00Z" }),
+    ]);
+    expect(contagemDePendentes(itens)).toEqual({ pendentes: 9, total: 11 });
+  });
+  it("a faixa aceita barra ocupação fora de 5 a 100 e multiplicador fora de 1 a 10 antes de ir ao banco", () => {
+    const def = (c: string) => CUSTOS_FIXOS.find((d) => d.codigo === c)!;
+    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 50)).toBeNull();
+    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 100)).toBeNull();
+    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 150)).toContain("5 a 100");
+    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 4)).toContain("5 a 100");
+    expect(fraseDaFaixaDoCusto(def("multiplicador_regra_de_tres"), 3)).toBeNull();
+    expect(fraseDaFaixaDoCusto(def("multiplicador_regra_de_tres"), 30)).toContain("1 a 10");
+    expect(fraseDaFaixaDoCusto(def("aluguel_espaco_mensal"), 99999)).toBeNull();
+    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), null)).toBeNull();
+  });
+  it("em edição, ocupação acima de cem mostra o aviso e desliga os dois botões de salvar", () => {
+    const h = renderToStaticMarkup(
+      createElement(BlocoDeCustosFixos, {
+        itens: itensDeCustoFixo([linha("ocupacao_alvo_pct", { valor: 50 })]),
+        nomes: {},
+        podeEditar: true,
+        editandoCodigo: "ocupacao_alvo_pct",
+        rascunho: "150",
+        ocupado: false,
+        aoEditar: () => {},
+        aoMudar: () => {},
+        aoSalvar: () => {},
+        aoCancelar: () => {},
+      }),
+    );
+    expect(h).toContain("Digite a ocupação de 5 a 100 por cento");
+    expect(h).toMatch(/<button[^>]*disabled=""[^>]*>Salvar e confirmar<\/button>/);
+    expect(h).toMatch(/<button[^>]*disabled=""[^>]*>Salvar sem confirmar<\/button>/);
+    const texto = h.replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/g, " ");
+    expect(texto).not.toMatch(/[()—–→←]/);
+  });
+  it("com valor dentro da faixa, os botões ficam ligados", () => {
+    const h = renderToStaticMarkup(
+      createElement(BlocoDeCustosFixos, {
+        itens: itensDeCustoFixo([linha("multiplicador_regra_de_tres", { valor: 3 })]),
+        nomes: {},
+        podeEditar: true,
+        editandoCodigo: "multiplicador_regra_de_tres",
+        rascunho: "3,5",
+        ocupado: false,
+        aoEditar: () => {},
+        aoMudar: () => {},
+        aoSalvar: () => {},
+        aoCancelar: () => {},
+      }),
+    );
+    expect(h).not.toMatch(/<button[^>]*disabled=""[^>]*>Salvar e confirmar<\/button>/);
   });
 });
 

@@ -511,8 +511,8 @@ export const dicas = {
     },
   },
   "/precos": {
-    menu: "Uma linha por produto com custo, piso, preço do balcão e margem, para pedir a mudança de preço.",
-    tela: "Cada linha é um produto ativo. O piso é o menor preço que ainda deixa a margem mínima. A barra mostra a margem e o risco marca o mínimo. Digite o preço novo e a linha mostra na hora o piso, a margem nova e o aviso. Propor preço nunca grava o preço: cria um pedido que espera aprovação em preços pendentes. Abaixo do piso o motivo é obrigatório. Os quatro números do alto filtram a lista. Só administrador e gerente pedem mudança; quem não vê custo não abre a tela.",
+    menu: "Uma linha por produto com custo, piso, preço do balcão, preço mínimo recomendado e margem, para pedir a mudança de preço.",
+    tela: "Cada linha é um produto ativo. O piso é o menor preço que ainda deixa a margem mínima. A barra mostra a margem e o risco marca o mínimo. Digite o preço novo e a linha mostra na hora o piso, a margem nova e o aviso. Propor preço nunca grava o preço: cria um pedido que espera aprovação em preços pendentes. Abaixo do piso o motivo é obrigatório. O preço mínimo recomendado é o maior entre três vezes o material com perda e o piso do custo de produção, já com a ocupação alvo da casa: é recomendação e não trava o pedido. Toque em Como chegou para ler a conta de cada produto. Os números do alto filtram a lista, inclusive os abaixo do mínimo recomendado. Só administrador e gerente pedem mudança; quem não vê custo não abre a tela.",
   },
   "/precos-pendentes": {
     menu: "Preços que o sistema acha errados, com o piso e a margem em barras, para aprovar ou recusar.",
