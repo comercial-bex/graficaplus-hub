@@ -14,6 +14,11 @@ const d = vi.hoisted(() => ({
   erroRpc: null as null | { message: string },
   produtos: [] as unknown[],
   cheios: [] as unknown[],
+  reais: [] as unknown[],
+  erroReal: null as null | { message: string },
+  pendencias: [] as unknown[],
+  erroPendencias: null as null | { message: string },
+  chamadasDoAdmin: [] as string[],
   produtoPedido: null as unknown,
 }));
 
@@ -27,10 +32,21 @@ vi.mock("@tanstack/react-start", () => ({
 vi.mock("@/integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
+    rpc: (fn: string) => {
+      d.chamadasDoAdmin.push(fn);
+      return Promise.resolve({
+        data: d.erroPendencias ? null : d.pendencias,
+        error: d.erroPendencias,
+      });
+    },
     from: (tabela: string) => {
       const q: Record<string, unknown> = {};
       q.select = () =>
-        tabela === "produto_custo_cheio" ? Promise.resolve({ data: d.cheios, error: null }) : q;
+        tabela === "produto_custo_cheio"
+          ? Promise.resolve({ data: d.cheios, error: null })
+          : tabela === "produto_custo_real"
+            ? Promise.resolve({ data: d.erroReal ? null : d.reais, error: d.erroReal })
+            : q;
       q.eq = () => q;
       q.maybeSingle = () => Promise.resolve({ data: d.produtoPedido, error: null });
       q.order = () => Promise.resolve({ data: d.produtos, error: null });
@@ -98,6 +114,28 @@ beforeEach(() => {
     },
   ];
   d.cheios = [{ produto_id: "a", custo_cheio: "38.2" }];
+  d.reais = [
+    {
+      produto_id: "a",
+      custo_producao: "31.5",
+      custo_real: "34.15",
+      margem_liquida_pct: "24.9",
+      vezes_o_custo: "1.33",
+      preco_regra_de_tres: "102.45",
+      sem_tinta: false,
+      material_sem_custo: false,
+      sem_mao_de_obra: false,
+      custo_incompleto: true,
+      velocidade_usada_m2_h: "10",
+      velocidade_nominal_m2_h: "14",
+      tempo_presumido: false,
+      parceiro_abaixo_do_piso: true,
+    },
+  ];
+  d.erroReal = null;
+  d.pendencias = [];
+  d.erroPendencias = null;
+  d.chamadasDoAdmin = [];
   // custo 30, margem mínima 40: piso 50,00. Parceiro a 40.
   d.produtoPedido = { custo_medio: "30", margem_minima: "40", preco_parceiro: "40" };
 });
@@ -116,14 +154,57 @@ describe("ler os preços", () => {
       preco: 45.5,
       margem_minima: 40,
       preco_parceiro: 40,
+      real: {
+        custo_producao: 31.5,
+        custo_real: 34.15,
+        margem_liquida_pct: 24.9,
+        vezes_o_custo: 1.33,
+        preco_regra_de_tres: 102.45,
+        sem_tinta: false,
+        material_sem_custo: false,
+        sem_mao_de_obra: false,
+        custo_incompleto: true,
+        velocidade_usada_m2_h: 10,
+        velocidade_nominal_m2_h: 14,
+        tempo_presumido: false,
+        parceiro_abaixo_do_piso: true,
+      },
     });
+    expect(r.linhas[1].real).toBeNull();
+    expect(r.avisoDoCustoReal).toBeNull();
     expect(r.linhas[1].custo).toBeNull();
     expect(r.linhas[1].preco).toBeNull();
     expect(r.linhas[1].custo_cheio).toBeNull();
   });
-  it("quem não vê custo é recusado antes de ler", async () => {
+  it("quem não vê custo é recusado antes de ler, e a visão de custo real nem é consultada", async () => {
     d.verCusto = false;
+    d.pendencias = [{ codigo: "x", rotulo: "X", tipo: "t" }];
     await expect(ler()).rejects.toThrow("não vê custo");
+    expect(d.chamadasDoAdmin).toEqual([]);
+  });
+  it("visão de custo real ausente vira frase humana e a lista continua com o custo de antes", async () => {
+    d.erroReal = { message: 'relation "public.produto_custo_real" does not exist' };
+    const r = await ler();
+    expect(r.avisoDoCustoReal).toContain("Avise o suporte");
+    expect(r.linhas).toHaveLength(2);
+    expect(r.linhas[0].real).toBeNull();
+    expect(r.linhas[0].custo_cheio).toBe(38.2);
+  });
+  it("erro de outra natureza na visão derruba, não vira silêncio", async () => {
+    d.erroReal = { message: "permission denied for view produto_custo_real" };
+    await expect(ler()).rejects.toThrow("permission denied");
+  });
+  it("traz as pendências de custo e tolera a função ausente", async () => {
+    d.pendencias = [
+      { codigo: "aluguel_espaco_mensal", rotulo: "Aluguel do espaço", tipo: "custo_fixo" },
+    ];
+    const r = await ler();
+    expect(r.pendencias).toEqual([
+      { codigo: "aluguel_espaco_mensal", rotulo: "Aluguel do espaço", tipo: "custo_fixo" },
+    ]);
+    expect(d.chamadasDoAdmin).toContain("pendencias_de_custo");
+    d.erroPendencias = { message: "function pendencias_de_custo does not exist" };
+    expect((await ler()).pendencias).toEqual([]);
   });
   it("quem vê custo mas não é admin nem gerente lê, sem poder propor", async () => {
     d.papeis = new Set();

@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
+import { CustosFixosDaGrafica } from "@/components/custos/custos-fixos-da-grafica";
+import { CODIGOS_DE_CUSTO_FIXO } from "@/domain/custos/custos-fixos";
 
 /**
  * Os dez números que a casa usa para formar preço e medir resultado.
@@ -88,7 +90,10 @@ export function ParametrosDaCasa() {
         .order("categoria")
         .order("codigo");
       if (error) throw error;
-      return (data ?? []) as unknown as Parametro[];
+      // Os custos fixos da gráfica têm bloco próprio, com confirmação, e não repetem aqui.
+      return ((data ?? []) as unknown as Parametro[]).filter(
+        (p) => !CODIGOS_DE_CUSTO_FIXO.includes(p.codigo),
+      );
     },
   });
 
@@ -131,11 +136,15 @@ export function ParametrosDaCasa() {
   });
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
-  if (parametros.length === 0) return null;
+  if (parametros.length === 0) return <CustosFixosDaGrafica />;
 
   const categorias = [...new Set(parametros.map((p) => p.categoria))];
 
   return (
+    <>
+    <div className="mt-10">
+      <CustosFixosDaGrafica />
+    </div>
     <section className="mt-10 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -291,5 +300,6 @@ export function ParametrosDaCasa() {
         </Card>
       )}
     </section>
+    </>
   );
 }

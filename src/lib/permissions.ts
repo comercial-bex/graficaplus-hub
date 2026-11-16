@@ -8,7 +8,7 @@ export const permissions = [
   "clientes.create", "clientes.delete", "clientes.read", "clientes.sensitive.read", "clientes.update",
   "compras.cancel", "compras.create", "compras.read", "compras.receive",
   "configuracoes.manage",
-  "custos.create", "custos.read", "custos.update",
+  "custos.create", "custos.fixos.update", "custos.read", "custos.update",
   "desconto.approve", "desconto.request",
   "entregas.manage", "entregas.read",
   "estoque.adjust", "estoque.cost.read", "estoque.entry", "estoque.exit", "estoque.inventory", "estoque.read", "estoque.reserve", "estoque.reverse",

@@ -4,6 +4,14 @@
  * Margem é sobre a venda, em percentual. O piso é round(custo / (1 - margem mínima / 100), 2), a mesma
  * conta da função _preco_piso do banco. A tela nunca grava preço: ela só pede aprovação.
  */
+import {
+  type CelulaDoMapa,
+  type CustoRealDoProduto,
+  type LeituraReal,
+  celulaDoMapa,
+  leituraReal,
+  mesmaCelula,
+} from "./custo-real";
 import { FOLGA_AMARELA, type FaixaDaMargem, faixaDaMargem } from "./propostas";
 
 export type LinhaDePreco = {
@@ -18,6 +26,8 @@ export type LinhaDePreco = {
   preco: number | null;
   margem_minima: number | null;
   preco_parceiro: number | null;
+  /** Custo real da visão produto_custo_real. Ausente quando o banco ainda não entrega ou o produto não tem linha. */
+  real?: CustoRealDoProduto | null;
 };
 
 export type Situacao = "abaixo" | "sem_custo" | "sem_preco" | "justa" | "boa";
@@ -148,13 +158,20 @@ export function familiasDe(linhas: LinhaDePreco[]): string[] {
 
 export function filtrar(
   linhas: LinhaDePreco[],
-  f: { familia: string | null; problema: FiltroDeProblema; busca: string },
+  f: {
+    familia: string | null;
+    problema: FiltroDeProblema;
+    busca: string;
+    /** Célula do mapa de margem tocada, ou nulo para todas. */
+    celula?: CelulaDoMapa | null;
+  },
 ): LinhaDePreco[] {
   const q = semAcento(f.busca.trim());
   return linhas.filter((l) => {
     if (f.familia && (l.familia ?? "") !== f.familia) return false;
     if (q && !semAcento(l.nome).includes(q)) return false;
     if (f.problema !== "todos" && !problemasDe(avaliarLinha(l)).includes(f.problema)) return false;
+    if (f.celula && !mesmaCelula(celulaDoMapa(l, l.preco), f.celula)) return false;
     return true;
   });
 }
@@ -166,10 +183,10 @@ export function ordenar(linhas: LinhaDePreco[], ordem: Ordem): LinhaDePreco[] {
   if (ordem === "preco")
     return copia.sort((a, b) => (a.preco ?? Infinity) - (b.preco ?? Infinity) || nome(a, b));
   if (ordem === "margem") {
-    return copia.sort(
-      (a, b) =>
-        (avaliarLinha(a).margem ?? -Infinity) - (avaliarLinha(b).margem ?? -Infinity) || nome(a, b),
-    );
+    // Margem líquida quando há custo real; senão a de material, como antes.
+    const chave = (l: LinhaDePreco) =>
+      leituraReal(l, l.preco).margem ?? avaliarLinha(l).margem ?? -Infinity;
+    return copia.sort((a, b) => chave(a) - chave(b) || nome(a, b));
   }
   // Problema no topo; dentro do mesmo grupo, a menor margem primeiro.
   return copia.sort((a, b) => {
@@ -206,6 +223,8 @@ export type Previa = {
   podePedir: boolean;
   /** Abaixo do piso exige motivo escrito. */
   exigeMotivo: boolean;
+  /** Margem líquida, vezes o custo e regra de três para o preço digitado. */
+  real: LeituraReal;
 };
 
 const reais = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -238,6 +257,7 @@ export function previaDoPreco(l: LinhaDePreco, texto: string): Previa {
     aviso,
     podePedir: digitado != null && mudou && !avaliacao.parceiroAcima,
     exigeMotivo: digitado != null && avaliacao.situacao === "abaixo",
+    real: leituraReal(l, digitado ?? l.preco),
   };
 }
 

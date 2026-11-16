@@ -330,7 +330,7 @@ export const AREAS: AreaDoMenu[] = [
             [
               aba("Processos", "/processos"),
               aba("Planilha de custos", "/planilha-custos"),
-              aba("Mão de obra e encargos", "/custos-producao", "Custos de mão de obra"),
+              aba("Custos fixos e mão de obra", "/custos-producao", "Custos fixos e mão de obra"),
               aba("Tabela de preços", "/tabela-de-precos"),
               aba("Preços por produto", "/precos"),
               aba("Preços pendentes", "/precos-pendentes"),
