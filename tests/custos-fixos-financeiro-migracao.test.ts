@@ -117,6 +117,17 @@ describe("confirmar_custo_fixo", () => {
     expect(f).toContain("v_quem := (SELECT u.id FROM public.usuarios u WHERE u.id = v_uid);");
   });
 
+  it("barra erro de digitação que derrubaria o custo de todos os produtos", () => {
+    expect(f).toContain("p_codigo = 'plotter_horas_mes_reais' AND p_valor > 744");
+    expect(f).toContain("p_codigo IN ('energia_comercial_tarifa_kwh', 'energia_tarifa_kwh') AND p_valor > 100");
+    expect(f).toContain("p_codigo = 'tinta_consumo_ml_m2' AND p_valor > 1000");
+    // os limites vêm antes de qualquer escrita
+    expect(f.indexOf("p_valor > 744")).toBeLessThan(f.indexOf("UPDATE public.custos_tabela"));
+    // texto de tela da recusa, sem parênteses, travessão ou seta
+    const msgs = [...f.matchAll(/RAISE EXCEPTION '([^']*)'/g)].map((m) => m[1]);
+    for (const m of msgs) expect(m, m).not.toMatch(/[()—–→]/);
+  });
+
   it("só toca em custos_tabela, pela linha achada, e zera a marca no fim", () => {
     const updates = [...f.matchAll(/UPDATE\s+(public\.\w+)/g)].map((m) => m[1]);
     expect(updates).toEqual(["public.custos_tabela"]);

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ehParametroCalculado,
   formatarParametro,
   rascunhoDoParametro,
   valorDoParametro,
@@ -89,5 +90,21 @@ describe("os outros leitores de custos_tabela", () => {
     // custo-da-peca lê só mo_custo_hora, mo_encargos_pct e custo_admin_hora, que têm valor, e usa ?? 0 de propósito.
     const f = ler("src/components/produtos/custo-da-peca.tsx");
     expect(f).toContain('.in("codigo", ["mo_custo_hora", "mo_encargos_pct", "custo_admin_hora"])');
+  });
+});
+
+describe("custo_admin_hora calculado pelo aluguel não se edita à mão", () => {
+  it("só vale depois que o gatilho escreve Calculado na observação", () => {
+    expect(ehParametroCalculado("custo_admin_hora", "Calculado: aluguel mais outros fixos do espaço.")).toBe(true);
+    expect(ehParametroCalculado("custo_admin_hora", "Rateio antigo, digitado.")).toBe(false);
+    expect(ehParametroCalculado("custo_admin_hora", null)).toBe(false);
+    expect(ehParametroCalculado("markup_padrao", "Calculado: qualquer coisa")).toBe(false);
+  });
+
+  it("a tela esconde o lápis e explica, em letra de 16 px, no lugar do número calculado", () => {
+    const tela = ler("src/components/custos/parametros-da-casa.tsx");
+    expect(tela).toContain("podeEditar && !ehParametroCalculado(p.codigo, p.observacao)");
+    expect(tela).toContain("TEXTO_DO_PARAMETRO_CALCULADO");
+    expect(tela).toMatch(/data-testid="parametro-calculado"/);
   });
 });

@@ -138,6 +138,17 @@ BEGIN
   IF p_valor = 0 AND p_codigo <> 'outros_fixos_admin_mes' THEN
     RAISE EXCEPTION 'Este custo não pode ser zero.' USING ERRCODE = '22023';
   END IF;
+  -- Limites de bom senso: um erro de digitação aqui muda o custo de todos os produtos de uma vez, e o financeiro grava
+  -- direto. Mil e seiscentas horas no lugar de cento e sessenta derrubaria o rateio e o custo da plotter por dez.
+  IF p_codigo = 'plotter_horas_mes_reais' AND p_valor > 744 THEN
+    RAISE EXCEPTION 'Um mês tem no máximo 744 horas. Confira o número.' USING ERRCODE = '22023';
+  END IF;
+  IF p_codigo IN ('energia_comercial_tarifa_kwh', 'energia_tarifa_kwh') AND p_valor > 100 THEN
+    RAISE EXCEPTION 'A tarifa de energia é em reais por kWh e não passa de 100. Confira o número.' USING ERRCODE = '22023';
+  END IF;
+  IF p_codigo = 'tinta_consumo_ml_m2' AND p_valor > 1000 THEN
+    RAISE EXCEPTION 'O consumo de tinta passa de 1000 mililitros por metro quadrado. Confira o número.' USING ERRCODE = '22023';
+  END IF;
 
   SELECT c.id INTO v_id FROM public.custos_tabela c WHERE c.codigo = p_codigo AND c.ativo FOR UPDATE;
   IF v_id IS NULL THEN

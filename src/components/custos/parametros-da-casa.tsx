@@ -11,7 +11,12 @@ import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 import { CustosFixosDaGrafica } from "@/components/custos/custos-fixos-da-grafica";
 import { CODIGOS_DE_CUSTO_FIXO } from "@/domain/custos/custos-fixos";
-import { formatarParametro, rascunhoDoParametro } from "@/domain/custos/parametro-da-casa";
+import {
+  ehParametroCalculado,
+  formatarParametro,
+  rascunhoDoParametro,
+  TEXTO_DO_PARAMETRO_CALCULADO,
+} from "@/domain/custos/parametro-da-casa";
 
 /**
  * Os dez números que a casa usa para formar preço e medir resultado.
@@ -198,6 +203,11 @@ export function ParametrosDaCasa() {
                           {p.observacao && (
                             <p className="mt-0.5 text-xs text-muted-foreground">{p.observacao}</p>
                           )}
+                          {ehParametroCalculado(p.codigo, p.observacao) && (
+                            <p className="mt-1 text-base" data-testid="parametro-calculado">
+                              {TEXTO_DO_PARAMETRO_CALCULADO}
+                            </p>
+                          )}
                         </div>
 
                         {emEdicao ? (
@@ -239,7 +249,7 @@ export function ParametrosDaCasa() {
                             <span className="font-mono text-base font-bold tabular-nums">
                               {formatarParametro(p.valor, p.unidade)}
                             </span>
-                            {podeEditar && (
+                            {podeEditar && !ehParametroCalculado(p.codigo, p.observacao) && (
                               <Button
                                 size="sm"
                                 variant="outline"

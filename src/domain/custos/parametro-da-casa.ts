@@ -27,3 +27,15 @@ export function rascunhoDoParametro(valor: unknown): string {
   const n = valorDoParametro(valor);
   return n === null ? "" : String(n);
 }
+
+/**
+ * custo_admin_hora vira número calculado quando o aluguel entra (gatilho tg_custos_rateio_admin_hora, migração
+ * 20261116100000): o gatilho grava "Calculado: ..." na observação da linha e refaz o valor a cada mudança de aluguel,
+ * outros fixos ou horas. Editar o número à mão aqui seria desfeito em silêncio na próxima mudança.
+ */
+export function ehParametroCalculado(codigo: string, observacao: string | null | undefined): boolean {
+  return codigo === "custo_admin_hora" && (observacao ?? "").trim().startsWith("Calculado");
+}
+
+export const TEXTO_DO_PARAMETRO_CALCULADO =
+  "Este número é calculado pelo aluguel e pelos outros custos fixos, divididos pelas horas do mês. Para mudar, edite o aluguel ou os outros custos fixos no bloco de custos fixos.";
