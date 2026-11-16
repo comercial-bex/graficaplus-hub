@@ -61,7 +61,7 @@ describe("aviso no grupo de WhatsApp da equipe", () => {
 
   it("aviso no grupo não vira conversa de cliente na caixa de entrada", () => {
     const DESPACHANTE = readFileSync("src/lib/api/whatsapp-enviar.server.ts", "utf8");
-    expect(DESPACHANTE).toMatch(/ehGrupoZapi\(request\.phone\)\s*\?\s*\{ data: null, error: null \}/);
+    expect(DESPACHANTE).toMatch(/ehGrupoZapi\(request\.phone\)\s*\|\|\s*avisoPrivado\s*\?\s*\{ data: null, error: null \}/);
   });
 
   it("o tipo novo aparece com nome nas telas de avisos", () => {

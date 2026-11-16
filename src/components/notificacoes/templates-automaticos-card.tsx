@@ -26,6 +26,7 @@ const variaveisPorEvento: Record<string, string[]> = {
   usuario_boas_vindas: ["nome", "link"],
   alerta_equipe: ["texto"],
   aviso_grupo_equipe: ["texto"],
+  aviso_gerente_privado: ["texto"],
   cobranca_orcamento: ["texto"],
   os_em_criacao: ["cliente", "os_numero", "os_titulo", "prazo"],
   os_em_acabamento: ["cliente", "os_numero", "os_titulo", "prazo"],
