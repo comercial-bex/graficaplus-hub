@@ -35,6 +35,7 @@ import {
   margemStatus,
 } from "@/lib/produtos-catalogo";
 import { percentual } from "@/lib/percentual";
+import { complementoDaMargem, fraseDoPiso } from "@/domain/precos/texto-da-margem";
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 import { baseDeCalculo, rotuloDaUnidade } from "@/domain/catalogo/familias-da-lista";
 import { entradaDaNota, fraseDaNota, notaDaPasta } from "@/domain/catalogo/pronto-para-ia";
@@ -605,8 +606,12 @@ function PastaDoProduto() {
                       valor={
                         margem === null
                           ? null
-                          : `${percentual(margem)}${situacao === "ruim" ? " (abaixo do mínimo)" : situacao === "alerta" ? " (perto do mínimo)" : ""}`
+                          : `${percentual(margem)}${complementoDaMargem(situacao)}`
                       }
+                    />
+                    <Dado
+                      rotulo="Piso de preço"
+                      valor={fraseDoPiso(Number(cadastro.custo_medio) || null, Number(cadastro.margem_minima) || null)}
                     />
                     <Dado rotulo="Markup" valor={markup ? `${markup.toFixed(2)}x` : null} />
                   </>
