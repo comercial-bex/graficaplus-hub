@@ -8,12 +8,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const d = vi.hoisted(() => ({
   verCusto: true,
+  verMaquina: true,
+  verFinanceiro: true,
   papeis: new Set<string>(["gestor"]),
   chamadas: [] as Array<{ fn: string; args: Record<string, unknown> }>,
   escritas: 0,
   erroRpc: null as null | { message: string },
   produtos: [] as unknown[],
   cheios: [] as unknown[],
+  concorrentes: [] as unknown[],
+  erroConcorrentes: null as null | { message: string },
+  concorrentesLanca: false,
+  erroSoDaComposicao: null as null | { message: string },
+  colunasDoCheio: [] as string[],
   reais: [] as unknown[],
   erroReal: null as null | { message: string },
   /** Erro só da primeira leitura, a que pede as colunas do preço mínimo. A segunda, só as de antes, passa. */
@@ -47,7 +54,30 @@ vi.mock("@/integrations/supabase/client.server", () => ({
     from: (tabela: string) => {
       const q: Record<string, unknown> = {};
       q.select = (colunas: string) => {
-        if (tabela === "produto_custo_cheio") return Promise.resolve({ data: d.cheios, error: null });
+        if (tabela === "produto_custo_cheio") {
+          d.colunasDoCheio.push(colunas);
+          const pedeComposicao = colunas.includes("custo_material");
+          if (pedeComposicao && d.erroSoDaComposicao)
+            return Promise.resolve({ data: null, error: d.erroSoDaComposicao });
+          // Quem não pede as colunas da composição não as recebe, como o banco.
+          const linhas = pedeComposicao
+            ? d.cheios
+            : (d.cheios as Array<Record<string, unknown>>).map((c) => ({
+                produto_id: c.produto_id,
+                custo_cheio: c.custo_cheio,
+              }));
+          return Promise.resolve({ data: linhas, error: null });
+        }
+        if (tabela === "produto_concorrentes") {
+          if (d.concorrentesLanca) throw new Error("falha inesperada");
+          const t: Record<string, unknown> = {};
+          t.eq = () =>
+            Promise.resolve({
+              data: d.erroConcorrentes ? null : d.concorrentes,
+              error: d.erroConcorrentes,
+            });
+          return t;
+        }
         if (tabela === "produto_custo_real") {
           d.selecionadas.push(colunas);
           const pedeMinimo = colunas.includes("preco_minimo_recomendado");
@@ -59,7 +89,15 @@ vi.mock("@/integrations/supabase/client.server", () => ({
                 Object.fromEntries(
                   Object.entries(r).filter(
                     ([k]) =>
-                      !["custo_ocupacao", "tres_x_material", "piso_custo_producao", "preco_minimo_recomendado", "trava_que_manda", "ocupacao_alvo_pct", "multiplicador_regra_de_tres"].includes(k),
+                      ![
+                        "custo_ocupacao",
+                        "tres_x_material",
+                        "piso_custo_producao",
+                        "preco_minimo_recomendado",
+                        "trava_que_manda",
+                        "ocupacao_alvo_pct",
+                        "multiplicador_regra_de_tres",
+                      ].includes(k),
                   ),
                 ),
               );
@@ -68,8 +106,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         if (tabela === "custos_tabela") {
           const t: Record<string, unknown> = {};
           t.eq = () => t;
-          t.in = () =>
-            Promise.resolve({ data: d.erroTaxas ? null : d.taxas, error: d.erroTaxas });
+          t.in = () => Promise.resolve({ data: d.erroTaxas ? null : d.taxas, error: d.erroTaxas });
           return t;
         }
         return q;
@@ -95,6 +132,10 @@ const contexto = () => ({
     rpc: (fn: string, args: Record<string, unknown>) => {
       d.chamadas.push({ fn, args });
       if (fn === "pode_ver_custo") return Promise.resolve({ data: d.verCusto, error: null });
+      if (fn === "pode_ver_custo_de_maquina")
+        return Promise.resolve({ data: d.verMaquina, error: null });
+      if (fn === "can_see_financials")
+        return Promise.resolve({ data: d.verFinanceiro, error: null });
       if (fn === "has_role")
         return Promise.resolve({ data: d.papeis.has(args._role as string), error: null });
       return Promise.resolve({ data: "11111111-1111-4111-8111-111111111111", error: d.erroRpc });
@@ -114,6 +155,8 @@ const propor = (preco = 70.4, motivo = "") =>
 
 beforeEach(() => {
   d.verCusto = true;
+  d.verMaquina = true;
+  d.verFinanceiro = true;
   d.papeis = new Set(["gestor"]);
   d.chamadas = [];
   d.escritas = 0;
@@ -140,7 +183,21 @@ beforeEach(() => {
       preco_parceiro: null,
     },
   ];
-  d.cheios = [{ produto_id: "a", custo_cheio: "38.2" }];
+  d.cheios = [
+    {
+      produto_id: "a",
+      custo_cheio: "38.2",
+      custo_material: "20",
+      custo_maquina: "6",
+      custo_mao_obra: "4.2",
+      custo_indireto: "8",
+    },
+  ];
+  d.concorrentes = [];
+  d.erroConcorrentes = null;
+  d.concorrentesLanca = false;
+  d.erroSoDaComposicao = null;
+  d.colunasDoCheio = [];
   d.reais = [
     {
       produto_id: "a",
@@ -181,6 +238,73 @@ beforeEach(() => {
   d.produtoPedido = { custo_medio: "30", margem_minima: "40", preco_parceiro: "40" };
 });
 
+describe("dados do simulador de preço", () => {
+  it("entrega o menor preço de venda final por produto e ignora o preço de terceirizado", async () => {
+    d.concorrentes = [
+      { produto_id: "a", preco: "52", tipo_preco: "final" },
+      { produto_id: "a", preco: "47.9", tipo_preco: "final" },
+      { produto_id: "a", preco: "20", tipo_preco: "parceiro" },
+      { produto_id: "b", preco: "0", tipo_preco: "final" },
+    ];
+    const r = await ler();
+    expect(r.linhas[0].menor_concorrente).toBe(47.9);
+    expect(r.linhas[1].menor_concorrente).toBeNull();
+  });
+  it("falha ao ler concorrentes não derruba a tela: a marca some", async () => {
+    d.erroConcorrentes = { message: "permission denied for table produto_concorrentes" };
+    const r = await ler();
+    expect(r.linhas).toHaveLength(2);
+    expect(r.linhas[0].menor_concorrente).toBeNull();
+  });
+  it("erro inesperado ao ler concorrentes também não derruba a tela", async () => {
+    d.concorrentesLanca = true;
+    const r = await ler();
+    expect(r.linhas[0].menor_concorrente).toBeNull();
+  });
+  it("sem as colunas da composição no banco, o custo cheio continua e a composição vai nula", async () => {
+    d.erroSoDaComposicao = { message: "column produto_custo_cheio.custo_material does not exist" };
+    const r = await ler();
+    expect(r.linhas[0].custo_cheio).toBe(38.2);
+    expect(r.linhas[0].composicao).toBeNull();
+    expect(d.colunasDoCheio).toHaveLength(2);
+  });
+  it("composição incompleta vai nula e não inventa zero", async () => {
+    d.cheios = [
+      {
+        produto_id: "a",
+        custo_cheio: "38.2",
+        custo_material: "20",
+        custo_maquina: null,
+        custo_mao_obra: "4",
+        custo_indireto: "8",
+      },
+    ];
+    const r = await ler();
+    expect(r.linhas[0].composicao).toBeNull();
+  });
+  it("quem vê custo mas não vê máquina nem financeiro não recebe composição nem concorrente", async () => {
+    d.verMaquina = false;
+    d.verFinanceiro = false;
+    d.concorrentes = [{ produto_id: "a", preco: "47.9", tipo_preco: "final" }];
+    const r = await ler();
+    expect(r.linhas).toHaveLength(2);
+    expect(r.linhas[0].composicao).toBeNull();
+    expect(r.linhas[0].menor_concorrente).toBeNull();
+    expect(r.linhas[0].custo_cheio).toBe(38.2);
+  });
+  it("quem vê máquina mas não o financeiro recebe a composição e não o concorrente", async () => {
+    d.verFinanceiro = false;
+    d.concorrentes = [{ produto_id: "a", preco: "47.9", tipo_preco: "final" }];
+    const r = await ler();
+    expect(r.linhas[0].composicao).not.toBeNull();
+    expect(r.linhas[0].menor_concorrente).toBeNull();
+  });
+  it("lê o simulador só com leitura: nenhuma escrita", async () => {
+    await ler();
+    expect(d.escritas).toBe(0);
+  });
+});
+
 describe("ler os preços", () => {
   it("devolve números, não texto, e junta o custo cheio", async () => {
     const r = await ler();
@@ -218,6 +342,8 @@ describe("ler os preços", () => {
         multiplicador_regra_de_tres: 3,
       },
       taxas: { impostoVendaPct: 4, taxaCartaoPct: 7.5 },
+      composicao: { material: 20, maquina: 6, maoDeObra: 4.2, indireto: 8 },
+      menor_concorrente: null,
     });
     expect(r.linhas[1].real).toBeNull();
     expect(r.avisoDoCustoReal).toBeNull();
@@ -234,7 +360,9 @@ describe("ler os preços", () => {
     expect(d.selecionadas[0]).toContain("trava_que_manda");
   });
   it("sem as colunas do mínimo no banco, o custo real continua e a tela recebe a frase humana", async () => {
-    d.erroSoDoMinimo = { message: 'column produto_custo_real.preco_minimo_recomendado does not exist' };
+    d.erroSoDoMinimo = {
+      message: "column produto_custo_real.preco_minimo_recomendado does not exist",
+    };
     const r = await ler();
     expect(r.avisoDoMinimo).toContain("preço mínimo recomendado ainda não está ligado");
     expect(r.avisoDoMinimo).toContain("Avise o suporte");

@@ -29,6 +29,20 @@ async function verCusto(supabase: Banco, userId: string): Promise<boolean> {
   return data === true;
 }
 
+/** Máquina e preço de concorrente são mais fechados que o custo: financeiro.read ou impressao3d.cost.read. */
+async function verCustoDeMaquina(supabase: Banco, userId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("pode_ver_custo_de_maquina", { _user_id: userId });
+  if (error) return false;
+  return data === true;
+}
+
+/** Mesma porta da tabela de concorrentes: financeiro.read. Falha ao perguntar vale como não. */
+async function verFinanceiro(supabase: Banco, userId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("can_see_financials", { _user_id: userId });
+  if (error) return false;
+  return data === true;
+}
+
 async function temPapel(
   supabase: Banco,
   userId: string,
@@ -84,12 +98,42 @@ async function lerTaxas(admin: Banco): Promise<TaxasDeVenda | null> {
   return { impostoVendaPct: valor("impostos_venda"), taxaCartaoPct: valor("taxa_cartao") };
 }
 
+/**
+ * Menor preço de venda final anotado por produto. Só o tipo "final": o preço de terceirizado dos concorrentes
+ * não se compara com o balcão. Falha na leitura devolve mapa vazio: a marca some e a tela continua.
+ */
+async function lerMenoresConcorrentes(admin: Banco): Promise<Map<string, number>> {
+  const menores = new Map<string, number>();
+  try {
+    const { data, error } = await admin
+      .from("produto_concorrentes")
+      .select("produto_id, preco, tipo_preco")
+      .eq("tipo_preco", "final");
+    if (error || !Array.isArray(data)) return menores;
+    for (const c of data as Array<Record<string, unknown>>) {
+      if (c.tipo_preco !== "final") continue;
+      const preco = num(c.preco);
+      if (preco == null || !Number.isFinite(preco) || preco <= 0) continue;
+      const id = String(c.produto_id);
+      const atual = menores.get(id);
+      if (atual == null || preco < atual) menores.set(id, preco);
+    }
+  } catch {
+    return new Map();
+  }
+  return menores;
+}
+
 export const lerPrecosPorProduto = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<PainelPorProduto> => {
     const { supabase, userId } = context as { supabase: Banco; userId: string };
     await exigirVerCusto(supabase, userId);
     const podePropor = await quemPropoe(supabase, userId);
+    // A leitura abaixo usa a chave do servidor e ignora a RLS. Por isso a composição (máquina) e o concorrente
+    // só saem para quem a RLS deixaria ler. Quem só tem custos.read abre a tela, mas sem essas duas coisas.
+    const comMaquina = await verCustoDeMaquina(supabase, userId);
+    const comConcorrente = await verFinanceiro(supabase, userId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as Banco;
@@ -99,16 +143,45 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
       .eq("ativo", true)
       .order("nome");
     if (error) throw new Error(error.message);
-    const { data: cheios, error: erroCheio } = await admin
+    // Custo cheio e a composição em reais. Sem as colunas da composição, cai para só o custo cheio.
+    type Cheio = { custo_cheio: number | null; composicao: LinhaDePreco["composicao"] };
+    let { data: cheios, error: erroCheio } = await admin
       .from("produto_custo_cheio")
-      .select("produto_id, custo_cheio");
+      .select(
+        "produto_id, custo_cheio, custo_material, custo_maquina, custo_mao_obra, custo_indireto",
+      );
+    if (erroCheio) {
+      const segunda = await admin.from("produto_custo_cheio").select("produto_id, custo_cheio");
+      cheios = segunda.data;
+      erroCheio = segunda.error;
+    }
     if (erroCheio) throw new Error(erroCheio.message);
-    const cheio = new Map<string, number | null>(
-      ((cheios ?? []) as Array<{ produto_id: string; custo_cheio: unknown }>).map((c) => [
-        c.produto_id,
-        num(c.custo_cheio),
-      ]),
+    const cheio = new Map<string, Cheio>(
+      ((cheios ?? []) as Array<Record<string, unknown>>).map((c) => {
+        const partes = [c.custo_material, c.custo_maquina, c.custo_mao_obra, c.custo_indireto].map(
+          num,
+        );
+        const inteira = partes.every((v) => v != null && Number.isFinite(v));
+        return [
+          String(c.produto_id),
+          {
+            custo_cheio: num(c.custo_cheio),
+            composicao:
+              inteira && comMaquina
+                ? {
+                    material: partes[0] as number,
+                    maquina: partes[1] as number,
+                    maoDeObra: partes[2] as number,
+                    indireto: partes[3] as number,
+                  }
+                : null,
+          },
+        ];
+      }),
     );
+    const concorrente = comConcorrente
+      ? await lerMenoresConcorrentes(admin)
+      : new Map<string, number>();
 
     // Custo real, da visão fechada para a chave do servidor. Visão ou coluna ausente vira frase humana.
     // O preço mínimo vem em colunas novas no fim da visão: sem elas, a leitura cai para as colunas de antes.
@@ -164,12 +237,14 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
       familia: (r.familia as string | null) ?? null,
       unidade: String(r.unidade ?? "un"),
       custo: num(r.custo_medio),
-      custo_cheio: cheio.get(String(r.id)) ?? null,
+      custo_cheio: cheio.get(String(r.id))?.custo_cheio ?? null,
       preco: num(r.preco_base),
       margem_minima: num(r.margem_minima),
       preco_parceiro: num(r.preco_parceiro),
       real: reais.get(String(r.id)) ?? null,
       taxas,
+      composicao: cheio.get(String(r.id))?.composicao ?? null,
+      menor_concorrente: concorrente.get(String(r.id)) ?? null,
     }));
     return { linhas, podePropor, avisoDoCustoReal, avisoDoMinimo, parametrosDoMinimo, pendencias };
   });
