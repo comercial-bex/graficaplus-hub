@@ -66,7 +66,7 @@ Proposta abaixo do piso é aceita na criação de propósito: quem decide é `pr
 
 ## Item 3: aviso de custo fora da faixa
 
-Gatilho `tg_orcamento_itens_zz_aviso_custo`, `AFTER INSERT OR UPDATE OF custo_unitario, produto_id, quantidade, largura, altura, area_minima`. `AFTER` porque lê `area_cobrada`, que é coluna gerada. Não devolve linha, então não bloqueia nem altera nada. Compara o custo gravado da linha (`custo_unitario` vezes a quantidade) com `custo_medio` do produto vezes a área cobrada (produto por m2 com área) ou vezes a quantidade (o resto). Acima de 30 por cento de diferença, grava uma linha `custo_fora_da_faixa` em `logs_auditoria` com orçamento, item, produto, quantidade, área, custo gravado, custo esperado e a diferença em por cento. Só dispara quando um dos campos da conta mudou.
+Gatilho `tg_orcamento_itens_zz_aviso_custo`, `AFTER INSERT OR UPDATE OF custo_unitario, produto_id, quantidade, largura, altura, area_minima`. `AFTER` porque lê `area_cobrada`, que é coluna gerada. Não devolve linha, então não bloqueia nem altera nada. Compara o custo gravado da linha (`custo_unitario` vezes a quantidade) com `custo_medio` do produto vezes a área cobrada (produto por m2 com área) ou vezes a quantidade (o resto). Acima de 30 por cento de diferença, grava uma linha `custo_fora_da_faixa` em `logs_auditoria` com orçamento, item, produto, quantidade, área e a diferença em por cento. Só dispara quando um dos campos da conta mudou.
 
 `tg_orcamento_item_custo_do_produto` não foi alterado.
 
@@ -83,7 +83,7 @@ Ensaio com um item real (Quadro Acrílico, 13 peças, custo esperado da linha 64
 
 Se esses avisos fossem gerados hoje para os itens já gravados, 17 itens seriam pegos. A migração não regrava item nenhum, então esses 17 não geram linha agora; geram quando alguém editar o item.
 
-O registro leva valores em reais (custo gravado e esperado), pedidos no escopo. `logs_auditoria` só é lido por admin e gestor, e a tela do histórico já é restrita a eles.
+O registro leva só a diferença em por cento, sem custo em reais: `logs_auditoria` é lido por gestor sem permissão de custo. A conta fica reproduzível a partir do item e do produto por quem vê custo.
 
 ## Item 4: preço mínimo do cálculo 3D
 
@@ -102,9 +102,9 @@ Gatilho `BEFORE INSERT` em `orcamento_3d_calculos`: quando `preco_minimo` vem 0 
 
 `tg_historico_da_pasta_do_produto` trocada na definição viva (md5 do `prosrc` conferido no começo da migração: `da8e14c4208ca0a42d2230a448537e3c`). O que já gravava segue igual. Quando `preco_base`, `custo_medio` ou `margem_minima` mudam em `produtos`, o `detalhes` ganha:
 
-`preco_de`, `preco_para`, `piso_antes`, `piso_depois`, `margem_antes`, `margem_depois`, `custo_mudou` (verdadeiro ou falso), `autor_tipo` (`pessoa`, `chave_de_servico` ou `sem_sessao`) e `autor_id` (o `auth.uid()`, nulo nas duas últimas).
+`preco_de`, `preco_para`, `abaixo_do_piso_antes` e `abaixo_do_piso_depois` (verdadeiro ou falso), `custo_mudou` (verdadeiro ou falso), `autor_tipo` (`pessoa`, `chave_de_servico` ou `sem_sessao`) e `autor_id` (o `auth.uid()`, nulo nas duas últimas).
 
-**O valor do custo em reais não é gravado**, só o piso, as margens em por cento e se o custo mudou. Margem mínima entra no gatilho porque muda o piso.
+**Nem o custo em reais, nem o piso, nem a margem são gravados**, só se o preço estava abaixo do piso e se o custo mudou. Revisão independente de 15/11: `logs_auditoria` é lido por gestor sem permissão de custo (a política só pede admin ou gestor) e piso ou margem em por cento, somados ao preço, devolvem o custo. Nenhum log existente tinha chave de custo, piso ou margem. Margem mínima entra no gatilho porque muda o piso.
 
 A gravação com preço é feita sem tratamento que engole erro: se o rastro não grava, a troca de preço não passa. O resto do histórico (outras colunas e as tabelas da pasta) mantém o aviso `RAISE WARNING` que já tinha. `usuario_id` só é preenchido se o usuário existir em `usuarios` (a chave estrangeira), o `autor_id` guarda o id de qualquer jeito.
 
@@ -112,14 +112,14 @@ Ensaio no produto Acabamento de lona, com o autor simulado pelas claims do JWT:
 
 | Mudança | Detalhe gravado |
 | --- | --- |
-| preço 9,00 para 10,00, admin | preço de 9,00 para 10,00, piso 6,67 e 6,67, margem 55,56 e 60,00, custo_mudou falso, autor_tipo pessoa, autor_id do admin |
-| custo 4,00 para 4,50 | custo_mudou verdadeiro, piso 6,67 para 7,50, margem 60,00 para 55,00. Nenhuma chave com o valor do custo |
-| margem mínima mais 1 | piso 7,50 para 7,63 |
+| preço 9,00 para 10,00, admin | preço de 9,00 para 10,00, abaixo_do_piso falso e falso, custo_mudou falso, autor_tipo pessoa, autor_id do admin |
+| custo mudou | custo_mudou verdadeiro. Nenhuma chave com o valor do custo, do piso ou da margem |
+| margem mínima mais 1 | campos com margem_minima, sem piso nem margem em número |
 | claims com role service_role e sem usuário | autor_tipo chave_de_servico, autor_id nulo |
 | sem claims | autor_tipo sem_sessao |
 | só a descrição | `{"campos": ["descricao"], "tabela": "produtos"}`, como antes |
 
-Os valores em `preco_de` e `preco_para` ficam em `logs_auditoria`, que só admin e gestor leem. O piso e a margem em por cento, somados ao preço, permitem calcular o custo. Se um gestor sem a permissão de ver custo não deve poder fazer essa conta, a leitura de `logs_auditoria` precisa de uma regra por ação. Isso não está nesta migração.
+Os valores em `preco_de` e `preco_para` ficam em `logs_auditoria`, que só admin e gestor leem. Preço não é custo, então pode.
 
 A frase do histórico na tela (`frasesDoHistorico` em `src/domain/catalogo/pasta-do-produto.ts`) ainda mostra só o nome do campo. Ler os valores novos é trabalho da tela, de outra tarefa.
 
@@ -185,7 +185,7 @@ UPDATE public.produto_ficha SET ia_habilitado = true WHERE produto_id = '<id do 
 ## Riscos
 
 1. **O histórico com preço bloqueia a troca de preço se o rastro falhar.** É de propósito, para o rastro não sumir em silêncio. O ensaio provou o caminho feliz com pessoa, chave de serviço e sem sessão. A única chave estrangeira é `usuario_id`, tratada com a subconsulta em `usuarios`.
-2. **Piso e margem no histórico permitem calcular o custo** para quem lê `logs_auditoria` (admin e gestor). Ver o item 5.
+2. **Resolvido na revisão:** piso e margem em número foram tirados do histórico e o aviso do item 3 não grava custo em reais, porque gestor sem permissão de custo lê `logs_auditoria`.
 3. **O aviso do item 3 pode gerar volume** quando muitos itens forem editados de uma vez. Hoje 17 itens gravados estão fora da faixa.
 4. **A IA fica desligada em 13 produtos** até a proposta de preço ser decidida. Quem pergunta por eles no WhatsApp deixa de receber resposta automática de preço.
 5. **O backfill dos 30 cálculos 3D não foi feito** (imutabilidade). O piso só existe nos cálculos novos.
@@ -471,16 +471,16 @@ BEGIN
   v_rel := v_rel || E'\n    item depois: custo_unitario=' || v_item.custo_unitario || ' (nao alterado pelo aviso) valor_unitario=' || v_item.valor_unitario;
   IF v_item.custo_unitario <> 1000000 THEN RAISE EXCEPTION 'o aviso alterou o custo'; END IF;
   -- dentro da faixa: nao avisa
-  UPDATE public.orcamento_itens SET custo_unitario = round((v_j->>'custo_esperado_da_linha')::numeric / GREATEST(COALESCE(v_item.quantidade, 1), 1), 4) WHERE id = v_item_id;
+  UPDATE public.orcamento_itens SET custo_unitario = round((SELECT round(p.custo_medio * CASE WHEN lower(btrim(COALESCE(p.unidade, ''))) IN ('m2', 'm²') AND COALESCE(oi.area_cobrada, 0) > 0 THEN oi.area_cobrada ELSE GREATEST(COALESCE(oi.quantidade, 1), 1) END, 2) FROM public.orcamento_itens oi JOIN public.produtos p ON p.id = oi.produto_id WHERE oi.id = v_item_id) / GREATEST(COALESCE(v_item.quantidade, 1), 1), 4) WHERE id = v_item_id;
   SELECT count(*) INTO v_n2 FROM public.logs_auditoria WHERE acao = 'custo_fora_da_faixa';
   v_rel := v_rel || E'\n    voltou para o esperado: avisos=' || v_n2 || ' (nao cresce)';
   IF v_n2 <> v_n1 THEN RAISE EXCEPTION 'avisou dentro da faixa'; END IF;
   -- 30 por cento exatos: sem aviso; 31: com aviso
-  UPDATE public.orcamento_itens SET custo_unitario = round((v_j->>'custo_esperado_da_linha')::numeric / GREATEST(COALESCE(v_item.quantidade, 1), 1) * 1.25, 6) WHERE id = v_item_id;
+  UPDATE public.orcamento_itens SET custo_unitario = round((SELECT round(p.custo_medio * CASE WHEN lower(btrim(COALESCE(p.unidade, ''))) IN ('m2', 'm²') AND COALESCE(oi.area_cobrada, 0) > 0 THEN oi.area_cobrada ELSE GREATEST(COALESCE(oi.quantidade, 1), 1) END, 2) FROM public.orcamento_itens oi JOIN public.produtos p ON p.id = oi.produto_id WHERE oi.id = v_item_id) / GREATEST(COALESCE(v_item.quantidade, 1), 1) * 1.25, 6) WHERE id = v_item_id;
   SELECT count(*) INTO v_n2 FROM public.logs_auditoria WHERE acao = 'custo_fora_da_faixa';
   v_rel := v_rel || E'\n    25 por cento acima: avisos=' || v_n2 || ' (sem aviso dentro do limite de 30)';
   IF v_n2 <> v_n1 THEN RAISE EXCEPTION 'avisou a 25 por cento'; END IF;
-  UPDATE public.orcamento_itens SET custo_unitario = round((v_j->>'custo_esperado_da_linha')::numeric / GREATEST(COALESCE(v_item.quantidade, 1), 1) * 1.40, 6) WHERE id = v_item_id;
+  UPDATE public.orcamento_itens SET custo_unitario = round((SELECT round(p.custo_medio * CASE WHEN lower(btrim(COALESCE(p.unidade, ''))) IN ('m2', 'm²') AND COALESCE(oi.area_cobrada, 0) > 0 THEN oi.area_cobrada ELSE GREATEST(COALESCE(oi.quantidade, 1), 1) END, 2) FROM public.orcamento_itens oi JOIN public.produtos p ON p.id = oi.produto_id WHERE oi.id = v_item_id) / GREATEST(COALESCE(v_item.quantidade, 1), 1) * 1.40, 6) WHERE id = v_item_id;
   SELECT count(*) INTO v_n2 FROM public.logs_auditoria WHERE acao = 'custo_fora_da_faixa';
   v_rel := v_rel || E'\n    40 por cento acima: avisos=' || v_n2 || ' (avisa)';
   IF v_n2 <> v_n1 + 1 THEN RAISE EXCEPTION 'limite errado'; END IF;
@@ -528,9 +528,12 @@ BEGIN
      OR (v_j->>'preco_para')::numeric <> v_prod.preco_base + 1 OR (v_j->>'custo_mudou')::boolean THEN
     RAISE EXCEPTION 'historico de preco errado';
   END IF;
-  IF (v_j->>'piso_antes')::numeric <> round(v_prod.custo_medio / (1 - v_prod.margem_minima / 100), 2) THEN RAISE EXCEPTION 'piso errado'; END IF;
-  IF (v_j->>'margem_antes')::numeric <> round((v_prod.preco_base - v_prod.custo_medio) / v_prod.preco_base * 100, 2) THEN RAISE EXCEPTION 'margem antes errada'; END IF;
-  IF (v_j->>'margem_depois')::numeric <> round((v_prod.preco_base + 1 - v_prod.custo_medio) / (v_prod.preco_base + 1) * 100, 2) THEN RAISE EXCEPTION 'margem depois errada'; END IF;
+  IF (v_j->>'abaixo_do_piso_antes')::boolean IS DISTINCT FROM (v_prod.preco_base < COALESCE(public._preco_piso(v_prod.custo_medio, v_prod.margem_minima), 0))
+     OR (v_j->>'abaixo_do_piso_depois')::boolean IS DISTINCT FROM (v_prod.preco_base + 1 < COALESCE(public._preco_piso(v_prod.custo_medio, v_prod.margem_minima), 0)) THEN
+    RAISE EXCEPTION 'abaixo do piso errado';
+  END IF;
+  -- nada que, somado ao preco, devolva o custo: so booleanos e preco
+  IF v_j::text ~ '(piso_antes|piso_depois|margem_antes|margem_depois|custo_medio)' THEN RAISE EXCEPTION 'custo derivavel no detalhe'; END IF;
   -- custo muda
   SELECT custo_medio INTO v_cm FROM public.produtos WHERE id = v_prod.id;
   v_ids := ARRAY(SELECT id FROM public.logs_auditoria WHERE entidade = 'produtos' AND entidade_id = v_prod.id AND acao = 'update');
@@ -542,7 +545,7 @@ BEGIN
   UPDATE public.produtos SET margem_minima = margem_minima + 1 WHERE id = v_prod.id;
   SELECT detalhes INTO v_j FROM public.logs_auditoria WHERE entidade = 'produtos' AND entidade_id = v_prod.id AND acao = 'update' AND id <> ALL (v_ids) LIMIT 1;
   v_rel := v_rel || E'\n    margem minima +1: ' || COALESCE(v_j::text, 'sem linha nova');
-  IF NOT (v_j->'campos') ? 'margem_minima' OR (v_j->>'piso_antes')::numeric = (v_j->>'piso_depois')::numeric OR (v_j ? 'custo_medio') THEN RAISE EXCEPTION 'historico de margem minima errado'; END IF;
+  IF NOT (v_j->'campos') ? 'margem_minima' OR NOT (v_j ? 'preco_de') OR (v_j ? 'custo_medio') OR v_j::text ~ '(piso_antes|piso_depois|margem_antes|margem_depois)' THEN RAISE EXCEPTION 'historico de margem minima errado'; END IF;
   PERFORM set_config('request.jwt.claim.sub', '', true);
   PERFORM set_config('request.jwt.claims', '{"role":"service_role"}', true);
   PERFORM set_config('request.jwt.claim.role', 'service_role', true);

@@ -208,6 +208,13 @@ describe("3. aviso de custo fora da faixa", () => {
     expect(corpo).toMatch(/EXCEPTION WHEN OTHERS THEN\s+RAISE WARNING[^;]*SQLERRM/);
   });
 
+  it("o registro não leva custo em reais (gestor sem permissão de custo lê logs_auditoria)", () => {
+    const i = corpo.indexOf("jsonb_build_object(");
+    const detalhe = corpo.slice(i, corpo.indexOf(");", i));
+    expect(detalhe).not.toMatch(/v_gravado|v_esperado|v_custo_medio|custo_gravado|custo_esperado/);
+    expect(detalhe).toContain("'diferenca_pct', v_dif");
+  });
+
   it("não mexe no gatilho de custo do produto", () => {
     expect(codigo).not.toMatch(/FUNCTION public\.tg_orcamento_item_custo_do_produto/);
     expect(codigo).not.toMatch(/tg_orcamento_itens_zz_custo_do_produto/);
@@ -237,10 +244,8 @@ describe("5. histórico de preço da pasta do produto", () => {
     for (const k of [
       "preco_de",
       "preco_para",
-      "piso_antes",
-      "piso_depois",
-      "margem_antes",
-      "margem_depois",
+      "abaixo_do_piso_antes",
+      "abaixo_do_piso_depois",
       "custo_mudou",
       "autor_tipo",
       "autor_id",
@@ -260,6 +265,9 @@ describe("5. histórico de preço da pasta do produto", () => {
     );
     const chaves = [...bloco.matchAll(/'(\w+)',/g)].map((m) => m[1]);
     expect(chaves.filter((c) => c.includes("custo"))).toEqual(["custo_mudou"]);
+    // logs_auditoria é lido por gestor sem permissão de custo: piso ou margem em número, somados ao preço, dão o custo.
+    expect(bloco).not.toMatch(/'(piso|margem)_(antes|depois)'/);
+    expect(bloco).not.toMatch(/_preco_margem/);
   });
 
   it("a gravação com preço não engole erro; as outras mantêm o aviso", () => {

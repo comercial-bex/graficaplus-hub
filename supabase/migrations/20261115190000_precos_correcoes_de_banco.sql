@@ -10,13 +10,15 @@
 -- 2) preco_proposta_criar(produto, preço, motivo): proposta manual, só admin ou gestor que vê custo (o mesmo
 --    critério de preco_proposta_aprovar). Nunca altera preco_base. CHECK de origem ganha 'manual' (aditivo).
 -- 3) AVISO (não bloqueia, não altera valor): item de orçamento cujo custo gravado difere mais de 30 por cento
---    de custo_medio do produto vezes a área cobrada. Grava uma linha em logs_auditoria e mais nada.
+--    de custo_medio do produto vezes a área cobrada. Grava uma linha em logs_auditoria e mais nada, só com a
+--    diferença em por cento (sem custo em reais: gestor sem permissão de custo lê esse log).
 -- 4) orcamento_3d_calculos.preco_minimo: gatilho que grava custo operacional dividido por 0,70 quando vem 0.
 --    Os 30 registros que já existem NÃO são regravados: a tabela é imutável por gatilho de propósito (gere nova
 --    versão) e liberar isso só para um backfill abriria a regra. Ver docs/ensaio-precos-correcoes-15-11.md.
 -- 5) tg_historico_da_pasta_do_produto passa a gravar, quando preço, custo ou margem mínima mudam: preço de e
---    para, piso antes e depois, margem antes e depois, se o custo mudou e o autor (pessoa, chave de serviço ou
---    sem sessão). O valor do custo em reais NÃO é gravado.
+--    para, se estava abaixo do piso antes e depois (verdadeiro ou falso), se o custo mudou e o autor (pessoa,
+--    chave de serviço ou sem sessão). Nem o custo, nem o piso, nem a margem em números: logs_auditoria é lido
+--    por gestor sem permissão de custo e piso ou margem somados ao preço dão o custo.
 -- 6) Custo zero preenchido nos itens de orçamento NÃO aprovados e NÃO convertidos, pela regra do próprio
 --    gatilho de custo (tg_orcamento_item_custo_do_produto, que não é alterado). Só onde custo = 0.
 -- 7) ia_habilitado desligado (reversível, com rastro) nos produtos ativos sem preço válido, abaixo do piso ou
@@ -206,7 +208,6 @@ BEGIN
     VALUES ((SELECT u.id FROM public.usuarios u WHERE u.id = v_uid), 'orcamento_itens', NEW.id, 'custo_fora_da_faixa',
             jsonb_build_object('orcamento_id', NEW.orcamento_id, 'produto_id', NEW.produto_id, 'produto', v_nome,
                                'quantidade', v_qtd, 'area_cobrada', NEW.area_cobrada,
-                               'custo_gravado_da_linha', v_gravado, 'custo_esperado_da_linha', v_esperado,
                                'diferenca_pct', v_dif, 'limite_pct', 30));
   EXCEPTION WHEN OTHERS THEN
     RAISE WARNING 'aviso de custo fora da faixa do item % não registrado: % (%)', NEW.id, SQLERRM, SQLSTATE;
@@ -280,10 +281,8 @@ BEGIN
       v_detalhes := v_detalhes || jsonb_build_object(
         'preco_de', OLD.preco_base,
         'preco_para', NEW.preco_base,
-        'piso_antes', public._preco_piso(OLD.custo_medio, OLD.margem_minima),
-        'piso_depois', public._preco_piso(NEW.custo_medio, NEW.margem_minima),
-        'margem_antes', public._preco_margem(OLD.preco_base, OLD.custo_medio),
-        'margem_depois', public._preco_margem(NEW.preco_base, NEW.custo_medio),
+        'abaixo_do_piso_antes', COALESCE(OLD.preco_base, 0) < COALESCE(public._preco_piso(OLD.custo_medio, OLD.margem_minima), 0),
+        'abaixo_do_piso_depois', COALESCE(NEW.preco_base, 0) < COALESCE(public._preco_piso(NEW.custo_medio, NEW.margem_minima), 0),
         'custo_mudou', (v_mudou @> ARRAY['custo_medio']),
         'autor_tipo', CASE WHEN v_uid IS NOT NULL THEN 'pessoa'
                            WHEN v_papel = 'service_role' THEN 'chave_de_servico'
