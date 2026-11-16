@@ -29,6 +29,8 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaCampo } from "@/lib/dicas";
 import { Checkbox } from "@/components/ui/checkbox";
 import { detalhesValidacao, validarParceiro, preferenciaAvisos } from "@/lib/parceiro-avisos-api";
+import { eContaDeTeste, marcarContaDeTeste } from "@/lib/parceiro-atendimento-api";
+import { useAuth } from "@/lib/auth-context";
 
 /** Crédito manual: bonificação combinada fora das metas, ou correção. Sempre com motivo. */
 export function CreditoDialog({
@@ -144,6 +146,31 @@ export function CadastroDialog({
     enabled: !!parceiro,
     queryFn: () => (parceiro ? detalhesValidacao(parceiro.id) : Promise.resolve(null)),
   });
+  const { hasPermission } = useAuth();
+  const podeGerir = hasPermission("parceiros.manage");
+  const teste = useQuery({
+    queryKey: ["parceiro-teste", parceiro?.id],
+    enabled: !!parceiro && podeGerir,
+    queryFn: () => (parceiro ? eContaDeTeste(parceiro.id) : Promise.resolve(null)),
+  });
+
+  async function mudarTeste(v: boolean) {
+    if (!parceiro) return;
+    setSalvando(true);
+    try {
+      await marcarContaDeTeste(parceiro.id, v);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["parceiro-teste"] }),
+        qc.invalidateQueries({ queryKey: ["parceiros-sem-contato"] }),
+        qc.invalidateQueries({ queryKey: ["parceiro-aviso-publico"] }),
+      ]);
+      toast.success(v ? "Marcado como conta de teste." : "Deixou de ser conta de teste.");
+    } catch (e) {
+      toast.error(mensagemErro(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   async function registrarValidacao() {
     if (!parceiro) return;
@@ -283,6 +310,19 @@ export function CadastroDialog({
               />
               Não receber avisos
             </label>
+            {podeGerir && typeof teste.data === "boolean" && (
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={teste.data}
+                  disabled={salvando}
+                  onCheckedChange={(v) => mudarTeste(v === true)}
+                />
+                Conta de teste
+                <span className="text-xs text-muted-foreground">
+                  (fora dos avisos, dos lembretes e da lista de atendimento)
+                </span>
+              </label>
+            )}
             {detalhes.data === null && (
               <p className="text-xs text-muted-foreground">
                 Validação e preferência de avisos aguardam ativação autorizada.

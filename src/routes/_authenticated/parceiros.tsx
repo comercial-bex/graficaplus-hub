@@ -49,6 +49,7 @@ import { resumoDosParceiros, type ResumoDoParceiro } from "@/lib/parceiro-api";
 import { brl } from "@/domain/parceiros/preco";
 import { sinalDeRetencao } from "@/domain/parceiros/retencao";
 import { AvisosTab } from "@/components/parceiros/avisos-tab";
+import { AtendimentoDosParceiros } from "@/components/parceiros/atendimento-dos-parceiros";
 
 export const Route = createFileRoute("/_authenticated/parceiros")({
   head: () => ({
@@ -238,6 +239,8 @@ function ParceirosPage() {
               />
             </Dica>
           </div>
+
+          <AtendimentoDosParceiros />
 
           <ComoComecar
             parceiros={parceiros.length}

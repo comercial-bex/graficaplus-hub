@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, Gift, Users, Wallet, Sparkles, Headset } from "lucide-react";
+import { Save, Gift, Users, Wallet, Sparkles, Headset, BellRing } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,19 @@ interface Programa {
   entrada_pedido_minimo?: number;
   entrada_max_pct_pedido?: number;
   atendente_padrao_id?: string | null;
+  // Migração 20261116150000: sem ela, o bloco de lembretes não aparece.
+  lembrete_equipe_ativo?: boolean;
+  lembrete_equipe_horas?: number;
+  lembrete_credito_ativo?: boolean;
+  lembrete_credito_dias?: number;
 }
+
+const CAMPOS_LEMBRETES: (keyof Programa)[] = [
+  "lembrete_equipe_ativo",
+  "lembrete_equipe_horas",
+  "lembrete_credito_ativo",
+  "lembrete_credito_dias",
+];
 
 const CAMPOS_ENTRADA: (keyof Programa)[] = [
   "entrada_ativa",
@@ -102,6 +114,7 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
 
   const temEntrada = !!data && "entrada_ativa" in data;
   const temAtendente = !!data && "atendente_padrao_id" in data;
+  const temLembretes = !!data && "lembrete_equipe_ativo" in data;
 
   // Quem pode ser atendente padrão: usuários ativos da equipe (não os logins de
   // parceiro), com quantos parceiros cada um já atende.
@@ -150,6 +163,7 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
         ...CAMPOS,
         ...(temEntrada ? CAMPOS_ENTRADA : []),
         ...(temAtendente ? (["atendente_padrao_id"] as (keyof Programa)[]) : []),
+        ...(temLembretes ? CAMPOS_LEMBRETES : []),
       ];
       const dados = Object.fromEntries(campos.map((k) => [k, r[k]]));
       const { error } = await (supabase as any)
@@ -384,6 +398,56 @@ export function ProgramaTab({ podeEditar }: { podeEditar: boolean }) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </section>
+      )}
+
+      {temLembretes && (
+        <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <BellRing className="h-4 w-4 text-muted-foreground" />
+            Lembretes automáticos
+          </h3>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium">Cobrar a equipe</p>
+              <Switch
+                checked={!!r.lembrete_equipe_ativo}
+                disabled={!podeEditar}
+                onCheckedChange={(v) => setR({ ...r, lembrete_equipe_ativo: v })}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              De segunda a sábado, às 09:10, uma mensagem no grupo da equipe lista os parceiros com
+              quem ninguém falou (ou que escreveram e não tiveram resposta), citando o atendente e o
+              gestor. Se ninguém estiver esperando, não sai nada.
+            </p>
+            <div className="max-w-xs">
+              {campo(
+                "lembrete_equipe_horas",
+                "Cobrar depois de",
+                "horas sem contato",
+                "Padrão 48 horas.",
+              )}
+            </div>
+          </div>
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium">Lembrar o parceiro do crédito</p>
+              <Switch
+                checked={!!r.lembrete_credito_ativo}
+                disabled={!podeEditar}
+                onCheckedChange={(v) => setR({ ...r, lembrete_credito_ativo: v })}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              De segunda a sábado, às 10:15, quem ainda não comprou e tem crédito de entrada perto
+              de vencer recebe uma mensagem no WhatsApp, uma vez só por crédito. Conta como o aviso
+              da semana dele, e quem pediu para sair não recebe.
+            </p>
+            <div className="max-w-xs">
+              {campo("lembrete_credito_dias", "Avisar quando faltarem", "dias", "Padrão 7 dias.")}
+            </div>
           </div>
         </section>
       )}
