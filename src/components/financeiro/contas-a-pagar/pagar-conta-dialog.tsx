@@ -20,7 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { mensagemErro } from "@/lib/erros";
-import { problemaDaDataDoPagamento } from "@/domain/financeiro/contas-a-pagar-anexos";
+import {
+  ORIGEM_DINHEIRO,
+  problemaDaDataDoPagamento,
+  problemaDaOrigem,
+} from "@/domain/financeiro/contas-a-pagar-anexos";
 import { CampoDeAnexos } from "./campo-de-anexos";
 import {
   useEnviarAnexos,
@@ -43,14 +47,17 @@ export interface ContaBancariaDaLista {
   banco?: string | null;
 }
 
-const SEM_CONTA = "nao-informada";
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dia = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
 
 /**
  * "Pagar" não grava no clique: este diálogo mostra o que vai sair, de onde e quando, e só a
  * confirmação aqui chama o banco. A data começa em hoje, aceita data passada e recusa futura.
- * O comprovante é opcional; sem ele a linha da conta fica com o aviso "sem comprovante".
+ *
+ * De onde saiu o dinheiro é obrigatório (Fase 2A, 16/11/2026): não há mais "Não informar" nem
+ * escolha feita pela tela. Ou uma conta bancária, ou "Dinheiro / caixa físico", que exige o
+ * comprovante: nesse caso o arquivo sobe ANTES do pagamento, porque o banco só aceita dinheiro com
+ * comprovante já anexado. Com conta bancária o comprovante segue opcional (aviso "sem comprovante").
  */
 export function PagarContaDialog({
   conta,
@@ -70,24 +77,47 @@ export function PagarContaDialog({
   const { podeAnexar } = usePodeNaContaAPagar();
   const pagar = usePagarConta();
   const enviar = useEnviarAnexos();
-  // A tela monta o diálogo com `key` = id da conta: cada conta recomeça do zero, com hoje, a
-  // única conta bancária (quando só há uma) e nenhum arquivo.
+  // A tela monta o diálogo com `key` = id da conta: cada conta recomeça do zero, com hoje, sem
+  // origem escolhida e nenhum arquivo.
   const [data, setData] = useState(hoje);
-  const [contaBancaria, setContaBancaria] = useState(() =>
-    contasBancarias.length === 1 ? contasBancarias[0].conta_id : SEM_CONTA,
-  );
+  const [origem, setOrigem] = useState("");
   const [comprovantes, setComprovantes] = useState<ArquivoParaEnviar[]>([]);
 
+  const emDinheiro = origem === ORIGEM_DINHEIRO;
   const problemaDaData = problemaDaDataDoPagamento(data, hoje);
+  const problemaDeOrigem = problemaDaOrigem(origem, comprovantes.length);
 
   const confirmar = useMutation({
     mutationFn: async () => {
       if (!conta) throw new Error("Nenhuma conta escolhida.");
       if (problemaDaData) throw new Error(problemaDaData);
+      if (problemaDeOrigem) throw new Error(problemaDeOrigem);
+      if (emDinheiro) {
+        // Dinheiro: o comprovante primeiro. Sem ele anexado o banco recusa o pagamento.
+        const envio = await enviar(conta.id, comprovantes);
+        if (envio.enviados === 0)
+          throw new Error(
+            `O comprovante não foi anexado, e sem ele o pagamento em dinheiro não é registrado. ${envio.falhas.join(" ")}`,
+          );
+        try {
+          await pagar({
+            contaId: conta.id,
+            dataPagamento: data,
+            contaBancariaId: null,
+            emDinheiro: true,
+          });
+        } catch (e) {
+          throw new Error(
+            `${mensagemErro(e)} O comprovante ficou anexado à conta, que segue em aberto.`,
+          );
+        }
+        return envio;
+      }
       await pagar({
         contaId: conta.id,
         dataPagamento: data,
-        contaBancariaId: contaBancaria === SEM_CONTA ? null : contaBancaria,
+        contaBancariaId: origem,
+        emDinheiro: false,
       });
       // O pagamento já está gravado. Arquivo que não subir não desfaz o pagamento: vira aviso.
       return comprovantes.length > 0 ? enviar(conta.id, comprovantes) : { enviados: 0, falhas: [] };
@@ -107,7 +137,7 @@ export function PagarContaDialog({
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
-  const bancoEscolhido = contasBancarias.find((b) => b.conta_id === contaBancaria);
+  const bancoEscolhido = contasBancarias.find((b) => b.conta_id === origem);
 
   return (
     <Dialog open={!!conta} onOpenChange={(aberto) => !aberto && !confirmar.isPending && onFechar()}>
@@ -133,14 +163,14 @@ export function PagarContaDialog({
             </dl>
 
             <div className="space-y-1.5">
-              <Label htmlFor="pagar-conta-bancaria">Conta de onde sai o dinheiro</Label>
-              <Select
-                value={contaBancaria}
-                onValueChange={setContaBancaria}
-                disabled={confirmar.isPending}
-              >
-                <SelectTrigger id="pagar-conta-bancaria">
-                  <SelectValue />
+              <Label htmlFor="pagar-conta-bancaria">De onde saiu o dinheiro (obrigatório)</Label>
+              <Select value={origem} onValueChange={setOrigem} disabled={confirmar.isPending}>
+                <SelectTrigger
+                  id="pagar-conta-bancaria"
+                  aria-invalid={!origem}
+                  aria-describedby="pagar-origem-ajuda"
+                >
+                  <SelectValue placeholder="Escolha a conta bancária ou dinheiro" />
                 </SelectTrigger>
                 <SelectContent>
                   {contasBancarias.map((b) => (
@@ -148,15 +178,24 @@ export function PagarContaDialog({
                       {b.banco ? `${b.nome} · ${b.banco}` : b.nome}
                     </SelectItem>
                   ))}
-                  <SelectItem value={SEM_CONTA}>Não informar (dinheiro ou outra conta)</SelectItem>
+                  <SelectItem value={ORIGEM_DINHEIRO}>Dinheiro / caixa físico</SelectItem>
                 </SelectContent>
               </Select>
-              {contasBancarias.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Nenhuma conta bancária cadastrada. Cadastre em Contas bancárias para registrar a
-                  origem.
-                </p>
-              )}
+              <p
+                id="pagar-origem-ajuda"
+                className={
+                  origem && problemaDeOrigem
+                    ? "text-xs text-destructive"
+                    : "text-xs text-muted-foreground"
+                }
+              >
+                {emDinheiro
+                  ? (problemaDeOrigem ??
+                    "Dinheiro: o comprovante sobe antes de gravar o pagamento.")
+                  : contasBancarias.length === 0
+                    ? "Nenhuma conta bancária cadastrada. Cadastre em Contas bancárias, ou pague em dinheiro com comprovante."
+                    : "A conta bancária de onde o dinheiro saiu, ou dinheiro com comprovante."}
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -183,7 +222,9 @@ export function PagarContaDialog({
 
             {pacoteAtivo && podeAnexar && (
               <div className="space-y-1.5">
-                <Label htmlFor="pagar-comprovante">Comprovante de pagamento (opcional)</Label>
+                <Label htmlFor="pagar-comprovante">
+                  Comprovante de pagamento {emDinheiro ? "(obrigatório no dinheiro)" : "(opcional)"}
+                </Label>
                 <CampoDeAnexos
                   id="pagar-comprovante"
                   itens={comprovantes}
@@ -196,7 +237,7 @@ export function PagarContaDialog({
 
             <p className="rounded-md bg-muted p-3 text-sm">
               Vai sair <strong className="tabular-nums">{brl(conta.valor)}</strong>
-              {bancoEscolhido ? ` de ${bancoEscolhido.nome}` : ""}
+              {bancoEscolhido ? ` de ${bancoEscolhido.nome}` : emDinheiro ? " em dinheiro" : ""}
               {!problemaDaData ? ` em ${dia(data)}` : ""}.
             </p>
           </div>
@@ -208,7 +249,7 @@ export function PagarContaDialog({
           </Button>
           <Button
             onClick={() => confirmar.mutate()}
-            disabled={!conta || !!problemaDaData || confirmar.isPending}
+            disabled={!conta || !!problemaDaData || !!problemaDeOrigem || confirmar.isPending}
           >
             {confirmar.isPending
               ? "Gravando…"

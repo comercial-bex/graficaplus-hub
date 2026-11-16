@@ -24872,6 +24872,7 @@ export type Database = {
       baixar_parcela_compromisso: {
         Args: {
           p_comprovante_url?: string
+          p_conta_bancaria_id?: string
           p_conta_id: string
           p_data_pagamento: string
           p_forma_pagamento?: string

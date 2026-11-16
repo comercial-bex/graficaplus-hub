@@ -316,7 +316,14 @@ export function AnexosDaContaDialog({
                 {(historico.data ?? []).map((h) => {
                   const f = frasesDoHistorico(h);
                   return (
-                    <li key={h.id} className="border-l-2 border-border pl-3">
+                    <li
+                      key={h.id}
+                      className={
+                        h.evento === "tentativa_negada"
+                          ? "border-l-2 border-destructive pl-3"
+                          : "border-l-2 border-border pl-3"
+                      }
+                    >
                       <div className="text-sm font-medium">{f.titulo}</div>
                       {f.detalhe && (
                         <div className="text-sm text-muted-foreground break-words">{f.detalhe}</div>

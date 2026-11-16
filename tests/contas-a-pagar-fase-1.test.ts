@@ -404,7 +404,9 @@ describe("tela: pagar só depois de confirmar; estornar e remover só para admin
     const trecho = GANCHO.slice(ini, GANCHO.indexOf("\n}\n", ini));
     expect(trecho).toContain('"pagar_conta_pagar"');
     expect(trecho).toContain("p_data_pagamento: p.dataPagamento");
-    expect(trecho).toContain("p_conta_bancaria_id: p.contaBancariaId");
+    // Fase 2A: dinheiro vai sem conta bancária e com a forma "Dinheiro"; o resto, com a conta escolhida.
+    expect(trecho).toContain("p_conta_bancaria_id: p.emDinheiro ? null : p.contaBancariaId");
+    expect(trecho).toContain("p_forma_pagamento: p.emDinheiro ? FORMA_DINHEIRO : null");
     expect(trecho).not.toContain(".update(");
     expect(trecho).not.toContain(".insert(");
     expect(trecho).not.toContain("pacoteAtivo");

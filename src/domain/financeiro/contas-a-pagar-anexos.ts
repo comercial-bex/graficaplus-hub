@@ -170,7 +170,8 @@ export type EventoDoHistorico =
   | "cancelada"
   | "excluida"
   | "anexo_enviado"
-  | "anexo_removido";
+  | "anexo_removido"
+  | "tentativa_negada";
 
 export interface LinhaDoHistorico {
   id: string;
@@ -192,6 +193,7 @@ const VERBO: Record<EventoDoHistorico, string> = {
   excluida: "Excluiu a conta",
   anexo_enviado: "Anexou",
   anexo_removido: "Removeu o anexo",
+  tentativa_negada: "Tentativa negada",
 };
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -213,17 +215,53 @@ export function frasesDoHistorico(h: LinhaDoHistorico): { titulo: string; detalh
       detalhe: h.motivo ? `Motivo: ${h.motivo}` : null,
     };
   }
+  // Fase 2A: o banco recusou por permissão e registrou quem tentou o quê (a mensagem vai em motivo).
+  if (h.evento === "tentativa_negada") {
+    const acao = typeof d.acao === "string" ? d.acao : "ação";
+    return { titulo: `${verbo}: ${acao}`, detalhe: h.motivo ?? null };
+  }
   if (h.valor !== null && h.valor !== undefined && h.evento !== "criada")
     partes.push(brl(Number(h.valor)));
   if (h.evento === "paga" && h.data_pagamento) partes.push(`pago em ${dataBr(h.data_pagamento)}`);
   if (h.evento === "paga" && typeof d.conta_bancaria === "string")
     partes.push(`saiu de ${d.conta_bancaria}`);
+  else if (h.evento === "paga" && d.forma_pagamento === "Dinheiro") partes.push("em dinheiro");
   if (h.evento === "estornada" && h.data_pagamento)
     partes.push(`pagamento de ${dataBr(h.data_pagamento)}`);
   if (h.evento === "criada" && h.valor !== null && h.valor !== undefined)
     partes.push(brl(Number(h.valor)));
   if (h.motivo) partes.push(`motivo: ${h.motivo}`);
   return { titulo: verbo, detalhe: partes.length > 0 ? partes.join(" · ") : null };
+}
+
+/**
+ * Fase 2A (migração 20261116210000): quando o banco nega por permissão, a função NÃO dispara erro (o erro
+ * desfaria a linha de "tentativa negada" no histórico); ela devolve `{ negado: true, mensagem }`, com
+ * sucesso no protocolo. Toda tela que chama essas funções passa a resposta por aqui e trata como erro:
+ * sem isso a tela diria "feito" para o que o banco recusou.
+ */
+export function recusaDoBanco(resposta: unknown): string | null {
+  if (!resposta || typeof resposta !== "object") return null;
+  const r = resposta as { negado?: unknown; mensagem?: unknown };
+  if (r.negado !== true) return null;
+  return typeof r.mensagem === "string" && r.mensagem.trim() !== ""
+    ? r.mensagem
+    : "O banco recusou: sem permissão.";
+}
+
+/** "Dinheiro / caixa físico" no diálogo de pagar: não é conta bancária, é a forma de pagamento. */
+export const ORIGEM_DINHEIRO = "dinheiro";
+export const FORMA_DINHEIRO = "Dinheiro";
+
+/**
+ * De onde saiu o dinheiro (Fase 2A): obrigatório. Conta bancária, ou Dinheiro com comprovante.
+ * `origem` vazia é "ainda não escolheu"; o banco cobra a mesma regra.
+ */
+export function problemaDaOrigem(origem: string, comprovantes: number): string | null {
+  if (!origem) return "Escolha de onde saiu o dinheiro.";
+  if (origem === ORIGEM_DINHEIRO && comprovantes < 1)
+    return "Pagamento em dinheiro exige o comprovante (foto do recibo ou PDF).";
+  return null;
 }
 
 /**

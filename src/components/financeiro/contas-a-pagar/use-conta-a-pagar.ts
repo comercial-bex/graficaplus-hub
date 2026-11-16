@@ -4,9 +4,11 @@ import { useAuth } from "@/lib/auth-context";
 import { novoIdLocal } from "@/lib/arquivos-no-navegador";
 import {
   BUCKET_DE_ANEXOS,
+  FORMA_DINHEIRO,
   caminhoDoAnexo,
   mimeDoArquivo,
   problemaDoArquivo,
+  recusaDoBanco,
   type TipoDeAnexo,
 } from "@/domain/financeiro/contas-a-pagar-anexos";
 
@@ -79,14 +81,17 @@ export function useEnviarAnexos() {
           falhas.push(`"${arquivo.name}" não subiu: ${subida.error.message}`);
           continue;
         }
-        const { error } = await (supabase.rpc as any)("anexar_arquivo_conta_pagar", {
+        const { data, error } = await (supabase.rpc as any)("anexar_arquivo_conta_pagar", {
           p_conta_id: contaId,
           p_tipo: tipo,
           p_caminho: caminho,
           p_nome_arquivo: arquivo.name,
         });
-        if (error) {
-          falhas.push(`"${arquivo.name}" subiu mas não foi registrado: ${error.message}`);
+        const recusa = recusaDoBanco(data);
+        if (error || recusa) {
+          falhas.push(
+            `"${arquivo.name}" subiu mas não foi registrado: ${recusa ?? error?.message ?? "erro"}`,
+          );
           continue;
         }
         enviados++;
@@ -100,7 +105,10 @@ export function useEnviarAnexos() {
 export interface PedidoDePagamento {
   contaId: string;
   dataPagamento: string;
+  /** A conta bancária de origem; null só quando o pagamento é em dinheiro. */
   contaBancariaId: string | null;
+  /** Dinheiro / caixa físico: o banco exige o comprovante já anexado. */
+  emDinheiro: boolean;
 }
 
 /**
@@ -114,13 +122,15 @@ export function usePagarConta() {
   return useCallback(
     async (p: PedidoDePagamento): Promise<void> => {
       if (!podePagar) throw new Error("Pagar é com o financeiro.");
-      const { error } = await (supabase.rpc as any)("pagar_conta_pagar", {
+      const { data, error } = await (supabase.rpc as any)("pagar_conta_pagar", {
         p_conta_id: p.contaId,
         p_data_pagamento: p.dataPagamento,
-        p_conta_bancaria_id: p.contaBancariaId,
-        p_forma_pagamento: null,
+        p_conta_bancaria_id: p.emDinheiro ? null : p.contaBancariaId,
+        p_forma_pagamento: p.emDinheiro ? FORMA_DINHEIRO : null,
       });
       if (error) throw error;
+      const recusa = recusaDoBanco(data);
+      if (recusa) throw new Error(recusa);
     },
     [podePagar],
   );
@@ -138,6 +148,8 @@ export function useEstornarConta() {
         p_motivo: motivo.trim(),
       });
       if (error) throw error;
+      const recusa = recusaDoBanco(data);
+      if (recusa) throw new Error(recusa);
       return (data ?? {}) as Record<string, unknown>;
     },
     [admin],
@@ -160,6 +172,8 @@ export function useRemoverAnexo() {
         p_motivo: motivo?.trim() || null,
       });
       if (error) throw error;
+      const recusa = recusaDoBanco(data);
+      if (recusa) throw new Error(recusa);
       const caminho = (data as { caminho?: string } | null)?.caminho;
       if (!caminho) return { arquivoApagado: false };
       const { error: e2 } = await supabase.storage.from(BUCKET_DE_ANEXOS).remove([caminho]);

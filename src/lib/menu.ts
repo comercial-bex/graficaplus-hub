@@ -309,6 +309,8 @@ export const AREAS: AreaDoMenu[] = [
               aba("Contas bancárias e extrato", "/contas-bancarias", "Contas bancárias"),
               aba("Despesas fixas e contratos", "/compromissos", "Compromissos"),
               aba("Reembolsos", "/reembolsos"),
+              // Fase 2A (16/11/2026): só leitura, o que está pago sem prova ou sem origem.
+              aba("Conferência", "/conferencia-do-caixa"),
             ],
             { atalho: 2, curto: "Caixa", aba: "Caixa", antes: "Fluxo de caixa" },
           ),

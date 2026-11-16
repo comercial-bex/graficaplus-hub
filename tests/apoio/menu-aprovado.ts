@@ -173,7 +173,8 @@ function enxugarDeNovembro(b: ResumoDoMenu): void {
   fundirEmHub(
     b,
     "Financeiro",
-    { titulo: "Caixa e contas a pagar" },
+    // "Conferência" (Fase 2A, 16/11/2026) é aba nova, só leitura, com a porta do Caixa (financeiro.read).
+    { titulo: "Caixa e contas a pagar", abasNovasSeAberto: 1 },
     [
       { titulo: "Contas bancárias e extrato", url: "/contas-bancarias" },
       { titulo: "Despesas fixas e contratos", url: "/compromissos" },

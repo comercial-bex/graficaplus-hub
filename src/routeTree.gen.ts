@@ -29,6 +29,7 @@ import { Route as AuthenticatedCapacidadeRouteImport } from './routes/_authentic
 import { Route as AuthenticatedCasosDeUsoRouteImport } from './routes/_authenticated/casos-de-uso'
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedCompromissosRouteImport } from './routes/_authenticated/compromissos'
+import { Route as AuthenticatedConferenciaDoCaixaRouteImport } from './routes/_authenticated/conferencia-do-caixa'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConfiguracoes3dRouteImport } from './routes/_authenticated/configuracoes-3d'
 import { Route as AuthenticatedConfiguracoesAgenteRouteImport } from './routes/_authenticated/configuracoes-agente'
@@ -235,6 +236,12 @@ const AuthenticatedCompromissosRoute =
   AuthenticatedCompromissosRouteImport.update({
     id: '/compromissos',
     path: '/compromissos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConferenciaDoCaixaRoute =
+  AuthenticatedConferenciaDoCaixaRouteImport.update({
+    id: '/conferencia-do-caixa',
+    path: '/conferencia-do-caixa',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedConfiguracoesRoute =
@@ -826,6 +833,7 @@ export interface FileRoutesByFullPath {
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/compromissos': typeof AuthenticatedCompromissosRoute
+  '/conferencia-do-caixa': typeof AuthenticatedConferenciaDoCaixaRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-agente': typeof AuthenticatedConfiguracoesAgenteRoute
@@ -951,6 +959,7 @@ export interface FileRoutesByTo {
   '/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/compromissos': typeof AuthenticatedCompromissosRoute
+  '/conferencia-do-caixa': typeof AuthenticatedConferenciaDoCaixaRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/configuracoes-agente': typeof AuthenticatedConfiguracoesAgenteRoute
@@ -1079,6 +1088,7 @@ export interface FileRoutesById {
   '/_authenticated/casos-de-uso': typeof AuthenticatedCasosDeUsoRoute
   '/_authenticated/compras': typeof AuthenticatedComprasRoute
   '/_authenticated/compromissos': typeof AuthenticatedCompromissosRoute
+  '/_authenticated/conferencia-do-caixa': typeof AuthenticatedConferenciaDoCaixaRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-3d': typeof AuthenticatedConfiguracoes3dRoute
   '/_authenticated/configuracoes-agente': typeof AuthenticatedConfiguracoesAgenteRoute
@@ -1207,6 +1217,7 @@ export interface FileRouteTypes {
     | '/casos-de-uso'
     | '/compras'
     | '/compromissos'
+    | '/conferencia-do-caixa'
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-agente'
@@ -1332,6 +1343,7 @@ export interface FileRouteTypes {
     | '/casos-de-uso'
     | '/compras'
     | '/compromissos'
+    | '/conferencia-do-caixa'
     | '/configuracoes'
     | '/configuracoes-3d'
     | '/configuracoes-agente'
@@ -1459,6 +1471,7 @@ export interface FileRouteTypes {
     | '/_authenticated/casos-de-uso'
     | '/_authenticated/compras'
     | '/_authenticated/compromissos'
+    | '/_authenticated/conferencia-do-caixa'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-3d'
     | '/_authenticated/configuracoes-agente'
@@ -1743,6 +1756,13 @@ declare module '@tanstack/react-router' {
       path: '/compromissos'
       fullPath: '/compromissos'
       preLoaderRoute: typeof AuthenticatedCompromissosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/conferencia-do-caixa': {
+      id: '/_authenticated/conferencia-do-caixa'
+      path: '/conferencia-do-caixa'
+      fullPath: '/conferencia-do-caixa'
+      preLoaderRoute: typeof AuthenticatedConferenciaDoCaixaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes': {
@@ -2495,6 +2515,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCasosDeUsoRoute: typeof AuthenticatedCasosDeUsoRoute
   AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
   AuthenticatedCompromissosRoute: typeof AuthenticatedCompromissosRoute
+  AuthenticatedConferenciaDoCaixaRoute: typeof AuthenticatedConferenciaDoCaixaRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoes3dRoute: typeof AuthenticatedConfiguracoes3dRoute
   AuthenticatedConfiguracoesAgenteRoute: typeof AuthenticatedConfiguracoesAgenteRoute
@@ -2583,6 +2604,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCasosDeUsoRoute: AuthenticatedCasosDeUsoRoute,
   AuthenticatedComprasRoute: AuthenticatedComprasRoute,
   AuthenticatedCompromissosRoute: AuthenticatedCompromissosRoute,
+  AuthenticatedConferenciaDoCaixaRoute: AuthenticatedConferenciaDoCaixaRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoes3dRoute: AuthenticatedConfiguracoes3dRoute,
   AuthenticatedConfiguracoesAgenteRoute: AuthenticatedConfiguracoesAgenteRoute,
@@ -2726,6 +2748,7 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
 
 import type { getRouter } from './router.tsx'
 import type { startInstance } from './start.ts'
