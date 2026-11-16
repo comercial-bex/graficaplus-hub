@@ -297,3 +297,7 @@ END $ens$;
 10. **Testes de outras frentes que tive de ajustar.** `tests/custo-das-maquinas-pela-visao.test.ts` (espelho das colunas vivas de `maquinas`) ganhou as duas colunas novas, e `tests/privacidade-de-custo-banco.test.ts` passou a somar os `GRANT SELECT` por coluna de migrações posteriores à B3 antes de comparar com a lista do código. Sem isso as duas colunas novas quebrariam o CI.
 11. **Não feito:** trocar `desconto_avaliar` e `meta_por_produto` para o custo real; `types.ts` gerado e a tela; o lembrete diário e o cron; a permissão do financeiro; `produto_precificacao.custo_perdas` e `custo_extra` (a view calcula ao vivo e não precisou de coluna).
 12. **Fontes secundárias** (RAT, 13º e férias sem página oficial, salário mínimo sem reajuste extraordinário confirmado) seguem como no plano: a observação das linhas diz "Estimativa".
+
+## Revisão independente (16/11/2026): visão `maquinas_financeiro`
+
+A visão `maquinas_financeiro` lista as colunas uma a uma. Sem ajuste, quem vê custo (`lerMaquinas(true)`, `select("*")` na visão) receberia as duas colunas novas de velocidade vazias, enquanto quem não vê custo as receberia da tabela. A migração agora recria a visão com as duas colunas no fim e reafirma `security_barrier = true` e `security_invoker = false`. Ensaiada em transação desfeita no banco vivo: opções preservadas, 34 colunas, `SELECT` de `authenticated` mantido.

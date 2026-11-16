@@ -207,6 +207,20 @@ ALTER TABLE public.maquinas
 
 GRANT SELECT (velocidade_calculo_m2_h, velocidade_calculo_texto) ON public.maquinas TO authenticated;
 
+-- maquinas_financeiro lista as colunas uma a uma (nao e SELECT *): sem isto, quem ve custo (lerMaquinas(true) faz
+-- select("*") na visao) receberia MENOS colunas que quem nao ve, e a velocidade de calculo chegaria vazia so a ele.
+-- As duas colunas entram no FIM (CREATE OR REPLACE VIEW so aceita coluna nova no fim). A visao nasceu com
+-- security_barrier=true e security_invoker=false (definer): reafirmados, porque CREATE OR REPLACE descarta as opcoes.
+-- Os GRANTs da visao (authenticated SELECT) ficam como estao.
+CREATE OR REPLACE VIEW public.maquinas_financeiro WITH (security_barrier = true, security_invoker = false) AS
+ SELECT id, nome, tipo, ativa, created_at, custo_hora, potencia_kw, setup_min, velocidade_m2_h, disponibilidade_pct,
+        setor, updated_at, largura_util_m, margem_lateral_m, fabricante, modelo, numero_serie, imagem_url,
+        especificacoes, horas_produtivas_mensais, vida_util_horas, valor_residual, base_cobranca, tempo_minimo_min,
+        velocidade_mm_s, avanco_m, forma_aquisicao, valor_aquisicao, data_aquisicao, especificacoes_comerciais,
+        alimentacao, comprimento_util_m, velocidade_calculo_m2_h, velocidade_calculo_texto
+   FROM public.maquinas m
+  WHERE (public.is_staff((SELECT auth.uid() AS uid)) AND public.pode_ver_custo_de_maquina((SELECT auth.uid() AS uid)));
+
 COMMENT ON COLUMN public.maquinas.velocidade_calculo_m2_h IS
   'Velocidade que o CUSTO usa. Nulo = usa velocidade_m2_h. A nominal fica em velocidade_m2_h e é o que agenda e capacidade seguem.';
 COMMENT ON COLUMN public.maquinas.velocidade_calculo_texto IS

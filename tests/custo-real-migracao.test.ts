@@ -296,4 +296,13 @@ describe("roteiro de ensaio no documento", () => {
     expect(ensaio).toBeDefined();
     expect(ensaio).toMatch(/RAISE EXCEPTION E'ENSAIO OK, DESFEITO/);
   });
+
+  it("a visão do custo das máquinas ganha as colunas novas, no fim, mantendo as opções de segurança", () => {
+    const m = codigo.match(/CREATE OR REPLACE VIEW public\.maquinas_financeiro WITH \(([^)]*)\) AS([\s\S]*?);/);
+    expect(m, "maquinas_financeiro recriada").not.toBeNull();
+    expect(m![1]).toMatch(/security_barrier\s*=\s*true/);
+    expect(m![1]).toMatch(/security_invoker\s*=\s*false/);
+    expect(m![2]).toMatch(/comprimento_util_m,\s*velocidade_calculo_m2_h,\s*velocidade_calculo_texto\s+FROM public\.maquinas m/);
+    expect(m![2]).toContain("pode_ver_custo_de_maquina");
+  });
 });
