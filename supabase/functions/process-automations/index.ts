@@ -24,6 +24,7 @@ type NotificacaoFila = {
   canal: string;
   destinatario: string | null;
   evento?: string | null;
+  tentativas?: number | null;
   template: string;
   variaveis: JsonRecord | null;
 };
@@ -223,6 +224,19 @@ async function drenarFilaNotificacoes(limite: number) {
   const resultados = [];
   for (const item of pendentes) {
     try {
+      // O aviso privado ao gerente só sai pelo despachante do app, que confere se o número é de
+      // gestor ou admin. Aqui nunca: sem essa conferência o texto poderia ir a qualquer número.
+      // Não é falha: a reserva é desfeita (a tentativa devolvida, sem recuo) para esta função não
+      // gastar as tentativas nem marcar como enviado um aviso que ela não mandou.
+      if (item.evento === "aviso_gerente_privado" || item.template === "aviso_gerente_privado") {
+        await supabase
+          .from("notificacoes_fila")
+          .update({ status: "pendente", tentativas: Math.max(0, (item.tentativas ?? 1) - 1) })
+          .eq("id", item.id)
+          .eq("status", "enviando");
+        resultados.push({ id: item.id, status: "ignorada" });
+        continue;
+      }
       const template = porEvento.get(item.template);
       if (!template) {
         throw new Error(`Sem template cadastrado para o evento "${item.template}".`);
@@ -237,12 +251,6 @@ async function drenarFilaNotificacoes(limite: number) {
         });
         resultados.push({ id: item.id, status: "ignorada" });
         continue;
-      }
-
-      // O aviso privado ao gerente só sai pelo despachante do app, que confere se o número é de
-      // gestor ou admin. Aqui nunca: sem essa conferência o texto poderia ir a qualquer número.
-      if (item.evento === "aviso_gerente_privado" || item.template === "aviso_gerente_privado") {
-        throw new Error("aviso privado do gerente só sai pelo despachante do app");
       }
 
       const mensagem = renderTemplate(template.corpo, (item.variaveis ?? {}) as JsonRecord).trim();

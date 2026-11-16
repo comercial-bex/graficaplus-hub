@@ -84,6 +84,10 @@ describe("aviso privado ao gerente: ligações", () => {
 
   it("a função de borda nunca envia este aviso", () => {
     expect(EDGE).toContain('item.evento === "aviso_gerente_privado"');
+    // Antes de olhar o modelo (modelo desligado marcaria "enviado" sem enviar) e sem gastar tentativa.
+    expect(EDGE.indexOf('item.evento === "aviso_gerente_privado"')).toBeLessThan(EDGE.indexOf("porEvento.get(item.template)"));
+    expect(EDGE).toMatch(/tentativas: Math\.max\(0, \(item\.tentativas \?\? 1\) - 1\)/);
+    expect(EDGE).not.toContain("só sai pelo despachante do app\");");
   });
 });
 
