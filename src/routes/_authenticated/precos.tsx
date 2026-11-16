@@ -40,6 +40,9 @@ import { LEGENDA_DO_MINIMO, textosDoPrecoMinimo } from "@/domain/precos/preco-mi
 
 export const Route = createFileRoute("/_authenticated/precos")({
   head: () => ({ meta: [{ title: "Preços por produto — BEX PRINT OS" }] }),
+  // A Tabela de preços abre esta tela já filtrada no produto da linha ("Propor preço").
+  validateSearch: (s: Record<string, unknown>): { busca?: string } =>
+    typeof s.busca === "string" && s.busca.trim() !== "" ? { busca: s.busca.slice(0, 120) } : {},
   component: PrecosPage,
 });
 
@@ -69,7 +72,8 @@ function PrecosPage() {
   const painel = useQuery({ queryKey: CHAVE_DOS_PRECOS, queryFn: () => ler() });
   const [familia, setFamilia] = useState<string | null>(null);
   const [problema, setProblema] = useState<FiltroDeProblema>("todos");
-  const [busca, setBusca] = useState("");
+  const { busca: buscaDoLink } = Route.useSearch();
+  const [busca, setBusca] = useState(buscaDoLink ?? "");
   const [ordem, setOrdem] = useState<Ordem>("problema");
   const [visao, setVisao] = useState<"lista" | "mapa">("lista");
   const [celula, setCelula] = useState<CelulaDoMapa | null>(null);

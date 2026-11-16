@@ -101,59 +101,26 @@ export interface PedidoDePagamento {
   contaId: string;
   dataPagamento: string;
   contaBancariaId: string | null;
-  /** false quando a migração 20261116160000 ainda não foi aplicada: a função do banco não existe. */
-  pacoteAtivo: boolean;
 }
 
 /**
- * Pagar SÓ depois da confirmação no diálogo. Com a migração aplicada, uma chamada só:
- * `pagar_conta_pagar` marca a conta e lança a saída na data informada, na mesma transação.
- *
- * Sem a migração (a tela pode ser publicada antes de o dono aplicar), o caminho de antes,
- * agora com a data e a conta bancária do diálogo e sem pagar duas vezes. Este ramo existe só
- * para a transição: some quando a migração estiver aplicada (anotado nas pendências).
+ * Pagar SÓ depois da confirmação no diálogo, numa chamada só: `pagar_conta_pagar` marca a conta e
+ * lança a saída na data informada, na mesma transação, e confere no banco a chave e o financeiro.
+ * O caminho de antes (UPDATE na conta + INSERT no caixa, pela tela) saiu em 16/11/2026, com a
+ * migração 20261116160000 aplicada: eram duas gravações soltas, e a segunda podia falhar sozinha.
  */
 export function usePagarConta() {
   const { podePagar } = usePodeNaContaAPagar();
   return useCallback(
     async (p: PedidoDePagamento): Promise<void> => {
       if (!podePagar) throw new Error("Pagar é com o financeiro.");
-      if (p.pacoteAtivo) {
-        const { error } = await (supabase.rpc as any)("pagar_conta_pagar", {
-          p_conta_id: p.contaId,
-          p_data_pagamento: p.dataPagamento,
-          p_conta_bancaria_id: p.contaBancariaId,
-          p_forma_pagamento: null,
-        });
-        if (error) throw error;
-        return;
-      }
-      const { data: marcadas, error } = await supabase
-        .from("contas_pagar")
-        .update({ status: "paga", data_pagamento: p.dataPagamento })
-        .eq("id", p.contaId)
-        .neq("status", "paga")
-        .select("id, descricao, categoria, valor");
-      if (error) throw error;
-      // A regra do banco barra a baixa devolvendo 0 linhas e nenhum erro. Sem esta conferência
-      // a saída iria para o caixa com a conta ainda em aberto.
-      const conta = marcadas?.[0];
-      if (!conta)
-        throw new Error(
-          "A conta não foi marcada como paga: ou já estava paga, ou dar baixa é com o financeiro.",
-        );
-      const { error: e2 } = await supabase.from("caixa_movimentos").insert({
-        tipo: "saida",
-        origem: "conta_pagar",
-        descricao: conta.descricao,
-        categoria: conta.categoria,
-        valor: Number(conta.valor),
-        data: p.dataPagamento,
-        realizado: true,
-        conta_pagar_id: p.contaId,
-        conta_id: p.contaBancariaId,
+      const { error } = await (supabase.rpc as any)("pagar_conta_pagar", {
+        p_conta_id: p.contaId,
+        p_data_pagamento: p.dataPagamento,
+        p_conta_bancaria_id: p.contaBancariaId,
+        p_forma_pagamento: null,
       });
-      if (e2) throw e2;
+      if (error) throw error;
     },
     [podePagar],
   );

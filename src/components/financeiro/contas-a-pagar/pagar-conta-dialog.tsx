@@ -88,7 +88,6 @@ export function PagarContaDialog({
         contaId: conta.id,
         dataPagamento: data,
         contaBancariaId: contaBancaria === SEM_CONTA ? null : contaBancaria,
-        pacoteAtivo,
       });
       // O pagamento já está gravado. Arquivo que não subir não desfaz o pagamento: vira aviso.
       return comprovantes.length > 0 ? enviar(conta.id, comprovantes) : { enviados: 0, falhas: [] };

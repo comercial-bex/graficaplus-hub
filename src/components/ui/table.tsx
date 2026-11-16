@@ -39,12 +39,14 @@ const TableFooter = React.forwardRef<
 ));
 TableFooter.displayName = "TableFooter";
 
+// Linha sob o mouse ou selecionada fica cinza, não na cor de destaque: no tema escuro o
+// --accent é #ff0055, e a linha passava a parecer alerta de erro (16/11/2026, tabela de preços).
 const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
   ({ className, ...props }, ref) => (
     <tr
       ref={ref}
       className={cn(
-        "border-b border-border/70 transition-colors hover:bg-accent/50 data-[state=selected]:bg-accent",
+        "border-b border-border/70 transition-colors hover:bg-muted/60 data-[state=selected]:bg-muted",
         className,
       )}
       {...props}
