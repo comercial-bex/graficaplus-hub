@@ -122,7 +122,8 @@ export const STATUS: StatusOs[] = [
   { status: "aguardando_briefing", rotulo: "Aguardando briefing", etapa: "entrada", setor: "Atendimento" },
   // Atendimento validado (14/11/2026): só o gestor põe a OS aqui, escolhendo quem
   // faz a criação (`validar_atendimento`). Era um status do enum que ninguém usava.
-  { status: "briefing_ok", rotulo: "Atendimento validado", etapa: "validado", setor: "Gestão" },
+  // O setor diz quem destrava ("Onde o trabalho para"): depois do aval, é a criação.
+  { status: "briefing_ok", rotulo: "Atendimento validado", etapa: "validado", setor: "Design" },
 
   { status: "design", rotulo: "Design", etapa: "pre_impressao", setor: "Design" },
   { status: "aguardando_aprovacao_arte", rotulo: "Aprovação de arte", etapa: "pre_impressao", setor: "Design" },
