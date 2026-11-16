@@ -411,7 +411,7 @@ describe("ensaio: roteiro e provas", () => {
   });
 
   it("o doc diz que não foi aplicada", () => {
-    expect(doc).toContain("NÃO aplicada");
+    expect(doc).toContain("APLICADA no banco vivo");
     expect(doc).toContain("desfeita por RAISE EXCEPTION final");
   });
 });

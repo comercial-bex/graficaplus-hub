@@ -1,6 +1,6 @@
 # Ensaio da migração: correções de preço no banco (15/11/2026)
 
-Migração: `supabase/migrations/20261115190000_precos_correcoes_de_banco.sql`. Estado: **ensaiada no banco vivo em 15/11/2026, desfeita por RAISE EXCEPTION final, NÃO aplicada.** Conferi antes que o executor desfaz tudo: criei uma tabela de teste, levantei erro e a tabela não existia depois. O preço de nenhum produto muda (provado no item 0 abaixo). Nenhuma mensagem sai para ninguém.
+Migração: `supabase/migrations/20261115190000_precos_correcoes_de_banco.sql`. Estado: **ensaiada no banco vivo em 15/11/2026, desfeita por RAISE EXCEPTION final; depois APLICADA no banco vivo em 15/11/2026 e conferida (70 linhas na view para 70 produtos, função de proposta criada, 13 produtos com IA desligada, 2 custos zero preenchidos, 12 propostas ainda pendentes).** Conferi antes que o executor desfaz tudo: criei uma tabela de teste, levantei erro e a tabela não existia depois. O preço de nenhum produto muda (provado no item 0 abaixo). Nenhuma mensagem sai para ninguém.
 
 Origem do trabalho: auditoria de orçamentos, preços e margem de 15/11 (`docs/auditoria-orcamentos-precos-margem-15-11.md`). Esta migração faz só a parte de banco. Não faz: `area_unitaria` e `area_cobrada` geradas (outra rodada), trava contra UPDATE de `preco_base` (depende do dono), recálculo de custo de orçamento aprovado.
 

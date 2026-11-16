@@ -1,7 +1,7 @@
 -- =====================================================================================================
 -- CORREÇÕES DE PREÇO NO BANCO (15/11/2026)
--- ENSAIADA no banco vivo com RAISE EXCEPTION final (docs/ensaio-precos-correcoes-15-11.md). NÃO aplicada.
--- Não rodar sem autorização do dono. O preço de NENHUM produto muda aqui (produtos.preco_base fica como está).
+-- ENSAIADA com RAISE EXCEPTION final e APLICADA no banco vivo em 15/11/2026 (docs/ensaio-precos-correcoes-15-11.md).
+-- O preço de NENHUM produto muda aqui (produtos.preco_base fica como está).
 --
 -- 1) produto_custo_cheio passa a ter UMA linha por produto (eram 109 linhas para 70 produtos). A duplicata vinha de produto_precificacao, que guarda duas linhas por produto ("Composição do
 --    custo" e "Preço base"). Fica a linha de MAIOR custo cheio: é o que desconto_avaliar já usava (max), então
