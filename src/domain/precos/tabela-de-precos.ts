@@ -13,6 +13,15 @@ export type PrecoDeParceiro = { valor: number; origem: "cadastro" | "nivel" };
 
 const centavos = (n: number) => Math.round(n * 100) / 100;
 
+/**
+ * Piso de preço: o menor preço que ainda cumpre a margem mínima sobre a venda.
+ * round(custo / (1 - margem_minima / 100), 2). Sem custo ou sem margem válida, sem piso.
+ */
+export function pisoDaMargem(custo: number | null, margemMinima: number | null): number | null {
+  if (custo == null || custo <= 0 || margemMinima == null || margemMinima <= 0 || margemMinima >= 100) return null;
+  return Math.round((custo / (1 - margemMinima / 100)) * 100) / 100;
+}
+
 /** Preço do parceiro: o do cadastro do produto, senão o do nível mais baixo do programa. */
 export function precoDoParceiro(args: {
   precoParceiro: number | null;
