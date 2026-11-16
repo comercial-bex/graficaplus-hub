@@ -12730,6 +12730,10 @@ export type Database = {
           indicacao_compras: number
           indicacao_pct: number
           indicacao_teto: number
+          lembrete_credito_ativo: boolean
+          lembrete_credito_dias: number
+          lembrete_equipe_ativo: boolean
+          lembrete_equipe_horas: number
           updated_at: string
           updated_by: string | null
         }
@@ -12750,6 +12754,10 @@ export type Database = {
           indicacao_compras?: number
           indicacao_pct?: number
           indicacao_teto?: number
+          lembrete_credito_ativo?: boolean
+          lembrete_credito_dias?: number
+          lembrete_equipe_ativo?: boolean
+          lembrete_equipe_horas?: number
           updated_at?: string
           updated_by?: string | null
         }
@@ -12770,6 +12778,10 @@ export type Database = {
           indicacao_compras?: number
           indicacao_pct?: number
           indicacao_teto?: number
+          lembrete_credito_ativo?: boolean
+          lembrete_credito_dias?: number
+          lembrete_equipe_ativo?: boolean
+          lembrete_equipe_horas?: number
           updated_at?: string
           updated_by?: string | null
         }
@@ -12790,6 +12802,7 @@ export type Database = {
           comprovacao_url: string | null
           created_at: string
           created_by: string | null
+          e_teste: boolean
           id: string
           indicado_em: string | null
           indicado_por: string | null
@@ -12823,6 +12836,7 @@ export type Database = {
           comprovacao_url?: string | null
           created_at?: string
           created_by?: string | null
+          e_teste?: boolean
           id?: string
           indicado_em?: string | null
           indicado_por?: string | null
@@ -12856,6 +12870,7 @@ export type Database = {
           comprovacao_url?: string | null
           created_at?: string
           created_by?: string | null
+          e_teste?: boolean
           id?: string
           indicado_em?: string | null
           indicado_por?: string | null
@@ -24480,6 +24495,27 @@ export type Database = {
         Args: { p_parceiro: string }
         Returns: string
       }
+      _parceiros_sem_contato: {
+        Args: never
+        Returns: {
+          aberto_em: string
+          atendimento_id: string
+          comprou: boolean
+          conversa_id: string
+          credito: number
+          credito_vence_em: string
+          desde: string
+          horas_sem_contato: number
+          nome: string
+          parceiro_id: string
+          responsavel_id: string
+          responsavel_nome: string
+          responsavel_tel: string
+          sem_contato: boolean
+          ultima_entrada: string
+          ultima_saida_equipe: string
+        }[]
+      }
       _preco_margem: {
         Args: { p_custo: number; p_preco: number }
         Returns: number
@@ -25497,11 +25533,19 @@ export type Database = {
         Returns: string[]
       }
       jsonb_sem_custo: { Args: { p_json: Json }; Returns: Json }
+      lembrete_credito_vencendo: {
+        Args: { p_enfileirar?: boolean }
+        Returns: Json
+      }
       lembrete_diario_de_custos: {
         Args: { p_enfileirar?: boolean; p_hoje?: string }
         Returns: Json
       }
       lembrete_orcamentos_aprovados_sem_os: { Args: never; Returns: Json }
+      lembrete_parceiros_sem_contato: {
+        Args: { p_enfileirar?: boolean; p_hoje?: string }
+        Returns: Json
+      }
       lembretes_da_equipe: { Args: never; Returns: Json }
       ler_item_3d: { Args: { p_orcamento_3d_id: string }; Returns: Json }
       logo_do_cliente: { Args: { _cliente_id: string }; Returns: string }
@@ -25902,6 +25946,10 @@ export type Database = {
         Args: { p_oferta_id: string }
         Returns: undefined
       }
+      parceiro_marcar_teste: {
+        Args: { p_parceiro: string; p_teste: boolean }
+        Returns: undefined
+      }
       parceiro_nivel: { Args: { p_parceiro_id: string }; Returns: Json }
       parceiro_painel: { Args: never; Returns: Json }
       parceiro_precos: {
@@ -25997,6 +26045,7 @@ export type Database = {
           usuario_email: string
         }[]
       }
+      parceiros_sem_contato: { Args: never; Returns: Json }
       pedir_aval_do_gestor: {
         Args: { p_assunto: string; p_os_id: string }
         Returns: Json
