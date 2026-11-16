@@ -1,4 +1,4 @@
--- Cadastro de parceiro: telefone e e-mail sem erro (16/11/2026). NÃO APLICADA.
+-- Cadastro de parceiro: telefone e e-mail sem erro (16/11/2026). APLICADA em 16/11/2026.
 --
 -- Pedido do dono: um parceiro digitou '(55) 96984-1232' e outra 'gmai.com'.
 -- Mudança mínima em parceiro_cadastrar_rapido (a do cadastro curto do convite,

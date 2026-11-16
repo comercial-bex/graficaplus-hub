@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  DOMINIOS_COM_ERRO, celularValido, completarEmail, erroDoCelular, erroDoEmail, mascaraCelular, sugerirDominio, sugerirEmailCorrigido,
+  DOMINIOS_COM_ERRO, precisaAvisoDdd55, celularValido, completarEmail, erroDoCelular, erroDoEmail, mascaraCelular, sugerirDominio, sugerirEmailCorrigido,
 } from "../src/domain/contato/celular-e-email";
 import { readFileSync } from "node:fs";
 
@@ -25,6 +25,15 @@ describe("celular", () => {
   it("fixo de 8 dígitos é recusado", () => {
     expect(erroDoCelular("(96) 3223-1234")).toMatch(/fixo/);
     expect(celularValido("(96) 3223-1234")).toBe(false);
+  });
+});
+
+describe("aviso do DDD 55", () => {
+  it("avisa quando o DDD digitado é 55, sem bloquear", () => {
+    expect(precisaAvisoDdd55("(55) 96984-1232")).toBe(true);
+    expect(celularValido("(55) 96984-1232")).toBe(true);
+    expect(precisaAvisoDdd55("(96) 99206-1119")).toBe(false);
+    expect(precisaAvisoDdd55("+55 96 99206-1119")).toBe(false);
   });
 });
 

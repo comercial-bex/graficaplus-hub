@@ -106,6 +106,13 @@
       "when": 1794764205173,
       "tag": "0014_avisos_e_validacao_de_parceiro",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794827520073,
+      "tag": "0015_cadastro_parceiro_telefone_email",
+      "breakpoints": true
     }
   ]
 }

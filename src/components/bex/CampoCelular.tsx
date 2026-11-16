@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CircleAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { erroDoCelular, mascaraCelular } from "@/domain/contato/celular-e-email";
+import { erroDoCelular, mascaraCelular, precisaAvisoDdd55 } from "@/domain/contato/celular-e-email";
 
 type Props = {
   id: string;
@@ -24,6 +24,8 @@ type Props = {
  */
 export function CampoCelular({ id, rotulo, value, onChange, mostrarErro, required, disabled, className, ajuda }: Props) {
   const [tocado, setTocado] = useState(false);
+  const [ddd55Confirmado, setDdd55Confirmado] = useState(false);
+  const aviso55 = !ddd55Confirmado && precisaAvisoDdd55(value);
   const vazio = !value.replace(/\D/g, "");
   const erro = (tocado || mostrarErro) && (required || !vazio) ? erroDoCelular(value) : null;
   const idErro = `${id}-erro`;
@@ -59,6 +61,18 @@ export function CampoCelular({ id, rotulo, value, onChange, mostrarErro, require
           )}
         />
       </div>
+      {aviso55 && (
+        <div role="status" className="space-y-1 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground">
+          <p>55 é o código do Brasil e já está no campo. O seu DDD é outro? (ex.: 96 no Amapá)</p>
+          <button
+            type="button"
+            onClick={() => setDdd55Confirmado(true)}
+            className="rounded-sm font-semibold text-link underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Meu DDD é 55 mesmo
+          </button>
+        </div>
+      )}
       {erro ? (
         <p id={idErro} role="alert" className="flex items-start gap-1.5 text-sm text-status-magenta">
           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />

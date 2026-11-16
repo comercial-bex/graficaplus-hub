@@ -134,3 +134,11 @@ export function erroDoEmail(v: string): string | null {
   if (DOMINIOS_COM_ERRO[dominio]) return `O domínio "${dominio}" está com erro. Você quis dizer @${DOMINIOS_COM_ERRO[dominio]}?`;
   return null;
 }
+
+/**
+ * DDD 55 existe (RS), mas o erro real foi digitar o 55 do país no lugar do DDD
+ * ("(55) 96984-1232"). Avisa, sem bloquear, quando o DDD digitado é 55.
+ */
+export function precisaAvisoDdd55(v: string): boolean {
+  return digitosDoCelular(v).startsWith("55");
+}
