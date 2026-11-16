@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import {
   BUCKET_DE_ANEXOS,
   EXTENSAO_DO_TIPO,
@@ -33,6 +34,11 @@ const MIGRACAO = readFileSync(
 );
 /** O SQL sem comentários: o cabeçalho cita nomes que o código não pode tocar. */
 const SQL = MIGRACAO.replace(/--.*$/gm, "");
+const CORRECAO = readFileSync(
+  "supabase/migrations/20261116170000_contas_a_pagar_so_quem_ve_o_financeiro.sql",
+  "utf8",
+);
+const SQL_CORRECAO = CORRECAO.replace(/--.*$/gm, "");
 const GANCHO = readFileSync(
   "src/components/financeiro/contas-a-pagar/use-conta-a-pagar.ts",
   "utf8",
@@ -405,5 +411,73 @@ describe("tela: pagar só depois de confirmar; estornar e remover só para admin
     expect(GANCHO).toContain(".from(BUCKET_DE_ANEXOS)");
     expect(GANCHO).toContain("upsert: false");
     expect(GANCHO).toMatch(/if \(!podeAnexar\) \{\s*return \{ enviados: 0/);
+  });
+});
+
+describe("correção 20261116170000: pagar e anexar só para quem vê o financeiro", () => {
+  /** Corpo de cada função como o Postgres guarda em prosrc: o texto bruto entre os $function$. */
+  function corposBrutos(texto: string): Map<string, string> {
+    const re =
+      /CREATE OR REPLACE FUNCTION public\.(\w+)\([\s\S]*?AS \$function\$([\s\S]*?)\$function\$/g;
+    return new Map([...texto.matchAll(re)].map((m) => [m[1], m[2]]));
+  }
+
+  function guardaDe(texto: string, funcao: string): string {
+    const c = corposBrutos(texto.replace(/^--.*$/gm, "")).get(funcao);
+    expect(c, funcao).toBeDefined();
+    const ini = c!.indexOf("IF v_uid IS NULL");
+    return c!.slice(ini, c!.indexOf("END IF;", ini)).replace(/\s+/g, " ");
+  }
+
+  it("o vendedor tem as duas chaves sem ver o financeiro: a guarda pede financeiro.read também", () => {
+    expect(guardaDe(CORRECAO, "pagar_conta_pagar")).toContain(
+      "(public.can_see_financials(v_uid) AND public.has_permission(v_uid, 'pagamentos.confirm') AND public.has_permission(v_uid, 'pagamentos.create'))",
+    );
+    expect(guardaDe(CORRECAO, "anexar_arquivo_conta_pagar")).toContain(
+      "(public.can_see_financials(v_uid) AND (public.has_permission(v_uid, 'pagamentos.create')",
+    );
+    expect(SQL_CORRECAO).toMatch(
+      /"contas a pagar: quem lanca ou da baixa envia o anexo"[\s\S]*?can_see_financials\(\(SELECT auth\.uid\(\)\)\)\s+AND \(public\.has_permission/,
+    );
+  });
+
+  it("só a guarda mudou: o resto do corpo é o da 20261116160000", () => {
+    const antes = corposBrutos(MIGRACAO);
+    const depois = corposBrutos(CORRECAO);
+    expect([...depois.keys()].sort()).toEqual(["anexar_arquivo_conta_pagar", "pagar_conta_pagar"]);
+    for (const f of depois.keys()) {
+      const semGuarda = (c: string) => c.slice(c.indexOf("END IF;"));
+      expect(semGuarda(depois.get(f)!), f).toBe(semGuarda(antes.get(f)!));
+    }
+  });
+
+  it("a correção confere o corpo vivo antes de trocar e não reabre nada para anon", () => {
+    expect(SQL_CORRECAO).toContain("IS DISTINCT FROM '8ef6a7e336ac6f0be469f32027c2e80e'");
+    expect(SQL_CORRECAO).toContain("IS DISTINCT FROM 'b9c50c416194a42d4e1309194bc513b5'");
+    expect(SQL_CORRECAO).not.toMatch(/TO (anon|PUBLIC)/);
+    expect(SQL_CORRECAO).not.toMatch(
+      /estornar_conta_pagar|remover_anexo_conta_pagar|vw_fluxo_caixa/,
+    );
+  });
+
+  it("o md5 anotado no cabeçalho é o do corpo no arquivo (retrato do que foi aplicado)", () => {
+    for (const texto of [MIGRACAO, CORRECAO]) {
+      const anotados = new Map(
+        [...texto.matchAll(/^--\s+(\w+)\s+([0-9a-f]{32})\b/gm)].map((m) => [m[1], m[2]]),
+      );
+      for (const [f, corpo] of corposBrutos(texto)) {
+        expect(createHash("md5").update(corpo, "utf8").digest("hex"), f).toBe(anotados.get(f));
+      }
+    }
+  });
+
+  it("a tela pede financeiro.read para pagar e anexar, como o banco", () => {
+    const ini = GANCHO.indexOf("export function usePodeNaContaAPagar(");
+    const trecho = GANCHO.slice(ini, GANCHO.indexOf("\n}\n", ini));
+    expect(trecho).toContain('const veFinanceiro = hasPermission("financeiro.read");');
+    expect(trecho.replace(/\s+/g, " ")).toContain(
+      'admin || (veFinanceiro && hasPermission("pagamentos.confirm") && hasPermission("pagamentos.create"))',
+    );
+    expect(trecho.replace(/\s+/g, " ")).toMatch(/podeAnexar: admin \|\| \(veFinanceiro &&/);
   });
 });

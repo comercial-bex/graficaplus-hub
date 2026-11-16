@@ -11,23 +11,29 @@ import {
 } from "@/domain/financeiro/contas-a-pagar-anexos";
 
 /**
- * Quem pode o quê na conta a pagar. As mesmas regras que o banco cobra (migração 20261116160000):
- *   pagar          admin, ou pagamentos.confirm E pagamentos.create (a régua do botão desde 05/10)
- *   anexar         admin, ou pagamentos.create, pagamentos.update ou pagamentos.confirm
+ * Quem pode o quê na conta a pagar. As mesmas regras que o banco cobra (migrações 20261116160000 e
+ * 20261116170000):
+ *   pagar          admin, ou financeiro.read E pagamentos.confirm E pagamentos.create
+ *   anexar         admin, ou financeiro.read E (pagamentos.create, .update ou .confirm)
  *   estornar       só admin (decisão de 16/11/2026)
  *   remover anexo  só admin
- * Ver e baixar é de quem já vê a lista (financeiro.read): a tela inteira está atrás disso.
+ * financeiro.read entra porque o vendedor tem confirm e create (para o recebimento da OS) sem ver o
+ * financeiro: sem essa condição a 20261116160000 deixava ele pagar conta pela API.
  */
 export function usePodeNaContaAPagar() {
   const { hasPermission, hasRole } = useAuth();
   const admin = hasRole("admin");
+  const veFinanceiro = hasPermission("financeiro.read");
   return {
-    podePagar: admin || (hasPermission("pagamentos.confirm") && hasPermission("pagamentos.create")),
+    podePagar:
+      admin ||
+      (veFinanceiro && hasPermission("pagamentos.confirm") && hasPermission("pagamentos.create")),
     podeAnexar:
       admin ||
-      hasPermission("pagamentos.create") ||
-      hasPermission("pagamentos.update") ||
-      hasPermission("pagamentos.confirm"),
+      (veFinanceiro &&
+        (hasPermission("pagamentos.create") ||
+          hasPermission("pagamentos.update") ||
+          hasPermission("pagamentos.confirm"))),
     podeEstornar: admin,
     podeRemoverAnexo: admin,
   };

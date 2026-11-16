@@ -1,7 +1,18 @@
 -- =====================================================================================================
 -- CONTAS A PAGAR, FASE 1 (16/11/2026): pagar com confirmação, anexos e estorno com histórico
--- NÃO APLICADA. Quem aplica é o dono. Depois de aplicar, rode docs/ensaio-contas-a-pagar-fase-1.sql no editor SQL:
--- ele simula admin, financeiro, gestor, alguém sem financeiro e o anon, confere os critérios de aceite e desfaz tudo.
+-- APLICADA em 16/11/2026 pelo conector do banco, a partir DESTE arquivo (do BEGIN ao COMMIT, sem alteração), a pedido
+-- do usuário na sessão. ATENÇÃO: a guarda de pagar_conta_pagar e anexar_arquivo_conta_pagar e a policy de envio ao
+-- bucket deixavam o VENDEDOR (que tem pagamentos.confirm e .create sem financeiro.read) pagar e anexar pela API.
+-- Corrigido minutos depois por 20261116170000, antes de qualquer uso (contas_pagar_historico com 0 linhas).
+-- RETRATO logo depois de aplicada, md5(prosrc) em pg_proc igual ao corpo abaixo, entre os $function$:
+--   _contexto_conta_pagar             f4bf9a366b8db6ce6e403c209fb737cd
+--   tg_contas_pagar_historico         13e73bae3cfde8ef55d924977a805917
+--   tg_contas_pagar_anexos_historico  ad0624bfd7fc7b10757e458d0cfa243f
+--   pagar_conta_pagar                 8ef6a7e336ac6f0be469f32027c2e80e   (trocada por 20261116170000)
+--   estornar_conta_pagar              665dd1fb4925a87013bc79a0a827b120
+--   anexar_arquivo_conta_pagar        b9c50c416194a42d4e1309194bc513b5   (trocada por 20261116170000)
+--   remover_anexo_conta_pagar         fcad31fd1099d3038af5453ffe6ff659
+-- Ensaio no banco vivo (docs/ensaio-contas-a-pagar-fase-1.sql, depois das duas migrações): ENSAIO OK, nada gravado.
 -- Ensaiada em 16/11/2026 num Postgres 16 descartável com o esqueleto do banco vivo (definições lidas por consulta
 -- somente leitura): ensaio OK, migração reaplicada sem erro, e quatro defeitos injetados de propósito (saída na data
 -- do clique, financeiro estornando, estorno que não apaga a saída, reembolso que não volta) foram todos reprovados.

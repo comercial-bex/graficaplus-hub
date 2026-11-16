@@ -1,12 +1,15 @@
 -- =====================================================================================================
--- ENSAIO: contas a pagar, fase 1 (migração 20261116160000)
+-- ENSAIO: contas a pagar, fase 1 (migrações 20261116160000 e 20261116170000)
 --
--- Rodar DEPOIS de aplicar a migração, no editor SQL do Supabase, inteiro. Nada fica gravado: o bloco
+-- Rodar DEPOIS de aplicar as duas migrações, no editor SQL do Supabase, inteiro. Nada fica gravado: o bloco
 -- termina com RAISE EXCEPTION e a transação inteira volta. A mensagem final diz "ENSAIO OK" e os números;
 -- qualquer outra mensagem é o critério que falhou.
 --
 -- Simula quatro pessoas reais pelo papel (claims + SET LOCAL ROLE): um admin, um financeiro que não é
--- admin, um gestor que não é admin nem financeiro, e alguém ativo sem financeiro.read. E o anon.
+-- admin, um gestor que não é admin nem financeiro, e alguém ativo sem financeiro.read (de preferência um
+-- vendedor, que tem pagamentos.confirm e pagamentos.create: foi por ele que a 20261116160000 furou). E o anon.
+-- O único gestor ativo também é vendedor; para ensaiar o gestor que só VÊ, o ensaio nega a ele as chaves
+-- pagamentos.* por exceção pessoal, dentro da transação (desfeita no fim como todo o resto).
 --
 -- Critérios de aceite conferidos:
 --   1. pagar sem confirmar é impossível no banco: só a função paga, e só com a chave de dar baixa;
@@ -64,6 +67,8 @@ DECLARE
   v_conta uuid; v_anexo uuid; v_obj text; v_obj2 text;
   v_mov public.caixa_movimentos%ROWTYPE;
   v_antes jsonb; v_pago jsonb; v_depois jsonb;
+  -- "Hoje" calculado aqui, como o banco (postgres): o anon simulado não executa hoje_br().
+  v_hoje date := public.hoje_br();
   v_data date := public.hoje_br() - 45;
   v_err text; v_r jsonb; v_n integer;
 BEGIN
@@ -78,17 +83,27 @@ BEGIN
    ORDER BY ur.user_id LIMIT 1;
   SELECT u.id INTO v_sem FROM public.usuarios u
    WHERE u.ativo IS NOT false AND NOT public.has_role(u.id, 'admin')
-     AND NOT public.has_permission(u.id, 'financeiro.read') ORDER BY u.id LIMIT 1;
+     AND NOT public.has_permission(u.id, 'financeiro.read')
+   ORDER BY (public.has_permission(u.id, 'pagamentos.confirm') AND public.has_permission(u.id, 'pagamentos.create')) DESC,
+            u.id
+   LIMIT 1;
   SELECT b.id INTO v_banco FROM public.contas_bancarias b WHERE b.ativo ORDER BY b.nome LIMIT 1;
   PERFORM pg_temp.confere(v_adm IS NOT NULL AND v_fin IS NOT NULL AND v_ges IS NOT NULL AND v_sem IS NOT NULL,
                           'faltou admin, financeiro, gestor ou alguém sem financeiro.read para simular');
-  PERFORM pg_temp.confere(NOT public.has_permission(v_ges, 'pagamentos.confirm'), 'o gestor do ensaio tem pagamentos.confirm');
+  -- O gestor que também é vendedor soma as chaves do vendedor. Para ensaiar o gestor que só vê, nega as
+  -- quatro por exceção pessoal (só nesta transação).
+  INSERT INTO public.permissoes_excecoes (usuario_id, permissao, concede, motivo)
+  SELECT v_ges, k, false, 'ensaio contas a pagar fase 1 (desfeito no fim)'
+    FROM unnest(ARRAY['pagamentos.create', 'pagamentos.update', 'pagamentos.confirm', 'pagamentos.reverse']) AS k
+  ON CONFLICT (usuario_id, permissao) DO UPDATE SET concede = false;
+  PERFORM pg_temp.confere(NOT public.has_permission(v_ges, 'pagamentos.confirm')
+                          AND public.has_permission(v_ges, 'financeiro.read'), 'não deu para simular o gestor que só vê');
 
   -- 1. O financeiro lança a conta como a tela lança (INSERT direto).
   PERFORM pg_temp.ser(v_fin);
   v_antes := pg_temp.totais();
   INSERT INTO public.contas_pagar (descricao, fornecedor, categoria, valor, vencimento)
-  VALUES ('ENSAIO fase 1', 'Fornecedor do ensaio', 'geral', 1234.56, public.hoje_br() - 30)
+  VALUES ('ENSAIO fase 1', 'Fornecedor do ensaio', 'geral', 1234.56, v_hoje - 30)
   RETURNING id INTO v_conta;
   PERFORM pg_temp.confere((SELECT created_by FROM public.contas_pagar WHERE id = v_conta) = v_fin,
                           'created_by não ficou com quem lançou');
@@ -99,20 +114,20 @@ BEGIN
 
   -- 2. Pagar só pela função, e só com a chave de dar baixa.
   PERFORM pg_temp.ser(v_ges);
-  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, public.hoje_br()));
+  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, v_hoje));
   PERFORM pg_temp.confere(v_err ILIKE '%permissão%', 'gestor pagou: ' || coalesce(v_err, 'sem erro'));
   v_err := pg_temp.erro(format('UPDATE public.contas_pagar SET status = ''paga'' WHERE id = %L', v_conta));
   PERFORM pg_temp.confere((SELECT status FROM public.contas_pagar WHERE id = v_conta) = 'aberta',
                           'gestor deu baixa por UPDATE direto');
   PERFORM pg_temp.ser(v_sem);
-  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, public.hoje_br()));
+  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, v_hoje));
   PERFORM pg_temp.confere(v_err ILIKE '%permissão%', 'sem financeiro pagou: ' || coalesce(v_err, 'sem erro'));
   PERFORM pg_temp.ser(NULL);
-  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, public.hoje_br()));
+  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, v_hoje));
   PERFORM pg_temp.confere(v_err ILIKE '%permission denied%', 'anon executou pagar: ' || coalesce(v_err, 'sem erro'));
 
   PERFORM pg_temp.ser(v_fin);
-  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, public.hoje_br() + 1));
+  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, v_hoje + 1));
   PERFORM pg_temp.confere(v_err ILIKE '%futura%', 'data futura aceita: ' || coalesce(v_err, 'sem erro'));
 
   -- 3. Data retroativa: o movimento nasce na data informada, com a conta bancária.
@@ -128,7 +143,7 @@ BEGIN
                                    WHERE conta_pagar_id = v_conta AND evento = 'paga' AND usuario_id = v_fin
                                      AND data_pagamento = v_data AND detalhes->>'movimento_id' = v_mov.id::text),
                           'histórico sem quem pagou');
-  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, public.hoje_br()));
+  v_err := pg_temp.erro(format('SELECT public.pagar_conta_pagar(%L, %L)', v_conta, v_hoje));
   PERFORM pg_temp.confere(v_err ILIKE '%já está paga%', 'pagou duas vezes: ' || coalesce(v_err, 'sem erro'));
   v_pago := pg_temp.totais();
   PERFORM pg_temp.confere((v_pago->>'saida_real')::numeric = (v_antes->>'saida_real')::numeric + 1234.56,
@@ -193,6 +208,13 @@ BEGIN
   PERFORM pg_temp.confere((SELECT count(*) FROM public.contas_pagar_historico) = 0, 'sem financeiro vê histórico');
   PERFORM pg_temp.confere((SELECT count(*) FROM storage.objects WHERE bucket_id = 'contas-pagar-anexos') = 0,
                           'sem financeiro lê arquivo');
+  -- Mesmo com chave de pagamento (vendedor), sem ver o financeiro não envia nem registra arquivo.
+  v_err := pg_temp.erro(format('INSERT INTO storage.objects (bucket_id, name, metadata) VALUES (%L, %L, %L)',
+                               'contas-pagar-anexos', v_conta || '/' || gen_random_uuid() || '.pdf',
+                               '{"size": 1, "mimetype": "application/pdf"}'));
+  PERFORM pg_temp.confere(v_err ILIKE '%row-level security%', 'sem financeiro enviou arquivo: ' || coalesce(v_err, 'sem erro'));
+  v_err := pg_temp.erro(format('SELECT public.anexar_arquivo_conta_pagar(%L, %L, %L, %L)', v_conta, 'fatura', v_obj, 'x.pdf'));
+  PERFORM pg_temp.confere(v_err ILIKE '%permissão%', 'sem financeiro registrou anexo: ' || coalesce(v_err, 'sem erro'));
   PERFORM pg_temp.ser(NULL);
   v_err := pg_temp.erro('SELECT count(*) FROM public.contas_pagar_anexos');
   PERFORM pg_temp.confere(v_err ILIKE '%permission denied%', 'anon lê anexos: ' || coalesce(v_err, 'sem erro'));
@@ -212,8 +234,9 @@ BEGIN
 
   SELECT count(*) INTO v_n FROM public.contas_pagar_historico WHERE conta_pagar_id = v_conta;
   EXECUTE 'RESET ROLE';
-  RAISE EXCEPTION 'ENSAIO OK (nada foi gravado). Totais antes %, com a conta paga %, depois do estorno %. Movimento em % (informado %). % linhas de histórico.',
-    v_antes, v_pago, v_depois, v_mov.data, v_data, v_n;
+  RAISE EXCEPTION 'ENSAIO OK (nada foi gravado). Totais antes %, com a conta paga %, depois do estorno %. Movimento em % (informado %). % linhas de histórico. Sem financeiro com chave de pagamento: %.',
+    v_antes, v_pago, v_depois, v_mov.data, v_data, v_n,
+    public.has_permission(v_sem, 'pagamentos.confirm') AND public.has_permission(v_sem, 'pagamentos.create');
 END
 $ensaio$;
 
