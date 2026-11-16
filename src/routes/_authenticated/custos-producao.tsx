@@ -39,13 +39,13 @@ import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/custos-producao")({
   head: () => ({
     meta: [
-      { title: "Custos de mão de obra — BEX PRINT OS" },
+      { title: "Custos fixos e mão de obra — BEX PRINT OS" },
       {
         name: "description",
         content:
           "Custo por hora e encargos de cada função da produção, usado no bloco Mão de obra do orçamento.",
       },
-      { property: "og:title", content: "Custos de mão de obra — BEX PRINT OS" },
+      { property: "og:title", content: "Custos fixos e mão de obra — BEX PRINT OS" },
       {
         property: "og:description",
         content: "Parametrize o custo/hora de designers, operadores e auxiliares.",
@@ -203,8 +203,8 @@ function CustosProducaoPage() {
     <div>
       <SectionHeader
         ajuda={dicaTela("/custos-producao")}
-        breadcrumb="Custeio · Mão de obra e encargos"
-        title="Custos de mão de obra"
+        breadcrumb="Custeio · Custos fixos e mão de obra"
+        title="Custos fixos e mão de obra"
         description="Custo/hora com encargos de cada função. É o terceiro bloco do detalhamento de cálculo, junto com Materiais e Processos."
         actions={
           podeMudarCusto && (
