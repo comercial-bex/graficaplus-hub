@@ -24,6 +24,7 @@ export const CHAVES_CONFERIDAS_NA_TELA: readonly string[] = [
   "compras.create",
   "compras.receive",
   "configuracoes.manage",
+  "custos.fixos.update",
   "custos.read",
   "custos.update",
   "entregas.manage",

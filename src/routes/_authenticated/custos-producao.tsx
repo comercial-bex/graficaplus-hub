@@ -39,13 +39,13 @@ import { Carregando } from "@/components/bex/Carregando";
 export const Route = createFileRoute("/_authenticated/custos-producao")({
   head: () => ({
     meta: [
-      { title: "Custos de mão de obra — BEX PRINT OS" },
+      { title: "Custos fixos e mão de obra — BEX PRINT OS" },
       {
         name: "description",
         content:
           "Custo por hora e encargos de cada função da produção, usado no bloco Mão de obra do orçamento.",
       },
-      { property: "og:title", content: "Custos de mão de obra — BEX PRINT OS" },
+      { property: "og:title", content: "Custos fixos e mão de obra — BEX PRINT OS" },
       {
         property: "og:description",
         content: "Parametrize o custo/hora de designers, operadores e auxiliares.",
@@ -203,8 +203,8 @@ function CustosProducaoPage() {
     <div>
       <SectionHeader
         ajuda={dicaTela("/custos-producao")}
-        breadcrumb="Custeio · Mão de obra e encargos"
-        title="Custos de mão de obra"
+        breadcrumb="Custeio · Custos fixos e mão de obra"
+        title="Custos fixos e mão de obra"
         description="Custo/hora com encargos de cada função. É o terceiro bloco do detalhamento de cálculo, junto com Materiais e Processos."
         actions={
           podeMudarCusto && (
@@ -251,10 +251,10 @@ function CustosProducaoPage() {
               .
             </strong>{" "}
             O valor em Custo/h é o salário-hora; o que sai do bolso da empresa inclui FGTS,
-            13º, férias e provisão de rescisão. Com os ~32% do Simples, o bloco de mão de
+            13º, férias e provisão de rescisão. Com os cerca de 33% do Simples, o bloco de mão de
             obra de todo orçamento está{" "}
-            <strong>{(quantoFalta(0.3219) * 100).toFixed(0)}% menor</strong> do que deveria —
-            e fora do Simples, {(quantoFalta(0.5999) * 100).toFixed(0)}%.
+            <strong>{(quantoFalta(somarEncargos(parcelasDoRegime("simples"))) * 100).toFixed(0)}% menor</strong> do que deveria,
+            e fora do Simples, {(quantoFalta(somarEncargos(parcelasDoRegime("fora_do_simples"))) * 100).toFixed(0)}%.
             {/* O conserto exigia abrir função por função, cinco diálogos, e
                 todo mundo continuou em zero. Quem decide é a casa, e a decisão
                 é UMA: qual é o regime. Daí para frente é aritmética. */}

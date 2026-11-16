@@ -2,6 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { avaliar, mensagemDoPedido, type LinhaDePreco } from "@/domain/precos/painel-de-precos";
+import {
+  COLUNAS_DO_CUSTO_REAL,
+  lerCustoReal,
+  mensagemDoCustoRealAusente,
+  type CustoRealDoProduto,
+} from "@/domain/precos/custo-real";
 
 /**
  * Preços por produto, do lado do servidor.
@@ -44,9 +50,15 @@ async function exigirVerCusto(supabase: Banco, userId: string) {
 
 const num = (v: unknown): number | null => (v == null ? null : Number(v));
 
+/** Um item de custo que a casa ainda precisa preencher, confirmar ou corrigir. Vem de pendencias_de_custo. */
+export type PendenciaDeCusto = { codigo: string; rotulo: string; tipo: string };
+
 export type PainelPorProduto = {
   linhas: LinhaDePreco[];
   podePropor: boolean;
+  /** Frase humana quando o banco ainda não entrega o custo real. Nulo quando está tudo ligado. */
+  avisoDoCustoReal: string | null;
+  pendencias: PendenciaDeCusto[];
 };
 
 export const lerPrecosPorProduto = createServerFn({ method: "GET" })
@@ -75,6 +87,32 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
       ]),
     );
 
+    // Custo real, da visão fechada para a chave do servidor. Visão ou coluna ausente vira frase humana.
+    const reais = new Map<string, CustoRealDoProduto>();
+    let avisoDoCustoReal: string | null = null;
+    const { data: dosReais, error: erroReal } = await admin
+      .from("produto_custo_real")
+      .select(COLUNAS_DO_CUSTO_REAL.join(", "));
+    if (erroReal) {
+      const humana = mensagemDoCustoRealAusente(String(erroReal.message ?? ""));
+      if (humana == null) throw new Error(erroReal.message);
+      avisoDoCustoReal = humana;
+    } else {
+      for (const r of (dosReais ?? []) as Array<Record<string, unknown>>)
+        reais.set(String(r.produto_id), lerCustoReal(r));
+    }
+
+    // Itens de custo pendentes. Falha aqui não derruba a tela: sem a função, a lista sai vazia.
+    let pendencias: PendenciaDeCusto[] = [];
+    const { data: dasPendencias, error: erroPendencias } = await admin.rpc("pendencias_de_custo");
+    if (!erroPendencias) {
+      pendencias = ((dasPendencias ?? []) as Array<Record<string, unknown>>).map((p) => ({
+        codigo: String(p.codigo ?? ""),
+        rotulo: String(p.rotulo ?? p.codigo ?? ""),
+        tipo: String(p.tipo ?? ""),
+      }));
+    }
+
     const linhas: LinhaDePreco[] = ((data ?? []) as Array<Record<string, unknown>>).map((r) => ({
       id: String(r.id),
       nome: String(r.nome ?? ""),
@@ -85,8 +123,9 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
       preco: num(r.preco_base),
       margem_minima: num(r.margem_minima),
       preco_parceiro: num(r.preco_parceiro),
+      real: reais.get(String(r.id)) ?? null,
     }));
-    return { linhas, podePropor };
+    return { linhas, podePropor, avisoDoCustoReal, pendencias };
   });
 
 export const proporPreco = createServerFn({ method: "POST" })

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { Carregando } from "@/components/bex/Carregando";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
@@ -23,10 +24,18 @@ import {
   type Problema,
 } from "@/domain/precos/painel-de-precos";
 import {
+  LEGENDA_DA_REGRA,
   LEGENDA_DAS_SITUACOES,
   ListaDePrecos,
   type PedirPreco,
 } from "@/components/precos/painel-de-precos";
+import { MapaDeMargem } from "@/components/precos/mapa-de-margem";
+import {
+  ROTULO_DA_COLUNA_DO_MAPA,
+  ROTULO_DA_LINHA_DO_MAPA,
+  type CelulaDoMapa,
+} from "@/domain/precos/custo-real";
+import { TEXTO_DA_VELOCIDADE_DA_PLOTTER } from "@/domain/maquinas/velocidade-de-calculo";
 
 export const Route = createFileRoute("/_authenticated/precos")({
   head: () => ({ meta: [{ title: "Preços por produto — BEX PRINT OS" }] }),
@@ -55,6 +64,8 @@ function PrecosPage() {
   const [problema, setProblema] = useState<FiltroDeProblema>("todos");
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<Ordem>("problema");
+  const [visao, setVisao] = useState<"lista" | "mapa">("lista");
+  const [celula, setCelula] = useState<CelulaDoMapa | null>(null);
 
   const criando = useMutation({
     mutationFn: (v: { produtoId: string; preco: number; motivo: string }) => pedir({ data: v }),
@@ -75,8 +86,13 @@ function PrecosPage() {
   const contagem = useMemo(() => contar(linhas ?? []), [linhas]);
   const familias = useMemo(() => familiasDe(linhas ?? []), [linhas]);
   const visiveis = useMemo(
-    () => ordenar(filtrar(linhas ?? [], { familia, problema, busca }), ordem),
-    [linhas, familia, problema, busca, ordem],
+    () => ordenar(filtrar(linhas ?? [], { familia, problema, busca, celula }), ordem),
+    [linhas, familia, problema, busca, ordem, celula],
+  );
+  // O mapa conta o que a família e a busca deixam, mas não o próprio toque na célula.
+  const doMapa = useMemo(
+    () => filtrar(linhas ?? [], { familia, problema, busca }),
+    [linhas, familia, problema, busca],
   );
 
   return (
@@ -84,7 +100,7 @@ function PrecosPage() {
       <SectionHeader
         breadcrumb="Custeio"
         title="Preços por produto"
-        description="Veja o piso e a margem de cada produto e peça a mudança de preço. O preço só muda depois que alguém aprova em preços pendentes."
+        description="Veja o custo real, a margem líquida e a regra de três de cada produto e peça a mudança de preço. O preço só muda depois que alguém aprova em preços pendentes."
         ajuda={dicaTela("/precos")}
         legivel
       />
@@ -124,6 +140,37 @@ function PrecosPage() {
               );
             })}
           </div>
+
+          {painel.data.avisoDoCustoReal ? (
+            <p
+              className="rounded-xl border border-[#8a5a00] bg-card p-4 font-semibold dark:border-[#f5b942]"
+              role="status"
+              data-testid="aviso-do-custo-real"
+            >
+              {painel.data.avisoDoCustoReal}
+            </p>
+          ) : null}
+
+          {painel.data.pendencias.length > 0 ? (
+            <div
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#8a5a00] bg-card p-4 dark:border-[#f5b942]"
+              role="status"
+              data-testid="aviso-de-pendencias-de-custo"
+            >
+              <p className="min-w-0 flex-1 basis-64">
+                <span className="font-semibold">
+                  {painel.data.pendencias.length === 1
+                    ? "Falta 1 item de custo para fechar."
+                    : `Faltam ${painel.data.pendencias.length} itens de custo para fechar.`}
+                </span>{" "}
+                Enquanto faltarem, o custo real é um piso otimista e a margem mostrada é maior que a
+                verdadeira.
+              </p>
+              <Button asChild variant="outline" className="h-11 min-h-11 text-base">
+                <Link to="/custos-producao">Preencher custos fixos</Link>
+              </Button>
+            </div>
+          ) : null}
 
           {contagem.abaixo > 0 ? (
             <div
@@ -217,11 +264,54 @@ function PrecosPage() {
             </div>
           </div>
 
-          <ul className="space-y-1" aria-label="Legenda das cores">
-            {LEGENDA_DAS_SITUACOES.map((l) => (
-              <li key={l.faixa}>{l.texto}</li>
-            ))}
-          </ul>
+          {celula ? (
+            <div className="flex flex-wrap items-center gap-3" data-testid="filtro-do-mapa">
+              <p className="font-semibold">
+                Filtro do mapa: {ROTULO_DA_LINHA_DO_MAPA[celula.margem]}, {ROTULO_DA_COLUNA_DO_MAPA[celula.vezes]}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 min-h-11 text-base"
+                onClick={() => setCelula(null)}
+              >
+                Limpar filtro do mapa
+              </Button>
+            </div>
+          ) : null}
+
+          <Tabs value={visao} onValueChange={(v) => setVisao(v === "mapa" ? "mapa" : "lista")}>
+            <TabsList className="h-auto p-1">
+              <TabsTrigger value="lista" className="min-h-11 px-4 text-base">
+                Lista
+              </TabsTrigger>
+              <TabsTrigger value="mapa" className="min-h-11 px-4 text-base">
+                Mapa de margem
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="mapa" className="mt-3">
+              <MapaDeMargem linhas={doMapa} celula={celula} aoEscolher={setCelula} />
+            </TabsContent>
+          </Tabs>
+
+          <div className="space-y-2" data-testid="legendas">
+            <ul className="space-y-1" aria-label="Legenda da margem líquida">
+              {LEGENDA_DAS_SITUACOES.map((l) => (
+                <li key={l.faixa}>{l.texto}</li>
+              ))}
+            </ul>
+            <ul className="space-y-1" aria-label="Legenda da diferença contra a regra de três">
+              {LEGENDA_DA_REGRA.map((l) => (
+                <li key={l.faixa}>{l.texto}</li>
+              ))}
+            </ul>
+            <p data-testid="texto-da-velocidade">
+              Plotter i1600. {TEXTO_DA_VELOCIDADE_DA_PLOTTER}
+            </p>
+            <p data-testid="texto-da-regra-de-tres">
+              A regra de três é só referência, três vezes o custo real. Ela não manda subir o preço.
+            </p>
+          </div>
 
           {!painel.data.podePropor ? (
             <p className="rounded-xl border border-border bg-card p-4" data-testid="so-leitura">

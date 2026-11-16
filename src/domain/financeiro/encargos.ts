@@ -13,6 +13,10 @@
  *
  * As parcelas abaixo são as previstas em lei; os valores são as alíquotas
  * correntes e ficam expostos para conferência com a contabilidade.
+ *
+ * Simples Nacional: 8,00 + 8,33 + 11,11 + 1,56 + 3,82 = 32,82%, o mesmo número que a
+ * migração 20261116100000 grava em custos_tabela (mo_encargos_pct) e em custos_mao_de_obra
+ * (encargos_pct 0,3282). Quem mudar uma parcela aqui muda lá também.
  */
 
 export type ParcelaEncargo = {
@@ -29,9 +33,9 @@ export const PARCELAS: ParcelaEncargo[] = [
   { chave: "fgts", rotulo: "FGTS", aliquota: 0.08, nota: "8% sobre a remuneração, todo mês" },
   { chave: "decimo", rotulo: "13º salário", aliquota: 0.0833, nota: "um salário por ano = 1/12 ao mês" },
   { chave: "ferias", rotulo: "Férias + 1/3", aliquota: 0.1111, nota: "um salário e um terço por ano" },
-  { chave: "fgts_sobre", rotulo: "FGTS sobre 13º e férias", aliquota: 0.0155, nota: "os 8% incidem também sobre eles" },
-  { chave: "rescisao", rotulo: "Provisão de rescisão", aliquota: 0.032, nota: "multa de 40% do FGTS, provisionada" },
-  { chave: "inss", rotulo: "INSS patronal", aliquota: 0.20, foraDoSimples: true, nota: "20% — empresa no Simples não recolhe" },
+  { chave: "fgts_sobre", rotulo: "FGTS sobre 13º e férias", aliquota: 0.0156, nota: "os 8% incidem também sobre eles" },
+  { chave: "rescisao", rotulo: "Provisão de rescisão", aliquota: 0.0382, nota: "multa de 40% do FGTS, provisionada" },
+  { chave: "inss", rotulo: "INSS patronal", aliquota: 0.20, foraDoSimples: true, nota: "20%, empresa no Simples não recolhe" },
   { chave: "rat", rotulo: "RAT", aliquota: 0.02, foraDoSimples: true, nota: "risco ambiental do trabalho, 1% a 3%" },
   { chave: "terceiros", rotulo: "Terceiros (Sistema S)", aliquota: 0.058, foraDoSimples: true, nota: "SESI, SENAI, SEBRAE e outros" },
 ];

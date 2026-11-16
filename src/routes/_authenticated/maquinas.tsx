@@ -1,3 +1,4 @@
+import { ehPlotterI1600, TEXTO_DA_VELOCIDADE_DA_PLOTTER } from "@/domain/maquinas/velocidade-de-calculo";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { NovaMaquinaEmPassos } from "@/components/maquinas/nova-maquina-em-passos";
@@ -433,6 +434,12 @@ function MaquinasPage() {
                     <div className="font-bold">{Number(m.velocidade_m2_h ?? 0)} m²/h</div>
                   </div>
                 </div>
+
+                {ehPlotterI1600(m) && (
+                  <p className="rounded-md border bg-muted/40 p-2 text-base" data-testid="velocidade-da-plotter">
+                    {TEXTO_DA_VELOCIDADE_DA_PLOTTER}
+                  </p>
+                )}
 
                 {m.largura_util_m != null && (
                   <div className="text-xs text-muted-foreground">

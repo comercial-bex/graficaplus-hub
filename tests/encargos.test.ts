@@ -29,9 +29,9 @@ describe("as parcelas do encargo", () => {
     expect(parcelasDoRegime("fora_do_simples")).toHaveLength(PARCELAS.length);
   });
 
-  it("Simples soma perto de 32%, fora do Simples perto de 60%", () => {
-    expect(somarEncargos(parcelasDoRegime("simples"))).toBeCloseTo(0.3219, 3);
-    expect(somarEncargos(parcelasDoRegime("fora_do_simples"))).toBeCloseTo(0.5999, 3);
+  it("Simples soma 32,82%, fora do Simples 60,62%", () => {
+    expect(somarEncargos(parcelasDoRegime("simples"))).toBe(0.3282);
+    expect(somarEncargos(parcelasDoRegime("fora_do_simples"))).toBeCloseTo(0.6062, 4);
   });
 
   it("nenhuma parcela é obrigatória: quem escolhe é a casa", () => {
@@ -45,11 +45,11 @@ describe("as parcelas do encargo", () => {
 });
 
 describe("o custo real da hora", () => {
-  it("R$ 2.500 em 176 h com 32% de encargo dá R$ 18,78 a hora", () => {
-    const r = custoDaHora({ salarioMensal: 2500, encargosPct: 0.3219 });
+  it("R$ 2.500 em 176 h com 32,82% de encargo dá R$ 18,87 a hora", () => {
+    const r = custoDaHora({ salarioMensal: 2500, encargosPct: 0.3282 });
     expect(r.salarioHora).toBeCloseTo(14.2, 2);
-    expect(r.custoHora).toBeCloseTo(18.78, 2);
-    expect(r.acrescimo).toBeCloseTo(4.57, 2);
+    expect(r.custoHora).toBeCloseTo(18.87, 2);
+    expect(r.acrescimo).toBeCloseTo(4.66, 2);
   });
 
   it("as horas são as de PRESENÇA da casa (8 h × 22 dias = 176), não as 220 do contrato nem as produtivas", () => {
@@ -60,15 +60,15 @@ describe("o custo real da hora", () => {
     expect(custoDaHora({ salarioMensal: 2200, horasMensais: 220, encargosPct: 0 }).salarioHora).toBe(10);
   });
 
-  it("salário mínimo de 2026 com os encargos do Simples dá R$ 12,17 a hora (era R$ 40 no módulo 3D)", () => {
+  it("salário mínimo de 2026 com os encargos do Simples dá R$ 12,23 a hora (era R$ 40 no módulo 3D)", () => {
     const r = custoDaHora({
       salarioMensal: SALARIO_MINIMO,
       encargosPct: somarEncargos(parcelasDoRegime("simples")),
     });
     expect(SALARIO_MINIMO).toBe(1621);
     expect(r.salarioHora).toBeCloseTo(9.21, 2);
-    expect(r.encargosPct).toBeCloseTo(0.3219, 4);
-    expect(r.custoHora).toBeCloseTo(12.17, 2);
+    expect(r.encargosPct).toBeCloseTo(0.3282, 4);
+    expect(r.custoHora).toBeCloseTo(12.23, 2);
   });
 
   it("sem salário não inventa custo", () => {
@@ -91,8 +91,8 @@ describe("o tamanho do buraco", () => {
     expect(quantoFalta(0.5999)).toBeCloseTo(0.375, 3);
   });
 
-  it("32% ignorado é 24% a menos", () => {
-    expect(quantoFalta(0.3219)).toBeCloseTo(0.2435, 3);
+  it("32,82% ignorado é 25% a menos", () => {
+    expect(quantoFalta(0.3282)).toBeCloseTo(0.2470, 3);
   });
 
   it("sem encargo nenhum, não falta nada", () => {
@@ -130,7 +130,7 @@ describe("a unidade de encargos_pct", () => {
   });
 
   it("casa com a soma das parcelas do Simples", () => {
-    // 8 + 8,33 + 11,11 + 1,55 + 3,2 = 32,19% -> R$ 52,88
-    expect(custoHoraComEncargos(40, somarEncargos(parcelasDoRegime("simples")))).toBe(52.88);
+    // 8 + 8,33 + 11,11 + 1,56 + 3,82 = 32,82% -> R$ 53,13
+    expect(custoHoraComEncargos(40, somarEncargos(parcelasDoRegime("simples")))).toBe(53.13);
   });
 });

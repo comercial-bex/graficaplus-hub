@@ -9,6 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
+import { CustosFixosDaGrafica } from "@/components/custos/custos-fixos-da-grafica";
+import { CODIGOS_DE_CUSTO_FIXO } from "@/domain/custos/custos-fixos";
+import {
+  ehParametroCalculado,
+  formatarParametro,
+  rascunhoDoParametro,
+  TEXTO_DO_PARAMETRO_CALCULADO,
+} from "@/domain/custos/parametro-da-casa";
 
 /**
  * Os dez números que a casa usa para formar preço e medir resultado.
@@ -30,7 +38,8 @@ type Parametro = {
   codigo: string;
   descricao: string | null;
   unidade: string | null;
-  valor: number;
+  /** Nulo quando ninguém informou ainda. Nulo não é zero. */
+  valor: number | null;
   observacao: string | null;
   updated_at: string | null;
 };
@@ -60,13 +69,6 @@ const ENTRA_NA_META = new Set([
   "pct_falha_producao",
 ]);
 
-function formatar(valor: number, unidade: string | null): string {
-  if (unidade === "%") return `${valor.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
-  if (unidade?.startsWith("R$"))
-    return `${valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: unidade === "R$/kWh" ? 4 : 2 })}${unidade.replace("R$", "")}`;
-  return `${valor.toLocaleString("pt-BR")} ${unidade ?? ""}`.trim();
-}
-
 const quando = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
@@ -88,7 +90,10 @@ export function ParametrosDaCasa() {
         .order("categoria")
         .order("codigo");
       if (error) throw error;
-      return (data ?? []) as unknown as Parametro[];
+      // Os custos fixos da gráfica têm bloco próprio, com confirmação, e não repetem aqui.
+      return ((data ?? []) as unknown as Parametro[]).filter(
+        (p) => !CODIGOS_DE_CUSTO_FIXO.includes(p.codigo),
+      );
     },
   });
 
@@ -131,11 +136,15 @@ export function ParametrosDaCasa() {
   });
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
-  if (parametros.length === 0) return null;
+  if (parametros.length === 0) return <CustosFixosDaGrafica />;
 
   const categorias = [...new Set(parametros.map((p) => p.categoria))];
 
   return (
+    <>
+    <div className="mt-10">
+      <CustosFixosDaGrafica />
+    </div>
     <section className="mt-10 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -194,6 +203,11 @@ export function ParametrosDaCasa() {
                           {p.observacao && (
                             <p className="mt-0.5 text-xs text-muted-foreground">{p.observacao}</p>
                           )}
+                          {ehParametroCalculado(p.codigo, p.observacao) && (
+                            <p className="mt-1 text-base" data-testid="parametro-calculado">
+                              {TEXTO_DO_PARAMETRO_CALCULADO}
+                            </p>
+                          )}
                         </div>
 
                         {emEdicao ? (
@@ -232,17 +246,17 @@ export function ParametrosDaCasa() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm font-bold tabular-nums">
-                              {formatar(Number(p.valor), p.unidade)}
+                            <span className="font-mono text-base font-bold tabular-nums">
+                              {formatarParametro(p.valor, p.unidade)}
                             </span>
-                            {podeEditar && (
+                            {podeEditar && !ehParametroCalculado(p.codigo, p.observacao) && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="min-h-11 md:min-h-9"
                                 onClick={() => {
                                   setEditando(p.id);
-                                  setRascunho(String(p.valor));
+                                  setRascunho(rascunhoDoParametro(p.valor));
                                 }}
                               >
                                 <Pencil className="h-3.5 w-3.5" />
@@ -291,5 +305,6 @@ export function ParametrosDaCasa() {
         </Card>
       )}
     </section>
+    </>
   );
 }
