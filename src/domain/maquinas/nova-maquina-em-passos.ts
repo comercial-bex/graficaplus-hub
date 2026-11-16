@@ -3,7 +3,7 @@
  *
  * Os números que importam para o sistema, e onde caem:
  *  - velocidade (m²/h) e largura útil (m) da plotter de impressão: o tempo de máquina e o encaixe
- *    da bobina no orçamento (14 m²/h = 4,3 min por m²);
+ *    da bobina no orçamento (14 m²/h no catálogo = 4,3 min por m²; o custo da i1600 usa 10 m²/h);
  *  - potência (kW): entra no custo cheio como energia (kW × tarifa), além do custo por hora;
  *  - custo por hora: só quem vê custo preenche. Quem não vê não manda a chave, senão sobrescreveria
  *    o valor com 0.
@@ -137,7 +137,7 @@ const num = (t: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-/** Minutos de máquina por m², pela velocidade: 14 m²/h dão 4,3 min/m². Zero sem velocidade. */
+/** Minutos de máquina por m², pela velocidade: 14 m²/h dão 4,3 min/m² no catálogo. O custo da i1600 usa a velocidade de cálculo. Zero sem velocidade. */
 export function minutosPorM2(velocidadeM2H: number): number {
   return velocidadeM2H > 0 ? Math.round((60 / velocidadeM2H) * 10) / 10 : 0;
 }

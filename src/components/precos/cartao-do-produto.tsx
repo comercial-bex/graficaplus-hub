@@ -106,7 +106,7 @@ export function CartaoDoProduto({
         <PilulaDeMargem margem={mF} minimo={minimo} rotulo="Final" />
         <PilulaDeMargem margem={mP} minimo={minimo} rotulo="Parceiro" />
         {margemRealRuim && (
-          <Dica texto={`Com o custo cheio (matéria-prima + máquina + mão de obra + indireto = ${brl(linha.cheio)}) a margem da venda final fica abaixo do mínimo.`}>
+          <Dica texto={`Com o custo cheio, que soma matéria-prima, máquina, mão de obra e indireto e dá ${brl(linha.cheio)}, a margem da venda final fica abaixo do mínimo. O custo cheio ainda não leva perdas, ocupação, imposto nem cartão.`}>
             <span className="rounded-full border border-warning/50 bg-warning/20 px-2 py-0.5 text-xs font-semibold">Abaixo do mínimo no custo cheio</span>
           </Dica>
         )}

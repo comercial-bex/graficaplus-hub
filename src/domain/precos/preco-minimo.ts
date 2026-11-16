@@ -277,7 +277,7 @@ export const TEXTO_DO_MINIMO =
 
 export const LEGENDA_DO_MINIMO: Array<{ faixa: FaixaDoMinimo; texto: string }> = [
   { faixa: "abaixo", texto: "Abaixo do mínimo: o balcão está abaixo do preço mínimo recomendado" },
-  { faixa: "no_minimo", texto: "No mínimo: o balcão está até dois por cento acima do mínimo recomendado" },
+  { faixa: "no_minimo", texto: `No mínimo: o balcão está até ${TOLERANCIA_DO_MINIMO} por cento acima do mínimo recomendado` },
   { faixa: "acima", texto: "Acima do mínimo: o balcão passa do mínimo recomendado" },
 ];
 
@@ -293,13 +293,16 @@ export function textosDoPrecoMinimo(p: ParametrosDoMinimo | null): {
   ocupacao: string;
   nomes: string;
 } {
-  const mult = p?.multiplicador != null ? pt(p.multiplicador) : "3";
   const oc =
     p?.ocupacaoAlvoPct != null
       ? `, hoje ${pt(p.ocupacaoAlvoPct)} por cento`
       : "";
+  const primeiro =
+    p?.multiplicador != null
+      ? `O primeiro é ${pt(p.multiplicador)} vezes o material com perda e falha.`
+      : "O primeiro é o multiplicador da regra de três, que ainda não chegou do banco, vezes o material com perda e falha.";
   return {
-    formula: `O preço mínimo recomendado é o maior entre dois valores. O primeiro é ${mult} vezes o material com perda e falha. O segundo é o piso do custo de produção, que é o custo de produção dividido pelo que sobra do preço depois da margem mínima do produto, do imposto sobre a venda e de metade da taxa do cartão.`,
+    formula: `O preço mínimo recomendado é o maior entre dois valores. ${primeiro} O segundo é o piso do custo de produção, que é o custo de produção dividido pelo que sobra do preço depois da margem mínima do produto, do imposto sobre a venda e de metade da taxa do cartão.`,
     nomes:
       "A coluna Preço pela regra de três segue sendo o custo real vezes três, só para comparar. A regra de três do preço mínimo é outra conta, feita sobre o material com perda e falha.",
     ocupacao: `Nem a plotter, nem o impressor, nem o aluguel trabalham cem por cento do tempo que a gráfica paga. Por isso o custo por hora sobe pela ocupação alvo${oc}. A energia e as perdas não sobem, porque só correm quando a máquina roda.`,

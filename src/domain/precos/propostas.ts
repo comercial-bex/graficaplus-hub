@@ -26,7 +26,7 @@ export type PropostaDePreco = {
   margem_atual: number | null;
   margem_proposta: number | null;
   motivo: string;
-  origem: "abaixo_do_piso" | "referencia_m2";
+  origem: "abaixo_do_piso" | "referencia_m2" | "manual";
   created_at: string;
 };
 
@@ -91,13 +91,18 @@ export function explicacaoDaBarra(tipo: BarraDaProposta["tipo"], p: PropostaDePr
   const piso = p.piso != null ? reais(p.piso) : "sem custo cadastrado";
   const minima = p.margem_minima != null ? ponto(p.margem_minima) : "não definida";
   if (tipo === "piso") {
-    return `O piso é o menor preço que ainda deixa a margem mínima do produto, que é ${minima}. Para este produto o piso é ${piso}. Vender abaixo disso é vender com lucro menor do que a casa decidiu aceitar. O certo é consertar o preço para ficar no piso ou acima, e nunca baixar a margem mínima.`;
+    return `O piso é o preço de referência gravado com esta proposta, ${piso}. Ele parte do custo e da margem mínima do produto, que é ${minima}. Em propostas mais antigas ele considera só o material, e nas novas é o preço mínimo recomendado. Vender abaixo do piso deixa lucro menor do que a casa aceitou. Conserte o preço e nunca baixe a margem mínima.`;
   }
   if (tipo === "atual") {
     const m = p.margem_atual != null ? ponto(p.margem_atual) : "desconhecida";
-    return `Margem é a parte do preço de venda que sobra depois de pagar o custo. Hoje o preço é ${reais(p.preco_atual)} e a margem é ${m}. ${
-      faixaDaMargem(p.margem_atual, p.margem_minima) === "abaixo" ? "Está abaixo do mínimo, então este preço está errado e precisa ser corrigido." : "Está dentro do mínimo."
-    }`;
+    const faixa = faixaDaMargem(p.margem_atual, p.margem_minima);
+    const veredito =
+      faixa === "abaixo"
+        ? "Está abaixo do mínimo, então este preço está errado e precisa ser corrigido."
+        : faixa === "sem_dado"
+          ? "Sem custo cadastrado, não dá para dizer se a margem está dentro do mínimo."
+          : "Está no mínimo ou acima dele.";
+    return `Margem é a parte do preço de venda que sobra depois de pagar o custo. Hoje o preço é ${reais(p.preco_atual)} e a margem é ${m}. ${veredito}`;
   }
   const m = p.margem_proposta != null ? ponto(p.margem_proposta) : "desconhecida";
   return propostaResolve(p)

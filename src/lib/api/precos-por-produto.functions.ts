@@ -285,7 +285,7 @@ export const proporPreco = createServerFn({ method: "POST" })
     );
     if (a.parceiroAcima) throw new Error("O preço do parceiro ficaria acima do balcão. Isso não pode.");
     if (a.situacao === "abaixo" && data.motivo.length < 3)
-      throw new Error("Abaixo do piso o motivo é obrigatório.");
+      throw new Error("Abaixo do piso o motivo é obrigatório, e o gerente só poderá recusar.");
     const motivo =
       data.motivo === "" ? "Ajuste de preço pedido na tela de preços por produto." : data.motivo;
     const { data: id, error } = await supabase.rpc("preco_proposta_criar", {

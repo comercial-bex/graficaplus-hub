@@ -19,13 +19,13 @@
  */
 import { leituraReal, type CustoRealDoProduto } from "./custo-real";
 import { lerReais, type LinhaDePreco } from "./painel-de-precos";
-import { leituraDoMinimo, taxaSobreAVenda } from "./preco-minimo";
+import { leituraDoMinimo, taxaSobreAVenda, TOLERANCIA_DO_MINIMO } from "./preco-minimo";
 
 /** Passo do controle: R$ 0,10. PageUp e PageDown andam 10 passos, R$ 1,00. */
 export const PASSO_EM_CENTAVOS = 10;
 export const PASSO_GRANDE_EM_CENTAVOS = 100;
 /** Dentro desta folga acima do mínimo recomendado a faixa é "no mínimo". Mesma folga de faixaDoMinimo. */
-const FOLGA_NO_MINIMO = 0.02;
+const FOLGA_NO_MINIMO = TOLERANCIA_DO_MINIMO / 100;
 
 export type ComposicaoDoCusto = {
   material: number;
@@ -59,10 +59,10 @@ export const ROTULO_DA_FATIA: Record<CodigoDaFatia, string> = {
   material: "Material",
   maquina: "Máquina",
   mao_de_obra: "Mão de obra",
-  rateio: "Rateio e ocupação",
-  perdas: "Perdas, falha e consumo da plotter",
+  rateio: "Rateio e horas paradas pela ocupação",
+  perdas: "Perdas, falha e extras da plotter",
   imposto: "Imposto",
-  cartao: "Cartão, metade das vendas",
+  cartao: "Cartão, metade da taxa",
   imposto_e_cartao: "Imposto e cartão",
   lucro: "Lucro",
   prejuizo: "Prejuízo",
@@ -208,12 +208,12 @@ export function motivosDoCustoIncompleto(real: CustoRealDoProduto | null | undef
   if (real.material_sem_custo) m.push("Há material da ficha sem custo cadastrado.");
   if (real.sem_mao_de_obra) m.push("A mão de obra ainda não entrou no custo.");
   if (real.custo_incompleto && m.length === 0)
-    m.push("Algum custo fixo ainda não foi confirmado, por isso o custo real é um piso otimista.");
+    m.push("Falta informar a manutenção, a limpeza ou o cabeçote da plotter, por isso o custo real é um piso otimista.");
   return m;
 }
 
 const SEM_DADO: Record<MotivoSemDado, string> = {
-  sem_custo_real: "Sem custo real, não dá para simular. Complete o custo em Custos de produção.",
+  sem_custo_real: "Sem custo real, não dá para simular. Complete a receita, o tempo e a máquina no cadastro do produto e os custos fixos em Custos fixos e mão de obra.",
   sem_custo_de_producao: "Sem custo de produção calculado, não dá para mostrar a barra.",
   sem_composicao:
     "A composição do custo não está disponível para este produto ou para o seu perfil, por isso a barra não aparece.",
@@ -249,7 +249,7 @@ function custosDaComposicao(
     avisos.push({
       codigo: "sem_ocupacao",
       frase:
-        "A ocupação da máquina não foi lida, por isso ela aparece dentro de perdas, falha e consumo da plotter.",
+        "A ocupação da máquina não foi lida, por isso ela aparece dentro de perdas, falha e extras da plotter.",
     });
   const oc = ocupacao ?? 0;
   let material = c.material;

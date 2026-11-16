@@ -63,7 +63,7 @@ export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
     rotulo: "Energia comercial",
     unidade: "R$/kWh",
     grupo: "espaco_e_energia",
-    fonte: "Tarifa comercial da fatura da distribuidora. Hoje o custo usa a tarifa residencial.",
+    fonte: "Tarifa comercial da fatura da distribuidora. Hoje o custo usa a tarifa de energia da casa, então preencher este valor ainda não muda o custo real nem o preço.",
     aceitaZero: false,
   },
   {
@@ -71,7 +71,7 @@ export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
     rotulo: "Horas reais da plotter por mês",
     unidade: "h/mês",
     grupo: "plotter",
-    fonte: "Quanto a plotter realmente roda no mês, com feriados e faltas descontados.",
+    fonte: "Horas por mês em que a plotter está disponível para produzir, com feriados e faltas descontados. Não desconte o tempo parado por falta de pedido, porque a ocupação alvo já cobre isso. Vazio usa as horas produtivas cadastradas na máquina.",
     aceitaZero: false,
   },
   {
@@ -120,7 +120,7 @@ export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
     unidade: "%",
     grupo: "preco_minimo",
     fonte:
-      "Parte das horas pagas em que a plotter, o impressor e o aluguel realmente trabalham. O ponto de partida é 50 por cento. O custo da conversão por metro quadrado é dividido por ela. Energia e perdas não são divididas.",
+      "Parte das horas pagas em que a plotter, o impressor e o aluguel realmente trabalham. O ponto de partida é 50 por cento. O custo da conversão por metro quadrado é dividido por ela. Energia e perdas não são divididas. Os extras da plotter, manutenção, limpeza e cabeçote, também não.",
     aceitaZero: false,
     faixa: { minimo: 5, maximo: 100, frase: "Digite a ocupação de 5 a 100 por cento, por exemplo 50." },
   },
@@ -130,7 +130,7 @@ export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
     unidade: "vezes",
     grupo: "preco_minimo",
     fonte:
-      "Quantas vezes o material com perda e falha entra no preço mínimo recomendado. Hoje é 3. O preço mínimo é o maior entre este valor e o piso do custo de produção.",
+      "Quantas vezes o material com perda e falha entra no preço mínimo recomendado. O preço mínimo é o maior entre este multiplicador vezes o material e o piso do custo de produção.",
     aceitaZero: false,
     faixa: { minimo: 1, maximo: 10, frase: "Digite um multiplicador de 1 a 10, por exemplo 3." },
   },
@@ -139,7 +139,7 @@ export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
     rotulo: "Mão de obra por hora, sem encargos",
     unidade: "R$/h",
     grupo: "pessoal",
-    fonte: "Salário mínimo dividido por 176 horas. Para mudar, use os parâmetros da casa, abaixo.",
+    fonte: "Salário mínimo de 2026 dividido por 176 horas. Este número não muda o custo real dos produtos. Ele alimenta o simulador de precificação, o custo da peça e a calculadora 3D. Para mudar o custo real dos produtos, edite a função na lista de funções da mão de obra desta página. O custo real usa a função do mesmo setor da máquina padrão e, entre as do setor, a de maior valor por hora sem encargos.",
     aceitaZero: false,
     somenteLeitura: true,
   },
@@ -149,7 +149,7 @@ export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
     unidade: "%",
     grupo: "pessoal",
     fonte:
-      "Encargos anualizados do Simples Nacional. É estimativa. Para mudar, use os parâmetros da casa, abaixo.",
+      "Encargos estimados do Simples Nacional. Confirme com o contador. Este número alimenta o simulador de precificação, o custo da peça e a calculadora 3D. O custo real dos produtos usa o encargo de cada função: para mudar, edite a função na lista de funções da mão de obra desta página.",
     aceitaZero: false,
     somenteLeitura: true,
   },

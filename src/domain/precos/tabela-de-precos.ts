@@ -155,10 +155,10 @@ export function sugestoesDePreco(args: {
 export type Composicao = { material: number; maquina: number; maoDeObra: number; indireto: number };
 
 export const PARTES_DO_CUSTO = [
-  { chave: "material", rotulo: "Matéria-prima", ajuda: "O que a receita do produto consome: lona, vinil, acrílico, tinta… × custo de compra." },
-  { chave: "maquina", rotulo: "Máquina", ajuda: "Tempo de produção × custo da hora da máquina padrão (energia, depreciação, manutenção)." },
-  { chave: "maoDeObra", rotulo: "Mão de obra", ajuda: "Tempo de produção × hora da função do setor, com encargos." },
-  { chave: "indireto", rotulo: "Indireto", ajuda: "Rateio administrativo por hora produtiva (aluguel, internet, contador…)." },
+  { chave: "material", rotulo: "Matéria-prima", ajuda: "O que a receita do produto consome: lona, vinil, acrílico, tinta e outros, vezes o custo de compra." },
+  { chave: "maquina", rotulo: "Máquina", ajuda: "Horas da máquina vezes o custo da hora, mais a energia, que é a potência vezes a tarifa. Em produto por metro quadrado as horas saem da velocidade de cálculo da máquina, ou da velocidade do catálogo quando ela está vazia. Manutenção, limpeza e cabeçote da plotter entram à parte, nos extras." },
+  { chave: "maoDeObra", rotulo: "Mão de obra", ajuda: "Horas de mão de obra vezes a hora da função do setor, com os encargos cadastrados nessa função. Em produto por metro quadrado as horas são as da máquina vezes o fator de mão de obra, que vale 1,5 quando ninguém o mudou." },
+  { chave: "indireto", rotulo: "Indireto", ajuda: "Rateio do aluguel e dos outros custos fixos do espaço, como internet e software, dividido pelas horas do mês e cobrado pelas horas de mão de obra do produto." },
 ] as const satisfies ReadonlyArray<{ chave: keyof Composicao; rotulo: string; ajuda: string }>;
 
 /**

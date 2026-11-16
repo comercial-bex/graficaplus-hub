@@ -425,7 +425,7 @@ describe("selo de custo incompleto", () => {
     ]);
     const geral = motivosDoCustoIncompleto(real({ custo_incompleto: true }));
     expect(geral).toHaveLength(1);
-    expect(geral[0]).toContain("custo fixo");
+    expect(geral[0]).toContain("manutenção, a limpeza ou o cabeçote da plotter");
   });
   it("nenhum quando está tudo certo, ou sem custo real", () => {
     expect(motivosDoCustoIncompleto(real())).toEqual([]);

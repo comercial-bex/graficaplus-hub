@@ -407,7 +407,8 @@ describe("o texto explicativo da tela", () => {
   it("sem os parâmetros do banco, não inventa a ocupação de hoje", () => {
     const t = textosDoPrecoMinimo(null);
     expect(t.ocupacao).not.toContain("hoje");
-    expect(t.formula).toContain("3 vezes");
+    expect(t.formula).not.toContain("3 vezes");
+    expect(t.formula).toContain("que ainda não chegou do banco");
   });
   it("com outro multiplicador, o texto acompanha", () => {
     expect(textosDoPrecoMinimo({ ocupacaoAlvoPct: 60, multiplicador: 2.5 }).formula).toContain(

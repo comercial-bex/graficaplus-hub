@@ -137,7 +137,7 @@ export function FichaDoProduto({
               <h3 className="text-sm font-semibold">Do que o produto é feito</h3>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Todo produto precisa de <strong>matéria-prima</strong> (a receita), <strong>máquina</strong>, <strong>mão de obra</strong> e o <strong>rateio indireto</strong>.
-                O custo cheio é a soma das quatro.
+                O custo cheio é a soma das quatro, sem perdas, ocupação, imposto nem cartão. Para a margem de verdade, veja a margem líquida em Preços por produto.
               </p>
               {fatias.length > 0 ? (
                 <>
@@ -246,16 +246,16 @@ export function FichaDoProduto({
                 </ul>
               )}
               {maoDeObraEstimada && linha.cheio != null && (
-                <p className="mt-2 rounded-md bg-warning/15 p-2 text-xs">
-                  A mão de obra deste custo é uma estimativa (R$ 10,65/h, média nacional de impressor), não o salário real. Troque em Custos de produção.
+                <p className="mt-2 rounded-md bg-warning/15 p-2 text-base">
+                  A mão de obra deste custo ainda é uma estimativa e não o salário real. Hoje vale o salário mínimo com encargos. Troque em Custos fixos e mão de obra.
                 </p>
               )}
               {custoCad != null && linha.cheio != null && Math.abs(linha.cheio - custoCad) > 0.05 && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  O cadastro guarda {brl(custoCad)} de custo, mas o custo cheio é {brl(linha.cheio)} ({sinal(((linha.cheio - custoCad) / custoCad) * 100)}). A margem real sai pelo cheio.
+                <p className="mt-2 text-base text-foreground">
+                  O cadastro guarda {brl(custoCad)} de custo, mas o custo cheio é {brl(linha.cheio)} ({sinal(((linha.cheio - custoCad) / custoCad) * 100)}). A margem real está em Preços por produto, porque o custo real leva perda, ocupação e taxas.
                 </p>
               )}
-              <p className="mt-2 text-xs text-muted-foreground">Para corrigir: cadastro do produto → receita (materiais), tempo e máquina padrão.</p>
+              <p className="mt-2 text-base text-foreground">Para corrigir, abra o cadastro do produto e ajuste a receita com os materiais, o tempo e a máquina padrão.</p>
             </section>
           </TabsContent>
 

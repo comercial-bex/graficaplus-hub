@@ -95,7 +95,8 @@ export const lerPrecosPendentes = createServerFn({ method: "GET" })
       margem_atual: num(r.margem_atual),
       margem_proposta: num(r.margem_proposta),
       motivo: String(r.motivo ?? ""),
-      origem: r.origem === "referencia_m2" ? "referencia_m2" : "abaixo_do_piso",
+      origem:
+        r.origem === "referencia_m2" ? "referencia_m2" : r.origem === "manual" ? "manual" : "abaixo_do_piso",
       created_at: String(r.created_at ?? ""),
     }));
 

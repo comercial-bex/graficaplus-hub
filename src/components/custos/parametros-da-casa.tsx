@@ -69,6 +69,9 @@ const ENTRA_NA_META = new Set([
   "pct_falha_producao",
 ]);
 
+/** Estes dois não mudam o custo real do produto, que lê custos_mao_de_obra. Valem para o simulador, o custo da peça e a calculadora 3D. */
+const SO_REFERENCIA_DE_MAO_DE_OBRA = new Set(["mo_custo_hora", "mo_encargos_pct"]);
+
 const quando = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
@@ -112,7 +115,7 @@ export function ParametrosDaCasa() {
   });
 
   const salvar = useMutation({
-    mutationFn: async ({ id, valor }: { id: string; valor: number }) => {
+    mutationFn: async ({ id, valor }: { id: string; valor: number; codigo: string }) => {
       // .select() de volta é o que separa "gravou" de "a RLS recusou em
       // silêncio": update barrado devolve zero linha e nenhum erro.
       const { data, error } = await supabase
@@ -124,8 +127,15 @@ export function ParametrosDaCasa() {
       if (!data || data.length === 0)
         throw new Error("Seu perfil não pode alterar os parâmetros da casa.");
     },
-    onSuccess: () => {
-      toast.success("Parâmetro salvo. A Meta do mês já usa o valor novo.");
+    onSuccess: (_r, v) => {
+      const codigoSalvo = v.codigo;
+      toast.success(
+        SO_REFERENCIA_DE_MAO_DE_OBRA.has(codigoSalvo)
+          ? "Parâmetro salvo. Ele vale para o simulador de precificação, o custo da peça e a calculadora 3D. O custo real dos produtos não muda, porque lê as funções da mão de obra."
+          : ENTRA_NA_META.has(codigoSalvo)
+            ? "Parâmetro salvo. Os próximos orçamentos já usam o valor novo, e a Meta do mês também."
+            : "Parâmetro salvo. Os próximos orçamentos já usam o valor novo.",
+      );
       qc.invalidateQueries({ queryKey: ["parametros-da-casa"] });
       qc.invalidateQueries({ queryKey: ["parametros-da-casa-historico"] });
       qc.invalidateQueries({ queryKey: ["ponto-de-equilibrio"] });
@@ -228,7 +238,7 @@ export function ParametrosDaCasa() {
                               className="min-h-11 md:min-h-9"
                               disabled={salvar.isPending || rascunho.trim() === ""}
                               onClick={() =>
-                                salvar.mutate({ id: p.id, valor: Number(rascunho) })
+                                salvar.mutate({ id: p.id, valor: Number(rascunho), codigo: p.codigo })
                               }
                             >
                               <Check className="h-4 w-4" />
@@ -295,7 +305,7 @@ export function ParametrosDaCasa() {
                     </span>
                     <span className="font-medium">{h.codigo}</span>
                     <span className="text-muted-foreground">
-                      {h.valor_anterior ?? "—"} → <strong>{h.valor_novo ?? "—"}</strong>
+                      {h.valor_anterior ?? "Sem valor"} mudou para <strong>{h.valor_novo ?? "Sem valor"}</strong>
                     </span>
                   </li>
                 ))}

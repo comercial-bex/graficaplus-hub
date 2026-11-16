@@ -1,4 +1,4 @@
-import { useId, useRef, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { CircleAlert, CircleCheck, TriangleAlert } from "lucide-react";
@@ -27,6 +27,15 @@ import {
   type Simulacao,
   type SimuladorPronto,
 } from "@/domain/precos/simulador-de-preco";
+import {
+  alavancasDeLucro,
+  filtrarAlavancas,
+  fraseDoAltoDoPainel,
+  ROTULO_DE_QUEM,
+  ROTULO_DO_FILTRO,
+  textoDoGanho,
+  type FiltroDeAlavancas,
+} from "@/domain/precos/alavancas-de-lucro";
 import type { FaixaDaMargem } from "@/domain/precos/propostas";
 import { COR_DA_FAIXA } from "./proposta-de-preco";
 
@@ -74,6 +83,9 @@ export const COR_DA_FATIA: Record<CodigoDaFatia, string> = {
 /** Número de bolinha: fundo e texto do tema, para o contraste valer sobre qualquer cor de fatia ou de régua. */
 const BOLINHA =
   "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-background text-sm font-bold leading-none text-foreground ring-2 ring-foreground";
+/** Mesma bolinha, com número de 16 px, para o painel de alavancas. */
+const BOLINHA_GRANDE =
+  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background text-base font-bold leading-none text-foreground ring-2 ring-foreground";
 const ALTURA_DA_BOLINHA = 26;
 const NIVEIS_DE_MARCA = 3;
 /** Marcas mais perto que isto, em por cento da régua, sobem para outra linha para os números não se sobreporem. */
@@ -298,6 +310,122 @@ function BarraEmpilhada({ s }: { s: Simulacao }) {
 }
 
 /**
+ * "O que melhora o lucro": alavancas ordenadas pelo ganho em reais por unidade, no preço que está no simulador.
+ * Nada aqui grava. A alavanca de preço só põe o preço no simulador, e quem pede a mudança é o botão Propor que já existe.
+ */
+function PainelDeAlavancas({
+  linha,
+  pronto,
+  sim,
+  podePropor,
+  irPara,
+}: {
+  linha: LinhaDePreco;
+  pronto: SimuladorPronto;
+  sim: Simulacao;
+  podePropor: boolean;
+  irPara: (c: number) => void;
+}) {
+  const [filtro, setFiltro] = useState<FiltroDeAlavancas>("todas");
+  const painel = alavancasDeLucro(linha, pronto, sim, { podeVerCusto: true });
+  const quemTem = new Set([...painel.prontas, ...painel.semDado].map((a) => a.quem));
+  const filtros = (["todas", "gerente", "dono", "producao"] as FiltroDeAlavancas[]).filter(
+    (f) => f === "todas" || quemTem.has(f),
+  );
+  // O preço do simulador muda a lista. Se o grupo escolhido sumiu, ou se os botões nem aparecem mais, volta para Todas.
+  const ativo: FiltroDeAlavancas = filtros.length > 2 && filtros.includes(filtro) ? filtro : "todas";
+  const prontas = filtrarAlavancas(painel.prontas, ativo);
+  const semDado = filtrarAlavancas(painel.semDado, ativo);
+  return (
+    <div className="space-y-3" data-testid="alavancas-de-lucro">
+      <h4 className="font-semibold">O que melhora o lucro</h4>
+      <p>{fraseDoAltoDoPainel(painel)}</p>
+      <SeloDeCustoIncompleto motivos={painel.custoIncompleto} />
+      {painel.custoIncompleto.length > 0 ? (
+        <p data-testid="alavancas-custo-incompleto">
+          Com o custo incompleto, o lucro verdadeiro é menor do que este painel mostra. Os ganhos em
+          reais continuam valendo como conta, mas não são promessa.
+        </p>
+      ) : null}
+      {filtros.length > 2 ? (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar alavancas por quem decide">
+          {filtros.map((f) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={ativo === f}
+              onClick={() => setFiltro(f)}
+              data-filtro-de-alavanca={f}
+              className={cn(
+                "inline-flex min-h-11 items-center rounded-full border px-4 text-base font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                ativo === f ? "border-foreground bg-foreground text-background" : "bg-background",
+              )}
+            >
+              {ROTULO_DO_FILTRO[f]}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {prontas.length > 0 ? (
+        <ol className="space-y-3" data-testid="lista-de-alavancas">
+          {prontas.map((a, i) => (
+            <li
+              key={a.codigo}
+              data-alavanca={a.codigo}
+              data-ganho-centavos={a.ganhoCentavos}
+              className="space-y-1 rounded-lg border border-border bg-background p-3"
+            >
+              <p className="font-semibold">
+                <span className={cn(BOLINHA_GRANDE, "mr-2")} aria-hidden>
+                  {i + 1}
+                </span>
+                {a.titulo}
+              </p>
+              <p className={cn("font-semibold", COR_DO_TEXTO_DA_FAIXA.acima)}>{textoDoGanho(a)}.</p>
+              <p>{a.frase}</p>
+              <p>
+                <span className="font-semibold">A quem cabe.</span> {ROTULO_DE_QUEM[a.quem]}.
+              </p>
+              <p className="text-muted-foreground">{a.cautela}</p>
+              {a.podePropor && a.precoAlvoCentavos != null && podePropor ? (
+                <button
+                  type="button"
+                  onClick={() => irPara(a.precoAlvoCentavos as number)}
+                  className="inline-flex min-h-11 items-center rounded-md border border-border bg-background px-3 text-base font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Pôr {reaisPorExtenso(a.precoAlvoCentavos)} no simulador. Depois use Propor este
+                  preço
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {ativo === "todas" && painel.somaDoBalcaoCentavos != null ? (
+        <p data-testid="soma-das-alavancas">
+          <span className="font-semibold">Juntas.</span> Se o preço, a maior ocupação e a perda e
+          falha acontecerem todos, o ganho de balcão soma {reaisPorExtenso(painel.somaDoBalcaoCentavos)} por
+          unidade. A alavanca do parceiro é outra venda e não entra nessa soma.
+        </p>
+      ) : null}
+      {semDado.length > 0 ? (
+        <div className="space-y-1" data-testid="alavancas-sem-dado">
+          <h5 className="font-semibold">Sem dado para medir</h5>
+          <ul className="space-y-2">
+            {semDado.map((a) => (
+              <li key={a.codigo} data-alavanca-sem-dado={a.codigo}>
+                <span className="font-semibold">{a.titulo}.</span> {a.frase}{" "}
+                <span className="text-muted-foreground">{ROTULO_DE_QUEM[a.quem]}.</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Simulador de preço de um produto. Arrastar escreve só no texto de preço da linha, o mesmo do campo digitado.
  * Nada aqui grava preço: o pedido sai pelo botão de propor que a lista passa em `botao`, e o gerente aprova.
  */
@@ -338,7 +466,7 @@ export function SimuladorDePreco({
           to="/custos-producao"
           className="inline-flex min-h-11 items-center underline underline-offset-2"
         >
-          Abrir custos de produção
+          Abrir custos fixos e mão de obra
         </Link>
       </section>
     );
@@ -514,6 +642,14 @@ export function SimuladorDePreco({
         <p className="text-muted-foreground">{TEXTO_DO_LUCRO_SOBRE_O_PRECO}</p>
       </div>
 
+      <PainelDeAlavancas
+        linha={linha}
+        pronto={pronto}
+        sim={sim}
+        podePropor={podePropor}
+        irPara={irPara}
+      />
+
       {pronto.avisos.length > 0 ? (
         <ul className="space-y-1" data-testid="avisos-do-simulador">
           {pronto.avisos.map((a) => (
@@ -529,8 +665,8 @@ export function SimuladorDePreco({
         <div className="space-y-2">
           {sim.faixa === "abaixo_do_custo" ? (
             <p className="font-semibold" role="note">
-              Este preço fica abaixo do custo real. O pedido vai para preços pendentes e o gerente
-              decide.
+              Este preço fica abaixo do custo real. O pedido vai para preços pendentes. O gerente só
+              consegue aprovar se o preço estiver no piso do cadastro ou acima dele.
             </p>
           ) : null}
           <p>Arrastar não grava o preço. O pedido só vale depois que o gerente aprovar.</p>
