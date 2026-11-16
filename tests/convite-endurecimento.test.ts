@@ -49,7 +49,7 @@ describe("o e-mail digitado errado", () => {
   it("a página avisa uma vez antes de criar a conta e deixa corrigir com um toque", () => {
     expect(CONVITE).toContain("sugerirEmail(email)");
     expect(CONVITE.indexOf("sugerirEmail(email)")).toBeLessThan(CONVITE.indexOf("supabase.auth.signUp"));
-    expect(CONVITE).toContain("Usar {sugestaoEmail}");
+    expect(CONVITE).toContain("<CampoEmail"); // o campo mostra "Você quis dizer …?" com um toque para corrigir
     expect(CONVITE).toContain("setEmailConferido(false)");
   });
 });

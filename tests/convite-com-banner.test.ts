@@ -28,7 +28,7 @@ describe("a página do convite", () => {
 
   it("três campos com rótulo visível e o botão de enviar é sólido, com letra preta no ciano", () => {
     // nome, WhatsApp, e-mail (03/11/2026): o resto fica para o primeiro acesso
-    const campos = CONVITE.match(/<CampoDeAcesso/g) ?? [];
+    const campos = CONVITE.match(/<(CampoDeAcesso|CampoCelular|CampoEmail)\b/g) ?? [];
     expect(campos.length).toBe(3);
     expect(CONVITE).not.toContain("<input");
     expect(CONVITE).not.toContain("<select");
@@ -40,7 +40,7 @@ describe("a página do convite", () => {
     expect(CONVITE).toContain("cadastroParceiroConcluidoMeta()");
     expect(CONVITE).toContain("lerOrigemDaUrl(");
     expect(CONVITE).toContain("p_origem: origem");
-    expect(CONVITE).toContain("mascaraWhatsapp(e.target.value)");
+    expect(CONVITE).toContain("<CampoCelular");
     expect(CONVITE).toContain('to="/privacidade"');
     expect(CONVITE).toContain("Seja parceiro da Bex Print");
     const PRIMEIRO_ACESSO = readFileSync("src/components/parceiro/completar-cadastro.tsx", "utf8");

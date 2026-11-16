@@ -20,6 +20,9 @@ import {
   urlDoLogo,
 } from "@/lib/parceiro-api";
 import { formatarDocumento, formatarTelefone, rotuloDoDocumento } from "@/domain/documentos";
+import { CampoCelular } from "@/components/bex/CampoCelular";
+import { CampoEmail } from "@/components/bex/CampoEmail";
+import { erroDoCelular, erroDoEmail, mascaraCelular } from "@/domain/contato/celular-e-email";
 import { DicaIcone } from "@/components/bex/Dica";
 import type { MarcaDoParceiro } from "@/domain/parceiros/painel";
 import { CONDICOES_PADRAO, COR_PADRAO_DA_MARCA, propsDoOrcamentoDoParceiro } from "@/domain/parceiros/pdf";
@@ -56,6 +59,7 @@ function MarcaDoParceiroPage() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [enviandoLogo, setEnviandoLogo] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [tentouSalvar, setTentouSalvar] = useState(false);
   const [gerando, setGerando] = useState(false);
   const arquivo = useRef<HTMLInputElement>(null);
 
@@ -99,10 +103,18 @@ function MarcaDoParceiroPage() {
   }
 
   async function salvar() {
+    setTentouSalvar(true);
+    const erroContato = erroDoCelular(marca.telefone ?? "") ?? erroDoEmail(marca.email ?? "");
+    if (erroContato) {
+      toast.error(`Confira o telefone e o e-mail: ${erroContato}`);
+      return;
+    }
     setSalvando(true);
     try {
       await salvarMarca({
         ...marca,
+        telefone: mascaraCelular(marca.telefone ?? ""),
+        email: (marca.email ?? "").trim().toLowerCase(),
         documento: marca.documento ? formatarDocumento(marca.documento) : "",
         estado: (marca.estado ?? "").toUpperCase(),
       });
@@ -230,12 +242,24 @@ function MarcaDoParceiroPage() {
           <Campo id="m-doc" rotulo="CPF ou CNPJ">
             <Input id="m-doc" inputMode="numeric" value={marca.documento ?? ""} onChange={(e) => mudar({ documento: e.target.value })} />
           </Campo>
-          <Campo id="m-tel" rotulo="Telefone / WhatsApp">
-            <Input id="m-tel" inputMode="tel" value={marca.telefone ?? ""} onChange={(e) => mudar({ telefone: e.target.value })} />
-          </Campo>
-          <Campo id="m-email" rotulo="E-mail">
-            <Input id="m-email" type="email" value={marca.email ?? ""} onChange={(e) => mudar({ email: e.target.value })} />
-          </Campo>
+          <CampoCelular
+            id="m-tel"
+            rotulo="Telefone / WhatsApp"
+            required
+            mostrarErro={tentouSalvar}
+            ajuda={AJUDA["m-tel"]}
+            value={marca.telefone ?? ""}
+            onChange={(v) => mudar({ telefone: v })}
+          />
+          <CampoEmail
+            id="m-email"
+            rotulo="E-mail"
+            required
+            mostrarErro={tentouSalvar}
+            ajuda={AJUDA["m-email"]}
+            value={marca.email ?? ""}
+            onChange={(v) => mudar({ email: v })}
+          />
           <Campo id="m-end" rotulo="Endereço" className="md:col-span-2">
             <Input id="m-end" value={marca.endereco ?? ""} onChange={(e) => mudar({ endereco: e.target.value })} />
           </Campo>

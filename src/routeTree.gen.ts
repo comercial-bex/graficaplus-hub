@@ -483,12 +483,11 @@ const AuthenticatedPrecificacaoRoute =
     path: '/precificacao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedPrecosRoute =
-  AuthenticatedPrecosRouteImport.update({
-    id: '/precos',
-    path: '/precos',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
+const AuthenticatedPrecosRoute = AuthenticatedPrecosRouteImport.update({
+  id: '/precos',
+  path: '/precos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPrecosPendentesRoute =
   AuthenticatedPrecosPendentesRouteImport.update({
     id: '/precos-pendentes',

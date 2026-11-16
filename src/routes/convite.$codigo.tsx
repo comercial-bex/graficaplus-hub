@@ -1,3 +1,5 @@
+import { CampoCelular } from "@/components/bex/CampoCelular";
+import { CampoEmail } from "@/components/bex/CampoEmail";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -11,7 +13,6 @@ import { cadastroParceiroConcluidoMeta, lerOrigemDaUrl, META_PIXEL_ID } from "@/
 import {
   CHAVE_CADASTRO_PENDENTE,
   gerarSenhaProvisoria,
-  mascaraWhatsapp,
   sugerirEmail,
   validarCadastroRapido,
 } from "@/domain/parceiros/cadastro-rapido";
@@ -172,6 +173,7 @@ function ConvitePage() {
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [tentou, setTentou] = useState(false);
   // "gmai.com"? Avisa uma vez antes de criar a conta; o e-mail é o login e não se recupera errado.
   const [sugestaoEmail, setSugestaoEmail] = useState<string | null>(null);
   const [emailConferido, setEmailConferido] = useState(false);
@@ -186,8 +188,12 @@ function ConvitePage() {
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
+    setTentou(true);
     const falta = validarCadastroRapido({ nome, telefone, email });
-    if (falta) return toast.error(falta.mensagem);
+    if (falta) {
+      document.getElementById(falta.campo === "telefone" ? "convite-whatsapp" : falta.campo === "email" ? "convite-email" : "convite-nome")?.focus();
+      return toast.error(falta.mensagem);
+    }
     const sugestao = sugerirEmail(email);
     if (sugestao && !emailConferido) {
       setSugestaoEmail(sugestao);
@@ -339,49 +345,31 @@ function ConvitePage() {
           value={nome}
           onChange={(e) => setNome(e.target.value)}
         />
-        <CampoDeAcesso
+        <CampoCelular
           id="convite-whatsapp"
-          className={campoCls}
+          className={campoCls + " h-12"}
           rotulo="WhatsApp"
-          type="tel"
-          inputMode="numeric"
-          autoComplete="tel"
-          placeholder="(96) 99999-9999"
           required
+          mostrarErro={tentou}
           value={telefone}
-          onChange={(e) => setTelefone(mascaraWhatsapp(e.target.value))}
+          onChange={setTelefone}
         />
         <div>
-          <CampoDeAcesso
+          <CampoEmail
             id="convite-email"
-            className={campoCls}
+            className={campoCls + " h-12"}
             rotulo="Seu e-mail"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            spellCheck={false}
             required
+            mostrarErro={tentou}
             value={email}
-            erro={sugestaoEmail ? `Você quis dizer ${sugestaoEmail}? Se o e-mail estiver certo, é só enviar de novo.` : undefined}
-            onChange={(e) => {
-              setEmail(e.target.value);
+            onChange={(v) => {
+              setEmail(v);
               setSugestaoEmail(null);
               setEmailConferido(false);
             }}
           />
           {sugestaoEmail && (
-            <button
-              type="button"
-              onClick={() => {
-                setEmail(sugestaoEmail);
-                setSugestaoEmail(null);
-                setEmailConferido(false);
-              }}
-              className="mt-1 inline-flex min-h-10 items-center rounded-sm text-sm font-semibold text-bex-cyan underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Usar {sugestaoEmail}
-            </button>
+            <p className="mt-1 text-sm text-muted-foreground">Se o e-mail estiver certo, é só enviar de novo.</p>
           )}
           <p className="mt-1.5 text-xs text-muted-foreground">É o seu login. A senha provisória chega no WhatsApp.</p>
         </div>

@@ -49,7 +49,7 @@ describe("o formulário curto", () => {
     expect(mascaraWhatsapp("9632231234")).toBe("(96) 3223-1234");
   });
   it("a página tem só três campos e chama o cadastro rápido com a senha provisória e a marca de pendente", () => {
-    expect(CONVITE.match(/<CampoDeAcesso/g)?.length).toBe(3);
+    expect(CONVITE.match(/<(CampoDeAcesso|CampoCelular|CampoEmail)\b/g)?.length).toBe(3);
     expect(CONVITE).toContain('"parceiro_cadastrar_rapido"');
     expect(CONVITE).toContain("p_senha: senha");
     expect(CONVITE).toContain("[CHAVE_CADASTRO_PENDENTE]: true");

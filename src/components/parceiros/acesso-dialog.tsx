@@ -1,3 +1,5 @@
+import { CampoEmail } from "@/components/bex/CampoEmail";
+import { erroDoEmail } from "@/domain/contato/celular-e-email";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Copy, KeyRound, Search, UserPlus } from "lucide-react";
@@ -165,10 +167,7 @@ export function AcessoDialog({
                 <Label htmlFor="acesso-nome">Nome</Label>
                 <Input id="acesso-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="acesso-email">E-mail do parceiro</Label>
-                <Input id="acesso-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
+              <CampoEmail id="acesso-email" rotulo="E-mail do parceiro" required value={email} onChange={setEmail} />
               <div className="space-y-1.5">
                 <Label htmlFor="acesso-senha">Senha inicial</Label>
                 <div className="flex gap-2">
@@ -182,7 +181,7 @@ export function AcessoDialog({
                 </p>
               </div>
               <DialogFooter>
-                <Button onClick={criarLogin} disabled={ocupado || !email.includes("@") || senha.length < 8 || !nome.trim()}>
+                <Button onClick={criarLogin} disabled={ocupado || erroDoEmail(email) !== null || senha.length < 8 || !nome.trim()}>
                   <UserPlus className="mr-1 h-4 w-4" />
                   {ocupado ? "Criando…" : "Criar e liberar"}
                 </Button>
