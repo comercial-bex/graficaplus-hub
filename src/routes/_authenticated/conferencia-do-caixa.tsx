@@ -23,6 +23,7 @@ import {
   type ContaPagaParaConferir,
   type LinhaDoExtrato,
 } from "@/domain/financeiro/conferencia-do-caixa";
+import { dadosDoTipo, rotuloDaCompetencia } from "@/domain/financeiro/contas-de-consumo";
 
 export const Route = createFileRoute("/_authenticated/conferencia-do-caixa")({
   head: () => ({ meta: [{ title: "Conferência do caixa — BEX PRINT OS" }] }),
@@ -41,7 +42,7 @@ function ConferenciaDoCaixaPage() {
   const dados = useQuery({
     queryKey: ["conferencia-do-caixa"],
     queryFn: async () => {
-      const [contas, saidas, anexos, extrato, bancos] = await Promise.all([
+      const [contas, saidas, anexos, extrato, bancos, consumo] = await Promise.all([
         supabase
           .from("contas_pagar")
           .select(
@@ -60,14 +61,21 @@ function ConferenciaDoCaixaPage() {
           .order("data")
           .limit(5000),
         supabase.from("contas_bancarias").select("id, nome"),
+        // Contas de consumo (16/11): a fatura é uma conta a pagar comum e cai nas mesmas listas;
+        // aqui só se lê a unidade para a etiqueta na linha.
+        (supabase as any)
+          .from("faturas_consumo")
+          .select("conta_pagar_id, competencia, unidades_consumo(identificador, tipo)"),
       ]);
-      for (const r of [contas, saidas, anexos, extrato, bancos]) if (r.error) throw r.error;
+      for (const r of [contas, saidas, anexos, extrato, bancos, consumo])
+        if (r.error) throw r.error;
       return {
         contas: (contas.data ?? []) as ContaPagaParaConferir[],
         saidas: saidas.data ?? [],
         anexos: (anexos.data ?? []) as { conta_pagar_id: string; tipo: string }[],
         extrato: (extrato.data ?? []) as LinhaDoExtrato[],
         bancos: new Map((bancos.data ?? []).map((b) => [b.id, b.nome] as const)),
+        consumo: etiquetasDeConsumo(consumo.data ?? []),
       };
     },
   });
@@ -100,6 +108,7 @@ function ConferenciaDoCaixaPage() {
         total={somaDosValores(contas.semOrigem.map((x) => x.conta))}
       >
         <TabelaDeContas
+          consumo={d.consumo}
           linhas={contas.semOrigem.map((x) => ({
             conta: x.conta,
             nota: FRASE_DO_MOTIVO[x.motivo],
@@ -113,7 +122,10 @@ function ConferenciaDoCaixaPage() {
         quantidade={contas.semComprovante.length}
         total={somaDosValores(contas.semComprovante)}
       >
-        <TabelaDeContas linhas={contas.semComprovante.map((c) => ({ conta: c, nota: null }))} />
+        <TabelaDeContas
+          consumo={d.consumo}
+          linhas={contas.semComprovante.map((c) => ({ conta: c, nota: null }))}
+        />
       </Secao>
 
       <Secao
@@ -122,7 +134,10 @@ function ConferenciaDoCaixaPage() {
         quantidade={contas.semData.length}
         total={somaDosValores(contas.semData)}
       >
-        <TabelaDeContas linhas={contas.semData.map((c) => ({ conta: c, nota: null }))} />
+        <TabelaDeContas
+          consumo={d.consumo}
+          linhas={contas.semData.map((c) => ({ conta: c, nota: null }))}
+        />
       </Secao>
 
       <Secao
@@ -132,6 +147,7 @@ function ConferenciaDoCaixaPage() {
         total={somaDosValores(contas.saidaRepetida.map((x) => x.conta))}
       >
         <TabelaDeContas
+          consumo={d.consumo}
           linhas={contas.saidaRepetida.map((x) => ({ conta: x.conta, nota: `${x.saidas} saídas` }))}
         />
       </Secao>
@@ -200,10 +216,30 @@ function Secao({
   );
 }
 
+/** "conta de consumo · UC 228.739.007-85 · 09/2026", por conta a pagar. */
+function etiquetasDeConsumo(
+  linhas: {
+    conta_pagar_id: string;
+    competencia: string;
+    unidades_consumo: { identificador: string; tipo: string } | null;
+  }[],
+): Map<string, string> {
+  return new Map(
+    linhas.map((l) => [
+      l.conta_pagar_id,
+      `conta de consumo · ${dadosDoTipo(l.unidades_consumo?.tipo ?? "outro").numero} ${
+        l.unidades_consumo?.identificador ?? ""
+      } · ${rotuloDaCompetencia(l.competencia)}`,
+    ]),
+  );
+}
+
 function TabelaDeContas({
   linhas,
+  consumo,
 }: {
   linhas: { conta: ContaPagaParaConferir; nota: string | null }[];
+  consumo: Map<string, string>;
 }) {
   return (
     <Table>
@@ -226,7 +262,11 @@ function TabelaDeContas({
             <TableCell className="tabular-nums">{dia(conta.vencimento)}</TableCell>
             <TableCell className="tabular-nums">{dia(conta.data_pagamento)}</TableCell>
             <TableCell className="text-muted-foreground">
-              {[nota, conta.compromisso_id ? "parcela de despesa fixa" : null]
+              {[
+                nota,
+                conta.compromisso_id ? "parcela de despesa fixa" : null,
+                consumo.get(conta.id) ?? null,
+              ]
                 .filter(Boolean)
                 .join(" · ") || "—"}
             </TableCell>

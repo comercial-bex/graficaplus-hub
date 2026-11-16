@@ -311,6 +311,8 @@ export const AREAS: AreaDoMenu[] = [
               aba("Reembolsos", "/reembolsos"),
               // Fase 2A (16/11/2026): só leitura, o que está pago sem prova ou sem origem.
               aba("Conferência", "/conferencia-do-caixa"),
+              // Contas de consumo (16/11/2026): energia, água, internet, telefone e gás por unidade.
+              aba("Contas de consumo", "/contas-de-consumo"),
             ],
             { atalho: 2, curto: "Caixa", aba: "Caixa", antes: "Fluxo de caixa" },
           ),

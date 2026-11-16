@@ -143,6 +143,11 @@ const hoje = () => hojeBr();
 const categorias = [
   "materia_prima",
   "energia",
+  // Contas de consumo (16/11/2026): as faturas de água, internet, telefone e gás.
+  "agua",
+  "internet",
+  "telefone",
+  "gas",
   "aluguel",
   "salarios",
   "impostos",

@@ -174,7 +174,8 @@ function enxugarDeNovembro(b: ResumoDoMenu): void {
     b,
     "Financeiro",
     // "Conferência" (Fase 2A, 16/11/2026) é aba nova, só leitura, com a porta do Caixa (financeiro.read).
-    { titulo: "Caixa e contas a pagar", abasNovasSeAberto: 1 },
+    // "Contas de consumo" (16/11/2026) também é aba nova, com a mesma porta.
+    { titulo: "Caixa e contas a pagar", abasNovasSeAberto: 2 },
     [
       { titulo: "Contas bancárias e extrato", url: "/contas-bancarias" },
       { titulo: "Despesas fixas e contratos", url: "/compromissos" },
