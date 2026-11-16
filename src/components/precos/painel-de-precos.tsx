@@ -40,6 +40,15 @@ import {
   type FaixaDaRegra,
   type LeituraReal,
 } from "@/domain/precos/custo-real";
+import {
+  fraseDaDiferencaDoMinimo,
+  fraseDaPreviaDoMinimo,
+  frasesDoMinimo,
+  ROTULO_DA_FAIXA_DO_MINIMO,
+  TEXTO_DO_MINIMO,
+  type FaixaDoMinimo,
+  type LeituraDoMinimo,
+} from "@/domain/precos/preco-minimo";
 import { type FaixaDaMargem } from "@/domain/precos/propostas";
 import { COR_DA_FAIXA } from "./proposta-de-preco";
 
@@ -272,7 +281,7 @@ function Enviada() {
   );
 }
 
-function Previa({ linha, e }: { linha: LinhaDePreco; e: Estado }) {
+export function Previa({ linha, e }: { linha: LinhaDePreco; e: Estado }) {
   const p = e.previa;
   const parceiro = linha.preco_parceiro;
   const ruim = p.avaliacao.situacao === "abaixo" || p.avaliacao.parceiroAcima;
@@ -291,6 +300,15 @@ function Previa({ linha, e }: { linha: LinhaDePreco; e: Estado }) {
             : ""}
           {p.real.regra != null ? ` Regra de três ${reais(p.real.regra)}.` : ""}
           {parceiro != null ? ` Parceiro continua em ${reais(parceiro)}.` : ""}
+        </p>
+      ) : null}
+      {e.digitou ? (
+        <p
+          className={cn("font-semibold", COR_DO_MINIMO[p.minimo.faixa])}
+          data-testid="previa-do-minimo"
+          data-faixa-do-minimo={p.minimo.faixa}
+        >
+          {fraseDaPreviaDoMinimo(p.minimo, lerReais(e.texto))}
         </p>
       ) : null}
       {p.aviso ? (
@@ -315,6 +333,81 @@ function Previa({ linha, e }: { linha: LinhaDePreco; e: Estado }) {
         </p>
       ) : null}
       {e.enviada ? <Enviada /> : null}
+    </div>
+  );
+}
+
+/** Cores de texto com contraste de pelo menos 4,5 para 1 no claro e no escuro. O texto sempre vem junto. */
+export const COR_DO_MINIMO: Record<FaixaDoMinimo, string> = {
+  abaixo: "text-[#b42318] dark:text-[#ff8a80]",
+  no_minimo: "text-[#8a5a00] dark:text-[#f5b942]",
+  acima: "text-[#146c43] dark:text-[#45d4a0]",
+  sem_dado: "text-[#4b5563] dark:text-[#d1d5db]",
+};
+const ICONE_DO_MINIMO: Record<FaixaDoMinimo, typeof CircleAlert> = {
+  abaixo: TriangleAlert,
+  no_minimo: CircleAlert,
+  acima: CircleCheck,
+  sem_dado: CircleMinus,
+};
+
+/** Tooltip de um produto: qual trava manda, os dois valores em frase e a ocupação. Abre no toque e no teclado. */
+export function ComoChegouAoMinimo({
+  nome,
+  leitura,
+}: {
+  nome: string;
+  leitura: LeituraDoMinimo;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Como chegou ao preço mínimo de ${nome}`}
+          data-testid="como-chegou-ao-minimo"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-base font-medium underline underline-offset-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <CircleHelp className="h-5 w-5 shrink-0" aria-hidden />
+          Como chegou
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-96 max-w-[90vw] text-base leading-relaxed" role="note">
+        <p className="mb-2 font-semibold">{nome}</p>
+        <ul className="space-y-2" data-testid="frases-do-minimo">
+          {frasesDoMinimo(leitura).map((f) => (
+            <li key={f}>{f}</li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Preço mínimo recomendado, a diferença contra o balcão em palavras e a faixa com ícone. */
+export function MinimoTexto({ nome, leitura }: { nome: string; leitura: LeituraDoMinimo }) {
+  if (leitura.minimo == null) {
+    return (
+      <div data-testid="preco-minimo" data-faixa-do-minimo="sem_dado">
+        <div className="font-semibold">Sem mínimo calculado</div>
+        <ComoChegouAoMinimo nome={nome} leitura={leitura} />
+      </div>
+    );
+  }
+  const Icone = ICONE_DO_MINIMO[leitura.faixa];
+  return (
+    <div data-testid="preco-minimo" data-faixa-do-minimo={leitura.faixa}>
+      <div className="font-semibold">{reais(leitura.minimo)}</div>
+      <div>{fraseDaDiferencaDoMinimo(leitura.diferenca)}</div>
+      <div
+        className={cn("inline-flex items-center gap-1.5 font-semibold", COR_DO_MINIMO[leitura.faixa])}
+      >
+        <Icone className="h-5 w-5 shrink-0" aria-hidden />
+        {ROTULO_DA_FAIXA_DO_MINIMO[leitura.faixa]}
+      </div>
+      <div>
+        <ComoChegouAoMinimo nome={nome} leitura={leitura} />
+      </div>
     </div>
   );
 }
@@ -573,6 +666,9 @@ function LinhaDaTabela({
         <TableCell className="px-3 text-base">
           <CampoDePreco linha={linha} e={e} podePropor={podePropor} />
         </TableCell>
+        <TableCell className="min-w-48 px-3 text-base">
+          <MinimoTexto nome={linha.nome} leitura={e.previa.minimo} />
+        </TableCell>
         <TableCell className="px-3 text-base">
           <MargemLiquidaEmBarra leitura={r} minima={linha.margem_minima} />
         </TableCell>
@@ -597,7 +693,7 @@ function LinhaDaTabela({
       </TableRow>
       {comRecado ? (
         <TableRow className="text-base">
-          <TableCell colSpan={10} className="px-3 text-base">
+          <TableCell colSpan={11} className="px-3 text-base">
             <Previa linha={linha} e={e} />
           </TableCell>
         </TableRow>
@@ -645,6 +741,12 @@ function CartaoDePreco({
           <dt className="mb-1 text-muted-foreground">Preço de balcão</dt>
           <dd>
             <CampoDePreco linha={linha} e={e} podePropor={podePropor} />
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Preço mínimo recomendado</dt>
+          <dd>
+            <MinimoTexto nome={linha.nome} leitura={e.previa.minimo} />
           </dd>
         </div>
         <div>
@@ -732,6 +834,12 @@ export function ListaDePrecos({
                 </span>
               </TableHead>
               <TableHead className={CABECA}>Preço de balcão</TableHead>
+              <TableHead className={CABECA}>
+                <span className="inline-flex items-center">
+                  Preço mínimo recomendado
+                  <Ajuda rotulo="preço mínimo recomendado" texto={TEXTO_DO_MINIMO} />
+                </span>
+              </TableHead>
               <TableHead className={CABECA}>
                 <span className="inline-flex items-center">
                   Margem líquida

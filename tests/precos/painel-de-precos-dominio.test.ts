@@ -86,7 +86,13 @@ describe("contagem, filtro, busca e ordem", () => {
     linha({ id: "6", nome: "Acrílico", familia: "Lonas", preco: 52 }),
   ];
   it("conta cada problema", () => {
-    expect(contar(todas)).toEqual({ abaixo: 1, sem_custo: 2, sem_preco: 1, parceiro_acima: 1 });
+    expect(contar(todas)).toEqual({
+      abaixo: 1,
+      abaixo_do_minimo: 0,
+      sem_custo: 2,
+      sem_preco: 1,
+      parceiro_acima: 1,
+    });
   });
   it("sem custo e sem preço juntos contam nos dois, mas a situação em palavras é a primeira falta, sem custo", () => {
     expect(avaliarLinha(todas[1]).situacao).toBe("sem_custo");

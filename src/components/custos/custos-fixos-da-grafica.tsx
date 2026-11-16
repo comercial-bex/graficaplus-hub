@@ -16,6 +16,7 @@ import {
   contagemDePendentes,
   formatarCustoFixo,
   fraseDaConfirmacao,
+  fraseDaFaixaDoCusto,
   fraseDoContador,
   haCustoFixoParaMostrar,
   itensDeCustoFixo,
@@ -88,6 +89,8 @@ export function LinhaDeCusto({
 }) {
   const { definicao: d, linha, pendente } = item;
   const valorLido = lerValorDeCusto(rascunho, d.aceitaZero);
+  const foraDaFaixa = fraseDaFaixaDoCusto(d, valorLido);
+  const podeSalvar = valorLido != null && foraDaFaixa == null;
   return (
     <li className="space-y-2 py-4" data-testid={`custo-fixo-${d.codigo}`}>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -107,7 +110,7 @@ export function LinhaDeCusto({
               autoComplete="off"
               className="mt-1 h-11 max-w-56 text-base md:text-base"
               aria-label={`Novo valor de ${d.rotulo}`}
-              aria-invalid={rascunho.trim() !== "" && valorLido == null}
+              aria-invalid={rascunho.trim() !== "" && !podeSalvar}
             />
           </label>
           {rascunho.trim() !== "" && valorLido == null ? (
@@ -115,11 +118,16 @@ export function LinhaDeCusto({
               Digite um número, por exemplo 2000 ou 1,1339.
             </p>
           ) : null}
+          {foraDaFaixa ? (
+            <p className="text-base font-semibold text-[#b42318] dark:text-[#ff8a80]" role="alert">
+              {foraDaFaixa}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               className="h-11 min-h-11 text-base"
-              disabled={ocupado || valorLido == null}
+              disabled={ocupado || !podeSalvar}
               onClick={() => aoSalvar(true)}
             >
               Salvar e confirmar
@@ -128,7 +136,7 @@ export function LinhaDeCusto({
               type="button"
               variant="outline"
               className="h-11 min-h-11 text-base"
-              disabled={ocupado || valorLido == null}
+              disabled={ocupado || !podeSalvar}
               onClick={() => aoSalvar(false)}
             >
               Salvar sem confirmar
@@ -340,7 +348,7 @@ export function CustosFixosDaGrafica() {
       aoMudar={setRascunho}
       aoSalvar={(i, confirmar) => {
         const valor = lerValorDeCusto(rascunho, i.definicao.aceitaZero);
-        if (valor != null) salvar.mutate({ item: i, valor, confirmar });
+        if (valor != null && fraseDaFaixaDoCusto(i.definicao, valor) == null) salvar.mutate({ item: i, valor, confirmar });
       }}
       aoCancelar={() => setEditando(null)}
     />
