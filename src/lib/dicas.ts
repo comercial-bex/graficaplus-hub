@@ -510,6 +510,10 @@ export const dicas = {
       sugestao: "Três caminhos, cada um com a conta: Bater = concorrente mais barato − R$ 1,50; Igualar = o mesmo preço; Piso = custo ÷ (1 − margem mínima do produto), o menor preço que ainda respeita a margem mínima. Em vermelho, quando a margem fica abaixo do mínimo do produto. Nada é gravado: é uma sugestão.",
     },
   },
+  "/precos": {
+    menu: "Uma linha por produto com custo, piso, preço do balcão e margem, para pedir a mudança de preço.",
+    tela: "Cada linha é um produto ativo. O piso é o menor preço que ainda deixa a margem mínima. A barra mostra a margem e o risco marca o mínimo. Digite o preço novo e a linha mostra na hora o piso, a margem nova e o aviso. Propor preço nunca grava o preço: cria um pedido que espera aprovação em preços pendentes. Abaixo do piso o motivo é obrigatório. Os quatro números do alto filtram a lista. Só administrador e gerente pedem mudança; quem não vê custo não abre a tela.",
+  },
   "/precos-pendentes": {
     menu: "Preços que o sistema acha errados, com o piso e a margem em barras, para aprovar ou recusar.",
     tela: "Cada cartão é um produto com preço abaixo do piso ou longe da referência de metro quadrado. Três barras na mesma escala mostram o piso da margem, a margem de hoje e a margem se o preço novo for aprovado. Vermelho é abaixo do piso, amarelo é perto e verde é acima. Toque no ponto de interrogação de cada barra para ler o que ela quer dizer. Aprovar grava o preço novo no produto e não mexe em orçamento. Recusar pede o motivo. Só administrador e gerente decidem; quem não vê custo não abre a tela.",

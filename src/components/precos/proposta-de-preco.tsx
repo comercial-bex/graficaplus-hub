@@ -16,13 +16,13 @@ import {
 import { brl } from "./tipos";
 
 /** Cores com contraste de pelo menos 4,5 para 1 contra o fundo do cartão, no claro e no escuro. */
-const COR_DA_FAIXA: Record<FaixaDaMargem, string> = {
+export const COR_DA_FAIXA: Record<FaixaDaMargem, string> = {
   abaixo: "bg-[#b42318] dark:bg-[#ff8a80]",
   perto: "bg-[#8a5a00] dark:bg-[#f5b942]",
   acima: "bg-[#146c43] dark:bg-[#45d4a0]",
   sem_dado: "bg-[#4b5563] dark:bg-[#9ca3af]",
 };
-const COR_DO_PISO = "bg-[#1d4ed8] dark:bg-[#93c5fd]";
+export const COR_DO_PISO = "bg-[#1d4ed8] dark:bg-[#93c5fd]";
 
 export const LEGENDA_DAS_FAIXAS: Array<{ faixa: FaixaDaMargem; texto: string }> = [
   { faixa: "abaixo", texto: "Vermelho: abaixo do piso, o preço está errado" },
