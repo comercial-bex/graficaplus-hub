@@ -114,7 +114,8 @@ BEGIN
     ),
     -- 3. preco de parceiro abaixo do piso liquido
     base AS (
-      SELECT p.id, p.nome, COALESCE(p.margem_minima, 0) AS mm, p.preco_parceiro, p.preco_parceiro_acima,
+      -- margem mínima como desconto_avaliar e a tela /precos: vazio ou zero vale 30 (o piso antigo abaixo mantém a conta de parceiro_precos)
+      SELECT p.id, p.nome, COALESCE(NULLIF(p.margem_minima, 0), 30) AS mm, p.preco_parceiro, p.preco_parceiro_acima,
              CASE WHEN COALESCE(p.custo_medio, 0) > 0 AND COALESCE(p.margem_minima, 0) < 100
                   THEN round(p.custo_medio / (1 - COALESCE(p.margem_minima, 0) / 100), 2) END AS piso_antigo,
              {CUSTO} AS custo
@@ -258,6 +259,7 @@ DECLARE
   v_n_privados integer := 0;
   v_sem_celular integer := 0;
   v_falhas text[] := ARRAY[]::text[];
+  v_erro text;
   v_ult_lembrete timestamptz;
   v_ult_fim timestamptz;
   v_manda_fim boolean := false;
@@ -279,10 +281,24 @@ BEGIN
   END IF;
 
   -- Pendencias, em ordem fixa.
-  SELECT COALESCE(array_agg(p.rotulo ORDER BY CASE p.tipo WHEN 'parametro' THEN 1 WHEN 'material' THEN 2 ELSE 3 END, p.rotulo),
-                  ARRAY[]::text[])
-    INTO v_itens
-    FROM public.pendencias_de_custo() p;
+  -- Se a lista não pode ser montada (coluna ou visão com outro nome, produto que quebra o custo), o erro NÃO morre
+  -- calado no cron: vira WARNING e linha lembrete_diario_falha em logs_auditoria, e a rodada seguinte tenta de novo.
+  BEGIN
+    SELECT COALESCE(array_agg(p.rotulo ORDER BY CASE p.tipo WHEN 'parametro' THEN 1 WHEN 'material' THEN 2 ELSE 3 END, p.rotulo),
+                    ARRAY[]::text[])
+      INTO v_itens
+      FROM public.pendencias_de_custo() p;
+  EXCEPTION WHEN OTHERS THEN
+    v_erro := SQLERRM;
+    RAISE WARNING 'lembrete de custos: não foi possível listar as pendências: %', v_erro;
+    IF p_enfileirar THEN
+      INSERT INTO public.logs_auditoria (usuario_id, entidade, entidade_id, acao, detalhes)
+      VALUES (NULL, 'pendencias_custo', NULL, 'lembrete_diario_falha',
+              jsonb_build_object('dia', v_hoje, 'enviou', false, 'motivo', 'erro ao listar pendências', 'erro', v_erro));
+    END IF;
+    RETURN jsonb_build_object('modo', CASE WHEN p_enfileirar THEN 'enviando' ELSE 'seco' END, 'dia', v_hoje,
+                              'enviou', false, 'motivo', 'erro ao listar pendências', 'erro', v_erro);
+  END;
   v_n := cardinality(v_itens);
 
   -- Telefones para citar no grupo: gestor e financeiro ativos (55 mais DDD e numero).

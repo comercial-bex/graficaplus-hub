@@ -44,7 +44,7 @@ Nenhuma tabela nova, nenhuma coluna nova, nenhuma policy nova. Nenhum `UPDATE` o
 - **Domingo e feriado fechado de `whatsapp_feriados` não enviam.** Sábado envia, porque o aviso é das 08:00.
 - **Para sozinho.** Com a lista vazia não envia mais nada, sem desligar o job. Se já houve lembrete depois do último aviso de fim, envia UMA mensagem dizendo que tudo foi atualizado, com chave própria. Se amanhã surgir pendência nova, o lembrete volta sozinho.
 - **Limite.** 12 linhas numeradas por mensagem, o resto vira "E mais K pendências".
-- **Nunca em silêncio.** Grupo desligado, destino inválido, fila que recusa ou chave esgotada: WARNING e linha `lembrete_diario_falha` em `logs_auditoria`. Cada rodada grava uma linha `lembrete_diario` com o resultado, sem custo em reais.
+- **Nunca em silêncio, nem se a lista quebrar.** Se `pendencias_de_custo()` falhar (por exemplo a view `produto_custo_real` sem a coluna `custo_producao`), a rodada não morre calada no cron: vira WARNING, linha `lembrete_diario_falha` com o erro em `logs_auditoria`, e a rodada das 10:00 tenta de novo. Grupo desligado, destino inválido, fila que recusa ou chave esgotada: WARNING e linha `lembrete_diario_falha` em `logs_auditoria`. Cada rodada grava uma linha `lembrete_diario` com o resultado, sem custo em reais.
 - **Só o agendamento.** Pessoa logada recebe 42501 (`auth.uid()` preenchido).
 - **Interruptor.** O job nasce ativo, a pedido do dono. Para pausar: `SELECT cron.alter_job(jobid, active := false) FROM cron.job WHERE jobname = 'pendencias-de-custo'`.
 
@@ -312,6 +312,10 @@ DELETE FROM public.whatsapp_feriados WHERE data = DATE '2026-11-20';
 Aviso já enfileirado e enviado não volta. Para o lembrete parar sem desfazer nada, é só desativar o job.
 
 ## Riscos e decisões que ficam com o dono
+
+0. **Margem mínima vazia ou zero vale 30** na conta do piso, igual a `desconto_avaliar` e à view `produto_custo_real` (corrigido na revisão de 16/11: antes valia 0 e escondia o produto).
+0b. **A migração `20261116100000` também define `pendencias_de_custo()`** (mesmo nome e mesmas colunas, tipos `material_sem_custo` e `parceiro_abaixo_do_piso`). Aplicada depois dela, esta substitui a função; a tela `/precos` só usa `codigo` e `rotulo`, então não quebra. Se alguém reaplicar a do banco depois, a função volta à versão dela e o lembrete continua funcionando, com a ordem dos tipos diferente.
+0c. **Só o 20/11 está em `whatsapp_feriados`.** O lembrete roda em 25/12 e 01/01 se ninguém cadastrar essas datas, e cadastrar fecha a triagem do WhatsApp nesses dias. Decisão do dono.
 
 1. **Feriado de 20/11 fecha a triagem do WhatsApp nesse dia.** É a tabela única de horário. Se a empresa abre, apagar a linha.
 2. **O lembrete nasce ativo.** A primeira mensagem sai no primeiro dia útil depois de aplicar, às 08:00 de Macapá. Para ver o texto antes, chamar `SELECT public.lembrete_diario_de_custos(false)` como `service_role`, que não grava nem enfileira.

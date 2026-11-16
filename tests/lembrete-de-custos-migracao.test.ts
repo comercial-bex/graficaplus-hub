@@ -174,6 +174,10 @@ describe("pendencias_de_custo", () => {
     expect(c).toContain("produto_faixas_preco");
   });
 
+  it("margem mínima vazia ou zero vale 30, como desconto_avaliar e a visão do custo real", () => {
+    expect(c).toContain("COALESCE(NULLIF(p.margem_minima, 0), 30) AS mm");
+  });
+
   it("o rótulo não leva valor em reais: só percentual e nomes", () => {
     expect(c).not.toMatch(/R\$/);
     expect(c).not.toMatch(/to_char\(|_integridade_brl|\bvalor::text|'\s*\|\|\s*c\.valor/);
@@ -261,7 +265,17 @@ describe("lembrete_diario_de_custos: texto e envio", () => {
     expect(c).toContain("'lembrete_diario_falha'");
     expect(c).toContain("RAISE WARNING 'lembrete de custos: %'");
     expect(c).toContain("v_res IN ('sem_destino', 'recusado', 'esgotado')");
-    expect(c).not.toMatch(/EXCEPTION\s+WHEN\s+OTHERS/i);
+    // O único tratador de erro da função não é mudo: avisa, grava a falha e devolve o erro.
+    expect((c.match(/EXCEPTION\s+WHEN\s+OTHERS/gi) ?? []).length).toBe(1);
+    const tratador = c.slice(c.search(/EXCEPTION\s+WHEN\s+OTHERS/i));
+    expect(tratador).toContain("RAISE WARNING 'lembrete de custos: não foi possível listar as pendências: %'");
+    expect(tratador).toContain("'lembrete_diario_falha'");
+    expect(tratador).toContain("'erro', v_erro");
+  });
+
+  it("lista que não monta (coluna ou visão com outro nome) vira falha registrada, e o modo seco não grava", () => {
+    expect(c).toMatch(/IF p_enfileirar THEN\s+INSERT INTO public\.logs_auditoria[\s\S]*?'lembrete_diario_falha'/);
+    expect(c).toContain("'motivo', 'erro ao listar pendências'");
   });
 });
 
