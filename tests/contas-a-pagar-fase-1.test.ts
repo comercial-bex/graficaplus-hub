@@ -481,3 +481,74 @@ describe("correção 20261116170000: pagar e anexar só para quem vê o financei
     expect(trecho.replace(/\s+/g, " ")).toMatch(/podeAnexar: admin \|\| \(veFinanceiro &&/);
   });
 });
+
+describe("trava do estorno 20261116190000: desfazer pagamento só pelo admin, também por fora da função", () => {
+  const TRAVA = readFileSync(
+    "supabase/migrations/20261116190000_contas_a_pagar_trava_do_estorno.sql",
+    "utf8",
+  );
+  const SQL_TRAVA = TRAVA.replace(/--.*$/gm, "");
+
+  function corpoDa(funcao: string): string {
+    const m = TRAVA.match(
+      new RegExp(
+        `CREATE OR REPLACE FUNCTION public\\.${funcao}\\(\\)[\\s\\S]*?AS \\$function\\$([\\s\\S]*?)\\$function\\$`,
+      ),
+    );
+    expect(m, funcao).not.toBeNull();
+    return m![1];
+  }
+
+  it("os gatilhos são BEFORE: recusam antes de gravar, não depois", () => {
+    expect(SQL_TRAVA).toMatch(
+      /CREATE TRIGGER tg_conta_paga_so_admin_desfaz\s+BEFORE UPDATE OF status OR DELETE ON public\.contas_pagar/,
+    );
+    expect(SQL_TRAVA).toMatch(
+      /CREATE TRIGGER tg_saida_de_conta_paga_so_admin_mexe\s+BEFORE UPDATE OR DELETE ON public\.caixa_movimentos/,
+    );
+  });
+
+  it("só o admin (ou ninguém logado: migração e servidor) passa; nenhuma chave de pagamento abre", () => {
+    for (const f of ["tg_conta_paga_so_admin_desfaz", "tg_saida_de_conta_paga_so_admin_mexe"]) {
+      const c = corpoDa(f);
+      expect(c, f).toContain("v_uid IS NULL OR public.has_role(v_uid, 'admin'::public.app_role)");
+      expect(c, f).not.toMatch(/has_permission|gestor|financeiro/);
+      expect(c, f).toContain("ERRCODE = '42501'");
+    }
+  });
+
+  it("conta: recusa sair de paga e apagar paga; paga -> paga (dar baixa de novo) passa", () => {
+    const c = corpoDa("tg_conta_paga_so_admin_desfaz");
+    expect(c).toContain("OLD.status = 'paga' AND NEW.status IS DISTINCT FROM 'paga'");
+    expect(c).toContain("TG_OP = 'DELETE' AND OLD.status = 'paga'");
+  });
+
+  it("saída de caixa: só a da conta a pagar; data continua corrigível", () => {
+    const c = corpoDa("tg_saida_de_conta_paga_so_admin_mexe");
+    expect(c).toContain("OLD.origem IS DISTINCT FROM 'conta_pagar' OR OLD.conta_pagar_id IS NULL");
+    for (const col of ["conta_pagar_id", "valor", "tipo", "realizado", "origem"]) {
+      expect(c, col).toContain(`NEW.${col} IS DISTINCT FROM OLD.${col}`);
+    }
+    expect(c).not.toContain("NEW.data IS DISTINCT FROM OLD.data");
+  });
+
+  it("não mexe em policy nem em função de dinheiro; gatilho fechado para chamada direta", () => {
+    expect(SQL_TRAVA).not.toMatch(
+      /POLICY|CREATE OR REPLACE FUNCTION public\.(pagar|estornar|anexar|remover)_/,
+    );
+    for (const f of ["tg_conta_paga_so_admin_desfaz", "tg_saida_de_conta_paga_so_admin_mexe"]) {
+      expect(SQL_TRAVA).toContain(
+        `REVOKE ALL ON FUNCTION public.${f}() FROM PUBLIC, anon, authenticated;`,
+      );
+    }
+    expect(SQL_TRAVA).not.toMatch(/GRANT EXECUTE/);
+  });
+
+  it("o md5 anotado no cabeçalho é o do corpo no arquivo (retrato do que foi aplicado)", () => {
+    for (const f of ["tg_conta_paga_so_admin_desfaz", "tg_saida_de_conta_paga_so_admin_mexe"]) {
+      const anotado = TRAVA.match(new RegExp(`^--\\s+${f}\\s+([0-9a-f]{32})\\b`, "m"));
+      expect(anotado, f).not.toBeNull();
+      expect(createHash("md5").update(corpoDa(f), "utf8").digest("hex"), f).toBe(anotado![1]);
+    }
+  });
+});
