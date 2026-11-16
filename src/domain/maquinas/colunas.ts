@@ -39,6 +39,10 @@ export const COLUNAS_DA_MAQUINA_SEM_CUSTO = [
   "avanco_m",
   "alimentacao",
   "comprimento_util_m",
+  // 16/11/2026: velocidade que o CUSTO usa e o texto que explica a diferença para a do catálogo. Não são custo.
+  // A migração 20261116100000 cria as colunas e dá o GRANT: aplique-a ANTES de publicar o front.
+  "velocidade_calculo_m2_h",
+  "velocidade_calculo_texto",
 ] as const;
 
 /** O que fica de fora do que a equipe lê: custo, compra e o texto comercial. Só `maquinas_financeiro` entrega. */

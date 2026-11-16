@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -235,6 +235,14 @@ describe("onda B3: o fechamento do custo das máquinas", () => {
     const m = c.match(/GRANT SELECT \(([^)]*)\)\s+ON public\.maquinas TO authenticated;/);
     expect(m, "GRANT por coluna em maquinas").not.toBeNull();
     const liberadas = m![1].split(",").map((x) => x.trim());
+    // Colunas liberadas por migrações POSTERIORES à B3 (coluna nova que não é custo), cada uma com GRANT por coluna.
+    for (const arq of readdirSync("supabase/migrations").sort()) {
+      if (!arq.endsWith(".sql") || arq.slice(0, 14) <= "20261110260000") continue;
+      const depois = readFileSync(`supabase/migrations/${arq}`, "utf8").replace(/^--[^\n]*$/gm, "");
+      for (const g of depois.matchAll(/GRANT SELECT \(([^)]*)\)\s+ON public\.maquinas TO authenticated;/g)) {
+        liberadas.push(...g[1].split(",").map((x) => x.trim()));
+      }
+    }
     expect([...liberadas].sort()).toEqual([...COLUNAS_DA_MAQUINA_SEM_CUSTO].sort());
   });
 

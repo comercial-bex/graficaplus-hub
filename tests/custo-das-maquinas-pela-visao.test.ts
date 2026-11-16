@@ -51,6 +51,9 @@ const COLUNAS_VIVAS = [
   "alimentacao",
   "comprimento_util_m",
   "especificacoes_comerciais",
+  // 16/11/2026, migração 20261116100000: velocidade que o custo usa e o texto que explica
+  "velocidade_calculo_m2_h",
+  "velocidade_calculo_texto",
 ];
 
 const ler = (caminho: string) => readFileSync(caminho, "utf8");
