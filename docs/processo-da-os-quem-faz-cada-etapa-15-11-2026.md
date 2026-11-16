@@ -88,3 +88,36 @@ Ela mostra na linha do tempo quem a moveu.
 - Validada, a OS andou.
 - A fila da Plotter de Impressão funcionou para o operador. A Epson foi recusada pelo
   tipo, uma OS fora da fila foi recusada, e o atendimento não pôde mexer (42501).
+
+## Tempo de máquina só depois do Atendimento (16/11/2026)
+
+Achado ao conferir a TV da Oficina. A Plotter de Impressão estava "ocupada" desde
+10/11, às 14:40:
+
+- um apontamento foi aberto pela agenda na OS 222, três minutos depois de a OS nascer;
+- a OS ainda estava no Atendimento, sem validação do gestor, arte aprovada, arquivo
+  final ou pagamento;
+- o apontamento nunca foi fechado.
+
+Com ele aberto, "Começar" na Plotter recusava qualquer outra OS, e o custo de máquina
+da 222 crescia sozinho.
+
+- **A porta.** `iniciar_apontamento`, a única função que abre apontamento, recusa OS no
+  Atendimento ou em "Atendimento validado": "a produção começa na fila, depois da
+  validação do gestor e das travas". Na Criação continua permitido (prova de cor,
+  teste de material).
+- **O dado.** O apontamento da 222 foi fechado sem tempo e sem custo, com o motivo
+  escrito. A regra de apontamento esquecido lançaria cerca de 9 h de Plotter numa OS
+  que não foi produzida. A reserva da agenda voltou a "agendado". Se o banner foi
+  impresso naquele dia, o tempo real se lança à mão (a reserva previa 35 min).
+- **Onde o trabalho para.** Em "Atendimento validado", quem destrava agora aparece como
+  a criação, e não mais a gestão.
+
+**Ainda aberto: a Epson EcoTank L3250 (A4).** Ela continua sem tipo de produção, e a
+TV da Oficina acusa 6 colunas de máquina num painel desenhado para 5. Há dois caminhos,
+e a escolha é do dono:
+
+- tirá-la da produção (desativar no cadastro): ela sai da TV, e o produto que a tem
+  como máquina padrão passa a sugerir outra;
+- tratá-la como máquina de impressão: ganha o tipo e a TV agrupa as duas impressoras
+  numa coluna só, como já faz com as 3D. Isso pede um ajuste na TV.

@@ -689,6 +689,8 @@ export const TITULO_DO_ERRO = {
   ja_rodando_aqui: "Já está rodando nesta máquina",
   quantidade_invalida: "Quantidade inválida",
   os_fora_do_balcao: "OS não está no balcão",
+  // 16/11/2026: produção só depois do Atendimento (validação do gestor e travas).
+  os_antes_da_producao: "OS ainda no atendimento",
 } as const;
 
 export type CodigoDeMaquina = keyof typeof TITULO_DO_ERRO;

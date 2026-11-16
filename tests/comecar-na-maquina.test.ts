@@ -829,6 +829,8 @@ describe("o erro, em português e sem dinheiro", () => {
     const daMigracao = [
       "supabase/migrations/20261001110000_comecar_na_maquina.sql",
       "supabase/migrations/20261001150000_terminar_so_uma_maquina_e_acertar_o_status.sql",
+      // 16/11/2026: iniciar_apontamento recusa OS ainda no Atendimento.
+      "supabase/migrations/20261116180000_apontamento_so_depois_do_atendimento.sql",
     ]
       .map((arquivo) => readFileSync(arquivo, "utf8"))
       .join("\n");
