@@ -6,6 +6,7 @@
  * 'conta_pagar') com a conta bancária preenchida. Dinheiro / caixa físico é origem também: vem
  * na forma de pagamento, sem conta bancária.
  */
+import { ehLinhaDeSaldo } from "@/lib/extrato";
 
 export interface ContaPagaParaConferir {
   id: string;
@@ -98,8 +99,8 @@ export const FRASE_DO_MOTIVO: Record<MotivoSemOrigem, string> = {
  * O extrato do Itaú traz o saldo do fim do dia como se fosse lançamento ("SALDO TOTAL DISPONÍVEL
  * DIA"); importado, ele vira crédito e infla o saldo. Também aponta linhas idênticas na mesma conta
  * e no mesmo dia (mesmo valor, tipo e descrição): podem ser dois Pix iguais legítimos, ou cópia.
+ * A regra de "linha de saldo" é a mesma da importação (src/lib/extrato.ts e importar_extrato).
  */
-const PARECE_SALDO = /^\s*(saldo|sdo)\b/i;
 
 export interface SuspeitasDoExtrato {
   saldoDoDia: LinhaDoExtrato[];
@@ -110,7 +111,7 @@ export function linhasSuspeitasDoExtrato(linhas: readonly LinhaDoExtrato[]): Sus
   const saldoDoDia: LinhaDoExtrato[] = [];
   const grupos = new Map<string, LinhaDoExtrato[]>();
   for (const l of linhas) {
-    if (PARECE_SALDO.test(l.descricao ?? "")) {
+    if (ehLinhaDeSaldo(l.descricao ?? "")) {
       saldoDoDia.push(l);
       continue;
     }

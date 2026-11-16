@@ -3,7 +3,8 @@
  *
  * A validação de duplicidade acontece no banco (função importar_extrato),
  * mas aqui já normalizamos data/valor/tipo para que o preview mostre
- * exatamente o que será importado.
+ * exatamente o que será importado. Linha de saldo do banco fica de fora
+ * aqui e no banco.
  */
 
 export type LinhaExtrato = {
@@ -148,10 +149,41 @@ export function parseCSV(conteudo: string): LinhaExtrato[] {
   return linhas;
 }
 
-export function lerExtrato(nomeArquivo: string, conteudo: string): LinhaExtrato[] {
+/**
+ * Linha de saldo ("SALDO TOTAL DISPONÍVEL DIA", "SALDO ANTERIOR", "SDO CTA/APL AUTOMATICAS"): é o banco
+ * dizendo quanto há na conta, não dinheiro entrando nem saindo. O OFX do Itaú traz uma por dia, com
+ * valor positivo; em 28/10/2026 entraram 27 como crédito e o saldo subiu R$ 23.043,30 sem dinheiro
+ * nenhum. A mesma regra está em importar_extrato (migração 20261116230000).
+ */
+export const REGRA_LINHA_DE_SALDO = /^\s*(saldo|sdo)(\s|$)/i;
+
+export const ehLinhaDeSaldo = (descricao: string) => REGRA_LINHA_DE_SALDO.test(descricao);
+
+export interface ExtratoLido {
+  /** O que pode virar lançamento. */
+  linhas: LinhaExtrato[];
+  /** Linhas de saldo do banco que ficaram de fora. */
+  saldosIgnorados: number;
+}
+
+export function lerExtratoSemSaldos(nomeArquivo: string, conteudo: string): ExtratoLido {
   const nome = nomeArquivo.toLowerCase();
-  if (nome.endsWith(".ofx") || /<STMTTRN>/i.test(conteudo)) return parseOFX(conteudo);
-  return parseCSV(conteudo);
+  const todas =
+    nome.endsWith(".ofx") || /<STMTTRN>/i.test(conteudo) ? parseOFX(conteudo) : parseCSV(conteudo);
+  const linhas = todas.filter((l) => !ehLinhaDeSaldo(l.descricao));
+  return { linhas, saldosIgnorados: todas.length - linhas.length };
+}
+
+export function lerExtrato(nomeArquivo: string, conteudo: string): LinhaExtrato[] {
+  return lerExtratoSemSaldos(nomeArquivo, conteudo).linhas;
+}
+
+/**
+ * Linha com data até o dia em que o extrato da conta foi conferido com o banco: o banco não importa
+ * de novo (contas_bancarias.extrato_conferido_ate). A prévia mostra antes, para ninguém se assustar.
+ */
+export function jaConferida(l: LinhaExtrato, conferidoAte: string | null | undefined): boolean {
+  return !!conferidoAte && l.data <= conferidoAte.slice(0, 10);
 }
 
 /** Marca linhas repetidas dentro do próprio arquivo. */

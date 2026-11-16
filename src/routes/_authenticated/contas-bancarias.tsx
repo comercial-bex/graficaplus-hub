@@ -46,7 +46,7 @@ import { NeonButton } from "@/components/bex/NeonButton";
 import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
-import { chaveLinha, lerExtrato, type LinhaExtrato } from "@/lib/extrato";
+import { chaveLinha, jaConferida, lerExtratoSemSaldos, type LinhaExtrato } from "@/lib/extrato";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated/contas-bancarias")({
@@ -139,6 +139,7 @@ function ContasBancariasPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [arquivoNome, setArquivoNome] = useState("");
   const [linhas, setLinhas] = useState<LinhaExtrato[]>([]);
+  const [saldosIgnorados, setSaldosIgnorados] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: contas = [], isLoading } = useQuery({
@@ -154,6 +155,23 @@ function ContasBancariasPage() {
   });
 
   const contaAtiva = selecionada ?? contas[0]?.conta_id ?? null;
+
+  // Até que dia o extrato de cada conta foi conferido linha a linha com o banco: a importação não
+  // traz de novo o que vai até esse dia (migração 20261116230000).
+  const { data: conferidoAte = {} } = useQuery({
+    queryKey: ["contas-extrato-conferido"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contas_bancarias")
+        .select("id, extrato_conferido_ate");
+      if (error) throw error;
+      return Object.fromEntries((data ?? []).map((c) => [c.id, c.extrato_conferido_ate])) as Record<
+        string,
+        string | null
+      >;
+    },
+  });
+  const conferidaAte = contaAtiva ? (conferidoAte[contaAtiva] ?? null) : null;
 
   const { data: transacoes = [] } = useQuery({
     queryKey: ["banco-transacoes", contaAtiva],
@@ -211,14 +229,27 @@ function ContasBancariasPage() {
         ligados = 0;
       }
       return {
-        ...(data as { importadas: number; duplicadas: number; saldo_atual: number }),
+        ...(data as {
+          importadas: number;
+          duplicadas: number;
+          saldos_ignorados?: number;
+          ja_conferidas?: number;
+          conferido_ate?: string | null;
+          saldo_atual: number;
+        }),
         ligados,
       };
     },
     onSuccess: (r) => {
+      const conferidas = Number(r.ja_conferidas ?? 0);
+      const saldos = Number(r.saldos_ignorados ?? 0);
       toast.success(
         `${r.importadas} lançamento(s) importado(s)` +
           (r.duplicadas > 0 ? ` · ${r.duplicadas} já existiam e foram ignorados` : "") +
+          (conferidas > 0
+            ? ` · ${conferidas} até ${r.conferido_ate ? dataBR(r.conferido_ate) : "o dia conferido"} já conferido(s) com o banco`
+            : "") +
+          (saldos > 0 ? ` · ${saldos} linha(s) de saldo do banco ficaram de fora` : "") +
           (r.ligados > 0 ? ` · ${r.ligados} Pix ligado(s) aos pagamentos do sistema` : ""),
       );
       qc.invalidateQueries({ queryKey: ["saldo-contas"] });
@@ -227,6 +258,7 @@ function ContasBancariasPage() {
       qc.invalidateQueries({ queryKey: ["caixa-movimentos"] });
       setImportOpen(false);
       setLinhas([]);
+      setSaldosIgnorados(0);
       setArquivoNome("");
     },
     onError: (e: Error) => toast.error(mensagemErro(e)),
@@ -235,15 +267,18 @@ function ContasBancariasPage() {
   async function escolherArquivo(file: File | undefined) {
     if (!file) return;
     const texto = await file.text();
-    const lidas = lerExtrato(file.name, texto);
+    const { linhas: lidas, saldosIgnorados: saldos } = lerExtratoSemSaldos(file.name, texto);
     if (lidas.length === 0) {
       toast.error(
-        "Não encontramos lançamentos nesse arquivo. Use OFX do banco ou CSV com data, descrição e valor.",
+        saldos > 0
+          ? "Esse arquivo só tem linhas de saldo do banco: nenhum lançamento para importar."
+          : "Não encontramos lançamentos nesse arquivo. Use OFX do banco ou CSV com data, descrição e valor.",
       );
       return;
     }
     setArquivoNome(file.name);
     setLinhas(lidas);
+    setSaldosIgnorados(saldos);
   }
 
   const repetidasNoArquivo = useMemo(() => {
@@ -279,7 +314,13 @@ function ContasBancariasPage() {
     );
   }, [transacoes, busca]);
 
-  const previaValor = linhas.reduce((a, l) => a + (l.tipo === "credito" ? l.valor : -l.valor), 0);
+  // O que de fato entra: o período já conferido com o banco fica de fora.
+  const novasNoArquivo = linhas.filter((l) => !jaConferida(l, conferidaAte));
+  const conferidasNoArquivo = linhas.length - novasNoArquivo.length;
+  const previaValor = novasNoArquivo.reduce(
+    (a, l) => a + (l.tipo === "credito" ? l.valor : -l.valor),
+    0,
+  );
 
   return (
     <div>
@@ -387,6 +428,11 @@ function ContasBancariasPage() {
                 {c.lancamentos} lançamento(s)
                 {c.ultimo_lancamento ? ` · último em ${dataBR(c.ultimo_lancamento)}` : ""}
               </div>
+              {conferidoAte[c.conta_id] && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Conferido com o extrato do banco até {dataBR(conferidoAte[c.conta_id]!)}
+                </div>
+              )}
             </button>
           );
         })}
@@ -564,7 +610,12 @@ function ContasBancariasPage() {
               </Button>
               {arquivoNome && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  {arquivoNome} · {linhas.length} lançamento(s) lido(s) · resultado{" "}
+                  {arquivoNome} · {linhas.length} lançamento(s) lido(s)
+                  {saldosIgnorados > 0 &&
+                    ` · ${saldosIgnorados} linha(s) de saldo do banco fora (não é dinheiro entrando)`}
+                  {conferidasNoArquivo > 0 &&
+                    ` · ${conferidasNoArquivo} até ${dataBR(conferidaAte!)} já conferido(s), não entram`}{" "}
+                  · resultado do que entra{" "}
                   <strong className="text-foreground">{brl(previaValor)}</strong>
                 </p>
               )}
@@ -584,7 +635,11 @@ function ContasBancariasPage() {
                     {linhas.map((l, i) => (
                       <TableRow
                         key={`${chaveLinha(l)}-${i}`}
-                        className={repetidasNoArquivo.has(i) ? "opacity-50" : ""}
+                        className={
+                          repetidasNoArquivo.has(i) || jaConferida(l, conferidaAte)
+                            ? "opacity-50"
+                            : ""
+                        }
                       >
                         <TableCell className="whitespace-nowrap tabular-nums">
                           {dataBR(l.data)}
@@ -594,6 +649,11 @@ function ContasBancariasPage() {
                           {repetidasNoArquivo.has(i) && (
                             <span className="ml-2 text-xs uppercase text-[color:var(--bex-amber)]">
                               repetido no arquivo
+                            </span>
+                          )}
+                          {jaConferida(l, conferidaAte) && (
+                            <span className="ml-2 text-xs uppercase text-muted-foreground">
+                              já conferido
                             </span>
                           )}
                         </TableCell>
@@ -614,8 +674,12 @@ function ContasBancariasPage() {
             )}
 
             <p className="text-xs text-muted-foreground">
-              Lançamentos que já existem nesta conta são ignorados automaticamente — pode reenviar o
-              mesmo extrato sem medo de duplicar o saldo.
+              Linha de saldo do banco ("SALDO TOTAL DISPONÍVEL DIA", "SALDO ANTERIOR") não entra: é
+              o banco dizendo quanto há, não dinheiro entrando. Lançamento que já existe nesta conta
+              também não entra
+              {conferidaAte
+                ? `, nem nada até ${dataBR(conferidaAte)}, quando o extrato foi conferido com o banco.`
+                : "."}
             </p>
           </div>
 
@@ -625,9 +689,13 @@ function ContasBancariasPage() {
             </Button>
             <Button
               onClick={() => importar.mutate()}
-              disabled={linhas.length === 0 || importar.isPending}
+              disabled={novasNoArquivo.length === 0 || importar.isPending}
             >
-              {importar.isPending ? "Importando..." : `Importar ${linhas.length} lançamento(s)`}
+              {importar.isPending
+                ? "Importando..."
+                : linhas.length > 0 && novasNoArquivo.length === 0
+                  ? "Nada novo para importar"
+                  : `Importar ${novasNoArquivo.length} lançamento(s)`}
             </Button>
           </DialogFooter>
         </DialogContent>
