@@ -40,7 +40,9 @@ export function BarraDeAbas({ abas, compacta = false }: { abas: Abas; compacta?:
           : "-mx-4 mb-4 px-4 md:mx-0 md:mb-6 md:px-0",
       )}
     >
-      <div className="flex w-max gap-1">
+      {/* No computador as abas quebram linha: com 7 abas, a última sumia à direita e nada
+          dizia que a barra rolava (Custeio, 16/11/2026). A barra compacta segue numa linha só. */}
+      <div className={cn("flex w-max gap-1", !compacta && "md:w-auto md:flex-wrap")}>
         {abas.telas.map((t) => {
           const ativa = t.url === abas.ativa;
           return (

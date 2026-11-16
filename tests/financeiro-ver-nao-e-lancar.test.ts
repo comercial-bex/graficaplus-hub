@@ -295,9 +295,7 @@ describe("tela: quem grava dinheiro confere a mesma chave que o banco", () => {
     const alvos = new Set(gravacoesDeDinheiro().map((g) => `${g.arquivo} ${g.alvo}`));
     for (const esperado of [
       "src/routes/_authenticated/fluxo-caixa.tsx contas_pagar.insert",
-      // "Pagar" saiu da tela (16/11): o diálogo confirma e o gancho grava, com a função do banco
-      // ou, antes de a migração ser aplicada, pelo caminho de antes.
-      "src/components/financeiro/contas-a-pagar/use-conta-a-pagar.ts contas_pagar.update",
+      // "Pagar" saiu da tela (16/11): o diálogo confirma e o gancho grava, só pela função do banco.
       "src/components/financeiro/contas-a-pagar/use-conta-a-pagar.ts rpc pagar_conta_pagar",
       "src/components/financeiro/contas-a-pagar/use-conta-a-pagar.ts rpc anexar_arquivo_conta_pagar",
       "src/routes/_authenticated/fluxo-caixa.tsx caixa_movimentos.insert",

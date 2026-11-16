@@ -61,3 +61,35 @@ describe("preço fixo de parceiro vale no painel", () => {
     expect(M).toContain("p.preco_parceiro AS preco_fixo");
   });
 });
+
+describe("visual da tabela de preços e ações por linha (16/11/2026)", () => {
+  const TELA = readFileSync("src/routes/_authenticated/tabela-de-precos.tsx", "utf8");
+  const LINHA = readFileSync("src/components/ui/table.tsx", "utf8");
+  const ABAS = readFileSync("src/components/menu/abas-da-tela.tsx", "utf8");
+  const compacta = TELA.slice(TELA.indexOf("function TabelaCompacta("));
+
+  it("a linha sob o mouse fica cinza, não na cor de destaque (#ff0055 no tema escuro)", () => {
+    expect(LINHA).toContain("hover:bg-muted/60");
+    expect(LINHA).not.toMatch(/hover:bg-accent|data-\[state=selected\]:bg-accent/);
+  });
+
+  it("no computador as abas quebram linha; a barra compacta segue numa linha só", () => {
+    expect(ABAS).toContain('!compacta && "md:w-auto md:flex-wrap"');
+  });
+
+  it("a régua some abaixo de tela larga e o nome do produto não se espreme", () => {
+    expect(compacta).toContain('<TableHead className="min-w-56">Produto</TableHead>');
+    expect(compacta).toContain('className="hidden min-w-52 xl:table-cell">Régua');
+    expect(compacta).toContain('<TableCell className="hidden xl:table-cell"><BarraDeComparacao');
+  });
+
+  it("Propor preço e Editar produto levam às telas que já existem, sem gravar preço daqui", () => {
+    expect(compacta).toContain('to="/precos" search={{ busca: l.produto.nome }}');
+    expect(compacta).toContain('to="/produtos/$id" params={{ id: l.produto.id }}');
+    expect(compacta).toContain('className="h-11 w-11"');
+    expect(compacta).toContain("e.stopPropagation()");
+    expect(TELA).toContain('editarProduto: podeAbrirRota("/produtos", hasPermission)');
+    expect(TELA).toContain('proporPreco: podeAbrirRota("/precos", hasPermission)');
+    expect(TELA).not.toMatch(/\.from\("produtos"\)\s*\.update|preco_proposta_criar|\.rpc\(/);
+  });
+});

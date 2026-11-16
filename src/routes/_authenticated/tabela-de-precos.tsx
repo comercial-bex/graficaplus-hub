@@ -1,12 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, GitCompareArrows, LayoutGrid, Rows3, Search, X } from "lucide-react";
+import { ChevronDown, GitCompareArrows, LayoutGrid, Pencil, Rows3, Search, Tag, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
 import { mensagemErro } from "@/lib/erros";
 import { dicaTela } from "@/lib/dicas";
 import { useAuth } from "@/lib/auth-context";
+import { podeAbrirRota } from "@/lib/menu";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Carregando } from "@/components/bex/Carregando";
 import { Dica } from "@/components/bex/Dica";
@@ -48,8 +49,12 @@ type Atalho = "todos" | "abaixo" | "ficha" | "provisorio" | "sem_concorrente" | 
 const num = (v: unknown) => (v != null ? Number(v) : null);
 
 function TabelaDePrecosPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const podeEditarFoto = hasRole("admin") || hasRole("gestor");
+  const acoes = {
+    editarProduto: podeAbrirRota("/produtos", hasPermission),
+    proporPreco: podeAbrirRota("/precos", hasPermission),
+  };
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState("todas");
   const [atalho, setAtalho] = useState<Atalho>("todos");
@@ -412,7 +417,7 @@ function TabelaDePrecosPage() {
                   ))}
                 </div>
               ) : (
-                <TabelaCompacta linhas={g.itens} aoAbrir={setAberto} />
+                <TabelaCompacta linhas={g.itens} aoAbrir={setAberto} acoes={acoes} />
               ))}
           </section>
         );
@@ -524,21 +529,32 @@ function ChipDeCategoria({ ativo, onClick, rotulo, n, categoria }: { ativo: bool
   );
 }
 
-function TabelaCompacta({ linhas, aoAbrir }: { linhas: Linha[]; aoAbrir: (id: string) => void }) {
+/**
+ * O que a linha deixa fazer, sempre pelas telas que já existem: o preço nunca é gravado
+ * daqui. "Propor preço" abre Preços por produto já filtrado no produto, onde o pedido nasce e
+ * espera aprovação; "Editar produto" abre o cadastro. Cada botão só aparece para quem abre a
+ * tela de destino, com a mesma regra do menu.
+ */
+type AcoesDaLinha = { editarProduto: boolean; proporPreco: boolean };
+
+function TabelaCompacta({ linhas, aoAbrir, acoes }: { linhas: Linha[]; aoAbrir: (id: string) => void; acoes: AcoesDaLinha }) {
+  const comAcoes = acoes.editarProduto || acoes.proporPreco;
   return (
     <Card>
       <CardContent className="overflow-x-auto p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Produto</TableHead>
+              <TableHead className="min-w-56">Produto</TableHead>
               <TableHead className="text-right">Custo</TableHead>
               <TableHead className="text-right">Venda final</TableHead>
               <TableHead>Margem final</TableHead>
               <TableHead className="text-right">Parceiro</TableHead>
               <TableHead>Margem parceiro</TableHead>
-              <TableHead className="min-w-52">Régua</TableHead>
+              {/* A régua só cabe em tela larga; abaixo disso ela está na ficha do produto. */}
+              <TableHead className="hidden min-w-52 xl:table-cell">Régua</TableHead>
               <TableHead>Ficha</TableHead>
+              {comAcoes && <TableHead className="text-right">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -558,8 +574,28 @@ function TabelaCompacta({ linhas, aoAbrir }: { linhas: Linha[]; aoAbrir: (id: st
                 <TableCell><PilulaDeMargem margem={margemSobreVenda(l.venda, l.custoBase)} minimo={l.produto.margem_minima} rotulo="" /></TableCell>
                 <TableCell className="text-right font-mono text-sm">{brl(l.parceiro?.valor ?? null)}</TableCell>
                 <TableCell><PilulaDeMargem margem={margemSobreVenda(l.parceiro?.valor ?? null, l.custoBase)} minimo={l.produto.margem_minima} rotulo="" /></TableCell>
-                <TableCell><BarraDeComparacao marcadores={marcadoresDaLinha(l, pisoDaMargem(l.custoBase, l.produto.margem_minima))} /></TableCell>
+                <TableCell className="hidden xl:table-cell"><BarraDeComparacao marcadores={marcadoresDaLinha(l, pisoDaMargem(l.custoBase, l.produto.margem_minima))} /></TableCell>
                 <TableCell><SeloDaFicha nivel={fichaDaLinha(l).nivel} /></TableCell>
+                {comAcoes && (
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="inline-flex gap-1">
+                      {acoes.proporPreco && (
+                        <Button asChild size="icon" variant="ghost" className="h-11 w-11">
+                          <Link to="/precos" search={{ busca: l.produto.nome }} aria-label={`Propor preço para ${l.produto.nome}`}>
+                            <Tag className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
+                      {acoes.editarProduto && (
+                        <Button asChild size="icon" variant="ghost" className="h-11 w-11">
+                          <Link to="/produtos/$id" params={{ id: l.produto.id }} aria-label={`Editar o cadastro de ${l.produto.nome}`}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

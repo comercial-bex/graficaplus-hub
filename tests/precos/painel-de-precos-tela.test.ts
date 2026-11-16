@@ -9,10 +9,16 @@ vi.mock("@tanstack/react-start", async (original) => {
   const real = await original<typeof import("@tanstack/react-start")>();
   return { ...real, useServerFn: (f: unknown) => f };
 });
+// O endereço da tela (?busca=, vindo da Tabela de preços) sem roteador: cada teste escolhe.
+const endereco = vi.hoisted(() => ({ search: {} as { busca?: string } }));
 vi.mock("@tanstack/react-router", async (original) => {
   const real = await original<typeof import("@tanstack/react-router")>();
   return {
     ...real,
+    createFileRoute: (caminho: never) => (opcoes: never) =>
+      Object.assign(real.createFileRoute(caminho)(opcoes), {
+        useSearch: () => endereco.search,
+      }),
     Link: ({ to, children, ...resto }: { to: string; children?: unknown }) =>
       createElement("a", { href: to, ...resto }, children as never),
   };
@@ -284,6 +290,30 @@ describe("a página", () => {
     expect(h).toContain("Este produto vende abaixo do piso.");
     expect(h).toContain("Ver só este");
     expect(h).toContain("4 produtos na lista.");
+  });
+
+  it("vinda da Tabela de preços (?busca=), a busca já chega preenchida e filtra a lista", () => {
+    endereco.search = { busca: "Placa PS" };
+    try {
+      const h = pagina(painel());
+      expect(h).toMatch(/type="search"[^>]*value="Placa PS"/);
+      expect(h).toContain("Placa PS");
+      expect(h).not.toContain("Banner Lona");
+    } finally {
+      endereco.search = {};
+    }
+  });
+
+  it("o endereço só aceita busca de texto, aparada e curta", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const validar = (Route as any).options.validateSearch as (s: Record<string, unknown>) => {
+      busca?: string;
+    };
+    expect(validar({ busca: "Lona" })).toEqual({ busca: "Lona" });
+    expect(validar({ busca: "  " })).toEqual({});
+    expect(validar({ busca: 42 })).toEqual({});
+    expect(validar({})).toEqual({});
+    expect(validar({ busca: "x".repeat(500) }).busca).toHaveLength(120);
   });
 
   it("no plural, escreve a quantidade", () => {

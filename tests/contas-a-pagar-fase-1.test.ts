@@ -397,13 +397,17 @@ describe("tela: pagar só depois de confirmar; estornar e remover só para admin
     }
   });
 
-  it("o caminho de antes da migração também usa a data informada e a conta bancária", () => {
+  it("pagar é uma chamada só à função do banco: a tela não grava a conta nem o caixa por fora", () => {
+    // O caminho de antes (UPDATE em contas_pagar + INSERT em caixa_movimentos) saiu em 16/11/2026,
+    // com a migração aplicada: duas gravações soltas, e a segunda podia falhar sozinha.
     const ini = GANCHO.indexOf("export function usePagarConta(");
     const trecho = GANCHO.slice(ini, GANCHO.indexOf("\n}\n", ini));
-    expect(trecho).toContain("data_pagamento: p.dataPagamento");
-    expect(trecho).toContain("data: p.dataPagamento");
-    expect(trecho).toContain("conta_id: p.contaBancariaId");
-    expect(trecho).toContain('.neq("status", "paga")');
+    expect(trecho).toContain('"pagar_conta_pagar"');
+    expect(trecho).toContain("p_data_pagamento: p.dataPagamento");
+    expect(trecho).toContain("p_conta_bancaria_id: p.contaBancariaId");
+    expect(trecho).not.toContain(".update(");
+    expect(trecho).not.toContain(".insert(");
+    expect(trecho).not.toContain("pacoteAtivo");
     expect(trecho).not.toMatch(/hoje|new Date/);
   });
 
