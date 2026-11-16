@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,10 @@ import {
 import {
   ArrowDownCircle,
   ArrowUpCircle,
+  History,
+  Paperclip,
   Plus,
+  Undo2,
   Wallet,
   TrendingUp,
   Landmark,
@@ -78,6 +82,35 @@ import {
 import { csvDeLinhas, dataBr, nomeDoArquivoCsv, resumoDaSelecao } from "@/domain/financeiro/selecao-de-contas";
 import { validarFiltroAPagar, visaoAtiva } from "@/domain/financeiro/visoes-salvas";
 import { baixarTexto, copiarTexto } from "@/lib/arquivos-no-navegador";
+import {
+  anexosPorConta,
+  pagaSemComprovante,
+  quantidadeDeArquivos,
+  recursoAusente,
+  type AnexoDaConta,
+} from "@/domain/financeiro/contas-a-pagar-anexos";
+import { CampoDeAnexos } from "@/components/financeiro/contas-a-pagar/campo-de-anexos";
+import { PagarContaDialog, type ContaBancariaDaLista } from "@/components/financeiro/contas-a-pagar/pagar-conta-dialog";
+import { EstornarContaDialog } from "@/components/financeiro/contas-a-pagar/estornar-conta-dialog";
+import {
+  AnexosDaContaDialog,
+  type AbaDosAnexos,
+} from "@/components/financeiro/contas-a-pagar/anexos-da-conta-dialog";
+import {
+  useEnviarAnexos,
+  usePodeNaContaAPagar,
+  type ArquivoParaEnviar,
+} from "@/components/financeiro/contas-a-pagar/use-conta-a-pagar";
+
+type ContaDaTela = Tables<"contas_pagar">;
+
+/**
+ * Situação do pacote de 16/11 (migração 20261116160000) neste banco. "ausente" = a tabela de
+ * anexos não existe ainda: a tela esconde clipe, histórico e estorno, e "Pagar" usa o caminho de
+ * antes (sempre depois da confirmação). "erro" = não deu para saber: tenta a função nova.
+ */
+type EstadoDoPacote = "carregando" | "ativo" | "ausente" | "erro";
+type ErroDoBanco = { code?: string | null; message?: string | null };
 
 /** Estável (fora do componente): a seleção poda e conta por este id. */
 const idDaContaAPagar = (c: { id: string }) => c.id;
@@ -166,10 +199,19 @@ function FluxoCaixaPage() {
   // migração 20261005100000. Quem só vê enxerga tudo, sem os botões.
   const podeLancar = hasPermission("pagamentos.create");
   const podeDarBaixa = podeLancar && hasPermission("pagamentos.confirm");
+  // Anexar: admin ou qualquer chave de pagamento. Estornar e remover anexo: só admin
+  // (decisão de 16/11/2026). O banco cobra o mesmo (migração 20261116160000).
+  const { podeAnexar, podeEstornar } = usePodeNaContaAPagar();
+  const enviarAnexos = useEnviarAnexos();
   const [contaOpen, setContaOpen] = useState(false);
   const [movOpen, setMovOpen] = useState(false);
   const [conta, setConta] = useState<ContaForm>(emptyConta);
+  const [anexosDaNovaConta, setAnexosDaNovaConta] = useState<ArquivoParaEnviar[]>([]);
   const [mov, setMov] = useState<MovForm>(emptyMov);
+  // "Pagar" só abre o diálogo de confirmação; quem grava é a confirmação lá dentro.
+  const [pagando, setPagando] = useState<ContaDaTela | null>(null);
+  const [estornando, setEstornando] = useState<ContaDaTela | null>(null);
+  const [vendoAnexos, setVendoAnexos] = useState<{ conta: ContaDaTela; aba: AbaDosAnexos } | null>(null);
 
   const { data: fluxo = [] } = useQuery({
     queryKey: ["vw-fluxo-caixa"],
@@ -194,6 +236,39 @@ function FluxoCaixaPage() {
       return data;
     },
   });
+
+  // Anexos de todas as contas numa leitura só (são poucos): a linha mostra o clipe com a
+  // contagem e o aviso de paga sem comprovante sem uma consulta por conta.
+  const anexosQuery = useQuery({
+    queryKey: ["contas-pagar-anexos"],
+    retry: (falhas, erro) => !recursoAusente(erro as ErroDoBanco) && falhas < 2,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("contas_pagar_anexos")
+        .select("id, conta_pagar_id, tipo, caminho, nome_arquivo, mime, tamanho_bytes, enviado_por_nome, enviado_em")
+        .order("enviado_em", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AnexoDaConta[];
+    },
+  });
+  const estadoDoPacote: EstadoDoPacote = anexosQuery.isPending
+    ? "carregando"
+    : anexosQuery.isError
+      ? recursoAusente(anexosQuery.error as ErroDoBanco)
+        ? "ausente"
+        : "erro"
+      : "ativo";
+  const pacoteAtivo = estadoDoPacote === "ativo";
+  const anexosDe = useMemo(() => anexosPorConta(anexosQuery.data ?? []), [anexosQuery.data]);
+  const semAnexos: AnexoDaConta[] = [];
+
+  function recarregarContas() {
+    qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+    qc.invalidateQueries({ queryKey: ["caixa-movimentos"] });
+    qc.invalidateQueries({ queryKey: ["vw-fluxo-caixa"] });
+    qc.invalidateQueries({ queryKey: ["contas-pagar-anexos"] });
+    qc.invalidateQueries({ queryKey: ["contas-pagar-historico"] });
+  }
 
   // Lista de contas a pagar: busca, situação e período (Onda 3). O recorte nasce em
   // "Todos"; as contagens dos chips e os totais acompanham o que está na tela.
@@ -259,57 +334,37 @@ function FluxoCaixaPage() {
 
   const salvarConta = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("contas_pagar").insert({
-        descricao: conta.descricao,
-        fornecedor: conta.fornecedor || null,
-        categoria: conta.categoria,
-        valor: Number(conta.valor) || 0,
-        vencimento: conta.vencimento,
-        recorrente: conta.recorrente,
-        periodicidade: conta.recorrente ? conta.periodicidade : null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Conta lançada");
-      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-      qc.invalidateQueries({ queryKey: ["vw-fluxo-caixa"] });
-      setContaOpen(false);
-      setConta(emptyConta);
-    },
-    onError: (e: Error) => toast.error(mensagemErro(e)),
-  });
-
-  const pagar = useMutation({
-    mutationFn: async (c: { id: string; valor: number; descricao: string; categoria: string }) => {
       const { data, error } = await supabase
         .from("contas_pagar")
-        .update({ status: "paga", data_pagamento: hoje() })
-        .eq("id", c.id)
-        .select("id");
+        .insert({
+          descricao: conta.descricao,
+          fornecedor: conta.fornecedor || null,
+          categoria: conta.categoria,
+          valor: Number(conta.valor) || 0,
+          vencimento: conta.vencimento,
+          recorrente: conta.recorrente,
+          periodicidade: conta.recorrente ? conta.periodicidade : null,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
-      // A regra do banco barra a baixa devolvendo 0 linhas e nenhum erro. Sem
-      // esta conferência a saída iria para o caixa com a conta ainda em aberto.
-      if (!data || data.length === 0) {
-        throw new Error("A conta não foi marcada como paga: dar baixa é com o financeiro.");
-      }
-      const { error: e2 } = await supabase.from("caixa_movimentos").insert({
-        tipo: "saida",
-        origem: "conta_pagar",
-        descricao: c.descricao,
-        categoria: c.categoria,
-        valor: c.valor,
-        data: hoje(),
-        realizado: true,
-        conta_pagar_id: c.id,
-      });
-      if (e2) throw e2;
+      // A conta já existe. Arquivo que não subir não desfaz o lançamento: vira aviso e pode ser
+      // anexado depois pelo clipe da linha.
+      if (anexosDaNovaConta.length === 0) return { enviados: 0, falhas: [] as string[] };
+      return enviarAnexos(data.id, anexosDaNovaConta);
     },
-    onSuccess: () => {
-      toast.success("Pagamento registrado");
-      qc.invalidateQueries({ queryKey: ["contas-pagar"] });
-      qc.invalidateQueries({ queryKey: ["caixa-movimentos"] });
-      qc.invalidateQueries({ queryKey: ["vw-fluxo-caixa"] });
+    onSuccess: (envio) => {
+      if (envio.falhas.length > 0) {
+        toast.warning(`Conta lançada, mas nem todo arquivo foi anexado: ${envio.falhas.join(" ")}`);
+      } else if (envio.enviados > 0) {
+        toast.success(`Conta lançada com ${envio.enviados} ${envio.enviados === 1 ? "anexo" : "anexos"}`);
+      } else {
+        toast.success("Conta lançada");
+      }
+      recarregarContas();
+      setContaOpen(false);
+      setConta(emptyConta);
+      setAnexosDaNovaConta([]);
     },
     onError: (e: Error) => toast.error(mensagemErro(e)),
   });
@@ -379,6 +434,17 @@ function FluxoCaixaPage() {
       return data ?? [];
     },
   });
+
+  // As mesmas contas ativas do card "Saldo em conta": a origem do dinheiro no diálogo de pagar.
+  const contasParaPagar = useMemo<ContaBancariaDaLista[]>(
+    () =>
+      (contasBancarias as ContaBancariaDaLista[]).map((c) => ({
+        conta_id: String(c.conta_id),
+        nome: String(c.nome),
+        banco: c.banco ?? null,
+      })),
+    [contasBancarias],
+  );
 
   const saldoBancario = contasBancarias.reduce(
     (soma: number, c: any) => soma + Number(c.saldo_atual ?? 0),
@@ -607,6 +673,9 @@ function FluxoCaixaPage() {
                   {visiveis.map((c) => {
                     const atrasada =
                       c.status !== "paga" && c.status !== "cancelada" && c.vencimento < hoje();
+                    const anexosDaConta = anexosDe.get(c.id) ?? semAnexos;
+                    const arquivos = quantidadeDeArquivos(c, anexosDaConta);
+                    const semComprovante = pacoteAtivo && pagaSemComprovante(c, anexosDaConta);
                     return (
                       <div
                         key={c.id}
@@ -622,9 +691,20 @@ function FluxoCaixaPage() {
                           <div className="text-xs text-muted-foreground">
                             {c.fornecedor || "sem fornecedor"} · {c.categoria} · vence{" "}
                             {new Date(`${c.vencimento}T12:00:00`).toLocaleDateString("pt-BR")}
+                            {c.status === "paga" && c.data_pagamento && (
+                              <>
+                                {" "}
+                                · paga em{" "}
+                                {new Date(`${c.data_pagamento}T12:00:00`).toLocaleDateString("pt-BR")}
+                              </>
+                            )}
                           </div>
+                          {/* Paga e sem prova: o mesmo aviso das parcelas de Despesas fixas e contratos. */}
+                          {semComprovante && (
+                            <div className="text-xs text-status-amber">sem comprovante</div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                           <StatusChip
                             label={atrasada ? "Atrasada" : c.status}
                             tone={
@@ -632,20 +712,48 @@ function FluxoCaixaPage() {
                             }
                           />
                           <span className="font-bold tabular-nums">{brl(Number(c.valor))}</span>
-                          {c.status !== "paga" && podeDarBaixa && (
+                          {pacoteAtivo && (arquivos > 0 || podeAnexar) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-11 min-w-11 gap-1 px-2"
+                              aria-label={`${arquivos === 1 ? "1 anexo" : `${arquivos} anexos`} de ${c.descricao}`}
+                              onClick={() => setVendoAnexos({ conta: c, aba: "anexos" })}
+                            >
+                              <Paperclip className="h-4 w-4" />
+                              <span className="tabular-nums">{arquivos}</span>
+                            </Button>
+                          )}
+                          {pacoteAtivo && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-11 w-11"
+                              aria-label={`Histórico de ${c.descricao}`}
+                              onClick={() => setVendoAnexos({ conta: c, aba: "historico" })}
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {c.status !== "paga" && c.status !== "cancelada" && podeDarBaixa && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                pagar.mutate({
-                                  id: c.id,
-                                  valor: Number(c.valor),
-                                  descricao: c.descricao,
-                                  categoria: c.categoria,
-                                })
-                              }
+                              disabled={estadoDoPacote === "carregando"}
+                              onClick={() => setPagando(c)}
                             >
                               Pagar
+                            </Button>
+                          )}
+                          {c.status === "paga" && pacoteAtivo && podeEstornar && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={() => setEstornando(c)}
+                            >
+                              <Undo2 className="mr-1 h-4 w-4" />
+                              Estornar
                             </Button>
                           )}
                         </div>
@@ -696,7 +804,7 @@ function FluxoCaixaPage() {
       </Tabs>
 
       <Dialog open={contaOpen} onOpenChange={setContaOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Nova conta a pagar</DialogTitle>
             {/* Este diálogo lança UMA conta. Quem cai aqui para lançar a
@@ -762,6 +870,17 @@ function FluxoCaixaPage() {
                 onChange={(e) => setConta((c) => ({ ...c, vencimento: e.target.value }))}
               />
             </div>
+            {pacoteAtivo && podeAnexar && (
+              <div className="sm:col-span-2 space-y-2">
+                <Label htmlFor="fluxo-anexos-nova-conta">Anexos (fatura, boleto ou comprovante)</Label>
+                <CampoDeAnexos
+                  id="fluxo-anexos-nova-conta"
+                  itens={anexosDaNovaConta}
+                  onChange={setAnexosDaNovaConta}
+                  disabled={salvarConta.isPending}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -833,6 +952,56 @@ function FluxoCaixaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pagando && (
+        <PagarContaDialog
+          key={pagando.id}
+          conta={{
+            id: pagando.id,
+            descricao: pagando.descricao,
+            fornecedor: pagando.fornecedor,
+            valor: Number(pagando.valor),
+            vencimento: pagando.vencimento,
+          }}
+          contasBancarias={contasParaPagar}
+          hoje={hojeDaLista}
+          pacoteAtivo={estadoDoPacote !== "ausente"}
+          onFechar={() => setPagando(null)}
+          onPago={() => {
+            setPagando(null);
+            recarregarContas();
+          }}
+        />
+      )}
+
+      {estornando && (
+        <EstornarContaDialog
+          key={estornando.id}
+          conta={{
+            id: estornando.id,
+            descricao: estornando.descricao,
+            fornecedor: estornando.fornecedor,
+            valor: Number(estornando.valor),
+            data_pagamento: estornando.data_pagamento,
+          }}
+          onFechar={() => setEstornando(null)}
+          onEstornado={() => {
+            setEstornando(null);
+            recarregarContas();
+          }}
+        />
+      )}
+
+      {vendoAnexos && (
+        <AnexosDaContaDialog
+          key={`${vendoAnexos.conta.id}-${vendoAnexos.aba}`}
+          conta={vendoAnexos.conta}
+          anexos={anexosDe.get(vendoAnexos.conta.id) ?? semAnexos}
+          abaInicial={vendoAnexos.aba}
+          onFechar={() => setVendoAnexos(null)}
+          onMudou={recarregarContas}
+        />
+      )}
     </div>
   );
 }
