@@ -150,7 +150,7 @@ describe("a lista, em tabela e em cartões", () => {
       "Preço mínimo recomendado",
       "Margem líquida",
       "Vezes o custo",
-      "Preço pela regra de três",
+      "Três vezes o custo real",
       "Diferença",
       "Parceiro",
       "Avisos",
@@ -174,7 +174,7 @@ describe("a lista, em tabela e em cartões", () => {
       "Preço de balcão",
       "Margem líquida",
       "Vezes o custo",
-      "Preço pela regra de três",
+      "Três vezes o custo real",
       "Diferença",
       "Parceiro",
     ].map((r) => cartao.indexOf(`>${r}</dt>`));
@@ -254,7 +254,7 @@ describe("os avisos de um produto", () => {
     const h = renderToStaticMarkup(createElement(ListaDeAvisos, { avisos }));
     expect(h).toContain("Cuidado.");
     expect(h).toContain("Informação.");
-    expect(h).toContain("A máquina faz 14 metros quadrados por hora e o sistema calcula com 10 por margem de segurança.");
+    expect(h).toContain("A máquina faz 14 metros quadrados por hora. O custo é calculado com 10, por margem de segurança. A agenda e a capacidade seguem os 14.");
     expect(h).not.toMatch(/[()—–→←]/);
   });
   it("sem aviso, diz que não há nada", () => {
@@ -339,14 +339,14 @@ describe("a página", () => {
 
   it("a legenda diz as quatro faixas da regra de três em palavras", () => {
     const h = pagina(painel());
-    for (const t of ["Abaixo do custo", "Abaixo da regra de três", "Na regra de três", "Acima:"])
+    for (const t of ["Abaixo do custo", "Abaixo de três vezes o custo real", "Perto de três vezes o custo real", "Acima:"])
       expect(h, t).toContain(t);
-    expect(h).toContain("A regra de três é só referência");
+    expect(h).toContain("A referência de três vezes o custo real serve só para comparar");
   });
 
   it("explica que a plotter faz 14 e o sistema calcula com 10", () => {
     expect(pagina(painel())).toContain(
-      "A máquina faz 14 metros quadrados por hora e o sistema calcula com 10 por margem de segurança.",
+      "A máquina faz 14 metros quadrados por hora. O custo é calculado com 10, por margem de segurança. A agenda e a capacidade seguem os 14.",
     );
   });
 
@@ -543,7 +543,7 @@ describe("a página com o preço mínimo recomendado", () => {
     const h = pagina(painel());
     for (const t of [
       "Abaixo do mínimo: o balcão está abaixo do preço mínimo recomendado",
-      "No mínimo: o balcão está até dois por cento acima",
+      "No mínimo: o balcão está até 2 por cento acima",
       "Acima do mínimo: o balcão passa do mínimo recomendado",
     ])
       expect(h, t).toContain(t);

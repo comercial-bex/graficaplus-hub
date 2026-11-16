@@ -37,6 +37,7 @@ import {
   fraseDaMargemLiquida,
   ROTULO_DA_GRAVIDADE,
   ROTULO_DA_REGRA,
+  TOLERANCIA_DA_REGRA,
   type AvisoDoProduto,
   type FaixaDaRegra,
   type LeituraReal,
@@ -71,15 +72,15 @@ const UNIDADE: Record<string, string> = {
 export const unidadePorExtenso = (u: string) => UNIDADE[u.toLowerCase()] ?? u;
 
 export const TEXTO_DO_PISO =
-  "O piso é o menor preço que ainda deixa a margem mínima do produto. Abaixo dele a casa vende com lucro menor do que aceitou.";
+  "O piso é o custo de material do cadastro dividido por 1 menos a margem mínima. Abaixo dele a casa vende com lucro menor do que aceitou. Acima dele ainda pode faltar para cobrir máquina, mão de obra, rateio, imposto e cartão.";
 export const TEXTO_DA_MARGEM =
-  "Margem líquida é a parte do preço que sobra depois de pagar o custo real, com perda, falha, imposto e taxa do cartão. A barra vai de zero a cem por cento e o risco marca o mínimo cadastrado, que foi definido sobre o material.";
+  "Margem líquida é 1 menos o custo real dividido pelo preço. O custo real já divide o custo de produção pelo que sobra do preço depois do imposto e de metade da taxa do cartão, e leva perda, falha, extras da plotter e ocupação. A barra vai de zero a cem por cento e o risco marca a margem mínima do produto. No preço mínimo recomendado a margem mostrada fica um pouco acima do risco, porque o imposto e o cartão já estão dentro do custo real. No simulador o lucro é calculado de outro jeito, descontando o imposto e o cartão do próprio preço, e por isso o número é outro. Uma margem boa ainda pode estar abaixo do preço mínimo recomendado, que é a conta mais exigente.";
 export const TEXTO_DO_CUSTO_REAL =
-  "Custo real é o custo de produção com a perda de material e a falha, mais o imposto e metade da taxa do cartão. Enquanto algum custo fixo não for confirmado, ele é um piso otimista.";
+  "Custo real é o custo de produção dividido pelo que sobra do preço depois do imposto e de metade da taxa do cartão. O custo de produção leva material com perda e falha, máquina com energia, mão de obra com encargos, rateio do aluguel, extras da plotter e a ocupação alvo. Enquanto algum custo não for informado, ele é um piso otimista.";
 export const TEXTO_DAS_VEZES =
   "Vezes o custo é o preço de balcão dividido pelo custo real. Três vezes o custo é a meta de referência da casa.";
 export const TEXTO_DA_REGRA =
-  "A regra de três é três vezes o custo real. Serve de referência para comparar o balcão e não manda subir o preço, porque o mercado local pode pagar menos.";
+  "Três vezes o custo real, só para comparar com o balcão. Não manda subir o preço. É outra conta que a do preço mínimo recomendado, que usa o multiplicador da regra de três sobre o material com perda e falha.";
 
 /** Cores com contraste de pelo menos 4,5 para 1 no claro e no escuro. */
 export const COR_DO_TEXTO: Record<Situacao, string> = {
@@ -328,7 +329,7 @@ export function Previa({ linha, e }: { linha: LinhaDePreco; e: Estado }) {
           {p.real.vezes != null
             ? ` ${p.real.vezes.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} vezes o custo.`
             : ""}
-          {p.real.regra != null ? ` Regra de três ${reais(p.real.regra)}.` : ""}
+          {p.real.regra != null ? ` Três vezes o custo real, ${reais(p.real.regra)}.` : ""}
           {parceiro != null ? ` Parceiro continua em ${reais(parceiro)}.` : ""}
         </p>
       ) : null}
@@ -348,7 +349,7 @@ export function Previa({ linha, e }: { linha: LinhaDePreco; e: Estado }) {
       ) : null}
       {p.exigeMotivo ? (
         <label className="block">
-          <span className="font-medium">Motivo do pedido, obrigatório abaixo do piso</span>
+          <span className="font-medium">Motivo do pedido, obrigatório abaixo do piso. O gerente não consegue aprovar abaixo do piso, só recusar</span>
           <Input
             value={e.motivo}
             onChange={(ev) => e.setMotivo(ev.target.value)}
@@ -819,7 +820,7 @@ function CartaoDePreco({
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Preço pela regra de três</dt>
+          <dt className="text-muted-foreground">Três vezes o custo real</dt>
           <dd>
             <RegraTexto leitura={r} />
           </dd>
@@ -878,10 +879,13 @@ export const LEGENDA_DA_REGRA: Array<{ faixa: FaixaDaRegra; texto: string }> = [
   { faixa: "abaixo_do_custo", texto: "Abaixo do custo: o balcão não paga nem o custo real" },
   {
     faixa: "abaixo_da_regra",
-    texto: "Abaixo da regra de três: o balcão paga o custo, mas fica menor que três vezes o custo",
+    texto: "Abaixo de três vezes o custo real: o balcão paga o custo, mas fica menor que três vezes o custo",
   },
-  { faixa: "na_regra", texto: "Na regra de três: o balcão está a dois por cento da regra" },
-  { faixa: "acima", texto: "Acima: o balcão passa da regra de três" },
+  {
+    faixa: "na_regra",
+    texto: `Perto de três vezes o custo real: o balcão está a ${TOLERANCIA_DA_REGRA} por cento da referência`,
+  },
+  { faixa: "acima", texto: "Acima: o balcão passa de três vezes o custo real" },
 ];
 
 const CABECA = "px-3 text-base normal-case tracking-normal text-foreground";
@@ -929,7 +933,7 @@ export function ListaDePrecos({
               </TableHead>
               <TableHead className={CABECA}>
                 <span className="inline-flex items-center">
-                  Preço pela regra de três
+                  Três vezes o custo real
                   <Ajuda rotulo="regra de três" texto={TEXTO_DA_REGRA} />
                 </span>
               </TableHead>

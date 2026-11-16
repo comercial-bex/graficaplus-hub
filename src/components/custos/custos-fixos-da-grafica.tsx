@@ -115,7 +115,9 @@ export function LinhaDeCusto({
           </label>
           {rascunho.trim() !== "" && valorLido == null ? (
             <p className="text-base font-semibold text-[#b42318] dark:text-[#ff8a80]" role="alert">
-              Digite um número, por exemplo 2000 ou 1,1339.
+              {d.aceitaZero
+                ? "Digite um número, por exemplo 2000 ou 1,1339."
+                : "Digite um número maior que zero, por exemplo 2000 ou 1,1339."}
             </p>
           ) : null}
           {foraDaFaixa ? (
@@ -208,7 +210,7 @@ export function BlocoDeCustosFixos({
         <p className="mt-1 max-w-3xl">
           Os números que entram no custo real de cada produto. Enquanto algum estiver pendente, o
           custo real é um piso otimista e a margem mostrada em preços por produto é maior que a
-          verdadeira.
+          verdadeira. Valor salvo sem confirmar ainda é uma estimativa. O aluguel só entra no rateio depois de confirmado.
         </p>
         <p
           className="mt-2 text-base font-semibold"
@@ -227,7 +229,7 @@ export function BlocoDeCustosFixos({
           data-testid="so-leitura-dos-custos"
         >
           <Lock className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
-          <span>Você vê os custos fixos. Quem preenche e confirma é o gestor e o financeiro.</span>
+          <span>Você vê os custos fixos. Quem preenche e confirma é o administrador, o gestor e o financeiro.</span>
         </div>
       ) : null}
       {agruparPorGrupo(itens).map(({ grupo, itens: doGrupo }) => (
@@ -236,9 +238,10 @@ export function BlocoDeCustosFixos({
             <h3 className="text-base font-bold">{ROTULO_DO_GRUPO[grupo]}</h3>
             {grupo === "pessoal" && porHora != null ? (
               <p className="mt-1" data-testid="mao-de-obra-por-hora">
-                O custo da mão de obra é{" "}
+                A referência da mão de obra é{" "}
                 {porHora.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} por hora
-                com encargos.
+                com encargos. O custo real dos produtos usa a função do mesmo setor da máquina padrão, a de
+                maior valor por hora entre elas, da lista de funções da mão de obra desta página.
               </p>
             ) : null}
             <ul className="divide-y divide-border">

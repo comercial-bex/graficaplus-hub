@@ -1,4 +1,4 @@
-import { ehPlotterI1600, TEXTO_DA_VELOCIDADE_DA_PLOTTER } from "@/domain/maquinas/velocidade-de-calculo";
+import { fraseDaVelocidade, velocidadeDoCustoDaMaquina } from "@/domain/maquinas/velocidade-de-calculo";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { NovaMaquinaEmPassos } from "@/components/maquinas/nova-maquina-em-passos";
@@ -435,15 +435,18 @@ function MaquinasPage() {
                   </div>
                 </div>
 
-                {ehPlotterI1600(m) && (
+                {velocidadeDoCustoDaMaquina(m).comMargem && (
                   <p className="rounded-md border bg-muted/40 p-2 text-base" data-testid="velocidade-da-plotter">
-                    {TEXTO_DA_VELOCIDADE_DA_PLOTTER}
+                    {fraseDaVelocidade(
+                      velocidadeDoCustoDaMaquina(m).nominal,
+                      velocidadeDoCustoDaMaquina(m).usada,
+                    )}
                   </p>
                 )}
 
                 {m.largura_util_m != null && (
                   <div className="text-xs text-muted-foreground">
-                    Boca de {Number(m.largura_util_m).toLocaleString("pt-BR")} m — é ela que
+                    Boca de {Number(m.largura_util_m).toLocaleString("pt-BR")} m. É ela que
                     define quantas peças cabem na bobina.
                   </div>
                 )}
@@ -451,16 +454,21 @@ function MaquinasPage() {
                 {/* O número em que a gráfica pensa.
                     Ninguém precifica banner por hora de máquina: precifica por
                     metro quadrado. Custo/hora sozinho engana — R$ 14,43 parece
-                    caro até dividir pelos 14 m² que a máquina faz nessa hora. */}
+                    caro até dividir pelos m² que o custo conta nessa hora. */}
                 {canSeeFinancials && Number(m.custo_hora ?? 0) > 0 && Number(m.velocidade_m2_h ?? 0) > 0 && (
-                  <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                  <div className="rounded-md border bg-muted/40 p-2 text-base">
                     <div className="font-medium">
-                      {brl(Number(m.custo_hora) / Number(m.velocidade_m2_h))} por m² de máquina
+                      {brl(Number(m.custo_hora) / velocidadeDoCustoDaMaquina(m).usada)} por m² de máquina
                     </div>
-                    <div className="text-muted-foreground">
-                      {brl(Number(m.custo_hora))}/h ÷ {Number(m.velocidade_m2_h)} m²/h. É este
-                      valor que entra no orçamento, proporcional à metragem da peça — não a
-                      hora cheia.
+                    <div className="text-foreground">
+                      A hora de {brl(Number(m.custo_hora))} dividida por{" "}
+                      {velocidadeDoCustoDaMaquina(m).usada.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m²/h,
+                      a velocidade que o custo usa.
+                      {velocidadeDoCustoDaMaquina(m).comMargem
+                        ? ` A máquina faz ${velocidadeDoCustoDaMaquina(m).nominal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m²/h no catálogo.`
+                        : ""}{" "}
+                      A energia entra à parte, pela potência da máquina. O valor é proporcional à
+                      metragem da peça, não a hora cheia.
                     </div>
                   </div>
                 )}

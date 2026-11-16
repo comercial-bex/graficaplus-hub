@@ -140,7 +140,7 @@ describe("os avisos", () => {
       60,
     ).find((a) => a.codigo === "velocidade_com_margem");
     expect(f?.frase).toBe(
-      "A máquina faz 14 metros quadrados por hora e o sistema calcula com 10 por margem de segurança.",
+      "A máquina faz 14 metros quadrados por hora. O custo é calculado com 10, por margem de segurança. A agenda e a capacidade seguem os 14.",
     );
     expect(
       codigos(

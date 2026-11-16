@@ -198,12 +198,12 @@ describe("a tela de custos fixos", () => {
     expect(h).toContain("Pendente");
     expect(h).toContain("Confirmado por Cibele em 15/11/2026.");
     expect(h).toContain("R$ 2.000,00 por mês");
-    expect(h).toContain("O custo da mão de obra é");
+    expect(h).toContain("A referência da mão de obra é");
   });
   it("texto fixo da plotter", () => {
     expect(bloco()).toContain(TEXTO_DA_VELOCIDADE_DA_PLOTTER);
     expect(TEXTO_DA_VELOCIDADE_DA_PLOTTER).toBe(
-      "A máquina faz 14 metros quadrados por hora e o sistema calcula com 10 por margem de segurança.",
+      "A máquina faz 14 metros quadrados por hora. O custo é calculado com 10, por margem de segurança. A agenda e a capacidade seguem os 14.",
     );
   });
   it("quem edita vê o botão de 44 px; os de pessoal só leitura não têm botão", () => {

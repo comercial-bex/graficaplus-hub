@@ -784,7 +784,7 @@ function Simulador() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {r.horas > 0
-                    ? `${formatarHoras(r.horas)} de produção para ${n3(q)} ${unidade}. As mesmas horas pagam a máquina, a mão de obra (${brl(r.maoDeObraHora)}/h já com encargos) e o rateio administrativo — a regra do custo cheio do produto.`
+                    ? `${formatarHoras(r.horas)} de produção para ${n3(q)} ${unidade}. As mesmas horas pagam a máquina, a mão de obra, a ${brl(r.maoDeObraHora)} por hora já com encargos, e o rateio administrativo. No custo real do produto por metro quadrado, a mão de obra e o rateio usam as horas da máquina vezes o fator de mão de obra, que vale 1,5 quando ninguém o mudou.`
                     : "Sem tempo informado, só o material entra na conta."}
                 </p>
               </CardContent>
@@ -795,7 +795,7 @@ function Simulador() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Parâmetros da casa</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Lidos agora de Custos de mão de obra → Parâmetros da casa. Mude à vontade para testar: só o admin grava
+                  Lidos agora de Custos fixos e mão de obra, na parte Parâmetros da casa. Mude à vontade para testar: só o admin grava
                   na casa, e cada gravação fica no histórico.
                 </p>
               </CardHeader>

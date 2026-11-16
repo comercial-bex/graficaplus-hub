@@ -25,9 +25,9 @@ export const COR_DA_FAIXA: Record<FaixaDaMargem, string> = {
 export const COR_DO_PISO = "bg-[#1d4ed8] dark:bg-[#93c5fd]";
 
 export const LEGENDA_DAS_FAIXAS: Array<{ faixa: FaixaDaMargem; texto: string }> = [
-  { faixa: "abaixo", texto: "Vermelho: abaixo do piso, o preço está errado" },
-  { faixa: "perto", texto: "Amarelo: perto do piso, sem folga" },
-  { faixa: "acima", texto: "Verde: acima do piso, o preço está certo" },
+  { faixa: "abaixo", texto: "Vermelho: margem abaixo do mínimo do produto" },
+  { faixa: "perto", texto: "Amarelo: margem menos de cinco pontos acima do mínimo" },
+  { faixa: "acima", texto: "Verde: margem cinco pontos ou mais acima do mínimo. A cor não garante o preço certo. Confira o preço mínimo recomendado em Preços por produto antes de aprovar." },
 ];
 
 const pontos = (v: number | null) => (v == null ? "sem custo" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} por cento`);
@@ -116,7 +116,7 @@ export function PropostaDePrecoCartao({
             <dd className="font-semibold">{brl(proposta.preco_proposto)}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Piso, o menor preço certo</dt>
+            <dt className="text-muted-foreground">Piso desta proposta</dt>
             <dd className="font-semibold">{brl(proposta.piso)}</dd>
           </div>
         </dl>
@@ -149,7 +149,7 @@ export function PropostaDePrecoCartao({
               </ConfirmarAcao>
             </div>
             <label className="block text-base">
-              <span className="mb-1 block">Motivo, só para recusar</span>
+              <span className="mb-1 block">Motivo para recusar, obrigatório, com pelo menos 3 letras. Escreva o motivo para liberar o botão Recusar.</span>
               <Input
                 value={nota}
                 onChange={(e) => setNota(e.target.value)}

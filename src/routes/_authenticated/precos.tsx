@@ -91,6 +91,10 @@ function PrecosPage() {
 
   const linhas = painel.data?.linhas;
   const contagem = useMemo(() => contar(linhas ?? []), [linhas]);
+  // O preço de parceiro baixo é problema de preço e não deixa o custo real otimista: fica fora da conta de custo faltando.
+  const pendenciasDoBanco = painel.data?.pendencias ?? [];
+  const faltasDeCusto = pendenciasDoBanco.filter((p) => p.tipo !== "parceiro");
+  const parceirosAbaixoDoPiso = pendenciasDoBanco.filter((p) => p.tipo === "parceiro");
   const textos = textosDoPrecoMinimo(painel.data?.parametrosDoMinimo ?? null);
   const familias = useMemo(() => familiasDe(linhas ?? []), [linhas]);
   const visiveis = useMemo(
@@ -169,7 +173,7 @@ function PrecosPage() {
             </p>
           ) : null}
 
-          {painel.data.pendencias.length > 0 ? (
+          {faltasDeCusto.length > 0 ? (
             <div
               className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#8a5a00] bg-card p-4 dark:border-[#f5b942]"
               role="status"
@@ -177,17 +181,33 @@ function PrecosPage() {
             >
               <p className="min-w-0 flex-1 basis-64">
                 <span className="font-semibold">
-                  {painel.data.pendencias.length === 1
+                  {faltasDeCusto.length === 1
                     ? "Falta 1 item de custo para fechar."
-                    : `Faltam ${painel.data.pendencias.length} itens de custo para fechar.`}
+                    : `Faltam ${faltasDeCusto.length} itens de custo para fechar.`}
                 </span>{" "}
-                Enquanto faltarem, o custo real é um piso otimista e a margem mostrada é maior que a
-                verdadeira.
+                Custo fixo se preenche em Custos fixos e mão de obra. Material sem custo se corrige
+                no cadastro do material. Enquanto faltarem, o custo real é um piso otimista e a
+                margem mostrada é maior que a verdadeira.
               </p>
               <Button asChild variant="outline" className="h-11 min-h-11 text-base">
                 <Link to="/custos-producao">Preencher custos fixos</Link>
               </Button>
             </div>
+          ) : null}
+
+          {parceirosAbaixoDoPiso.length > 0 ? (
+            <p
+              className="rounded-xl border border-[#8a5a00] bg-card p-4 dark:border-[#f5b942]"
+              role="status"
+              data-testid="aviso-de-parceiro-abaixo-do-piso"
+            >
+              <span className="font-semibold">
+                {parceirosAbaixoDoPiso.length === 1
+                  ? "1 preço de parceiro está abaixo do piso líquido."
+                  : `${parceirosAbaixoDoPiso.length} preços de parceiro estão abaixo do piso líquido.`}
+              </span>{" "}
+              Isso é problema de preço, não de custo faltando. Corrija no preço do produto.
+            </p>
           ) : null}
 
           {contagem.abaixo > 0 ? (
@@ -346,7 +366,7 @@ function PrecosPage() {
               Plotter i1600. {TEXTO_DA_VELOCIDADE_DA_PLOTTER}
             </p>
             <p data-testid="texto-da-regra-de-tres">
-              A regra de três é só referência, três vezes o custo real. Ela não manda subir o preço.
+              A referência de três vezes o custo real serve só para comparar. Ela não manda subir o preço. O preço mínimo recomendado é outra conta, feita sobre o material com perda e falha.
             </p>
           </div>
 

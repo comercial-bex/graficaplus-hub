@@ -840,12 +840,23 @@ export function CalculadoraCusto({
                     <Select value={l.modoId ?? ""} onValueChange={(v) => atualizarLinha(l.key, { modoId: v })}>
                       <SelectTrigger id="calc-11-modo-de-qualidade" className="h-9"><SelectValue placeholder="Escolher modo" /></SelectTrigger>
                       <SelectContent>
-                        {modosDe(l.maquina_id).map((mo) => (
-                          <SelectItem key={mo.id} value={mo.id}>
-                            {mo.nome} · {Number(mo.velocidade_m2_h).toLocaleString("pt-BR")} m²/h
-                            {mo.passadas ? ` (${mo.passadas} passadas)` : ""}
-                          </SelectItem>
-                        ))}
+                        {modosDe(l.maquina_id).map((mo) => {
+                          const maqDoModo: any = maquinas.find((m: any) => m.id === l.maquina_id);
+                          const usada = velocidadeUsadaNoCusto({
+                            nominal: maqDoModo?.velocidade_m2_h,
+                            calculo: maqDoModo?.velocidade_calculo_m2_h,
+                            modo: mo.velocidade_m2_h,
+                          });
+                          const nominal = Number(mo.velocidade_m2_h);
+                          const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+                          return (
+                            <SelectItem key={mo.id} value={mo.id}>
+                              {mo.nome}, {fmt(nominal)} m²/h no catálogo
+                              {usada > 0 && Math.abs(usada - nominal) > 0.001 ? `, ${fmt(usada)} m²/h no custo` : ""}
+                              {mo.passadas ? `, ${mo.passadas} passadas` : ""}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>

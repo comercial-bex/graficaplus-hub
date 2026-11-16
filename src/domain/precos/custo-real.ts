@@ -18,13 +18,13 @@ import {
   type TaxasDeVenda,
   type TravaDoMinimo,
 } from "./preco-minimo";
-import { faixaDaMargem, type FaixaDaMargem } from "./propostas";
+import { faixaDaMargem, REFERENCIA_M2, type FaixaDaMargem } from "./propostas";
 
 export { fraseDaVelocidade };
 
 export const VEZES_DA_REGRA = 3;
 /** Preço de mercado local da lona, em reais por metro quadrado. Mesmo número de REFERENCIA_M2 em propostas. */
-export const MERCADO_LOCAL_DA_LONA = 70;
+export const MERCADO_LOCAL_DA_LONA = REFERENCIA_M2;
 
 /** O que a visão produto_custo_real entrega por produto, já com números e não com texto do banco. */
 export type CustoRealDoProduto = {
@@ -359,7 +359,7 @@ export function avisosDoProduto(l: EntradaDeAvisos, preco: number | null): Aviso
       codigo: "sem_mao_de_obra",
       gravidade: "media",
       frase:
-        "A ficha não tem tempo de mão de obra. O custo real não inclui o trabalho de quem produz.",
+        "Falta o tempo de produção do produto ou o custo de mão de obra cadastrado. O custo real não inclui o trabalho de quem produz.",
     });
   }
   if (r?.sem_tinta) {
@@ -375,14 +375,14 @@ export function avisosDoProduto(l: EntradaDeAvisos, preco: number | null): Aviso
       codigo: "custo_incompleto",
       gravidade: "media",
       frase:
-        "O custo está incompleto. Falta confirmar algum custo fixo da gráfica, como aluguel, manutenção ou consumo de tinta. O custo real é um piso otimista.",
+        "O custo está incompleto. Falta informar a manutenção, a limpeza ou o cabeçote da plotter, a tinta, o custo de material ou a mão de obra. Valor salvo sem confirmar ainda é uma estimativa, e o aluguel só entra no rateio depois de confirmado. O custo real é um piso otimista.",
     });
   }
   if (leitura.faixaDaMargem === "abaixo" && l.margem_minima != null) {
     a.push({
       codigo: "margem_liquida_abaixo_do_minimo",
       gravidade: "media",
-      frase: `A margem líquida está abaixo do mínimo cadastrado de ${pt(l.margem_minima)} por cento. Esse mínimo foi definido sobre o material.`,
+      frase: `A margem líquida está abaixo do mínimo de ${pt(l.margem_minima)} por cento do produto. Nessa margem o imposto e o cartão já estão dentro do custo real.`,
     });
   }
   if (
@@ -393,7 +393,7 @@ export function avisosDoProduto(l: EntradaDeAvisos, preco: number | null): Aviso
     a.push({
       codigo: "abaixo_da_regra_de_tres",
       gravidade: "info",
-      frase: `O balcão está ${reais(Math.abs(leitura.diferenca))} abaixo da regra de três, que vale ${reais(leitura.regra)}. A regra é só referência e não manda subir o preço.`,
+      frase: `O balcão está ${reais(Math.abs(leitura.diferenca))} abaixo de três vezes o custo real, que vale ${reais(leitura.regra)}. Essa referência serve só para comparar e não manda subir o preço.`,
     });
   }
   const minimo = leituraDoMinimo(l, preco);
@@ -438,7 +438,7 @@ export function avisosDoProduto(l: EntradaDeAvisos, preco: number | null): Aviso
     a.push({
       codigo: "mercado_local_da_lona",
       gravidade: "info",
-      frase: `O mercado local vende lona a ${reais(MERCADO_LOCAL_DA_LONA)} por metro quadrado. A regra de três de ${reais(leitura.regra)} não se vende neste produto.`,
+      frase: `A referência da casa para lona é ${reais(MERCADO_LOCAL_DA_LONA)} por metro quadrado. A referência de três vezes o custo real, ${reais(leitura.regra)}, passa disso e não se vende neste produto.`,
     });
   }
   return a.sort((x, y) => ORDEM_DA_GRAVIDADE[x.gravidade] - ORDEM_DA_GRAVIDADE[y.gravidade]);

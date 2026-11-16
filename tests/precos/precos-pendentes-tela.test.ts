@@ -77,7 +77,7 @@ describe("o cartão da proposta", () => {
     expect(h.match(/h-11 min-h-11/g)?.length).toBeGreaterThanOrEqual(2);
     expect(h).toMatch(/<button[^>]*disabled=""[^>]*>Recusar<\/button>/);
     expect(h).not.toMatch(/<button[^>]*disabled=""[^>]*>Aprovar<\/button>/);
-    expect(h).toContain("Motivo, só para recusar");
+    expect(h).toContain("Motivo para recusar, obrigatório, com pelo menos 3 letras");
   });
 
   it("quem não decide não vê os botões", () => {
@@ -105,9 +105,9 @@ describe("a página", () => {
     expect(h).toContain("Preços pendentes de aprovação");
     expect(h).toContain("57,50");
     expect(h).toContain("70,00 por metro quadrado");
-    expect(h).toContain("Vermelho: abaixo do piso");
-    expect(h).toContain("Amarelo: perto do piso");
-    expect(h).toContain("Verde: acima do piso");
+    expect(h).toContain("Vermelho: margem abaixo do mínimo do produto");
+    expect(h).toContain("Amarelo: margem menos de cinco pontos acima do mínimo");
+    expect(h).toContain("Verde: margem cinco pontos ou mais acima do mínimo");
     expect(h).toContain("nunca é consertado baixando a margem mínima");
   });
 

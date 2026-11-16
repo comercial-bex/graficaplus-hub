@@ -1,9 +1,9 @@
 /**
  * Encargos sobre a mão de obra.
  *
- * As cinco funções da casa estão a R$ 40/h com 0% de encargos. R$ 40 é o
- * salário-hora — o que sai do bolso da empresa por aquela hora é bem mais, e a
- * diferença vai direto para dentro do preço de cada peça.
+ * Antes da decisão do dono, as funções estavam a R$ 40 por hora e 0 por cento de encargos. Hoje são o salário mínimo
+ * dividido por 176 horas, com 32,82 por cento de encargos. O que sai do bolso da empresa por aquela hora é mais que o
+ * salário-hora, e a diferença vai direto para dentro do preço de cada peça.
  *
  * Este módulo NÃO escolhe a alíquota. Ele quebra o encargo nas parcelas que
  * existem na lei e deixa cada uma à vista, porque o total depende do regime

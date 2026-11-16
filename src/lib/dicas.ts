@@ -233,13 +233,13 @@ export const dicas = {
       modo_do_desconto:
         "Em %, o desconto acompanha o subtotal: se entrar ou sair item, o valor em reais muda junto. Em R$, o valor fica fixo e quem muda é o percentual.",
       alcada_do_desconto:
-        "Quem vende decide sozinho até o preço mínimo: o custo dos itens mais a margem mínima de cada produto (30% no item fora do catálogo), contando imposto e metade da taxa do cartão. Se algum item não tem custo, vale o limite que a casa já usava: até 10% do subtotal.",
+        "Quem vende decide sozinho até o mínimo da alçada: o custo da ficha dos itens mais a margem mínima de cada produto (30% quando o produto não tem margem mínima ou é item fora do catálogo), contando imposto e metade da taxa do cartão. O custo da ficha é o custo cheio, sem perdas, falha, extras da plotter nem ocupação. Por isso este mínimo fica abaixo do preço mínimo recomendado em Preços por produto. Se algum item não tem custo, vale o limite que a casa já usava: até 10% do subtotal.",
       alcada_sem_numero:
         "O limite em reais não aparece para você porque sai do custo das peças, que fica com o financeiro. O sistema confere enquanto você digita: se passar, o botão trava e diz por quê.",
       acima_da_alcada:
         "Passou do mínimo: só quem tem a permissão “Aprovar desconto” (hoje, gerente e administrador) aplica. O botão trava porque o banco recusaria de qualquer jeito — a regra vale para a tela, para o link e para a OS. Peça ao gerente para abrir este orçamento e aplicar; fica registrado quem aprovou.",
       piso_do_desconto:
-        "Piso é onde o lucro zera: o custo dos itens mais imposto e cartão. Abaixo dele, cada peça vendida sai do bolso da gráfica. Só quem aprova desconto aplica, e o sistema pede confirmação.",
+        "Piso é onde o lucro zera pelo custo da ficha: material, máquina, mão de obra e rateio, mais imposto e cartão. Não conta perda, ocupação nem extras da plotter, então o lucro real zera um pouco acima. Abaixo dele, cada peça vendida sai do bolso da gráfica. Só quem aprova desconto aplica, e o sistema pede confirmação.",
       desconto_pendente:
         "A aprovação vale para o orçamento como estava. Os itens mudaram depois dela e, com os valores de agora, o desconto passa da alçada de quem vende: precisa de nova aprovação. Sem ela, o orçamento não vira OS.",
       desconto_sem_custo:
@@ -393,8 +393,9 @@ export const dicas = {
     tela: "Parque de máquinas com velocidade e custo por hora. Esses valores entram no custo de produção de cada trabalho.",
     campos: {
       custo_hora:
-        "Quanto custa manter a máquina ligada por uma hora, somando energia, manutenção e depreciação.",
-      velocidade: "Produção média por hora. Usada para estimar o tempo de cada trabalho.",
+        "Quanto a máquina custa por hora de uso, só pela locação ou pela depreciação. A energia entra à parte, pela potência da máquina vezes a tarifa. Na Plotter i1600, a manutenção, a limpeza e o cabeçote entram à parte, em Custos fixos e mão de obra. Em outra máquina a manutenção não entra no custo do produto.",
+      velocidade:
+        "Produção média por hora do catálogo. Agenda e capacidade usam este número. O custo usa a velocidade de cálculo da máquina quando ela está preenchida, e senão este número. Na Plotter i1600 a velocidade de cálculo é menor, por margem de segurança.",
     },
   },
   "/maquinas-agenda": {
@@ -403,14 +404,15 @@ export const dicas = {
   },
   "/capacidade": {
     menu: "Quanto de cada máquina já está vendido na semana, e quanto ainda cabe.",
-    tela: "Horas de cada máquina na janela escolhida: quantas existem, quantas já estão reservadas por OS e quanto sobra. Serve para responder o cliente no balcão — 'cabe para sexta?' — sem chutar. Máquina sem custo por hora ou sem velocidade cadastrada aparece na lista de pendências, porque sem esses dois números a conta da hora não fecha.",
+    tela: "Horas de cada máquina na janela escolhida: quantas existem, quantas já estão reservadas por OS e quanto sobra. Serve para responder o cliente no balcão, como em 'cabe para sexta?', sem chutar. Máquina sem custo por hora ou sem velocidade cadastrada aparece na lista de pendências, porque sem esses dois números a conta da hora não fecha.",
     campos: {
       horas_disponiveis:
         "Horas produtivas da máquina no mês, proporcionais aos dias úteis da janela. É o teto, não a promessa.",
       horas_reservadas: "Soma das reservas vivas (agendadas e em produção) na janela. É trabalho já vendido.",
       ocupacao: "Reservado dividido pelo disponível. Verde abaixo de 70%, âmbar de 70 a 95, vermelho acima.",
       velocidade: "Quanto a máquina produz por hora (m²/h). Sem ela o sistema não sabe transformar peça em tempo.",
-      custo_hora: "Quanto custa manter a máquina ligada por uma hora. Só aparece para quem vê financeiro.",
+      custo_hora:
+        "Quanto a máquina custa por hora de uso, pela locação ou pela depreciação. A energia entra à parte. Na Plotter i1600 a manutenção também. Em outra máquina a manutenção não entra no custo do produto. Só aparece para quem vê financeiro.",
     },
   },
   "/onde-para": {
@@ -438,12 +440,12 @@ export const dicas = {
     // frase começa pelo que todo mundo vê e marca o resto como do financeiro:
     // prometer no menu um número que a tela vai esconder é o mesmo defeito de
     // mostrar zero por falta de permissão.
-    menu: "Qual peça paga melhor a hora de máquina — e, para quem vê financeiro, quanto falta para o mês empatar.",
+    menu: "Qual peça paga melhor a hora de máquina e, para quem vê financeiro, quanto falta para o mês empatar.",
     tela: "O mês em dois números. Primeiro o ponto de equilíbrio: quanto a gráfica precisa faturar para pagar o custo fixo com a margem que pratica — o que já entrou, o que está na oficina e o que falta. Depois o ranking de produtos por quanto cada um rende por hora de máquina, que é o que diz onde vale empurrar a venda. Sem acesso ao financeiro, só o ranking aparece.",
     campos: {
-      custo_fixo: "O que a gráfica gasta no mês mesmo sem produzir nada: aluguel, salários, energia de base.",
+      custo_fixo: "Soma das contas a pagar que vencem neste mês. Não é a lista de custos fixos do custo real do produto.",
       margem_de_contribuicao:
-        "O que sobra de cada real vendido depois de material, perda, falha, imposto e taxa de cartão. É com isso que se paga o custo fixo.",
+        "O que sobra de cada real vendido depois do material com perda e falha, do imposto e de metade da taxa do cartão. É com isso que se paga o custo fixo.",
       meta_de_faturamento: "Custo fixo dividido pela margem de contribuição. Abaixo disso o mês fecha no prejuízo.",
       em_producao: "Trabalho já na oficina que ainda não foi concluído. Não conta como realizado, mas está a caminho.",
       margem_hora: "Quanto o produto deixa por hora de máquina ocupada. Preço alto com tempo longo pode render menos que peça rápida.",
@@ -487,36 +489,38 @@ export const dicas = {
     campos: {
       sku: "Código curto do produto, usado para achar rápido no orçamento.",
       unidade: "Como o produto é vendido: metro quadrado, unidade, hora.",
-      custo: "Quanto custa produzir uma unidade. Base do cálculo de margem.",
-      margem: "Percentual de lucro sobre o custo. O preço sugerido sai daqui.",
+      custo_medio:
+        "Custo do material digitado no cadastro. O custo real, com máquina, mão de obra e rateio, está em Preços por produto.",
+      margem_minima:
+        "Margem mínima do produto. No preço mínimo recomendado, em branco ou zero vale 30 por cento. No piso do preço por produto e na aprovação de pedidos, em branco vale zero, e o piso fica igual ao custo de material do cadastro.",
       materiais:
         "Materiais consumidos por unidade. É o que permite baixar o estoque automaticamente.",
     },
   },
   "/precificacao": {
     menu: "Simule custo, preço e margem de uma peça real com os números da casa.",
-    tela: "Parte dos parâmetros da casa e de um produto ou material real (ficha, máquina e tempo) e mostra custo, preço sugerido pelo markup e margem, comparando com o preço de tabela. Mudar um número aqui não grava nada; só o administrador grava um parâmetro na casa, e fica no histórico.",
+    tela: "Parte dos parâmetros da casa e de um produto ou material real (ficha, máquina e tempo) e mostra custo, preço sugerido pelo markup e margem, comparando com o preço de tabela. Este simulador usa a conta do orçamento: não leva a ocupação alvo, os extras da plotter nem o preço mínimo recomendado. Para o custo real e o preço mínimo de cada produto, use Preços por produto. Mudar um número aqui não grava nada; só o administrador grava um parâmetro na casa, e fica no histórico.",
   },
   "/tabela-de-precos": {
     menu: "Custo, venda final, venda para parceiro, margem e preço dos concorrentes, produto a produto.",
     tela: "Cada produto vira um cartão, separado por categoria, com foto (ou o ícone da categoria), custo, venda final, preço de parceiro, margem e uma régua que põe tudo na mesma escala: custo, piso da margem, nosso preço e os concorrentes. Clique no cartão para ver a ficha: do que o produto é feito (matéria-prima, máquina, mão de obra e indireto), preços, sugestões e concorrentes, e para trocar a foto. Marque até 4 cartões para comparar lado a lado. Só administrador, gerência e financeiro veem.",
     campos: {
-      custo: "Por padrão, o custo digitado no cadastro do produto (o que o orçamento usa). Com 'Custo cheio', soma matéria-prima da receita + máquina + mão de obra + rateio indireto.",
+      custo: "Por padrão, o custo digitado no cadastro do produto (o que o orçamento usa). Com 'Custo cheio', soma matéria-prima da receita, máquina, mão de obra e rateio indireto. O custo cheio não leva perdas, ocupação, imposto nem cartão. Para o custo real, veja Preços por produto.",
       venda_final: "Preço de tabela para o cliente final, por unidade de venda. Produto vendido por faixa de quantidade não tem um preço só.",
-      lucro: "Preço − custo, por unidade. A margem é o lucro ÷ preço (margem sobre a venda, a mesma do semáforo do orçamento).",
-      venda_parceiro: "Preço para parceiro/terceirizado: o preço de parceiro do cadastro do produto; sem ele, o desconto do nível de entrada do programa (Bronze). É o mesmo preço que o parceiro vê no painel e que entra no orçamento dele.",
+      lucro: "Preço menos custo, por unidade. A margem é o lucro dividido pelo preço, a margem sobre a venda, a mesma do semáforo do orçamento.",
+      venda_parceiro: "Preço para parceiro ou terceirizado: o preço de parceiro do cadastro do produto. Sem ele, vale o desconto do nível de entrada do programa, o Bronze. É o mesmo preço que o parceiro vê no painel e que entra no orçamento dele.",
       concorrentes: "Preços que a equipe anotou, de até 3 concorrentes por tipo. 'Terceirizado' é a tabela que eles dão a parceiros; 'venda final' é a que dão ao cliente. Não se misturam.",
-      nos_x_mercado: "Quanto o nosso preço está acima (+) ou abaixo (−) do concorrente mais barato e da média. Terceirizado deles compara com o nosso preço de parceiro; venda final compara com a nossa venda final.",
-      sugestao: "Três caminhos, cada um com a conta: Bater = concorrente mais barato − R$ 1,50; Igualar = o mesmo preço; Piso = custo ÷ (1 − margem mínima do produto), o menor preço que ainda respeita a margem mínima. Em vermelho, quando a margem fica abaixo do mínimo do produto. Nada é gravado: é uma sugestão.",
+      nos_x_mercado: "Quanto o nosso preço está acima ou abaixo do concorrente mais barato e da média. Terceirizado deles compara com o nosso preço de parceiro; venda final compara com a nossa venda final.",
+      sugestao: "Três caminhos, cada um com a conta. Bater é o concorrente mais barato menos R$ 1,50. Igualar é o mesmo preço. Piso da margem é o custo escolhido dividido por 1 menos a margem mínima do produto, uma conta simples, sem imposto, sem cartão e sem ocupação. O preço mínimo recomendado, em Preços por produto, é a conta completa. Em vermelho, quando a margem fica abaixo do mínimo do produto. Nada é gravado: é uma sugestão.",
     },
   },
   "/precos": {
-    menu: "Uma linha por produto com custo, piso, preço do balcão, preço mínimo recomendado e margem, para pedir a mudança de preço.",
-    tela: "Cada linha é um produto ativo. O piso é o menor preço que ainda deixa a margem mínima. A barra mostra a margem e o risco marca o mínimo. Digite o preço novo e a linha mostra na hora o piso, a margem nova e o aviso. Propor preço nunca grava o preço: cria um pedido que espera aprovação em preços pendentes. Abaixo do piso o motivo é obrigatório. O preço mínimo recomendado é o maior entre três vezes o material com perda e o piso do custo de produção, já com a ocupação alvo da casa: é recomendação e não trava o pedido. Toque em Como chegou para ler a conta de cada produto. Os números do alto filtram a lista, inclusive os abaixo do mínimo recomendado. Toque em Simular preço para arrastar o preço do custo real até o dobro do balcão e ver para onde vai cada real: material, máquina, mão de obra, rateio, perdas, imposto, cartão e lucro. Arrastar nunca grava preço: só o botão Propor este preço cria o pedido, e o gerente aprova. Só administrador e gerente pedem mudança; quem não vê custo não abre a tela.",
+    menu: "Uma linha por produto com custo real, preço do balcão, preço mínimo recomendado e margem líquida, para pedir a mudança de preço.",
+    tela: "Cada linha é um produto ativo. O piso da margem é o custo de material do cadastro dividido por 1 menos a margem mínima. É uma conta simples, sem imposto, sem cartão e sem ocupação. A barra mostra a margem líquida e o risco marca a margem mínima do produto. Digite o preço novo e a linha mostra na hora o piso, a margem nova e o aviso. Propor preço nunca grava o preço: cria um pedido que espera aprovação em preços pendentes. Abaixo do piso o motivo é obrigatório, mas o banco não deixa o gerente aprovar um preço abaixo do piso: ele só pode recusar. O preço mínimo recomendado é a conta completa e é o número a seguir. Ele é o maior entre o multiplicador da regra de três, que se define em Custos fixos e mão de obra, vezes o material com perda e falha, e o piso do custo de produção, que já leva a ocupação alvo da casa. É recomendação e não trava o pedido. Toque em Como chegou para ler a conta de cada produto. Os números do alto filtram a lista, inclusive os abaixo do mínimo recomendado. Toque em Simular preço para arrastar o preço do custo real até o dobro do balcão e ver para onde vai cada real: material, máquina, mão de obra, rateio e ocupação, perdas e extras da plotter, imposto, cartão e lucro. Abaixo do simulador, o painel O que melhora o lucro ordena o que a gráfica pode fazer, pelo ganho em reais por unidade. Arrastar nunca grava preço: só o botão Propor este preço cria o pedido, e o gerente aprova. Só administrador e gerente pedem mudança; quem não vê custo não abre a tela.",
   },
   "/precos-pendentes": {
-    menu: "Preços que o sistema acha errados, com o piso e a margem em barras, para aprovar ou recusar.",
-    tela: "Cada cartão é um produto com preço abaixo do piso ou longe da referência de metro quadrado. Três barras na mesma escala mostram o piso da margem, a margem de hoje e a margem se o preço novo for aprovado. Vermelho é abaixo do piso, amarelo é perto e verde é acima. Toque no ponto de interrogação de cada barra para ler o que ela quer dizer. Aprovar grava o preço novo no produto e não mexe em orçamento. Recusar pede o motivo. Só administrador e gerente decidem; quem não vê custo não abre a tela.",
+    menu: "Pedidos de mudança de preço, com o piso e a margem em barras, para aprovar ou recusar.",
+    tela: "Cada cartão é um produto com um pedido de mudança de preço. Nenhum pedido nasce sozinho quando um preço cai. Cada pedido vem de uma proposta registrada pela equipe técnica ou do botão Propor preço em Preços por produto. Três barras na mesma escala mostram o piso da margem, a margem de hoje e a margem se o preço novo for aprovado. Vermelho é margem abaixo do mínimo do produto, amarelo é menos de cinco pontos acima dele e verde é cinco pontos ou mais acima. Toque no ponto de interrogação de cada barra para ler o que ela quer dizer. Aprovar grava o preço novo no produto e não mexe em orçamento. Recusar pede o motivo. Só administrador e gerente decidem; quem não vê custo não abre a tela.",
   },
   "/vendas-diretas": {
     menu: "Compras dos parceiros direto com a gráfica.",
@@ -540,7 +544,7 @@ export const dicas = {
   },
   "/custos-producao": {
     menu: "Valor da hora da equipe e os parâmetros que formam o preço.",
-    tela: "Custo de mão de obra por função, e os parâmetros da casa: markup, imposto, taxa de cartão, perda de refile e falha de produção. Quatro deles entram direto na conta da Meta do mês — mudar aqui muda quanto a gráfica precisa faturar para empatar.",
+    tela: "Custo de mão de obra por função, custos fixos da gráfica e parâmetros da casa. Os custos fixos, como aluguel, plotter, ocupação alvo e multiplicador da regra de três, formam o custo real e o preço mínimo, e o administrador, o gestor e o financeiro confirmam. Os parâmetros da casa são markup, imposto, taxa de cartão, perda de refile e falha de produção, e só o administrador altera. Quatro deles entram direto na conta da Meta do mês: mudar aqui muda quanto a gráfica precisa faturar para empatar.",
     campos: {
       encargos: "FGTS, 13º, férias e provisão de rescisão sobre o salário-hora. Encargo em 0% faz o bloco de mão de obra sair menor do que o que sai do bolso.",
       parametros_da_casa:

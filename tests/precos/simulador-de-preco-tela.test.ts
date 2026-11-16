@@ -162,10 +162,10 @@ describe("barra empilhada", () => {
       "Material",
       "Máquina",
       "Mão de obra",
-      "Rateio e ocupação",
-      "Perdas, falha e consumo da plotter",
+      "Rateio e horas paradas pela ocupação",
+      "Perdas, falha e extras da plotter",
       "Imposto",
-      "Cartão, metade das vendas",
+      "Cartão, metade da taxa",
       "Lucro",
     ])
       expect(rotulo).toContain(f);
@@ -220,7 +220,7 @@ describe("lucro, frase viva e selo", () => {
       [{ sem_tinta: true }, "A tinta ainda não entrou no custo."],
       [{ material_sem_custo: true }, "Há material da ficha sem custo cadastrado."],
       [{ sem_mao_de_obra: true }, "A mão de obra ainda não entrou no custo."],
-      [{ custo_incompleto: true }, "Algum custo fixo ainda não foi confirmado"],
+      [{ custo_incompleto: true }, "Falta informar a manutenção, a limpeza ou o cabeçote da plotter"],
     ] as const) {
       const html = texto(linha({ real: real(o) }), "70,00");
       expect(html).toContain('data-testid="selo-custo-incompleto"');
@@ -350,5 +350,77 @@ describe("achados da revisão", () => {
     const html = texto(linha(), "70,00");
     expect(html.match(/aria-live="polite"/g)).toHaveLength(1);
     expect(html).toMatch(/aria-live="polite"[^>]*>Lucro de/);
+  });
+});
+
+describe("painel O que melhora o lucro", () => {
+  const comOcupacao = (o: Partial<CustoRealDoProduto> = {}) =>
+    real({ ocupacao_alvo_pct: 50, tres_x_material: 38.4, ...o });
+  const SEM_PONTUACAO = /[()—–→←]/;
+  const painel = (l: LinhaDePreco, t: string, extra: Record<string, unknown> = {}) => {
+    const h = texto(l, t, extra);
+    const i = h.indexOf('data-testid="alavancas-de-lucro"');
+    return i < 0 ? "" : h.slice(i);
+  };
+
+  it("lista as alavancas em ordem de ganho, com ganho em reais e pontos e a quem cabe", () => {
+    const h = painel(linha({ real: comOcupacao() }), "35,00");
+    expect(h).toContain("O que melhora o lucro");
+    const ordem = [...h.matchAll(/data-ganho-centavos="(\d+)"/g)].map((m) => Number(m[1]));
+    expect(ordem.length).toBeGreaterThanOrEqual(3);
+    expect([...ordem].sort((a, b) => b - a)).toEqual(ordem);
+    expect(h).toContain("pontos de margem sobre o preço");
+    expect(h).toContain("A quem cabe.");
+    expect(h).toContain("Gerente aprova a proposta de preço");
+    expect(h).toContain("Dono decide, com vendas e agenda");
+    expect(h).toContain("decisão de vendas e agenda, não um botão");
+  });
+
+  it("a alavanca de preço só põe o preço no simulador e manda usar o Propor que já existe", () => {
+    const h = painel(linha({ real: comOcupacao() }), "35,00");
+    expect(h).toContain("Depois use Propor este");
+    expect(h).not.toContain('type="submit"');
+    expect(h).not.toContain("<form");
+  });
+
+  it("quem não pode propor vê as alavancas, mas não o botão de pôr o preço", () => {
+    const h = painel(linha({ real: comOcupacao() }), "35,00", { podePropor: false });
+    expect(h).toContain("O que melhora o lucro");
+    expect(h).not.toContain("Depois use Propor este");
+  });
+
+  it("ocupação 100 aparece como sem dado, sem NaN e sem divisão por zero", () => {
+    const h = painel(linha({ real: comOcupacao({ ocupacao_alvo_pct: 100, custo_ocupacao: 0 }) }), "70,00");
+    expect(h).toContain("Sem dado para medir");
+    expect(h).toContain("A ocupação alvo já está em 100 por cento");
+    expect(h).not.toContain("NaN");
+    expect(h).not.toContain("Infinity");
+  });
+
+  it("repete o selo de custo incompleto dentro do painel", () => {
+    const h = painel(linha({ real: comOcupacao({ custo_incompleto: true }) }), "70,00");
+    expect(h).toContain('data-testid="selo-custo-incompleto"');
+    expect(h).toContain("o lucro verdadeiro é menor");
+    expect(painel(linha({ real: comOcupacao() }), "70,00")).not.toContain("selo-custo-incompleto");
+  });
+
+  it("alavanca do parceiro aparece só quando o parceiro está abaixo do piso líquido", () => {
+    expect(painel(linha({ real: comOcupacao() }), "70,00")).not.toContain('data-alavanca="preco_do_parceiro"');
+    const h = painel(linha({ real: comOcupacao({ parceiro_abaixo_do_piso: true }), preco_parceiro: 40 }), "70,00");
+    expect(h).toContain('data-alavanca="preco_do_parceiro"');
+    expect(h).toContain("só trata o preço do balcão");
+  });
+
+  it("sem composição o simulador não monta e o painel não aparece", () => {
+    const h = texto(linha({ composicao: null }), "70,00");
+    expect(h).toContain('data-estado="sem_dado"');
+    expect(h).not.toContain("alavancas-de-lucro");
+  });
+
+  it("textos sem parênteses, travessão ou seta e letra de pelo menos 16 px", () => {
+    const h = painel(linha({ real: comOcupacao({ parceiro_abaixo_do_piso: true, custo_incompleto: true }), preco_parceiro: 40 }), "35,00");
+    const soTexto = h.replace(/<[^>]*>/g, " ");
+    expect(soTexto).not.toMatch(SEM_PONTUACAO);
+    expect(h).not.toMatch(/text-(xs|sm)\b/);
   });
 });

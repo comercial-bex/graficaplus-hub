@@ -51,9 +51,9 @@ function PrecosPendentesPage() {
   return (
     <div className="space-y-4 text-base">
       <SectionHeader
-        breadcrumb="Financeiro"
+        breadcrumb="Custeio"
         title="Preços pendentes de aprovação"
-        description="Aqui estão os preços que o sistema acha errados. Cada um mostra o piso, a margem de hoje e a margem se você aprovar o preço novo. O preço nunca é consertado baixando a margem mínima."
+        description="Aqui estão os pedidos de mudança de preço que esperam decisão. Cada um foi proposto pela equipe técnica ou pedido em Preços por produto. Nenhum nasce sozinho. Cada um mostra o piso, a margem de hoje e a margem se você aprovar o preço novo. O preço nunca é consertado baixando a margem mínima."
         ajuda={dicaTela("/precos-pendentes")}
         legivel
       />
@@ -96,7 +96,7 @@ function PrecosPendentesPage() {
             <Card>
               <CardContent className="p-6 text-base" data-testid="estado-vazio">
                 <p className="font-semibold">Nenhum preço esperando aprovação.</p>
-                <p className="mt-1">Quando o sistema achar um preço abaixo do piso ou longe da referência, ele aparece aqui.</p>
+                <p className="mt-1">Nenhum pedido de mudança de preço no momento. Para pedir uma mudança, abra Preços por produto, digite o preço novo e toque em Propor preço. O pedido aparece aqui para o gerente decidir.</p>
               </CardContent>
             </Card>
           ) : (

@@ -32,6 +32,7 @@ import { CartaoDoProduto, fichaDaLinha, PilulaDeMargem } from "@/components/prec
 import { FichaDoProduto, marcadoresDaLinha, pisoDaMargem, SeloDaFicha } from "@/components/precos/ficha-do-produto";
 import { BarraDeComparacao, LegendaDaBarra } from "@/components/precos/barra-de-comparacao";
 import { IconeDaCategoria, IconeDoProduto } from "@/components/precos/icone-do-produto";
+import { SALARIO_MINIMO } from "@/domain/financeiro/encargos";
 import { brl, pct, type Concorrente, type Linha, type LinhaDaReceita, type Produto } from "@/components/precos/tipos";
 
 export const Route = createFileRoute("/_authenticated/tabela-de-precos")({
@@ -126,9 +127,10 @@ function TabelaDePrecosPage() {
   const estimativaDeMaoDeObra = useQuery({
     queryKey: ["tabela-precos", "mo-estimada"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("custos_mao_de_obra").select("observacoes").eq("ativo", true);
+      const { data, error } = await (supabase as any).from("custos_mao_de_obra").select("salario_mensal").eq("ativo", true);
       if (error) throw error;
-      return ((data ?? []) as Array<{ observacoes: string | null }>).some((r) => (r.observacoes ?? "").startsWith("Estimativa"));
+      // Salário igual ao mínimo quer dizer que a hora ainda não é o salário real. Não depende do texto livre da observação.
+      return ((data ?? []) as Array<{ salario_mensal: number | string | null }>).some((r) => r.salario_mensal != null && Number(r.salario_mensal) === SALARIO_MINIMO);
     },
   });
   // Família do produto: mora na tabela (as views financeiras não a trazem).
@@ -417,7 +419,7 @@ function TabelaDePrecosPage() {
       })}
 
       <p className="text-xs text-muted-foreground">
-        Margem é sobre a venda (lucro ÷ preço). "Custo do cadastro" é o que o orçamento usa; "custo cheio" soma matéria-prima da receita, máquina, mão de obra e rateio indireto — é a margem de verdade.
+        Margem é sobre a venda, o lucro dividido pelo preço. "Custo do cadastro" é o que o orçamento usa; "custo cheio" soma matéria-prima da receita, máquina, mão de obra e rateio indireto. Ele ainda não leva perdas, ocupação, imposto nem cartão. A margem líquida em Preços por produto leva.
         Concorrente de venda final só se compara com a nossa venda final; terceirizado com o nosso preço de parceiro. Produto vendido por faixa mostra "por faixa": o preço de cada faixa está em Produtos.
       </p>
 

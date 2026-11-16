@@ -202,8 +202,8 @@ export function CustoDaPeca(p: {
             {margem != null && (
               <li className="flex items-center justify-between gap-2">
                 <span>
-                  Margem no preço de venda
-                  {p.margemMinima != null ? ` (mínima de ${pct(p.margemMinima)})` : ""}
+                  Margem sobre o custo cheio, antes de perdas, ocupação, imposto e cartão
+                  {p.margemMinima != null ? `. A margem mínima de ${pct(p.margemMinima)} vale sobre o custo real, em Preços por produto` : ""}
                 </span>
                 <span className={`font-mono ${abaixo ? "text-destructive" : ""}`}>{pct(margem)}</span>
               </li>
@@ -236,8 +236,8 @@ export function CustoDaPeca(p: {
               {margem != null && (
                 <li className="flex items-center justify-between gap-2">
                   <span>
-                    Margem no preço de venda
-                    {p.margemMinima != null ? ` (mínima de ${pct(p.margemMinima)})` : ""}
+                    Margem sobre o custo cheio, antes de perdas, ocupação, imposto e cartão
+                    {p.margemMinima != null ? `. A margem mínima de ${pct(p.margemMinima)} vale sobre o custo real, em Preços por produto` : ""}
                   </span>
                   <span className={`font-mono ${abaixo ? "text-destructive" : ""}`}>{pct(margem)}</span>
                 </li>
@@ -331,7 +331,7 @@ export function CustoDaPeca(p: {
             <p className="mt-0.5 text-xs text-muted-foreground">
               Tempo de gente numa peça de{" "}
               {p.largura.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ×{" "}
-              {p.altura.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} m, a {brl(horaDaPessoa)} por hora.
+              {p.altura.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} m, a {brl(horaDaPessoa)} por hora, somando mão de obra com encargos e rateio. Este valor ainda não leva a ocupação alvo.
             </p>
             <ul className="mt-2 space-y-1 text-sm">
               {acabamento.linhas.map((l) => (

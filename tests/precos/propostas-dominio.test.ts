@@ -85,7 +85,7 @@ describe("textos de tela", () => {
       const x = explicacaoDaBarra(t, base);
       expect(x).not.toMatch(/[()—–→]/);
     }
-    expect(explicacaoDaBarra("piso", base)).toContain("nunca baixar a margem mínima");
+    expect(explicacaoDaBarra("piso", base)).toContain("nunca baixe a margem mínima");
     expect(explicacaoDaBarra("proposta", { ...base, preco_proposto: 42, piso: 42.86 })).toContain("Não aprove");
   });
 });
