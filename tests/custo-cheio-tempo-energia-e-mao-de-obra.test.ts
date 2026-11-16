@@ -13,13 +13,13 @@ describe("mão de obra pela regra da casa", () => {
   const encargos = somarEncargos(parcelasDoRegime("simples"));
   const hora = custoDaHora({ salarioMensal: 2342, horasMensais: 220, encargosPct: encargos });
 
-  it("R$ 2.342 ÷ 220 h = R$ 10,65/h e os encargos do Simples somam 32,19%", () => {
+  it("R$ 2.342 ÷ 220 h = R$ 10,65/h; a migração de 25/10 gravou 32,19% e o domínio hoje soma 32,82%", () => {
     expect(hora.salarioHora).toBe(10.65);
-    expect(encargos).toBe(0.3219);
+    expect(encargos).toBe(0.3282);
     expect(SQL).toContain("custo_hora = 10.65, encargos_pct = 0.3219");
   });
-  it("o custo da hora com encargos (R$ 14,07) é 2,8× menor que o padrão semeado de R$ 40", () => {
-    expect(hora.custoHora).toBeCloseTo(14.07, 2);
+  it("o custo da hora com encargos (R$ 14,14 com os 32,82% de hoje) é 2,8× menor que o padrão semeado de R$ 40", () => {
+    expect(hora.custoHora).toBeCloseTo(14.14, 2);
     expect(40 / hora.custoHora).toBeGreaterThan(2.8);
   });
   it("R$ 40/h era 5,4× o salário mínimo-hora de 2026 (R$ 1.621 ÷ 220 = R$ 7,37)", () => {

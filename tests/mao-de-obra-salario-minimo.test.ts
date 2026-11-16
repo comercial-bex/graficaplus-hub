@@ -14,11 +14,11 @@ const tela = ler("src/routes/_authenticated/custos-producao.tsx");
 const cliente = ler("src/routes/_authenticated/clientes.$id.tsx");
 
 describe("mão de obra pelo salário mínimo (27/10/2026)", () => {
-  it("a conta do dono: salário mínimo ÷ (8 h × 22 dias) com os encargos do Simples dá R$ 12,17 a hora", () => {
+  it("a conta do dono: salário mínimo ÷ (8 h × 22 dias) com os encargos do Simples dá R$ 12,23 a hora", () => {
     expect(HORAS_DO_MES_DA_CASA).toBe(8 * 22);
     const r = custoDaHora({ salarioMensal: SALARIO_MINIMO, encargosPct: somarEncargos(parcelasDoRegime("simples")) });
     expect(r.salarioHora).toBeCloseTo(9.21, 2);
-    expect(r.custoHora).toBeCloseTo(12.17, 2);
+    expect(r.custoHora).toBeCloseTo(12.23, 2);
   });
 
   it("a migração troca o R$ 40 do 3D e as 5 funções, e só mexe no que ainda é o valor provisório", () => {
