@@ -1,7 +1,7 @@
 -- =====================================================================================================
 -- CUSTO REAL DO PRODUTO (16/11/2026)
--- Ensaiada com RAISE EXCEPTION final no banco vivo (docs/ensaio-custo-real.md). O preço de NENHUM produto muda
--- aqui: produtos.preco_base, preco_parceiro e os itens de orçamento já gravados ficam como estão.
+-- Ensaio com RAISE EXCEPTION final no banco vivo em docs/ensaio-custo-real.md (a aplicação é feita depois, pelo dono,
+-- na ordem 20261116100000, 20261116110000, 20261116120000). O preço de NENHUM produto muda aqui: produtos.preco_base, preco_parceiro e os itens de orçamento já gravados ficam como estão.
 --
 -- 1) custos_tabela ganha confirmado_em e confirmado_por. Pendente = valor nulo OU confirmado_em nulo. O valor deixa
 --    de ser obrigatório (um parâmetro novo nasce sem número). As linhas antigas nascem confirmadas na própria
@@ -20,8 +20,10 @@
 --    extra saem em chaves à parte (custo_perdas, custo_extra, custo_producao) e NÃO entram em
 --    produto_custo_cheio, que desconto_avaliar e meta_por_produto leem. Trocar o consumidor para o custo real
 --    é decisão do dono, em migração própria.
--- 7) View produto_custo_real (security_invoker, SELECT só service_role) e função pendencias_de_custo()
---    (EXECUTE só service_role).
+-- 7) View produto_custo_real (security_invoker, SELECT só service_role).
+--    A função pendencias_de_custo() NÃO é definida aqui: a dona única é a migração 20261116110000, que tem a
+--    definição completa (nove parâmetros do contrato, material em uso, parceiro abaixo do piso líquido). Aplique as
+--    duas juntas: entre elas a função não existe.
 -- =====================================================================================================
 BEGIN;
 SET LOCAL lock_timeout = '5s';
@@ -112,6 +114,7 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+REVOKE ALL ON FUNCTION public.custos_tabela_log() FROM PUBLIC, anon, authenticated;
 
 -- As linhas que já existem valem hoje: nascem confirmadas (por migração, sem pessoa).
 UPDATE public.custos_tabela SET confirmado_em = now() WHERE confirmado_em IS NULL;
@@ -512,34 +515,6 @@ GRANT SELECT ON public.produto_custo_real TO service_role;
 
 COMMENT ON VIEW public.produto_custo_real IS
   'Custo real por produto ativo com preço. Privada: só service_role. custo_real = custo_producao / (1 - imposto - metade do cartão).';
-
--- ---------------------------------------------------------------------------------------------------
--- 7b. pendencias_de_custo(): o que falta confirmar, preencher ou corrigir. Sem valor em reais, só rótulo.
--- ---------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.pendencias_de_custo()
- RETURNS TABLE(codigo text, rotulo text, tipo text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  SELECT ct.codigo, ct.descricao, 'parametro'::text
-    FROM public.custos_tabela ct
-   WHERE ct.ativo AND ct.categoria <> 'chave' AND (ct.valor IS NULL OR ct.confirmado_em IS NULL)
-  UNION ALL
-  SELECT 'material_sem_custo:' || mt.id::text, mt.nome, 'material_sem_custo'::text
-    FROM public.materiais mt
-   WHERE COALESCE(mt.custo_medio, mt.custo_unitario, 0) <= 0
-     AND EXISTS (SELECT 1 FROM public.produto_materiais pm JOIN public.produtos pr ON pr.id = pm.produto_id
-                  WHERE pm.material_id = mt.id AND pr.ativo)
-  UNION ALL
-  SELECT 'parceiro_abaixo_do_piso:' || r.produto_id::text, r.nome, 'parceiro_abaixo_do_piso'::text
-    FROM public.produto_custo_real r
-   WHERE r.parceiro_abaixo_do_piso
-  ORDER BY 3, 2;
-$function$;
-
-REVOKE ALL ON FUNCTION public.pendencias_de_custo() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.pendencias_de_custo() TO service_role;
 
 -- ---------------------------------------------------------------------------------------------------
 -- 8. Recompõe a composição gravada de todos os produtos com a função nova. Só produto_precificacao muda

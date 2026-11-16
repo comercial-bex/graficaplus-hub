@@ -75,16 +75,15 @@ describe("migração: arquivo e escopo", () => {
     expect(codigo).not.toMatch(/preco_base\s*=/i);
   });
 
-  it("só escreve onde deve: feriado, log, fila (pela função da fila) e o agendamento", () => {
+  it("só escreve onde deve: log, fila (pela função da fila) e o agendamento. Nada em whatsapp_feriados", () => {
     const inserts = [...codigo.matchAll(/INSERT\s+INTO\s+(public\.\w+)/gi)].map((m) => m[1]);
-    expect([...new Set(inserts)].sort()).toEqual(["public.logs_auditoria", "public.whatsapp_feriados"]);
-    expect(codigo).toContain("ON CONFLICT (data) DO NOTHING");
-    expect(codigo).toContain("DATE '2026-11-20'");
+    expect([...new Set(inserts)].sort()).toEqual(["public.logs_auditoria"]);
+    expect(codigo).not.toContain("whatsapp_feriados");
     expect(codigo).not.toMatch(/INSERT\s+INTO\s+public\.notificacoes_fila/i);
     expect(corpoDe("_lembrete_custos_enfileirar")).toContain("public.enfileirar_notificacao('whatsapp'");
   });
 
-  it("não cria tabela, coluna nem policy: só função, job e feriado", () => {
+  it("não cria tabela, coluna nem policy: só função e job", () => {
     expect(codigo).not.toMatch(/\bCREATE\s+(TABLE|VIEW|POLICY|INDEX|TRIGGER)\b/i);
     expect(codigo).not.toMatch(/\bALTER\s+TABLE\b/i);
   });
@@ -119,13 +118,13 @@ describe("migração: acesso", () => {
     expect(c).toContain("ERRCODE = '42501'");
   });
 
-  it("a conferência final trava anon e authenticated, confere service_role, os dois jobs e o feriado", () => {
+  it("a conferência final trava anon e authenticated, confere service_role e os dois jobs", () => {
     const c = codigo.slice(codigo.indexOf("DO $confere$"));
     expect(c).toContain("has_function_privilege('anon', 'public.pendencias_de_custo()', 'EXECUTE')");
     expect(c).toContain("has_function_privilege('authenticated', 'public.lembrete_diario_de_custos(boolean, date)', 'EXECUTE')");
     expect(c).toContain("jobname = 'pendencias-de-custo' AND active AND schedule = '0 11,13 * * 1-6'");
     expect(c).toContain("jobname = 'integridade-orcamentos' AND active");
-    expect(c).toContain("DATE '2026-11-20'");
+    expect(c).not.toContain("whatsapp_feriados");
   });
 });
 
@@ -203,12 +202,14 @@ describe("lembrete_diario_de_custos: texto e envio", () => {
     expect(literais).not.toMatch(/[0-9],[0-9]/);
   });
 
-  it("o texto tem os pedaços que o dono pediu: gerente e financeiro, link, volta todo dia útil", () => {
+  it("o texto tem os pedaços que o dono pediu: gerente e financeiro, link, volta todo dia útil e aos sábados", () => {
     expect(textoDoAviso).toContain("Bom dia, gerente e financeiro");
     expect(textoDoAviso).toContain("Pendências de custo da Bex Print, {itens}");
     expect(textoDoAviso).toContain("{lista}");
     expect(textoDoAviso).toContain("https://bexprint.com.br/custos-producao");
-    expect(textoDoAviso).toContain("volta todo dia útil às 8h até a lista zerar");
+    expect(textoDoAviso).toContain("volta todo dia útil e aos sábados, no início do dia, até a lista zerar");
+    expect(textoDoAviso).not.toMatch(/\d\s?h\b/);
+    expect(textoDoAviso).toContain("Gestor e financeiro, preencham e confirmem os números na tela.");
     expect(textoDoAviso).toContain("foram todas atualizadas");
   });
 
@@ -248,9 +249,13 @@ describe("lembrete_diario_de_custos: texto e envio", () => {
     expect(e).toContain("'usuario'");
   });
 
-  it("domingo e feriado fechado não enviam, e o modo seco não grava nada", () => {
+  it("domingo e feriado da lista própria não enviam, sábado envia, e o modo seco não grava nada", () => {
     expect(c).toContain("extract(isodow FROM v_hoje) = 7");
-    expect(c).toContain("public.whatsapp_feriados f WHERE f.data = v_hoje AND f.fechado");
+    // sábado (isodow 6) não é barrado
+    expect(c).not.toMatch(/isodow FROM v_hoje\) (>=|IN|=) \(?6/);
+    expect(c).not.toContain("whatsapp_feriados");
+    for (const d of ["2026-11-20", "2026-12-25", "2027-01-01"]) expect(c).toContain(`DATE '${d}'`);
+    expect(c).toContain("WHERE f.data = v_hoje");
     const seco = c.slice(c.indexOf("IF NOT p_enfileirar THEN"), c.indexOf("IF NOT v_util THEN"));
     expect(seco).toContain("RETURN jsonb_build_object(");
     expect(seco).not.toMatch(/INSERT|_lembrete_custos_enfileirar|enfileirar_notificacao/);
@@ -290,9 +295,10 @@ describe("agendamento e feriado", () => {
     expect(codigo).toContain("cron.alter_job(v_id, schedule => '20 11-21 * * 1-6')");
   });
 
-  it("o feriado de 20/11 é aditivo e o aviso do risco está no cabeçalho", () => {
-    expect(codigo).toMatch(/INSERT INTO public\.whatsapp_feriados \(data, nome, fechado\)\s+VALUES \(DATE '2026-11-20'/);
-    expect(sql).toContain("a triagem responde como fechado");
+  it("o feriado fica numa lista própria e o cabeçalho explica por que a triagem não é tocada", () => {
+    expect(codigo).not.toContain("whatsapp_feriados");
+    expect(sql).toContain("NAO toca em whatsapp_feriados");
+    expect(sql).toContain("SEM tocar em whatsapp_feriados");
   });
 });
 
@@ -327,12 +333,12 @@ describe("roteiro de ensaio no docs", () => {
     expect(texto).not.toMatch(/R\$|[()—–→]|->/);
   });
 
-  it("a volta desfaz job, minuto da integridade, funções e feriado", () => {
+  it("a volta desfaz job, minuto da integridade e funções, sem mexer em feriado", () => {
     expect(volta).toContain("cron.unschedule('pendencias-de-custo')");
     expect(volta).toContain("cron.alter_job(v_id, schedule => '0 11-21 * * 1-6')");
     for (const f of ["lembrete_diario_de_custos(boolean, date)", "pendencias_de_custo()", "_custo_texto_limpo(text)"]) {
       expect(volta).toContain(`DROP FUNCTION IF EXISTS public.${f};`);
     }
-    expect(volta).toContain("DELETE FROM public.whatsapp_feriados WHERE data = DATE '2026-11-20'");
+    expect(volta).not.toContain("whatsapp_feriados");
   });
 });

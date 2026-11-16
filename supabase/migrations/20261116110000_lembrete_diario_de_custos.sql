@@ -1,11 +1,15 @@
 -- =====================================================================================================
 -- LEMBRETE DIARIO DE PENDENCIAS DE CUSTO (16/11/2026)
--- ENSAIADA no banco vivo com RAISE EXCEPTION final (docs/ensaio-lembrete-de-custos.md). NAO aplicada.
--- O preco de NENHUM produto muda aqui, e a migracao nao enfileira mensagem nenhuma: so cria funcoes,
--- um job do pg_cron e o feriado de 20/11/2026. A primeira mensagem sai na proxima segunda a sexta
--- util as 08:00 de Macapa, se houver pendencia.
+-- Ensaio com RAISE EXCEPTION final no banco vivo em docs/ensaio-lembrete-de-custos.md (a aplicacao e feita depois,
+-- pelo dono, junto com 20261116100000 e 20261116120000). O preco de NENHUM produto muda aqui, e a migracao nao
+-- enfileira mensagem nenhuma: so cria funcoes e um job do pg_cron. NAO toca em whatsapp_feriados, a tabela do
+-- horario de atendimento da triagem do WhatsApp. A primeira mensagem sai no proximo dia de envio, as 08:00 de
+-- Macapa, se houver pendencia.
 --
--- ORDEM DE APLICACAO: aplicar DEPOIS de 20261116100000 (custo real, parametros novos de custos_tabela e
+-- ORDEM DE APLICACAO: 20261116100000, depois esta, depois 20261116120000. Esta migracao e a UNICA dona de
+-- pendencias_de_custo(): a 20261116100000 nao a define mais. Aplicar a 100000 e esta juntas, na mesma entrega,
+-- porque o painel de precos chama a funcao e entre as duas ela nao existe.
+-- Esta aplicacao e posterior a 20261116100000 (custo real, parametros novos de custos_tabela e
 -- a view produto_custo_real). Esta migracao tambem roda sem ela, porque as funcoes olham o que existe na
 -- hora de rodar: sem a coluna confirmado_em, pendente e valor nulo ou zero; sem a view produto_custo_real,
 -- o custo do produto sai de custo_cheio_do_produto. Mas so com a do banco o lembrete mostra a lista
@@ -28,12 +32,14 @@
 --    WARNING e linha em logs_auditoria, nunca silencio. Nao roda com pessoa logada.
 -- C) Cron pendencias-de-custo, 11:00 e 13:00 UTC (08:00 e 10:00 em Macapa, sem horario de verao), de
 --    segunda a sabado. A rodada das 10:00 so age se a das 08:00 falhou, porque a chave diaria barra
---    duplicata. Domingo e feriado fechado de whatsapp_feriados nao enviam. Nasce ativo, a pedido do dono.
+--    duplicata. Sabado envia. Domingo e os feriados da lista propria do lembrete nao enviam (a lista mora
+--    dentro de lembrete_diario_de_custos: 20/11/2026, 25/12/2026 e 01/01/2027; ao virar o ano, acrescente
+--    os do ano novo na mesma funcao). Nasce ativo, a pedido do dono.
 -- D) Sem empilhar na segunda 16/11: o alerta de integridade dos orcamentos passa de :00 para :20 (a
 --    mensagem de custo sai primeiro, as 08:00, e o lembrete de operacao e o da equipe ficam as 09:00).
--- E) Feriado nacional de 20/11/2026 (Consciencia Negra) em whatsapp_feriados, fechado. ATENCAO: essa tabela
---    e a mesma do horario de atendimento do WhatsApp, entao nesse dia a triagem responde como fechado.
---    Para desfazer: DELETE FROM public.whatsapp_feriados WHERE data = DATE '2026-11-20'.
+-- E) Feriados do lembrete: lista curta propria, SEM tocar em whatsapp_feriados. Aquela tabela e a do horario de
+--    atendimento da triagem do WhatsApp, e um feriado nela fecha a triagem no dia. O lembrete de custo nao tem
+--    esse direito.
 --
 -- Fila: notificacoes_fila.entidade so aceita 'usuario' (entre outros) e entidade_id e NOT NULL. O aviso
 -- usa 'usuario' com o id real do gestor, que aviso_registro_existe nao marca como orfao.
@@ -233,7 +239,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $f$
 DECLARE
   c_limite constant integer := 12;
   -- TEXTO:INICIO
-  c_modelo_lembrete constant text := E'{saudacao}\nPendências de custo da Bex Print, {itens}. Sem esses números o preço de venda e a margem na tabela de preços ficam errados.\n{lista}\nGestor, grave os números na tela. Financeiro, confira e informe ao gestor.\nPreencher e confirmar na tela de custos fixos: https://bexprint.com.br/custos-producao\nEste aviso volta todo dia útil às 8h até a lista zerar.';
+  c_modelo_lembrete constant text := E'{saudacao}\nPendências de custo da Bex Print, {itens}. Sem esses números o preço de venda e a margem na tabela de preços ficam errados.\n{lista}\nGestor e financeiro, preencham e confirmem os números na tela.\nPreencher e confirmar na tela de custos fixos: https://bexprint.com.br/custos-producao\nEste aviso volta todo dia útil e aos sábados, no início do dia, até a lista zerar.';
   c_modelo_fim constant text := E'{saudacao}\nAs pendências de custo da Bex Print foram todas atualizadas. O lembrete diário parou e volta sozinho se surgir pendência nova.';
   c_saudacao_grupo constant text := 'Bom dia, gerente e financeiro';
   -- TEXTO:FIM
@@ -270,11 +276,16 @@ BEGIN
     RAISE EXCEPTION 'Só o agendamento roda o lembrete de custos.' USING ERRCODE = '42501';
   END IF;
 
-  -- Dia: domingo e feriado fechado nao enviam. Sabado envia (o aviso e das 08:00).
+  -- Dia: domingo e feriado da lista do lembrete nao enviam. Sabado envia (o aviso e das 08:00).
+  -- A lista e propria do lembrete e NAO le nem grava whatsapp_feriados (essa e a da triagem do WhatsApp).
   IF extract(isodow FROM v_hoje) = 7 THEN
     v_util := false; v_motivo := 'domingo';
   ELSE
-    SELECT f.nome INTO v_feriado FROM public.whatsapp_feriados f WHERE f.data = v_hoje AND f.fechado;
+    SELECT f.nome INTO v_feriado
+      FROM (VALUES (DATE '2026-11-20', 'Consciência Negra'),
+                   (DATE '2026-12-25', 'Natal'),
+                   (DATE '2027-01-01', 'Confraternização Universal')) AS f(data, nome)
+     WHERE f.data = v_hoje;
     IF v_feriado IS NOT NULL THEN
       v_util := false; v_motivo := 'feriado';
     END IF;
@@ -441,13 +452,6 @@ REVOKE ALL ON FUNCTION public.lembrete_diario_de_custos(boolean, date) FROM PUBL
 GRANT EXECUTE ON FUNCTION public.lembrete_diario_de_custos(boolean, date) TO service_role;
 
 -- ---------------------------------------------------------------------------------------------------
--- E) Feriado nacional de 20/11/2026. Aditivo: se a data ja existe, nao mexe.
--- ---------------------------------------------------------------------------------------------------
-INSERT INTO public.whatsapp_feriados (data, nome, fechado)
-VALUES (DATE '2026-11-20', 'Consciência Negra', true)
-ON CONFLICT (data) DO NOTHING;
-
--- ---------------------------------------------------------------------------------------------------
 -- C e D) Agendamento. O banco roda em UTC: 11:00 e 13:00 sao 08:00 e 10:00 em Macapa (UTC-3).
 --        O alerta de integridade passa para :20 para nao empilhar com o lembrete de custo.
 -- ---------------------------------------------------------------------------------------------------
@@ -488,9 +492,6 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'integridade-orcamentos' AND active) THEN
     RAISE EXCEPTION 'o agendamento integridade-orcamentos não ficou ativo';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.whatsapp_feriados WHERE data = DATE '2026-11-20') THEN
-    RAISE EXCEPTION 'feriado de 20/11/2026 não cadastrado';
   END IF;
 END
 $confere$;

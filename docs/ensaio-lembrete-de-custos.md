@@ -1,13 +1,14 @@
 # Ensaio da migração: lembrete diário de pendências de custo
 
-Migração: `supabase/migrations/20261116110000_lembrete_diario_de_custos.sql`. Estado: **ensaiada no banco vivo em 15/11/2026, desfeita por RAISE EXCEPTION final, NÃO aplicada.** Conferi antes que o executor desfaz tudo, inclusive DDL e pg_cron: criei uma tabela, uma coluna e um job de teste, levantei erro e nenhum dos três existia depois. Depois do ensaio: fila com os mesmos 193 registros, 0 chaves `pendencias_custo`, job `pendencias-de-custo` inexistente, `integridade-orcamentos` ainda em `0 11-21 * * 1-6`, 0 feriados, 0 funções novas, 0 linhas em `logs_auditoria` do lembrete.
+Migração: `supabase/migrations/20261116110000_lembrete_diario_de_custos.sql`. Estado: **ensaiada no banco vivo em 15/11/2026 e de novo em 16/11/2026 (nesta versão, com a lista própria de feriados, sem INSERT em `whatsapp_feriados`, texto do aviso novo e a função `pendencias_de_custo()` só aqui), as duas vezes desfeita por RAISE EXCEPTION final. NÃO aplicada: a aplicação é feita depois, pelo dono, na ordem 20261116100000, 20261116110000, 20261116120000.** Conferi antes que o executor desfaz tudo, inclusive DDL e pg_cron: criei uma tabela, uma coluna e um job de teste, levantei erro e nenhum dos três existia depois. Depois do ensaio: fila com os mesmos 193 registros, 0 chaves `pendencias_custo`, job `pendencias-de-custo` inexistente, `integridade-orcamentos` ainda em `0 11-21 * * 1-6`, 0 feriados, 0 funções novas, 0 linhas em `logs_auditoria` do lembrete.
 
-O preço de nenhum produto muda (provado no item 12). Nenhuma mensagem sai para ninguém: a migração só cria funções, um job e um feriado. A primeira mensagem sai no primeiro dia útil, às 08:00 de Macapá, se houver pendência.
+O preço de nenhum produto muda (provado no item 12). Nenhuma mensagem sai para ninguém: a migração só cria funções e um job, e não toca em `whatsapp_feriados`. A primeira mensagem sai no primeiro dia de envio (segunda a sábado, fora os feriados da lista do lembrete), às 08:00 de Macapá, se houver pendência.
 
 ## Ordem de aplicação
 
-1. `20261116100000` (banco: custo real, parâmetros novos em `custos_tabela`, colunas `confirmado_por` e `confirmado_em`, view `produto_custo_real`).
-2. Esta, `20261116110000`.
+1. `20261116100000` (banco: custo real, parâmetros novos em `custos_tabela`, colunas `confirmado_por` e `confirmado_em`, view `produto_custo_real`). Ela não define mais `pendencias_de_custo()`.
+2. Esta, `20261116110000`, dona única de `pendencias_de_custo()`. Aplicar a 100000 e esta juntas: entre as duas a função não existe, e o painel de preços trata a falta como erro visível.
+3. `20261116120000` (função `confirmar_custo_fixo` e a permissão `custos.fixos.update`). Troca o gatilho `custos_tabela_log` criado pela 100000.
 
 Esta migração também roda sem a do banco, porque as funções olham o que existe na hora de rodar. Sem a coluna `confirmado_em`, pendente é valor nulo ou zero. Sem a view, o custo do produto sai de `custo_cheio_do_produto`. Mas só depois da do banco a lista sai completa e com a mesma margem da tela `/precos`. O item 1 do ensaio é exatamente esse caso, sem nada da outra frente.
 
@@ -20,11 +21,11 @@ Esta migração também roda sem a do banco, porque as funções olham o que exi
 | Funções `lembrete_diario_de_custos(boolean, date)` e `_lembrete_custos_enfileirar(...)` | O aviso. Só `service_role` executa a primeira, a segunda é interna | Só enfileira quando o job rodar |
 | Job `pendencias-de-custo` | `0 11,13 * * 1-6` UTC, 08:00 e 10:00 em Macapá, segunda a sábado. Nasce ativo | Cria 1 job |
 | Job `integridade-orcamentos` | Passa de `0 11-21 * * 1-6` para `20 11-21 * * 1-6`, para não empilhar com o aviso de custo | Muda o minuto de 1 job |
-| `whatsapp_feriados` | 20/11/2026, Consciência Negra, fechado | 1 linha, aditivo |
+| Feriados do lembrete | Lista dentro de `lembrete_diario_de_custos`: 20/11/2026, 25/12/2026 e 01/01/2027. Não há tabela nova e `whatsapp_feriados` não é lida nem escrita | Não |
 
 Nenhuma tabela nova, nenhuma coluna nova, nenhuma policy nova. Nenhum `UPDATE` ou `DELETE`. Nenhuma escrita em `produtos`.
 
-**Atenção ao feriado.** `whatsapp_feriados` é a mesma tabela do horário de atendimento do WhatsApp: no dia 20/11 a triagem responde como fechado. Se a empresa abre nesse dia, desfazer com `DELETE FROM public.whatsapp_feriados WHERE data = DATE '2026-11-20'`. O lembrete de custo passa a rodar nesse dia.
+**Feriado do lembrete não é feriado da triagem.** A tabela `whatsapp_feriados` é a do horário de atendimento do WhatsApp: um feriado nela fecha a triagem no dia. O lembrete de custo não tem esse direito, então a migração não insere nada ali (a versão de 15/11 inseria o 20/11, e isso foi retirado). Os três feriados do lembrete moram numa lista curta dentro da função. Ao virar o ano, acrescentar os do ano novo na mesma lista, em migração própria.
 
 ## Quem recebe, e o que as funções leem
 
@@ -41,7 +42,7 @@ Nenhuma tabela nova, nenhuma coluna nova, nenhuma policy nova. Nenhum `UPDATE` o
 - **Um aviso por dia.** Chave `pendencias_custo:grupo:AAAA-MM-DD` no grupo e `pendencias_custo:privado:<id>:AAAA-MM-DD` no privado.
 - **Reenvio sem spam.** A chave seguinte (`:r1`, `:r2`) só nasce se a linha anterior ficou `falhou` ou `cancelado`. Linha `pendente` ou `enviando` não reenvia, porque a fila deixa `pendente` enquanto ainda vai tentar de novo. Máximo de 3 por dia; esgotou, vira WARNING e linha em `logs_auditoria`.
 - **Duas rodadas.** 11:00 UTC é a principal. 13:00 UTC só age se a das 08:00 falhou, porque a chave diária barra duplicata.
-- **Domingo e feriado fechado de `whatsapp_feriados` não enviam.** Sábado envia, porque o aviso é das 08:00.
+- **Domingo e os feriados da lista própria do lembrete não enviam.** Sábado envia, porque o aviso é das 08:00. O texto do aviso diz isso: volta todo dia útil e aos sábados, no início do dia.
 - **Para sozinho.** Com a lista vazia não envia mais nada, sem desligar o job. Se já houve lembrete depois do último aviso de fim, envia UMA mensagem dizendo que tudo foi atualizado, com chave própria. Se amanhã surgir pendência nova, o lembrete volta sozinho.
 - **Limite.** 12 linhas numeradas por mensagem, o resto vira "E mais K pendências".
 - **Nunca em silêncio, nem se a lista quebrar.** Se `pendencias_de_custo()` falhar (por exemplo a view `produto_custo_real` sem a coluna `custo_producao`), a rodada não morre calada no cron: vira WARNING, linha `lembrete_diario_falha` com o erro em `logs_auditoria`, e a rodada das 10:00 tenta de novo. Grupo desligado, destino inválido, fila que recusa ou chave esgotada: WARNING e linha `lembrete_diario_falha` em `logs_auditoria`. Cada rodada grava uma linha `lembrete_diario` com o resultado, sem custo em reais.
@@ -72,9 +73,9 @@ Pendências de custo da Bex Print, 11 itens. Sem esses números o preço de vend
 9. Preço de parceiro de Adesivo transparente: margem líquida de 22 por cento, o mínimo é 30 por cento
 10. Preço de parceiro de CHAVEIRO ACRILICO: margem líquida de 36 por cento, o mínimo é 40 por cento
 11. Preço de parceiro de Lona 440g reforçada impressa: margem líquida de 12 por cento, o mínimo é 35 por cento
-Gestor, grave os números na tela. Financeiro, confira e informe ao gestor.
+Gestor e financeiro, preencham e confirmem os números na tela.
 Preencher e confirmar na tela de custos fixos: https://bexprint.com.br/custos-producao
-Este aviso volta todo dia útil às 8h até a lista zerar.
+Este aviso volta todo dia útil e aos sábados, no início do dia, até a lista zerar.
 ```
 
 Privado do gerente: a mesma lista, abrindo com `Raymison, bom dia.` e sem menções.
@@ -83,7 +84,7 @@ Fim de ciclo: `Bom dia, gerente e financeiro @... As pendências de custo da Bex
 
 Neste ensaio o aluguel entrou como já confirmado (2.000 por mês é decisão do dono) e a energia como provisória, por isso a lista tem 8 parâmetros e não 9. Na lista de 11 itens aparecem só 3 produtos de parceiro, porque o custo veio de `custo_cheio_do_produto`. Com a view `produto_custo_real` do banco, que traz perda, falha e mão de obra novas, a lista pode ganhar o recortado e o banner 280g, como a pesquisa previu. Se esta migração for aplicada antes da do banco, a lista sai mais curta e o piso usa o custo antigo, por isso a ordem de aplicação está no topo.
 
-A linha "Gestor, grave os números na tela. Financeiro, confira e informe ao gestor" vale enquanto só admin e gestor podem gravar custo. Se o financeiro ganhar a permissão de gravar, trocar a frase no modelo.
+A frase "Gestor e financeiro, preencham e confirmem os números na tela" vale porque a migração 20261116120000 dá `custos.fixos.update` ao financeiro. Sem ela, a frase antiga mandava o financeiro conferir e informar ao gestor.
 
 ## Ensaio no banco vivo
 
@@ -260,7 +261,7 @@ BEGIN
   FOR v_lin IN SELECT jobname || ' ' || schedule || ' ' || active || ' ' || command FROM cron.job WHERE jobname IN ('pendencias-de-custo', 'integridade-orcamentos', 'whatsapp-despachar', 'lembrete-equipe', 'lembrete-gestao-orcamentos') ORDER BY jobname LOOP
     v_rel := v_rel || E'\n[11] cron: ' || v_lin;
   END LOOP;
-  v_rel := v_rel || E'\n     feriado 20/11: ' || (SELECT nome || ' fechado=' || fechado FROM public.whatsapp_feriados WHERE data = DATE '2026-11-20');
+  v_rel := v_rel || E'\n     whatsapp_feriados intocada: linhas=' || (SELECT count(*) FROM public.whatsapp_feriados);
 
   -- [12] preco de produto: intocado (os UPDATE de ativo do [9] e [10] ficam na transacao e sao desfeitos, e nao tocam preco)
   SELECT md5(string_agg(p.id::text || COALESCE(p.preco_base, 0) || COALESCE(p.preco_parceiro, 0) || COALESCE(p.preco_parceiro_acima, 0), ',' ORDER BY p.id))
@@ -284,8 +285,17 @@ $ensaio$;
 - **[8] Calendário:** domingo 22/11 e feriado 20/11 não enfileiram nada (fila +0). Sábado 21/11 enfileira 2.
 - **[9] Lista zerada:** terça 17/11 manda o aviso de fim, 2 mensagens (grupo e privado). Quarta, ainda zerada: nada (`nada pendente`). Quinta, com uma pendência nova: o lembrete volta, 2 mensagens. Zerou de novo depois de um lembrete: novo aviso de fim, 2 mensagens.
 - **[10] Muitas pendências:** 19 pendências, 12 linhas no texto e "E mais 7 pendências".
-- **[11] Agendamento:** `pendencias-de-custo 0 11,13 * * 1-6 true`, `integridade-orcamentos 20 11-21 * * 1-6 true`, os de 12:00 UTC e o despachante de 2 em 2 minutos intactos. Feriado 20/11 cadastrado.
+- **[11] Agendamento:** `pendencias-de-custo 0 11,13 * * 1-6 true`, `integridade-orcamentos 20 11-21 * * 1-6 true`, os de 12:00 UTC e o despachante de 2 em 2 minutos intactos. Nada em `whatsapp_feriados`.
 - **[12] Preços de produto** (`preco_base`, `preco_parceiro`, `preco_parceiro_acima`) iguais antes e depois: sim.
+
+### Rodada de 16/11/2026 (versão atual, junto com as outras duas migrações)
+
+Rodada completa das três migrações na ordem, em `docs/ensaio-custos-fixos-financeiro.md`. O que importa para este lembrete, todo desfeito no fim:
+
+- `pendencias_de_custo()` tem uma definição só, a desta migração (traz o rótulo do aluguel e `v_tem_view`). Com a versão antiga da 100000 instalada por cima do banco e esta aplicada depois, o `md5` do corpo volta ao mesmo e a contagem de pendências não muda.
+- Modo seco em 16/11 (segunda) e 21/11 (sábado): dia de envio. 20/11, 25/12 e 01/01: feriado, sem envio. 22/11: domingo, sem envio. 02/01/2027 (sábado): envia.
+- O texto do grupo traz "Este aviso volta todo dia útil e aos sábados, no início do dia, até a lista zerar." e não traz "8h".
+- `whatsapp_feriados`: 0 linhas antes e 0 depois, 20/11/2026 não cadastrado.
 
 ## Como desfazer
 
@@ -306,7 +316,6 @@ DROP FUNCTION IF EXISTS public.lembrete_diario_de_custos(boolean, date);
 DROP FUNCTION IF EXISTS public._lembrete_custos_enfileirar(text, text, text, text, jsonb, uuid);
 DROP FUNCTION IF EXISTS public.pendencias_de_custo();
 DROP FUNCTION IF EXISTS public._custo_texto_limpo(text);
-DELETE FROM public.whatsapp_feriados WHERE data = DATE '2026-11-20';
 ```
 
 Aviso já enfileirado e enviado não volta. Para o lembrete parar sem desfazer nada, é só desativar o job.
@@ -314,13 +323,13 @@ Aviso já enfileirado e enviado não volta. Para o lembrete parar sem desfazer n
 ## Riscos e decisões que ficam com o dono
 
 0. **Margem mínima vazia ou zero vale 30** na conta do piso, igual a `desconto_avaliar` e à view `produto_custo_real` (corrigido na revisão de 16/11: antes valia 0 e escondia o produto).
-0b. **A migração `20261116100000` também define `pendencias_de_custo()`** (mesmo nome e mesmas colunas, tipos `material_sem_custo` e `parceiro_abaixo_do_piso`). Aplicada depois dela, esta substitui a função; a tela `/precos` só usa `codigo` e `rotulo`, então não quebra. Se alguém reaplicar a do banco depois, a função volta à versão dela e o lembrete continua funcionando, com a ordem dos tipos diferente.
-0c. **Só o 20/11 está em `whatsapp_feriados`.** O lembrete roda em 25/12 e 01/01 se ninguém cadastrar essas datas, e cadastrar fecha a triagem do WhatsApp nesses dias. Decisão do dono.
+0b. **`pendencias_de_custo()` tem uma dona só.** A migração `20261116100000` deixou de defini-la. Se um banco já tiver a versão antiga dela instalada, esta migração a substitui (mesmo nome e mesmas colunas, ensaiado). Os tipos mudam de `material_sem_custo` e `parceiro_abaixo_do_piso` para `material` e `parceiro`; a tela `/precos` só usa `codigo` e `rotulo`.
+0c. **A lista de feriados do lembrete tem 3 datas** (20/11/2026, 25/12/2026, 01/01/2027) e não é a da triagem. Depois de 01/01/2027 o lembrete volta a rodar em feriado até alguém acrescentar as datas novas na função.
 
-1. **Feriado de 20/11 fecha a triagem do WhatsApp nesse dia.** É a tabela única de horário. Se a empresa abre, apagar a linha.
+1. **Feriado do lembrete não mexe na triagem.** Resolvido: a lista é própria e `whatsapp_feriados` não é tocada.
 2. **O lembrete nasce ativo.** A primeira mensagem sai no primeiro dia útil depois de aplicar, às 08:00 de Macapá. Para ver o texto antes, chamar `SELECT public.lembrete_diario_de_custos(false)` como `service_role`, que não grava nem enfileira.
 3. **Lista que nunca esvazia gera fadiga.** Os 8 parâmetros só zeram quando o gestor preenche e confirma na tela. Entram na lista só coisas que o gestor consegue resolver.
-4. **Financeiro sem permissão de gravar** deixa a parte dele sem dono: o texto manda o financeiro conferir e informar ao gestor.
+4. **Financeiro grava custo fixo** pela função `confirmar_custo_fixo` (migração 20261116120000). Se essa migração não for aplicada, o botão da tela falha com mensagem clara e o texto do aviso promete uma coisa que o financeiro não consegue fazer.
 5. **O admin não tem celular cadastrado**, então não recebe o privado. O resultado de cada rodada mostra `sem_celular`.
 6. **Preço de parceiro que oscila por arredondamento** pode mudar o texto de um dia para o outro, mas a chave diária garante um aviso por dia.
 7. **Produto de parceiro por faixa usa o desconto do nível mais alto (8 por cento hoje) como pior caso.** O chaveiro acrílico vem da faixa de preço e pode ser ruído, conferir.

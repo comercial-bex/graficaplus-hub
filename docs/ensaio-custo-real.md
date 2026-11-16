@@ -1,6 +1,6 @@
 # Ensaio da migração: custo real do produto (16/11/2026)
 
-Migração: `supabase/migrations/20261116100000_custo_real_do_produto.sql`. Estado: **ensaiada no banco vivo em 15/11/2026, desfeita por RAISE EXCEPTION final. NÃO aplicada.** Depois do ensaio conferi que o banco voltou ao que era: 13 linhas em `custos_tabela`, `custo_admin_hora` em 12,00, encargos em 32,19, as duas colunas novas de `custos_tabela` e as duas de `maquinas` inexistentes, `produto_custo_real` e `pendencias_de_custo` inexistentes, o md5 de `custo_cheio_do_produto` (`849742afd482caf421f1b72200381f23`) e o de `custos_tabela_log` (`2c6b8d76e3035e7f3d0522fdbc0eafd2`) como antes, o gatilho de máquina só em `custo_hora` e a função de contagem do ensaio inexistente. Nenhuma mensagem foi enviada e nenhum preço mudou.
+Migração: `supabase/migrations/20261116100000_custo_real_do_produto.sql`. Estado: **ensaiada no banco vivo em 15/11/2026, desfeita por RAISE EXCEPTION final, e ensaiada outra vez em 16/11/2026 na ordem das três migrações (100000, 110000, 120000), também desfeita. NÃO aplicada: a aplicação é feita depois, pelo dono. Desde 16/11 esta migração não define mais `pendencias_de_custo()`: a dona única é a 20261116110000.** Depois do ensaio conferi que o banco voltou ao que era: 13 linhas em `custos_tabela`, `custo_admin_hora` em 12,00, encargos em 32,19, as duas colunas novas de `custos_tabela` e as duas de `maquinas` inexistentes, `produto_custo_real` e `pendencias_de_custo` inexistentes, o md5 de `custo_cheio_do_produto` (`849742afd482caf421f1b72200381f23`) e o de `custos_tabela_log` (`2c6b8d76e3035e7f3d0522fdbc0eafd2`) como antes, o gatilho de máquina só em `custo_hora` e a função de contagem do ensaio inexistente. Nenhuma mensagem foi enviada e nenhum preço mudou.
 
 O ensaio rodou em duas passadas, as duas desfeitas. A primeira levou o relatório completo (preço, parâmetros, máquinas, gatilhos, acesso, orçamentos abertos). A segunda repetiu a migração só para imprimir a parte que a primeira truncou (a tabela por produto, a view e as pendências). Os números abaixo vêm das duas.
 
@@ -16,7 +16,7 @@ Nenhuma sequência foi consumida: nenhuma das tabelas tocadas tem coluna com `ne
 | d | Tinta, manutenção, cabeçote e limpeza da plotter entram quando preenchidos e valem zero enquanto vazios | Nada hoje, tudo vazio |
 | e | View `produto_custo_real` | Não. É view |
 | f | Encargos de 32,19 para 32,82 em `custos_tabela` e em `custos_mao_de_obra` | 1 linha mais 5 linhas |
-| g | `pendencias_de_custo()` | Não. É função |
+| g | `pendencias_de_custo()` | Saiu desta migração em 16/11. A definição final está só em 20261116110000 |
 
 ## Item 0: preço e orçamento gravado não mudam
 
@@ -172,7 +172,9 @@ Os demais 21 produtos ativos com preço (serviços, acabamentos, brindes, laser,
 
 Produtos de parceiro abaixo do piso hoje: **Adesivo transparente, Lona 280g impressa e Lona 440g reforçada impressa**. O plano citava lona 440g e adesivo transparente; a lona 280g também aparece agora, porque o custo de produção passou a ter perda e velocidade 10.
 
-## Parte g: pendencias_de_custo()
+## Parte g: pendencias_de_custo() (versão de 15/11, hoje na migração 20261116110000)
+
+Esta seção descreve a versão que a 100000 trazia no ensaio de 15/11. Em 16/11 a definição saiu daqui e ficou só na 110000, que é a mais completa (nove parâmetros do contrato, material em uso e parceiro abaixo do piso líquido, tipos `parametro`, `material` e `parceiro`). A ordem 100000, 110000, 120000 foi ensaiada inteira, inclusive com a versão antiga instalada por cima e a da 110000 aplicada depois: o corpo volta idêntico. Detalhes em `docs/ensaio-lembrete-de-custos.md` e `docs/ensaio-custos-fixos-financeiro.md`.
 
 `pendencias_de_custo() returns table(codigo text, rotulo text, tipo text)`, `SECURITY DEFINER`, `search_path = public`, EXECUTE só para `service_role` (`anon` falso, `authenticated` falso, conferido; `authenticated` chamando recebe 42501). Devolve três tipos:
 
@@ -194,8 +196,9 @@ O rótulo é a descrição da linha ou o nome do produto: **nunca custo em reais
 | --- | --- | --- |
 | `custo_cheio_do_produto` | `custos_mao_de_obra.encargos_pct` | Não, já lê 0,3282 |
 | Funções SQL com `mo_encargos_pct` | nenhuma | Não |
-| `src/domain/financeiro/encargos.ts` (parcelas, rescisão 3,20) e `tests/encargos.test.ts` | constante no código | **Sim, frente de tela.** O código ainda soma 32,19 |
-| `src/routes/_authenticated/custos-producao.tsx` (`quantoFalta(0.3219)`) | constante no código | **Sim.** Quem salvar um salário por essa tela recalcula `encargos_pct` pelo `encargos.ts` e volta a gravar 0,3219 em cima do 0,3282 |
+| `src/domain/financeiro/encargos.ts` (parcelas, rescisão 3,82 e FGTS sobre 13º e férias 1,56) e `tests/encargos.test.ts` | constante no código | Corrigido em 16/11: o Simples soma 32,82 e o fora do Simples 60,62 |
+| `src/routes/_authenticated/custos-producao.tsx` (era `quantoFalta(0.3219)`) | constante no código | Corrigido em 16/11: a tela calcula pelo `encargos.ts`, então salvar um salário grava 0,3282 e o aviso diz cerca de 33 por cento |
+| `tests/custo-cheio-tempo-energia-e-mao-de-obra.test.ts` e `tests/mao-de-obra-salario-minimo.test.ts` | usam o `encargos.ts` e leem as migrações antigas por texto | Ajustados em 16/11: as migrações antigas seguem como história (0,3219) e o domínio vale 0,3282, hora de R$ 12,23 |
 | `tests/custo-cheio-tempo-energia-e-mao-de-obra.test.ts` | lê a migração antiga de 25/10 por texto | Não, é a história |
 | `src/components/produtos/custo-da-peca.tsx`, `src/domain/precificacao/parametros.ts`, `simulador.ts`, `planilha-custos.tsx`, `configuracoes-3d.tsx`, `lib/pdf/generate.ts` | citam `mo_encargos_pct` ou `custo_admin_hora` de `custos_tabela` | Leem a linha do banco, então pegam 32,82 e 12,50 sozinhos. Conferir se algum guarda 32,19 ou 12 em constante |
 
@@ -285,17 +288,17 @@ END $ens$;
 
 ## Riscos e o que não foi feito
 
-1. **Tela e `valor` nulo.** `src/components/custos/parametros-da-casa.tsx` lista as linhas de `custos_tabela` e hoje trata `valor` como número. As 8 linhas pendentes chegam nulas. A tela precisa mostrar "ainda não informado" e o campo de confirmar. Nada foi mudado no front.
-2. **`custos-producao.tsx` desfaz o 32,82.** Ver a tabela de leitores de encargos: enquanto `encargos.ts` tiver rescisão 3,20, salvar salário por essa tela regrava 0,3219.
-3. **`custos.update` ainda é só de admin e gestor.** Financeiro lê e não grava. Não criei a permissão `custos.fixos.update` nem policy nova: depende do dono. Sem isso, as pendências de aluguel e de plotter ficam sem quem confirme além de admin e gestor.
-4. **Sem RPC de confirmação.** Confirmar é um UPDATE comum em `custos_tabela` (mudar o valor já carimba quem e quando; só carimbar `confirmado_em` também grava quem). A RPC `SECURITY DEFINER` do plano ficou de fora porque o contrato não a pede.
+1. **Tela e `valor` nulo.** Resolvido em 16/11: `parametros-da-casa.tsx` mostra "Sem valor" e abre o campo vazio quando o valor é nulo; os leitores que passam por `lerParametros` já tratavam nulo como faltando.
+2. **`custos-producao.tsx` desfazia o 32,82.** Resolvido em 16/11, ver a tabela de leitores de encargos.
+3. **Permissão do financeiro.** Resolvido na migração 20261116120000: `custos.fixos.update` para admin, gestor e financeiro, sem dar `custos.update` a ninguém.
+4. **RPC de confirmação.** Resolvido na migração 20261116120000: `confirmar_custo_fixo(p_codigo, p_valor, p_confirmar)`. A tela passou a usar a função nos dois botões.
 5. **Margens mostradas caem.** O plano estimava a margem de hoje em 55 a 84 por cento nos produtos de plotter. Com o custo real, a margem líquida dos 39 produtos vai de 11 a 86 por cento, e 3 produtos de parceiro ficam abaixo do piso. A tela deve explicar a diferença.
 6. **Aluguel em dois lugares.** O aluguel de `custos_tabela` é só custo por m2 (rateio). O compromisso de caixa mora em contas a pagar e na meta do mês. A tela precisa dizer isso para ninguém somar duas vezes.
 7. **Convenção do divisor não confirmada.** Perda mais falha como divisor sobre material (13 por cento) é a regra do contrato. `ponto_de_equilibrio` usa acréscimo. O dono ainda não confirmou qual vale.
 8. **Base de 160 h.** O rateio usa 160 h (as horas da i1600), não 176. Alternativa: preencher `plotter_horas_mes_reais`.
-9. **Agenda e calculadora do orçamento.** A calculadora de orçamento (`calculadora-custo.tsx`) lê o modo Produção, 14 m2 por hora, de `maquinas_modos_impressao`. Se não for ajustada, o custo do item do orçamento e o custo do produto divergem na plotter. Não é banco e não está aqui.
+9. **Agenda e calculadora do orçamento.** A calculadora (`calculadora-custo.tsx`) passou a usar `velocidade_calculo_m2_h` em 16/11: sem modo escolhido vale a velocidade de cálculo, com modo escolhido vale a velocidade do modo vezes a razão cálculo sobre nominal (Produção 14 vira 10, Rascunho 28 vira 20, Alta qualidade 7 vira 5). Sem a coluna no banco, tudo segue como antes. Agenda e capacidade seguem na nominal, de propósito. O simulador de balcão (`capacidade-da-casa.ts`, 14 m² por hora fixo) calcula prazo, não custo, e não foi mudado.
 10. **Testes de outras frentes que tive de ajustar.** `tests/custo-das-maquinas-pela-visao.test.ts` (espelho das colunas vivas de `maquinas`) ganhou as duas colunas novas, e `tests/privacidade-de-custo-banco.test.ts` passou a somar os `GRANT SELECT` por coluna de migrações posteriores à B3 antes de comparar com a lista do código. Sem isso as duas colunas novas quebrariam o CI.
-11. **Não feito:** trocar `desconto_avaliar` e `meta_por_produto` para o custo real; `types.ts` gerado e a tela; o lembrete diário e o cron; a permissão do financeiro; `produto_precificacao.custo_perdas` e `custo_extra` (a view calcula ao vivo e não precisou de coluna).
+11. **Não feito:** trocar `desconto_avaliar` e `meta_por_produto` para o custo real; `types.ts` gerado; `produto_precificacao.custo_perdas` e `custo_extra` (a view calcula ao vivo e não precisou de coluna).
 12. **Fontes secundárias** (RAT, 13º e férias sem página oficial, salário mínimo sem reajuste extraordinário confirmado) seguem como no plano: a observação das linhas diz "Estimativa".
 
 ## Revisão independente (16/11/2026): visão `maquinas_financeiro`

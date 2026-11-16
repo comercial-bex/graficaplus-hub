@@ -251,22 +251,41 @@ describe("view produto_custo_real", () => {
   });
 });
 
-describe("pendencias_de_custo", () => {
-  it("devolve codigo, rotulo e tipo, só para service_role", () => {
-    expect(codigo).toMatch(/FUNCTION public\.pendencias_de_custo\(\)\s+RETURNS TABLE\(codigo text, rotulo text, tipo text\)/);
-    expect(codigo).toMatch(/REVOKE ALL ON FUNCTION public\.pendencias_de_custo\(\) FROM PUBLIC, anon, authenticated;/);
-    expect(codigo).toMatch(/GRANT EXECUTE ON FUNCTION public\.pendencias_de_custo\(\) TO service_role;/);
-    expect(codigo).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.pendencias_de_custo\(\) TO (anon|authenticated|PUBLIC)/);
+describe("pendencias_de_custo: uma dona só", () => {
+  const lembrete = readFileSync(join(PASTA, "20261116110000_lembrete_diario_de_custos.sql"), "utf8");
+  const lembreteCodigo = semComentarios(lembrete);
+
+  it("esta migração não define, não revoga nem concede a função", () => {
+    expect(codigo).not.toMatch(/pendencias_de_custo/);
+    expect(sql).toMatch(/NÃO é definida aqui/);
   });
 
-  it("lista parâmetro pendente, material sem custo em uso e parceiro abaixo do piso, sem custo em reais", () => {
-    const c = corpoDe("pendencias_de_custo");
-    expect(c).toMatch(/ct\.valor IS NULL OR ct\.confirmado_em IS NULL/);
-    expect(c).toContain("'material_sem_custo'");
-    expect(c).toContain("'parceiro_abaixo_do_piso'");
-    expect(c).toMatch(/pr\.ativo/);
-    // o rótulo é descrição ou nome, nunca um valor
-    expect(c).not.toMatch(/custo_real::text|custo_producao::text|ct\.valor::text/);
+  it("a definição final, só para service_role, mora na migração do lembrete", () => {
+    expect(lembreteCodigo).toMatch(/FUNCTION public\.pendencias_de_custo\(\)\s*RETURNS TABLE \(codigo text, rotulo text, tipo text\)/);
+    expect(lembreteCodigo).toMatch(/REVOKE ALL ON FUNCTION public\.pendencias_de_custo\(\) FROM PUBLIC, anon, authenticated, service_role;/);
+    expect(lembreteCodigo).toMatch(/GRANT EXECUTE ON FUNCTION public\.pendencias_de_custo\(\) TO service_role;/);
+    expect(lembreteCodigo).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.pendencias_de_custo\(\) TO (anon|authenticated|PUBLIC)/);
+    expect([...lembreteCodigo.matchAll(/CREATE OR REPLACE FUNCTION public\.pendencias_de_custo\(/g)]).toHaveLength(1);
+  });
+
+  it("nenhuma outra migração do repositório redefine a função", () => {
+    const donas = readdirSync(PASTA)
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => /CREATE (OR REPLACE )?FUNCTION public\.pendencias_de_custo\(/.test(semComentarios(readFileSync(join(PASTA, f), "utf8"))));
+    expect(donas).toEqual(["20261116110000_lembrete_diario_de_custos.sql"]);
+  });
+
+  it("a definição final lista parâmetro, material em uso e parceiro abaixo do piso, sem custo em reais", () => {
+    expect(lembreteCodigo).toContain("'parametro'::text AS tipo");
+    expect(lembreteCodigo).toContain("'material'::text AS tipo");
+    expect(lembreteCodigo).toContain("'parceiro'::text AS tipo");
+    expect(lembreteCodigo).toMatch(/pr?\.ativo|p\.ativo/);
+    expect(lembreteCodigo).not.toMatch(/custo_real::text|custo_producao::text|c\.valor::text/);
+  });
+
+  it("a ordem 100000, 110000, 120000 está escrita nos cabeçalhos", () => {
+    expect(sql).toContain("20261116110000");
+    expect(lembrete).toContain("ORDEM DE APLICACAO: 20261116100000, depois esta, depois 20261116120000");
   });
 });
 
