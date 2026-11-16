@@ -256,12 +256,12 @@ describe("ocupação alvo e multiplicador da regra de três", () => {
     ]);
     expect(contagemDePendentes(itens)).toEqual({ pendentes: 9, total: 11 });
   });
-  it("a faixa aceita barra ocupação fora de 1 a 100 e multiplicador fora de 1 a 10 antes de ir ao banco", () => {
+  it("a faixa aceita barra ocupação fora de 5 a 100 e multiplicador fora de 1 a 10 antes de ir ao banco", () => {
     const def = (c: string) => CUSTOS_FIXOS.find((d) => d.codigo === c)!;
     expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 50)).toBeNull();
     expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 100)).toBeNull();
-    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 150)).toContain("1 a 100");
-    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 0.5)).toContain("1 a 100");
+    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 150)).toContain("5 a 100");
+    expect(fraseDaFaixaDoCusto(def("ocupacao_alvo_pct"), 4)).toContain("5 a 100");
     expect(fraseDaFaixaDoCusto(def("multiplicador_regra_de_tres"), 3)).toBeNull();
     expect(fraseDaFaixaDoCusto(def("multiplicador_regra_de_tres"), 30)).toContain("1 a 10");
     expect(fraseDaFaixaDoCusto(def("aluguel_espaco_mensal"), 99999)).toBeNull();
@@ -282,7 +282,7 @@ describe("ocupação alvo e multiplicador da regra de três", () => {
         aoCancelar: () => {},
       }),
     );
-    expect(h).toContain("Digite a ocupação de 1 a 100 por cento");
+    expect(h).toContain("Digite a ocupação de 5 a 100 por cento");
     expect(h).toMatch(/<button[^>]*disabled=""[^>]*>Salvar e confirmar<\/button>/);
     expect(h).toMatch(/<button[^>]*disabled=""[^>]*>Salvar sem confirmar<\/button>/);
     const texto = h.replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/g, " ");

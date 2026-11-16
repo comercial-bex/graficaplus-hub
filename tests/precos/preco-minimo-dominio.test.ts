@@ -415,3 +415,18 @@ describe("o texto explicativo da tela", () => {
     );
   });
 });
+
+describe("arredondamento igual ao da visão do banco", () => {
+  it("sobe para o centavo seguinte e não sobe por resto de ponto flutuante", () => {
+    const r = precoMinimoRecomendado({
+      materialComPerda: 11.92,
+      custoProducao: 10,
+      margemMinimaPct: 40,
+      taxas: TAXAS,
+      multiplicador: 3,
+    });
+    // 10 / 0,5225 = 19,1387: a visão devolve 19,14. Três vezes 11,92 é exatos 35,76.
+    expect(r?.piso).toBe(19.14);
+    expect(r?.tresXMaterial).toBe(35.76);
+  });
+});

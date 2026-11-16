@@ -122,7 +122,7 @@ export const CUSTOS_FIXOS: readonly DefinicaoDeCustoFixo[] = [
     fonte:
       "Parte das horas pagas em que a plotter, o impressor e o aluguel realmente trabalham. O ponto de partida é 50 por cento. O custo da conversão por metro quadrado é dividido por ela. Energia e perdas não são divididas.",
     aceitaZero: false,
-    faixa: { minimo: 1, maximo: 100, frase: "Digite a ocupação de 1 a 100 por cento, por exemplo 50." },
+    faixa: { minimo: 5, maximo: 100, frase: "Digite a ocupação de 5 a 100 por cento, por exemplo 50." },
   },
   {
     codigo: "multiplicador_regra_de_tres",

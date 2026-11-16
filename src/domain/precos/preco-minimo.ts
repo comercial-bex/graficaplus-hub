@@ -42,6 +42,8 @@ export const ROTULO_DA_TRAVA: Record<TravaDoMinimo, string> = {
 };
 
 const centavos = (n: number) => Math.round(n * 100) / 100;
+/** Para cima no centavo, como a visão do banco: a margem mínima nunca cai por arredondamento. O ajuste tira o resto de ponto flutuante. */
+const centavosParaCima = (n: number) => Math.ceil(Math.round(n * 1e6) / 1e4) / 100;
 const reais = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pt = (n: number, casas = 2) => n.toLocaleString("pt-BR", { maximumFractionDigits: casas });
 
@@ -90,7 +92,7 @@ export type PrecoMinimo = {
 export function precoMinimoRecomendado(e: EntradaDoMinimo): PrecoMinimo | null {
   const tres =
     positivo(e.materialComPerda) && positivo(e.multiplicador)
-      ? centavos(e.multiplicador * e.materialComPerda)
+      ? centavosParaCima(e.multiplicador * e.materialComPerda)
       : null;
 
   const taxa = taxaSobreAVenda(e.taxas);
@@ -101,7 +103,7 @@ export function precoMinimoRecomendado(e: EntradaDoMinimo): PrecoMinimo | null {
       : Math.round((1 - margemMinimaUsada(e.margemMinimaPct) / 100 - taxa) * 1e6) / 1e6;
   const piso =
     positivo(e.custoProducao) && fator != null && fator > 0
-      ? centavos(e.custoProducao / fator)
+      ? centavosParaCima(e.custoProducao / fator)
       : null;
 
   if (tres == null && piso == null) return null;
@@ -265,7 +267,7 @@ export function frasesDoMinimo(leitura: LeituraDoMinimo): string[] {
           : ""),
     );
   } else {
-    f.push("A ocupação alvo ainda não chegou do banco, por isso não dá para explicar o custo por hora.");
+    f.push("A ocupação alvo não entra neste produto, ou ainda não chegou do banco.");
   }
   return f;
 }
