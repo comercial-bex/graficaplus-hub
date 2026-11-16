@@ -31,6 +31,10 @@ export type LinhaDePreco = {
   real?: CustoRealDoProduto | null;
   /** Imposto sobre a venda e taxa do cartão de custos_tabela, para explicar e reproduzir o preço mínimo. */
   taxas?: TaxasDeVenda | null;
+  /** Composição do custo cheio em reais por unidade, de produto_custo_cheio. Alimenta o simulador de preço. */
+  composicao?: { material: number; maquina: number; maoDeObra: number; indireto: number } | null;
+  /** Menor preço de venda final anotado entre os concorrentes. Nulo quando ninguém anotou ou a leitura falhou. */
+  menor_concorrente?: number | null;
 };
 
 export type Situacao = "abaixo" | "sem_custo" | "sem_preco" | "justa" | "boa";

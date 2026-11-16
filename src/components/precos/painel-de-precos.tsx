@@ -6,6 +6,7 @@ import {
   CircleHelp,
   CircleMinus,
   PackageX,
+  SlidersHorizontal,
   TrendingUp,
   TriangleAlert,
 } from "lucide-react";
@@ -51,6 +52,7 @@ import {
 } from "@/domain/precos/preco-minimo";
 import { type FaixaDaMargem } from "@/domain/precos/propostas";
 import { COR_DA_FAIXA } from "./proposta-de-preco";
+import { SimuladorDePreco } from "./simulador-de-preco";
 
 export const reais = (n: number | null | undefined) =>
   n == null
@@ -220,7 +222,7 @@ function useLinha(linha: LinhaDePreco, propor: PedirPreco) {
     enviar,
   };
 }
-type Estado = ReturnType<typeof useLinha>;
+export type Estado = ReturnType<typeof useLinha>;
 
 function CampoDePreco({
   linha,
@@ -253,8 +255,8 @@ function CampoDePreco({
   );
 }
 
-function BotaoPropor({ e }: { e: Estado }) {
-  const rotulo = e.previa.exigeMotivo ? "Propor preço com motivo" : "Propor preço";
+export function BotaoPropor({ e, rotulo: nome }: { e: Estado; rotulo?: string }) {
+  const rotulo = nome ?? (e.previa.exigeMotivo ? "Propor preço com motivo" : "Propor preço");
   return (
     <Button
       type="button"
@@ -263,6 +265,34 @@ function BotaoPropor({ e }: { e: Estado }) {
       onClick={() => void e.enviar()}
     >
       {e.enviando ? "Enviando" : rotulo}
+    </Button>
+  );
+}
+
+/** Abre e fecha o simulador de um produto. O estado fica em cada pai, porque tabela e cartão existem juntos. */
+function BotaoSimular({
+  aberto,
+  onClick,
+  controla,
+  nome,
+}: {
+  aberto: boolean;
+  onClick: () => void;
+  controla: string;
+  nome: string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className="h-11 min-h-11 text-base"
+      aria-expanded={aberto}
+      aria-controls={controla}
+      aria-label={`${aberto ? "Fechar simulador" : "Simular preço"} de ${nome}`}
+      onClick={onClick}
+    >
+      <SlidersHorizontal className="mr-2 h-5 w-5 shrink-0" aria-hidden />
+      {aberto ? "Fechar simulador" : "Simular preço"}
     </Button>
   );
 }
@@ -643,9 +673,11 @@ function LinhaDaTabela({
   podePropor: boolean;
 }) {
   const e = useLinha(linha, propor);
+  const [simulando, setSimulando] = useState(false);
+  const idDoSimulador = `simulador-${linha.id}-tabela`;
   const a = e.previa.avaliacao;
   const r = e.previa.real;
-  const comRecado = e.digitou || e.enviada || e.erro != null;
+  const comRecado = !simulando && (e.digitou || e.enviada || e.erro != null);
   const preco = lerReais(e.texto) ?? linha.preco;
   const vermelha = r.faixaDaRegra === "abaixo_do_custo" || r.faixaDaMargem === "abaixo";
   return (
@@ -688,9 +720,32 @@ function LinhaDaTabela({
           <BotaoDeAvisos linha={linha} preco={preco} />
         </TableCell>
         <TableCell className="px-3 text-base">
-          {podePropor ? <BotaoPropor e={e} /> : null}
+          <div className="flex flex-col items-start gap-2">
+            <BotaoSimular
+              aberto={simulando}
+              onClick={() => setSimulando((v) => !v)}
+              controla={idDoSimulador}
+              nome={linha.nome}
+            />
+            {podePropor ? <BotaoPropor e={e} /> : null}
+          </div>
         </TableCell>
       </TableRow>
+      {simulando ? (
+        <TableRow className="text-base">
+          <TableCell colSpan={11} className="px-3 text-base">
+            <div id={idDoSimulador}>
+              <SimuladorDePreco
+                linha={linha}
+                e={e}
+                podePropor={podePropor}
+                botao={<BotaoPropor e={e} rotulo="Propor este preço" />}
+                recado={<Previa linha={linha} e={e} />}
+              />
+            </div>
+          </TableCell>
+        </TableRow>
+      ) : null}
       {comRecado ? (
         <TableRow className="text-base">
           <TableCell colSpan={11} className="px-3 text-base">
@@ -712,6 +767,8 @@ function CartaoDePreco({
   podePropor: boolean;
 }) {
   const e = useLinha(linha, propor);
+  const [simulando, setSimulando] = useState(false);
+  const idDoSimulador = `simulador-${linha.id}-cartao`;
   const a = e.previa.avaliacao;
   const r = e.previa.real;
   const preco = lerReais(e.texto) ?? linha.preco;
@@ -782,9 +839,27 @@ function CartaoDePreco({
       </dl>
       <div className="flex flex-wrap items-center gap-2">
         <BotaoDeAvisos linha={linha} preco={preco} />
+        <BotaoSimular
+          aberto={simulando}
+          onClick={() => setSimulando((v) => !v)}
+          controla={idDoSimulador}
+          nome={linha.nome}
+        />
         {podePropor ? <BotaoPropor e={e} /> : null}
       </div>
-      {e.digitou || e.enviada || e.erro != null ? <Previa linha={linha} e={e} /> : null}
+      {simulando ? (
+        <div id={idDoSimulador}>
+          <SimuladorDePreco
+            linha={linha}
+            e={e}
+            podePropor={podePropor}
+            botao={<BotaoPropor e={e} rotulo="Propor este preço" />}
+            recado={<Previa linha={linha} e={e} />}
+          />
+        </div>
+      ) : e.digitou || e.enviada || e.erro != null ? (
+        <Previa linha={linha} e={e} />
+      ) : null}
     </article>
   );
 }
