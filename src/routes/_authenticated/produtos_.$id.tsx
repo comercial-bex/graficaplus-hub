@@ -45,9 +45,12 @@ import {
   entradaDaNota,
   fraseDaNota,
   notaDaPasta,
+  abaInicialDaPasta,
+  buscaDaPasta,
   pendenciasDaPasta,
   pendenciasPorAba,
   type ChaveDaChecagem,
+  type BuscaDaPasta,
   type Pendencia,
 } from "@/domain/catalogo/pronto-para-ia";
 import { BASES_DO_TERCEIRIZADO, pendenciaDoTerceirizado, rotuloDaBase } from "@/domain/orcamentos/terceirizados";
@@ -84,6 +87,7 @@ import { AvisoDeValorNoTexto } from "@/components/custos/aviso-de-valor-no-texto
 export const Route = createFileRoute("/_authenticated/produtos_/$id")({
   head: () => ({ meta: [{ title: "Pasta do produto — BEX PRINT OS" }] }),
   component: PastaDoProduto,
+  validateSearch: (busca: Record<string, unknown>): BuscaDaPasta => buscaDaPasta(busca),
   errorComponent: ({ error }) => (
     <div className="p-6 text-destructive">Erro: {(error as Error).message}</div>
   ),
@@ -139,15 +143,22 @@ function PastaDoProduto() {
   const { canSeePrices, canSeeFinancials, nivelDeVisao, hasRole, user } = useAuth();
   const podeEditar = hasRole("admin") || hasRole("gestor");
   const qc = useQueryClient();
-  const [aba, setAba] = useState<AbaDaPasta>("descricao");
+  const busca = Route.useSearch();
+  const [aba, setAba] = useState<AbaDaPasta>(() =>
+    abaInicialDaPasta(busca, abasDaPasta({ canSeePrices }).map((a) => a.id)),
+  );
   const [form, setForm] = useState<Ficha>(FICHA_VAZIA);
   const [cadastro, setCadastro] = useState<Cadastro>(CADASTRO_VAZIO);
   // O campo para onde o clique numa falta leva: a aba troca e a tela rola até ele.
-  const [alvo, setAlvo] = useState<{ id: string; n: number } | null>(null);
+  const [alvo, setAlvo] = useState<{ id: string; n: number } | null>(
+    busca.campo && (!busca.aba || abasDaPasta({ canSeePrices }).some((a) => a.id === busca.aba))
+      ? { id: busca.campo, n: 0 }
+      : null,
+  );
   useEffect(() => {
     if (!alvo) return;
     let tentativas = 0;
-    // A aba nova monta no render seguinte: tenta algumas vezes até o campo existir.
+    // A aba nova monta no render seguinte, e a pasta aberta por link espera a leitura: tenta por até 4 s.
     const t = setInterval(() => {
       tentativas += 1;
       const el = document.getElementById(alvo.id);
@@ -155,7 +166,7 @@ function PastaDoProduto() {
         el.scrollIntoView({ block: "center", behavior: "smooth" });
         el.focus({ preventScroll: true });
         clearInterval(t);
-      } else if (tentativas > 12) clearInterval(t);
+      } else if (tentativas > 80) clearInterval(t);
     }, 50);
     return () => clearInterval(t);
   }, [alvo]);

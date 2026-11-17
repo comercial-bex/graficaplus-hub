@@ -18,7 +18,7 @@
  * cobrá-la em todo produto por área empurraria quem preenche para o erro.
  */
 
-import type { AbaDaPasta } from "@/domain/catalogo/pasta-do-produto";
+import { abasDaPasta, type AbaDaPasta } from "@/domain/catalogo/pasta-do-produto";
 
 export type EntradaDaNota = {
   tipo: "produto" | "servico" | string | null;
@@ -225,6 +225,36 @@ export function pendenciasPorAba(n: NotaDaPasta): Partial<Record<AbaDaPasta, Pen
   const por: Partial<Record<AbaDaPasta, Pendencia[]>> = {};
   for (const p of pendenciasDaPasta(n)) (por[p.aba] ??= []).push(p);
   return por;
+}
+
+/**
+ * Abrir a pasta já na aba da falta (17/11/2026). A aba e o campo viajam na URL (?aba=...&campo=...).
+ * Só vale aba que existe e campo que o mapa de destinos conhece, e o campo só vale na aba dele:
+ * qualquer outra coisa cai em Descrição, sem erro e sem campo.
+ */
+export type BuscaDaPasta = { aba?: AbaDaPasta; campo?: string };
+
+const TODOS_OS_DESTINOS: DestinoDaChecagem[] = [...Object.values(DESTINO_DA_CHECAGEM), DESTINO_DA_REVISAO];
+
+export function buscaDaPasta(busca: Record<string, unknown>): BuscaDaPasta {
+  const abas = abasDaPasta({ canSeePrices: true }).map((a) => a.id);
+  const aba = typeof busca.aba === "string" ? abas.find((a) => a === busca.aba) : undefined;
+  if (!aba) return {};
+  const campo = typeof busca.campo === "string" ? busca.campo : undefined;
+  const campoValido = campo && TODOS_OS_DESTINOS.some((d) => d.aba === aba && d.campo === campo);
+  return campoValido ? { aba, campo } : { aba };
+}
+
+/** A aba que a pasta mostra ao abrir: a pedida, se o usuário a vê, senão Descrição. */
+export function abaInicialDaPasta(busca: BuscaDaPasta, abasVisiveis: AbaDaPasta[]): AbaDaPasta {
+  return busca.aba && abasVisiveis.includes(busca.aba) ? busca.aba : "descricao";
+}
+
+/** O destino da primeira falta da nota, ou nulo quando nada falta (ou a nota não existe). */
+export function buscaDaPrimeiraFalta(n: NotaDaPasta | null): { aba: AbaDaPasta; campo: string } | null {
+  if (!n) return null;
+  const primeira = pendenciasDaPasta(n)[0];
+  return primeira ? { aba: primeira.aba, campo: primeira.campo } : null;
 }
 
 /**
