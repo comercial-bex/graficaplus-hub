@@ -18,6 +18,8 @@
  * cobrá-la em todo produto por área empurraria quem preenche para o erro.
  */
 
+import type { AbaDaPasta } from "@/domain/catalogo/pasta-do-produto";
+
 export type EntradaDaNota = {
   tipo: "produto" | "servico" | string | null;
   unidade: string | null;
@@ -33,18 +35,121 @@ export type EntradaDaNota = {
   roteiroRevisado: boolean;
 };
 
+export type ChaveDaChecagem =
+  | "foto"
+  | "descricao"
+  | "familia"
+  | "unidade"
+  | "medida"
+  | "material"
+  | "processos"
+  | "perguntas"
+  | "roteiro";
+
+/**
+ * Onde cada checagem se resolve (17/11/2026): a aba da pasta, o id do campo ou cartão que recebe o
+ * destaque vermelho e para onde a tela rola, e as frases que o dono lê. Mora aqui, num lugar só, para
+ * a nota, a dica, o ponto vermelho da aba e o clique na lista de faltas nunca discordarem. O tipo
+ * Record obriga toda chave nova a ganhar destino, e o teste confere que a aba e o campo existem.
+ * Frases sem travessão, seta nem parênteses, que é como o dono lê.
+ */
+export type DestinoDaChecagem = {
+  aba: AbaDaPasta;
+  abaTitulo: string;
+  /** O id do elemento da tela que recebe o destaque. */
+  campo: string;
+  /** "a foto": cabe em "Falta a foto". */
+  falta: string;
+  /** A linha vermelha ao lado do campo: o que fazer. */
+  instrucao: string;
+};
+
+export const DESTINO_DA_CHECAGEM: Record<ChaveDaChecagem, DestinoDaChecagem> = {
+  foto: {
+    aba: "descricao",
+    abaTitulo: "Descrição",
+    campo: "pasta-foto",
+    falta: "a foto",
+    instrucao: "Falta a foto. Envie pelo menos uma foto do produto na galeria abaixo.",
+  },
+  descricao: {
+    aba: "descricao",
+    abaTitulo: "Descrição",
+    campo: "pasta-descricao",
+    falta: "a descrição",
+    instrucao: "Falta a descrição. Escreva o que o cliente lê no orçamento.",
+  },
+  familia: {
+    aba: "descricao",
+    abaTitulo: "Descrição",
+    campo: "pasta-familia",
+    falta: "a família",
+    instrucao: "Falta a família. Escolha ou escreva a família do produto.",
+  },
+  unidade: {
+    aba: "descricao",
+    abaTitulo: "Descrição",
+    campo: "pasta-unidade",
+    falta: "a unidade na proposta",
+    instrucao: "Falta a unidade na proposta. Escolha como o produto é vendido.",
+  },
+  medida: {
+    aba: "parametros",
+    abaTitulo: "Parâmetros",
+    campo: "pasta-largura",
+    falta: "a medida padrão",
+    instrucao: "Falta a medida padrão. Preencha a largura e a altura em metros.",
+  },
+  material: {
+    aba: "parametros",
+    abaTitulo: "Parâmetros",
+    campo: "pasta-material",
+    falta: "o material principal",
+    instrucao: "Falta o material principal. Escolha o insumo que mais pesa no custo.",
+  },
+  processos: {
+    aba: "processos",
+    abaTitulo: "Processos",
+    campo: "pasta-processos",
+    falta: "os processos",
+    instrucao: "Nenhum processo cadastrado. Adicione pelo menos um processo de produção.",
+  },
+  perguntas: {
+    aba: "checklist",
+    abaTitulo: "Checklist",
+    campo: "pasta-perguntas",
+    falta: "as perguntas do checklist",
+    instrucao:
+      "Nenhuma pergunta cobrada no checklist. Cadastre pelo menos uma pergunta que o cliente responde.",
+  },
+  roteiro: {
+    aba: "ia",
+    abaTitulo: "Orç.IA",
+    campo: "pasta-como-medir",
+    falta: "o roteiro da IA",
+    instrucao: "Falta o roteiro da IA. Escreva como descobrir as medidas.",
+  },
+};
+
+/** O roteiro já escrito só precisa de revisão: o destino é o bloco com o botão de marcar. */
+export const DESTINO_DA_REVISAO: DestinoDaChecagem = {
+  aba: "ia",
+  abaTitulo: "Orç.IA",
+  campo: "pasta-revisao-roteiro",
+  falta: "a revisão do roteiro da IA",
+  instrucao:
+    "O roteiro ainda não foi revisado. Leia, corrija o que não vale na nossa loja e marque como revisado.",
+};
+
+/** Dito na aba Checklist e no rótulo do campo da aba Orç.IA. */
+export const AVISO_DAS_PERGUNTAS_NA_NOTA =
+  "A nota conta as perguntas cadastradas nesta aba, as que cobram do cliente. O texto de Perguntas obrigatórias da aba Orç.IA não entra na nota, e as perguntas de informação, da aba Campos, também não.";
+
 export type Checagem = {
-  chave:
-    | "foto"
-    | "descricao"
-    | "familia"
-    | "unidade"
-    | "medida"
-    | "material"
-    | "processos"
-    | "perguntas"
-    | "roteiro";
+  chave: ChaveDaChecagem;
   rotulo: string;
+  /** Onde se preenche. */
+  destino: DestinoDaChecagem;
   /** Falso quando a checagem não cabe neste produto: ela sai da conta. */
   cabe: boolean;
   pronta: boolean;
@@ -64,7 +169,7 @@ const ehArea = (u: string | null) => (u ?? "").trim().toLowerCase().replace("²"
 export function checagensDaPasta(e: EntradaDaNota): Checagem[] {
   const servico = e.tipo === "servico";
   const area = ehArea(e.unidade);
-  return [
+  const lista: Omit<Checagem, "destino">[] = [
     { chave: "foto", rotulo: "foto", cabe: !servico, pronta: e.temFoto },
     { chave: "descricao", rotulo: "descrição", cabe: true, pronta: e.temDescricao },
     { chave: "familia", rotulo: "família", cabe: true, pronta: e.temFamilia },
@@ -80,6 +185,10 @@ export function checagensDaPasta(e: EntradaDaNota): Checagem[] {
       pronta: e.roteiroEscrito && e.roteiroRevisado,
     },
   ];
+  return lista.map((c) => ({
+    ...c,
+    destino: c.chave === "roteiro" && e.roteiroEscrito ? DESTINO_DA_REVISAO : DESTINO_DA_CHECAGEM[c.chave],
+  }));
 }
 
 /** A nota: prontas ÷ as que cabem, em décimos. Sem checagem que caiba (não acontece), 0. */
@@ -102,6 +211,34 @@ export function fraseDaNota(n: NotaDaPasta): string {
   const cabeca = `Pronto para a IA: ${n.nota} de 10.`;
   if (n.faltas.length === 0) return `${cabeca} Nada falta.`;
   return `${cabeca} Falta: ${n.faltas.join(", ")}.`;
+}
+
+export type Pendencia = DestinoDaChecagem & { chave: ChaveDaChecagem };
+
+/** O que falta, com a aba e o campo de cada item. Só as checagens que cabem no produto. */
+export function pendenciasDaPasta(n: NotaDaPasta): Pendencia[] {
+  return n.checagens.filter((c) => c.cabe && !c.pronta).map((c) => ({ chave: c.chave, ...c.destino }));
+}
+
+/** As pendências agrupadas pela aba onde se resolvem: base do ponto vermelho com a contagem. */
+export function pendenciasPorAba(n: NotaDaPasta): Partial<Record<AbaDaPasta, Pendencia[]>> {
+  const por: Partial<Record<AbaDaPasta, Pendencia[]>> = {};
+  for (const p of pendenciasDaPasta(n)) (por[p.aba] ??= []).push(p);
+  return por;
+}
+
+/**
+ * O texto do tooltip da nota: a nota, quantos itens estão prontos e, item a item, o que falta e em que
+ * aba corrigir. Sem a nota (a leitura das fichas falhou) diz isso, em vez de mostrar 0.
+ */
+export function dicaDaNota(n: NotaDaPasta | null): string {
+  if (!n) {
+    return "A nota não aparece porque não deu para ler as fichas agora. Isso não quer dizer que o produto está sem nada preenchido. Recarregue a página para tentar de novo.";
+  }
+  const cabeca = `Pronto para a IA: ${n.nota} de 10, com ${n.prontas} de ${n.cabem} itens prontos.`;
+  const faltas = pendenciasDaPasta(n);
+  if (faltas.length === 0) return `${cabeca} Nada falta.`;
+  return `${cabeca} ${faltas.map((f) => `Falta ${f.falta}, na aba ${f.abaTitulo}.`).join(" ")}`;
 }
 
 /** Cor da barra: 8+ verde, 5 a 7 âmbar, abaixo vermelho. Só a cor; o número está sempre escrito. */

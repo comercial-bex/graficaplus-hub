@@ -23,7 +23,9 @@ import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Carregando } from "@/components/bex/Carregando";
 import { BotaoAtivarProduto } from "@/components/produtos/botao-ativar-produto";
 import { CustoDaPeca } from "@/components/produtos/custo-da-peca";
+import { GaleriaDoProduto } from "@/components/produtos/galeria-do-produto";
 import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
+import { AvisoDeFalhaDeConsulta } from "@/components/custos/aviso-de-falha-de-consulta";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 import {
   CATEGORIAS,
@@ -38,10 +40,20 @@ import { percentual } from "@/lib/percentual";
 import { complementoDaMargem, fraseDoPiso } from "@/domain/precos/texto-da-margem";
 import { ehUnidadeDeArea } from "@/domain/orcamentos/area";
 import { baseDeCalculo, rotuloDaUnidade } from "@/domain/catalogo/familias-da-lista";
-import { entradaDaNota, fraseDaNota, notaDaPasta } from "@/domain/catalogo/pronto-para-ia";
+import {
+  AVISO_DAS_PERGUNTAS_NA_NOTA,
+  entradaDaNota,
+  fraseDaNota,
+  notaDaPasta,
+  pendenciasDaPasta,
+  pendenciasPorAba,
+  type ChaveDaChecagem,
+  type Pendencia,
+} from "@/domain/catalogo/pronto-para-ia";
 import { BASES_DO_TERCEIRIZADO, pendenciaDoTerceirizado, rotuloDaBase } from "@/domain/orcamentos/terceirizados";
 import { pendenciaDoPrecoEspecial } from "@/domain/precos/preco-especial-do-cliente";
-import { NotaProntoParaIa } from "@/components/produtos/nota-pronto-para-ia";
+import { AvisoDaFalta, BORDA_DA_FALTA, NotaProntoParaIa } from "@/components/produtos/nota-pronto-para-ia";
+import { cn } from "@/lib/utils";
 import { lerParametros, type LinhaDeParametro } from "@/domain/precificacao/parametros";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
@@ -124,12 +136,33 @@ const FICHA_VAZIA: Ficha = {
 
 function PastaDoProduto() {
   const { id } = Route.useParams();
-  const { canSeePrices, canSeeFinancials, nivelDeVisao, hasRole } = useAuth();
+  const { canSeePrices, canSeeFinancials, nivelDeVisao, hasRole, user } = useAuth();
   const podeEditar = hasRole("admin") || hasRole("gestor");
   const qc = useQueryClient();
   const [aba, setAba] = useState<AbaDaPasta>("descricao");
   const [form, setForm] = useState<Ficha>(FICHA_VAZIA);
   const [cadastro, setCadastro] = useState<Cadastro>(CADASTRO_VAZIO);
+  // O campo para onde o clique numa falta leva: a aba troca e a tela rola até ele.
+  const [alvo, setAlvo] = useState<{ id: string; n: number } | null>(null);
+  useEffect(() => {
+    if (!alvo) return;
+    let tentativas = 0;
+    // A aba nova monta no render seguinte: tenta algumas vezes até o campo existir.
+    const t = setInterval(() => {
+      tentativas += 1;
+      const el = document.getElementById(alvo.id);
+      if (el) {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        el.focus({ preventScroll: true });
+        clearInterval(t);
+      } else if (tentativas > 12) clearInterval(t);
+    }, 50);
+    return () => clearInterval(t);
+  }, [alvo]);
+  const irPara = (p: Pendencia) => {
+    setAba(p.aba);
+    setAlvo({ id: p.campo, n: Date.now() });
+  };
 
   const produto = useQuery({
     queryKey: ["pasta-produto", id, nivelDeVisao],
@@ -193,6 +226,9 @@ function PastaDoProduto() {
         (supabase as any).from("produto_processos").select("produto_id").eq("produto_id", id),
         (supabase as any).from("produto_perguntas").select("produto_id, finalidade").eq("produto_id", id),
       ]);
+      // Falha de leitura não é "zero processos": sem isto a nota despencava sem aviso.
+      if (processos.error) throw processos.error;
+      if (perguntas.error) throw perguntas.error;
       return {
         processos: (processos.data ?? []) as { produto_id: string }[],
         perguntas: (perguntas.data ?? []) as { produto_id: string; finalidade?: string | null }[],
@@ -340,6 +376,28 @@ function PastaDoProduto() {
     onError: (e) => toast.error(mensagemErro(e)),
   });
 
+  // Marcar a revisão do roteiro aqui mesmo, na aba Orç.IA (antes só existia em Preencher as pastas).
+  const marcarRevisado = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("produto_ficha")
+        .update({ ia_revisado_em: new Date().toISOString(), ia_revisado_por: user?.id ?? null })
+        .eq("produto_id", id)
+        .select("produto_id");
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Esta pasta ainda não tem ficha. Clique em Salvar e tente de novo.");
+    },
+    onSuccess: () => {
+      toast.success("Roteiro marcado como revisado.");
+      void qc.invalidateQueries({ queryKey: ["pasta-ficha", id] });
+      void qc.invalidateQueries({ queryKey: ["pasta-historico", id] });
+      void qc.invalidateQueries({ queryKey: ["pasta-satelites-para-nota"] });
+      void qc.invalidateQueries({ queryKey: ["cobranca-fichas"] });
+      void qc.invalidateQueries({ queryKey: ["pendencias-do-sistema"] });
+    },
+    onError: (e) => toast.error(mensagemErro(e)),
+  });
+
   const abas = abasDaPasta({ canSeePrices });
 
   if (produto.isLoading) return <Carregando />;
@@ -373,7 +431,11 @@ function PastaDoProduto() {
       Só administrador e gestor alteram a pasta do produto.
     </p>
   );
-  const nota = notaDaPasta(
+  // Sem as contagens lidas a nota é traço, nunca 0: falha de leitura não pode parecer pasta vazia.
+  const notaPronta = !satelites.isError && !ficha.isError && !!satelites.data && ficha.data !== undefined;
+  const nota = !notaPronta
+    ? null
+    : notaDaPasta(
     entradaDaNota(
       {
         id,
@@ -401,6 +463,28 @@ function PastaDoProduto() {
       },
     ),
   );
+  const pendencias = nota ? pendenciasDaPasta(nota) : [];
+  const pendenciasDaAba = nota ? pendenciasPorAba(nota) : {};
+  const falta = (chave: ChaveDaChecagem) => pendencias.find((x) => x.chave === chave);
+  // Borda, aria e linha vermelha de um campo que a nota cobra. Some sozinho quando o campo é preenchido.
+  const marca = (chave: ChaveDaChecagem) => {
+    const f = falta(chave);
+    return {
+      f,
+      classe: f ? BORDA_DA_FALTA : "",
+      aria: f ? ({ "aria-invalid": true, "aria-describedby": `${f.campo}-falta` } as const) : {},
+      aviso: f ? <AvisoDaFalta id={`${f.campo}-falta`} texto={f.instrucao} /> : null,
+    };
+  };
+  const mDescricao = marca("descricao");
+  const mFamilia = marca("familia");
+  const mUnidade = marca("unidade");
+  const mMaterial = marca("material");
+  const mMedida = marca("medida");
+  const mRoteiro = marca("roteiro");
+  const roteiroSemTexto = mRoteiro.f?.campo === "pasta-como-medir";
+  const faltaRevisao = mRoteiro.f?.campo === "pasta-revisao-roteiro";
+  const roteiroEscritoAgora = !!form.ia_como_medir.trim();
   const margem = calcMargem(Number(cadastro.custo_medio) || 0, Number(cadastro.preco_base) || 0);
   const markup = calcMarkup(Number(cadastro.custo_medio) || 0, Number(cadastro.preco_base) || 0);
   const situacao = margemStatus(margem, Number(cadastro.margem_minima) || 0);
@@ -427,20 +511,82 @@ function PastaDoProduto() {
           </Link>
         </Button>
         {/* A nota diz o que ainda falta para a IA orçar este produto sozinha. */}
-        <p className="flex flex-wrap items-center gap-2 text-sm" data-testid="pronto-para-ia">
-          <NotaProntoParaIa nota={nota} compacta />
-          <span className="text-muted-foreground">{fraseDaNota(nota)}</span>
+        <p className="flex flex-wrap items-center gap-2 text-base" data-testid="pronto-para-ia">
+          <NotaProntoParaIa nota={nota} compacta calculando={!nota && !satelites.isError && !ficha.isError} />
+          <span className="text-foreground">
+            {nota ? fraseDaNota(nota) : (satelites.isError || ficha.isError ? "Nota indisponível: a leitura das fichas falhou." : "Calculando a nota.")}
+          </span>
         </p>
       </div>
+      {(satelites.isError || ficha.isError) && (
+        <AvisoDeFalhaDeConsulta
+          o_que="as contagens da pasta, e por isso a nota Pronto para a IA aparece com traço"
+          erro={satelites.error ?? ficha.error}
+          carregando={satelites.isFetching || ficha.isFetching}
+          aoTentarDeNovo={() => {
+            void satelites.refetch();
+            void ficha.refetch();
+          }}
+        />
+      )}
+      {nota && (
+        <section
+          className={cn("space-y-2 rounded-lg border p-3", pendencias.length > 0 ? "border-destructive" : "border-primary")}
+          data-testid="faltas-da-pasta"
+          aria-label="O que falta para a IA"
+        >
+          {pendencias.length === 0 ? (
+            <p className="text-base font-medium text-foreground">
+              Tudo pronto: esta pasta está em 10 de 10 para a IA orçar sozinha.
+            </p>
+          ) : (
+            <>
+              <p className="text-base font-medium text-foreground">
+                O que falta para a IA orçar este produto sozinha. Toque num item para ir até o campo.
+              </p>
+              <ul className="flex flex-col">
+                {pendencias.map((x) => (
+                  <li key={x.chave}>
+                    <button
+                      type="button"
+                      onClick={() => irPara(x)}
+                      className="min-h-11 text-left text-base font-medium text-destructive underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {`Falta ${x.falta}, na aba ${x.abaTitulo}.`}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as AbaDaPasta)}>
         <div className="overflow-x-auto pb-1">
           <TabsList className="h-auto w-max">
-            {abas.map((a) => (
-              <TabsTrigger key={a.id} value={a.id} className="min-h-11 md:min-h-8">
-                {a.titulo}
-              </TabsTrigger>
-            ))}
+            {abas.map((a) => {
+              const n = pendenciasDaAba[a.id]?.length ?? 0;
+              return (
+                <TabsTrigger key={a.id} value={a.id} className="min-h-11 gap-2 text-base md:min-h-9">
+                  {a.titulo}
+                  {n > 0 && (
+                    <>
+                      <span
+                        aria-hidden="true"
+                        data-testid={`pendencias-da-aba-${a.id}`}
+                        className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-destructive px-1.5 text-base font-semibold text-destructive-foreground"
+                      >
+                        {n}
+                      </span>
+                      <span className="sr-only">
+                        {n === 1 ? "1 pendência para a IA" : `${n} pendências para a IA`}
+                      </span>
+                    </>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
         </div>
 
@@ -465,8 +611,11 @@ function PastaDoProduto() {
                   disabled={!podeEditar}
                   list="pasta-familias-do-catalogo"
                   placeholder="Ex.: Lonas frontlight"
+                  className={mFamilia.classe}
+                  {...mFamilia.aria}
                   onChange={(e) => setC({ familia: e.target.value })}
                 />
+                {mFamilia.aviso}
                 <datalist id="pasta-familias-do-catalogo">
                   {[...new Set([...FAMILIAS, ...(familiasEmUso.data?.values() ?? [])])].map((f) => (
                     <option key={f} value={f} />
@@ -481,8 +630,11 @@ function PastaDoProduto() {
                   value={cadastro.descricao}
                   disabled={!podeEditar}
                   placeholder="O que o cliente lê no orçamento"
+                  className={mDescricao.classe}
+                  {...mDescricao.aria}
                   onChange={(e) => setC({ descricao: e.target.value })}
                 />
+                {mDescricao.aviso}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="pasta-subfamilia">Subfamília</Label>
@@ -531,7 +683,7 @@ function PastaDoProduto() {
               <div className="space-y-1.5">
                 <Label htmlFor="pasta-unidade">Unidade na proposta</Label>
                 <Select value={cadastro.unidade} disabled={!podeEditar} onValueChange={(v) => setC({ unidade: v })}>
-                  <SelectTrigger id="pasta-unidade">
+                  <SelectTrigger id="pasta-unidade" className={mUnidade.classe} {...mUnidade.aria}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -542,27 +694,55 @@ function PastaDoProduto() {
                     ))}
                   </SelectContent>
                 </Select>
+                {mUnidade.aviso}
               </div>
               <div className="md:col-span-2">
                 <Dado rotulo="Como se calcula" valor={baseDeCalculo(cadastro.unidade)} />
               </div>
-              <div className="space-y-1.5 md:col-span-3">
-                <p className="text-sm font-medium">Foto</p>
-                <FotoDoProduto
-                  valor={cadastro.imagem_url}
-                  onChange={(url) => setC({ imagem_url: url })}
-                  aoGerar={(url) => {
+              <div
+                id="pasta-foto"
+                tabIndex={-1}
+                className={cn("space-y-2 rounded-lg p-1 md:col-span-3", falta("foto") && BORDA_DA_FALTA)}
+              >
+                <p className="text-base font-medium">Fotos</p>
+                {falta("foto") && <AvisoDaFalta id="pasta-foto-falta" texto={falta("foto")!.instrucao} />}
+                <GaleriaDoProduto
+                  produtoId={id}
+                  nome={cadastro.nome || p.nome}
+                  podeEditar={podeEditar}
+                  aoMudar={(capa) => {
+                    // A capa mora no banco (o gatilho da galeria mantém produtos.imagem_url igual a ela): a pasta só acompanha.
+                    const url = capa ?? "";
                     fotoNoBanco.current = url;
-                  }}
-                  produto={{
-                    id,
-                    nome: cadastro.nome,
-                    descricao: cadastro.descricao,
-                    familia: cadastro.familia,
-                    categoria: cadastro.categoria,
-                    tipo: cadastro.tipo,
+                    if (cadastroDoBanco.current) cadastroDoBanco.current = { ...cadastroDoBanco.current, imagem_url: url };
+                    setC({ imagem_url: url });
+                    void qc.invalidateQueries({ queryKey: ["pasta-produto", id] });
                   }}
                 />
+                {/* A IA desenha uma foto quando ainda não há a real. O botão de enviar daqui grava a capa pelo Salvar. */}
+                <details className="rounded-md border p-2">
+                  <summary className="min-h-11 cursor-pointer py-2 text-base font-medium text-foreground">
+                    Gerar uma foto com a IA
+                  </summary>
+                  <div className="pt-2">
+                    <FotoDoProduto
+                      valor={cadastro.imagem_url}
+                      onChange={(url) => setC({ imagem_url: url })}
+                      aoGerar={(url) => {
+                        fotoNoBanco.current = url;
+                        void qc.invalidateQueries({ queryKey: ["produto-imagens", id] });
+                      }}
+                      produto={{
+                        id,
+                        nome: cadastro.nome,
+                        descricao: cadastro.descricao,
+                        familia: cadastro.familia,
+                        categoria: cadastro.categoria,
+                        tipo: cadastro.tipo,
+                      }}
+                    />
+                  </div>
+                </details>
               </div>
             </CardContent>
           </Card>
@@ -699,15 +879,21 @@ function PastaDoProduto() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Campo
+                id="pasta-largura"
                 rotulo="Largura (m)"
                 valor={form.largura_padrao_m}
                 desativado={!podeEditar}
+                invalido={!!mMedida.f && !(Number(String(form.largura_padrao_m).replace(",", ".")) > 0)}
+                descritoPor={mMedida.f ? "pasta-largura-falta" : undefined}
                 aoMudar={(v) => set({ largura_padrao_m: v })}
               />
               <Campo
+                id="pasta-altura"
                 rotulo="Altura (m)"
                 valor={form.altura_padrao_m}
                 desativado={!podeEditar}
+                invalido={!!mMedida.f && !(Number(String(form.altura_padrao_m).replace(",", ".")) > 0)}
+                descritoPor={mMedida.f ? "pasta-largura-falta" : undefined}
                 aoMudar={(v) => set({ altura_padrao_m: v })}
               />
               <Campo
@@ -716,6 +902,7 @@ function PastaDoProduto() {
                 desativado={!podeEditar}
                 aoMudar={(v) => set({ copias_padrao: v })}
               />
+              {mMedida.aviso && <div className="sm:col-span-3">{mMedida.aviso}</div>}
             </CardContent>
           </Card>
           {/* "Mídia de impressão" e a máquina, como nos Parâmetros do Holdprint; antes eram só leitura aqui. */}
@@ -754,7 +941,7 @@ function PastaDoProduto() {
                   disabled={!podeEditar}
                   onValueChange={(v) => setC({ material_principal_id: v === "nenhum" ? "" : v })}
                 >
-                  <SelectTrigger id="pasta-material">
+                  <SelectTrigger id="pasta-material" className={mMaterial.classe} {...mMaterial.aria}>
                     <SelectValue placeholder="Nenhum" />
                   </SelectTrigger>
                   <SelectContent>
@@ -769,6 +956,7 @@ function PastaDoProduto() {
                 <p className="text-xs text-muted-foreground">
                   O insumo que domina o custo. Os materiais abaixo dão o consumo exato.
                 </p>
+                {mMaterial.aviso}
               </div>
               <Campo
                 rotulo={`Tempo estimado (min por ${rotuloDaUnidade(cadastro.unidade)})`}
@@ -805,6 +993,12 @@ function PastaDoProduto() {
         </TabsContent>
 
         <TabsContent value="processos" className="pt-2">
+          <div
+            id="pasta-processos"
+            tabIndex={-1}
+            className={cn("space-y-3 rounded-lg", falta("processos") && `p-3 ${BORDA_DA_FALTA}`)}
+          >
+          {falta("processos") && <AvisoDaFalta id="pasta-processos-falta" texto={falta("processos")!.instrucao} />}
           <AbaProcessos
             produtoId={id}
             familia={extras.data?.familia ?? null}
@@ -813,6 +1007,7 @@ function PastaDoProduto() {
             altura={Number(form.altura_padrao_m) || 1}
             tempoDoProduto={p.tempo_producao_min == null ? null : Number(p.tempo_producao_min)}
           />
+          </div>
         </TabsContent>
 
         <TabsContent value="formulas" className="pt-2">
@@ -820,7 +1015,17 @@ function PastaDoProduto() {
         </TabsContent>
 
         <TabsContent value="checklist" className="pt-2">
-          <AbaChecklist produtoId={id} podeEditar={podeEditar} />
+          <div
+            id="pasta-perguntas"
+            tabIndex={-1}
+            className={cn("space-y-3 rounded-lg", falta("perguntas") && `p-3 ${BORDA_DA_FALTA}`)}
+          >
+            {falta("perguntas") && <AvisoDaFalta id="pasta-perguntas-falta" texto={falta("perguntas")!.instrucao} />}
+            <p className="text-base text-foreground" data-testid="aviso-perguntas-na-nota">
+              {AVISO_DAS_PERGUNTAS_NA_NOTA}
+            </p>
+            <AbaChecklist produtoId={id} podeEditar={podeEditar} />
+          </div>
         </TabsContent>
 
         <TabsContent value="ia" className="space-y-4 pt-2">
@@ -839,15 +1044,20 @@ function PastaDoProduto() {
                 aoMudar={(v) => set({ ia_personalidade: v })}
               />
               <TextoLongo
+                id="pasta-como-medir"
                 rotulo="Como descobrir as medidas"
                 valor={form.ia_como_medir}
                 desativado={!podeEditar}
+                invalido={roteiroSemTexto}
+                descritoPor={roteiroSemTexto ? "pasta-como-medir-falta" : undefined}
+                aviso={roteiroSemTexto ? mRoteiro.aviso : null}
                 aoMudar={(v) => set({ ia_como_medir: v })}
               />
               <TextoLongo
-                rotulo="Perguntas obrigatórias"
+                rotulo="Perguntas obrigatórias, texto para a IA, não conta na nota"
                 valor={form.ia_perguntas}
                 desativado={!podeEditar}
+                ajuda="Este texto só orienta a IA ao orçar. A nota Pronto para a IA conta as perguntas cadastradas na aba Checklist, e não este campo."
                 aoMudar={(v) => set({ ia_perguntas: v })}
               />
               <label className="flex items-center gap-2 text-sm">
@@ -858,12 +1068,43 @@ function PastaDoProduto() {
                 />
                 Liberado para o orçamento com IA
               </label>
-              <p className="text-xs text-muted-foreground">
-                {ficha.data?.ia_revisado_em
-                  ? `Revisado por quem atende em ${new Date(ficha.data.ia_revisado_em).toLocaleDateString("pt-BR")}.`
-                  : "Ainda sem revisão de quem atende. A revisão se marca em Preencher as pastas."}{" "}
-                O orçamento com IA, na tela de orçamentos, lê este roteiro.
-              </p>
+              <div
+                id="pasta-revisao-roteiro"
+                tabIndex={-1}
+                className={cn("space-y-2 rounded-lg p-3", faltaRevisao ? BORDA_DA_FALTA : "border")}
+                data-testid="revisao-do-roteiro"
+              >
+                {faltaRevisao && <AvisoDaFalta id="pasta-revisao-roteiro-falta" texto={mRoteiro.f!.instrucao} />}
+                <p className="text-base text-foreground">
+                  {ficha.data?.ia_revisado_em
+                    ? `Revisado por quem atende em ${new Date(ficha.data.ia_revisado_em).toLocaleDateString("pt-BR")}.`
+                    : "Ainda sem revisão de quem atende."}{" "}
+                  O orçamento com IA, na tela de orçamentos, lê este roteiro.
+                </p>
+                {podeEditar && !ficha.data?.ia_revisado_em && (
+                  <>
+                    <Button
+                      type="button"
+                      className="h-11 text-base"
+                      disabled={!roteiroEscritoAgora || marcarRevisado.isPending || salvarFicha.isPending}
+                      onClick={async () => {
+                        // Salva o texto da ficha antes: a revisão vale para o roteiro que está na tela.
+                        try {
+                          await salvarFicha.mutateAsync();
+                          await marcarRevisado.mutateAsync();
+                        } catch {
+                          /* o aviso de erro já saiu no toast da mutação que falhou */
+                        }
+                      }}
+                    >
+                      {marcarRevisado.isPending ? "Marcando..." : "Marcar o roteiro como revisado"}
+                    </Button>
+                    {!roteiroEscritoAgora && (
+                      <p className="text-base text-foreground">Escreva o roteiro antes de marcar a revisão.</p>
+                    )}
+                  </>
+                )}
+              </div>
             </CardContent>
           </Card>
           {botaoSalvar}
@@ -952,37 +1193,67 @@ function Dado({ rotulo, valor }: { rotulo: string; valor: string | null | undefi
 }
 
 function Campo({
+  id: idDado,
   rotulo,
   valor,
   desativado,
+  invalido,
+  descritoPor,
   aoMudar,
 }: {
+  /** Id fixo, quando a nota "Pronto para a IA" leva até este campo. */
+  id?: string;
   rotulo: string;
   valor: string;
   desativado: boolean;
+  /** Campo que a nota cobra e está vazio: borda vermelha. */
+  invalido?: boolean;
+  descritoPor?: string;
   aoMudar: (v: string) => void;
 }) {
-  const id = useId();
+  const gerado = useId();
+  const id = idDado ?? gerado;
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{rotulo}</Label>
-      <Input id={id} value={valor} disabled={desativado} onChange={(e) => aoMudar(e.target.value)} />
+      <Input
+        id={id}
+        value={valor}
+        disabled={desativado}
+        className={invalido ? BORDA_DA_FALTA : undefined}
+        aria-invalid={invalido ? true : undefined}
+        aria-describedby={invalido ? descritoPor : undefined}
+        onChange={(e) => aoMudar(e.target.value)}
+      />
     </div>
   );
 }
 
 function TextoLongo({
+  id: idDado,
   rotulo,
   valor,
   desativado,
+  invalido,
+  descritoPor,
+  aviso,
+  ajuda,
   aoMudar,
 }: {
+  id?: string;
   rotulo: string;
   valor: string;
   desativado: boolean;
+  invalido?: boolean;
+  descritoPor?: string;
+  /** A linha vermelha do que falta, já pronta. */
+  aviso?: React.ReactNode;
+  /** Explicação fixa sob o campo, em letra de 16 px. */
+  ajuda?: string;
   aoMudar: (v: string) => void;
 }) {
-  const id = useId();
+  const gerado = useId();
+  const id = idDado ?? gerado;
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{rotulo}</Label>
@@ -991,8 +1262,13 @@ function TextoLongo({
         rows={6}
         value={valor}
         disabled={desativado}
+        className={invalido ? BORDA_DA_FALTA : undefined}
+        aria-invalid={invalido ? true : undefined}
+        aria-describedby={invalido ? descritoPor : undefined}
         onChange={(e) => aoMudar(e.target.value)}
       />
+      {aviso}
+      {ajuda && <p className="text-base text-foreground">{ajuda}</p>}
     </div>
   );
 }

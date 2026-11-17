@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { migracaoDaGaleriaAusente } from "@/domain/catalogo/galeria-do-produto";
 
 /**
  * Foto de produto gerada pela IA do Lovable (01/11/2026).
@@ -363,24 +364,67 @@ export async function guardarFotoGerada(a: {
     return { estado: "mudou_no_meio" };
   }
 
-  // A gerada anterior deste produto sai do armazenamento, se nenhum outro produto aponta para ela
-  // ("duplicar produto" copia o endereço da foto).
+  // Galeria (17/11/2026): a foto gerada também entra em produto_imagens, como capa, origem "ia". O gatilho do banco
+  // já cria a linha quando a coluna muda; este registro é o explícito e não repete (ON CONFLICT ignora). As fotos
+  // enviadas à mão NUNCA são tocadas aqui. Sem a tabela (migração não aplicada) segue só pela coluna, como antes.
+  const galeria = await registrarNaGaleria(admin, produtoId, url);
+
+  // A gerada anterior deste produto sai do armazenamento, se nenhum outro produto e nenhuma outra foto da galeria
+  // aponta para ela ("duplicar produto" copia o endereço da foto). Ela é SUBSTITUÍDA pela nova: a linha dela na galeria
+  // (e só a gerada) sai junto, para a galeria não ficar com uma foto sem arquivo.
   const anterior = caminhoDaFotoGerada(fotoLida, produtoId);
   if (anterior) {
     try {
+      if (galeria === "registrada") {
+        await admin.from(TABELA_DA_GALERIA).delete().eq("produto_id", produtoId).eq("url", fotoLida).eq("origem", "ia");
+      }
       const { data: outros, error: erroOutros } = await admin
         .from("produtos")
         .select("id")
         .eq("imagem_url", fotoLida)
         .neq("id", produtoId)
         .limit(1);
-      // Na dúvida (a consulta falhou) o arquivo fica: apagar o que outro produto usa é pior que sobrar um.
-      if (!erroOutros && (outros ?? []).length === 0) await tirarDoArmazenamento([anterior]);
+      const { data: naGaleria, error: erroGaleria } = await admin
+        .from(TABELA_DA_GALERIA)
+        .select("id")
+        .eq("url", fotoLida)
+        .limit(1);
+      const galeriaConferida = !erroGaleria || migracaoDaGaleriaAusente(erroGaleria);
+      const galeriaLivre = !!erroGaleria || (naGaleria ?? []).length === 0;
+      // Na dúvida (uma consulta falhou) o arquivo fica: apagar o que outro produto usa é pior que sobrar um.
+      if (!erroOutros && (outros ?? []).length === 0 && galeriaConferida && galeriaLivre) {
+        await tirarDoArmazenamento([anterior]);
+      }
     } catch {
       /* sem a resposta não se apaga nada */
     }
   }
   return { estado: "ok", url, modelo: imagem.modelo };
+}
+
+export const TABELA_DA_GALERIA = "produto_imagens";
+
+/**
+ * Registra a foto gerada na galeria do produto. Nunca derruba a geração: a foto já está em
+ * `produtos.imagem_url`, que é o contrato antigo. "sem_tabela" = migração ainda não aplicada.
+ */
+export async function registrarNaGaleria(
+  admin: GravadorDeFotos,
+  produtoId: string,
+  url: string,
+): Promise<"registrada" | "sem_tabela" | "falhou"> {
+  try {
+    const { error } = await admin
+      .from(TABELA_DA_GALERIA)
+      .upsert(
+        { produto_id: produtoId, url, origem: "ia", capa: true },
+        { onConflict: "produto_id,url", ignoreDuplicates: true },
+      );
+    if (!error) return "registrada";
+    return migracaoDaGaleriaAusente(error) ? "sem_tabela" : "falhou";
+  } catch {
+    return "falhou";
+  }
 }
 
 /** Uma reserva de mais de 5 minutos é de uma chamada que morreu sem liberar: não segura ninguém. */

@@ -8,6 +8,7 @@ import { BarraDeComparacao } from "./barra-de-comparacao";
 import { marcadoresDaLinha, pisoDaMargem, SeloDaFicha } from "./ficha-do-produto";
 import { IconeDoProduto } from "./icone-do-produto";
 import { brl, pct, sinal, type Linha } from "./tipos";
+import type { EstadoDoContador } from "@/domain/precos/leitura-da-tabela";
 
 export function fichaDaLinha(l: Linha) {
   return fichaDoProduto({
@@ -46,12 +47,15 @@ export function CartaoDoProduto({
   podeSelecionar,
   aoSelecionar,
   aoAbrir,
+  fichaEstado = "pronto",
 }: {
   linha: Linha;
   selecionado: boolean;
   podeSelecionar: boolean;
   aoSelecionar: (v: boolean) => void;
   aoAbrir: () => void;
+  /** Enquanto a composição e a receita chegam (ou se falharam), o selo da ficha e o custo cheio não valem. */
+  fichaEstado?: EstadoDoContador;
 }) {
   const p = linha.produto;
   const minimo = p.margem_minima;
@@ -60,7 +64,7 @@ export function CartaoDoProduto({
   const menor = linha.concorrentes.length ? Math.min(...linha.concorrentes.map((c) => c.preco)) : null;
   const mercado = posicaoNoMercado(linha.venda, linha.concorrentes.filter((c) => c.tipo_preco === "final").map((c) => c.preco));
   const ficha = fichaDaLinha(linha);
-  const margemRealRuim = linha.cheio != null && minimo != null && (margemSobreVenda(linha.venda, linha.cheio) ?? 100) < minimo && !(mF != null && mF < minimo);
+  const margemRealRuim = fichaEstado === "pronto" && linha.cheio != null && minimo != null && (margemSobreVenda(linha.venda, linha.cheio) ?? 100) < minimo && !(mF != null && mF < minimo);
 
   return (
     <article
@@ -78,7 +82,7 @@ export function CartaoDoProduto({
             {linha.familia ?? (p.categoria ? categoriaLabel(p.categoria) : "sem categoria")} · por {p.unidade}
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
-            <SeloDaFicha nivel={ficha.nivel} />
+            {fichaEstado === "pronto" ? <SeloDaFicha nivel={ficha.nivel} /> : <span className="px-1 text-base text-muted-foreground" aria-label="ficha indisponível por enquanto">{fichaEstado === "carregando" ? "…" : "Sem dado"}</span>}
             {!p.ativo && <Badge variant="outline" className="h-6 px-1.5 text-xs">só comparação</Badge>}
             {linha.provisorio && (
               <Dica texto="O custo e o preço de balcão foram copiados de um produto parecido até o custo real ser informado. A margem daqui é uma estimativa.">

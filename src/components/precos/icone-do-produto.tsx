@@ -1,4 +1,5 @@
 import { Box, Gift, Package, Palette, Printer, Scissors, Signpost, Sticker, Wrench } from "lucide-react";
+import { FotoAmpliavel } from "@/components/produtos/foto-ampliavel";
 import { cn } from "@/lib/utils";
 
 const ICONE_DA_CATEGORIA = {
@@ -31,10 +32,14 @@ export function IconeDoProduto({
 }) {
   const caixa = tamanho === "lg" ? "h-20 w-20 rounded-xl" : tamanho === "sm" ? "h-9 w-9 rounded-md" : "h-14 w-14 rounded-lg";
   const icone = tamanho === "lg" ? "h-9 w-9" : tamanho === "sm" ? "h-4 w-4" : "h-6 w-6";
+  const foto = (imagem ?? "").trim();
   return (
     <div className={cn("flex shrink-0 items-center justify-center overflow-hidden border border-border bg-primary/10 text-link", caixa)}>
-      {imagem ? (
-        <img src={imagem} alt={nome} loading="lazy" className="h-full w-full object-cover" />
+      {foto ? (
+        // 17/11/2026: a foto se amplia (cartão no mouse, tela cheia no clique ou toque). O gatilho enche a caixa.
+        <FotoAmpliavel url={foto} alt={`Foto de ${nome}`} className="block h-full w-full rounded-none">
+          <img src={foto} alt="" loading="lazy" className="h-full w-full object-cover" />
+        </FotoAmpliavel>
       ) : (
         <IconeDaCategoria categoria={categoria} className={icone} />
       )}

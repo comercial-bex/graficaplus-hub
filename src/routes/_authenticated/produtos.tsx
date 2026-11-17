@@ -107,6 +107,7 @@ import { ModelosDoMercado } from "@/components/produtos/modelos-do-mercado";
 import { EditarFamilias, FamiliasDaLista } from "@/components/produtos/familias-da-lista";
 import { familiasDaLista, filtrarPorFamiliaDaLista } from "@/domain/catalogo/familias-da-lista";
 import { NotaProntoParaIa, useLinhasParaNota } from "@/components/produtos/nota-pronto-para-ia";
+import { AvisoDeFalhaDeConsulta } from "@/components/custos/aviso-de-falha-de-consulta";
 import { entradaDaNota, notaDaPasta } from "@/domain/catalogo/pronto-para-ia";
 import { AvisoDeValorNoTexto } from "@/components/custos/aviso-de-valor-no-texto";
 export const Route = createFileRoute("/_authenticated/produtos")({
@@ -289,10 +290,11 @@ function ProdutosPage() {
 
   // "Pronto para a IA": a nota de cada pasta, pelas tabelas satélites (fase 6 do plano de 02/11).
   const linhasParaNota = useLinhasParaNota();
+  // Sem as fichas lidas a nota é traço, nunca 0: falha de leitura não pode parecer produto vazio.
   const notaDe = (p: Produto) =>
-    notaDaPasta(
-      entradaDaNota(p, familiaDe.get(p.id), linhasParaNota.data ?? { fichas: [], processos: [], perguntas: [] }),
-    );
+    linhasParaNota.data
+      ? notaDaPasta(entradaDaNota(p, familiaDe.get(p.id), linhasParaNota.data))
+      : null;
 
   const stats = useMemo(() => {
     const total = produtos.length;
@@ -622,6 +624,15 @@ function ProdutosPage() {
           vínculo falta antes de rolar 31 cartões procurando. */}
       <SugestaoDeMaquina produtos={produtos as any} />
 
+      {linhasParaNota.isError && (
+        <AvisoDeFalhaDeConsulta
+          o_que="as fichas das pastas, e por isso a nota Pronto para a IA aparece com traço"
+          erro={linhasParaNota.error}
+          carregando={linhasParaNota.isFetching}
+          aoTentarDeNovo={() => void linhasParaNota.refetch()}
+        />
+      )}
+
       {/* Lista */}
       {isLoading ? (
         <Card>
@@ -715,7 +726,7 @@ function ProdutosPage() {
                         {p.unidade}
                       </TableCell>
                       <TableCell>
-                        <NotaProntoParaIa nota={notaDe(p)} />
+                        <NotaProntoParaIa nota={notaDe(p)} calculando={linhasParaNota.isPending} />
                       </TableCell>
                       {canSeeFinancials && (
                         <TableCell className="text-right font-mono text-sm">
@@ -800,7 +811,7 @@ function ProdutosPage() {
                   </div>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>Pronto para a IA</span>
-                    <NotaProntoParaIa nota={notaDe(p)} compacta />
+                    <NotaProntoParaIa nota={notaDe(p)} compacta calculando={linhasParaNota.isPending} />
                   </div>
                   {canSeePrices && (
                     <div className="flex justify-between items-end pt-2 border-t">

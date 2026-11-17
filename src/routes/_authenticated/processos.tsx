@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Carregando } from "@/components/bex/Carregando";
+import { AvisoDeFalhaDeConsulta } from "@/components/custos/aviso-de-falha-de-consulta";
+import { ehMedicaoNova } from "@/domain/custos/campo-de-custo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { dicaTela } from "@/lib/dicas";
@@ -114,7 +116,7 @@ function ProcessosPage() {
         // Só mudar o nome não transforma referência em medição: quem digita um número novo é que mede.
         ...(f.base_produtividade === "tempo_do_produto"
           ? { produtividade_origem: "nao_se_aplica", medido_em: null }
-          : f.produtividade !== f.produtividade_original
+          : ehMedicaoNova(f.produtividade, f.produtividade_original)
             ? { produtividade_origem: "medido", medido_em: new Date().toISOString() }
             : {}),
         produtividade_por_familia: f.familias
@@ -176,7 +178,7 @@ function ProcessosPage() {
       },
     });
 
-  const semNumero = (lista.data ?? []).filter(
+  const semNumero = lista.isError ? 0 : (lista.data ?? []).filter(
     (p) => p.base_produtividade !== "tempo_do_produto" && p.produtividade_origem !== "medido",
   ).length;
 
@@ -190,9 +192,11 @@ function ProcessosPage() {
       />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          {semNumero > 0
-            ? `${semNumero} processo(s) ainda com número de referência: meça na oficina e confirme.`
-            : "Todos os processos foram medidos na oficina."}
+          {lista.isError || lista.isLoading
+            ? ""
+            : semNumero > 0
+              ? `${semNumero} processos ainda com número de referência: meça na oficina e confirme.`
+              : "Todos os processos foram medidos na oficina."}
         </p>
         {podeEditar && (
           <Button onClick={() => setForm({ ...VAZIO })}>
@@ -203,7 +207,18 @@ function ProcessosPage() {
       <Card>
         <CardContent className="space-y-2 pt-6">
           {lista.isLoading && <Carregando />}
-          {(lista.data ?? []).map((p) => (
+          {lista.isError && (
+            <AvisoDeFalhaDeConsulta
+              o_que="os processos"
+              erro={lista.error}
+              carregando={lista.isFetching}
+              aoTentarDeNovo={() => void lista.refetch()}
+            />
+          )}
+          {!lista.isLoading && !lista.isError && (lista.data ?? []).length === 0 && (
+            <p className="text-base">Nenhum processo cadastrado ainda.</p>
+          )}
+          {(lista.isError ? [] : (lista.data ?? [])).map((p) => (
             <button
               key={p.id}
               type="button"
@@ -216,7 +231,9 @@ function ProcessosPage() {
                 <Badge variant="outline">{ETAPAS[p.etapa] ?? p.etapa}</Badge>
                 {p.base_produtividade === "tempo_do_produto"
                   ? "tempo do produto"
-                  : `${Number(p.base_produtividade === "m_h" ? p.produtividade_m_h : p.produtividade_m2_h).toLocaleString("pt-BR")} ${ROTULO_DA_BASE[p.base_produtividade as BaseDeProdutividade]}`}
+                  : (p.base_produtividade === "m_h" ? p.produtividade_m_h : p.produtividade_m2_h) == null
+                    ? "sem número ainda"
+                    : `${Number(p.base_produtividade === "m_h" ? p.produtividade_m_h : p.produtividade_m2_h).toLocaleString("pt-BR")} ${ROTULO_DA_BASE[p.base_produtividade as BaseDeProdutividade]}`}
                 {" · "}
                 {ROTULO_DA_ORIGEM[p.produtividade_origem as OrigemDaProdutividade]}
                 {Number(p.setup_min) > 0 && ` · preparação ${Number(p.setup_min)} min`}

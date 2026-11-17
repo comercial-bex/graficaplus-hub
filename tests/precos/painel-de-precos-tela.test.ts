@@ -24,6 +24,8 @@ vi.mock("@tanstack/react-router", async (original) => {
   };
 });
 vi.mock("@/integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
+// A página lê a permissão para o botão que abre a ficha do produto: aqui quem abre tudo.
+vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ hasPermission: () => true }) }));
 
 import { TooltipProvider } from "../../src/components/ui/tooltip";
 import {
@@ -276,6 +278,7 @@ describe("a página", () => {
     avisoDoMinimo: null,
     parametrosDoMinimo: { ocupacaoAlvoPct: null, multiplicador: null },
     pendencias: [],
+    avisosDeLeitura: [],
     ...p,
   });
 
@@ -384,7 +387,7 @@ describe("a página", () => {
     const sem = pagina(painel());
     expect(sem).not.toContain('data-testid="aviso-de-pendencias-de-custo"');
     const h = pagina(
-      painel({ pendencias: [{ codigo: "a", rotulo: "Aluguel", tipo: "custo_fixo" }, { codigo: "b", rotulo: "Tinta", tipo: "custo_fixo" }] }),
+      painel({ pendencias: [{ codigo: "a", rotulo: "Aluguel", tipo: "custo_fixo", produtoId: null }, { codigo: "b", rotulo: "Tinta", tipo: "custo_fixo", produtoId: null }] }),
     );
     expect(h).toContain("Faltam 2 itens de custo para fechar.");
     expect(h).toContain('href="/custos-producao"');
@@ -543,6 +546,7 @@ describe("a página com o preço mínimo recomendado", () => {
     avisoDoMinimo: null,
     parametrosDoMinimo: { ocupacaoAlvoPct: 50, multiplicador: 3 },
     pendencias: [],
+    avisosDeLeitura: [],
     ...p,
   });
 

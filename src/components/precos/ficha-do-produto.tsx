@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dica } from "@/components/bex/Dica";
 import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
+import { GaleriaDoProduto } from "@/components/produtos/galeria-do-produto";
 import { categoriaLabel } from "@/lib/produtos-catalogo";
 import {
   pisoDaMargem,
@@ -305,6 +306,8 @@ export function FichaDoProduto({
                 <Button onClick={() => salvarFoto.mutate()} disabled={salvarFoto.isPending || foto === (p.imagem_url ?? "")}>
                   <Save className="mr-1.5 h-4 w-4" /> Salvar foto
                 </Button>
+                <h3 className="pt-2 text-lg font-semibold">Todas as fotos do produto</h3>
+                <GaleriaDoProduto produtoId={p.id} nome={p.nome} />
               </>
             ) : (
               <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">Só administrador e gerência trocam a foto do produto.</p>

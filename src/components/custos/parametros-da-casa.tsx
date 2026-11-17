@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
+import { AvisoDeFalhaDeConsulta } from "@/components/custos/aviso-de-falha-de-consulta";
 import { CustosFixosDaGrafica } from "@/components/custos/custos-fixos-da-grafica";
 import { CODIGOS_DE_CUSTO_FIXO } from "@/domain/custos/custos-fixos";
 import {
@@ -83,7 +84,14 @@ export function ParametrosDaCasa() {
   const [rascunho, setRascunho] = useState("");
   const [verHistorico, setVerHistorico] = useState(false);
 
-  const { data: parametros = [], isLoading } = useQuery({
+  const {
+    data: parametros = [],
+    isLoading,
+    isError: parametrosFalharam,
+    error: erroDosParametros,
+    isFetching: buscandoParametros,
+    refetch: lerParametrosDeNovo,
+  } = useQuery({
     queryKey: ["parametros-da-casa"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -100,7 +108,13 @@ export function ParametrosDaCasa() {
     },
   });
 
-  const { data: historico = [] } = useQuery({
+  const {
+    data: historico = [],
+    isError: historicoFalhou,
+    error: erroDoHistorico,
+    isFetching: buscandoHistorico,
+    refetch: lerHistoricoDeNovo,
+  } = useQuery({
     queryKey: ["parametros-da-casa-historico"],
     enabled: verHistorico,
     queryFn: async () => {
@@ -146,6 +160,22 @@ export function ParametrosDaCasa() {
   });
 
   if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (parametrosFalharam)
+    return (
+      <>
+        <div className="mt-10">
+          <AvisoDeFalhaDeConsulta
+            o_que="os parâmetros da casa"
+            erro={erroDosParametros}
+            carregando={buscandoParametros}
+            aoTentarDeNovo={() => void lerParametrosDeNovo()}
+          />
+        </div>
+        <div className="mt-10">
+          <CustosFixosDaGrafica />
+        </div>
+      </>
+    );
   if (parametros.length === 0) return <CustosFixosDaGrafica />;
 
   const categorias = [...new Set(parametros.map((p) => p.categoria))];
@@ -292,7 +322,14 @@ export function ParametrosDaCasa() {
             <h3 className="mb-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Últimas mudanças
             </h3>
-            {historico.length === 0 ? (
+            {historicoFalhou ? (
+              <AvisoDeFalhaDeConsulta
+                o_que="o histórico de mudanças"
+                erro={erroDoHistorico}
+                carregando={buscandoHistorico}
+                aoTentarDeNovo={() => void lerHistoricoDeNovo()}
+              />
+            ) : historico.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Nenhum parâmetro foi alterado ainda. Os valores são os da carga inicial.
               </p>

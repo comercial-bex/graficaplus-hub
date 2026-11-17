@@ -26,7 +26,6 @@ import { ParametrosDaCasa } from "@/components/custos/parametros-da-casa";
 import {
   HORAS_DO_MES_DA_CASA,
   SALARIO_MINIMO,
-  custoHoraComEncargos,
   parcelasDoRegime,
   quantoFalta,
   somarEncargos,
@@ -35,6 +34,15 @@ import { mensagemErro } from "@/lib/erros";
 import { useAuth } from "@/lib/auth-context";
 import { percentual } from "@/lib/percentual";
 import { Carregando } from "@/components/bex/Carregando";
+import { AvisoDeFalhaDeConsulta } from "@/components/custos/aviso-de-falha-de-consulta";
+import {
+  LIMITE_DE_ENCARGOS_EM_PORCENTAGEM,
+  fracaoParaPorcentagem,
+  horaCheia,
+  porcentagemParaFracao,
+  textoDeEncargos,
+} from "@/domain/custos/campo-de-custo";
+import { lerNumero } from "@/domain/custos/planilha-csv";
 
 export const Route = createFileRoute("/_authenticated/custos-producao")({
   head: () => ({
@@ -64,6 +72,7 @@ type Form = {
   funcao: string;
   setor: string;
   custo_hora: string;
+  /** Em PORCENTAGEM na tela (32,82). O banco guarda fração (0,3282); a conversão é só na gravação e na abertura. */
   encargos_pct: string;
   /** Salário real da pessoa/função; com as horas dá o custo/hora (salário ÷ horas). */
   salario_mensal: string;
@@ -91,6 +100,13 @@ function custoHoraDoForm(f: Form): number {
   return Number(f.custo_hora) || 0;
 }
 
+/** Encargos digitados em porcentagem; nulo quando vazio, ilegível, negativo ou acima de 100 %. */
+function encargosDoForm(f: Form): number | null {
+  const n = lerNumero(f.encargos_pct);
+  if (n == null || n < 0 || n > LIMITE_DE_ENCARGOS_EM_PORCENTAGEM) return null;
+  return n;
+}
+
 function CustosProducaoPage() {
   const qc = useQueryClient();
   const { hasPermission } = useAuth();
@@ -101,7 +117,14 @@ function CustosProducaoPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(emptyForm);
 
-  const { data: funcoes = [], isLoading } = useQuery({
+  const {
+    data: funcoes = [],
+    isLoading,
+    isError: funcoesFalharam,
+    error: erroDasFuncoes,
+    isFetching: buscandoFuncoes,
+    refetch: lerFuncoesDeNovo,
+  } = useQuery({
     queryKey: ["custos-mao-de-obra"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -120,7 +143,7 @@ function CustosProducaoPage() {
         setor: form.setor || null,
         // Com salário e horas informados o custo/hora é a conta deles; sem salário vale o digitado.
         custo_hora: custoHoraDoForm(form),
-        encargos_pct: Number(form.encargos_pct) || 0,
+        encargos_pct: porcentagemParaFracao(encargosDoForm(form) ?? 0),
         salario_mensal: Number(form.salario_mensal) > 0 ? Number(form.salario_mensal) : null,
         horas_mensais: Number(form.salario_mensal) > 0 ? Number(form.horas_mensais) || HORAS_DO_MES_DA_CASA : null,
         ativo: form.ativo,
@@ -193,7 +216,7 @@ function CustosProducaoPage() {
 
   const ativos = funcoes.filter((f) => f.ativo);
   const custoTotalHora = ativos.reduce(
-    (acc, f) => acc + custoHoraComEncargos(f.custo_hora, f.encargos_pct),
+    (acc, f) => acc + horaCheia(f.custo_hora, f.encargos_pct),
     0,
   );
   const medio = ativos.length > 0 ? custoTotalHora / ativos.length : 0;
@@ -227,6 +250,18 @@ function CustosProducaoPage() {
         </p>
       )}
 
+      {funcoesFalharam && (
+        <div className="mb-6">
+          <AvisoDeFalhaDeConsulta
+            o_que="as funções da mão de obra"
+            erro={erroDasFuncoes}
+            carregando={buscandoFuncoes}
+            aoTentarDeNovo={() => void lerFuncoesDeNovo()}
+          />
+        </div>
+      )}
+
+      {!funcoesFalharam && (
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
         <KpiCard label="Funções ativas" value={ativos.length} icon={Users} tone="cyan" />
         <KpiCard label="Custo/hora médio" value={brl(medio)} icon={Calculator} tone="lime" />
@@ -237,10 +272,11 @@ function CustosProducaoPage() {
           hint="Se toda a equipe estiver alocada ao mesmo tempo"
         />
       </div>
+      )}
 
       {/* Encargo zerado é zero disfarçado: a conta roda, o número sai plausível,
           e o bloco de mão de obra do orçamento sai menor do que devia. */}
-      {semEncargos.length > 0 && (
+      {!funcoesFalharam && semEncargos.length > 0 && (
         <div className="mb-6 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
@@ -297,7 +333,7 @@ function CustosProducaoPage() {
         </div>
       )}
 
-      {isLoading ? (
+      {funcoesFalharam ? null : isLoading ? (
         <Carregando />
       ) : funcoes.length === 0 ? (
         <Card>
@@ -309,7 +345,7 @@ function CustosProducaoPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {funcoes.map((f) => {
-            const total = custoHoraComEncargos(f.custo_hora, f.encargos_pct);
+            const total = horaCheia(f.custo_hora, f.encargos_pct);
             return (
               <Card key={f.id}>
                 <CardContent className="p-5 space-y-3">
@@ -331,7 +367,7 @@ function CustosProducaoPage() {
                       <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                         Encargos
                       </div>
-                      <div className="font-bold">{(Number(f.encargos_pct) * 100).toFixed(0)}%</div>
+                      <div className="font-bold">{textoDeEncargos(f.encargos_pct)}</div>
                     </div>
                     <div>
                       <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -357,7 +393,7 @@ function CustosProducaoPage() {
                           funcao: f.funcao,
                           setor: f.setor ?? "",
                           custo_hora: String(f.custo_hora),
-                          encargos_pct: String(f.encargos_pct),
+                          encargos_pct: String(fracaoParaPorcentagem(f.encargos_pct)),
                           salario_mensal: f.salario_mensal != null ? String(f.salario_mensal) : "",
                           horas_mensais: String(f.horas_mensais ?? HORAS_DO_MES_DA_CASA),
                           ativo: f.ativo,
@@ -425,19 +461,43 @@ function CustosProducaoPage() {
                 disabled={Number(form.salario_mensal) > 0}
                 value={Number(form.salario_mensal) > 0 ? String(custoHoraDoForm(form)) : form.custo_hora}
                 onChange={(e) => setForm((f) => ({ ...f, custo_hora: e.target.value }))}
+                onBlur={() => {
+                  if (form.custo_hora.trim() !== "") return;
+                  const antes = funcoes.find((x) => x.id === form.id);
+                  setForm((f) => ({ ...f, custo_hora: antes ? String(antes.custo_hora) : "0" }));
+                }}
               />
               {Number(form.salario_mensal) > 0 && (
                 <p className="text-xs text-muted-foreground">Salário ÷ horas. Apague o salário para digitar o custo/hora direto.</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="custo-1-encargos-0-8-80">Encargos (0,8 = 80%)</Label>
+              <Label htmlFor="custo-1-encargos-0-8-80" className="text-base">Encargos em %</Label>
               <Input id="custo-1-encargos-0-8-80"
                 type="number"
                 step="0.01"
+                min="0"
+                max={LIMITE_DE_ENCARGOS_EM_PORCENTAGEM}
+                className="h-11 text-base md:text-base"
                 value={form.encargos_pct}
                 onChange={(e) => setForm((f) => ({ ...f, encargos_pct: e.target.value }))}
+                onBlur={() => {
+                  // Campo apagado volta ao valor anterior: vazio não vira zero.
+                  if (form.encargos_pct.trim() !== "") return;
+                  const antes = funcoes.find((x) => x.id === form.id);
+                  setForm((f) => ({
+                    ...f,
+                    encargos_pct: antes ? String(fracaoParaPorcentagem(antes.encargos_pct)) : "0",
+                  }));
+                }}
+                aria-invalid={form.encargos_pct.trim() !== "" && encargosDoForm(form) == null}
               />
+              <p className="text-base">Digite 32,82 para 32,82 %. O máximo é 100 %.</p>
+              {form.encargos_pct.trim() !== "" && encargosDoForm(form) == null && (
+                <p className="text-base font-semibold text-[#b42318] dark:text-[#ff8a80]" role="alert">
+                  Digite um número entre 0 e 100. Para 32,82 %, digite 32,82.
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-3 pt-7">
               <Switch
@@ -455,7 +515,7 @@ function CustosProducaoPage() {
                   setForm((f) => ({
                     ...f,
                     custo_hora: String(custoHora),
-                    encargos_pct: String(encargosPct),
+                    encargos_pct: String(fracaoParaPorcentagem(encargosPct)),
                     salario_mensal: String(salarioMensal),
                     horas_mensais: String(horasMensais),
                   }))
@@ -464,7 +524,11 @@ function CustosProducaoPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => save.mutate()} disabled={!form.funcao || save.isPending}>
+            <Button
+              className="h-11 min-h-11 text-base"
+              onClick={() => save.mutate()}
+              disabled={!form.funcao || save.isPending || encargosDoForm(form) == null}
+            >
               Salvar
             </Button>
           </DialogFooter>
