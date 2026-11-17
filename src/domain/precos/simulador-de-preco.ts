@@ -18,7 +18,7 @@
  * mostra um número um pouco maior. O texto do simulador explica a diferença.
  */
 import { leituraReal, type CustoRealDoProduto } from "./custo-real";
-import { lerReais, type LinhaDePreco } from "./painel-de-precos";
+import { fraseDoMaterialPorPeca, lerReais, type LinhaDePreco } from "./painel-de-precos";
 import { leituraDoMinimo, taxaSobreAVenda, TOLERANCIA_DO_MINIMO } from "./preco-minimo";
 
 /** Passo do controle: R$ 0,10. PageUp e PageDown andam 10 passos, R$ 1,00. */
@@ -84,7 +84,8 @@ export type CodigoDoAviso =
   | "sem_ocupacao"
   | "sem_taxas"
   | "sem_minimo"
-  | "sem_preco_de_balcao";
+  | "sem_preco_de_balcao"
+  | "material_por_peca";
 
 export type AvisoDoSimulador = { codigo: CodigoDoAviso; frase: string };
 
@@ -343,6 +344,9 @@ export function prepararSimulador(linha: LinhaDePreco): SimuladorPronto | SemDad
       frase:
         "Este produto não tem preço de balcão. A régua usa o dobro do mínimo ou da regra de três.",
     });
+
+  const porPeca = fraseDoMaterialPorPeca(linha);
+  if (porPeca != null) avisos.push({ codigo: "material_por_peca", frase: porPeca });
 
   const regra = leituraReal(linha, linha.preco).regra;
   const largura = limites.maxCentavos - limites.minCentavos;

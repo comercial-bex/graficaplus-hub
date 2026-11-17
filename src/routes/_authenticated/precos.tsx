@@ -12,11 +12,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { dicaTela } from "@/lib/dicas";
 import { mensagemErro } from "@/lib/erros";
+import { useAuth } from "@/lib/auth-context";
+import { podeAbrirRota } from "@/lib/menu";
 import { lerPrecosPorProduto, proporPreco } from "@/lib/api/precos-por-produto.functions";
 import {
   contar,
   familiasDe,
   filtrar,
+  nomeDoProdutoDaPendencia,
   ordenar,
   ROTULO_DO_PROBLEMA,
   type FiltroDeProblema,
@@ -67,6 +70,9 @@ const BOTAO_FILTRO =
 
 function PrecosPage() {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  // O botão só aparece para quem abre o cadastro de produtos, com a mesma regra do menu.
+  const podeAbrirFicha = podeAbrirRota("/produtos", hasPermission);
   const ler = useServerFn(lerPrecosPorProduto);
   const pedir = useServerFn(proporPreco);
   const painel = useQuery({ queryKey: CHAVE_DOS_PRECOS, queryFn: () => ler() });
@@ -177,6 +183,20 @@ function PrecosPage() {
             </p>
           ) : null}
 
+          {painel.data.avisosDeLeitura.length > 0 ? (
+            <ul
+              className="space-y-2 rounded-xl border border-[#8a5a00] bg-card p-4 dark:border-[#f5b942]"
+              role="status"
+              aria-label="Leitura parcial"
+              data-testid="avisos-de-leitura"
+            >
+              <li className="font-semibold">Parte dos dados não carregou. Confira antes de decidir.</li>
+              {painel.data.avisosDeLeitura.map((frase) => (
+                <li key={frase}>{frase}</li>
+              ))}
+            </ul>
+          ) : null}
+
           {faltasDeCusto.length > 0 ? (
             <div
               className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#8a5a00] bg-card p-4 dark:border-[#f5b942]"
@@ -200,18 +220,33 @@ function PrecosPage() {
           ) : null}
 
           {parceirosAbaixoDoPiso.length > 0 ? (
-            <p
-              className="rounded-xl border border-[#8a5a00] bg-card p-4 dark:border-[#f5b942]"
+            <div
+              className="space-y-3 rounded-xl border border-[#8a5a00] bg-card p-4 dark:border-[#f5b942]"
               role="status"
               data-testid="aviso-de-parceiro-abaixo-do-piso"
             >
-              <span className="font-semibold">
-                {parceirosAbaixoDoPiso.length === 1
-                  ? "1 preço de parceiro está abaixo do piso líquido."
-                  : `${parceirosAbaixoDoPiso.length} preços de parceiro estão abaixo do piso líquido.`}
-              </span>{" "}
-              Isso é problema de preço, não de custo faltando. Corrija no preço do produto.
-            </p>
+              <p>
+                <span className="font-semibold">
+                  {parceirosAbaixoDoPiso.length === 1
+                    ? "1 preço de parceiro está abaixo do piso líquido."
+                    : `${parceirosAbaixoDoPiso.length} preços de parceiro estão abaixo do piso líquido.`}
+                </span>{" "}
+                Isso é problema de preço, não de custo faltando. O preço de parceiro se corrige na ficha do produto.
+              </p>
+              <ul className="flex flex-wrap gap-2" aria-label="Produtos com preço de parceiro abaixo do piso">
+                {parceirosAbaixoDoPiso.map((p) =>
+                  p.produtoId && podeAbrirFicha ? (
+                    <li key={p.codigo}>
+                      <Button asChild variant="outline" className="h-11 min-h-11 text-base">
+                        <Link to="/produtos/$id" params={{ id: p.produtoId }}>
+                          Abrir a ficha: {nomeDoProdutoDaPendencia(p.rotulo)}
+                        </Link>
+                      </Button>
+                    </li>
+                  ) : null,
+                )}
+              </ul>
+            </div>
           ) : null}
 
           {contagem.abaixo > 0 ? (

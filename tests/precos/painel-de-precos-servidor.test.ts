@@ -30,6 +30,8 @@ const d = vi.hoisted(() => ({
   erroTaxas: null as null | { message: string },
   pendencias: [] as unknown[],
   erroPendencias: null as null | { message: string },
+  porPeca: [] as unknown[],
+  erroPorPeca: null as null | { message: string },
   chamadasDoAdmin: [] as string[],
   produtoPedido: null as unknown,
 }));
@@ -67,6 +69,11 @@ vi.mock("@/integrations/supabase/client.server", () => ({
                 custo_cheio: c.custo_cheio,
               }));
           return Promise.resolve({ data: linhas, error: null });
+        }
+        if (tabela === "produto_materiais") {
+          const t: Record<string, unknown> = {};
+          t.eq = () => Promise.resolve({ data: d.erroPorPeca ? null : d.porPeca, error: d.erroPorPeca });
+          return t;
         }
         if (tabela === "produto_concorrentes") {
           if (d.concorrentesLanca) throw new Error("falha inesperada");
@@ -233,6 +240,8 @@ beforeEach(() => {
   d.erroTaxas = null;
   d.pendencias = [];
   d.erroPendencias = null;
+  d.porPeca = [];
+  d.erroPorPeca = null;
   d.chamadasDoAdmin = [];
   // custo 30, margem mínima 40: piso 50,00. Parceiro a 40.
   d.produtoPedido = { custo_medio: "30", margem_minima: "40", preco_parceiro: "40" };
@@ -344,6 +353,8 @@ describe("ler os preços", () => {
       taxas: { impostoVendaPct: 4, taxaCartaoPct: 7.5 },
       composicao: { material: 20, maquina: 6, maoDeObra: 4.2, indireto: 8 },
       menor_concorrente: null,
+      material_por_peca: [],
+      area_minima_cobrada: null,
     });
     expect(r.linhas[1].real).toBeNull();
     expect(r.avisoDoCustoReal).toBeNull();
@@ -418,11 +429,14 @@ describe("ler os preços", () => {
     ];
     const r = await ler();
     expect(r.pendencias).toEqual([
-      { codigo: "aluguel_espaco_mensal", rotulo: "Aluguel do espaço", tipo: "custo_fixo" },
+      { codigo: "aluguel_espaco_mensal", rotulo: "Aluguel do espaço", tipo: "custo_fixo", produtoId: null },
     ]);
     expect(d.chamadasDoAdmin).toContain("pendencias_de_custo");
     d.erroPendencias = { message: "function pendencias_de_custo does not exist" };
-    expect((await ler()).pendencias).toEqual([]);
+    const sem = await ler();
+    expect(sem.pendencias).toEqual([]);
+    // A falha sobe como aviso: lista vazia por falha não se lê como "nada falta".
+    expect(sem.avisosDeLeitura.join(" ")).toContain("itens de custo faltando não carregou");
   });
   it("quem vê custo mas não é admin nem gerente lê, sem poder propor", async () => {
     d.papeis = new Set();

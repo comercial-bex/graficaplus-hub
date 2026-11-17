@@ -22,6 +22,16 @@ import { useAuth } from "@/lib/auth-context";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { Carregando } from "@/components/bex/Carregando";
 import { deCSV, escreverNumero, lerNumero, paraCSV } from "@/domain/custos/planilha-csv";
+import { AvisoDeFalhaDeConsulta } from "@/components/custos/aviso-de-falha-de-consulta";
+import {
+  LIMITE_DE_ENCARGOS_EM_PORCENTAGEM,
+  custoVigenteDoMaterial,
+  decidirCampo,
+  decidirEncargos,
+  fracaoParaPorcentagem,
+  horaCheia,
+  textoDoValor,
+} from "@/domain/custos/campo-de-custo";
 import { AlertTriangle, Download, Upload, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,7 +41,10 @@ export const Route = createFileRoute("/_authenticated/planilha-custos")({
 });
 
 const brl = (n: number | null | undefined) =>
-  n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  n == null ? "Sem valor" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Nome novo de propósito: arquivo antigo, que trazia fração arredondada, não reaparece como se fosse porcentagem. */
+const COLUNA_DE_ENCARGOS = "encargos_percentual";
 
 function baixar(nome: string, conteudo: string) {
   const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8" });
@@ -66,7 +79,14 @@ function PlanilhaPage() {
   const arquivoMaterial = useRef<HTMLInputElement>(null);
   const arquivoMaoObra = useRef<HTMLInputElement>(null);
 
-  const { data: materiais = [] } = useQuery({
+  const {
+    data: materiais = [],
+    isPending: materiaisPendentes,
+    isError: materiaisFalharam,
+    error: erroDosMateriais,
+    isFetching: buscandoMateriais,
+    refetch: lerMateriaisDeNovo,
+  } = useQuery({
     queryKey: ["planilha-materiais"],
     queryFn: async () => {
       // A view financeira é a via oficial do custo: a tabela `materiais` não
@@ -80,7 +100,14 @@ function PlanilhaPage() {
     },
   });
 
-  const { data: maoDeObra = [] } = useQuery({
+  const {
+    data: maoDeObra = [],
+    isPending: maoDeObraPendente,
+    isError: maoDeObraFalhou,
+    error: erroDaMaoDeObra,
+    isFetching: buscandoMaoDeObra,
+    refetch: lerMaoDeObraDeNovo,
+  } = useQuery({
     queryKey: ["planilha-mao-obra"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -99,6 +126,7 @@ function PlanilhaPage() {
     data: config,
     isPending: configPendente,
     isError: configFalhou,
+    error: erroDaConfig,
     isFetching: configBuscando,
     refetch: lerConfigDeNovo,
   } = useQuery({
@@ -115,7 +143,13 @@ function PlanilhaPage() {
   });
 
   // O que mudou de preço e ainda não chegou às OS abertas.
-  const { data: desatualizadas = [] } = useQuery({
+  const {
+    data: desatualizadas = [],
+    isError: desatualizadasFalharam,
+    error: erroDasDesatualizadas,
+    isFetching: buscandoDesatualizadas,
+    refetch: lerDesatualizadasDeNovo,
+  } = useQuery({
     queryKey: ["previsoes-desatualizadas"],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("previsoes_desatualizadas");
@@ -214,13 +248,14 @@ function PlanilhaPage() {
     baixar(
       `mao-de-obra-${hojeBr()}.csv`,
       paraCSV(
-        ["id", "funcao", "setor", "custo_hora", "encargos_pct"],
+        ["id", "funcao", "setor", "custo_hora", COLUNA_DE_ENCARGOS],
         maoDeObra.map((m: any) => ({
           id: m.id,
           funcao: m.funcao,
           setor: m.setor ?? "",
           custo_hora: escreverNumero(m.custo_hora, 2),
-          encargos_pct: escreverNumero(m.encargos_pct, 2),
+          // Em porcentagem, como na tela: 32,82 e não 0,3282.
+          [COLUNA_DE_ENCARGOS]: escreverNumero(fracaoParaPorcentagem(m.encargos_pct), 2),
         })),
       ),
     );
@@ -242,9 +277,9 @@ function PlanilhaPage() {
 
       const alvo: any[] = tipo === "material" ? materiais : maoDeObra;
       const chaveNome = tipo === "material" ? "nome" : "funcao";
-      const chaveCusto = tipo === "material" ? "custo_unitario" : "custo_hora";
 
-      const aplicar: { id: string; valor: number; nome: string; antes: number }[] = [];
+      type Mudanca = { id: string; campo: string; valor: number; nome: string };
+      const aplicar: Mudanca[] = [];
       const ignoradas: string[] = [];
 
       for (const linha of linhas) {
@@ -256,22 +291,43 @@ function PlanilhaPage() {
           if (nome) ignoradas.push(nome);
           continue;
         }
-        const valor = lerNumero(linha[chaveCusto]);
-        // `null` é "não consegui ler", e é diferente de zero. Gravar zero aqui
-        // faria o material passar a custar nada.
-        if (valor == null || valor < 0) {
-          ignoradas.push(`${nome} (custo ilegível)`);
-          continue;
+        const colunas =
+          tipo === "material"
+            ? [{ coluna: "custo_unitario", campo: "custo_unitario", encargos: false }]
+            : [
+                { coluna: "custo_hora", campo: "custo_hora", encargos: false },
+                // Só lê encargos se o arquivo trouxe a coluna: arquivo de fornecedor não precisa dela.
+                ...(COLUNA_DE_ENCARGOS in linha
+                  ? [{ coluna: COLUNA_DE_ENCARGOS, campo: "encargos_pct", encargos: true }]
+                  : []),
+              ];
+        for (const c of colunas) {
+          // `null` é "não consegui ler", e é diferente de zero. Gravar zero aqui
+          // faria o material passar a custar nada.
+          const valor = lerNumero(linha[c.coluna]);
+          if (valor == null || valor < 0) {
+            ignoradas.push(`${nome} (${c.encargos ? "encargos" : "custo"} ilegível)`);
+            continue;
+          }
+          if (c.encargos) {
+            const d = decidirEncargos(linha[c.coluna], registro.encargos_pct);
+            if (d.acao === "recusar") {
+              ignoradas.push(`${nome} (encargos acima de ${LIMITE_DE_ENCARGOS_EM_PORCENTAGEM} %)`);
+            } else if (d.acao === "gravar") {
+              aplicar.push({ id: registro.id, campo: c.campo, valor: d.valor, nome: registro[chaveNome] });
+            }
+            continue;
+          }
+          if (Number(registro[c.campo]) === valor) continue;
+          aplicar.push({ id: registro.id, campo: c.campo, valor, nome: registro[chaveNome] });
         }
-        if (Number(registro[chaveCusto]) === valor) continue;
-        aplicar.push({ id: registro.id, valor, nome: registro[chaveNome], antes: Number(registro[chaveCusto]) });
       }
 
       if (aplicar.length === 0) {
         toast.info(
           ignoradas.length > 0
-            ? `Nada a mudar. Não reconheci: ${ignoradas.slice(0, 5).join(", ")}${ignoradas.length > 5 ? "…" : ""}`
-            : "Nada a mudar — os custos do arquivo são iguais aos atuais.",
+            ? `Nada a mudar. Não reconheci: ${ignoradas.slice(0, 5).join(", ")}${ignoradas.length > 5 ? " e outros" : ""}`
+            : "Nada a mudar. Os custos do arquivo são iguais aos atuais.",
         );
         return;
       }
@@ -280,13 +336,13 @@ function PlanilhaPage() {
         if (tipo === "material") {
           await salvarMaterial.mutateAsync({ id: item.id, custo: item.valor });
         } else {
-          await salvarMaoObra.mutateAsync({ id: item.id, campo: "custo_hora", valor: item.valor });
+          await salvarMaoObra.mutateAsync({ id: item.id, campo: item.campo, valor: item.valor });
         }
       }
 
       toast.success(
-        `${aplicar.length} custo(s) atualizado(s).` +
-          (ignoradas.length > 0 ? ` ${ignoradas.length} linha(s) ignorada(s).` : ""),
+        `${aplicar.length} valores atualizados.` +
+          (ignoradas.length > 0 ? ` ${ignoradas.length} linhas ignoradas.` : ""),
       );
       qc.invalidateQueries({ queryKey: ["previsoes-desatualizadas"] });
     } catch (e) {
@@ -301,12 +357,26 @@ function PlanilhaPage() {
     0,
   );
 
+  /** Campo apagado ou recusado volta ao valor anterior na tela; só número digitado vira gravação. */
+  function aoSairDoCampo(
+    e: React.FocusEvent<HTMLInputElement>,
+    atual: number | null | undefined,
+    gravar: (valor: number) => void,
+  ) {
+    const d = decidirCampo(e.target.value, atual);
+    if (d.acao === "gravar") gravar(d.valor);
+    else {
+      if (d.acao === "recusar") toast.error(d.mensagem);
+      e.target.value = textoDoValor(atual);
+    }
+  }
+
   if (!canSeeFinancials) {
     return (
       <div>
         <SectionHeader breadcrumb="Custeio · Planilha de custos" title="Planilha de custos" />
         <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
+          <CardContent className="p-6 text-base">
             Esta tela mostra custo de compra e mão de obra. Seu perfil não tem acesso a valores.
           </CardContent>
         </Card>
@@ -314,28 +384,41 @@ function PlanilhaPage() {
     );
   }
 
+  const campoDeCusto = "ml-auto h-11 text-right font-mono text-base md:text-base";
+
   return (
-    <div>
+    <div className="text-base">
       <SectionHeader
         breadcrumb="Custeio · Planilha de custos"
         title="Planilha de custos"
-        description="Tarifa de energia, mão de obra e custo de material num lugar só — o que alimenta orçamento e OS."
+        description="Tarifa de energia, mão de obra e custo de material num lugar só. É o que alimenta orçamento e OS."
       />
 
+      {desatualizadasFalharam && (
+        <div className="mb-4">
+          <AvisoDeFalhaDeConsulta
+            o_que="as previsões desatualizadas"
+            erro={erroDasDesatualizadas}
+            carregando={buscandoDesatualizadas}
+            aoTentarDeNovo={() => void lerDesatualizadasDeNovo()}
+          />
+        </div>
+      )}
+
       {desatualizadas.length > 0 && (
-        <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+        <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-base">
           <div className="flex gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
             <div className="flex-1">
-              <strong>{desatualizadas.length}</strong> previsão(ões) de material em OS abertas
-              usam um custo que mudou — diferença de {brl(totalDivergencia)}. OS fechada não é
+              <strong>{desatualizadas.length}</strong> previsões de material em OS abertas
+              usam um custo que mudou, com diferença de {brl(totalDivergencia)}. OS fechada não é
               tocada, e material já reservado ou baixado tem preço travado no lote.
               {podeEditar && (
                 <div className="mt-2">
-                  <Button size="sm" variant="outline" disabled={repassar.isPending}
+                  <Button size="sm" variant="outline" className="h-11 min-h-11 text-base" disabled={repassar.isPending}
                           onClick={() => repassar.mutate()}>
                     <RefreshCw className="mr-1 h-4 w-4" />
-                    {repassar.isPending ? "Repassando…" : "Repassar para as OS abertas"}
+                    {repassar.isPending ? "Repassando" : "Repassar para as OS abertas"}
                   </Button>
                 </div>
               )}
@@ -346,19 +429,19 @@ function PlanilhaPage() {
 
       <Tabs defaultValue="materiais">
         <TabsList>
-          <TabsTrigger value="materiais">Materiais</TabsTrigger>
-          <TabsTrigger value="mao-obra">Mão de obra</TabsTrigger>
-          <TabsTrigger value="tarifas">Tarifas e margens</TabsTrigger>
+          <TabsTrigger value="materiais" className="text-base">Materiais</TabsTrigger>
+          <TabsTrigger value="mao-obra" className="text-base">Mão de obra</TabsTrigger>
+          <TabsTrigger value="tarifas" className="text-base">Tarifas e margens</TabsTrigger>
         </TabsList>
 
         <TabsContent value="materiais" className="mt-4">
           <Card>
             <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-              <CardTitle className="text-sm font-medium">
-                Custo por unidade ({materiais.length})
+              <CardTitle className="text-base font-medium">
+                Custo por unidade: {materiaisFalharam ? "sem leitura" : `${materiais.length} materiais`}
               </CardTitle>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={exportarMateriais}>
+                <Button size="sm" variant="outline" className="h-11 min-h-11 text-base" onClick={exportarMateriais} disabled={materiaisFalharam}>
                   <Download className="mr-1 h-4 w-4" /> Exportar CSV
                 </Button>
                 {podeEditar && (
@@ -374,80 +457,123 @@ function PlanilhaPage() {
                         e.target.value = "";
                       }}
                     />
-                    <Button size="sm" variant="outline" disabled={importando}
+                    <Button size="sm" variant="outline" className="h-11 min-h-11 text-base" disabled={importando || materiaisFalharam}
                             onClick={() => arquivoMaterial.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />
-                      {importando ? "Importando…" : "Importar CSV"}
+                      {importando ? "Importando" : "Importar CSV"}
                     </Button>
                   </>
                 )}
               </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
+              {materiaisPendentes && <Carregando linhas={3} />}
+              {materiaisFalharam && (
+                <AvisoDeFalhaDeConsulta
+                  o_que="os materiais"
+                  erro={erroDosMateriais}
+                  carregando={buscandoMateriais}
+                  aoTentarDeNovo={() => void lerMateriaisDeNovo()}
+                />
+              )}
+              {!materiaisPendentes && !materiaisFalharam && materiais.length === 0 && (
+                <p className="p-4 text-base" data-testid="materiais-vazios">
+                  Nenhum material cadastrado.
+                </p>
+              )}
+              {!materiaisPendentes && !materiaisFalharam && materiais.length > 0 && (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Unidade</TableHead>
-                      <TableHead className="text-right">Custo por unidade</TableHead>
-                      <TableHead className="text-right">Estoque</TableHead>
-                      <TableHead>Fornecedor</TableHead>
+                      <TableHead className="text-base">Material</TableHead>
+                      <TableHead className="text-base">Unidade</TableHead>
+                      <TableHead className="text-right text-base">Última compra</TableHead>
+                      <TableHead className="text-right text-base">Custo médio</TableHead>
+                      <TableHead className="text-right text-base">Estoque</TableHead>
+                      <TableHead className="text-base">Fornecedor</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {materiais.map((m: any) => (
+                    {materiais.map((m: any) => {
+                      const vigente = custoVigenteDoMaterial(m);
+                      const destaque = "rounded-md bg-primary/10 ring-2 ring-primary";
+                      return (
                       <TableRow key={m.id}>
-                        <TableCell className="font-medium">{m.nome}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{m.unidade}</TableCell>
+                        <TableCell className="text-base font-medium">{m.nome}</TableCell>
+                        <TableCell className="text-base">{m.unidade}</TableCell>
                         <TableCell className="text-right">
+                          <div className={vigente.origem === "ultima_compra" ? destaque : undefined}>
                           {podeEditar ? (
                             <Input
+                              key={`${m.id}-${m.custo_unitario}`}
                               type="number"
                               step="0.0001"
                               min="0"
                               defaultValue={Number(m.custo_unitario ?? 0)}
-                              className="ml-auto h-8 w-32 text-right font-mono"
-                              onBlur={(e) => {
-                                const v = Number(e.target.value);
-                                if (Number.isFinite(v) && v !== Number(m.custo_unitario)) {
-                                  salvarMaterial.mutate({ id: m.id, custo: v });
-                                }
-                              }}
+                              aria-label={`Custo da última compra de ${m.nome}`}
+                              className={`${campoDeCusto} w-32`}
+                              onBlur={(e) =>
+                                aoSairDoCampo(e, m.custo_unitario == null ? null : Number(m.custo_unitario), (v) =>
+                                  salvarMaterial.mutate({ id: m.id, custo: v }),
+                                )
+                              }
                             />
                           ) : (
-                            <span className="font-mono">{brl(m.custo_unitario)}</span>
+                            <span className="font-mono text-base">{brl(m.custo_unitario)}</span>
                           )}
+                          {vigente.origem === "ultima_compra" && (
+                            <span className="block text-base font-semibold">Vale nas contas</span>
+                          )}
+                          </div>
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm">
+                        <TableCell className="text-right">
+                          <div className={vigente.origem === "medio" || (vigente.origem === "nenhum" && m.custo_medio != null) ? destaque : undefined}>
+                            <span className="font-mono text-base">{brl(m.custo_medio)}</span>
+                            {m.custo_medio != null && (
+                              <span className="block text-base font-semibold">Vale nas contas</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-base">
                           {Number(m.estoque ?? 0) === 0 ? (
-                            <span className="text-muted-foreground">zerado</span>
+                            <span>zerado</span>
                           ) : (
                             `${Number(m.estoque).toLocaleString("pt-BR")} ${m.unidade}`
                           )}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {m.fornecedor || "—"}
+                        <TableCell className="text-base">
+                          {m.fornecedor || "Sem fornecedor"}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
+              )}
             </CardContent>
           </Card>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-base" data-testid="nota-do-custo-vigente">
+            O banco calcula o custo dos produtos com o custo médio quando ele existe, e só usa o valor
+            da última compra quando o médio está sem valor. A coluna com a borda e o texto Vale nas
+            contas é a que entra na conta de cada material. Mudar a última compra de um material que
+            usa o custo médio não muda o custo do produto.
+          </p>
+          <p className="mt-2 text-base">
             A importação casa por <code>id</code> quando o arquivo veio daqui, e por nome quando
-            veio do fornecedor. Linha com custo ilegível é ignorada e listada — nunca vira zero.
+            veio do fornecedor. Linha com custo ilegível é ignorada e listada. Ela nunca vira zero.
           </p>
         </TabsContent>
 
         <TabsContent value="mao-obra" className="mt-4">
           <Card>
             <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-              <CardTitle className="text-sm font-medium">Custo por hora ({maoDeObra.length})</CardTitle>
+              <CardTitle className="text-base font-medium">
+                Custo por hora: {maoDeObraFalhou ? "sem leitura" : `${maoDeObra.length} funções`}
+              </CardTitle>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={exportarMaoObra}>
+                <Button size="sm" variant="outline" className="h-11 min-h-11 text-base" onClick={exportarMaoObra} disabled={maoDeObraFalhou}>
                   <Download className="mr-1 h-4 w-4" /> Exportar CSV
                 </Button>
                 {podeEditarMaoDeObra && (
@@ -463,7 +589,7 @@ function PlanilhaPage() {
                         e.target.value = "";
                       }}
                     />
-                    <Button size="sm" variant="outline" disabled={importando}
+                    <Button size="sm" variant="outline" className="h-11 min-h-11 text-base" disabled={importando || maoDeObraFalhou}
                             onClick={() => arquivoMaoObra.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" /> Importar CSV
                     </Button>
@@ -472,65 +598,89 @@ function PlanilhaPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
+              {maoDeObraPendente && <Carregando linhas={3} />}
+              {maoDeObraFalhou && (
+                <AvisoDeFalhaDeConsulta
+                  o_que="as funções da mão de obra"
+                  erro={erroDaMaoDeObra}
+                  carregando={buscandoMaoDeObra}
+                  aoTentarDeNovo={() => void lerMaoDeObraDeNovo()}
+                />
+              )}
+              {!maoDeObraPendente && !maoDeObraFalhou && maoDeObra.length === 0 && (
+                <p className="p-4 text-base" data-testid="mao-de-obra-vazia">
+                  Nenhuma função cadastrada. Cadastre em Custos fixos e mão de obra.
+                </p>
+              )}
+              {!maoDeObraPendente && !maoDeObraFalhou && maoDeObra.length > 0 && (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Função</TableHead>
-                    <TableHead>Setor</TableHead>
-                    <TableHead className="text-right">Custo/hora</TableHead>
-                    <TableHead className="text-right">Encargos %</TableHead>
-                    <TableHead className="text-right">Hora cheia</TableHead>
+                    <TableHead className="text-base">Função</TableHead>
+                    <TableHead className="text-base">Setor</TableHead>
+                    <TableHead className="text-right text-base">Custo por hora</TableHead>
+                    <TableHead className="text-right text-base">Encargos em %</TableHead>
+                    <TableHead className="text-right text-base">Hora cheia</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {maoDeObra.map((m: any) => (
                     <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.funcao}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{m.setor || "—"}</TableCell>
+                      <TableCell className="text-base font-medium">{m.funcao}</TableCell>
+                      <TableCell className="text-base">{m.setor || "Sem setor"}</TableCell>
                       <TableCell className="text-right">
                         {podeEditarMaoDeObra ? (
-                          <Input type="number" step="0.01" min="0"
+                          <Input key={`${m.id}-${m.custo_hora}`} type="number" step="0.01" min="0"
                                  defaultValue={Number(m.custo_hora ?? 0)}
-                                 className="ml-auto h-8 w-28 text-right font-mono"
-                                 onBlur={(e) => {
-                                   const v = Number(e.target.value);
-                                   if (Number.isFinite(v) && v !== Number(m.custo_hora)) {
-                                     salvarMaoObra.mutate({ id: m.id, campo: "custo_hora", valor: v });
-                                   }
-                                 }} />
+                                 aria-label={`Custo por hora de ${m.funcao}`}
+                                 className={`${campoDeCusto} w-28`}
+                                 onBlur={(e) =>
+                                   aoSairDoCampo(e, m.custo_hora == null ? null : Number(m.custo_hora), (v) =>
+                                     salvarMaoObra.mutate({ id: m.id, campo: "custo_hora", valor: v }),
+                                   )
+                                 } />
                         ) : (
-                          <span className="font-mono">{brl(m.custo_hora)}</span>
+                          <span className="font-mono text-base">{brl(m.custo_hora)}</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         {podeEditarMaoDeObra ? (
-                          <Input type="number" step="0.01" min="0"
-                                 defaultValue={Number(m.encargos_pct ?? 0)}
-                                 className="ml-auto h-8 w-24 text-right font-mono"
+                          <Input key={`${m.id}-${m.encargos_pct}`} type="number" step="0.01" min="0"
+                                 max={LIMITE_DE_ENCARGOS_EM_PORCENTAGEM}
+                                 defaultValue={fracaoParaPorcentagem(m.encargos_pct)}
+                                 aria-label={`Encargos de ${m.funcao}, em porcentagem`}
+                                 className={`${campoDeCusto} w-28`}
                                  onBlur={(e) => {
-                                   const v = Number(e.target.value);
-                                   if (Number.isFinite(v) && v !== Number(m.encargos_pct)) {
-                                     salvarMaoObra.mutate({ id: m.id, campo: "encargos_pct", valor: v });
+                                   const d = decidirEncargos(e.target.value, m.encargos_pct);
+                                   if (d.acao === "gravar") {
+                                     salvarMaoObra.mutate({ id: m.id, campo: "encargos_pct", valor: d.valor });
+                                   } else {
+                                     if (d.acao === "recusar") toast.error(d.mensagem);
+                                     e.target.value = textoDoValor(fracaoParaPorcentagem(m.encargos_pct));
                                    }
                                  }} />
                         ) : (
-                          <span className="font-mono">{Number(m.encargos_pct ?? 0)}%</span>
+                          <span className="font-mono text-base">
+                            {fracaoParaPorcentagem(m.encargos_pct).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} %
+                          </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-sm">
-                        {brl(Number(m.custo_hora ?? 0) * (1 + Number(m.encargos_pct ?? 0) / 100))}
+                      <TableCell className="text-right font-mono text-base">
+                        {brl(horaCheia(m.custo_hora, m.encargos_pct))}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              )}
             </CardContent>
           </Card>
-          <p className="mt-2 text-xs text-muted-foreground">
-            “Hora cheia” é o custo com encargos — é ele que entra no orçamento, não o salário/hora.
+          <p className="mt-2 text-base">
+            Hora cheia é o custo por hora vezes um mais os encargos. É ela que entra no orçamento, não o
+            salário por hora. Digite os encargos em porcentagem: 32,82 para 32,82 %. O máximo é 100 %.
           </p>
           {!podeEditarMaoDeObra && (
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-base">
               Mudar o custo da mão de obra pede a permissão de alterar custos.
             </p>
           )}
@@ -539,86 +689,83 @@ function PlanilhaPage() {
         <TabsContent value="tarifas" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Tarifas e margens</CardTitle>
+              <CardTitle className="text-base font-medium">Tarifas e margens da impressão 3D</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {configPendente && <Carregando linhas={3} className="sm:col-span-2 lg:col-span-3" />}
               {configFalhou && (
-                <div role="alert" className="space-y-3 sm:col-span-2 lg:col-span-3" data-testid="tarifas-3d-falhou">
-                  <p className="text-base font-medium">Não consegui carregar as tarifas e margens.</p>
-                  <p className="text-sm text-muted-foreground">
-                    É uma falha de leitura, não uma tabela vazia. Se continuar, avise a gerência.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="min-h-11"
-                    disabled={configBuscando}
-                    onClick={() => void lerConfigDeNovo()}
-                  >
-                    Tentar de novo
-                  </Button>
+                <div className="sm:col-span-2 lg:col-span-3" data-testid="tarifas-3d-falhou">
+                  <AvisoDeFalhaDeConsulta
+                    o_que="as tarifas e margens"
+                    erro={erroDaConfig}
+                    carregando={configBuscando}
+                    aoTentarDeNovo={() => void lerConfigDeNovo()}
+                  />
                 </div>
               )}
               {!configPendente && !configFalhou && !config && (
                 <div className="space-y-1 sm:col-span-2 lg:col-span-3" data-testid="tarifas-3d-sem-acesso">
                   <p className="text-base font-medium">As tarifas e margens da impressão 3D não chegaram para o seu perfil.</p>
-                  <p className="text-sm text-muted-foreground">
-                    Elas ficam com quem vê custo de máquina (gerência e financeiro). Se a base nunca foi cadastrada, cadastre em
+                  <p className="text-base">
+                    Elas ficam com quem vê custo de máquina, que é a gerência e o financeiro. Se a base nunca foi cadastrada, cadastre em
                     Configurações 3D.
                   </p>
                 </div>
               )}
               {config &&
                 [
-                  { campo: "tarifa_kwh_padrao", rotulo: "Energia (R$/kWh)", passo: "0.0001",
+                  { campo: "tarifa_kwh_padrao", rotulo: "Energia em R$ por kWh", passo: "0.0001",
                     nota: "com tributos e bandeira" },
-                  { campo: "mo_custo_hora_padrao", rotulo: "Mão de obra padrão (R$/h)", passo: "0.01",
+                  { campo: "mo_custo_hora_padrao", rotulo: "Mão de obra padrão em R$ por hora", passo: "0.01",
                     nota: "usado quando a função não tem custo próprio" },
-                  { campo: "mo_encargos_pct", rotulo: "Encargos (%)", passo: "0.01", nota: "" },
-                  { campo: "markup_padrao", rotulo: "Markup padrão", passo: "0.01",
+                  { campo: "mo_encargos_pct", rotulo: "Encargos em %", passo: "0.01",
+                    nota: "nesta tabela o valor já é em porcentagem, por exemplo 32,19" },
+                  { campo: "markup_padrao", rotulo: "Markup padrão, em multiplicador", passo: "0.01",
                     nota: "multiplica o custo operacional" },
-                  { campo: "markup_atacado_padrao", rotulo: "Markup atacado", passo: "0.01", nota: "" },
-                  { campo: "pct_acabamento_padrao", rotulo: "Acabamento (%)", passo: "0.01", nota: "" },
-                  { campo: "pct_falha_padrao", rotulo: "Reserva de falha (%)", passo: "0.01",
+                  { campo: "markup_atacado_padrao", rotulo: "Markup atacado, em multiplicador", passo: "0.01", nota: "" },
+                  { campo: "pct_acabamento_padrao", rotulo: "Acabamento em %", passo: "0.01", nota: "" },
+                  { campo: "pct_falha_padrao", rotulo: "Reserva de falha em %", passo: "0.01",
                     nota: "peça que sai errada e precisa refazer" },
-                  { campo: "custo_admin_padrao", rotulo: "Embalagem sugerida (R$)", passo: "0.01",
-                    nota: "opcional; só soma quando 'Cobrar embalagem' estiver marcado, uma vez por item 3D" },
+                  { campo: "custo_admin_padrao", rotulo: "Embalagem sugerida em R$", passo: "0.01",
+                    nota: "opcional; só soma quando Cobrar embalagem estiver marcado, uma vez por item 3D" },
                 ].map((c) => {
                   const vazio = Number(config[c.campo] ?? 0) === 0;
                   return (
                     <div key={c.campo}>
-                      <Label htmlFor={c.campo} className="text-xs">
+                      <Label htmlFor={c.campo} className="text-base">
                         {c.rotulo}
                         {vazio && (
-                          <Badge variant="outline" className="ml-2 font-normal text-amber-600">
+                          <Badge variant="outline" className="ml-2 text-base font-normal text-amber-700 dark:text-amber-400">
                             zerado
                           </Badge>
                         )}
                       </Label>
                       <Input
+                        key={`${c.campo}-${config[c.campo]}`}
                         id={c.campo}
                         type="number"
                         step={c.passo}
                         min="0"
                         disabled={!podeEditar}
                         defaultValue={Number(config[c.campo] ?? 0)}
-                        className="font-mono"
-                        onBlur={(e) => {
-                          const v = Number(e.target.value);
-                          if (Number.isFinite(v) && v !== Number(config[c.campo])) {
-                            salvarConfig.mutate({ campo: c.campo, valor: v });
-                          }
-                        }}
+                        className="h-11 font-mono text-base md:text-base"
+                        onBlur={(e) =>
+                          aoSairDoCampo(e, config[c.campo] == null ? null : Number(config[c.campo]), (v) =>
+                            salvarConfig.mutate({ campo: c.campo, valor: v }),
+                          )
+                        }
                       />
-                      {c.nota && <p className="mt-1 text-xs text-muted-foreground">{c.nota}</p>}
+                      {c.nota && <p className="mt-1 text-base">{c.nota}</p>}
                     </div>
                   );
                 })}
             </CardContent>
           </Card>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Campo zerado não é “de graça”, é “ninguém preencheu” — e o cálculo trata os dois igual.
-            O custo admin em zero, por exemplo, tira o rateio fixo de toda peça.
+          <p className="mt-2 text-base">
+            Estas tarifas são só da impressão 3D. Mão de obra, markup e rateio dos produtos comuns ficam em
+            Custos fixos e mão de obra, nos parâmetros da casa. Campo zerado não é de graça, é
+            ninguém preencheu, e o cálculo trata os dois igual. Apagar um campo e sair dele devolve o valor
+            anterior, sem gravar zero.
           </p>
         </TabsContent>
       </Tabs>

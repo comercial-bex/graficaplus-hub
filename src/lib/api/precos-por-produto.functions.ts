@@ -1,7 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { avaliar, mensagemDoPedido, type LinhaDePreco } from "@/domain/precos/painel-de-precos";
+import {
+  avaliar,
+  avisosDeLeituraParcial,
+  idDoProdutoDaPendencia,
+  mensagemDoPedido,
+  type FalhasDeLeitura,
+  type LinhaDePreco,
+  type MaterialPorPeca,
+} from "@/domain/precos/painel-de-precos";
 import {
   COLUNAS_DO_CUSTO_REAL,
   COLUNAS_DO_PRECO_MINIMO,
@@ -68,7 +76,13 @@ async function exigirVerCusto(supabase: Banco, userId: string) {
 const num = (v: unknown): number | null => (v == null ? null : Number(v));
 
 /** Um item de custo que a casa ainda precisa preencher, confirmar ou corrigir. Vem de pendencias_de_custo. */
-export type PendenciaDeCusto = { codigo: string; rotulo: string; tipo: string };
+export type PendenciaDeCusto = {
+  codigo: string;
+  rotulo: string;
+  tipo: string;
+  /** Produto da pendência de parceiro (codigo "parceiro:<id>"), para o botão que abre a ficha. Nulo nas demais. */
+  produtoId: string | null;
+};
 
 export type PainelPorProduto = {
   linhas: LinhaDePreco[];
@@ -80,36 +94,43 @@ export type PainelPorProduto = {
   /** Ocupação alvo e multiplicador que o banco usou, para o texto da tela. Nulos quando o banco não os entrega. */
   parametrosDoMinimo: ParametrosDoMinimo;
   pendencias: PendenciaDeCusto[];
+  /** Frases de leitura parcial: o que não carregou e a tela mostra, em vez de lista vazia que parece "nada falta". */
+  avisosDeLeitura: string[];
 };
 
-/** Imposto sobre a venda e taxa do cartão. Falha na leitura devolve nulo: a tela não inventa taxa. */
-async function lerTaxas(admin: Banco): Promise<TaxasDeVenda | null> {
+/** Imposto sobre a venda e taxa do cartão. Falha na leitura devolve nulo e marca a falha: a tela não inventa taxa. */
+async function lerTaxas(admin: Banco): Promise<{ taxas: TaxasDeVenda | null; falhou: boolean }> {
   const { data, error } = await admin
     .from("custos_tabela")
     .select("codigo, valor")
     .eq("ativo", true)
     .in("codigo", ["impostos_venda", "taxa_cartao"]);
-  if (error || !Array.isArray(data)) return null;
+  if (error || !Array.isArray(data)) return { taxas: null, falhou: true };
   const valor = (codigo: string) => {
     const l = (data as Array<{ codigo: string; valor: unknown }>).find((x) => x.codigo === codigo);
     return num(l?.valor) ?? 0;
   };
   // Código ausente conta zero, como no banco: COALESCE(max(valor), 0).
-  return { impostoVendaPct: valor("impostos_venda"), taxaCartaoPct: valor("taxa_cartao") };
+  return {
+    taxas: { impostoVendaPct: valor("impostos_venda"), taxaCartaoPct: valor("taxa_cartao") },
+    falhou: false,
+  };
 }
 
 /**
  * Menor preço de venda final anotado por produto. Só o tipo "final": o preço de terceirizado dos concorrentes
  * não se compara com o balcão. Falha na leitura devolve mapa vazio: a marca some e a tela continua.
  */
-async function lerMenoresConcorrentes(admin: Banco): Promise<Map<string, number>> {
+async function lerMenoresConcorrentes(
+  admin: Banco,
+): Promise<{ menores: Map<string, number>; falhou: boolean }> {
   const menores = new Map<string, number>();
   try {
     const { data, error } = await admin
       .from("produto_concorrentes")
       .select("produto_id, preco, tipo_preco")
       .eq("tipo_preco", "final");
-    if (error || !Array.isArray(data)) return menores;
+    if (error || !Array.isArray(data)) return { menores, falhou: true };
     for (const c of data as Array<Record<string, unknown>>) {
       if (c.tipo_preco !== "final") continue;
       const preco = num(c.preco);
@@ -119,9 +140,38 @@ async function lerMenoresConcorrentes(admin: Banco): Promise<Map<string, number>
       if (atual == null || preco < atual) menores.set(id, preco);
     }
   } catch {
-    return new Map();
+    return { menores: new Map(), falhou: true };
   }
-  return menores;
+  return { menores, falhou: false };
+}
+
+/**
+ * Linhas da ficha marcadas "por peça", com o custo do material por peça, por produto. O custo é o mesmo que o banco
+ * usa em recalcular_custo_produto: custo médio, ou o unitário quando não há médio. Falha devolve nulo e marca a falha.
+ */
+async function lerMaterialPorPeca(
+  admin: Banco,
+): Promise<{ porProduto: Map<string, MaterialPorPeca[]> | null; falhou: boolean }> {
+  try {
+    const { data, error } = await admin
+      .from("produto_materiais")
+      .select("produto_id, quantidade_por_unidade, materiais(nome, custo_medio, custo_unitario)")
+      .eq("por_peca", true);
+    if (error || !Array.isArray(data)) return { porProduto: null, falhou: true };
+    const porProduto = new Map<string, MaterialPorPeca[]>();
+    for (const l of data as Array<Record<string, unknown>>) {
+      const m = l.materiais as Record<string, unknown> | null;
+      if (!m) continue;
+      const custo = num(m.custo_medio) ?? num(m.custo_unitario) ?? 0;
+      const quantidade = num(l.quantidade_por_unidade) ?? 0;
+      const custoPorPeca = Math.round(quantidade * custo * 100) / 100;
+      const id = String(l.produto_id);
+      porProduto.set(id, [...(porProduto.get(id) ?? []), { nome: String(m.nome ?? "Material"), custoPorPeca }]);
+    }
+    return { porProduto, falhou: false };
+  } catch {
+    return { porProduto: null, falhou: true };
+  }
 }
 
 export const lerPrecosPorProduto = createServerFn({ method: "GET" })
@@ -139,7 +189,7 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
     const admin = supabaseAdmin as Banco;
     const { data, error } = await admin
       .from("produtos")
-      .select("id, nome, familia, unidade, custo_medio, preco_base, margem_minima, preco_parceiro")
+      .select("id, nome, familia, unidade, custo_medio, preco_base, margem_minima, preco_parceiro, area_minima_cobrada")
       .eq("ativo", true)
       .order("nome");
     if (error) throw new Error(error.message);
@@ -150,10 +200,13 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
       .select(
         "produto_id, custo_cheio, custo_material, custo_maquina, custo_mao_obra, custo_indireto",
       );
+    const falhas: FalhasDeLeitura = {};
     if (erroCheio) {
       const segunda = await admin.from("produto_custo_cheio").select("produto_id, custo_cheio");
       cheios = segunda.data;
       erroCheio = segunda.error;
+      // A segunda leitura não traz as quatro partes: o custo cheio vem, a composição não.
+      if (!segunda.error) falhas.composicao = true;
     }
     if (erroCheio) throw new Error(erroCheio.message);
     const cheio = new Map<string, Cheio>(
@@ -179,9 +232,14 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
         ];
       }),
     );
-    const concorrente = comConcorrente
-      ? await lerMenoresConcorrentes(admin)
-      : new Map<string, number>();
+    let concorrente = new Map<string, number>();
+    if (comConcorrente) {
+      const lidos = await lerMenoresConcorrentes(admin);
+      concorrente = lidos.menores;
+      falhas.concorrentes = lidos.falhou;
+    }
+    const porPeca = comMaquina ? await lerMaterialPorPeca(admin) : { porProduto: null, falhou: false };
+    falhas.fichaPorPeca = porPeca.falhou;
 
     // Custo real, da visão fechada para a chave do servidor. Visão ou coluna ausente vira frase humana.
     // O preço mínimo vem em colunas novas no fim da visão: sem elas, a leitura cai para as colunas de antes.
@@ -211,7 +269,9 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
         reais.set(String(r.produto_id), lerCustoReal(r));
     }
 
-    const taxas = avisoDoCustoReal == null ? await lerTaxas(admin) : null;
+    const lidas = avisoDoCustoReal == null ? await lerTaxas(admin) : { taxas: null, falhou: false };
+    const taxas = lidas.taxas;
+    falhas.taxas = lidas.falhou;
     const dosParametros = [...reais.values()];
     const parametrosDoMinimo: ParametrosDoMinimo = {
       ocupacaoAlvoPct: dosParametros.find((r) => r.ocupacao_alvo_pct != null)?.ocupacao_alvo_pct ?? null,
@@ -220,15 +280,23 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
           ?.multiplicador_regra_de_tres ?? null,
     };
 
-    // Itens de custo pendentes. Falha aqui não derruba a tela: sem a função, a lista sai vazia.
+    // Itens de custo pendentes. Falha aqui não derruba a tela, mas também não vira lista vazia calada:
+    // a falha sobe como aviso de leitura parcial.
     let pendencias: PendenciaDeCusto[] = [];
     const { data: dasPendencias, error: erroPendencias } = await admin.rpc("pendencias_de_custo");
     if (!erroPendencias) {
-      pendencias = ((dasPendencias ?? []) as Array<Record<string, unknown>>).map((p) => ({
-        codigo: String(p.codigo ?? ""),
-        rotulo: String(p.rotulo ?? p.codigo ?? ""),
-        tipo: String(p.tipo ?? ""),
-      }));
+      pendencias = ((dasPendencias ?? []) as Array<Record<string, unknown>>).map((p) => {
+        const codigo = String(p.codigo ?? "");
+        const tipo = String(p.tipo ?? "");
+        return {
+          codigo,
+          rotulo: String(p.rotulo ?? p.codigo ?? ""),
+          tipo,
+          produtoId: tipo === "parceiro" ? idDoProdutoDaPendencia(codigo) : null,
+        };
+      });
+    } else {
+      falhas.pendencias = true;
     }
 
     const linhas: LinhaDePreco[] = ((data ?? []) as Array<Record<string, unknown>>).map((r) => ({
@@ -245,8 +313,18 @@ export const lerPrecosPorProduto = createServerFn({ method: "GET" })
       taxas,
       composicao: cheio.get(String(r.id))?.composicao ?? null,
       menor_concorrente: concorrente.get(String(r.id)) ?? null,
+      material_por_peca: porPeca.porProduto == null ? null : (porPeca.porProduto.get(String(r.id)) ?? []),
+      area_minima_cobrada: num(r.area_minima_cobrada),
     }));
-    return { linhas, podePropor, avisoDoCustoReal, avisoDoMinimo, parametrosDoMinimo, pendencias };
+    return {
+      linhas,
+      podePropor,
+      avisoDoCustoReal,
+      avisoDoMinimo,
+      parametrosDoMinimo,
+      pendencias,
+      avisosDeLeitura: avisosDeLeituraParcial(falhas),
+    };
   });
 
 export const proporPreco = createServerFn({ method: "POST" })

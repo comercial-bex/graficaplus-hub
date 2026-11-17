@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AvisoDeFalhaDeConsulta } from "@/components/custos/aviso-de-falha-de-consulta";
 import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 import { cn } from "@/lib/utils";
@@ -328,9 +329,12 @@ export function CustosFixosDaGrafica() {
   if (dados.isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
   if (dados.isError)
     return (
-      <p className="rounded-md border border-border p-4 text-base font-semibold" role="alert">
-        Não deu para carregar os custos fixos. {mensagemErro(dados.error)}
-      </p>
+      <AvisoDeFalhaDeConsulta
+        o_que="os custos fixos"
+        erro={dados.error}
+        carregando={dados.isFetching}
+        aoTentarDeNovo={() => void dados.refetch()}
+      />
     );
 
   // Sem nenhuma linha legível a RLS escondeu tudo: o bloco some, em vez de acusar pendência falsa.

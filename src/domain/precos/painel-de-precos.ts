@@ -35,7 +35,16 @@ export type LinhaDePreco = {
   composicao?: { material: number; maquina: number; maoDeObra: number; indireto: number } | null;
   /** Menor preço de venda final anotado entre os concorrentes. Nulo quando ninguém anotou ou a leitura falhou. */
   menor_concorrente?: number | null;
+  /**
+   * Linhas da ficha marcadas "por peça" (produto_materiais.por_peca), com o custo do material por peça.
+   * Lista vazia: o produto não tem. Nulo ou ausente: a leitura não veio, e o simulador não afirma nada.
+   */
+  material_por_peca?: MaterialPorPeca[] | null;
+  /** Área mínima cobrada por peça, em m². Só para dar o exemplo de peça pequena no texto do material por peça. */
+  area_minima_cobrada?: number | null;
 };
+
+export type MaterialPorPeca = { nome: string; custoPorPeca: number };
 
 export type Situacao = "abaixo" | "sem_custo" | "sem_preco" | "justa" | "boa";
 export type Problema =
@@ -311,3 +320,87 @@ export function mensagemDoPedido(mensagem: string): string {
 }
 
 export { FOLGA_AMARELA };
+
+
+// ---------------------------------------------------------------------------------------------
+// Leitura parcial do painel e ficha por peça
+// ---------------------------------------------------------------------------------------------
+
+/** "parceiro:<uuid>" vira o id do produto. Qualquer outra coisa vira nulo: o botão da ficha não aparece em vez de apontar errado. */
+export function idDoProdutoDaPendencia(codigo: string): string | null {
+  const m = /^parceiro:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(codigo.trim());
+  return m ? m[1].toLowerCase() : null;
+}
+
+/** "Preço de parceiro de Lona 440g: margem líquida de menos 20 por cento, o mínimo é 30 por cento" vira "Lona 440g". */
+export function nomeDoProdutoDaPendencia(rotulo: string): string {
+  const semInicio = rotulo.replace(/^Preço de parceiro de /, "");
+  const corte = semInicio.lastIndexOf(": margem líquida de ");
+  return (corte >= 0 ? semInicio.slice(0, corte) : semInicio).trim();
+}
+
+/** O que falhou na leitura do painel sem derrubar a tela. Cada verdadeiro vira uma frase para o dono. */
+export type FalhasDeLeitura = {
+  taxas?: boolean;
+  concorrentes?: boolean;
+  pendencias?: boolean;
+  composicao?: boolean;
+  fichaPorPeca?: boolean;
+};
+
+/**
+ * Frases de leitura parcial, na ordem fixa. A tela mostra todas. Sem elas, uma lista vazia por falha
+ * se lê como "não falta nada" e uma taxa ausente se lê como "sem imposto".
+ */
+export function avisosDeLeituraParcial(f: FalhasDeLeitura): string[] {
+  const a: string[] = [];
+  if (f.pendencias)
+    a.push(
+      "A lista de itens de custo faltando não carregou. A ausência do aviso de custo faltando não quer dizer que o custo está completo.",
+    );
+  if (f.taxas)
+    a.push(
+      "As taxas de imposto e de cartão não carregaram. O preço mínimo recomendado e o simulador ficam sem elas até a leitura voltar.",
+    );
+  if (f.concorrentes)
+    a.push(
+      "Os preços dos concorrentes não carregaram. A marca de concorrente some das réguas, e isso não quer dizer que ninguém anotou preço.",
+    );
+  if (f.composicao)
+    a.push(
+      "A composição do custo cheio não carregou. O simulador e as alavancas de lucro ficam sem dado até a leitura voltar.",
+    );
+  if (f.fichaPorPeca)
+    a.push(
+      "A ficha de material por peça não carregou. O simulador não consegue dizer quais materiais contam por peça no orçamento.",
+    );
+  return a;
+}
+
+const emReais = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/**
+ * A regra do orçamento para a linha da ficha "por peça": ela conta uma vez por peça, enquanto as outras
+ * linhas contam pelos m² cobrados (orçamento, previsão de material da OS e conferência de material usam a mesma
+ * conta: base é o número de peças para a linha por peça). O custo do cadastro soma a ficha por unidade de venda,
+ * ou seja, conta o material por peça uma vez por m². Numa peça de A m², o material por peça pesa o custo dividido por A
+ * em cada m². Só vale para produto vendido por m². Devolve nulo quando não há o que dizer.
+ */
+export function fraseDoMaterialPorPeca(l: Pick<LinhaDePreco, "unidade" | "material_por_peca" | "area_minima_cobrada">): string | null {
+  const itens = (l.material_por_peca ?? []).filter((m) => Number.isFinite(m.custoPorPeca) && m.custoPorPeca > 0);
+  if (itens.length === 0) return null;
+  if (String(l.unidade).toLowerCase() !== "m2") return null;
+  const nomes = itens.map((m) => m.nome).join(" e ");
+  const total = itens.reduce((s, m) => s + m.custoPorPeca, 0);
+  const minima = l.area_minima_cobrada != null && l.area_minima_cobrada > 0 ? l.area_minima_cobrada : null;
+  const emM2 = (a: number) => `${a.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} m²`;
+  const exemplos = [1, 2, 0.5]
+    .map((a) => `peça de ${emM2(a)}, ${emReais(total / a)} por m²`)
+    .join("; ");
+  return (
+    `${nomes} conta por peça no orçamento, não por m². O custo por peça é ${emReais(total)}. ` +
+    `O custo de cadastro que o simulador usa conta esse material uma vez por m², o que só bate numa peça de 1 m². ` +
+    `Pela regra do orçamento o material pesa assim em cada m²: ${exemplos}.` +
+    (minima != null ? ` A área mínima cobrada deste produto é ${emM2(minima)}.` : "")
+  );
+}

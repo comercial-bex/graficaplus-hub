@@ -34,6 +34,7 @@ import { FichaDoProduto, marcadoresDaLinha, pisoDaMargem, SeloDaFicha } from "@/
 import { BarraDeComparacao, LegendaDaBarra } from "@/components/precos/barra-de-comparacao";
 import { IconeDaCategoria, IconeDoProduto } from "@/components/precos/icone-do-produto";
 import { SALARIO_MINIMO } from "@/domain/financeiro/encargos";
+import { avisosDeLeitura, estadoDoContador, textoDoContador, type EstadoDoContador } from "@/domain/precos/leitura-da-tabela";
 import { brl, pct, type Concorrente, type Linha, type LinhaDaReceita, type Produto } from "@/components/precos/tipos";
 
 export const Route = createFileRoute("/_authenticated/tabela-de-precos")({
@@ -271,8 +272,18 @@ function TabelaDePrecosPage() {
     ? agruparPorCategoria(ordenadas.map((l) => ({ ...l, categoria: l.produto.categoria })), CATEGORIAS.map((c) => c.value))
     : [{ categoria: "", itens: ordenadas.map((l) => ({ ...l, categoria: l.produto.categoria })) }];
 
-  const erro = produtos.error ?? niveis.error ?? concorrentes.error ?? ofertas.error ?? composicoes.error ?? receitas.error;
+  // Só os produtos seguram a tabela inteira. As outras consultas enriquecem a linha: cada uma que
+  // falha vira um aviso próprio e a tabela segue útil com o que chegou.
+  const erro = produtos.error;
+  const avisos = avisosDeLeitura(
+    { niveis, ofertas, concorrentes, maoDeObra: estimativaDeMaoDeObra, familias, composicoes, receitas },
+    mensagemErro,
+  );
   const carregando = produtos.isLoading;
+  // Contadores e selos que dependem de consultas que ainda chegam mostram reticências, nunca um número provisório.
+  const estadoDaFicha = estadoDoContador([composicoes, receitas]);
+  const estadoDoAbaixo = estadoDoContador(base === "cheio" ? [niveis, composicoes, receitas] : [niveis]);
+  const estadoDoSemConcorrente = estadoDoContador([concorrentes]);
   const linhaAberta = aberto ? todas.find((l) => l.produto.id === aberto) ?? null : null;
   const selecionadas = comparar.map((id) => todas.find((l) => l.produto.id === id)).filter((l): l is Linha => !!l);
 
@@ -285,13 +296,14 @@ function TabelaDePrecosPage() {
       return n;
     });
 
-  const Atalhos: Array<{ id: Atalho; rotulo: string; n: number; alerta?: boolean }> = [
-    { id: "todos", rotulo: "Todos os produtos", n: resumo.total },
-    { id: "abaixo", rotulo: "Margem abaixo do mínimo", n: resumo.abaixo, alerta: true },
-    { id: "ficha", rotulo: "Ficha técnica incompleta", n: resumo.ficha, alerta: true },
-    { id: "provisorio", rotulo: "Custo provisório (trocar pelo real)", n: resumo.provisorio, alerta: true },
-    { id: "sem_concorrente", rotulo: "Sem concorrente anotado", n: resumo.semConcorrente },
-    { id: "sem_foto", rotulo: "Sem foto", n: resumo.semFoto },
+  const prontoDosProdutos: EstadoDoContador = carregando ? "carregando" : produtos.isError ? "indisponivel" : "pronto";
+  const Atalhos: Array<{ id: Atalho; rotulo: string; n: number; estado: EstadoDoContador; alerta?: boolean }> = [
+    { id: "todos", rotulo: "Todos os produtos", n: resumo.total, estado: prontoDosProdutos },
+    { id: "abaixo", rotulo: "Margem abaixo do mínimo", n: resumo.abaixo, estado: carregando ? "carregando" : estadoDoAbaixo, alerta: true },
+    { id: "ficha", rotulo: "Ficha técnica incompleta", n: resumo.ficha, estado: carregando ? "carregando" : estadoDaFicha, alerta: true },
+    { id: "provisorio", rotulo: "Custo provisório, trocar pelo real", n: resumo.provisorio, estado: prontoDosProdutos, alerta: true },
+    { id: "sem_concorrente", rotulo: "Sem concorrente anotado", n: resumo.semConcorrente, estado: carregando ? "carregando" : estadoDoSemConcorrente },
+    { id: "sem_foto", rotulo: "Sem foto", n: resumo.semFoto, estado: prontoDosProdutos },
   ];
 
   return (
@@ -316,7 +328,9 @@ function TabelaDePrecosPage() {
               atalho === a.id ? "border-primary ring-1 ring-primary" : "border-border",
             )}
           >
-            <div className={cn("text-2xl font-semibold tabular-nums", a.alerta && a.n > 0 && "text-destructive")}>{carregando ? "…" : a.n}</div>
+            <div className={cn("text-2xl font-semibold tabular-nums", a.estado === "pronto" && a.alerta && a.n > 0 && "text-destructive")} aria-label={a.estado === "carregando" ? `${a.rotulo}: carregando` : a.estado === "indisponivel" ? `${a.rotulo}: indisponível` : undefined}>
+              {textoDoContador(a.estado, a.n)}
+            </div>
             <div className="text-xs text-muted-foreground">{a.rotulo}</div>
           </button>
         ))}
@@ -374,9 +388,18 @@ function TabelaDePrecosPage() {
       </div>
 
       {erro && (
-        <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
+        <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-base text-destructive" role="alert">
           Não consegui carregar a tabela: {mensagemErro(erro)}
         </p>
+      )}
+      {avisos.length > 0 && (
+        <div className="space-y-2" role="alert">
+          {avisos.map((a) => (
+            <p key={a.chave} className="rounded-md border border-warning/50 bg-warning/15 p-3 text-base text-foreground">
+              {a.texto}
+            </p>
+          ))}
+        </div>
       )}
       {carregando && <Carregando linhas={6} />}
       {!carregando && !erro && ordenadas.length === 0 && (
@@ -410,6 +433,7 @@ function TabelaDePrecosPage() {
                       key={l.produto.id}
                       linha={l}
                       selecionado={comparar.includes(l.produto.id)}
+                      fichaEstado={carregando ? "carregando" : estadoDaFicha}
                       podeSelecionar={comparar.length < MAX_COMPARAR}
                       aoSelecionar={(v) => alternar(l.produto.id, v)}
                       aoAbrir={() => setAberto(l.produto.id)}
@@ -417,7 +441,7 @@ function TabelaDePrecosPage() {
                   ))}
                 </div>
               ) : (
-                <TabelaCompacta linhas={g.itens} aoAbrir={setAberto} acoes={acoes} />
+                <TabelaCompacta linhas={g.itens} aoAbrir={setAberto} acoes={acoes} fichaEstado={estadoDaFicha} />
               ))}
           </section>
         );
@@ -482,7 +506,7 @@ function TabelaDePrecosPage() {
                     ["Margem parceiro", (l: Linha) => <PilulaDeMargem margem={margemSobreVenda(l.parceiro?.valor ?? null, l.custoBase)} minimo={l.produto.margem_minima} rotulo="" />],
                     ["Margem mínima", (l: Linha) => pct(l.produto.margem_minima)],
                     ["Menor concorrente", (l: Linha) => (l.concorrentes.length ? brl(Math.min(...l.concorrentes.map((c) => c.preco))) : "—")],
-                    ["Ficha técnica", (l: Linha) => <SeloDaFicha nivel={fichaDaLinha(l).nivel} />],
+                    ["Ficha técnica", (l: Linha) => (estadoDaFicha === "pronto" ? <SeloDaFicha nivel={fichaDaLinha(l).nivel} /> : <span aria-label="ficha indisponível por enquanto">{estadoDaFicha === "carregando" ? "…" : "Sem dado"}</span>)],
                   ] as Array<[string, (l: Linha) => React.ReactNode]>
                 ).map(([titulo, f]) => (
                   <TableRow key={titulo}>
@@ -537,7 +561,7 @@ function ChipDeCategoria({ ativo, onClick, rotulo, n, categoria }: { ativo: bool
  */
 type AcoesDaLinha = { editarProduto: boolean; proporPreco: boolean };
 
-function TabelaCompacta({ linhas, aoAbrir, acoes }: { linhas: Linha[]; aoAbrir: (id: string) => void; acoes: AcoesDaLinha }) {
+function TabelaCompacta({ linhas, aoAbrir, acoes, fichaEstado }: { linhas: Linha[]; aoAbrir: (id: string) => void; acoes: AcoesDaLinha; fichaEstado: EstadoDoContador }) {
   const comAcoes = acoes.editarProduto || acoes.proporPreco;
   return (
     <Card>
@@ -575,7 +599,7 @@ function TabelaCompacta({ linhas, aoAbrir, acoes }: { linhas: Linha[]; aoAbrir: 
                 <TableCell className="text-right font-mono text-sm">{brl(l.parceiro?.valor ?? null)}</TableCell>
                 <TableCell><PilulaDeMargem margem={margemSobreVenda(l.parceiro?.valor ?? null, l.custoBase)} minimo={l.produto.margem_minima} rotulo="" /></TableCell>
                 <TableCell className="hidden xl:table-cell"><BarraDeComparacao marcadores={marcadoresDaLinha(l, pisoDaMargem(l.custoBase, l.produto.margem_minima))} /></TableCell>
-                <TableCell><SeloDaFicha nivel={fichaDaLinha(l).nivel} /></TableCell>
+                <TableCell>{fichaEstado === "pronto" ? <SeloDaFicha nivel={fichaDaLinha(l).nivel} /> : <span aria-label="ficha indisponível por enquanto">{fichaEstado === "carregando" ? "…" : "Sem dado"}</span>}</TableCell>
                 {comAcoes && (
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="inline-flex gap-1">
