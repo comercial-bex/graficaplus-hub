@@ -75,7 +75,9 @@ describe("os passos da tela da equipe", () => {
     const cabecalho = TELA.slice(ini, fim) + "\n" + parte("CabecalhoIdentificacao");
     expect(cabecalho).not.toContain("copiarLinkCliente");
     expect(cabecalho).not.toContain("enviarWhatsApp");
-    expect(cabecalho).toContain("Status do orçamento");
+    // O Select de status saiu (17/11/2026): a situação é um texto e cada passo é um botão com confirmação.
+    expect(cabecalho).not.toContain("Status do orçamento");
+    expect(cabecalho).toContain("<AcoesDoStatus ");
     expect(cabecalho).toContain("Converter em OS");
     expect(cabecalho).toContain("Ver a OS");
   });

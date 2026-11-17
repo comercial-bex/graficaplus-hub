@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Check, MessageSquare, Loader2, ShieldCheck } from "lucide-react";
+import { Check, Info, MessageSquare, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { mensagemErro } from "@/lib/erros";
 import { EnviarComprovanteDoCliente } from "@/components/pagamento/enviar-comprovante-do-cliente";
 import { LOGO_FUNDO_CLARO } from "@/lib/marca";
+import { mensagemDaSituacao, situacaoParaAPagina } from "@/domain/orcamentos/resposta-do-link";
 import { dinheiroDaUnidade } from "@/lib/pdf/formato";
 import {
   obterOrcamentoPublico,
@@ -68,11 +69,15 @@ function OrcamentoPublicoPage() {
     mutationFn: (decisao: "aprovado" | "ajuste") =>
       responderOrcamentoPublico({ data: { token, decisao, nome, observacao } }),
     onSuccess: (r) => {
-      toast.success(
-        r.status === "aprovado"
-          ? "Orçamento aprovado. Obrigado!"
-          : "Pedido de ajuste enviado para a equipe.",
-      );
+      // O banco decide: recusa (vencido, encerrado, já aprovado...) volta com o texto pronto e a página
+      // recarrega para mostrar a situação de verdade.
+      if (!r.ok) toast.error(r.mensagem);
+      else
+        toast.success(
+          r.status === "aprovado"
+            ? "Orçamento aprovado. Obrigado!"
+            : "Pedido de ajuste enviado para a equipe.",
+        );
       void consulta.refetch();
     },
     onError: (e) => toast.error(mensagemErro(e, "Não foi possível registrar sua resposta")),
@@ -100,7 +105,10 @@ function OrcamentoPublicoPage() {
   }
 
   const o = consulta.data;
-  const jaRespondido = o.status === "aprovado" || o.status === "convertido";
+  // Servidor antigo não manda `situacao`: a página deduz do status e segue funcionando.
+  const situacao = situacaoParaAPagina(o);
+  const jaRespondido = situacao === "aprovado" || situacao === "ja_virou_pedido";
+  const semResposta = mensagemDaSituacao(situacao);
 
   return (
     <div className="min-h-screen bg-background">
@@ -227,6 +235,16 @@ function OrcamentoPublicoPage() {
                   {o.aprovado_por_nome ? `Por ${o.aprovado_por_nome} · ` : ""}
                   {dataBr(o.aprovado_em)}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : semResposta ? (
+          <Card data-testid="link-sem-resposta" data-situacao={situacao}>
+            <CardContent className="p-6 flex items-start gap-3">
+              <Info className="h-5 w-5 mt-0.5 shrink-0" aria-hidden="true" />
+              <div role="status">
+                <div className="text-base font-medium">{semResposta.titulo}</div>
+                <div className="text-base text-muted-foreground">{semResposta.texto}</div>
               </div>
             </CardContent>
           </Card>

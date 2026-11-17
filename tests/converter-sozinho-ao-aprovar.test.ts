@@ -14,9 +14,10 @@ describe("Converter sozinho ao aprovar pelo link", () => {
     expect(sql).toContain("pedido incompleto");
     expect(sql).toContain("converter_sozinho_ao_aprovar");
   });
-  it("o servidor chama depois de gravar a aprovação, só quando aprovou", () => {
+  it("o servidor chama depois de a função do banco gravar a aprovação, só quando aprovou", () => {
     const i = api.indexOf("converter_aprovado_pelo_cliente");
-    expect(i).toBeGreaterThan(api.indexOf('.update(patch as never)'));
-    expect(api).toContain('patch.status === "aprovado"');
+    expect(i).toBeGreaterThan(api.indexOf('"responder_orcamento_publico"'));
+    expect(api).toContain('resposta.ok && resposta.status === "aprovado"');
+    expect(api).not.toContain(".update(patch as never)");
   });
 });
