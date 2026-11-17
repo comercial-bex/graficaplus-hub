@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   AVISO_DAS_PERGUNTAS_NA_NOTA,
+  abaInicialDaPasta,
+  buscaDaPasta,
+  buscaDaPrimeiraFalta,
   checagensDaPasta,
   DESTINO_DA_CHECAGEM,
   DESTINO_DA_REVISAO,
@@ -146,5 +149,55 @@ describe("as telas", () => {
     expect(pasta).toContain("{AVISO_DAS_PERGUNTAS_NA_NOTA}");
     expect(pasta).toContain("não conta na nota");
     expect(pasta).toContain("if (processos.error) throw processos.error;");
+  });
+});
+
+describe("abrir a pasta já na aba da primeira falta", () => {
+  it("busca válida passa; aba inexistente ou lixo cai em Descrição sem erro", () => {
+    expect(buscaDaPasta({ aba: "parametros", campo: "pasta-largura" })).toEqual({ aba: "parametros", campo: "pasta-largura" });
+    expect(buscaDaPasta({ aba: "ia", campo: "pasta-revisao-roteiro" })).toEqual({ aba: "ia", campo: "pasta-revisao-roteiro" });
+    expect(buscaDaPasta({ aba: "nao-existe", campo: "pasta-foto" })).toEqual({});
+    expect(buscaDaPasta({ aba: 7, campo: {} })).toEqual({});
+    expect(buscaDaPasta({})).toEqual({});
+    expect(abaInicialDaPasta({}, ["descricao", "ia"])).toBe("descricao");
+  });
+
+  it("campo desconhecido ou de outra aba é descartado, a aba valida fica", () => {
+    expect(buscaDaPasta({ aba: "ia", campo: "qualquer-id" })).toEqual({ aba: "ia" });
+    expect(buscaDaPasta({ aba: "ia", campo: "pasta-foto" })).toEqual({ aba: "ia" });
+  });
+
+  it("aba que o usuário não vê (Preço sem permissão) abre em Descrição", () => {
+    const sem = abasDaPasta({ canSeePrices: false }).map((a) => a.id);
+    expect(abaInicialDaPasta({ aba: "preco" }, sem)).toBe("descricao");
+    expect(abaInicialDaPasta({ aba: "ia" }, sem)).toBe("ia");
+  });
+
+  it("a primeira falta aponta a aba e o campo dela; sem falta ou sem nota, nulo", () => {
+    expect(buscaDaPrimeiraFalta(notaDaPasta({ ...completa, temFoto: true, temDescricao: true, temFamilia: true, temMedidaPadrao: false }))).toEqual({
+      aba: "parametros",
+      campo: "pasta-largura",
+    });
+    expect(buscaDaPrimeiraFalta(notaDaPasta(vazia))).toEqual({ aba: "descricao", campo: "pasta-foto" });
+    expect(buscaDaPrimeiraFalta(notaDaPasta({ ...completa, roteiroRevisado: false }))).toEqual({
+      aba: "ia",
+      campo: "pasta-revisao-roteiro",
+    });
+    expect(buscaDaPrimeiraFalta(notaDaPasta(completa))).toBeNull();
+    expect(buscaDaPrimeiraFalta(null)).toBeNull();
+  });
+
+  it("todo link gerado pela primeira falta passa pela validação intacto", () => {
+    for (const c of checagensDaPasta(vazia)) {
+      const d = c.destino;
+      expect(buscaDaPasta({ aba: d.aba, campo: d.campo })).toEqual({ aba: d.aba, campo: d.campo });
+    }
+  });
+
+  it("a rota valida a busca, a lista passa o id e a pasta lê a aba da URL", () => {
+    expect(pasta).toContain("validateSearch");
+    expect(pasta).toContain("Route.useSearch()");
+    expect(componente).toContain("buscaDaPrimeiraFalta");
+    expect((lista.match(/produtoId=\{p\.id\}/g) ?? []).length).toBe(2);
   });
 });

@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {
+  buscaDaPrimeiraFalta,
   dicaDaNota,
   faixaDaNota,
   fraseDaNota,
@@ -59,8 +61,11 @@ export function NotaProntoParaIa({
   nota,
   compacta = false,
   calculando = false,
+  produtoId,
 }: {
   nota: NotaDaPasta | null;
+  /** Com o id, a nota vira link para a pasta, já na aba da primeira falta. */
+  produtoId?: string;
   compacta?: boolean;
   /** Sem nota ainda porque a leitura está em andamento (e não porque falhou). */
   calculando?: boolean;
@@ -88,9 +93,24 @@ export function NotaProntoParaIa({
       <span className="font-mono text-base tabular-nums">—/10</span>
     </span>
   );
+  const falta = produtoId ? buscaDaPrimeiraFalta(nota) : null;
+  const clicavel =
+    produtoId && falta ? (
+      <Link
+        to="/produtos/$id"
+        params={{ id: produtoId }}
+        search={{ aba: falta.aba, campo: falta.campo }}
+        data-testid="nota-abre-a-falta"
+        className="inline-flex min-h-11 items-center rounded-md underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-0"
+      >
+        {miolo}
+      </Link>
+    ) : (
+      miolo
+    );
   return (
     <span className="inline-flex items-center gap-1" data-testid="nota-pronto-para-ia">
-      {celular ? miolo : <Dica texto={texto}>{miolo}</Dica>}
+      {celular ? clicavel : <Dica texto={texto}>{clicavel}</Dica>}
       {celular && <DicaIcone texto={texto} rotulo="o que falta para a nota" />}
     </span>
   );

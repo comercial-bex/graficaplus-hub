@@ -726,7 +726,7 @@ function ProdutosPage() {
                         {p.unidade}
                       </TableCell>
                       <TableCell>
-                        <NotaProntoParaIa nota={notaDe(p)} calculando={linhasParaNota.isPending} />
+                        <NotaProntoParaIa nota={notaDe(p)} produtoId={p.id} calculando={linhasParaNota.isPending} />
                       </TableCell>
                       {canSeeFinancials && (
                         <TableCell className="text-right font-mono text-sm">
@@ -811,7 +811,7 @@ function ProdutosPage() {
                   </div>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>Pronto para a IA</span>
-                    <NotaProntoParaIa nota={notaDe(p)} compacta calculando={linhasParaNota.isPending} />
+                    <NotaProntoParaIa nota={notaDe(p)} produtoId={p.id} compacta calculando={linhasParaNota.isPending} />
                   </div>
                   {canSeePrices && (
                     <div className="flex justify-between items-end pt-2 border-t">
