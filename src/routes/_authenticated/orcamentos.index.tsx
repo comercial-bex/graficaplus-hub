@@ -9,7 +9,8 @@ import { FunilDoOrcamento } from "@/components/orcamento/funil-do-orcamento";
 import { OrcamentoComIa } from "@/components/orcamento/orcamento-com-ia";
 import { QuadroDeOrcamentos } from "@/components/orcamento/quadro-de-orcamentos";
 import { ETAPAS_DO_ENVIADO, etapaParaGravar, type EtapaDoEnviado } from "@/domain/orcamentos/quadro";
-import { camposDaRenovacao } from "@/domain/orcamentos/renovacao";
+import { FUNCAO_DE_RENOVACAO, argumentosDaRenovacao } from "@/domain/orcamentos/renovacao";
+import { mensagemDaFuncao } from "@/domain/orcamentos/acoes-do-orcamento";
 import { Checkbox } from "@/components/ui/checkbox";
 import { chaveWhatsApp } from "@/domain/documentos";
 import { recebeWhatsApp } from "@/domain/documentos";
@@ -86,6 +87,9 @@ function OrcamentosPage() {
   const podeConverter = hasPermission("orcamentos.convert");
   // Mudar a etapa é editar o orçamento: o banco deixa quem tem orcamentos.create (policy "orc permission update").
   const podeMoverEtapa = hasPermission("orcamentos.create");
+  // Renovar é a função renovar_orcamento_vencido, que exige criar e enviar (a mesma regra da tela do orçamento).
+  const podeRenovarOrcamento = hasPermission("orcamentos.create") && hasPermission("orcamentos.send");
+  const renovando = useRef(false);
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
   // Cascas (25/10/2026): 26 orçamentos antigos, rejeitados ou expirados, sem nenhum valor — sobras
@@ -327,16 +331,19 @@ function OrcamentosPage() {
     toast.success(`Orçamento #${orc.numero}: ${rotulo.toLowerCase()}`);
   }
 
-  // Expirado ou enviado vencido: volta a Enviado com a validade contando de novo e abre o
-  // orçamento para mandar ao cliente pelo botão de sempre. Nada é enviado daqui.
+  // Expirado ou enviado vencido: a função do banco volta a Enviado com a validade contando de novo e a tela
+  // abre o orçamento para mandar ao cliente pelo botão de sempre. Nada é enviado daqui. Se a função ainda não
+  // existe no banco, a tela avisa e para: nunca grava o status por UPDATE direto.
   async function renovarOrcamento(orc: { id: string; numero?: unknown }) {
-    const { data, error } = await supabase
-      .from("orcamentos")
-      .update(camposDaRenovacao(new Date()))
-      .eq("id", orc.id)
-      .select("id");
-    if (error) return toast.error(mensagemErro(error));
-    if (!data || data.length === 0) return toast.error("Seu perfil não pode alterar este orçamento.");
+    if (renovando.current) return;
+    renovando.current = true;
+    let error: unknown;
+    try {
+      ({ error } = await (supabase.rpc as any)(FUNCAO_DE_RENOVACAO, argumentosDaRenovacao(orc.id)));
+    } finally {
+      renovando.current = false;
+    }
+    if (error) return toast.error(mensagemDaFuncao(error, "Não foi possível renovar o orçamento."));
     qc.invalidateQueries({ queryKey: ["orcamentos"] });
     toast.success(`Orçamento #${orc.numero}: validade renovada. Agora mande ao cliente pelo botão Enviar.`);
     navigate({ to: "/orcamentos/$id", params: { id: orc.id } });
@@ -583,6 +590,7 @@ function OrcamentosPage() {
             mostrarValores={canSeePrices}
             podeConverter={podeConverter}
             podeMover={podeMoverEtapa}
+            podeRenovarOrcamento={podeRenovarOrcamento}
             aoAbrir={(id) => navigate({ to: "/orcamentos/$id", params: { id } })}
             aoConverter={(o) => converterEmOS(o)}
             aoMoverEtapa={(o, etapa) => moverEtapa(o, etapa)}

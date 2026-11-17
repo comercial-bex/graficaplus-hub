@@ -1,6 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { condicaoCompleta, descricaoDaCondicao, lerCondicao } from "@/domain/orcamentos/acordo";
+import { funcaoAusente } from "@/domain/orcamentos/acoes-do-orcamento";
+import {
+  MENSAGEM_LINK_INDISPONIVEL,
+  interpretarRespostaDoBanco,
+  situacaoDoLink,
+  validoAteDoLink,
+  type RespostaDoLink,
+  type SituacaoDoLink,
+} from "@/domain/orcamentos/resposta-do-link";
 
 /**
  * Link público do orçamento.
@@ -19,7 +28,10 @@ export type OrcamentoPublico = {
   status: string;
   cliente: string;
   emissao: string | null;
+  /** Último dia em que o link responde, à tarde de Brasília para não voltar um dia na tela. */
   validade: string | null;
+  /** Se o cliente ainda pode responder, e por que não. Servidor antigo não manda: a página deduz do status. */
+  situacao?: SituacaoDoLink;
   entrega: string | null;
   total: number;
   desconto: number;
@@ -161,9 +173,11 @@ export const obterOrcamentoPublico = createServerFn({ method: "POST" })
           .map((v) => (typeof v === "string" ? v.trim() : ""))
           .find(Boolean) ?? "",
       emissao: o.created_at ?? null,
-      validade: o.created_at
-        ? new Date(new Date(o.created_at).getTime() + (o.validade_dias ?? 7) * 86400000).toISOString()
-        : null,
+      validade: validoAteDoLink(o) ? `${validoAteDoLink(o)}T15:00:00.000Z` : null,
+      situacao: situacaoDoLink(
+        { status: String(o.status), os_id: o.os_id ?? null, enviado_em: o.enviado_em ?? null, created_at: o.created_at ?? null, validade_dias: o.validade_dias ?? null },
+        new Date(),
+      ),
       entrega: o.data_entrega_prometida ?? o.prazo ?? null,
       total: Number(o.valor_total ?? 0),
       desconto: Number(o.valor_subtotal ?? o.valor_total ?? 0) - Number(o.valor_total ?? 0),
@@ -193,6 +207,12 @@ export const obterOrcamentoPublico = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * A resposta do cliente (17/11/2026). Quem decide e grava é `responder_orcamento_publico`, função do banco só
+ * para a chave de serviço: só responde quem está em "enviado", sem OS e dentro da validade contada do envio.
+ * Aqui só se repassa o pedido e se traduz o `codigo`. Se a função ainda não existe no banco, falha fechada:
+ * a resposta não é gravada por outro caminho e o cliente recebe uma mensagem simples.
+ */
 export const responderOrcamentoPublico = createServerFn({ method: "POST" })
   .inputValidator((input: {
     token: string;
@@ -206,58 +226,41 @@ export const responderOrcamentoPublico = createServerFn({ method: "POST" })
     }
     return input;
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<RespostaDoLink> => {
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: orc } = await supabaseAdmin
-      .from("orcamentos")
-      .select("id, status, observacoes, os_id")
-      .eq("token_publico", data.token)
-      .maybeSingle();
-    if (!orc) throw new Error("Link inválido ou expirado");
-    const o = orc as Record<string, any>;
-    // A conversão comum deixa o orçamento "aprovado" e grava o os_id: só o
-    // status deixava o cliente "rejeitar" um pedido que já estava na oficina.
-    if (o.status === "convertido" || o.os_id) throw new Error("Este orçamento já virou Ordem de Serviço");
 
     const ip =
       getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ??
       getRequestHeader("cf-connecting-ip") ??
       null;
 
-    const agora = new Date().toISOString();
-    const observacaoCliente = data.observacao?.trim()
-      ? `${o.observacoes ? `${o.observacoes}\n` : ""}[${new Date().toLocaleString("pt-BR")}] ${data.nome}: ${data.observacao.trim()}`
-      : o.observacoes;
+    const { data: bruto, error } = await (supabaseAdmin.rpc as any)("responder_orcamento_publico", {
+      p_token: data.token,
+      p_decisao: data.decisao,
+      p_nome: data.nome.trim(),
+      p_observacao: data.observacao?.trim() || null,
+      p_ip: ip,
+    });
+    if (error) {
+      if (!funcaoAusente(error)) console.error("[orcamento-publico] a resposta do cliente falhou", error);
+      throw new Error(MENSAGEM_LINK_INDISPONIVEL);
+    }
+    const resposta = interpretarRespostaDoBanco(bruto);
 
-    const patch =
-      data.decisao === "aprovado"
-        ? {
-            status: "aprovado",
-            aprovado_em: agora,
-            aprovado_por_nome: data.nome.trim(),
-            aprovado_ip: ip,
-            observacoes: observacaoCliente,
-          }
-        : { status: "rejeitado", observacoes: observacaoCliente };
-
-    const { error } = await supabaseAdmin
-      .from("orcamentos")
-      .update(patch as never)
-      .eq("id", o.id);
-    if (error) throw new Error("Não foi possível registrar sua resposta");
-
-    // Aprovou e o pedido está completo: vira OS sem esperar ninguém lembrar. O banco
-    // nunca lança aqui (devolve o motivo) e a aprovação já está gravada, então uma
-    // recusa só deixa o orçamento "aprovado" para o lembrete diário.
-    if (patch.status === "aprovado") {
-      try {
-        await (supabaseAdmin.rpc as any)("converter_aprovado_pelo_cliente", { p_orcamento_id: o.id });
-      } catch (e) {
-        console.error("[orcamento-publico] conversão automática falhou", e);
+    // Aprovou e o pedido está completo: vira OS sem esperar ninguém lembrar. O banco nunca lança aqui
+    // (devolve o motivo) e a aprovação já está gravada, então uma recusa só deixa o orçamento "aprovado"
+    // para o lembrete diário.
+    if (resposta.ok && resposta.status === "aprovado") {
+      const orcamentoId = (bruto as { orcamento_id?: unknown }).orcamento_id;
+      if (typeof orcamentoId === "string") {
+        try {
+          await (supabaseAdmin.rpc as any)("converter_aprovado_pelo_cliente", { p_orcamento_id: orcamentoId });
+        } catch (e) {
+          console.error("[orcamento-publico] conversão automática falhou", e);
+        }
       }
     }
 
-    return { ok: true, status: patch.status };
+    return resposta;
   });

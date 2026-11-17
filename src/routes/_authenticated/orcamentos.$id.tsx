@@ -29,13 +29,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   AlertTriangle,
   ArrowDown,
   ArrowLeft,
@@ -210,6 +203,8 @@ import {
 } from "@/domain/orcamentos/instalacao";
 import { CabecalhoIdentificacao } from "@/components/orcamento/tela/CabecalhoIdentificacao";
 import { ONDE_RESOLVER, ROTULO_DO_STATUS, statusTone } from "@/components/orcamento/tela/comum";
+import { AcoesDoStatus } from "@/components/orcamento/acoes-do-status";
+import { HistoricoDeVersoes } from "@/components/orcamento/historico-de-versoes";
 import { FaixaDeMudanca } from "@/components/orcamento/faixa-de-mudanca";
 import type { DiferencaDaVersao } from "@/domain/orcamentos/o-que-mudou";
 
@@ -1386,28 +1381,6 @@ function OrcamentoDetailPage() {
     }
   }
 
-  async function setStatus(novoStatus: string, aviso = "Status atualizado") {
-    const update: any = { status: novoStatus };
-    if (novoStatus === "enviado") update.enviado_em = new Date().toISOString();
-    if (novoStatus === "aprovado") update.aprovado_em = new Date().toISOString();
-    const { data, error } = await supabase
-      .from("orcamentos")
-      .update(update)
-      .eq("id", id)
-      .select("id");
-    if (error) return toast.error(mensagemErro(error));
-    // Escrita barrada pela RLS devolve 0 linhas e NENHUM erro. Sem esta
-    // conferência a tela dizia "Status atualizado" sem ter gravado nada — é o
-    // que acontece com o perfil financeiro, que lê o orçamento e não pode
-    // alterá-lo (a policy de update exige `orcamentos.create`).
-    if (!data || data.length === 0) {
-      return toast.error("Seu perfil não pode alterar o status deste orçamento.");
-    }
-    toast.success(aviso);
-    qc.invalidateQueries({ queryKey: ["orcamento", id] });
-    qc.invalidateQueries({ queryKey: ["orcamentos"] });
-  }
-
   // A resposta era "OS criada (787db567-840d-…)" e a tela ficava no
   // orçamento: o código interno não diz nada, e a OS precisava ser procurada.
   // Agora trava durante a chamada e leva direto à OS.
@@ -1640,25 +1613,7 @@ function OrcamentoDetailPage() {
         <CabecalhoIdentificacao convertendo={convertendo} descontoPendente={descontoPendente} fechado={fechado} hasPermission={hasPermission} linhaDaTaxa={linhaDaTaxa} orc={orc} podeConverter={podeConverter} setConferindo={setConferindo} />
 
         {/* Linha 3 — ações secundárias */}
-        <div className="flex items-center gap-2 flex-wrap md:pl-12">
-          <Select value={orc.status} onValueChange={setStatus} disabled={fechado}>
-            <SelectTrigger className="w-48 h-9" aria-label="Status do orçamento">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {["rascunho", "enviado", "aprovado", "rejeitado", "expirado"].map((s) => (
-                <SelectItem key={s} value={s}>
-                  {ROTULO_DO_STATUS[s]}
-                </SelectItem>
-              ))}
-              {orc.status === "convertido" && (
-                <SelectItem value="convertido" disabled>
-                  {ROTULO_DO_STATUS.convertido}
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
+        <AcoesDoStatus orc={orc} podeAlterar={podeEditar} />
         <FaixaDeMudanca versao={versao} statusDoOrcamento={orc.status} erro={versaoErro} />
         {orc.status === "enviado" && visto.data && (
           <p className="md:pl-12 text-xs text-muted-foreground">
@@ -2689,7 +2644,10 @@ function OrcamentoDetailPage() {
           )}
 
           {passo === 4 && (
-            <PassoRevisao canSeePrices={canSeePrices} condicao={condicao} copiarLinkCliente={copiarLinkCliente} dadosDoAcordo={dadosDoAcordo} enviarWhatsApp={enviarWhatsApp} fechado={fechado} gerandoLink={gerandoLink} hasPermission={hasPermission} id={id} irParaPasso={irParaPasso} itensDeProduto={itensDeProduto} lembrando={lembrando} lembrarCliente={lembrarCliente} linhaDaTaxa={linhaDaTaxa} orc={orc} pendencias={pendencias} podeMandar={podeMandar} setPreviewOpen={setPreviewOpen} setPreviewProducaoOpen={setPreviewProducaoOpen} somaArea={somaArea} taxaDoPrazoDoOrcamento={taxaDoPrazoDoOrcamento} />
+            <>
+              <PassoRevisao canSeePrices={canSeePrices} condicao={condicao} copiarLinkCliente={copiarLinkCliente} dadosDoAcordo={dadosDoAcordo} enviarWhatsApp={enviarWhatsApp} fechado={fechado} gerandoLink={gerandoLink} hasPermission={hasPermission} id={id} irParaPasso={irParaPasso} itensDeProduto={itensDeProduto} lembrando={lembrando} lembrarCliente={lembrarCliente} linhaDaTaxa={linhaDaTaxa} orc={orc} pendencias={pendencias} podeMandar={podeMandar} setPreviewOpen={setPreviewOpen} setPreviewProducaoOpen={setPreviewProducaoOpen} somaArea={somaArea} taxaDoPrazoDoOrcamento={taxaDoPrazoDoOrcamento} />
+              {canSeePrices && <HistoricoDeVersoes orcamentoId={id} />}
+            </>
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-2">

@@ -1,5 +1,6 @@
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmarAcao } from "@/components/bex/ConfirmarAcao";
 import { cn } from "@/lib/utils";
 import { podeRenovar } from "@/domain/orcamentos/renovacao";
 import {
@@ -93,6 +94,7 @@ export function QuadroDeOrcamentos({
   mostrarValores,
   podeConverter,
   podeMover = false,
+  podeRenovarOrcamento = false,
   agora = new Date(),
   aoAbrir,
   aoConverter,
@@ -104,6 +106,8 @@ export function QuadroDeOrcamentos({
   podeConverter: boolean;
   /** Pode mudar a etapa de um orçamento enviado (a mesma permissão que o banco cobra para editar). */
   podeMover?: boolean;
+  /** Renovar exige orcamentos.create e orcamentos.send, como a função do banco e a tela do orçamento. */
+  podeRenovarOrcamento?: boolean;
   agora?: Date;
   aoAbrir: (id: string) => void;
   aoConverter: (o: OrcamentoDoQuadro) => void;
@@ -164,16 +168,23 @@ export function QuadroDeOrcamentos({
                   {COLUNAS_DO_ENVIADO.includes(c.id) && (
                     <EtapaDoEnviado o={o} coluna={c.id} agora={agora} podeMover={podeMover} aoMoverEtapa={aoMoverEtapa} />
                   )}
-                  {podeMover && aoRenovar && podeRenovar(o, agora) && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-3 h-10 w-full text-sm"
-                      onClick={() => aoRenovar(o)}
-                      data-testid="renovar-orcamento"
+                  {podeRenovarOrcamento && aoRenovar && podeRenovar(o, agora) && (
+                    <ConfirmarAcao
+                      grande
+                      titulo="Renovar este orçamento?"
+                      descricao="A validade passa a contar de hoje e o orçamento volta a ficar enviado, e o link do cliente volta a aceitar resposta. Nenhuma mensagem é enviada ao cliente agora."
+                      rotuloConfirmar="Renovar"
+                      aoConfirmar={() => aoRenovar(o)}
                     >
-                      <RefreshCw className="mr-1 h-3.5 w-3.5" aria-hidden="true" /> Renovar e reenviar
-                    </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-3 h-10 w-full text-sm"
+                        data-testid="renovar-orcamento"
+                      >
+                        <RefreshCw className="mr-1 h-3.5 w-3.5" aria-hidden="true" /> Renovar e reenviar
+                      </Button>
+                    </ConfirmarAcao>
                   )}
                   {c.id === "aprovado" && podeConverter && (
                     <Button size="sm" className="mt-3 h-10 w-full text-sm" onClick={() => aoConverter(o)}>
