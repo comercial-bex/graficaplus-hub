@@ -62,6 +62,26 @@ export function custoVigenteDoMaterial(m: { custo_unitario?: unknown; custo_medi
   return { valor: 0, origem: "nenhum" };
 }
 
+/** Texto curto da fonte, para a linha da planilha. */
+export function textoDaFonteDoCusto(origem: "medio" | "ultima_compra" | "nenhum"): string {
+  return origem === "medio" ? "médio" : origem === "ultima_compra" ? "última compra" : "sem custo";
+}
+
+/**
+ * Custo médio é CALCULADO pelo banco: o gatilho tg_material_custo_medio recalcula a média de todas as entradas a
+ * cada compra (e registrar_entrada_material grava a média ponderada). Valor digitado à mão seria sobrescrito na
+ * próxima compra, então a planilha mostra o médio e só edita a última compra.
+ */
+export const CUSTO_MEDIO_E_SOMENTE_LEITURA = true;
+
+/** Aviso para a última compra digitada em material que usa o médio: não muda o custo do produto. */
+export function ultimaCompraNaoValeNasContas(m: {
+  custo_unitario?: unknown;
+  custo_medio?: unknown;
+}): boolean {
+  return custoVigenteDoMaterial(m).origem === "medio";
+}
+
 /* Encargos: o banco guarda FRAÇÃO (0,3282), a tela mostra e edita PORCENTAGEM (32,82). */
 
 export const LIMITE_DE_ENCARGOS_EM_PORCENTAGEM = 100;

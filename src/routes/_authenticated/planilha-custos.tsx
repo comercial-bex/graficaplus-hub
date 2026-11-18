@@ -30,6 +30,7 @@ import {
   decidirEncargos,
   fracaoParaPorcentagem,
   horaCheia,
+  textoDaFonteDoCusto,
   textoDoValor,
 } from "@/domain/custos/campo-de-custo";
 import { AlertTriangle, Download, Upload, RefreshCw } from "lucide-react";
@@ -488,6 +489,7 @@ function PlanilhaPage() {
                     <TableRow>
                       <TableHead className="text-base">Material</TableHead>
                       <TableHead className="text-base">Unidade</TableHead>
+                      <TableHead className="text-right text-base">Custo nas contas</TableHead>
                       <TableHead className="text-right text-base">Última compra</TableHead>
                       <TableHead className="text-right text-base">Custo médio</TableHead>
                       <TableHead className="text-right text-base">Estoque</TableHead>
@@ -502,6 +504,10 @@ function PlanilhaPage() {
                       <TableRow key={m.id}>
                         <TableCell className="text-base font-medium">{m.nome}</TableCell>
                         <TableCell className="text-base">{m.unidade}</TableCell>
+                        <TableCell className="text-right" data-testid={`custo-vigente-${m.id}`}>
+                          <span className="font-mono text-base font-semibold">{brl(vigente.valor)}</span>
+                          <span className="block text-base">{textoDaFonteDoCusto(vigente.origem)}</span>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className={vigente.origem === "ultima_compra" ? destaque : undefined}>
                           {podeEditar ? (
@@ -522,17 +528,15 @@ function PlanilhaPage() {
                           ) : (
                             <span className="font-mono text-base">{brl(m.custo_unitario)}</span>
                           )}
-                          {vigente.origem === "ultima_compra" && (
-                            <span className="block text-base font-semibold">Vale nas contas</span>
+                          {vigente.origem === "medio" && (
+                            <span className="block text-base">não muda o custo</span>
                           )}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className={vigente.origem === "medio" || (vigente.origem === "nenhum" && m.custo_medio != null) ? destaque : undefined}>
                             <span className="font-mono text-base">{brl(m.custo_medio)}</span>
-                            {m.custo_medio != null && (
-                              <span className="block text-base font-semibold">Vale nas contas</span>
-                            )}
+                            <span className="block text-base">calculado nas compras</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-mono text-base">
@@ -556,9 +560,10 @@ function PlanilhaPage() {
           </Card>
           <p className="mt-2 text-base" data-testid="nota-do-custo-vigente">
             O banco calcula o custo dos produtos com o custo médio quando ele existe, e só usa o valor
-            da última compra quando o médio está sem valor. A coluna com a borda e o texto Vale nas
-            contas é a que entra na conta de cada material. Mudar a última compra de um material que
-            usa o custo médio não muda o custo do produto.
+            da última compra quando o médio está sem valor. A coluna Custo nas contas mostra o valor
+            usado e de onde ele vem. O custo médio é calculado a cada compra, por isso não se digita
+            aqui: um valor digitado seria apagado na próxima entrada de material. Mudar a última
+            compra de um material que usa o custo médio não muda o custo do produto.
           </p>
           <p className="mt-2 text-base">
             A importação casa por <code>id</code> quando o arquivo veio daqui, e por nome quando
