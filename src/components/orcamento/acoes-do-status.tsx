@@ -129,7 +129,7 @@ export function AcoesDoStatus({
         <ConfirmarAcao
           grande
           titulo="Registrar a aprovação do cliente?"
-          descricao="Isto registra a aprovação do cliente, como se ele tivesse aprovado. O cliente pode receber um aviso no WhatsApp. Use só se ele já confirmou por WhatsApp ou no balcão."
+          descricao="Isto registra a aprovação do cliente, como se ele tivesse aprovado. O cliente não recebe aviso no WhatsApp por isso, só quando ele mesmo aprova pelo link. Use só se ele já confirmou por WhatsApp ou no balcão."
           rotuloConfirmar="Registrar aprovação"
           aoConfirmar={aprovar}
         >

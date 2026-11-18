@@ -93,8 +93,8 @@ export function TemplatesAutomaticosCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        <p className="text-sm text-muted-foreground">
-          Estas mensagens saem sozinhas no WhatsApp quando o orçamento é aprovado e a cada
+        <p className="text-base text-muted-foreground">
+          Estas mensagens saem sozinhas no WhatsApp quando o próprio cliente aprova o orçamento pelo link e a cada
           mudança de etapa da OS. Desligar um aviso interrompe o envio daquele evento sem
           apagar o texto.
         </p>
