@@ -130,7 +130,8 @@ describe("a tela dos passos do status", () => {
     expect(tela).toMatch(/destrutivo\n\s+titulo="Apagar este rascunho\?"/);
     expect(tela).toContain("grande");
     expect(tela).toContain("registra a aprovação do cliente");
-    expect(tela).toContain("O cliente pode receber um aviso");
+    expect(tela).toContain("O cliente não recebe aviso no WhatsApp por isso");
+    expect(tela).not.toContain("O cliente pode receber um aviso");
   });
 
   it("função ausente nunca cai em UPDATE direto de status", () => {
