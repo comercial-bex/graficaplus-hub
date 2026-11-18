@@ -31,7 +31,7 @@ describe("arquivo, ordem e escopo", () => {
     expect("20261118100000_" > "20261117235000_").toBe(true);
     expect(codigo).toMatch(/^\s*BEGIN;/m);
     expect(sql.trimEnd().endsWith("COMMIT;")).toBe(true);
-    expect(sql).toMatch(/NÃO APLICADA e NÃO ENSAIADA/);
+    expect(sql).toMatch(/APLICADA no banco vivo em 18\/11\/2026/);
   });
 
   it("não faz DML, não cria nem derruba gatilho, não toca em fila, bloqueio, reviewer nem cobrança", () => {
