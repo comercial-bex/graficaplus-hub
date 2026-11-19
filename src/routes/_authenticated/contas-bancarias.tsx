@@ -130,7 +130,8 @@ function ContasBancariasPage() {
   // enxerga saldo e extrato, sem os botões.
   const podeCadastrarConta =
     hasPermission("pagamentos.create") || hasPermission("pagamentos.update");
-  const podeImportar = hasPermission("pagamentos.confirm");
+  // Importar extrato: a chave E ver o financeiro (a vendedora tem a chave sem ver o caixa).
+  const podeImportar = hasPermission("pagamentos.confirm") && hasPermission("financeiro.read");
   const [contaOpen, setContaOpen] = useState(false);
   const [form, setForm] = useState<ContaForm>(contaVazia);
   const [selecionada, setSelecionada] = useState<string | null>(null);
