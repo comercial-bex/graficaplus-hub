@@ -3904,6 +3904,42 @@ export type Database = {
           },
         ]
       }
+      correcoes_de_extrato: {
+        Row: {
+          acao: string
+          antes: Json | null
+          criado_em: string
+          depois: Json | null
+          id: number
+          lote: string
+          motivo: string
+          registro_id: string
+          tabela: string
+        }
+        Insert: {
+          acao: string
+          antes?: Json | null
+          criado_em?: string
+          depois?: Json | null
+          id?: never
+          lote: string
+          motivo: string
+          registro_id: string
+          tabela: string
+        }
+        Update: {
+          acao?: string
+          antes?: Json | null
+          criado_em?: string
+          depois?: Json | null
+          id?: never
+          lote?: string
+          motivo?: string
+          registro_id?: string
+          tabela?: string
+        }
+        Relationships: []
+      }
       custo_em_texto_guardado: {
         Row: {
           atualizado_em_original: string | null
@@ -5066,6 +5102,63 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faturas_consumo: {
+        Row: {
+          bandeira_taxas: number | null
+          competencia: string
+          consumo: number | null
+          conta_pagar_id: string
+          corrigida_em: string | null
+          corrigida_por: string | null
+          iluminacao_publica: number | null
+          lancada_em: string
+          lancada_por: string | null
+          numero_nf: string | null
+          unidade_id: string
+        }
+        Insert: {
+          bandeira_taxas?: number | null
+          competencia: string
+          consumo?: number | null
+          conta_pagar_id: string
+          corrigida_em?: string | null
+          corrigida_por?: string | null
+          iluminacao_publica?: number | null
+          lancada_em?: string
+          lancada_por?: string | null
+          numero_nf?: string | null
+          unidade_id: string
+        }
+        Update: {
+          bandeira_taxas?: number | null
+          competencia?: string
+          consumo?: number | null
+          conta_pagar_id?: string
+          corrigida_em?: string | null
+          corrigida_por?: string | null
+          iluminacao_publica?: number | null
+          lancada_em?: string
+          lancada_por?: string | null
+          numero_nf?: string | null
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_consumo_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: true
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faturas_consumo_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades_consumo"
             referencedColumns: ["id"]
           },
         ]
@@ -15637,6 +15730,85 @@ export type Database = {
           },
         ]
       }
+      produto_imagens: {
+        Row: {
+          capa: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          legenda: string | null
+          ordem: number
+          origem: string
+          produto_id: string
+          url: string
+        }
+        Insert: {
+          capa?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legenda?: string | null
+          ordem?: number
+          origem?: string
+          produto_id: string
+          url: string
+        }
+        Update: {
+          capa?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legenda?: string | null
+          ordem?: number
+          origem?: string
+          produto_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_imagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_cheio"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_imagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produto_custo_real"
+            referencedColumns: ["produto_id"]
+          },
+          {
+            foreignKeyName: "produto_imagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_imagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_imagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_imagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_operacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_materiais: {
         Row: {
           created_at: string
@@ -17761,6 +17933,80 @@ export type Database = {
         }
         Relationships: []
       }
+      unidades_consumo: {
+        Row: {
+          ativo: boolean
+          conta_bancaria_id: string | null
+          created_at: string
+          criado_por: string | null
+          dia_vencimento: number | null
+          endereco: string | null
+          fornecedor_id: string
+          id: string
+          identificador: string
+          observacoes: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          conta_bancaria_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          dia_vencimento?: number | null
+          endereco?: string | null
+          fornecedor_id: string
+          id?: string
+          identificador: string
+          observacoes?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          conta_bancaria_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          dia_vencimento?: number | null
+          endereco?: string | null
+          fornecedor_id?: string
+          id?: string
+          identificador?: string
+          observacoes?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unidades_consumo_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unidades_consumo_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_saldo_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "unidades_consumo_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "vw_saldo_contas"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "unidades_consumo_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -19245,6 +19491,27 @@ export type Database = {
             referencedColumns: ["os_id"]
           },
         ]
+      }
+      whatsapp_numeros_bloqueados: {
+        Row: {
+          chave: string
+          criado_em: string
+          motivo: string
+          nome: string | null
+        }
+        Insert: {
+          chave: string
+          criado_em?: string
+          motivo: string
+          nome?: string | null
+        }
+        Update: {
+          chave?: string
+          criado_em?: string
+          motivo?: string
+          nome?: string | null
+        }
+        Relationships: []
       }
       whatsapp_participantes: {
         Row: {
@@ -24460,6 +24727,10 @@ export type Database = {
         Returns: string
       }
       _mencao_whatsapp: { Args: { p_usuario: string }; Returns: string }
+      _negar_conta_pagar: {
+        Args: { p_acao: string; p_conta_id: string; p_mensagem: string }
+        Returns: Json
+      }
       _os_avisar_grupo: {
         Args: {
           p_chave: string
@@ -24526,6 +24797,21 @@ export type Database = {
       _preco_piso: {
         Args: { p_custo: number; p_margem_minima: number }
         Returns: number
+      }
+      _preco_proposta_numeros: {
+        Args: {
+          p_preco_atual: number
+          p_preco_proposto: number
+          p_produto_id: string
+        }
+        Returns: {
+          base: string
+          custo: number
+          margem_atual: number
+          margem_minima: number
+          margem_proposta: number
+          piso: number
+        }[]
       }
       _reais: { Args: { p: number }; Returns: string }
       _triagem_bloqueado: { Args: { p_conversa: string }; Returns: boolean }
@@ -24598,6 +24884,7 @@ export type Database = {
         }
         Returns: string
       }
+      _wa_chave_numero: { Args: { p: string }; Returns: string }
       _wa_classificar_contato: {
         Args: {
           p_anuncio: string
@@ -25165,6 +25452,16 @@ export type Database = {
           valido: boolean
         }[]
       }
+      corrigir_dados_fatura_consumo: {
+        Args: {
+          p_bandeira_taxas: number
+          p_consumo: number
+          p_conta_pagar_id: string
+          p_iluminacao_publica: number
+          p_numero_nf: string
+        }
+        Returns: Json
+      }
       criar_api_token: {
         Args: { p_dias?: number; p_nome: string }
         Returns: Json
@@ -25537,6 +25834,19 @@ export type Database = {
         Returns: string[]
       }
       jsonb_sem_custo: { Args: { p_json: Json }; Returns: Json }
+      lancar_fatura_consumo: {
+        Args: {
+          p_bandeira_taxas?: number
+          p_competencia: string
+          p_consumo?: number
+          p_iluminacao_publica?: number
+          p_numero_nf?: string
+          p_unidade_id: string
+          p_valor: number
+          p_vencimento: string
+        }
+        Returns: Json
+      }
       lembrete_credito_vencendo: {
         Args: { p_enfileirar?: boolean }
         Returns: Json
@@ -25626,6 +25936,14 @@ export type Database = {
         Args: { p_modo: string; p_orcamento: string; p_usuario: string }
         Returns: Json
       }
+      orcamento_congelar_versao: {
+        Args: {
+          p_aprovando: boolean
+          p_orc: Database["public"]["Tables"]["orcamentos"]["Row"]
+          p_uid: string
+        }
+        Returns: string
+      }
       orcamento_de_parceiro_ativo: {
         Args: { p_orcamento: string }
         Returns: boolean
@@ -25643,6 +25961,10 @@ export type Database = {
         Returns: Json
       }
       orcamento_hash_atual: { Args: { p_orcamento: string }; Returns: string }
+      orcamento_historico_de_versoes: {
+        Args: { p_orcamento: string }
+        Returns: Json
+      }
       orcamento_itens_para_versao: {
         Args: { p_orcamento: string }
         Returns: Json
@@ -25673,6 +25995,10 @@ export type Database = {
       orcamento_retrato_diferencas: {
         Args: { p_guardado: Json; p_vivo: Json }
         Returns: Json
+      }
+      orcamento_transicao_permitida: {
+        Args: { p_de: string; p_para: string }
+        Returns: boolean
       }
       origem_remover_palavra: { Args: { p_palavra: string }; Returns: Json }
       origem_salvar_anuncio: {
@@ -26517,6 +26843,10 @@ export type Database = {
         Args: { p_orcamento_3d_id: string }
         Returns: undefined
       }
+      renovar_orcamento_vencido: {
+        Args: { p_orcamento_id: string }
+        Returns: Json
+      }
       require_permission: { Args: { _permission: string }; Returns: string }
       reservar_materiais_os: { Args: { p_os_id: string }; Returns: Json }
       reservar_materiais_os_interno: {
@@ -26561,6 +26891,16 @@ export type Database = {
       resolver_decisao: {
         Args: { p_chave: string; p_resposta?: string }
         Returns: undefined
+      }
+      responder_orcamento_publico: {
+        Args: {
+          p_decisao: string
+          p_ip: string
+          p_nome: string
+          p_observacao: string
+          p_token: string
+        }
+        Returns: Json
       }
       revogar_api_token: { Args: { p_id: string }; Returns: undefined }
       rip_decidir_vinculo: {
