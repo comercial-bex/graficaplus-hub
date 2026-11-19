@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Headset, MessageCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { mensagemErro } from "@/lib/erros";
 import { parceirosSemContato } from "@/lib/parceiro-atendimento-api";
 import { agruparPorResponsavel, diaMes, reais } from "@/domain/parceiros/sem-contato";
 
-/** Parceiros com chamado aberto que a equipe ainda não atendeu, por responsável. */
+/** Parceiros com chamado aberto (ou fechado sem nenhuma mensagem) que a equipe ainda não atendeu, por responsável. */
 export function AtendimentoDosParceiros() {
   const { data, error, isLoading } = useQuery({
     queryKey: ["parceiros-sem-contato"],
@@ -16,7 +17,8 @@ export function AtendimentoDosParceiros() {
 
   if (isLoading || data === null) return null; // ainda sem a função no banco
   const sem = (data?.lista ?? []).filter((l) => l.sem_contato);
-  const total = data?.lista.length ?? 0;
+  // Conta só chamados abertos ou fechados sem mensagem (fechados com atendimento não entram).
+  const total = (data?.lista ?? []).filter((l) => !l.fechado_em || l.sem_contato).length;
 
   return (
     <section className="rounded-xl border border-border bg-card p-4">
@@ -47,14 +49,21 @@ export function AtendimentoDosParceiros() {
                   <li key={l.parceiro_id} className="flex items-center justify-between gap-3 py-2">
                     <span className="min-w-0">
                       <span className="font-medium">{l.nome}</span>
+                      {l.fechado_sem_contato && (
+                        <Badge variant="destructive" className="ml-2 align-middle">
+                          Fechado sem mensagem · {l.fechado_por_nome ?? "automação"}
+                        </Badge>
+                      )}
                       <span className="text-muted-foreground">
                         {" "}
                         · {l.horas_sem_contato ?? 0}h sem contato
-                        {l.ultima_entrada &&
+                        {l.fechado_sem_contato
+                          ? " · chamado fechado sem ninguém falar com ele"
+                          : l.ultima_entrada &&
                         l.ultima_saida_equipe &&
                         l.ultima_entrada > l.ultima_saida_equipe
-                          ? " · escreveu e espera resposta"
-                          : " · ninguém falou com ele ainda"}
+                            ? " · escreveu e espera resposta"
+                            : " · ninguém falou com ele ainda"}
                         {l.credito > 0 && l.credito_vence_em
                           ? ` · crédito ${reais(l.credito)} até ${diaMes(new Date(l.credito_vence_em))}`
                           : ""}

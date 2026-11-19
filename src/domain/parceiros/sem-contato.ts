@@ -1,6 +1,7 @@
 /**
  * "Parceiro nunca esquecido": regras puras espelhadas de
- * supabase/migrations/20261116150000_parceiro_nunca_esquecido.sql.
+ * supabase/migrations/20261116150000_parceiro_nunca_esquecido.sql
+ * e 20261119120000_parceiro_fechado_sem_contato.sql (chamado fechado sem mensagem).
  * O banco decide e envia; aqui só se repete a conta para a tela e para os testes.
  */
 
@@ -13,7 +14,15 @@ export type Contato = {
   ultimaSaidaEquipe: Date | null;
   /** Última mensagem que o parceiro mandou. */
   ultimaEntrada: Date | null;
+  /** Quando o atendimento mais recente foi fechado (null = aberto). */
+  fechadoEm?: Date | null;
 };
+
+/** Chamado fechado sem nenhuma mensagem humana da equipe desde que abriu (nem depois). */
+export function fechadoSemContato(c: Contato): boolean {
+  if (!c.fechadoEm) return false;
+  return !c.ultimaSaidaEquipe || c.ultimaSaidaEquipe < c.abertoEm;
+}
 
 /** Desde quando o parceiro espera a equipe; null = está em dia. */
 export function desdeSemContato(c: Contato): Date | null {
@@ -31,7 +40,10 @@ export function situacaoDoContato(
   const desde = desdeSemContato(c);
   if (!desde) return { semContato: false, horas: null };
   const ms = agora.getTime() - desde.getTime();
-  return { semContato: ms > horasLimite * 3_600_000, horas: Math.floor(ms / 3_600_000) };
+  return {
+    semContato: fechadoSemContato(c) || ms > horasLimite * 3_600_000,
+    horas: Math.floor(ms / 3_600_000),
+  };
 }
 
 export function reais(v: number): string {
@@ -58,6 +70,10 @@ export type LinhaSemContato = {
   horas_sem_contato: number | null;
   credito: number;
   credito_vence_em: string | null;
+  /** Chamado mais recente fechado sem nenhuma mensagem da equipe (migração 20261119120000). */
+  fechado_sem_contato?: boolean;
+  fechado_por_nome?: string | null;
+  fechado_em?: string | null;
 };
 
 export type GrupoDoResponsavel<T extends LinhaSemContato = LinhaSemContato> = {
@@ -109,9 +125,16 @@ export function montarLembreteEquipe(
 ): string {
   const limite = opcoes.limite ?? LIMITE_LINHAS_LEMBRETE;
   const n = linhas.length;
+  const abertas = linhas.filter((l) => !l.fechado_sem_contato);
+  const fechadas = linhas
+    .filter((l) => l.fechado_sem_contato)
+    .sort(
+      (a, b) =>
+        (a.fechado_em ?? "").localeCompare(b.fechado_em ?? "") || a.nome.localeCompare(b.nome, "pt-BR"),
+    );
   const partes: string[] = [];
   let usadas = 0;
-  for (const g of agruparPorResponsavel(linhas)) {
+  for (const g of agruparPorResponsavel(abertas)) {
     if (usadas >= limite) break;
     const tel = g.linhas[0].responsavel_tel;
     partes.push(`${g.responsavel_nome}${tel ? ` @55${tel}` : ""}`);
@@ -127,10 +150,26 @@ export function montarLembreteEquipe(
     if (i > 0 && !p.startsWith("- ")) corpo.push("");
     corpo.push(p);
   });
+  if (fechadas.length && usadas < limite) {
+    if (corpo.length) corpo.push("");
+    corpo.push("Chamados fechados sem nenhuma mensagem:");
+    for (const l of fechadas) {
+      if (usadas >= limite) break;
+      corpo.push(
+        `- ${l.nome} · fechado por ${l.fechado_por_nome ?? "automação"} em ${l.fechado_em ? diaMes(new Date(l.fechado_em)) : ""}`,
+      );
+      usadas++;
+    }
+  }
   if (n > limite) corpo.push(`E mais ${n - limite}.`);
   const gestores = [...new Set(opcoes.telefonesGestor.map((t) => `55${t}`))].sort();
+  const na = abertas.length;
+  const topo =
+    na > 0
+      ? `${na} ${na === 1 ? "parceiro" : "parceiros"} sem contato da equipe há mais de ${opcoes.horas} horas:`
+      : "";
   return (
-    `Bom dia! ${n} ${n === 1 ? "parceiro" : "parceiros"} sem contato da equipe há mais de ${opcoes.horas} horas:\n\n` +
+    `Bom dia! ${topo}\n\n` +
     corpo.join("\n") +
     "\n\n" +
     (gestores.length ? `Gestor ${gestores.map((g) => `@${g}`).join(" ")} acompanhe.\n` : "") +
