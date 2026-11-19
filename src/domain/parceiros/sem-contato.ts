@@ -156,7 +156,7 @@ export function montarLembreteEquipe(
     for (const l of fechadas) {
       if (usadas >= limite) break;
       corpo.push(
-        `- ${l.nome} · fechado por ${l.fechado_por_nome ?? "automação"} em ${l.fechado_em ? diaMes(new Date(l.fechado_em)) : ""}`,
+        `- ${l.nome} · fechado em ${l.fechado_em ? diaMes(new Date(l.fechado_em)) : ""}`,
       );
       usadas++;
     }

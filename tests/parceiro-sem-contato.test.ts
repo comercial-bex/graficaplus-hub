@@ -138,7 +138,7 @@ describe("chamado fechado sem nenhuma mensagem", () => {
   });
 
   const base = { responsavel_id: "r1", responsavel_nome: "Raymison", credito: 0, credito_vence_em: null };
-  it("lembrete traz bloco separado com quem fechou e o dia", () => {
+  it("lembrete traz bloco separado com o dia, sem o nome de quem fechou", () => {
     const texto = montarLembreteEquipe(
       [
         { ...base, parceiro_id: "a", nome: "Neon", horas_sem_contato: 60 },
@@ -148,7 +148,8 @@ describe("chamado fechado sem nenhuma mensagem", () => {
       { horas: 48, telefonesGestor: [] },
     );
     expect(texto).toContain("Bom dia! 1 parceiro sem contato da equipe há mais de 48 horas:");
-    expect(texto).toContain("- Neon · 60h\n\nChamados fechados sem nenhuma mensagem:\n- Yvens · fechado por Jess em 16/11");
+    expect(texto).not.toContain("Jess");
+    expect(texto).toContain("- Neon · 60h\n\nChamados fechados sem nenhuma mensagem:\n- Yvens · fechado em 16/11");
   });
   it("só fechados: sem o título da lista de abertos", () => {
     const texto = montarLembreteEquipe(
@@ -156,7 +157,7 @@ describe("chamado fechado sem nenhuma mensagem", () => {
          fechado_por_nome: "Maiara", fechado_em: "2026-11-16T21:30:00Z" }],
       { horas: 48, telefonesGestor: [] },
     );
-    expect(texto.startsWith("Bom dia! \n\nChamados fechados sem nenhuma mensagem:\n- Wa · fechado por Maiara em 16/11")).toBe(true);
+    expect(texto.startsWith("Bom dia! \n\nChamados fechados sem nenhuma mensagem:\n- Wa · fechado em 16/11")).toBe(true);
   });
   it("as duas listas juntas respeitam 15 linhas no total", () => {
     const linhas = [

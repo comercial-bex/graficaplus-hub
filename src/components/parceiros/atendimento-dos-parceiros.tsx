@@ -51,7 +51,7 @@ export function AtendimentoDosParceiros() {
                       <span className="font-medium">{l.nome}</span>
                       {l.fechado_sem_contato && (
                         <Badge variant="destructive" className="ml-2 align-middle">
-                          Fechado sem mensagem · {l.fechado_por_nome ?? "automação"}
+                          Fechado sem mensagem{l.fechado_em ? ` · ${diaMes(new Date(l.fechado_em))}` : ""}
                         </Badge>
                       )}
                       <span className="text-muted-foreground">

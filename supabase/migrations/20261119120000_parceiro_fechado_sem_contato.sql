@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Parceiro nunca esquecido: chamados FECHADOS sem nenhuma mensagem da equipe.
--- NÃO APLICADA. Preparada em 19/11/2026. Não reabre chamados e não mexe nas
+-- APLICADA em 19/11/2026, direto no banco, a pedido do dono
 -- regras de fechamento da caixa do WhatsApp.
 --
 -- 1) _parceiros_sem_contato(): olha o atendimento MAIS RECENTE da conversa do
