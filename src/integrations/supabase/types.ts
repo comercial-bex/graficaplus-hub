@@ -24779,6 +24779,9 @@ export type Database = {
           credito: number
           credito_vence_em: string
           desde: string
+          fechado_em: string
+          fechado_por_nome: string
+          fechado_sem_contato: boolean
           horas_sem_contato: number
           nome: string
           parceiro_id: string
