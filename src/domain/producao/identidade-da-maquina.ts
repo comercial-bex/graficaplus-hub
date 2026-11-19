@@ -49,9 +49,11 @@ const DESCONHECIDA: IdentidadeMaquina = {
 };
 
 /**
- * Os cinco tipos conferidos na tabela `maquinas` em 09/09/2026. `tipo` é coluna
- * de TEXTO LIVRE, não enum — então tipo novo não quebra a tela, cai no genérico
- * e continua legível. O teste avisa se algum dos cinco sair daqui.
+ * Os tipos conferidos na tabela `maquinas`: os cinco de 09/09/2026 e a impressora A4
+ * (19/11/2026). `tipo` é coluna de TEXTO LIVRE, não enum — então tipo novo não quebra
+ * a tela, cai no genérico e continua legível; mas máquina de tipo desconhecido não
+ * começa nem entra na fila (o banco recusa), por isso `tipos_de_maquina()` tem a mesma
+ * lista. O teste avisa se algum dos tipos sair daqui.
  */
 export const POR_TIPO: Record<string, IdentidadeMaquina> = {
   plotter_impressao: {
@@ -59,6 +61,13 @@ export const POR_TIPO: Record<string, IdentidadeMaquina> = {
     curto: "Impressão",
     icone: "Printer",
     cor: "#00d3f2", // chart-1
+  },
+  // A Epson EcoTank A4: mesma etapa e mesma cor da plotter (Impressão); na TV as duas dividem uma coluna.
+  impressora_a4: {
+    chave: "impressora_a4",
+    curto: "Impressora A4",
+    icone: "Printer",
+    cor: "#00d3f2",
   },
   plotter_recorte: {
     chave: "plotter_recorte",
@@ -90,10 +99,18 @@ export const POR_TIPO: Record<string, IdentidadeMaquina> = {
  * O caminho que o status indica, quando não há máquina vinculada.
  *
  * `em_laser_cnc` aponta para uma identidade genérica de propósito — ver a nota
- * sobre ambiguidade no topo.
+ * sobre ambiguidade no topo. `em_impressao` virou ambíguo em 19/11/2026, quando a
+ * Epson A4 entrou na etapa: a casa tem duas impressoras. O cartão continua mostrando
+ * "Impressão", com a mesma cor e o mesmo ícone, mas já não diz que é a plotter.
  */
 const POR_STATUS: Record<string, IdentidadeMaquina> = {
-  em_impressao: POR_TIPO.plotter_impressao,
+  em_impressao: {
+    chave: "impressao",
+    curto: "Impressão",
+    icone: "Printer",
+    cor: "#00d3f2",
+    observacao: "a casa tem duas impressoras (a plotter e a A4) — o status não diz qual",
+  },
   em_corte: POR_TIPO.plotter_recorte,
   em_3d: POR_TIPO.impressora_3d,
   em_laser_cnc: {
@@ -145,7 +162,10 @@ export function statusIndicaMaquina(status: string | null | undefined): boolean 
   return Boolean(status && POR_STATUS[status]);
 }
 
-/** Só para a legenda do quadro: as cinco máquinas, na ordem do fluxo. */
+/**
+ * Só para a legenda do quadro: as cinco colunas da parede, na ordem do fluxo. A impressora A4
+ * não tem item próprio: divide a coluna Impressão com a plotter, na mesma cor.
+ */
 export function legendaDeMaquinas(): IdentidadeMaquina[] {
   return [
     POR_TIPO.plotter_impressao,

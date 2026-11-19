@@ -7,7 +7,8 @@ import {
 } from "../src/domain/producao/identidade-da-maquina";
 
 /**
- * Os `tipo` das cinco máquinas, conferidos na tabela `maquinas` em 09/09/2026.
+ * Os `tipo` das máquinas, conferidos na tabela `maquinas`: os cinco de 09/09/2026 e a
+ * impressora A4 (a Epson), que entrou em 19/11/2026.
  *
  * A coluna é TEXTO LIVRE, não enum — o banco não impede que alguém digite
  * "plotter-impressao" com hífen e o cartão perca a cor. Esta constante é o
@@ -15,6 +16,7 @@ import {
  */
 const TIPOS_NO_BANCO = [
   "plotter_impressao",
+  "impressora_a4",
   "plotter_recorte",
   "laser_co2",
   "laser_fiber",
@@ -22,7 +24,7 @@ const TIPOS_NO_BANCO = [
 ];
 
 describe("toda máquina cadastrada tem cara própria", () => {
-  it("os cinco tipos do banco estão mapeados", () => {
+  it("os tipos do banco estão mapeados", () => {
     const faltando = TIPOS_NO_BANCO.filter((t) => !POR_TIPO[t]);
     expect(
       faltando,
@@ -38,6 +40,18 @@ describe("toda máquina cadastrada tem cara própria", () => {
   it("nenhum ícone se repete entre as cinco", () => {
     const icones = legendaDeMaquinas().map((m) => m.icone);
     expect(new Set(icones).size).toBe(icones.length);
+  });
+
+  it("a impressora A4 é da etapa Impressão: mesma cor e ícone da plotter, e sem item próprio na legenda", () => {
+    // A legenda é a das cinco colunas da parede; a Epson divide a coluna Impressão com a plotter.
+    expect(legendaDeMaquinas()).toHaveLength(5);
+    expect(legendaDeMaquinas().map((m) => m.chave)).not.toContain("impressora_a4");
+    expect(POR_TIPO.impressora_a4.cor).toBe(POR_TIPO.plotter_impressao.cor);
+    expect(POR_TIPO.impressora_a4.icone).toBe(POR_TIPO.plotter_impressao.icone);
+    expect(POR_TIPO.impressora_a4.curto).toBe("Impressora A4");
+    expect(identidadeDaMaquina({ maquinas: { tipo: "impressora_a4", nome: "Epson EcoTank L3250 (A4)" } })?.curto).toBe(
+      "Impressora A4",
+    );
   });
 });
 
@@ -95,6 +109,13 @@ describe("de onde a identidade vem", () => {
     expect(identidadeDaMaquina({ status: "em_impressao" })?.curto).toBe("Impressão");
     expect(identidadeDaMaquina({ status: "em_corte" })?.curto).toBe("Recorte");
     expect(identidadeDaMaquina({ status: "em_3d" })?.curto).toBe("3D");
+  });
+
+  it("impressão sem máquina não escolhe entre a plotter e a A4", () => {
+    const id = identidadeDaMaquina({ status: "em_impressao" })!;
+    expect(id.curto).toBe("Impressão");
+    expect(id.chave).toBe("impressao");
+    expect(id.observacao).toContain("duas impressoras");
   });
 
   it("laser sem máquina não escolhe entre CO2 e Fiber", () => {

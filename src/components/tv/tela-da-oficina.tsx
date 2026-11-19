@@ -400,14 +400,18 @@ export function rotuloDaImpressora(c: Coluna): string {
 }
 
 /**
- * As impressoras 3D numa coluna só (28/10/2026): um cartão por impressora, com o nome do cadastro,
- * o estado, o que está imprimindo e quantos esperam. O nº da OS aparece sempre inteiro; o nome do
- * produto corta com reticências.
+ * As máquinas que dividem uma coluna (28/10/2026, as impressoras 3D; 19/11/2026, também a plotter e a
+ * Epson A4, que dividem a coluna Impressão): um cartão por máquina, com o estado, o que está imprimindo
+ * e quantos esperam. O nº da OS aparece sempre inteiro; o nome do produto corta com reticências.
+ * O nome do cartão é o do cadastro nas 3D ("BAMBU 3D 01") e o nome curto do tipo nas de impressão
+ * ("PLOTTER", "IMPRESSORA A4"), porque o do cadastro da plotter não cabe numa linha. O estilo é o
+ * mesmo (`grupo3d`, nome herdado da primeira coluna agrupada).
  */
-function Grupo3D({ g }: { g: Extract<ColunaDaParede, { tipo: "grupo_3d" }> }) {
+function GrupoDaParede({ g }: { g: Extract<ColunaDaParede, { subs: Coluna[] }> }) {
   const rodando = g.subs.filter((s) => s.estado === "rodando").length;
+  const deImpressao = g.tipo === "grupo_impressao";
   return (
-    <div className="maq grupo3d esmaece" data-maq={g.id} data-grupo="3d">
+    <div className="maq grupo3d esmaece" data-maq={g.id} data-grupo={deImpressao ? "impressao" : "3d"}>
       <div className="filete" style={{ background: g.identidade.cor }} />
       <div className="topo">
         <div className="nomel">
@@ -433,7 +437,9 @@ function Grupo3D({ g }: { g: Extract<ColunaDaParede, { tipo: "grupo_3d" }> }) {
             data-estado={c.estado}
           >
             <div className="s1">
-              <span className="sn fixo">{rotuloDaImpressora(c)}</span>
+              <span className="sn fixo">
+                {deImpressao ? c.identidade.curto.toUpperCase() : rotuloDaImpressora(c)}
+              </span>
               <span className="sf fixo">{c.filaTotal > 0 ? `fila ${c.filaTotal}` : "vazia"}</span>
             </div>
             <div className="s2 corta">
@@ -474,10 +480,10 @@ function Maquinas({
   return (
     <section className="maquinas">
       {parede.map((p) =>
-        p.tipo === "grupo_3d" ? (
-          <Grupo3D key={p.id} g={p} />
-        ) : (
+        p.tipo === "maquina" ? (
           <ColunaDaMaquina key={p.c.id} c={p.c} porPagina={porPagina} tique={tique} medir={medir} />
+        ) : (
+          <GrupoDaParede key={p.id} g={p} />
         ),
       )}
     </section>

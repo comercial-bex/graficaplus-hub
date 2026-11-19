@@ -51,10 +51,10 @@ Na ficha da OS, na fila e na produção, há o bloco **"Máquina"**:
 - **Quem pode.** Começar é de quem aponta (papel operador). Pôr na fila é do operador
   ou do gestor.
 
-**Pendência de cadastro.** A "Epson EcoTank L3250 (A4)" tem o tipo "Impressão jato de
-tinta A4", que não corresponde a nenhuma etapa de produção. Por isso não se começa nem
-se põe fila nela. Para usar, o tipo dela precisa ser um dos tipos de máquina do
-sistema, como os das plotters.
+**A Epson EcoTank A4 (resolvido em 19/11/2026).** Ela tinha o tipo "Impressão jato de
+tinta A4", que não corresponde a nenhuma etapa de produção, e por isso não se começava
+nem se punha fila nela. Agora é do tipo `impressora_a4`, na etapa Impressão, ao lado da
+plotter. Ver `docs/ensaio-epson-a4-impressora-de-producao-19-11-2026.md`.
 
 ## O atalho que foi fechado
 
@@ -113,11 +113,14 @@ da 222 crescia sozinho.
 - **Onde o trabalho para.** Em "Atendimento validado", quem destrava agora aparece como
   a criação, e não mais a gestão.
 
-**Ainda aberto: a Epson EcoTank L3250 (A4).** Ela continua sem tipo de produção, e a
-TV da Oficina acusa 6 colunas de máquina num painel desenhado para 5. Há dois caminhos,
-e a escolha é do dono:
+**A Epson EcoTank L3250 (A4), resolvido em 19/11/2026.** Ela estava sem tipo de produção,
+e a TV da Oficina acusava 6 colunas de máquina num painel desenhado para 5. O dono
+deixou a decisão comigo, e a saída foi tratá-la como máquina de impressão, não desativá-la:
+é a máquina padrão do produto ativo "Certificado A4", e a OS 232 tem a reserva dela.
 
-- tirá-la da produção (desativar no cadastro): ela sai da TV, e o produto que a tem
-  como máquina padrão passa a sugerir outra;
-- tratá-la como máquina de impressão: ganha o tipo e a TV agrupa as duas impressoras
-  numa coluna só, como já faz com as 3D. Isso pede um ajuste na TV.
+- Ela ganhou o tipo `impressora_a4`, na etapa Impressão: já se começa e se põe fila nela.
+- A TV agrupa a plotter e a Epson numa coluna só, como já fazia com as 3D, e a parede
+  continua com cinco colunas.
+- Com duas impressoras, `em_impressao` deixou de apontar uma máquina só (como os lasers):
+  a OS que estiver nesse status sem máquina aparece em "sem máquina" na TV, em vez de ir
+  para a plotter por palpite.
