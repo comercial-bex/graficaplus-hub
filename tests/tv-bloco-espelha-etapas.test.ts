@@ -7,6 +7,7 @@ import {
   identidadeDaMaquina,
   legendaDeMaquinas,
 } from "../src/domain/producao/identidade-da-maquina";
+import { GRUPO_DA_PAREDE } from "../src/domain/tv/tela";
 
 /**
  * A PAREDE E O QUADRO FALAM DA MESMA OS.
@@ -182,7 +183,8 @@ describe("o teste lê alguma coisa — não pode passar por não achar nada", ()
     expect(excecoes.length).toBe(2);
     // Sete etapas desde 14/11/2026 (Atendimento validado, bloco entrada_arte).
     expect(porEtapa.size).toBe(7);
-    expect(tiposDoSql().length).toBe(5);
+    // Seis desde 19/11/2026 (impressora_a4, a Epson, na mesma etapa da plotter).
+    expect(tiposDoSql().length).toBe(6);
   });
 
   it("a lista de status do TypeScript é o enum do banco", () => {
@@ -297,10 +299,27 @@ describe("tipos_de_maquina é o mesmo mapa de identidade-da-maquina.ts", () => {
     expect(tiposDoSql().map((t) => t.tipo).sort()).toEqual(Object.keys(POR_TIPO).sort());
   });
 
-  it("a ordem das colunas é a da legenda", () => {
-    const doSql = [...tiposDoSql()].sort((a, b) => a.ordem - b.ordem).map((t) => t.tipo);
-    expect(doSql).toEqual(legendaDeMaquinas().map((m) => m.chave));
+  it("a ordem das colunas da parede é a da legenda", () => {
+    const doSql = [...tiposDoSql()].sort((a, b) => a.ordem - b.ordem);
+    // Tipos que dividem uma coluna (GRUPO_DA_PAREDE) contam uma vez, na posição do primeiro.
+    const colunas: string[] = [];
+    for (const t of doSql) {
+      const grupo = GRUPO_DA_PAREDE[t.tipo];
+      const primeiro = grupo ? doSql.find((x) => GRUPO_DA_PAREDE[x.tipo] === grupo)!.tipo : t.tipo;
+      if (!colunas.includes(primeiro)) colunas.push(primeiro);
+    }
+    expect(colunas).toEqual(legendaDeMaquinas().map((m) => m.chave));
     expect(new Set(tiposDoSql().map((t) => t.ordem)).size).toBe(tiposDoSql().length);
+  });
+
+  it("a parede agrupa por tipo o que a R6 agrupa por status de produção", () => {
+    for (const t of tiposDoSql()) {
+      const esperado = t.status === "em_3d" ? "3d" : t.status === "em_impressao" ? "impressao" : undefined;
+      expect(GRUPO_DA_PAREDE[t.tipo], `${t.tipo} (${t.status})`).toBe(esperado);
+    }
+    expect(Object.keys(GRUPO_DA_PAREDE).sort()).toEqual(
+      tiposDoSql().filter((t) => t.status === "em_3d" || t.status === "em_impressao").map((t) => t.tipo).sort(),
+    );
   });
 
   it("todo status de máquina existe no enum e é caminho paralelo de produção", () => {
@@ -317,10 +336,20 @@ describe("tipos_de_maquina é o mesmo mapa de identidade-da-maquina.ts", () => {
     for (const t of tiposDoSql()) porStatus.set(t.status, [...(porStatus.get(t.status) ?? []), t.tipo]);
 
     const identificam = [...porStatus.entries()].filter(([, tipos]) => tipos.length === 1);
-    expect(identificam.map(([s]) => s).sort()).toEqual(["em_3d", "em_corte", "em_impressao"]);
+    // em_impressao saiu desta lista em 19/11/2026: com a Epson A4 a casa tem duas impressoras.
+    expect(identificam.map(([s]) => s).sort()).toEqual(["em_3d", "em_corte"]);
     for (const [status, [tipo]] of identificam) {
       expect(identidadeDaMaquina({ status })?.chave, status).toBe(tipo);
     }
+  });
+
+  it("em_impressao é ambíguo dos dois lados — a plotter e a Epson A4", () => {
+    const impressoras = tiposDoSql().filter((t) => t.status === "em_impressao").map((t) => t.tipo).sort();
+    expect(impressoras).toEqual(["impressora_a4", "plotter_impressao"]);
+    // A tela não escolhe uma das duas: o selo é o da etapa ("Impressão"), que não é nenhum dos tipos.
+    const id = identidadeDaMaquina({ status: "em_impressao" });
+    expect(id?.curto).toBe("Impressão");
+    expect(Object.keys(POR_TIPO)).not.toContain(id?.chave ?? "");
   });
 
   it("em_laser_cnc continua ambíguo dos dois lados — a casa tem dois lasers", () => {

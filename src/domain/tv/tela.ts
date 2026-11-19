@@ -306,29 +306,64 @@ export type Coluna = {
 
 /**
  * O que a parede desenha: cinco colunas. As impressoras 3D (duas ou mais) dividem UMA coluna, com
- * um cartão por impressora, cada uma com o nome do cadastro. O resto da tela (conferência R7, fichas,
- * testes) continua lendo `colunas`, uma por máquina.
+ * um cartão por impressora, cada uma com o nome do cadastro; as impressoras de impressão (a plotter
+ * e a Epson A4, desde 19/11/2026) dividem outra. O resto da tela (conferência R7, fichas, testes)
+ * continua lendo `colunas`, uma por máquina.
  */
+export type GrupoDaParede = {
+  id: string;
+  identidade: IdentidadeMaquina;
+  filaTotal: number;
+  subs: Coluna[];
+};
+
 export type ColunaDaParede =
   | { tipo: "maquina"; c: Coluna }
-  | { tipo: "grupo_3d"; id: string; identidade: IdentidadeMaquina; filaTotal: number; subs: Coluna[] };
+  | ({ tipo: "grupo_3d" } & GrupoDaParede)
+  | ({ tipo: "grupo_impressao" } & GrupoDaParede);
 
-/** Junta as impressoras 3D numa coluna só quando há mais de uma; senão a parede fica como sempre foi. */
+/**
+ * Quais tipos de máquina dividem uma coluna da parede. É o espelho, por tipo, do que a conferência R6 de
+ * `tv_painel_maquinas` faz por status de produção (em_3d e em_impressao): um teste confere os dois lados.
+ */
+export const GRUPO_DA_PAREDE: Readonly<Record<string, "3d" | "impressao">> = {
+  impressora_3d: "3d",
+  plotter_impressao: "impressao",
+  impressora_a4: "impressao",
+};
+
+/** Junta as máquinas que dividem coluna quando há mais de uma no grupo; senão a parede fica como sempre foi. */
 export function organizarParede(colunas: Coluna[], tipos: string[]): ColunaDaParede[] {
-  const idx3d = tipos.map((t, i) => (t === "impressora_3d" ? i : -1)).filter((i) => i >= 0);
-  if (idx3d.length < 2) return colunas.map((c) => ({ tipo: "maquina", c }));
-  const subs = idx3d.map((i) => colunas[i]);
-  const grupo: ColunaDaParede = {
-    tipo: "grupo_3d",
-    id: "grupo-3d",
-    identidade: subs[0].identidade,
-    filaTotal: subs.reduce((t, c) => t + c.filaTotal, 0),
-    subs,
-  };
+  const grupoDe = (i: number) => GRUPO_DA_PAREDE[tipos[i]] ?? null;
+  const indices: Record<"3d" | "impressao", number[]> = { "3d": [], impressao: [] };
+  colunas.forEach((_, i) => {
+    const g = grupoDe(i);
+    if (g) indices[g].push(i);
+  });
+
   const saida: ColunaDaParede[] = [];
   colunas.forEach((c, i) => {
-    if (!idx3d.includes(i)) saida.push({ tipo: "maquina", c });
-    else if (i === idx3d[0]) saida.push(grupo);
+    const g = grupoDe(i);
+    if (!g || indices[g].length < 2) {
+      saida.push({ tipo: "maquina", c });
+      return;
+    }
+    // O grupo entra no lugar do primeiro membro; os outros já estão dentro dele.
+    if (i !== indices[g][0]) return;
+    const subs = indices[g].map((k) => colunas[k]);
+    const filaTotal = subs.reduce((t, s) => t + s.filaTotal, 0);
+    saida.push(
+      g === "3d"
+        ? { tipo: "grupo_3d", id: "grupo-3d", identidade: subs[0].identidade, filaTotal, subs }
+        : {
+            tipo: "grupo_impressao",
+            id: "grupo-impressao",
+            // O título da coluna é a etapa ("Impressão"), não a primeira máquina ("Plotter").
+            identidade: identidadePorTipo("plotter_impressao"),
+            filaTotal,
+            subs,
+          },
+    );
   });
   return saida;
 }
