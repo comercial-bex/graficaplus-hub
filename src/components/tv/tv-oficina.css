@@ -221,6 +221,8 @@
    fora do cartão. ===== */
 .tvo .maq .acoplados { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 6px 10px 12px; border-top: 1px solid var(--borda); }
 .tvo .maq .acoplados .sub3d { flex: none; padding: 4px 12px; }
+/* A fila nunca sai da linha: se nome + fila não couberem (fila de dois dígitos), o nome encolhe com reticências. */
+.tvo .maq .acoplados .sub3d .s1 .sn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tvo .maq .acoplados .sub3d .s2 { display: flex; align-items: baseline; gap: 10px; }
 .tvo .maq .acoplados .sub3d .s2 .corta { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tvo .maq .acoplados .est { flex: none; font-size: 22px; font-weight: 800; line-height: 32px; color: var(--apoio); white-space: nowrap; }

@@ -60,7 +60,12 @@ com os dois lasers.
   cartão acoplado da Epson dentro dela, com 76 px de cartão e 91 px de bloco; lista "DEPOIS" com 3 linhas por
   página (171 px numa janela de 196 px); nenhuma linha cortada, nada estourando, nenhuma faixa de número
   inconsistente. Acabamento depois da medida: o bloco passou a 95 px (mais respiro para os pontinhos da paginação) e a
-  fila zerada do cartão acoplado diz "sem fila", não "vazia".
+  fila do cartão acoplado diz sempre "fila N" ("fila 0" quando zerada), não "vazia".
+
+  **Defeito meu, pego na foto do site:** a primeira troca foi para "sem fila", que passou 14 px da linha do cartão
+  (nome 228 px + vão 8 + "sem fila" 92 = 328 px, para 315 úteis; o "vazia" antigo cabia com 1 px de folga). A
+  medida por elemento não pegava isso: a conferência agora mede a LINHA inteira. "fila 0" cabe com folga, e o nome
+  encolhe com reticências se a fila chegar a dois dígitos.
 
 ## Ensaio no banco vivo (19/11/2026, desfeito por RAISE EXCEPTION)
 
