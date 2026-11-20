@@ -250,6 +250,12 @@ describe("a coluna da plotter com a Epson acoplada no pé (19/11/2026)", () => {
     const css = readFileSync(join(RAIZ, "src", "components", "tv", "tv-oficina.css"), "utf8");
     expect(css).toMatch(/\.tvo \.maq \.acoplados \{[^}]*flex: none;/);
     expect(css).toMatch(/\.tvo \.maq \.acoplados \.sub3d \{[^}]*flex: none;/);
+    // A fila do cartão acoplado diz sempre "fila N" ("sem fila" estourou a linha em 14 px, medido no site) e o nome encolhe
+    // antes de a fila sair da linha.
+    expect(tsx).toContain("fila {c.filaTotal}");
+    expect(tsx).not.toContain(': "sem fila"');
+    expect(tsx).toContain('<span className="sf fixo">fila {c.filaTotal}</span>');
+    expect(css).toMatch(/\.tvo \.maq \.acoplados \.sub3d \.s1 \.sn \{[^}]*min-width: 0;[^}]*text-overflow: ellipsis;/);
   });
 });
 
