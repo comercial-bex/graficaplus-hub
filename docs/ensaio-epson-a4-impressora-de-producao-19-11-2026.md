@@ -56,6 +56,12 @@ com os dois lasers.
   ocupava um cartão grande quase vazio. A coluna da plotter voltou a ser inteira, com a Epson acoplada no pé. Para
   olhar sem estar na oficina: `/tv/maquinas?demo=impressoras`.
 
+  **Medido no site publicado** (Playwright, 1920x1080, `?demo=impressoras`): 5 colunas; coluna da plotter com 641 px;
+  cartão acoplado da Epson dentro dela, com 76 px de cartão e 91 px de bloco; lista "DEPOIS" com 3 linhas por
+  página (171 px numa janela de 196 px); nenhuma linha cortada, nada estourando, nenhuma faixa de número
+  inconsistente. Acabamento depois da medida: o bloco passou a 95 px (mais respiro para os pontinhos da paginação) e a
+  fila zerada do cartão acoplado diz "sem fila", não "vazia".
+
 ## Ensaio no banco vivo (19/11/2026, desfeito por RAISE EXCEPTION)
 
 A migração inteira, sem o `COMMIT`, com uma fotografia da TV antes e outra depois (como `service_role`), e a
