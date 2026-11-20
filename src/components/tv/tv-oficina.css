@@ -214,6 +214,19 @@
 .tvo .maq .sub3d .s3 .corta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .tvo .maq .sub3d .sf { flex: none; font-size: 22px; font-weight: 800; line-height: 30px; color: var(--apoio); white-space: nowrap; }
 .tvo .maq .sub3d.estourou .s3 .corta { color: var(--vermelho-texto); }
+/* ===== impressora acoplada (19/11/2026): a plotter fica com a coluna inteira e a Epson A4 ganha um cartão compacto no pé.
+   Altura: 1 de borda + 6 + 8 de respiro + o cartão (2 + 8 de enchimento + 30 + 32) = 87 px, que cabem nas duas linhas
+   de trabalho (2 x 57 px) que a página da fila cede (LINHAS_DE_UM_CARTAO_ACOPLADO). A lista tem overflow hidden. ===== */
+.tvo .maq .acoplados { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 6px 10px 8px; border-top: 1px solid var(--borda); }
+.tvo .maq .acoplados .sub3d { flex: none; padding: 4px 12px; }
+.tvo .maq .acoplados .sub3d .s2 { display: flex; align-items: baseline; gap: 10px; }
+.tvo .maq .acoplados .sub3d .s2 .corta { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tvo .maq .acoplados .est { flex: none; font-size: 22px; font-weight: 800; line-height: 32px; color: var(--apoio); white-space: nowrap; }
+.tvo .maq .acoplados .e-rodando .est { color: var(--neon); }
+.tvo .maq .acoplados .e-livre .est { color: #fff; }
+.tvo .maq .acoplados .e-reservada .est, .tvo .maq .acoplados .e-nao_fechou .est { color: var(--amarelo); }
+.tvo .maq .acoplados .e-pelo_status .est { color: var(--azul-texto); }
+.tvo .maq .acoplados .e-bloqueada .est { color: var(--claro); }
 
 /* etiqueta de PRAZO: um significado só, nas cores dos três cartões grandes */
 .tvo .t { display: inline-flex; align-items: center; gap: 3px; font-size: 24px; font-weight: 800; line-height: 28px; flex: none; white-space: nowrap; }

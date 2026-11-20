@@ -19,10 +19,12 @@
 
 import type { PainelDaOficina } from "./painel";
 
-export type ModoDeExemplo = "cheio" | "hoje" | "tres_d";
+export type ModoDeExemplo = "cheio" | "hoje" | "tres_d" | "impressoras";
 
 export function modoDeExemplo(valor: unknown): ModoDeExemplo | undefined {
-  return valor === "cheio" || valor === "hoje" || valor === "tres_d" ? valor : undefined;
+  return valor === "cheio" || valor === "hoje" || valor === "tres_d" || valor === "impressoras"
+    ? valor
+    : undefined;
 }
 
 export function etiquetaDoExemplo(modo: ModoDeExemplo): string {
@@ -616,7 +618,62 @@ function exemploComImpressoras3D(): PainelDaOficina {
   };
 }
 
+const EPSON = "eb76a98b-8555-4a5b-b0ab-00c3a22e6c95";
+
+/**
+ * `?demo=impressoras` (19/11/2026): a oficina de hoje por inteiro. A plotter de impressão e a Epson EcoTank A4 dividem
+ * a coluna Impressão (a plotter com a coluna inteira, a Epson num cartão compacto no pé), as quatro Bambu dividem a 3D.
+ * A OS 232 (certificado A4) roda na Epson. É para olhar a parede sem estar na oficina e para fotografar.
+ */
+function exemploComImpressoras(): PainelDaOficina {
+  const base = exemploComImpressoras3D();
+  // A ordem que tipos_de_maquina() dá depois da migração 20261119210000.
+  const ordem: Record<string, number> = {
+    plotter_impressao: 1,
+    impressora_a4: 2,
+    plotter_recorte: 3,
+    laser_co2: 4,
+    laser_fiber: 5,
+    impressora_3d: 6,
+  };
+  const epson: PainelDaOficina["maquinas"][number] = {
+    ...SEM_REGISTRO(EPSON, "impressora_a4", 2),
+    rotulo: "Epson EcoTank L3250 (A4)",
+    estado: "rodando",
+    desde_em: "2026-10-01T18:10:00+00:00",
+    desde_local: "15:10",
+    agora: {
+      os_numero: 232,
+      produto: "Certificado A4 papel texturizado vergê 180g",
+      item: "produto",
+      itens_na_os: 1,
+      origem: "apontamento",
+      minutos_previstos: 15,
+      dias_atraso: null,
+      pausada: false,
+      fora_da_oficina: false,
+    },
+    ultimo_apontamento_local: "15:10",
+    ultimo_apontamento_os_numero: 232,
+  };
+  const maquinas = [...base.maquinas, epson].map((m) => ({ ...m, ordem: ordem[m.tipo] ?? m.ordem }));
+  return {
+    ...base,
+    rodando: { total: base.rodando.total + 1, de: maquinas.length },
+    blocos: {
+      ...base.blocos,
+      abertas_na_parede: base.blocos.abertas_na_parede + 1,
+      oficina: {
+        total: base.blocos.oficina.total + 1,
+        nas_colunas: base.blocos.oficina.nas_colunas + 1,
+      },
+    },
+    maquinas,
+  };
+}
+
 export function painelDeExemplo(modo: ModoDeExemplo): PainelDaOficina {
+  if (modo === "impressoras") return exemploComImpressoras();
   if (modo === "tres_d") return exemploComImpressoras3D();
   return modo === "hoje" ? EXEMPLO_HOJE : EXEMPLO_CHEIO;
 }

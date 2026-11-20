@@ -306,9 +306,11 @@ export type Coluna = {
 
 /**
  * O que a parede desenha: cinco colunas. As impressoras 3D (duas ou mais) dividem UMA coluna, com
- * um cartão por impressora, cada uma com o nome do cadastro; as impressoras de impressão (a plotter
- * e a Epson A4, desde 19/11/2026) dividem outra. O resto da tela (conferência R7, fichas, testes)
- * continua lendo `colunas`, uma por máquina.
+ * um cartão por impressora, cada uma com o nome do cadastro. As de impressão (a plotter e a Epson A4,
+ * desde 19/11/2026) também dividem uma coluna, mas de outro jeito: a primeira (a plotter, a mais
+ * ocupada da oficina) mantém a coluna inteira, com a lista "DEPOIS", e as outras ficam num cartão
+ * compacto acoplado no pé dela. Reduzir a plotter a um cartão pequeno escondia a fila onde aparecem
+ * as OS atrasadas. O resto da tela (conferência R7, fichas, testes) continua lendo `colunas`, uma por máquina.
  */
 export type GrupoDaParede = {
   id: string;
@@ -358,7 +360,7 @@ export function organizarParede(colunas: Coluna[], tipos: string[]): ColunaDaPar
         : {
             tipo: "grupo_impressao",
             id: "grupo-impressao",
-            // O título da coluna é a etapa ("Impressão"), não a primeira máquina ("Plotter").
+            // `subs[0]` é a coluna inteira (a plotter); `subs.slice(1)` são os cartões acoplados no pé dela.
             identidade: identidadePorTipo("plotter_impressao"),
             filaTotal,
             subs,

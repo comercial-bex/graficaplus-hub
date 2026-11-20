@@ -8,6 +8,7 @@ import {
   paginaDoTique,
   paginar,
   trabalhosPorPagina,
+  trabalhosPorPaginaComAcoplados,
 } from "@/domain/tv/paginacao";
 import { partirNome, type Medidor } from "@/domain/tv/partir-nome";
 import {
@@ -303,11 +304,14 @@ function ColunaDaMaquina({
   porPagina,
   tique,
   medir,
+  acoplados,
 }: {
   c: Coluna;
   porPagina: number;
   tique: number;
   medir: Medidor | null;
+  /** outras máquinas da mesma etapa, em cartão compacto no pé da coluna (a Epson A4 junto da plotter) */
+  acoplados?: Coluna[];
 }) {
   const paginas = useMemo(() => paginar(c.fila, porPagina), [c.fila, porPagina]);
   const pagina = paginaDoTique(tique, paginas.length);
@@ -388,6 +392,49 @@ function ColunaDaMaquina({
           ))}
         </div>
       ) : null}
+      {acoplados && acoplados.length > 0 ? (
+        <div className="acoplados" data-acoplados={acoplados.length}>
+          {acoplados.map((x) => (
+            <CartaoAcoplado key={x.id} c={x} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Uma máquina de baixo volume no pé da coluna de outra da mesma etapa (19/11/2026: a Epson A4 no pé da
+ * plotter). Duas linhas: o nome e a fila; o estado e o que está rodando. A plotter, a máquina mais ocupada,
+ * não perde a coluna nem a lista "DEPOIS" (que só encurta em duas linhas por cartão acoplado).
+ */
+function CartaoAcoplado({ c }: { c: Coluna }) {
+  return (
+    <div
+      className={`sub3d ${c.classe} ${c.estourou ? "estourou" : ""}`}
+      data-maq={c.id}
+      data-estado={c.estado}
+      data-acoplado
+    >
+      <div className="s1">
+        <span className="sn fixo">{c.identidade.curto.toUpperCase()}</span>
+        <span className="sf fixo">{c.filaTotal > 0 ? `fila ${c.filaTotal}` : "vazia"}</span>
+      </div>
+      <div className="s2">
+        <span className="est fixo">{c.palavra}</span>
+        <span className="corta">
+          {c.agora ? (
+            <>
+              <b className={c.agora.prazo?.k === "atr" ? "atr" : ""} data-os-agora={c.agora.osNumero}>
+                OS #{c.agora.osNumero}
+              </b>{" "}
+              {c.agora.produto}
+            </>
+          ) : (
+            (c.notas[0] ?? c.desde)
+          )}
+        </span>
+      </div>
     </div>
   );
 }
@@ -400,18 +447,14 @@ export function rotuloDaImpressora(c: Coluna): string {
 }
 
 /**
- * As máquinas que dividem uma coluna (28/10/2026, as impressoras 3D; 19/11/2026, também a plotter e a
- * Epson A4, que dividem a coluna Impressão): um cartão por máquina, com o estado, o que está imprimindo
- * e quantos esperam. O nº da OS aparece sempre inteiro; o nome do produto corta com reticências.
- * O nome do cartão é o do cadastro nas 3D ("BAMBU 3D 01") e o nome curto do tipo nas de impressão
- * ("PLOTTER", "IMPRESSORA A4"), porque o do cadastro da plotter não cabe numa linha. O estilo é o
- * mesmo (`grupo3d`, nome herdado da primeira coluna agrupada).
+ * As impressoras 3D numa coluna só (28/10/2026): um cartão por impressora, com o nome do cadastro,
+ * o estado, o que está imprimindo e quantos esperam. O nº da OS aparece sempre inteiro; o nome do
+ * produto corta com reticências.
  */
-function GrupoDaParede({ g }: { g: Extract<ColunaDaParede, { subs: Coluna[] }> }) {
+function Grupo3D({ g }: { g: Extract<ColunaDaParede, { tipo: "grupo_3d" }> }) {
   const rodando = g.subs.filter((s) => s.estado === "rodando").length;
-  const deImpressao = g.tipo === "grupo_impressao";
   return (
-    <div className="maq grupo3d esmaece" data-maq={g.id} data-grupo={deImpressao ? "impressao" : "3d"}>
+    <div className="maq grupo3d esmaece" data-maq={g.id} data-grupo="3d">
       <div className="filete" style={{ background: g.identidade.cor }} />
       <div className="topo">
         <div className="nomel">
@@ -437,9 +480,7 @@ function GrupoDaParede({ g }: { g: Extract<ColunaDaParede, { subs: Coluna[] }> }
             data-estado={c.estado}
           >
             <div className="s1">
-              <span className="sn fixo">
-                {deImpressao ? c.identidade.curto.toUpperCase() : rotuloDaImpressora(c)}
-              </span>
+              <span className="sn fixo">{rotuloDaImpressora(c)}</span>
               <span className="sf fixo">{c.filaTotal > 0 ? `fila ${c.filaTotal}` : "vazia"}</span>
             </div>
             <div className="s2 corta">
@@ -482,8 +523,18 @@ function Maquinas({
       {parede.map((p) =>
         p.tipo === "maquina" ? (
           <ColunaDaMaquina key={p.c.id} c={p.c} porPagina={porPagina} tique={tique} medir={medir} />
+        ) : p.tipo === "grupo_3d" ? (
+          <Grupo3D key={p.id} g={p} />
         ) : (
-          <GrupoDaParede key={p.id} g={p} />
+          // Impressão: a primeira (a plotter) segue com a coluna inteira; as outras ficam no pé dela.
+          <ColunaDaMaquina
+            key={p.subs[0].id}
+            c={p.subs[0]}
+            acoplados={p.subs.slice(1)}
+            porPagina={trabalhosPorPaginaComAcoplados(porPagina, p.subs.length - 1)}
+            tique={tique}
+            medir={medir}
+          />
         ),
       )}
     </section>
