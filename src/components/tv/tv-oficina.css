@@ -215,9 +215,11 @@
 .tvo .maq .sub3d .sf { flex: none; font-size: 22px; font-weight: 800; line-height: 30px; color: var(--apoio); white-space: nowrap; }
 .tvo .maq .sub3d.estourou .s3 .corta { color: var(--vermelho-texto); }
 /* ===== impressora acoplada (19/11/2026): a plotter fica com a coluna inteira e a Epson A4 ganha um cartão compacto no pé.
-   Altura: 1 de borda + 6 + 8 de respiro + o cartão (2 + 8 de enchimento + 30 + 32) = 87 px, que cabem nas duas linhas
-   de trabalho (2 x 57 px) que a página da fila cede (LINHAS_DE_UM_CARTAO_ACOPLADO). A lista tem overflow hidden. ===== */
-.tvo .maq .acoplados { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 6px 10px 8px; border-top: 1px solid var(--borda); }
+   Altura MEDIDA no site publicado (1920x1080): o cartão tem 76 px e o bloco, com 1 de borda e 6 + 12 de respiro, 95 px,
+   que cabem nas duas linhas de trabalho (2 x 57 px) que a página da fila cede (LINHAS_DE_UM_CARTAO_ACOPLADO). A lista
+   tem overflow hidden. O respiro de baixo (12 px) deixa os pontinhos da paginação (a 3 px da borda, 6 px de altura)
+   fora do cartão. ===== */
+.tvo .maq .acoplados { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 6px 10px 12px; border-top: 1px solid var(--borda); }
 .tvo .maq .acoplados .sub3d { flex: none; padding: 4px 12px; }
 .tvo .maq .acoplados .sub3d .s2 { display: flex; align-items: baseline; gap: 10px; }
 .tvo .maq .acoplados .sub3d .s2 .corta { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

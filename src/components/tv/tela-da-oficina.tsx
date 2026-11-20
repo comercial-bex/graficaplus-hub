@@ -418,7 +418,8 @@ function CartaoAcoplado({ c }: { c: Coluna }) {
     >
       <div className="s1">
         <span className="sn fixo">{c.identidade.curto.toUpperCase()}</span>
-        <span className="sf fixo">{c.filaTotal > 0 ? `fila ${c.filaTotal}` : "vazia"}</span>
+        {/* "sem fila" e não "vazia": ao lado de RODANDO, "vazia" parece dizer que a máquina está vazia */}
+        <span className="sf fixo">{c.filaTotal > 0 ? `fila ${c.filaTotal}` : "sem fila"}</span>
       </div>
       <div className="s2">
         <span className="est fixo">{c.palavra}</span>
