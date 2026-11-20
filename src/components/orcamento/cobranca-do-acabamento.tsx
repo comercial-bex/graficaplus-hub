@@ -6,8 +6,10 @@ import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-d
 import { Button } from "@/components/ui/button";
 import {
   acabamentoCobravel,
+  alternarEscolha,
   camposDaLinhaPorArea,
   ladosSugeridos,
+  NENHUM_ACABAMENTO,
   OPCOES_DE_LADOS,
   quantidadeDoAcabamento,
   type AcabamentoCobravel,
@@ -83,6 +85,9 @@ const num = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 3 
  * "Cobrar o acabamento à parte": para cada acabamento do produto que tem serviço com preço, mostra
  * o que seria cobrado e um botão que ACRESCENTA a linha ao orçamento. Nada é cobrado sozinho.
  * Some quando o serviço já está no orçamento ou o item ainda não tem medida.
+ *
+ * É opcional: tocar de novo no acabamento marcado (ou no lado marcado) desmarca, e com nada
+ * marcado a tela diz que nada será cobrado. O cliente pode não contratar mão de obra nenhuma.
  */
 export function CobrancaDoAcabamento({
   acabamentos,
@@ -114,48 +119,74 @@ export function CobrancaDoAcabamento({
     if (!servico || jaNoOrcamento.has(servico.id)) continue;
     if (quantidadeDoAcabamento(regra.medida, peca) > 0) linhas.push({ regra, servico });
   }
+  // null = a pessoa ainda não mexeu (vale a sugestão); NENHUM_ACABAMENTO = desmarcou tudo.
   const [escolhido, setEscolhido] = useState<string | null>(null);
   if (linhas.length === 0) return null;
   // Lona aceita seis acabamentos: uma escolha por vez, para a tela não virar uma parede de cartões.
   const padrao = acabamentos.find((a) => a.padrao)?.nome;
   const atual =
-    linhas.find((l) => l.regra.acabamento === escolhido) ??
-    linhas.find((l) => l.regra.acabamento === padrao) ??
-    linhas[0];
+    escolhido === NENHUM_ACABAMENTO
+      ? null
+      : (linhas.find((l) => l.regra.acabamento === escolhido) ??
+        linhas.find((l) => l.regra.acabamento === padrao) ??
+        linhas[0]);
 
   return (
     <div
       className="space-y-3 rounded-lg border border-dashed p-3"
       data-testid="cobranca-do-acabamento"
     >
-      <p className="text-sm font-medium">Cobrar o acabamento à parte</p>
-      {linhas.length > 1 && (
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Qual acabamento cobrar">
-          {linhas.map(({ regra }) => (
+      <p className="text-sm font-medium">
+        Cobrar o acabamento à parte{" "}
+        <span className="text-xs font-normal text-muted-foreground">opcional</span>
+      </p>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Qual acabamento cobrar">
+        {linhas.map(({ regra }) => {
+          const marcado = regra.acabamento === atual?.regra.acabamento;
+          return (
             <Button
               key={regra.acabamento}
               type="button"
               size="sm"
-              variant={regra.acabamento === atual.regra.acabamento ? "default" : "outline"}
-              aria-pressed={regra.acabamento === atual.regra.acabamento}
-              onClick={() => setEscolhido(regra.acabamento)}
+              variant={marcado ? "default" : "outline"}
+              aria-pressed={marcado}
+              disabled={desabilitado}
+              // Tocar no marcado desmarca: com nada marcado, nada é cobrado à parte.
+              onClick={() =>
+                setEscolhido(
+                  alternarEscolha(atual?.regra.acabamento ?? null, regra.acabamento) ??
+                    NENHUM_ACABAMENTO,
+                )
+              }
             >
               {regra.acabamento}
             </Button>
-          ))}
-        </div>
+          );
+        })}
+      </div>
+      {atual ? (
+        <LinhaDeCobranca
+          key={atual.servico.id}
+          regra={atual.regra}
+          servico={atual.servico}
+          peca={peca}
+          nomeDoProduto={nomeDoProduto}
+          desabilitado={desabilitado}
+          onAdicionar={(c) => {
+            // Depois de acrescentar, volta a sugestão: o próximo acabamento vem marcado de novo.
+            setEscolhido(null);
+            onAdicionar(c);
+          }}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground" data-testid="cobranca-nenhuma">
+          Nenhum acabamento será cobrado à parte. Toque em um acima se o cliente contratar.
+        </p>
       )}
-      <LinhaDeCobranca
-        key={atual.servico.id}
-        regra={atual.regra}
-        servico={atual.servico}
-        peca={peca}
-        nomeDoProduto={nomeDoProduto}
-        desabilitado={desabilitado}
-        onAdicionar={onAdicionar}
-      />
       <p className="text-xs text-muted-foreground">
-        A linha entra como um item comum: dá para mudar a quantidade depois ou apagar.
+        {atual
+          ? "A linha entra como um item comum: dá para mudar a quantidade depois ou apagar. Para não cobrar, toque de novo no que está marcado."
+          : "Nada será acrescentado ao orçamento."}
       </p>
     </div>
   );
@@ -176,12 +207,14 @@ function LinhaDeCobranca({
   desabilitado: boolean;
   onAdicionar: (c: CobrancaPronta) => void;
 }) {
-  const [lados, setLados] = useState<LadosDaBainha>(() => ladosSugeridos(nomeDoProduto));
+  // null = nenhum lado marcado (a pessoa tocou de novo no marcado): não há o que cobrar.
+  const [lados, setLados] = useState<LadosDaBainha | null>(() => ladosSugeridos(nomeDoProduto));
   const preco = Number(servico.preco_base);
   const temPreco = Number.isFinite(preco) && preco > 0;
   const unidade = regra.medida === "perimetro" ? "m" : regra.medida === "peca" ? "un" : "m²";
   const valorDe = (q: number) => brl(Math.round(q * preco * 100) / 100);
   const quantidade = quantidadeDoAcabamento(regra.medida, peca, lados);
+  const semLados = regra.medida === "perimetro" && lados === null;
 
   return (
     <div className="space-y-2" data-testid={`cobranca-${regra.medida}`}>
@@ -208,7 +241,7 @@ function LinhaDeCobranca({
                 titulo={o.titulo}
                 detalhe={`${o.detalhe} · ${num(q)} m${temPreco ? ` · ${valorDe(q)}` : ""}`}
                 desabilitado={desabilitado}
-                onEscolher={() => setLados(o.chave)}
+                onEscolher={() => setLados(alternarEscolha(lados, o.chave))}
                 className="min-h-16"
               />
             );
@@ -216,16 +249,22 @@ function LinhaDeCobranca({
         </GradeDeCartoes>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="min-w-0 text-sm">
-          {num(quantidade)} {unidade}
-          {temPreco && <span className="text-muted-foreground"> = {valorDe(quantidade)}</span>}
+        <span className="min-w-0 text-sm" data-testid={semLados ? "cobranca-sem-lados" : undefined}>
+          {semLados ? (
+            <span className="text-muted-foreground">Marque os lados para ver o valor.</span>
+          ) : (
+            <>
+              {num(quantidade)} {unidade}
+              {temPreco && <span className="text-muted-foreground"> = {valorDe(quantidade)}</span>}
+            </>
+          )}
         </span>
         <Button
           type="button"
           size="sm"
           variant="outline"
           className="h-9"
-          disabled={desabilitado}
+          disabled={desabilitado || !(quantidade > 0)}
           onClick={() => onAdicionar({ acabamento: regra, servico, quantidade, peca })}
         >
           <Plus className="h-4 w-4" /> Adicionar ao orçamento

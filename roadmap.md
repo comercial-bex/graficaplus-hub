@@ -1,5 +1,8 @@
 # Roadmap
 
+## Orçamento (20/11)
+- [x] "Cobrar o acabamento à parte" ficou opcional: tocar de novo no acabamento marcado, ou no lado marcado (contorno, lados maiores, lados menores), desmarca. Com nada marcado a tela diz que nada será cobrado e o botão de acrescentar some ou fica desligado. Antes sempre ficava um marcado (o padrão do produto, ou o primeiro). A linha continua só nascendo pelo clique em "Adicionar ao orçamento". Tela não vista no navegador (sem conta autenticada nesta sessão): coberto por teste de marcação e de contrato do código.
+
 ## Aplicação de Avisos e validação (15/11)
 - [x] Terceirizados inclui compradores com ou sem login; pacote aplicado como 0014, ACL/SECURITY DEFINER/search_path conferidos e 13 testes aprovados. Nenhum aviso/envio/validação registrado; sem publicação. Comparação das cópias detectou dois espaços extras de indentação no SQL enviado, sem diferença lógica; cabeçalho da fonte marcado APLICADA.
 
