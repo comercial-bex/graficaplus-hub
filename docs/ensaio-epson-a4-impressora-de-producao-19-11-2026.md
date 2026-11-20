@@ -33,8 +33,10 @@ cadastro dizer o que ela é.
    `tipo_da_maquina_corrigido`.
 4. **A TV agrupa as duas impressoras numa coluna só**, como já agrupava as 3D:
    - a R6 do banco conta as máquinas de `em_impressao` como uma coluna (e as de `em_3d`, como já contava);
-   - a parede faz o mesmo (`organizarParede`, `GRUPO_DA_PAREDE`): a coluna "Impressão" tem um cartão para a
-     "PLOTTER" e outro para a "IMPRESSORA A4";
+   - a parede faz o mesmo (`organizarParede`, `GRUPO_DA_PAREDE`): as duas máquinas ficam na mesma coluna. **A
+     plotter mantém a coluna inteira**, com a lista "DEPOIS", e a **Epson A4 ganha um cartão compacto no pé dela**
+     (nome, fila, estado e o que está rodando). A página da fila da plotter encurta em duas linhas para o cartão
+     caber (`trabalhosPorPaginaComAcoplados`);
    - a legenda do quadro continua com cinco itens, e o limite de colunas continua 5.
 
 ## O que muda de comportamento
@@ -48,9 +50,11 @@ com os dois lasers.
   máquina padrão (a Plotter nas lonas e adesivos, a Epson no certificado) continuam onde estavam.
 - **O cartão no quadro** de uma OS em `em_impressao` sem máquina continua dizendo "Impressão", com a mesma cor e o
   mesmo ícone, mas já não diz que é a plotter.
-- **Na parede, a plotter vira um cartão compacto** dentro da coluna "Impressão", como as Bambu na coluna 3D: estado,
-  OS de agora, fila. A lista de fila por extenso da coluna inteira não aparece mais para ela. Não consegui ver a
-  TV rodando aqui, então esse desenho está testado (colunas, rótulos, falhas), mas não visto.
+- **Correção de desenho, 20/11/2026.** A primeira versão publicada em 19/11 punha a plotter e a Epson como dois cartões
+  iguais dentro de uma coluna, como as Bambu. Fotografei a tela de demonstração e a plotter, a máquina mais ocupada
+  da oficina, perdia a lista "DEPOIS" (onde aparecem as OS atrasadas), o prazo "HOJE" e o nome do produto, e a Epson
+  ocupava um cartão grande quase vazio. A coluna da plotter voltou a ser inteira, com a Epson acoplada no pé. Para
+  olhar sem estar na oficina: `/tv/maquinas?demo=impressoras`.
 
 ## Ensaio no banco vivo (19/11/2026, desfeito por RAISE EXCEPTION)
 

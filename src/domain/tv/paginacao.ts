@@ -17,6 +17,18 @@ export function trabalhosPorPagina(temFaixa: boolean): number {
   return temFaixa ? TRABALHOS_POR_PAGINA.comFaixa : TRABALHOS_POR_PAGINA.semFaixa;
 }
 
+/**
+ * Quantas linhas da fila uma máquina acoplada no pé da coluna tira da página. O cartão acoplado
+ * (duas linhas de texto, ~86 px com o respiro) ocupa o espaço de duas linhas de trabalho (57 px cada),
+ * com folga: a lista tem `overflow: hidden`, então errar para menos cortaria a última linha.
+ */
+export const LINHAS_DE_UM_CARTAO_ACOPLADO = 2;
+
+/** A página da fila de uma coluna que leva `acoplados` cartões no pé: nunca menos de uma linha. */
+export function trabalhosPorPaginaComAcoplados(porPagina: number, acoplados: number): number {
+  return Math.max(1, Math.floor(porPagina) - LINHAS_DE_UM_CARTAO_ACOPLADO * Math.max(0, acoplados));
+}
+
 /** Parte a lista em páginas de `porPagina` itens; lista vazia dá uma página vazia. */
 export function paginar<T>(itens: readonly T[], porPagina: number): T[][] {
   const tamanho = Math.max(1, Math.floor(porPagina));

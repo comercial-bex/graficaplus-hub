@@ -1,7 +1,12 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { EXEMPLO_HOJE, painelDeExemplo } from "../src/domain/tv/exemplo";
+import { EXEMPLO_HOJE, modoDeExemplo, painelDeExemplo } from "../src/domain/tv/exemplo";
+import {
+  LINHAS_DE_UM_CARTAO_ACOPLADO,
+  trabalhosPorPagina,
+  trabalhosPorPaginaComAcoplados,
+} from "../src/domain/tv/paginacao";
 import { lerPainel, type PainelDaOficina } from "../src/domain/tv/painel";
 import { GRUPO_DA_PAREDE, montarTela, organizarParede } from "../src/domain/tv/tela";
 
@@ -206,6 +211,45 @@ describe("a parede da TV com a Epson A4 (19/11/2026)", () => {
 
   it("GRUPO_DA_PAREDE é o que a conferência R6 do banco agrupa", () => {
     expect(GRUPO_DA_PAREDE).toEqual({ impressora_3d: "3d", plotter_impressao: "impressao", impressora_a4: "impressao" });
+  });
+});
+
+describe("a coluna da plotter com a Epson acoplada no pé (19/11/2026)", () => {
+  it("a página da fila cede duas linhas por cartão acoplado e nunca fica com menos de uma", () => {
+    expect(trabalhosPorPaginaComAcoplados(5, 0)).toBe(5);
+    expect(trabalhosPorPaginaComAcoplados(5, 1)).toBe(5 - LINHAS_DE_UM_CARTAO_ACOPLADO);
+    expect(trabalhosPorPaginaComAcoplados(trabalhosPorPagina(false), 1)).toBe(3);
+    expect(trabalhosPorPaginaComAcoplados(trabalhosPorPagina(true), 1)).toBe(2);
+    expect(trabalhosPorPaginaComAcoplados(5, 2)).toBe(1);
+    expect(trabalhosPorPaginaComAcoplados(2, 3)).toBe(1);
+  });
+
+  it("?demo=impressoras mostra a oficina de hoje: cinco colunas, a Epson rodando a OS 232 no pé da plotter, nenhum número inconsistente", () => {
+    expect(modoDeExemplo("impressoras")).toBe("impressoras");
+    expect(modoDeExemplo("qualquer")).toBeUndefined();
+    const p = painelDeExemplo("impressoras");
+    expect(lerPainel(JSON.parse(JSON.stringify(p))).ok).toBe(true);
+    const tela = montarTela(p, Date.parse(p.gerado_em) + 20_000);
+    expect(tela.colunas).toHaveLength(9);
+    expect(tela.parede.map((c) => c.tipo)).toEqual(["grupo_impressao", "maquina", "maquina", "maquina", "grupo_3d"]);
+    expect(tela.falhas).toEqual([]);
+    expect(tela.faixa).toBeNull();
+    const g = tela.parede[0];
+    if (g.tipo !== "grupo_impressao") throw new Error("a primeira coluna devia ser a de impressão");
+    expect(g.subs[0].identidade.curto).toBe("Plotter");
+    const [epson] = g.subs.slice(1);
+    expect([epson.identidade.curto, epson.estado, epson.agora?.osNumero]).toEqual(["Impressora A4", "rodando", 232]);
+  });
+
+  it("no desenho, só as Bambu usam o cartão de grupo; a de impressão é a coluna da plotter com a Epson acoplada", () => {
+    const tsx = readFileSync(join(RAIZ, "src", "components", "tv", "tela-da-oficina.tsx"), "utf8");
+    expect(tsx).toContain('p.tipo === "grupo_3d" ? (');
+    expect(tsx).toContain("acoplados={p.subs.slice(1)}");
+    expect(tsx).toContain("trabalhosPorPaginaComAcoplados(porPagina, p.subs.length - 1)");
+    expect(tsx).not.toContain("GrupoDaParede");
+    const css = readFileSync(join(RAIZ, "src", "components", "tv", "tv-oficina.css"), "utf8");
+    expect(css).toMatch(/\.tvo \.maq \.acoplados \{[^}]*flex: none;/);
+    expect(css).toMatch(/\.tvo \.maq \.acoplados \.sub3d \{[^}]*flex: none;/);
   });
 });
 
