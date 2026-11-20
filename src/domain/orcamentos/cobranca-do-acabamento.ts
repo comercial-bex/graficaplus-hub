@@ -84,11 +84,28 @@ export function ladosSugeridos(nomeDoProduto: string | null | undefined): LadosD
   return /banner/i.test(nomeDoProduto ?? "") ? "menores" : "contorno";
 }
 
-/** Quanto cobrar (m ou m²) para a peça e a quantidade; 0 sem medida. */
+/**
+ * Marcador de "nenhum acabamento": a pessoa desmarcou, e a tela não sugere outro no lugar
+ * (antes sempre ficava um marcado: o padrão do produto, ou o primeiro).
+ */
+export const NENHUM_ACABAMENTO = "__nenhum__";
+
+/**
+ * Toque numa opção de escolha: se ela já era a marcada, desmarca (volta `null`); senão, marca.
+ * Cobrar acabamento ou mão de obra à parte é opcional, e o cliente pode não contratar nada.
+ */
+export function alternarEscolha<T>(marcado: T | null, tocado: T): T | null {
+  return marcado === tocado ? null : tocado;
+}
+
+/**
+ * Quanto cobrar (m ou m²) para a peça e a quantidade; 0 sem medida.
+ * Em acabamento cobrado pelo contorno, `lados` nulo (nenhum lado marcado) não cobra nada.
+ */
 export function quantidadeDoAcabamento(
   medida: MedidaCobrada,
   peca: { largura: number; altura: number; quantidade: number },
-  lados: LadosDaBainha = "contorno",
+  lados: LadosDaBainha | null = "contorno",
 ): number {
   const l = Number(peca.largura);
   const a = Number(peca.altura);
@@ -96,6 +113,7 @@ export function quantidadeDoAcabamento(
   if (medida === "peca") return qtd;
   if (!(l > 0) || !(a > 0)) return 0;
   if (medida === "area") return arred(l * a * qtd, 3);
+  if (lados === null) return 0;
   const metros =
     lados === "maiores"
       ? 2 * Math.max(l, a)
