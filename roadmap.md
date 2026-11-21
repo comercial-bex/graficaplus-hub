@@ -1,5 +1,12 @@
 # Roadmap
 
+## Cálculo dos itens da OS (21/11)
+- [x] Aba "Itens" da OS: produto vendido por m² trata o preço do m² como preço da peça (1 peça de acrílico 2 mm de 0,30 × 0,20 m entrava por R$ 1.000, e o certo é R$ 100 pelo mínimo de 0,10 m²). Agora pede largura, altura e peças, mostra a conta e usa a conta do orçamento (`src/domain/os/itens.ts`). Testes em `tests/item-da-os-por-area.test.ts`.
+- [x] Item da OS nasce com o custo do produto (gatilho `tg_itens_os_zz_custo_do_produto`, migração 20261121130000) e os 6 itens de OS aberta sem custo (OS 163 a 166) foram preenchidos. Ensaio e análise em `docs/ensaio-item-da-os-por-area-21-11-2026.md`.
+- [x] Acrílico 2 mm: a tabela estava em R$ 600/m² (Virgem) e R$ 1.000 (Espelhado); o dono subiu para R$ 1.000 e R$ 1.350 em 21/11. O preço médio por m² de peça real é de R$ 815 a 1.400, por causa do mínimo de 0,10 m² por peça.
+- [ ] Decisão do dono: 4 produtos com `custo_medio` digitado que não bate com a ficha (Adesivo vinil recortado 21,49 x 7,24; Adesivo transparente 21,77 x 20,80; Laminação 12,00 x 8,40; Acabamento de lona 4,00 x 0,70) e 3 preços de tabela abaixo do mínimo recomendado (Adesivo vinil recortado 65,00 x 72,84; Placa PS 145 x 175,55; Laminação 28,00 x 28,97).
+- [ ] As colunas de área geradas (`area_unitaria`, `area_total`, `area_cobrada`) ainda arredondam a peça em 3 casas; o preço usa 6. Só afeta o "m² cobrados" mostrado em peça miúda (até 20% a mais). Pede migração própria por causa das visões que dependem delas.
+
 ## Plano dos 100 (21/11)
 - [x] Diagnóstico completo e plano em `docs/plano-para-chegar-aos-100-21-11-2026.md`: nota 68 de 100, cinco frentes (laço do chão, quadro, funil, valores de orçamento, higiene), metas e consultas semanais.
 - [x] Login do Yvens banido e cadastro de parceiro suspenso (21/11, reversível). Léo já estava banido e inativo; ninguém foi apagado (têm histórico em 28 orçamentos, 9 OS e 94 mensagens).
