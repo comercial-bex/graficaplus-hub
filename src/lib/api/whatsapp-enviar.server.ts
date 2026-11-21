@@ -38,6 +38,10 @@ import {
   numerosDaGerencia,
 } from "@/domain/whatsapp/aviso-privado";
 import { hashDoSegredo, hashesIguais } from "@/domain/whatsapp/segredo-webhook";
+import {
+  MOTIVO_NUMERO_BLOQUEADO,
+  numeroBloqueado,
+} from "@/domain/whatsapp/numero-bloqueado";
 import { assinarMensagem, assinaturaDaPessoa } from "@/domain/whatsapp/assinatura";
 import {
   destinoDaAutomacao,
@@ -699,6 +703,23 @@ async function lerAutor(usuarioId: string): Promise<Autor> {
 }
 
 /* ------------------------------------------------------------------ */
+/* Números que o dono mandou parar                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * As chaves de `whatsapp_numeros_bloqueados`, lidas UMA vez por rodada. Sem conseguir ler, a rodada NÃO envia nada: é
+ * regra do dono ("nenhuma mensagem para este número"), e mandar no escuro seria quebrá-la. As linhas esperam na fila e
+ * saem na próxima rodada, 2 minutos depois, quando a leitura voltar.
+ */
+async function lerNumerosBloqueados(): Promise<
+  { ok: true; chaves: ReadonlySet<string> } | { ok: false; erro: string }
+> {
+  const { data, error } = await supabaseAdmin.from("whatsapp_numeros_bloqueados").select("chave");
+  if (error) return { ok: false, erro: error.message };
+  return { ok: true, chaves: new Set((data ?? []).map((l) => String(l.chave))) };
+}
+
+/* ------------------------------------------------------------------ */
 /* A rodada                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -774,6 +795,19 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
       erro: "WhatsApp desconectado: nada foi tentado, as mensagens esperam na fila",
       comoResolver:
         "Leia o QR Code no painel do Z-API e clique em Verificar no Monitor do WhatsApp.",
+      erros_de_gravacao: erros,
+    });
+  }
+
+  // A ÚLTIMA PORTA do bloqueio do dono (21/11/2026): vale para as TRÊS filas. O banco já barra na entrada das duas
+  // primeiras (gatilhos BEFORE INSERT), mas a fila de automações manda direto para o telefone do payload e nunca
+  // passou por gatilho nenhum: o "Lembrete à operação" seguiu chegando ao número bloqueado do Léo, todo dia às 09:00.
+  const bloqueios = await lerNumerosBloqueados();
+  if (!bloqueios.ok) {
+    console.error("[whatsapp-enviar] falha ao ler os números bloqueados", bloqueios.erro);
+    return json(503, {
+      ok: false,
+      erro: `não deu para ler os números bloqueados: nada foi enviado (${bloqueios.erro}). As mensagens esperam na fila.`,
       erros_de_gravacao: erros,
     });
   }
@@ -877,6 +911,12 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
     }
 
     const pedido = pedidoDaLinha(linha, (conversa?.telefone as string) ?? "", (conversa?.chat_lid as string | null) ?? null);
+    // Número que o dono mandou parar: falha definitiva SEM chamar o Z-API (o gatilho do banco já faz o mesmo na entrada
+    // da linha; esta confere de novo na saída, para a linha que entrou antes do bloqueio).
+    if (numeroBloqueado(bloqueios.chaves, (conversa?.telefone as string | null) ?? null)) {
+      resultados.push(await marcarFalha(erros, linha, tentativas, MOTIVO_NUMERO_BLOQUEADO, true));
+      continue;
+    }
     // Arquivo enviado pela caixa: mora no bucket privado. O Z-API baixa por
     // um link temporário (1 h), gerado aqui no servidor.
     const caminho = (linha.payload?.storage_path as string | undefined) ?? null;
@@ -1000,7 +1040,7 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
     });
   }
 
-  const avisos = await processarAvisosAoCliente(instancia, token, clientToken, agora);
+  const avisos = await processarAvisosAoCliente(instancia, token, clientToken, agora, bloqueios.chaves);
   erros.push(...avisos.erros_de_gravacao);
 
   const automacoes = await processarAutomacoes(
@@ -1009,6 +1049,7 @@ async function rodada(quem: Quem, opcoes: { varrer?: boolean } = {}): Promise<Re
     clientToken,
     telefonePadrao,
     agora,
+    bloqueios.chaves,
   );
   erros.push(...automacoes.erros_de_gravacao);
 
@@ -1137,6 +1178,7 @@ async function processarAvisosAoCliente(
   token: string,
   clientToken: string,
   agora: Date,
+  bloqueados: ReadonlySet<string>,
 ): Promise<{
   enviados: number;
   falhas: number;
@@ -1249,6 +1291,14 @@ async function processarAvisosAoCliente(
         continue;
       }
       destinoDoEnvio = decisao.para;
+    }
+
+    // QUINTA TRAVA (21/11/2026): número que o dono mandou parar. Cancelado SEM chamar o Z-API; vale para o destino
+    // final (o do aviso privado do gerente já foi trocado acima).
+    if (numeroBloqueado(bloqueados, destinoDoEnvio)) {
+      await gravarAviso(erros, linha.id, { status: "cancelado", ultimo_erro: MOTIVO_NUMERO_BLOQUEADO });
+      detalhes.push({ evento: linha.evento, erro: MOTIVO_NUMERO_BLOQUEADO });
+      continue;
     }
 
     // A cobrança é conferida DE NOVO na hora de sair: a rodada decidiu minutos ou horas antes, e
@@ -1456,6 +1506,7 @@ async function processarAutomacoes(
   clientToken: string,
   telefonePadrao: string,
   agora: Date,
+  bloqueados: ReadonlySet<string>,
 ): Promise<{
   enviadas: number;
   falhas: number;
@@ -1559,6 +1610,12 @@ async function processarAutomacoes(
     const destino = destinoDaAutomacao(execucao);
     if (!destino.ok) {
       await falhar(destino.erro, true);
+      continue;
+    }
+    // Número que o dono mandou parar: erro definitivo SEM chamar o Z-API. Esta fila não tem gatilho de banco
+    // (manda direto para o telefone do payload): foi por aqui que o "Lembrete à operação" seguiu chegando ao Léo.
+    if (numeroBloqueado(bloqueados, destino.telefone)) {
+      await falhar(MOTIVO_NUMERO_BLOQUEADO, true);
       continue;
     }
 
