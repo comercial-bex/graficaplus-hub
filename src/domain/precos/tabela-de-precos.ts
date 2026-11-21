@@ -6,6 +6,7 @@
  * Margem é sobre a VENDA (lucro ÷ preço), a mesma do semáforo do orçamento;
  * markup é sobre o custo. Misturar os dois já fez "30%" querer dizer duas coisas.
  */
+import type { ChaveDaFalta } from "./onde-corrigir";
 
 export const MAX_CONCORRENTES = 3;
 
@@ -199,7 +200,14 @@ export function servicoComCustoInteiro(a: { tipo: string | null; temReceita: boo
 }
 
 export type NivelDaFicha = "completa" | "parcial" | "sem_ficha";
-export type FichaDoProduto = { nivel: NivelDaFicha; faltas: string[] };
+/** Uma falta da ficha: o texto que a pessoa lê e a chave que diz onde se corrige (`ondeCorrigirFalta`). */
+export type FaltaDaFicha = { chave: ChaveDaFalta; texto: string };
+export type FichaDoProduto = {
+  nivel: NivelDaFicha;
+  /** Só os textos, na mesma ordem de `itens`. Existe porque várias telas e testes leem a lista de frases. */
+  faltas: string[];
+  itens: FaltaDaFicha[];
+};
 
 /**
  * A ficha técnica do produto está de pé? Produto físico precisa de matéria-prima
@@ -216,18 +224,27 @@ export function fichaDoProduto(a: {
   temMaquina: boolean;
   composicao: Composicao | null;
 }): FichaDoProduto {
-  const faltas: string[] = [];
+  const itens: FaltaDaFicha[] = [];
   const servico = a.tipo === "servico";
   const revenda = a.categoria === "brindes" || a.categoria === "outros";
   if (servicoComCustoInteiro({ tipo: a.tipo, temReceita: a.temReceita, custo: a.composicao?.material ?? null })) {
-    return { nivel: "completa", faltas };
+    return { nivel: "completa", faltas: [], itens };
   }
-  if (!servico && !a.temReceita) faltas.push(revenda ? "custo digitado à mão (sem matéria-prima na receita)" : "sem matéria-prima na receita");
-  if (!(a.minutos && a.minutos > 0)) faltas.push("sem tempo de produção");
-  if (!servico && !revenda && !a.temMaquina) faltas.push("sem máquina padrão");
-  if (a.composicao && a.composicao.maoDeObra <= 0 && a.minutos && a.minutos > 0) faltas.push("sem custo de mão de obra");
+  if (!servico && !a.temReceita) {
+    itens.push(
+      revenda
+        ? { chave: "custo_digitado", texto: "custo digitado à mão (sem matéria-prima na receita)" }
+        : { chave: "sem_materia_prima", texto: "sem matéria-prima na receita" },
+    );
+  }
+  if (!(a.minutos && a.minutos > 0)) itens.push({ chave: "sem_tempo", texto: "sem tempo de produção" });
+  if (!servico && !revenda && !a.temMaquina) itens.push({ chave: "sem_maquina", texto: "sem máquina padrão" });
+  if (a.composicao && a.composicao.maoDeObra <= 0 && a.minutos && a.minutos > 0) {
+    itens.push({ chave: "sem_mao_de_obra", texto: "sem custo de mão de obra" });
+  }
+  const faltas = itens.map((i) => i.texto);
   const nivel: NivelDaFicha = faltas.length === 0 ? "completa" : a.temReceita || (a.minutos ?? 0) > 0 ? "parcial" : "sem_ficha";
-  return { nivel, faltas };
+  return { nivel, faltas, itens };
 }
 
 // ----------------------------------------------------------- barra de comparação

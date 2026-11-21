@@ -28,7 +28,7 @@ describe("custo cheio = matéria-prima + máquina + mão de obra + indireto", ()
 describe("ficha técnica do produto", () => {
   it("lona impressa com receita, tempo, máquina e mão de obra está completa", () => {
     expect(fichaDoProduto({ tipo: "produto", categoria: "impressao_grande_formato", temReceita: true, minutos: 20, temMaquina: true, composicao: lona }))
-      .toEqual({ nivel: "completa", faltas: [] });
+      .toEqual({ nivel: "completa", faltas: [], itens: [] });
   });
   it("chaveiro de acrílico sem receita nem tempo é 'sem ficha' e diz o que falta", () => {
     const f = fichaDoProduto({ tipo: "produto", categoria: "brindes", temReceita: false, minutos: null, temMaquina: false, composicao: null });

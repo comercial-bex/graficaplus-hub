@@ -18,6 +18,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { AvisoDeValorNoTexto } from "@/components/custos/aviso-de-valor-no-texto";
+import { OndeCorrigir } from "@/components/produtos/onde-corrigir";
+import { ondeCorrigirFaltaDoAcabamento } from "@/domain/precos/onde-corrigir";
 import {
   avisoDeProcesso,
   BASES,
@@ -289,10 +291,17 @@ export function GerenciadorDeAcabamentos({ aberto, aoFechar }: { aberto: boolean
                       <div className="rounded-lg bg-muted/50 p-1.5"><dt className="text-muted-foreground">{a.preco_venda != null ? "Margem" : `Sugerido (${MARGEM_PADRAO}%)`}</dt><dd className="font-mono text-sm">{a.preco_venda != null ? (margem != null ? `${margem}%` : "—") : brl(sugerido)}</dd></div>
                     </dl>
                     {c && c.faltas.length > 0 && (
-                      <p className="mt-2 flex items-start gap-1.5 text-xs text-foreground">
-                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" aria-hidden />
-                        <span>{c.faltas.join(" · ")}</span>
-                      </p>
+                      <ul className="mt-2 space-y-2" data-testid="faltas-do-acabamento">
+                        {c.faltas.map((f) => (
+                          <li key={f}>
+                            <p className="flex items-start gap-1.5 text-sm font-medium text-foreground">
+                              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+                              <span>{f.charAt(0).toUpperCase() + f.slice(1)}</span>
+                            </p>
+                            <OndeCorrigir onde={ondeCorrigirFaltaDoAcabamento(f)} />
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </li>
                 );

@@ -28,6 +28,8 @@ import {
 import { BarraDeComparacao, LegendaDaBarra } from "./barra-de-comparacao";
 import { ConcorrentesDoProduto } from "./concorrentes-do-produto";
 import { IconeDoProduto } from "./icone-do-produto";
+import { OndeCorrigir } from "@/components/produtos/onde-corrigir";
+import { ondeCorrigirFalta } from "@/domain/precos/onde-corrigir";
 import { useAcabamentos } from "@/components/acabamentos/gerenciador-de-acabamentos";
 import { margemDoAcabamento, rotuloDaBase, rotuloDoProcesso, unidadeDaBase } from "@/domain/acabamentos/acabamentos";
 import { brl, pct, sinal, type Linha, type TipoDePreco } from "./tipos";
@@ -240,9 +242,18 @@ export function FichaDoProduto({
               {ficha.faltas.length === 0 ? (
                 <p className="mt-1 text-sm text-muted-foreground">Ficha completa: matéria-prima, tempo, máquina e mão de obra definidos.</p>
               ) : (
-                <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm">
-                  {ficha.faltas.map((f) => (
-                    <li key={f}>{f}</li>
+                <ul className="mt-1.5 space-y-3" data-testid="faltas-da-ficha">
+                  {ficha.itens.map((i) => (
+                    <li key={i.chave}>
+                      <p className="text-base font-medium">{i.texto.charAt(0).toUpperCase() + i.texto.slice(1)}</p>
+                      <OndeCorrigir
+                        onde={ondeCorrigirFalta(i.chave, {
+                          // Sem receita, o custo de matéria-prima que a ficha mostra é o digitado à mão.
+                          custoDigitado: linha.receita.length === 0 ? (linha.composicao?.material ?? null) : null,
+                        })}
+                        produtoId={linha.produto.id}
+                      />
+                    </li>
                   ))}
                 </ul>
               )}
@@ -256,7 +267,9 @@ export function FichaDoProduto({
                   O cadastro guarda {brl(custoCad)} de custo, mas o custo cheio é {brl(linha.cheio)} ({sinal(((linha.cheio - custoCad) / custoCad) * 100)}). A margem real está em Preços por produto, porque o custo real leva perda, ocupação e taxas.
                 </p>
               )}
-              <p className="mt-2 text-base text-foreground">Para corrigir, abra o cadastro do produto e ajuste a receita com os materiais, o tempo e a máquina padrão.</p>
+              {ficha.itens.length === 0 && (
+                <p className="mt-2 text-base text-foreground">Para corrigir, abra o cadastro do produto e ajuste a receita com os materiais, o tempo e a máquina padrão.</p>
+              )}
             </section>
           </TabsContent>
 

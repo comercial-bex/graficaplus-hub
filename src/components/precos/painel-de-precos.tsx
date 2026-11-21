@@ -54,6 +54,8 @@ import {
 import { type FaixaDaMargem } from "@/domain/precos/propostas";
 import { COR_DA_FAIXA } from "./proposta-de-preco";
 import { SimuladorDePreco } from "./simulador-de-preco";
+import { OndeCorrigir } from "@/components/produtos/onde-corrigir";
+import { ondeCorrigirAviso } from "@/domain/precos/onde-corrigir";
 
 export const reais = (n: number | null | undefined) =>
   n == null
@@ -591,27 +593,32 @@ export function DiferencaTexto({ leitura }: { leitura: LeituraReal }) {
 }
 
 /** As frases dos avisos de um produto, cada uma com o grau escrito, sem depender de cor. */
-export function ListaDeAvisos({ avisos }: { avisos: AvisoDoProduto[] }) {
+export function ListaDeAvisos({ avisos, produtoId }: { avisos: AvisoDoProduto[]; produtoId?: string }) {
   if (avisos.length === 0) return <p className="text-base">Nada a avisar neste produto.</p>;
   return (
     <ul className="space-y-3 text-base" data-testid="lista-de-avisos">
-      {avisos.map((a) => (
-        <li key={a.codigo} data-aviso={a.codigo}>
-          <span
-            className={cn(
-              "font-semibold",
-              a.gravidade === "alta"
-                ? COR_DO_TEXTO.abaixo
-                : a.gravidade === "media"
-                  ? COR_DO_TEXTO.justa
-                  : COR_DO_PISO_TEXTO,
-            )}
-          >
-            {ROTULO_DA_GRAVIDADE[a.gravidade]}.{" "}
-          </span>
-          {a.frase}
-        </li>
-      ))}
+      {avisos.map((a) => {
+        // Todo aviso que se resolve com um dado diz onde corrigir e leva até lá (21/11/2026).
+        const onde = ondeCorrigirAviso(a.codigo);
+        return (
+          <li key={a.codigo} data-aviso={a.codigo}>
+            <span
+              className={cn(
+                "font-semibold",
+                a.gravidade === "alta"
+                  ? COR_DO_TEXTO.abaixo
+                  : a.gravidade === "media"
+                    ? COR_DO_TEXTO.justa
+                    : COR_DO_PISO_TEXTO,
+              )}
+            >
+              {ROTULO_DA_GRAVIDADE[a.gravidade]}.{" "}
+            </span>
+            {a.frase}
+            {onde && <OndeCorrigir onde={onde} produtoId={produtoId} letraGrande />}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -647,7 +654,7 @@ export function BotaoDeAvisos({ linha, preco }: { linha: LinhaDePreco; preco: nu
       </PopoverTrigger>
       <PopoverContent className="w-80 max-w-[90vw] text-base leading-relaxed" role="note">
         <p className="mb-2 font-semibold">{linha.nome}</p>
-        <ListaDeAvisos avisos={avisos} />
+        <ListaDeAvisos avisos={avisos} produtoId={linha.id} />
       </PopoverContent>
     </Popover>
   );

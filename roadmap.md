@@ -1,8 +1,13 @@
 # Roadmap
 
+## Onde corrigir cada pendência do custo (21/11)
+- [x] Pendência do custeio diz onde corrigir e leva até lá: frase em destaque ("Vá até a aba Parâmetros desta pasta, no cartão Materiais deste produto") e botão que troca de aba, rola e destaca o campo. Vale para o quadro "O que falta para o custo fechar" da pasta, a ficha da Tabela de preços, os avisos de Preços por produto, as faltas dos acabamentos e a lista "Fora do ranking" da Meta. Mapa único em `src/domain/precos/onde-corrigir.ts`; mapa completo e o que ficou de fora em `docs/onde-corrigir-cada-pendencia-21-11-2026.md`.
+- [ ] Próximas telas sem orientação, na ordem sugerida: revisão do orçamento ("Antes de mandar ao cliente, falta:"), concluir OS, cartão do quadro, Capacidade (conferir item a item), selo de Precificação. A calculadora 3D fica como está: quem a usa não vê custo.
+- [ ] Ver a tela funcionando no navegador, logado: a sessão que fez isto não tem login, então só o HTML do componente foi visto.
+
 ## Cálculo dos itens da OS (21/11)
 - [x] Aba "Itens" da OS: produto vendido por m² trata o preço do m² como preço da peça (1 peça de acrílico 2 mm de 0,30 × 0,20 m entrava por R$ 1.000, e o certo é R$ 100 pelo mínimo de 0,10 m²). Agora pede largura, altura e peças, mostra a conta e usa a conta do orçamento (`src/domain/os/itens.ts`). Testes em `tests/item-da-os-por-area.test.ts`.
-- [x] Item da OS nasce com o custo do produto (gatilho `tg_itens_os_zz_custo_do_produto`, migração 20261121130000) e os 6 itens de OS aberta sem custo (OS 163 a 166) foram preenchidos. Ensaio e análise em `docs/ensaio-item-da-os-por-area-21-11-2026.md`.
+- [x] Item da OS nasce com o custo do produto (gatilho `tg_itens_os_zz_custo_do_produto`, migração 20261121130000, aplicada e conferida em 21/11) e os 6 itens de OS aberta sem custo (OS 163 a 166) foram preenchidos. Front publicado em 21/11 (aba Itens nova e texto da tela Nova OS conferidos nos arquivos do site). Ensaio e análise em `docs/ensaio-item-da-os-por-area-21-11-2026.md`.
 - [x] Acrílico 2 mm: a tabela estava em R$ 600/m² (Virgem) e R$ 1.000 (Espelhado); o dono subiu para R$ 1.000 e R$ 1.350 em 21/11. O preço médio por m² de peça real é de R$ 815 a 1.400, por causa do mínimo de 0,10 m² por peça.
 - [ ] Decisão do dono: 4 produtos com `custo_medio` digitado que não bate com a ficha (Adesivo vinil recortado 21,49 x 7,24; Adesivo transparente 21,77 x 20,80; Laminação 12,00 x 8,40; Acabamento de lona 4,00 x 0,70) e 3 preços de tabela abaixo do mínimo recomendado (Adesivo vinil recortado 65,00 x 72,84; Placa PS 145 x 175,55; Laminação 28,00 x 28,97).
 - [ ] As colunas de área geradas (`area_unitaria`, `area_total`, `area_cobrada`) ainda arredondam a peça em 3 casas; o preço usa 6. Só afeta o "m² cobrados" mostrado em peça miúda (até 20% a mais). Pede migração própria por causa das visões que dependem delas.
@@ -12,8 +17,8 @@
 - [x] Login do Yvens banido e cadastro de parceiro suspenso (21/11, reversível). Léo já estava banido e inativo; ninguém foi apagado (têm histórico em 28 orçamentos, 9 OS e 94 mensagens).
 - [x] Aviso ao gerente no grupo com os valores dos orçamentos #261, #187, #227, #233 e #115, cobrança dos 21 cartões do quadro e aviso do funil (21/11 09:40). Nenhum PDF reenviado: só o gerente autoriza.
 - [x] Achado: o bloqueio de números do dono não barrava a fila de automações. O "Lembrete à operação" seguiu chegando ao Léo às 09:00 de 18, 19, 20 e 21/11 (4 envios, em `whatsapp_logs`). Automação apontada para o gerente no banco (21/11). Código: o envio confere o bloqueio nas três filas antes de chamar o Z-API (`src/domain/whatsapp/numero-bloqueado.ts`), com alarme de teste para novo ponto de envio.
-- [ ] Publicar o front com a última porta do bloqueio e depois medir: envios a número bloqueado depois de 17/11 23:29 não podem crescer.
-- [ ] Aplicar a migração 20261121120000 (aviso aos gestores ignora inativo; bloco "em produção sem máquina" no resumo da operação). Ensaiada no banco vivo, md5 fixados, `docs/ensaio-higiene-lembretes-e-laco-do-chao-21-11-2026.md`.
+- [x] Front com a última porta do bloqueio publicado (PR #504). Ainda vale medir: envios a número bloqueado depois de 17/11 23:29 não podem crescer.
+- [x] Migração 20261121120000 aplicada (aviso aos gestores ignora inativo; bloco "em produção sem máquina" no resumo da operação). Ensaiada no banco vivo, md5 fixados, `docs/ensaio-higiene-lembretes-e-laco-do-chao-21-11-2026.md`.
 - [ ] Decisão do dono: quem recebe o "Lembrete à operação" (hoje o gerente, antes o Léo). Comissões: a regra de 10% é só do Raymison; Jhesselem e Maiara não têm regra.
 - [ ] Decisão do dono: carteira do Léo e do Yvens (orçamentos, OS, clientes, leads em nome de usuário inativo).
 - [ ] TV da parede sem consultar o painel desde 16/11: ligar o aparelho em `/tv` ou parear de novo.

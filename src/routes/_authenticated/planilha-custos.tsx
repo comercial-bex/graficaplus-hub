@@ -35,9 +35,20 @@ import {
 } from "@/domain/custos/campo-de-custo";
 import { AlertTriangle, Download, Upload, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { abaDaPlanilhaPedida, type AbaDaPlanilha } from "@/domain/precos/onde-corrigir";
+
+/**
+ * `?aba=mao-obra` abre a planilha já na aba pedida: é para onde o botão "Vá até" das pendências do custo leva
+ * (21/11/2026). Aba desconhecida cai na primeira, como sempre abriu.
+ */
+type BuscaDaPlanilha = { aba?: AbaDaPlanilha };
 
 export const Route = createFileRoute("/_authenticated/planilha-custos")({
   head: () => ({ meta: [{ title: "Planilha de custos — BEX PRINT OS" }] }),
+  validateSearch: (busca: Record<string, unknown>): BuscaDaPlanilha => {
+    const aba = abaDaPlanilhaPedida(busca);
+    return aba ? { aba } : {};
+  },
   component: PlanilhaPage,
 });
 
@@ -70,6 +81,7 @@ function baixar(nome: string, conteudo: string) {
  */
 function PlanilhaPage() {
   const qc = useQueryClient();
+  const busca = Route.useSearch();
   const { hasPermission, canSeeFinancials } = useAuth();
   const podeEditar = hasPermission("custos.update") || hasPermission("estoque.adjust");
   // Mão de obra é a tabela de custos, não o estoque: o banco pede custos.update
@@ -428,7 +440,7 @@ function PlanilhaPage() {
         </div>
       )}
 
-      <Tabs defaultValue="materiais">
+      <Tabs defaultValue={busca.aba ?? "materiais"}>
         <TabsList>
           <TabsTrigger value="materiais" className="text-base">Materiais</TabsTrigger>
           <TabsTrigger value="mao-obra" className="text-base">Mão de obra</TabsTrigger>

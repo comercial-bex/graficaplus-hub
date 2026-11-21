@@ -134,7 +134,7 @@ describe("a conta dupla do serviço (02/11/2026)", () => {
 
   it("a ficha não acusa falta de mão de obra no serviço inteiro", () => {
     const f = fichaDoProduto({ tipo: "servico", categoria: "acabamento", temReceita: false, minutos: 1, temMaquina: false, composicao: { material: 0.24, maquina: 0, maoDeObra: 0, indireto: 0 } });
-    expect(f).toEqual({ nivel: "completa", faltas: [] });
+    expect(f).toEqual({ nivel: "completa", faltas: [], itens: [] });
   });
 
   it("o cartão só soma o acabamento quando o custo conta pela velocidade da máquina", () => {
