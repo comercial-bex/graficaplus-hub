@@ -338,6 +338,11 @@ function OSPage() {
                       value={form.valor_total}
                       onChange={(e) => setForm({ ...form, valor_total: e.target.value })}
                     />
+                    {/* O total da OS é a soma dos itens menos o desconto (tg_os_soma_os_itens): ao incluir o primeiro
+                        item, o número digitado aqui é substituído. Sem esta frase, o total "mudava sozinho". */}
+                    <p className="text-xs text-muted-foreground">
+                      Vale até você incluir os itens: depois o total passa a ser a soma deles, menos o desconto.
+                    </p>
                   </div>
                 )}
               </div>

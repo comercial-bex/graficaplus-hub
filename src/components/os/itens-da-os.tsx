@@ -18,6 +18,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ProdutoAutocomplete } from "@/components/produto-autocomplete";
+import { areaLegivel } from "@/domain/orcamentos/area";
+import {
+  montarItemDaOS,
+  resumoDoItemPorArea,
+  vendidoPorAreaNaOS,
+} from "@/domain/os/itens";
 
 /** Linha da aba; valor_unitario e valor_total só vêm nas views comercial e financeira. */
 type ItemDaOS = {
@@ -27,7 +33,14 @@ type ItemDaOS = {
   unidade: string | null;
   valor_unitario?: number;
   valor_total?: number;
+  /** item por área: a medida da peça e os m² cobrados (colunas geradas pelo banco) */
+  largura?: number | null;
+  altura?: number | null;
+  area_cobrada?: number | null;
 };
+
+const dinheiro = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const metros = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 
 /**
  * Aba Itens da OS: a lista para toda a equipe; incluir e apagar só para quem
@@ -60,7 +73,24 @@ export function ItensDaOS({
     valor_unitario: "0",
     custo_unitario: "0",
     produto_id: null as string | null,
+    // Produto vendido por m²: a medida da peça (em metros) e o preço e o custo POR m².
+    largura: "",
+    altura: "",
+    preco_m2: "0",
+    custo_m2: "0",
+    area_minima: null as number | null,
   });
+  const porArea = vendidoPorAreaNaOS(form.unidade, form.produto_id);
+  const resumoPorArea = porArea
+    ? resumoDoItemPorArea({
+        quantidade: parseFloat(form.quantidade),
+        precoM2: parseFloat(form.preco_m2),
+        custoM2: parseFloat(form.custo_m2),
+        largura: parseFloat(form.largura),
+        altura: parseFloat(form.altura),
+        areaMinima: form.area_minima,
+      })
+    : null;
   const { data: itens = [] } = useQuery({
     queryKey: ["itens-os", osId, nivelDeVisao],
     queryFn: async () => {
@@ -72,31 +102,46 @@ export function ItensDaOS({
       return (data ?? []) as ItemDaOS[];
     },
   });
+  const formVazio = {
+    descricao: "",
+    quantidade: "1",
+    unidade: "un",
+    valor_unitario: "0",
+    custo_unitario: "0",
+    produto_id: null as string | null,
+    largura: "",
+    altura: "",
+    preco_m2: "0",
+    custo_m2: "0",
+    area_minima: null as number | null,
+  };
   async function add() {
     if (!form.descricao) return toast.error("Descrição obrigatória");
-    const qtd = parseFloat(form.quantidade);
-    // Quem vê preço digita preço (vendedor inclusive); quem não vê grava 0.
-    const vu = canSeePrices ? parseFloat(form.valor_unitario) : 0;
+    // A conta do item é a do orçamento (domain/os/itens.ts): produto vendido por m² leva largura, altura e
+    // peças; o preço e o custo do catálogo são POR m², nunca o preço da peça. Quem não vê preço grava 0.
+    const montado = montarItemDaOS({
+      descricao: form.descricao,
+      quantidade: parseFloat(form.quantidade),
+      unidade: form.unidade,
+      produtoId: form.produto_id,
+      valorUnitario: parseFloat(form.valor_unitario),
+      custoUnitario: parseFloat(form.custo_unitario),
+      precoM2: parseFloat(form.preco_m2),
+      custoM2: parseFloat(form.custo_m2),
+      largura: parseFloat(form.largura),
+      altura: parseFloat(form.altura),
+      areaMinima: form.area_minima,
+      podeVerPreco: canSeePrices,
+      podeVerCusto: canSeeFinancials,
+    });
+    if (!montado.ok) return toast.error(montado.erro);
     const { error } = await supabase.from("itens_os").insert({
       os_id: osId,
-      descricao: form.descricao,
-      quantidade: qtd,
-      unidade: form.unidade,
-      valor_unitario: vu,
-      custo_unitario: parseFloat(form.custo_unitario),
-      valor_total: qtd * vu,
       ordem: itens.length,
-      produto_id: form.produto_id,
+      ...montado.linha,
     });
     if (error) return toast.error(mensagemErro(error));
-    setForm({
-      descricao: "",
-      quantidade: "1",
-      unidade: "un",
-      valor_unitario: "0",
-      custo_unitario: "0",
-      produto_id: null,
-    });
+    setForm(formVazio);
     qc.invalidateQueries({ queryKey: ["itens-os", osId] });
   }
   async function remove(id: string) {
@@ -118,63 +163,160 @@ export function ItensDaOS({
                     descricao: p.nome,
                     quantidade: form.quantidade || "1",
                     unidade: p.unidade,
-                    valor_unitario: String(p.preco_base ?? 0),
-                    custo_unitario: String(p.custo_medio ?? 0),
+                    // Por m², o preço e o custo do catálogo são do m² e não entram como valor da peça.
+                    valor_unitario: vendidoPorAreaNaOS(p.unidade, p.id) ? "0" : String(p.preco_base ?? 0),
+                    custo_unitario: vendidoPorAreaNaOS(p.unidade, p.id) ? "0" : String(p.custo_medio ?? 0),
                     produto_id: p.id,
+                    largura: "",
+                    altura: "",
+                    preco_m2: String(p.preco_base ?? 0),
+                    custo_m2: String(p.custo_medio ?? 0),
+                    area_minima: p.area_minima_cobrada ?? null,
                   })
                 }
               />
             </div>
-            <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-5">
-                <Label htmlFor="itemos-5-descricao">Descrição</Label>
-                <Input id="itemos-5-descricao"
-                  value={form.descricao}
-                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                />
+            {porArea ? (
+              <div className="space-y-2" data-testid="item-da-os-por-area">
+                <div className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-12 md:col-span-4">
+                    <Label htmlFor="itemos-5-descricao">Descrição</Label>
+                    <Input id="itemos-5-descricao"
+                      value={form.descricao}
+                      onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-3 md:col-span-1">
+                    <Label htmlFor="itemos-largura">Largura (m)</Label>
+                    <Input id="itemos-largura"
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      inputMode="decimal"
+                      value={form.largura}
+                      onChange={(e) => setForm({ ...form, largura: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-3 md:col-span-1">
+                    <Label htmlFor="itemos-altura">Altura (m)</Label>
+                    <Input id="itemos-altura"
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      inputMode="decimal"
+                      value={form.altura}
+                      onChange={(e) => setForm({ ...form, altura: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-3 md:col-span-1">
+                    <Label htmlFor="itemos-4-qtd">Peças</Label>
+                    <Input id="itemos-4-qtd"
+                      type="number"
+                      min="1"
+                      value={form.quantidade}
+                      onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
+                    />
+                  </div>
+                  {/* Preço por m² é do vendedor (canSeePrices); custo por m² é só do financeiro. */}
+                  {canSeePrices && (
+                    <div className="col-span-3 md:col-span-2">
+                      <Label htmlFor="itemos-preco-m2">Preço/m²</Label>
+                      <Input id="itemos-preco-m2"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={form.preco_m2}
+                        onChange={(e) => setForm({ ...form, preco_m2: e.target.value })}
+                      />
+                    </div>
+                  )}
+                  {canSeeFinancials && (
+                    <div className="col-span-3 md:col-span-2">
+                      <Label htmlFor="itemos-custo-m2">Custo/m²</Label>
+                      <Input id="itemos-custo-m2"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={form.custo_m2}
+                        onChange={(e) => setForm({ ...form, custo_m2: e.target.value })}
+                      />
+                    </div>
+                  )}
+                  <Button className="col-span-1" onClick={add} aria-label="Incluir item na OS">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground" data-testid="conta-do-item-por-area">
+                  {resumoPorArea ? (
+                    <>
+                      {areaLegivel(resumoPorArea.areaCobrada)} cobrados
+                      {resumoPorArea.pagaMinimo && form.area_minima ? (
+                        <> (mínimo de {areaLegivel(form.area_minima)} por peça)</>
+                      ) : null}
+                      {canSeePrices && (
+                        <>
+                          {" "}· {dinheiro(resumoPorArea.valorDaPeca)} a peça · <strong>total {dinheiro(resumoPorArea.totalDaLinha)}</strong>
+                        </>
+                      )}
+                      {canSeeFinancials && <> · custo da peça {dinheiro(resumoPorArea.custoDaPeca)}</>}
+                    </>
+                  ) : (
+                    <>Produto vendido por m²: informe a largura e a altura da peça, em metros. O preço é por m², não da peça.</>
+                  )}
+                </p>
               </div>
-              <div className="col-span-1">
-                <Label htmlFor="itemos-4-qtd">Qtd</Label>
-                <Input id="itemos-4-qtd"
-                  type="number"
-                  value={form.quantidade}
-                  onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
-                />
-              </div>
-              <div className="col-span-1">
-                <Label htmlFor="itemos-3-un">Un</Label>
-                <Input id="itemos-3-un"
-                  value={form.unidade}
-                  onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-                />
-              </div>
-              {/* Valor un. é preço (vendedor vê); Custo un. é custo (só financeiro). */}
-              {canSeePrices && (
-                <div className="col-span-2">
-                  <Label htmlFor="itemos-2-valor-un">Valor un.</Label>
-                  <Input id="itemos-2-valor-un"
-                    type="number"
-                    step="0.01"
-                    value={form.valor_unitario}
-                    onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
+            ) : (
+              <div className="grid grid-cols-12 gap-2 items-end">
+                <div className="col-span-5">
+                  <Label htmlFor="itemos-5-descricao">Descrição</Label>
+                  <Input id="itemos-5-descricao"
+                    value={form.descricao}
+                    onChange={(e) => setForm({ ...form, descricao: e.target.value })}
                   />
                 </div>
-              )}
-              {canSeeFinancials && (
-                <div className="col-span-2">
-                  <Label htmlFor="itemos-1-custo-un">Custo un.</Label>
-                  <Input id="itemos-1-custo-un"
+                <div className="col-span-1">
+                  <Label htmlFor="itemos-4-qtd">Qtd</Label>
+                  <Input id="itemos-4-qtd"
                     type="number"
-                    step="0.01"
-                    value={form.custo_unitario}
-                    onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
+                    value={form.quantidade}
+                    onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
                   />
                 </div>
-              )}
-              <Button className="col-span-1" onClick={add}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+                <div className="col-span-1">
+                  <Label htmlFor="itemos-3-un">Un</Label>
+                  <Input id="itemos-3-un"
+                    value={form.unidade}
+                    onChange={(e) => setForm({ ...form, unidade: e.target.value })}
+                  />
+                </div>
+                {/* Valor un. é preço (vendedor vê); Custo un. é custo (só financeiro). */}
+                {canSeePrices && (
+                  <div className="col-span-2">
+                    <Label htmlFor="itemos-2-valor-un">Valor un.</Label>
+                    <Input id="itemos-2-valor-un"
+                      type="number"
+                      step="0.01"
+                      value={form.valor_unitario}
+                      onChange={(e) => setForm({ ...form, valor_unitario: e.target.value })}
+                    />
+                  </div>
+                )}
+                {canSeeFinancials && (
+                  <div className="col-span-2">
+                    <Label htmlFor="itemos-1-custo-un">Custo un.</Label>
+                    <Input id="itemos-1-custo-un"
+                      type="number"
+                      step="0.01"
+                      value={form.custo_unitario}
+                      onChange={(e) => setForm({ ...form, custo_unitario: e.target.value })}
+                    />
+                  </div>
+                )}
+                <Button className="col-span-1" onClick={add}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </>
         )}
         <Table>
@@ -203,7 +345,18 @@ export function ItensDaOS({
               <TableRow key={i.id}>
                 <TableCell>{i.descricao}</TableCell>
                 <TableCell>
-                  {i.quantidade} {i.unidade}
+                  {Number(i.largura) > 0 && Number(i.altura) > 0 ? (
+                    <>
+                      {i.quantidade} {Number(i.quantidade) === 1 ? "peça" : "peças"} de {metros(Number(i.largura))} × {metros(Number(i.altura))} m
+                      {Number(i.area_cobrada) > 0 && (
+                        <span className="block text-xs text-muted-foreground">{areaLegivel(Number(i.area_cobrada))} cobrados</span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {i.quantidade} {i.unidade}
+                    </>
+                  )}
                 </TableCell>
                 {canSeePrices && (
                   <>
