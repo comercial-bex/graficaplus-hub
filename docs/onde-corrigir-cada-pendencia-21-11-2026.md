@@ -62,8 +62,10 @@ banco cai num destino geral ("Confira aqui mesmo"), nunca fica sem orientação.
 
 ### Meta, "Fora do ranking"
 
-Produto sem tempo ou sem custo ganhou um link por motivo, direto no campo da pasta (Tempo estimado, ou Custo do cadastro).
-Antes só havia "Completar o cadastro", que abria a lista de produtos.
+Produto sem tempo ou sem custo ganhou, por motivo, a frase "Vá até a aba ..." à vista e um link direto no campo da pasta
+(Tempo estimado, ou Custo do cadastro). Antes só havia "Completar o cadastro", que abria a lista de produtos. A frase fica
+escrita na tela e não em `title=`, porque o projeto proíbe `title=` que esconde informação (a CI pegou isso na primeira
+rodada).
 
 ## O que ainda NÃO tem orientação (para o dono decidir a ordem)
 
@@ -87,6 +89,8 @@ Levantado por busca nas telas. Nada disso foi mexido.
 - `tests/onde-corrigir-tela.test.ts` (7 testes): renderiza o quadro no servidor e confere botão dentro da pasta, link fora
   dela, link para a Planilha de custos, aviso de preço sem botão e letra de 16 px no painel de preços.
 - Os dois testes antigos que comparavam a ficha com `toEqual` ganharam o campo novo `itens`.
-- Ruído de ambiente: a suíte rodada sem dependências (sem mocks de React) tem 37 falhas, as mesmas na `main` e nesta
-  árvore; nenhuma é nova.
+- Mesmos comandos da CI, rodados numa cópia do projeto com as dependências do `bun.lock`: `bunx tsc --noEmit` sem nenhum
+  erro e `bunx vitest run` com 507 arquivos e 8.274 testes aprovados (1 pulado), incluindo os 32 novos.
+- A primeira rodada da CI falhou num teste que já existia (`tests/title-vira-texto-visivel.test.ts`): o link da Meta tinha
+  `title=` com a frase. A frase passou a ficar à vista, e o teste passa.
 - **Não visto no navegador**: o editor exige login que esta sessão não tem. O que se viu foi o HTML que o componente gera.

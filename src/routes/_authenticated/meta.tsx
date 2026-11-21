@@ -774,17 +774,18 @@ function BlocoPorProduto({
                         const onde = ondeCorrigirForaDoRanking(m);
                         if (onde.alvo.tipo !== "pasta") return null;
                         return (
-                          <Link
-                            key={m}
-                            to="/produtos/$id"
-                            params={{ id: p.produto_id }}
-                            search={{ aba: onde.alvo.aba, campo: onde.alvo.campo }}
-                            title={onde.vaAte}
-                            className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-link underline underline-offset-2 md:min-h-0"
-                          >
-                            {onde.botao}
-                            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                          </Link>
+                          <span key={m} className="flex flex-col">
+                            <span className="text-sm text-foreground">{onde.vaAte}</span>
+                            <Link
+                              to="/produtos/$id"
+                              params={{ id: p.produto_id }}
+                              search={{ aba: onde.alvo.aba, campo: onde.alvo.campo }}
+                              className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-link underline underline-offset-2 md:min-h-0"
+                            >
+                              {onde.botao}
+                              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                            </Link>
+                          </span>
                         );
                       })}
                   </span>

@@ -296,6 +296,9 @@ describe("produtos fora do ranking da Meta", () => {
     expect(meta).toContain("ondeCorrigirForaDoRanking(m)");
     expect(meta).toContain("search={{ aba: onde.alvo.aba, campo: onde.alvo.campo }}");
     expect(meta).toContain("text-link");
+    // A frase fica à vista: o projeto proíbe title= que esconde informação (a CI pegou isso na primeira rodada).
+    expect(meta).toContain('<span className="text-sm text-foreground">{onde.vaAte}</span>');
+    expect(meta).not.toContain("title={onde.vaAte}");
   });
 });
 
