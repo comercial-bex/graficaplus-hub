@@ -46,7 +46,9 @@ export function OndeCorrigir({
   );
 }
 
-const CLASSE_DO_BOTAO = "mt-2 min-h-11 gap-1.5 text-base";
+// O texto do botão pode ser longo ("Ir para Planilha de custos, Mão de obra") e a tela pode ser de celular: o botão
+// quebra a linha e cresce em vez de vazar do quadro (whitespace-normal, h-auto). Visto no celular em 21/11/2026.
+const CLASSE_DO_BOTAO = "mt-2 h-auto min-h-11 max-w-full gap-1.5 whitespace-normal py-2 text-left text-base";
 
 function BotaoDaCorrecao({
   onde,

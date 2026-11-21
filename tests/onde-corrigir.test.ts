@@ -353,6 +353,14 @@ describe("as telas usam o mapa (contrato do código)", () => {
     expect(acabamentos).not.toContain('c.faltas.join(" · ")');
   });
 
+  it("o botão quebra a linha e cresce em vez de vazar do quadro no celular (visto em 21/11/2026)", () => {
+    const fonte = ler("src/components/produtos/onde-corrigir.tsx");
+    const classe = fonte.match(/const CLASSE_DO_BOTAO = "([^"]+)"/)?.[1] ?? "";
+    // O botão do projeto nasce com whitespace-nowrap e altura fixa; sem estes três, o texto longo passa da borda.
+    for (const util of ["whitespace-normal", "h-auto", "max-w-full", "min-h-11"]) expect(classe, util).toContain(util);
+    expect(classe).not.toContain("whitespace-nowrap");
+  });
+
   it("o componente deixa o botão para o link quando não está dentro da pasta, e some sem id de produto", () => {
     const fonte = ler("src/components/produtos/onde-corrigir.tsx");
     expect(fonte).toContain('data-testid="onde-corrigir"');
