@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth-context";
 import { mensagemErro } from "@/lib/erros";
 import { dicaTela } from "@/lib/dicas";
 import { brl, unidadeLegivel } from "@/domain/parceiros/preco";
+import { ondeCorrigirForaDoRanking } from "@/domain/precos/onde-corrigir";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { KpiCard } from "@/components/bex/KpiCard";
 import { StatusChip } from "@/components/bex/StatusChip";
@@ -749,7 +750,8 @@ function BlocoPorProduto({
           <h3 className="text-sm font-bold">Fora do ranking ({fora.length})</h3>
           <p className="mt-1 text-xs text-muted-foreground">
             Estes produtos não entram na conta porque falta um dos dois números. Eles continuam
-            sendo vendidos — só não dá para saber se pagam a hora de máquina.
+            sendo vendidos — só não dá para saber se pagam a hora de máquina. Cada linha tem o link
+            para o campo que falta, na pasta do produto.
           </p>
           <ul className="mt-3 space-y-2">
             {fora.map((p) => {
@@ -764,6 +766,28 @@ function BlocoPorProduto({
                 >
                   <span className="min-w-0 truncate font-medium">{p.nome}</span>
                   <StatusChip label={motivos.join(" e ")} tone="amber" />
+                  {/* Cada motivo leva ao campo que falta, na pasta do produto (21/11/2026). */}
+                  <span className="flex w-full flex-wrap gap-x-4 gap-y-1" data-testid="corrigir-fora-do-ranking">
+                    {(["sem_tempo", "sem_custo"] as const)
+                      .filter((m) => p[m])
+                      .map((m) => {
+                        const onde = ondeCorrigirForaDoRanking(m);
+                        if (onde.alvo.tipo !== "pasta") return null;
+                        return (
+                          <Link
+                            key={m}
+                            to="/produtos/$id"
+                            params={{ id: p.produto_id }}
+                            search={{ aba: onde.alvo.aba, campo: onde.alvo.campo }}
+                            title={onde.vaAte}
+                            className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-link underline underline-offset-2 md:min-h-0"
+                          >
+                            {onde.botao}
+                            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                          </Link>
+                        );
+                      })}
+                  </span>
                 </li>
               );
             })}

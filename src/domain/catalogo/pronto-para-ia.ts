@@ -19,6 +19,7 @@
  */
 
 import { abasDaPasta, type AbaDaPasta } from "@/domain/catalogo/pasta-do-produto";
+import { CAMPOS_DE_CORRECAO_DA_PASTA } from "@/domain/precos/onde-corrigir";
 
 export type EntradaDaNota = {
   tipo: "produto" | "servico" | string | null;
@@ -241,7 +242,11 @@ export function buscaDaPasta(busca: Record<string, unknown>): BuscaDaPasta {
   const aba = typeof busca.aba === "string" ? abas.find((a) => a === busca.aba) : undefined;
   if (!aba) return {};
   const campo = typeof busca.campo === "string" ? busca.campo : undefined;
-  const campoValido = campo && TODOS_OS_DESTINOS.some((d) => d.aba === aba && d.campo === campo);
+  // Os campos da nota "Pronto para a IA" e os do custeio (botão "Vá até", 21/11/2026) abrem a pasta já no lugar.
+  const campoValido =
+    campo &&
+    (TODOS_OS_DESTINOS.some((d) => d.aba === aba && d.campo === campo) ||
+      CAMPOS_DE_CORRECAO_DA_PASTA.some((d) => d.aba === aba && d.campo === campo));
   return campoValido ? { aba, campo } : { aba };
 }
 

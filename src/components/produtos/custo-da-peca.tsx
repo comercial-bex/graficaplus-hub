@@ -4,7 +4,13 @@ import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { fromFinancialView } from "@/lib/supabase-financial-views";
-import { acabamentoFicaForaDoCusto, custoDasEtapasDeAcabamento } from "@/domain/catalogo/pasta-do-produto";
+import {
+  acabamentoFicaForaDoCusto,
+  custoDasEtapasDeAcabamento,
+  type AbaDaPasta,
+} from "@/domain/catalogo/pasta-do-produto";
+import { OndeCorrigir } from "@/components/produtos/onde-corrigir";
+import { CAMPO_DO_QUADRO_DO_CUSTO, ondeCorrigirFalta } from "@/domain/precos/onde-corrigir";
 import { custoDasFormulas, materiaisPorFormula, type FormulaDoProduto } from "@/domain/orcamentos/material-por-formula";
 import { brlPorPeca, custoDosTerceirizados, rotuloDaBase, type TerceirizadoDoProduto } from "@/domain/orcamentos/terceirizados";
 import {
@@ -40,6 +46,8 @@ export function CustoDaPeca(p: {
   temMaquina: boolean;
   largura: number;
   altura: number;
+  /** Troca de aba, rola e destaca o campo na própria pasta. Sem ele, o botão vira link para a pasta. */
+  aoIrParaCampo?: (aba: AbaDaPasta, campo: string) => void;
 }) {
   const dados = useQuery({
     queryKey: ["pasta-custo", p.produtoId],
@@ -187,7 +195,7 @@ export function CustoDaPeca(p: {
       : null;
 
   return (
-    <Card>
+    <Card id={CAMPO_DO_QUADRO_DO_CUSTO} tabIndex={-1}>
       <CardHeader>
         <CardTitle className="text-base">Do que a peça é feita, por {p.unidade ?? "unidade"}</CardTitle>
       </CardHeader>
@@ -248,6 +256,36 @@ export function CustoDaPeca(p: {
           <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
             Este produto ainda não tem o custo calculado.
           </p>
+        )}
+
+        {ficha.itens.length > 0 && (
+          <section
+            data-testid="o-que-falta-para-o-custo-fechar"
+            aria-label="O que falta para o custo fechar"
+            className="rounded-lg border border-warning/60 bg-warning/10 p-3"
+          >
+            <h3 className="flex items-center gap-1.5 text-base font-semibold">
+              <AlertTriangle className="h-5 w-5 text-warning" aria-hidden /> O que falta para o custo fechar
+            </h3>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Cada item diz onde corrigir e leva até o campo.
+            </p>
+            <ul className="mt-2 space-y-3">
+              {ficha.itens.map((i) => (
+                <li key={i.chave}>
+                  <p className="text-base font-medium">{i.texto.charAt(0).toUpperCase() + i.texto.slice(1)}</p>
+                  <OndeCorrigir
+                    onde={ondeCorrigirFalta(i.chave, {
+                      // Sem receita, o custo de matéria-prima que aparece acima é o digitado à mão.
+                      custoDigitado: receita.length === 0 ? (composicao?.material ?? null) : null,
+                    })}
+                    produtoId={p.produtoId}
+                    aoIrParaCampo={p.aoIrParaCampo}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {receita.length > 0 && (
@@ -357,18 +395,6 @@ export function CustoDaPeca(p: {
           </section>
         )}
 
-        {ficha.faltas.length > 0 && (
-          <section>
-            <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-              <AlertTriangle className="h-4 w-4 text-warning" aria-hidden /> O que falta para o custo fechar
-            </h3>
-            <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm">
-              {ficha.faltas.map((f) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-          </section>
-        )}
       </CardContent>
     </Card>
   );

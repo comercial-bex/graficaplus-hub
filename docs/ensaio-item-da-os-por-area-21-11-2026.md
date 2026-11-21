@@ -119,8 +119,13 @@ A migração inteira, sem o `COMMIT`, mais seis itens de teste numa OS existente
 | Rastro em `logs_auditoria` | `custo_do_item_preenchido` em 4 OS |
 | Função de gatilho | `anon`, `authenticated` e `PUBLIC` sem `EXECUTE`; `SECURITY DEFINER` |
 
-## Aplicação
+## Aplicação (21/11/2026)
 
-Depois do CI e do merge: aplicar a migração pela ferramenta do banco (o mesmo arquivo), conferir o gatilho ligado, a
-função fechada e os 6 itens com custo, e publicar o front. A tela da aba Itens não foi vista no navegador (o editor
-exige login): está coberta por teste da conta (`tests/item-da-os-por-area.test.ts`) e pelo contrato do código.
+PR #505 mesclado (`142889642`). Migração aplicada como mesclada, e conferida no banco vivo: gatilho ligado
+(`tgenabled = 'O'`), `tg_item_os_custo_do_produto()` com `SECURITY DEFINER` e sem `EXECUTE` para `anon`, `authenticated` e
+`PUBLIC`, os 6 itens com custo (151,95 / 23,95 / 72,46 / 63,41 / 18,12 / 11,76), 4 linhas de rastro e os totais das OS
+163, 164, 165 e 166 iguais (1.050,00 / 78,20 / 680,00 / 38,40).
+
+Front publicado: a aba Itens nova (`conta-do-item-por-area`, "Largura (m)") e o texto "Vale até você incluir os itens" da
+tela Nova OS estão nos arquivos do site. A tela da aba Itens não foi vista no navegador (o editor exige login): está
+coberta por teste da conta (`tests/item-da-os-por-area.test.ts`) e pelo contrato do código.

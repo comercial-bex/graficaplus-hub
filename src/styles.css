@@ -453,3 +453,14 @@
 
 /* ---- início GAVETA: os dados do contato ---- */
 /* ---- fim GAVETA ---- */
+
+/* ===================================================================== */
+/* Botão "Vá até" das pendências do custo (21/11/2026): o campo alcançado  */
+/* ganha um contorno por 4 s, que a própria pasta tira. Sem animação de   */
+/* propósito: quem pede menos movimento continua vendo onde olhar.        */
+/* ===================================================================== */
+.destaque-da-correcao {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}

@@ -165,15 +165,19 @@ function PastaDoProduto() {
       if (el) {
         el.scrollIntoView({ block: "center", behavior: "smooth" });
         el.focus({ preventScroll: true });
+        // Contorno que some sozinho: quem chegou pelo botão "Vá até" vê onde olhar (21/11/2026).
+        el.classList.add("destaque-da-correcao");
+        window.setTimeout(() => el.classList.remove("destaque-da-correcao"), 4000);
         clearInterval(t);
       } else if (tentativas > 80) clearInterval(t);
     }, 50);
     return () => clearInterval(t);
   }, [alvo]);
-  const irPara = (p: Pendencia) => {
-    setAba(p.aba);
-    setAlvo({ id: p.campo, n: Date.now() });
+  const irParaCampo = (destino: AbaDaPasta, campo: string) => {
+    setAba(destino);
+    setAlvo({ id: campo, n: Date.now() });
   };
+  const irPara = (p: Pendencia) => irParaCampo(p.aba, p.campo);
 
   const produto = useQuery({
     queryKey: ["pasta-produto", id, nivelDeVisao],
@@ -773,6 +777,7 @@ function PastaDoProduto() {
                       aoMudar={(v) => setC({ preco_base: v })}
                     />
                     <Campo
+                      id="pasta-custo-medio"
                       rotulo="Custo do cadastro"
                       valor={cadastro.custo_medio}
                       desativado={!podeEditar}
@@ -878,6 +883,7 @@ function PastaDoProduto() {
                 temMaquina={!!p.maquina_padrao_id}
                 largura={Number(form.largura_padrao_m) || 1}
                 altura={Number(form.altura_padrao_m) || 1}
+                aoIrParaCampo={irParaCampo}
               />
             )}
           </TabsContent>
@@ -970,6 +976,7 @@ function PastaDoProduto() {
                 {mMaterial.aviso}
               </div>
               <Campo
+                id="pasta-tempo"
                 rotulo={`Tempo estimado (min por ${rotuloDaUnidade(cadastro.unidade)})`}
                 valor={cadastro.tempo_producao_min}
                 desativado={!podeEditar}
@@ -990,7 +997,7 @@ function PastaDoProduto() {
           {nivelDeVisao === "financeiro" && <AbaTerceirizados produtoId={id} podeEditar={podeEditar} />}
           {/* "Insira os materiais deste produto": a ficha de materiais, que morava só na janela da lista. */}
           {cadastro.tipo === "produto" ? (
-            <Card>
+            <Card id="pasta-materiais" tabIndex={-1}>
               <CardHeader>
                 <CardTitle className="text-base">Materiais deste produto</CardTitle>
               </CardHeader>
