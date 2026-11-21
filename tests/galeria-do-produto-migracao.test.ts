@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /** Contrato da migração 20261117210000 e das telas da galeria (17/11/2026). Texto, não banco: a migração não foi aplicada. */
@@ -109,9 +109,7 @@ describe("telas da galeria", () => {
     expect(/text-(sm|xs)\b/.test(g)).toBe(false);
   });
 
-  it("a geração por IA registra em produto_imagens com origem ia", () => {
-    const ia = ler("src/lib/api/produtos-foto-ia.functions.ts");
-    expect(ia).toContain('origem: "ia"');
-    expect(ia).toContain("registrarNaGaleria(admin, produtoId, url)");
+  it("o app não gera mais foto por IA (21/11/2026): sem função de servidor, sem botão, sem lote", () => {
+    expect(existsSync(new URL("../src/lib/api/produtos-foto-ia.functions.ts", import.meta.url))).toBe(false);
   });
 });
