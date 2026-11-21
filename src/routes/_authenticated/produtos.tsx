@@ -88,8 +88,9 @@ import {
   toCSV,
 } from "@/lib/produtos-catalogo";
 import { FotoDoProduto } from "@/components/produtos/foto-do-produto";
-import { comFotoGerada, fotoMudouNaTela } from "@/domain/catalogo/foto-do-produto";
-import { GerarFotosQueFaltam } from "@/components/produtos/gerar-fotos-que-faltam";
+import { fotoMudouNaTela } from "@/domain/catalogo/foto-do-produto";
+import { AvisoSemFoto } from "@/components/produtos/aviso-sem-foto";
+import { precisaDeFoto } from "@/domain/catalogo/sem-foto";
 import { MiniaturaDoProduto } from "@/components/produtos/miniatura-do-produto";
 import { ProdutoMateriaisEditor } from "@/components/produto-materiais-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -466,7 +467,7 @@ function ProdutosPage() {
           <p className="text-muted-foreground">
             Catálogo da gráfica — base para orçamentos, OS e estoque
           </p>
-          {isAdmin && <GerarFotosQueFaltam produtos={produtos} />}
+          <AvisoSemFoto produtos={produtos} />
           {semReceita.length > 0 && (
             <div className="mt-2 flex items-start gap-2 rounded border border-[color:var(--bex-amber)]/40 bg-[color:var(--bex-amber)]/10 px-3 py-2 text-xs text-[color:var(--bex-amber)] max-w-xl">
               <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
@@ -687,6 +688,7 @@ function ProdutosPage() {
                         <div className="text-xs text-muted-foreground flex gap-2">
                           {p.sku && <span className="font-mono">{p.sku}</span>}
                           {p.tipo === "servico" && <Badge variant="outline" className="text-xs h-5">serviço</Badge>}
+                          {precisaDeFoto(p) && <Badge variant="outline" className="h-6 border-[color:var(--bex-amber)] text-sm text-[color:var(--bex-amber)]" data-testid="marca-sem-foto-linha">Sem foto</Badge>}
                           {p.ativo && !comReceita.has(p.id) && (
                             <Badge
                               variant="outline"
@@ -1169,11 +1171,8 @@ function ProdutoFormDialog({
               <Label>Foto</Label>
               <FotoDoProduto
                 valor={form.imagem_url}
-                // Funcional: a foto gerada ou enviada chega depois, e o formulário já pode ter mudado.
+                // Funcional: a foto enviada chega depois, e o formulário já pode ter mudado.
                 onChange={(url) => setForm((f) => ({ ...f, imagem_url: url }))}
-                // Quem gerou avança a base: o banco já tem a foto, e "Gerar, Remover, Salvar" precisa valer.
-                aoGerar={(url) => setForm((f) => comFotoGerada(f, url))}
-                produto={{ id: form.id || null, nome: form.nome, descricao: form.descricao, familia: form.familia, categoria: form.categoria, tipo: form.tipo }}
               />
             </div>
             <div className="space-y-1.5">

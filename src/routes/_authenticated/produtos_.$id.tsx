@@ -734,30 +734,8 @@ function PastaDoProduto() {
                     void qc.invalidateQueries({ queryKey: ["pasta-produto", id] });
                   }}
                 />
-                {/* A IA desenha uma foto quando ainda não há a real. O botão de enviar daqui grava a capa pelo Salvar. */}
-                <details className="rounded-md border p-2">
-                  <summary className="min-h-11 cursor-pointer py-2 text-base font-medium text-foreground">
-                    Gerar uma foto com a IA
-                  </summary>
-                  <div className="pt-2">
-                    <FotoDoProduto
-                      valor={cadastro.imagem_url}
-                      onChange={(url) => setC({ imagem_url: url })}
-                      aoGerar={(url) => {
-                        fotoNoBanco.current = url;
-                        void qc.invalidateQueries({ queryKey: ["produto-imagens", id] });
-                      }}
-                      produto={{
-                        id,
-                        nome: cadastro.nome,
-                        descricao: cadastro.descricao,
-                        familia: cadastro.familia,
-                        categoria: cadastro.categoria,
-                        tipo: cadastro.tipo,
-                      }}
-                    />
-                  </div>
-                </details>
+                {/* A foto entra só por envio: o app não gera mais imagem por IA. O Salvar grava a capa. */}
+                <FotoDoProduto valor={cadastro.imagem_url} onChange={(url) => setC({ imagem_url: url })} />
               </div>
             </CardContent>
           </Card>
