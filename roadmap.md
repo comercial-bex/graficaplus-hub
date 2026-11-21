@@ -1,5 +1,16 @@
 # Roadmap
 
+## Plano dos 100 (21/11)
+- [x] Diagnóstico completo e plano em `docs/plano-para-chegar-aos-100-21-11-2026.md`: nota 68 de 100, cinco frentes (laço do chão, quadro, funil, valores de orçamento, higiene), metas e consultas semanais.
+- [x] Login do Yvens banido e cadastro de parceiro suspenso (21/11, reversível). Léo já estava banido e inativo; ninguém foi apagado (têm histórico em 28 orçamentos, 9 OS e 94 mensagens).
+- [x] Aviso ao gerente no grupo com os valores dos orçamentos #261, #187, #227, #233 e #115, cobrança dos 21 cartões do quadro e aviso do funil (21/11 09:40). Nenhum PDF reenviado: só o gerente autoriza.
+- [x] Achado: o bloqueio de números do dono não barrava a fila de automações. O "Lembrete à operação" seguiu chegando ao Léo às 09:00 de 18, 19, 20 e 21/11 (4 envios, em `whatsapp_logs`). Automação apontada para o gerente no banco (21/11). Código: o envio confere o bloqueio nas três filas antes de chamar o Z-API (`src/domain/whatsapp/numero-bloqueado.ts`), com alarme de teste para novo ponto de envio.
+- [ ] Publicar o front com a última porta do bloqueio e depois medir: envios a número bloqueado depois de 17/11 23:29 não podem crescer.
+- [ ] Aplicar a migração 20261121120000 (aviso aos gestores ignora inativo; bloco "em produção sem máquina" no resumo da operação). Ensaiada no banco vivo, md5 fixados, `docs/ensaio-higiene-lembretes-e-laco-do-chao-21-11-2026.md`.
+- [ ] Decisão do dono: quem recebe o "Lembrete à operação" (hoje o gerente, antes o Léo). Comissões: a regra de 10% é só do Raymison; Jhesselem e Maiara não têm regra.
+- [ ] Decisão do dono: carteira do Léo e do Yvens (orçamentos, OS, clientes, leads em nome de usuário inativo).
+- [ ] TV da parede sem consultar o painel desde 16/11: ligar o aparelho em `/tv` ou parear de novo.
+
 ## Orçamento (20/11)
 - [x] "Cobrar o acabamento à parte" ficou opcional: tocar de novo no acabamento marcado, ou no lado marcado (contorno, lados maiores, lados menores), desmarca. Com nada marcado a tela diz que nada será cobrado e o botão de acrescentar some ou fica desligado. Antes sempre ficava um marcado (o padrão do produto, ou o primeiro). A linha continua só nascendo pelo clique em "Adicionar ao orçamento". Tela não vista no navegador (sem conta autenticada nesta sessão): coberto por teste de marcação e de contrato do código.
 
