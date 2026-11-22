@@ -1,5 +1,14 @@
 # Roadmap
 
+## Orçamento de troféu de acrílico (22/11)
+- [x] Proposta e preços: três modelos (Econômico, Padrão, Premium), regra do ×3 sobre o custo cheio com escada por quantidade (×3, ×2,7, ×2,4, ×2,2 de piso), ×3,5 no premium exclusivo, ×4 só na urgência; arte exclusiva R$ 220. Comparação de compras, cadastro e estoque na planilha "Compras x Estoque x Custo".
+- [ ] Etapa 0, custo do acrílico pela área útil (migração 20261122100000): chapa 1,03 × 2,03 m conta 2,00 m² úteis (decisão do dono); preto 3 mm de R$ 400,00 para R$ 194,50 o m² e a NF-e 859 lançada; cristal 2/3/6/10 mm e branco 3 mm pela área útil; lotes de abertura de 3 mm fora dos R$ 400,00. Ensaio em `docs/ensaio-custo-do-acrilico-pela-area-util-22-11-2026.md`. Falta aplicar depois do merge.
+- [ ] Etapa 1: catálogo de modelos de troféu (peças, material, medidas, corte, gravação, decoração, montagem) e configuração das regras de preço.
+- [ ] Etapa 2: a conta do troféu no servidor, como a do 3D (vendedor vê só o preço).
+- [ ] Etapa 3: página "Orçamento de troféu" em passos, com simulador de multiplicador para o financeiro e gravação no orçamento.
+- [ ] Etapa 4: ficha de produção do troféu na OS.
+- [ ] Pendências do dono: nota do acrílico espelhado dourado; velocidade real de corte e gravação do laser; a impressora DTF UV vai funcionar e com que custo.
+
 ## Onde corrigir cada pendência do custo (21/11)
 - [x] Pendência do custeio diz onde corrigir e leva até lá: frase em destaque ("Vá até a aba Parâmetros desta pasta, no cartão Materiais deste produto") e botão que troca de aba, rola e destaca o campo. Vale para o quadro "O que falta para o custo fechar" da pasta, a ficha da Tabela de preços, os avisos de Preços por produto, as faltas dos acabamentos e a lista "Fora do ranking" da Meta. Mapa único em `src/domain/precos/onde-corrigir.ts`; mapa completo e o que ficou de fora em `docs/onde-corrigir-cada-pendencia-21-11-2026.md`.
 - [ ] Próximas telas sem orientação, na ordem sugerida: revisão do orçamento ("Antes de mandar ao cliente, falta:"), concluir OS, cartão do quadro, Capacidade (conferir item a item), selo de Precificação. A calculadora 3D fica como está: quem a usa não vê custo.

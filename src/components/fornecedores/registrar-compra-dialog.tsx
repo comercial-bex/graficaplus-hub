@@ -40,11 +40,15 @@ type MaterialDaLista = {
   unidade: string;
   largura_bobina_m: number | null;
   comprimento_bobina_m: number | null;
+  /** Medida útil da chapa (sem a borda): é dela que sai quanto a chapa rende. */
+  largura_util_m: number | null;
+  comprimento_util_m: number | null;
 };
 
 type Comprador = "bex_print" | "agencia" | "outro";
 
 const AGENCIA_BEX = "AGENCIA BEX LTDA";
+const metros = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 const NENHUM = "__nenhum__";
 
 const formularioNovo = (): FormularioDaCompra => ({
@@ -108,13 +112,15 @@ export function RegistrarCompraDialog({
     enabled: open,
     queryFn: async (): Promise<MaterialDaLista[]> => {
       const { data, error } = await fromFinancialView("materiais", "operacional")
-        .select("id, nome, unidade, largura_bobina_m, comprimento_bobina_m")
+        .select("id, nome, unidade, largura_bobina_m, comprimento_bobina_m, largura_util_m, comprimento_util_m")
         .order("nome");
       if (error) throw error;
       return ((data ?? []) as any[]).map((m) => ({
         ...m,
         largura_bobina_m: m.largura_bobina_m == null ? null : Number(m.largura_bobina_m),
         comprimento_bobina_m: m.comprimento_bobina_m == null ? null : Number(m.comprimento_bobina_m),
+        largura_util_m: m.largura_util_m == null ? null : Number(m.largura_util_m),
+        comprimento_util_m: m.comprimento_util_m == null ? null : Number(m.comprimento_util_m),
       }));
     },
   });
@@ -492,6 +498,14 @@ export function RegistrarCompraDialog({
                           placeholder="rolo 1,06 × 50 = 53"
                           className="h-11 md:h-9"
                         />
+                        {material?.largura_util_m && material?.comprimento_util_m ? (
+                          <p className="text-xs text-muted-foreground" data-testid="rende-pela-area-util">
+                            Chapa: conta só a área útil, {metros(material.largura_util_m)} ×{" "}
+                            {metros(material.comprimento_util_m)} m ={" "}
+                            {metros(material.largura_util_m * material.comprimento_util_m)} m². A borda que se refila é
+                            sobra e não entra no custo nem no estoque.
+                          </p>
+                        ) : null}
                       </div>
                     )}
                   </div>

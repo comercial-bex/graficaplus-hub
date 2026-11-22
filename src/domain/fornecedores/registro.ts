@@ -108,14 +108,26 @@ export function totaisDaCompra(f: Pick<FormularioDaCompra, "tipo" | "linhas">): 
   return { bruto: bruto / 100, desconto: (bruto - total) / 100, total: total / 100 };
 }
 
-/** Rolo de 1,06 × 50 m = 53 m²; litro = 1.000 ml. Sem como saber, null. */
+/**
+ * Rolo de 1,06 × 50 m = 53 m²; litro = 1.000 ml; chapa pela ÁREA ÚTIL. Sem como saber, null.
+ *
+ * Chapa (22/11/2026): a Terzian 1030 × 2030 mm (1,03 × 2,03 m) vende 1,00 × 2,00 m. A borda é sobra, não se vende,
+ * e não entra no custo nem no estoque: a chapa rende 2,00 m², não 2,09 (decisão do dono). Só a medida útil do
+ * cadastro serve; a medida bruta da chapa nunca é sugerida, porque é ela que deixava o m² 4,3% mais barato.
+ */
 export function rendeSugerido(material: {
   unidade: string;
   largura_bobina_m?: number | null;
   comprimento_bobina_m?: number | null;
+  largura_util_m?: number | null;
+  comprimento_util_m?: number | null;
 }): number | null {
   const u = material.unidade.trim().toLowerCase();
-  if ((u === "m²" || u === "m2") && material.largura_bobina_m && material.comprimento_bobina_m) {
+  const porArea = u === "m²" || u === "m2";
+  if (porArea && material.largura_util_m && material.comprimento_util_m) {
+    return Math.round(material.largura_util_m * material.comprimento_util_m * 1000) / 1000;
+  }
+  if (porArea && material.largura_bobina_m && material.comprimento_bobina_m) {
     return Math.round(material.largura_bobina_m * material.comprimento_bobina_m * 1000) / 1000;
   }
   if (u === "ml") return 1000;

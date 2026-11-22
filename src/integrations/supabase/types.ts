@@ -7283,6 +7283,7 @@ export type Database = {
           caracteristicas: string | null
           comprimento_bobina_m: number | null
           comprimento_chapa_m: number | null
+          comprimento_util_m: number | null
           created_at: string
           custo_medio: number | null
           custo_unitario: number | null
@@ -7295,6 +7296,7 @@ export type Database = {
           id: string
           largura_bobina_m: number | null
           largura_chapa_m: number | null
+          largura_util_m: number | null
           localizacao: string | null
           nome: string
           status: string
@@ -7305,6 +7307,7 @@ export type Database = {
           caracteristicas?: string | null
           comprimento_bobina_m?: number | null
           comprimento_chapa_m?: number | null
+          comprimento_util_m?: number | null
           created_at?: string
           custo_medio?: number | null
           custo_unitario?: number | null
@@ -7317,6 +7320,7 @@ export type Database = {
           id?: string
           largura_bobina_m?: number | null
           largura_chapa_m?: number | null
+          largura_util_m?: number | null
           localizacao?: string | null
           nome: string
           status?: string
@@ -7327,6 +7331,7 @@ export type Database = {
           caracteristicas?: string | null
           comprimento_bobina_m?: number | null
           comprimento_chapa_m?: number | null
+          comprimento_util_m?: number | null
           created_at?: string
           custo_medio?: number | null
           custo_unitario?: number | null
@@ -7339,6 +7344,7 @@ export type Database = {
           id?: string
           largura_bobina_m?: number | null
           largura_chapa_m?: number | null
+          largura_util_m?: number | null
           localizacao?: string | null
           nome?: string
           status?: string
@@ -21124,6 +21130,7 @@ export type Database = {
           caracteristicas: string | null
           comprimento_bobina_m: number | null
           comprimento_chapa_m: number | null
+          comprimento_util_m: number | null
           created_at: string | null
           custo_medio: number | null
           custo_unitario: number | null
@@ -21136,6 +21143,7 @@ export type Database = {
           id: string | null
           largura_bobina_m: number | null
           largura_chapa_m: number | null
+          largura_util_m: number | null
           localizacao: string | null
           nome: string | null
           status: string | null
@@ -21149,6 +21157,7 @@ export type Database = {
           caracteristicas: string | null
           comprimento_bobina_m: number | null
           comprimento_chapa_m: number | null
+          comprimento_util_m: number | null
           created_at: string | null
           espessura_mm: number | null
           estoque: number | null
@@ -21157,6 +21166,7 @@ export type Database = {
           id: string | null
           largura_bobina_m: number | null
           largura_chapa_m: number | null
+          largura_util_m: number | null
           localizacao: string | null
           nome: string | null
           status: string | null
@@ -21166,6 +21176,7 @@ export type Database = {
           caracteristicas?: string | null
           comprimento_bobina_m?: number | null
           comprimento_chapa_m?: number | null
+          comprimento_util_m?: number | null
           created_at?: string | null
           espessura_mm?: number | null
           estoque?: number | null
@@ -21174,6 +21185,7 @@ export type Database = {
           id?: string | null
           largura_bobina_m?: number | null
           largura_chapa_m?: number | null
+          largura_util_m?: number | null
           localizacao?: string | null
           nome?: string | null
           status?: string | null
@@ -21183,6 +21195,7 @@ export type Database = {
           caracteristicas?: string | null
           comprimento_bobina_m?: number | null
           comprimento_chapa_m?: number | null
+          comprimento_util_m?: number | null
           created_at?: string | null
           espessura_mm?: number | null
           estoque?: number | null
@@ -21191,6 +21204,7 @@ export type Database = {
           id?: string | null
           largura_bobina_m?: number | null
           largura_chapa_m?: number | null
+          largura_util_m?: number | null
           localizacao?: string | null
           nome?: string | null
           status?: string | null
