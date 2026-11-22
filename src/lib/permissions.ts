@@ -199,6 +199,8 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   // Compras diretas dos parceiros: aba de Parceiros, então a mesma permissão dela (parceiros.read).
   // Com orcamentos.read o financeiro passava a ver "Parceiros" no menu sem poder abrir a tela.
   { path: "/vendas-diretas", permissions: ["parceiros.read"] },
+  // Créditos dos parceiros: aba de Parceiros, então a mesma permissão dela (parceiros.read).
+  { path: "/parceiros-creditos", permissions: ["parceiros.read"] },
   { path: "/aprovacoes", permissions: ["orcamentos.read", "arquivos.approve"] },
   // Metragem por cliente é número de venda (Vendas › Números de venda): pede
   // leitura de orçamento. Com os.read ela chegava ao operador (06/10/2026).

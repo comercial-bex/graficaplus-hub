@@ -36,8 +36,11 @@ type Linha = {
   total_pedido: number | null;
   os_id: string | null;
   observacoes: string | null;
-  parceiro: { nome: string | null } | null;
+  parceiro: { marca_nome: string | null; cliente: { nome: string | null } | null } | null;
 };
+
+/** O nome que a casa usa para o parceiro em todo lugar: a marca dele, ou o nome do cliente. */
+const nomeDoParceiro = (l: Linha) => l.parceiro?.marca_nome?.trim() || l.parceiro?.cliente?.nome || null;
 
 function VendasDiretas() {
   const [busca, setBusca] = useState("");
@@ -46,7 +49,7 @@ function VendasDiretas() {
     queryFn: async (): Promise<Linha[]> => {
       const { data, error } = await (supabase as any)
         .from("parceiro_orcamentos")
-        .select("id, numero, created_at, pagamento_modelo, total_pedido, os_id, observacoes, parceiro:parceiros(nome)")
+        .select("id, numero, created_at, pagamento_modelo, total_pedido, os_id, observacoes, parceiro:parceiros(marca_nome, cliente:clientes(nome))")
         .eq("venda_direta", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -55,7 +58,7 @@ function VendasDiretas() {
   });
   const linhas = useMemo(() => {
     const t = busca.trim().toLowerCase();
-    return (consulta.data ?? []).filter((l) => !t || `${l.parceiro?.nome ?? ""} ${l.numero}`.toLowerCase().includes(t));
+    return (consulta.data ?? []).filter((l) => !t || `${nomeDoParceiro(l) ?? ""} ${l.numero}`.toLowerCase().includes(t));
   }, [consulta.data, busca]);
 
   return (
@@ -94,7 +97,7 @@ function VendasDiretas() {
                   <TableRow key={l.id}>
                     <TableCell className="font-mono">{l.numero}</TableCell>
                     <TableCell>
-                      {l.parceiro?.nome ?? "—"}
+                      {nomeDoParceiro(l) ?? "—"}
                       {l.observacoes && <p className="text-xs text-muted-foreground">{l.observacoes}</p>}
                     </TableCell>
                     <TableCell>{new Date(l.created_at).toLocaleDateString("pt-BR")}</TableCell>

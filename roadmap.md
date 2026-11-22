@@ -1,5 +1,14 @@
 # Roadmap
 
+## Parceiros: chamado fechado sem atendimento e créditos (22/11)
+- [x] Conferência (22/11): as migrações 20261119120000 e 20261119130000 já estavam aplicadas desde 19/11 (a função de lista devolve `fechado_sem_contato`, o lembrete tem o bloco dos fechados e não cita quem fechou, ACL certa); os 8 parceiros foram reabertos à mão em 19/11 às 17:01 e hoje aparecem como abertos sem contato, no cartão e na simulação do aviso. O lembrete de domingo não envia por regra; o próximo é segunda 23/11 às 09:10.
+- [x] Função `parceiro_reabrir_chamado(p_parceiro)` (migração 20261122600000, PR de parceiros): reabre só o chamado fechado sem nenhuma mensagem da equipe, sem mexer nas regras de fechamento da caixa do WhatsApp; `parceiros.manage` ou o responsável do parceiro; confere o resultado no banco e registra quem reabriu; botão "Reabrir chamado" no cartão Atendimento dos parceiros.
+- [x] Aviso do grupo (migração 20261122610000): até 5 das 15 linhas ficam guardadas para os chamados fechados sem atendimento (com 15 abertos sem contato o fechado caía em "E mais N" e nunca aparecia). Texto igual: com a data e sem o nome de quem fechou.
+- [x] Tela de créditos `/parceiros-creditos` (aba de Parceiros; migração 20261122700000, só leitura): saldo (a mesma conta do cartão), livro de lançamentos, o que cada lançamento pagou, o que vence por dia (14/12: R$ 700,00 de 14 parceiros; 15/12: R$ 50,00 de 1) e a conferência do saldo. Análise em `docs/ensaio-parceiros-reabrir-e-creditos-22-11-2026.md`.
+- [x] Vendas diretas: a consulta pedia `parceiros(nome)` (coluna que não existe) e a tela não carregava; agora usa `marca_nome` e o nome do cliente.
+- [ ] Sem prova com dado real: nenhum chamado fechado sem atendimento hoje (o botão foi provado em ensaio desfeito e no navegador) e nenhum crédito usado ainda (o "o que pagou" foi provado em teste). Conferir na primeira ocorrência de cada um.
+- [ ] Decisão do dono: o prazo de 48 h do aviso recomeça quando o chamado é reaberto (o parceiro sai do aviso por 48 h). Se preferir que o reaberto continue no aviso até a equipe falar, muda a conta de `_parceiros_sem_contato`.
+
 ## Orçamento de troféu de acrílico (22/11)
 - [x] Proposta e preços: três modelos (Econômico, Padrão, Premium), regra do ×3 sobre o custo cheio com escada por quantidade (×3, ×2,7, ×2,4, ×2,2 de piso), ×3,5 no premium exclusivo, ×4 só na urgência; arte exclusiva R$ 220. Comparação de compras, cadastro e estoque na planilha "Compras x Estoque x Custo".
 - [x] Etapa 0, custo do acrílico pela área útil (migração 20261122100000, aplicada e conferida em 22/11; front publicado, tela de compras nova conferida nos arquivos do site): chapa 1,03 × 2,03 m conta 2,00 m² úteis (decisão do dono); preto 3 mm de R$ 400,00 para R$ 194,50 o m² e a NF-e 859 lançada; cristal 2/3/6/10 mm e branco 3 mm pela área útil; lotes de abertura de 3 mm fora dos R$ 400,00. Ensaio e análise em `docs/ensaio-custo-do-acrilico-pela-area-util-22-11-2026.md`.
