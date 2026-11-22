@@ -132,6 +132,23 @@ describe("o pedido que vai para registrar_compra_fornecedor", () => {
     expect(rendeSugerido({ unidade: "g" })).toBeNull();
     expect(rendeSugerido({ unidade: "m²", largura_bobina_m: null, comprimento_bobina_m: 50 })).toBeNull();
   });
+
+  it("chapa rende a área útil: a Terzian 1,03 × 2,03 m rende 2,00 m², não 2,09 (decisão do dono, 22/11/2026)", () => {
+    expect(rendeSugerido({ unidade: "m²", largura_util_m: 1, comprimento_util_m: 2 })).toBe(2);
+    // a medida bruta da chapa nunca é sugerida: era ela que deixava o m² 4,3% mais barato
+    expect(rendeSugerido({ unidade: "m²", largura_util_m: null, comprimento_util_m: null })).toBeNull();
+    // a área útil vence a bobina, se as duas estiverem cadastradas
+    expect(rendeSugerido({ unidade: "m²", largura_util_m: 1, comprimento_util_m: 2, largura_bobina_m: 1.06, comprimento_bobina_m: 50 })).toBe(2);
+    expect(rendeSugerido({ unidade: "m2", largura_util_m: 1.22, comprimento_util_m: 2.44 })).toBe(2.977);
+  });
+
+  it("a tela da compra lê a medida útil pela visão sem custo e explica que a borda é sobra", () => {
+    const tela = readFileSync("src/components/fornecedores/registrar-compra-dialog.tsx", "utf8");
+    expect(tela).toContain('.select("id, nome, unidade, largura_bobina_m, comprimento_bobina_m, largura_util_m, comprimento_util_m")');
+    expect(tela).toContain('fromFinancialView("materiais", "operacional")');
+    expect(tela).toContain('data-testid="rende-pela-area-util"');
+    expect(tela).toContain("A borda que se refila é");
+  });
 });
 
 describe("o que impede salvar aparece antes", () => {
