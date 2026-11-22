@@ -61,6 +61,7 @@ import { comQuem, quemFazAgora } from "@/domain/os/quem-faz-agora";
 import { identidadeDaMaquina } from "@/domain/producao/identidade-da-maquina";
 import { ehGestor, primeiroNome } from "@/domain/os/equipe-da-producao";
 import { useAuth } from "@/lib/auth-context";
+import { FichaDoTrofeuDaOs } from "@/components/trofeus/ficha-do-trofeu";
 import { cn } from "@/lib/utils";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -540,6 +541,7 @@ export function FichaDaOs({
                   Nenhum item cadastrado nesta OS. Sem item, a produção não sabe o que fazer nem o estoque o que baixar.
                 </p>
               )}
+              <FichaDoTrofeuDaOs osId={os.id} />
             </Bloco>
 
             <Bloco titulo="Combinado e equipe">

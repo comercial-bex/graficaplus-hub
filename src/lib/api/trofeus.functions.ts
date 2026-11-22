@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ErroDoTrofeu, LIMITES_DO_MULTIPLICADOR_MANUAL } from "@/domain/trofeus/conta";
+import { ErroDoTrofeu, LIMITES_DO_MULTIPLICADOR_MANUAL, type Decoracao, type LinhaDoTrofeu, type ModeloDeTrofeu, type TipoDeArte } from "@/domain/trofeus/conta";
+import { montarFicha, type FichaDoTrofeu } from "@/domain/trofeus/ficha";
 import { PRECO_MUDOU_TROFEU } from "@/domain/trofeus/tela";
 import {
   cotacaoComCusto,
@@ -662,4 +663,124 @@ export const lerTrofeuGravado = createServerFn({ method: "POST" })
       multiplicadorManual: verCusto ? manual : null,
       podeEditar: manual == null || verCusto,
     };
+  });
+
+// ---------------------------------------------------------------------------------------------------------
+// A ficha de produção do troféu na OS (etapa 4)
+// ---------------------------------------------------------------------------------------------------------
+
+const entradaDaFicha = z.object({ osId: z.string().uuid() }).strict();
+
+const SEM_PERMISSAO_DA_OS = "Seu perfil não abre a OS.";
+
+type ItemDaOs = { id: string; descricao: string | null; quantidade: unknown; parametros: unknown; ordem?: unknown };
+
+const DECORACOES_DA_FICHA: readonly Decoracao[] = ["nenhuma", "vinil_laminado", "gravacao_laser"];
+const LINHAS_DA_FICHA: readonly LinhaDoTrofeu[] = ["economico", "padrao", "premium"];
+
+/**
+ * O que a produção precisa de cada troféu da OS: peças, material, espessura, medida na altura escolhida, quantidade no
+ * pedido, decoração, a arte e o tempo de laser. SEM preço nem custo: o operador não os vê, e a lista de campos é a da
+ * ficha (`montarFicha`). O navegador não lê `itens_os.parametros` (sem GRANT), então a leitura é daqui, com a chave de
+ * serviço, depois de conferir `os.read`. Devolve lista vazia quando a OS não tem troféu.
+ */
+export const fichaDoTrofeuDaOs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => validar(entradaDaFicha, d))
+  .handler(async ({ data, context }): Promise<FichaDoTrofeu[]> => {
+    const usuario = context.supabase as unknown as BancoDoUsuario;
+    const { data: pode, error: erroDePermissao } = await usuario.rpc("has_permission", { _user_id: context.userId, _permission: "os.read" });
+    if (erroDePermissao) {
+      console.error("[fichaDoTrofeuDaOs] has_permission falhou:", erroDePermissao.message ?? "");
+      throw new Error("Não consegui abrir a ficha agora. Tente de novo; se continuar, avise a gerência.");
+    }
+    if (pode !== true) throw new Error(SEM_PERMISSAO_DA_OS);
+
+    const db = await bancoDeServico();
+    const falhou = (tabela: string, e: unknown) => {
+      console.error(`[fichaDoTrofeuDaOs] falha ao ler ${tabela}:`, e instanceof Error ? e.message : String((e as { message?: string } | null)?.message ?? ""));
+      return new Error("Não consegui abrir a ficha agora. Tente de novo; se continuar, avise a gerência.");
+    };
+    const ler = async (tabela: string, consulta: PromiseLike<Resposta>): Promise<Resposta> => {
+      let r: Resposta;
+      try {
+        r = await consulta;
+      } catch (e) {
+        throw falhou(tabela, e);
+      }
+      if (r.error) throw falhou(tabela, r.error);
+      return r;
+    };
+
+    const rItens = await ler("itens_os", db.from("itens_os").select("id, descricao, quantidade, parametros, ordem").eq("os_id", data.osId).order("ordem"));
+    const trofeus = linhas<ItemDaOs>(rItens).filter((i) => objeto(i.parametros).origem === "trofeu" && typeof objeto(i.parametros).modelo_id === "string");
+    if (trofeus.length === 0) return [];
+
+    const modeloIds = [...new Set(trofeus.map((i) => String(objeto(i.parametros).modelo_id)))];
+    const [rModelos, rPecas, rRegras] = await Promise.all([
+      ler("trofeu_modelos", db.from("trofeu_modelos").select(COLUNAS_DO_MODELO).in("id", modeloIds)),
+      ler("trofeu_pecas", db.from("trofeu_pecas").select(`modelo_id, ${COLUNAS_DA_PECA}`).in("modelo_id", modeloIds).order("ordem")),
+      ler("trofeu_regras", db.from("trofeu_regras").select("velocidade_de_corte, gravacao_min_por_m2, preparo_do_laser_min, provisorios").eq("unica", true).maybeSingle()),
+    ]);
+    const pecas = linhas<LinhaDaPeca & { modelo_id: string }>(rPecas);
+    const materiaisIds = [...new Set(pecas.map((p) => p.material_id))];
+    const rMateriais = await ler("materiais", db.from("materiais").select("id, nome").in("id", materiaisIds));
+    const nomes: Record<string, string> = {};
+    for (const m of linhas<{ id: string; nome: string }>(rMateriais)) nomes[m.id] = m.nome;
+
+    const regras = (rRegras.data ?? null) as { velocidade_de_corte?: unknown; gravacao_min_por_m2?: unknown; preparo_do_laser_min?: unknown; provisorios?: unknown } | null;
+    const velocidades: Record<string, number> = {};
+    for (const [mm, v] of Object.entries(objeto(regras?.velocidade_de_corte))) if (typeof v === "number" || typeof v === "string") velocidades[mm] = Number(v);
+    const gravacao = Number(regras?.gravacao_min_por_m2 ?? 0);
+    const preparo = Number(regras?.preparo_do_laser_min ?? 0);
+
+    const fichas: FichaDoTrofeu[] = [];
+    for (const item of trofeus) {
+      const p = objeto(item.parametros);
+      const modeloLinha = linhas<LinhaDoModelo>(rModelos).find((m) => m.id === p.modelo_id);
+      const alturaCm = numeroOuNulo(p.altura_cm);
+      const quantidade = Number(item.quantidade);
+      const linha = LINHAS_DA_FICHA.find((l) => l === modeloLinha?.linha);
+      if (!modeloLinha || !linha || alturaCm == null || !Number.isInteger(quantidade) || quantidade < 1) continue;
+      const pecasDoModelo = pecas.filter((x) => x.modelo_id === modeloLinha.id).sort((a, b) => Number(a.ordem) - Number(b.ordem));
+      if (pecasDoModelo.length === 0) continue;
+      const modelo: ModeloDeTrofeu = {
+        id: modeloLinha.id,
+        nome: modeloLinha.nome,
+        linha,
+        alturaDeReferenciaM: Number(modeloLinha.altura_referencia_m),
+        minutosDeMaoDeObra: Number(modeloLinha.minutos_de_mao_de_obra ?? 0),
+        multiplicadorBase: Number(modeloLinha.multiplicador_base ?? 3),
+        pecas: pecasDoModelo.map((x) => ({
+          nome: x.nome,
+          materialId: x.material_id,
+          espessuraMm: Number(x.espessura_mm),
+          larguraM: Number(x.largura_m),
+          alturaM: Number(x.altura_m),
+          quantidade: Number(x.quantidade),
+          fatorDeForma: Number(x.fator_de_forma),
+          decoracao: DECORACOES_DA_FICHA.find((d) => d === x.decoracao) ?? "nenhuma",
+        })),
+      };
+      if (!(modelo.alturaDeReferenciaM > 0)) continue;
+      const a = objeto(p.arte);
+      const tipo = TIPOS_DE_ARTE.find((t) => t === a.tipo) as TipoDeArte | undefined;
+      fichas.push(
+        montarFicha({
+          itemId: item.id,
+          descricao: item.descricao ?? modelo.nome,
+          quantidade,
+          alturaCm,
+          urgente: p.urgente === true,
+          arte: tipo ? { tipo, alteracoesExtras: numeroOuNulo(a.alteracoes_extras) ?? 0, nomesIndividuais: numeroOuNulo(a.nomes_individuais) ?? 0 } : null,
+          modelo,
+          nomesDosMateriais: nomes,
+          velocidadeDeCorteMPorMin: velocidades,
+          gravacaoMinPorM2: gravacao,
+          preparoDoLaserMin: preparo,
+          provisorio: modeloLinha.provisorio === true,
+        }),
+      );
+    }
+    return fichas;
   });

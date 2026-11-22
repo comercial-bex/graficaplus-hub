@@ -132,7 +132,7 @@ vi.mock("@/integrations/supabase/client.server", () => {
   };
 });
 
-import { cotarTrofeu, dadosDoTrofeu, escadaDoTrofeu, lerTrofeuGravado, salvarTrofeuNoOrcamento } from "../src/lib/api/trofeus.functions";
+import { cotarTrofeu, dadosDoTrofeu, escadaDoTrofeu, fichaDoTrofeuDaOs, lerTrofeuGravado, salvarTrofeuNoOrcamento } from "../src/lib/api/trofeus.functions";
 import { ECONOMICO, PADRAO, PREMIUM, baseDoBanco } from "./apoio/trofeus-banco";
 import type { ModeloDeTrofeu } from "../src/domain/trofeus/conta";
 
@@ -140,6 +140,7 @@ const cotar = cotarTrofeu as unknown as (a: { data: unknown }) => Promise<Record
 const salvar = salvarTrofeuNoOrcamento as unknown as (a: { data: unknown }) => Promise<Record<string, unknown>>;
 const escada = escadaDoTrofeu as unknown as (a: { data: unknown }) => Promise<{ aPartirDe: number; precoUnitario: number }[]>;
 const dados = dadosDoTrofeu as unknown as () => Promise<Record<string, unknown>>;
+const fichaDaOs = fichaDoTrofeuDaOs as unknown as (a: { data: unknown }) => Promise<Record<string, unknown>[]>;
 const lerGravado = lerTrofeuGravado as unknown as (a: { data: unknown }) => Promise<Record<string, unknown>>;
 
 const MODELO = "3f8e1c2a-7b4d-4e6f-9a1b-2c3d4e5f6a7b";
@@ -159,6 +160,7 @@ function carregarBanco(modelo: ModeloDeTrofeu = ECONOMICO, mexer?: (t: Record<st
     custos_mao_de_obra: b.maoDeObra.map((m) => ({ ...(m as unknown as Linha), ativo: true })),
     maquinas: b.maquinas.map((m) => ({ ...(m as unknown as Linha), ativa: true })),
     orcamento_itens: null,
+    itens_os: null,
   };
   mexer?.(tabelas);
   h.tabelas = tabelas;
@@ -874,5 +876,134 @@ describe("estoque só avisa: dá para orçar sem a chapa", () => {
     const r = await salvar({ data: PEDIDO_SALVAR });
     expect(r.itemId).toBeTruthy();
     expect(h.rpcSalvar).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// A ficha de produção do troféu na OS (etapa 4)
+// ---------------------------------------------------------------------------------------------------------
+
+const OS = "5c1d8e2a-3b4f-4a6c-9d7e-8f0a1b2c3d4e";
+const ITEM_DA_OS = "a7e9c1d3-5b2f-4e8a-9c6d-1f3b5d7e9a2c";
+const OPERADOR = ["os.read"];
+const PARAMETROS_DO_TROFEU = {
+  origem: "trofeu",
+  modelo_id: MODELO,
+  altura_cm: 18,
+  urgente: true,
+  arte: { tipo: "criacao_exclusiva", alteracoes_extras: 1, nomes_individuais: 2 },
+  multiplicador_manual: 1.8,
+};
+
+function osComTrofeu(itens: Record<string, unknown>[]) {
+  carregarBanco(ECONOMICO, (t) => (t.itens_os = itens.map((i) => ({ os_id: OS, ordem: 1, ...i }))));
+  h.permissoes = new Set(OPERADOR);
+}
+
+describe("a ficha de produção do troféu na OS", () => {
+  const TROFEU = { id: ITEM_DA_OS, descricao: "Troféu econômico 18 cm", quantidade: 5, parametros: PARAMETROS_DO_TROFEU };
+
+  it("o operador (só os.read) recebe as peças, o material, as medidas e o tempo de laser", async () => {
+    osComTrofeu([TROFEU]);
+    const r = await fichaDaOs({ data: { osId: OS } });
+    expect(r).toHaveLength(1);
+    const f = r[0] as Record<string, any>;
+    expect(f).toMatchObject({ itemId: ITEM_DA_OS, quantidade: 5, alturaCm: 18, urgente: true, pecasPorTrofeu: 3, pecasNoPedido: 15 });
+    expect(f.modelo).toMatchObject({ id: MODELO, nome: "Troféu econômico", linha: "economico" });
+    expect(f.pecas.map((p: any) => [p.nome, p.material, p.larguraCm, p.alturaCm, p.quantidadeNoPedido])).toEqual([
+      ["Placa principal", "ACRILICO CRISTAL VIRGEM 2MM", 20, 16, 5],
+      ["Base", "ACRILICO PRETO VIRGEM 3MM", 20, 5, 10],
+    ]);
+    expect(f.minutosDeLaser).toBeGreaterThan(0);
+    expect(f.arte).toMatchObject({ tipo: "criacao_exclusiva", alteracoesExtras: 1, nomesIndividuais: 2 });
+  });
+
+  it("a quantidade é a da OS (se a produção mudou a quantidade lá, a ficha acompanha)", async () => {
+    osComTrofeu([{ ...TROFEU, quantidade: 3 }]);
+    const f = (await fichaDaOs({ data: { osId: OS } }))[0] as Record<string, any>;
+    expect(f.quantidade).toBe(3);
+    expect(f.pecasNoPedido).toBe(9);
+  });
+
+  it("NÃO traz preço, custo, multiplicador nem margem (mesmo que o item tenha multiplicador gravado)", async () => {
+    osComTrofeu([TROFEU]);
+    const texto = JSON.stringify(await fichaDaOs({ data: { osId: OS } })).toLowerCase();
+    for (const proibido of ["preco", "preço", "custo", "multiplicador", "margem", "valor", "1.8", "aval"]) expect(texto, proibido).not.toContain(proibido);
+  });
+
+  it("OS sem troféu: lista vazia, e o item 3D ou comum não vira ficha", async () => {
+    osComTrofeu([
+      { id: "i1", descricao: "Lona 440g", quantidade: 2, parametros: {} },
+      { id: "i2", descricao: "Peça 3D", quantidade: 1, parametros: { orcamento_3d_id: "x" } },
+    ]);
+    expect(await fichaDaOs({ data: { osId: OS } })).toEqual([]);
+    carregarBanco();
+    h.permissoes = new Set(OPERADOR);
+    expect(await fichaDaOs({ data: { osId: OS } })).toEqual([]);
+  });
+
+  it("dois troféus na mesma OS: uma ficha para cada, na ordem da OS", async () => {
+    osComTrofeu([
+      { ...TROFEU, id: "t1", ordem: 1, quantidade: 1 },
+      { id: "c", descricao: "Cartão", quantidade: 100, parametros: {}, ordem: 2 },
+      { ...TROFEU, id: "t2", ordem: 3, quantidade: 20, parametros: { ...PARAMETROS_DO_TROFEU, altura_cm: 25 } },
+    ]);
+    const r = await fichaDaOs({ data: { osId: OS } });
+    expect(r.map((f) => [f.itemId, f.quantidade, f.alturaCm])).toEqual([["t1", 1, 18], ["t2", 20, 25]]);
+  });
+
+  it("só lê as tabelas da ficha: nada de custos, máquinas nem mão de obra", async () => {
+    osComTrofeu([TROFEU]);
+    await fichaDaOs({ data: { osId: OS } });
+    const tabelas = [...new Set(h.consultas.map((c) => c.tabela))].sort();
+    expect(tabelas).toEqual(["itens_os", "materiais", "trofeu_modelos", "trofeu_pecas", "trofeu_regras"]);
+    expect(h.consultas.find((c) => c.tabela === "itens_os")!.filtros).toEqual({ os_id: OS });
+  });
+
+  it("sem os.read: nega e não lê nada", async () => {
+    osComTrofeu([TROFEU]);
+    h.permissoes = new Set(["orcamentos.create", "financeiro.read"]);
+    await expect(fichaDaOs({ data: { osId: OS } })).rejects.toThrow("Seu perfil não abre a OS.");
+    expect(h.consultas).toHaveLength(0);
+  });
+
+  it("entrada estrita: só o id da OS", async () => {
+    osComTrofeu([TROFEU]);
+    await expect(fichaDaOs({ data: { osId: "x" } })).rejects.toThrow("(campo)");
+    await expect(fichaDaOs({ data: { osId: OS, quantidade: 9 } })).rejects.toThrow("campo não aceito (quantidade)");
+    expect(h.consultas).toHaveLength(0);
+  });
+
+  it("troféu cujo modelo não existe mais, ou sem as escolhas gravadas: some da ficha em vez de inventar peças", async () => {
+    osComTrofeu([
+      { ...TROFEU, id: "sem-altura", parametros: { origem: "trofeu", modelo_id: MODELO } },
+      { ...TROFEU, id: "modelo-sumido", parametros: { ...PARAMETROS_DO_TROFEU, modelo_id: "0e0e0e0e-0e0e-4e0e-8e0e-0e0e0e0e0e0e" } },
+    ]);
+    expect(await fichaDaOs({ data: { osId: OS } })).toEqual([]);
+  });
+
+  it("modelo desativado depois da venda: a OS continua com a ficha", async () => {
+    carregarBanco(ECONOMICO, (t) => {
+      t.itens_os = [{ os_id: OS, ordem: 1, ...TROFEU }];
+      t.trofeu_modelos = { ...(t.trofeu_modelos as Linha), ativo: false };
+    });
+    h.permissoes = new Set(OPERADOR);
+    expect(await fichaDaOs({ data: { osId: OS } })).toHaveLength(1);
+  });
+
+  it("falha de leitura vira erro genérico, sem número de lugar nenhum", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    osComTrofeu([TROFEU]);
+    h.erroNaTabela = "trofeu_pecas";
+    await expect(fichaDaOs({ data: { osId: OS } })).rejects.toThrow("Não consegui abrir a ficha agora.");
+    expect(JSON.stringify(log.mock.calls)).toContain("trofeu_pecas");
+  });
+
+  it("a pergunta de permissão que falha é erro genérico, nada lido", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    osComTrofeu([TROFEU]);
+    h.erroDePermissao = true;
+    await expect(fichaDaOs({ data: { osId: OS } })).rejects.toThrow("Não consegui abrir a ficha agora.");
+    expect(h.consultas).toHaveLength(0);
   });
 });
