@@ -121,6 +121,7 @@ export const routePermissions: { path: string; permissions: readonly Permission[
   { path: "/breakdown-3d", permissions: ["impressao3d.cost.read", "impressao3d.reports.read"] },
   { path: "/producao-3d", permissions: ["impressao3d.production.update", "impressao3d.read"] },
   { path: "/orcamento-3d-novo", permissions: ["impressao3d.quote.create"] },
+  { path: "/orcamento-trofeu-novo", permissions: ["orcamentos.create"] },
   { path: "/orcamento-3d", permissions: ["impressao3d.read"] },
   { path: "/filamentos-3d", permissions: ["impressao3d.settings.manage"] },
   { path: "/impressoras-3d", permissions: ["impressao3d.settings.manage"] },

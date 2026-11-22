@@ -26,6 +26,7 @@ import {
   ShoppingCart,
   SquareKanban,
   Store,
+  Trophy,
   Tv,
   UserCog,
   UserRound,
@@ -438,6 +439,10 @@ export const FORA_DO_MENU: Record<string, { titulo: string; motivo: string }> = 
     titulo: "Orçamento 3D",
     motivo: "detalhe de orçamento 3D, aberto pela lista de Impressão 3D",
   },
+  "/orcamento-trofeu-novo": {
+    titulo: "Novo orçamento de troféu",
+    motivo: "é uma ação: o botão Troféu dentro do orçamento, e a busca; cria o orçamento e grava o troféu nele",
+  },
   "/importar-flexi": {
     titulo: "Jobs do Flexi",
     motivo:
@@ -713,6 +718,16 @@ export function paginasDaBusca(
       grupo: "Geral",
       onde: "Impressão 3D",
       palavras: ["Novo orçamento 3D", "Impressão 3D", "calculadora 3D", slug("/orcamento-3d-novo")],
+    });
+  }
+  if (podeAbrir("/orcamento-trofeu-novo")) {
+    paginas.push({
+      titulo: FORA_DO_MENU["/orcamento-trofeu-novo"].titulo,
+      url: "/orcamento-trofeu-novo",
+      icon: Trophy,
+      grupo: "Geral",
+      onde: "Vendas",
+      palavras: ["Novo orçamento de troféu", "troféu", "troféus", "acrílico", "calculadora de troféu", slug("/orcamento-trofeu-novo")],
     });
   }
   if (podeAbrir("/meus-reembolsos")) {

@@ -47,6 +47,7 @@ import {
   Save,
   Trash2,
   TrendingDown,
+  Trophy,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -61,6 +62,8 @@ import { ConferenciaAntesDeConverter } from "@/components/orcamento/conferencia-
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PassosDoItem } from "@/components/orcamento/passos-do-item";
 import { Calculadora3D } from "@/components/impressao3d/calculadora-3d";
+import { DialogoDoTrofeu, NotaDoItemDeTrofeu } from "@/components/trofeus/dialogo-do-trofeu";
+import { ehItemDeArteDeTrofeu, ehItemDeTrofeu } from "@/domain/trofeus/tela";
 import { descreverLinhaDeMetragem, metragemPorMaterial, totaisDaMetragem } from "@/domain/orcamentos/metragem-por-material";
 import { enviarTextoPeloSistema } from "@/lib/api/whatsapp-texto.functions";
 import { acionarEnvio } from "@/components/whatsapp/usar-caixa-de-entrada";
@@ -1118,6 +1121,14 @@ function OrcamentoDetailPage() {
       await recalcular();
       return;
     }
+    // Troféu: o item e a arte dele saem juntos, pela função do banco (a arte solta cobraria por um troféu que não existe).
+    if ((itens as any[]).some((x) => x.id === itemId && ehItemDeTrofeu(x))) {
+      const { error: erroTrofeu } = await (supabase.rpc as any)("remover_trofeu_do_orcamento", { p_item_id: itemId });
+      if (erroTrofeu) return toast.error(mensagemErro(erroTrofeu));
+      toast.success("Troféu tirado do orçamento, com a arte dele");
+      for (const k of ["orc-itens", "orc-capas"]) await qc.invalidateQueries({ queryKey: [k, id] });
+      return void (await recalcular());
+    }
     const { data, error } = await supabase.from("orcamento_itens").delete().eq("id", itemId).select("id");
     if (error) return toast.error(mensagemErro(error));
     if (!data || data.length === 0) return toast.error("Seu perfil não pode tirar itens deste orçamento.");
@@ -1404,6 +1415,8 @@ function OrcamentoDetailPage() {
   // Peça 3D antiga sem item (não deve sobrar depois do retroativo): a tela do 3D continua lá.
   const peca3dSolta = (pecas3d.data ?? []).find((p) => !p.item_id) ?? null;
   const [calculadora3d, setCalculadora3d] = useState<null | { orcamento3dId: string | null }>(null);
+  // Troféu de acrílico (22/11/2026): cada troféu é um ITEM (e a arte dele, itens ligados). A calculadora reabre pelo id da linha.
+  const [calculadoraTrofeu, setCalculadoraTrofeu] = useState<null | { itemId: string | null }>(null);
   // Veio da lista ("é uma peça 3D") ou da tela do 3D ("Editar a peça"): a calculadora já abre.
   useEffect(() => {
     try {
@@ -1660,6 +1673,19 @@ function OrcamentoDetailPage() {
             )}
           </DialogContent>
         </Dialog>
+        <DialogoDoTrofeu
+          aberto={!!calculadoraTrofeu}
+          itemId={calculadoraTrofeu?.itemId ?? null}
+          orcamentoId={id}
+          clienteId={((orc as any).cliente_id as string | null | undefined) ?? null}
+          aoFechar={() => setCalculadoraTrofeu(null)}
+          aoSalvar={async () => {
+            setCalculadoraTrofeu(null);
+            await qc.invalidateQueries({ queryKey: ["orc-itens", id] });
+            await qc.invalidateQueries({ queryKey: ["orc-capas", id] });
+            await recalcular();
+          }}
+        />
         <ConferenciaAntesDeConverter
           aberto={conferindo !== null}
           onFechar={() => setConferindo(null)}
@@ -1746,6 +1772,16 @@ function OrcamentoDetailPage() {
                       data-testid="botao-peca-3d"
                     >
                       <Box className="mr-1 h-4 w-4" /> Peça 3D
+                    </Button>
+                  )}
+                  {!editando && podeMexer && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCalculadoraTrofeu({ itemId: null })}
+                      data-testid="botao-trofeu"
+                    >
+                      <Trophy className="mr-1 h-4 w-4" /> Troféu
                     </Button>
                   )}
                   {editando && (
@@ -2501,7 +2537,8 @@ function OrcamentoDetailPage() {
                                       : ""}
                                   </p>
                                 )}
-                                {!i.produto_id && (
+                                <NotaDoItemDeTrofeu item={i} />
+                                {!i.produto_id && !ehItemDeTrofeu(i) && !ehItemDeArteDeTrofeu(i) && (
                                   <p className="mt-0.5 text-xs text-amber-600" data-sem-produto="">
                                     Sem produto ligado: o custo e a margem deste item não são calculados.
                                   </p>
@@ -2567,21 +2604,25 @@ function OrcamentoDetailPage() {
                                         <ArrowDown className="h-4 w-4" />
                                       </Button>
                                     </Dica>
-                                    <Dica texto="Editar item">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label={`Editar o item ${numero}`}
-                                        onClick={() =>
-                                          pecaDoItem.has(i.id)
-                                            ? setCalculadora3d({ orcamento3dId: pecaDoItem.get(i.id)!.id })
-                                            : editarItem(i, numero)
-                                        }
-                                      >
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                    </Dica>
-                                    {!pecaDoItem.has(i.id) && (
+                                    {!ehItemDeArteDeTrofeu(i) && (
+                                      <Dica texto={ehItemDeTrofeu(i) ? "Editar o troféu" : "Editar item"}>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          aria-label={`Editar o item ${numero}`}
+                                          onClick={() =>
+                                            ehItemDeTrofeu(i)
+                                              ? setCalculadoraTrofeu({ itemId: i.id })
+                                              : pecaDoItem.has(i.id)
+                                                ? setCalculadora3d({ orcamento3dId: pecaDoItem.get(i.id)!.id })
+                                                : editarItem(i, numero)
+                                          }
+                                        >
+                                          <Pencil className="h-4 w-4" />
+                                        </Button>
+                                      </Dica>
+                                    )}
+                                    {!pecaDoItem.has(i.id) && !ehItemDeTrofeu(i) && !ehItemDeArteDeTrofeu(i) && (
                                       <Dica texto="Duplicar item">
                                         <Button
                                           variant="ghost"
@@ -2593,16 +2634,18 @@ function OrcamentoDetailPage() {
                                         </Button>
                                       </Dica>
                                     )}
-                                    <Dica texto="Tirar o item">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label={`Tirar o item ${numero}`}
-                                        onClick={() => setARemover({ id: i.id, descricao: i.descricao, numero })}
-                                      >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    </Dica>
+                                    {!ehItemDeArteDeTrofeu(i) && (
+                                      <Dica texto={ehItemDeTrofeu(i) ? "Tirar o troféu e a arte dele" : "Tirar o item"}>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          aria-label={`Tirar o item ${numero}`}
+                                          onClick={() => setARemover({ id: i.id, descricao: i.descricao, numero })}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </Dica>
+                                    )}
                                   </>
                                 )}
                               </TableCell>

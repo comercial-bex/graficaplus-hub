@@ -81,6 +81,12 @@ export function metragemPorMaterial(
 
   for (const i of itens) {
     if (i.origem_calculo === "taxa_prazo" || i.tipo_produto === "taxa_prazo") continue;
+    // Troféu de acrílico (22/11/2026): a arte é serviço, não material; o troféu conta como troféus, sem inventar m² nem "material".
+    if (i.tipo_produto === "Arte do troféu") continue;
+    if (i.tipo_produto === "Troféu de acrílico") {
+      somar("Troféus de acrílico", { pecas: Math.max(1, n(i.quantidade) || 1), itens: 1 });
+      continue;
+    }
     const peca = por3d.get(i.id);
     if (peca || i.origem_calculo === "orcamento_3d") {
       const qtd = Math.max(1, n(peca?.quantidade ?? i.quantidade) || 1);

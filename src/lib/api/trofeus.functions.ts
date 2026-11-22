@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ErroDoTrofeu } from "@/domain/trofeus/conta";
+import { ErroDoTrofeu, LIMITES_DO_MULTIPLICADOR_MANUAL } from "@/domain/trofeus/conta";
+import { PRECO_MUDOU_TROFEU } from "@/domain/trofeus/tela";
 import {
   cotacaoComCusto,
   cotacaoPublica,
@@ -37,7 +38,12 @@ import {
  * do PRÓPRIO usuário (a função do banco confere `orcamentos.create` por `auth.uid()`). O navegador não manda preço nem
  * custo por este caminho: manda o que escolheu e, no máximo, o total que viu, que só é comparado.
  *
- * Ainda NÃO há tela que chame estas funções (a página do orçamento de troféu é a etapa 3).
+ * O MULTIPLICADOR À MÃO (o simulador do financeiro, etapa 3): só quem tem `financeiro.read` pode mandar
+ * `multiplicadorManual`; abaixo do piso (×2,2) só `gestor` ou `admin` (o aval), e o uso fica no `logs_auditoria`. O
+ * vendedor não tem como mexer no multiplicador. Um troféu gravado com preço ajustado só é editado por quem vê custo.
+ *
+ * `dadosDoTrofeu`, `escadaDoTrofeu` e `lerTrofeuGravado` alimentam a tela: modelos com o "a partir de", o preço por
+ * quantidade e a reabertura de um troféu já gravado. Todas devolvem só preço e escolhas, nunca custo.
  */
 
 /** Quem cota hoje o 3D (admin, gestor, vendedor): qualquer uma destas basta. */
@@ -50,7 +56,11 @@ const FALHA_GENERICA = "Não consegui calcular o preço agora. Tente de novo; se
 const SEM_MODELO = "Modelo de troféu não encontrado ou desativado. Escolha outro.";
 const SEM_REGRAS = "As regras de preço do troféu não estão cadastradas. Avise a gerência.";
 const MODELO_SEM_PECAS = "O modelo escolhido não tem peças cadastradas. Avise a gerência.";
-const PRECO_MUDOU = "O preço mudou desde a última conta. Confira o novo valor e salve de novo.";
+const PRECO_MUDOU = PRECO_MUDOU_TROFEU;
+const SO_QUEM_VE_CUSTO = "Só quem vê custo ajusta o multiplicador do troféu.";
+const SO_GESTOR_ABAIXO_DO_PISO = "Preço abaixo do piso da casa: só o gestor dá esse aval.";
+const PRECO_AJUSTADO = "Este troféu tem preço ajustado por quem vê custo: só eles alteram.";
+const NAO_E_TROFEU = "Este item não é um troféu do orçamento.";
 
 // ---------------------------------------------------------------------------------------------------------
 // Entrada
@@ -69,6 +79,14 @@ const camposDaCotacao = {
       nomesIndividuais: z.number().finite().int().min(0).max(100000).default(0),
     })
     .strict()
+    .nullable()
+    .default(null),
+  /** O simulador de quem vê custo. O servidor recusa de quem não vê, e abaixo do piso só de gestor ou admin. */
+  multiplicadorManual: z
+    .number()
+    .finite()
+    .min(LIMITES_DO_MULTIPLICADOR_MANUAL.min)
+    .max(LIMITES_DO_MULTIPLICADOR_MANUAL.max)
     .nullable()
     .default(null),
 };
@@ -98,6 +116,7 @@ const NOMES_DOS_CAMPOS: Record<string, string> = {
   tipo: "tipo da arte",
   alteracoesExtras: "alterações extras da arte",
   nomesIndividuais: "nomes individuais",
+  multiplicadorManual: "multiplicador",
   orcamentoId: "orçamento",
   itemId: "troféu gravado",
   precoVisto: "preço mostrado",
@@ -145,7 +164,7 @@ interface Consulta extends PromiseLike<Resposta> {
   maybeSingle(): PromiseLike<Resposta>;
 }
 interface BancoDeLeitura {
-  from(tabela: string): Consulta;
+  from(tabela: string): Consulta & { insert(linha: Record<string, unknown>): PromiseLike<Resposta> };
 }
 interface BancoDoUsuario {
   rpc(funcao: string, argumentos: Record<string, unknown>): PromiseLike<Resposta>;
@@ -165,13 +184,26 @@ async function permissoesDe(usuario: BancoDoUsuario, userId: string) {
   return { verCusto: await perguntar(PERMISSAO_DE_VER_CUSTO) };
 }
 
+/** Gestor ou admin: quem pode dar o aval de um preço abaixo do piso. Só se pergunta a quem já vê custo. */
+async function podeDarAval(usuario: BancoDoUsuario, userId: string): Promise<boolean> {
+  for (const papel of ["gestor", "admin"]) {
+    const { data, error } = await usuario.rpc("has_role", { _user_id: userId, _role: papel });
+    if (error) {
+      console.error("[trofeus] has_role falhou:", papel, error.message ?? "");
+      throw new Error(FALHA_GENERICA);
+    }
+    if (data === true) return true;
+  }
+  return false;
+}
+
 function linhas<T>(r: Resposta): T[] {
   return Array.isArray(r.data) ? (r.data as T[]) : [];
 }
 
-const COLUNAS_DO_MODELO = "id, nome, linha, altura_referencia_m, minutos_de_mao_de_obra, multiplicador_base, ativo, provisorio";
+const COLUNAS_DO_MODELO = "id, nome, linha, descricao, altura_referencia_m, minutos_de_mao_de_obra, multiplicador_base, ativo, provisorio";
 const COLUNAS_DA_PECA = "ordem, nome, material_id, espessura_mm, largura_m, altura_m, quantidade, fator_de_forma, decoracao";
-const COLUNAS_DO_MATERIAL = "id, nome, unidade, custo_unitario, custo_medio";
+const COLUNAS_DO_MATERIAL = "id, nome, unidade, custo_unitario, custo_medio, estoque";
 const COLUNAS_DA_MAQUINA = "nome, tipo, setor, custo_hora, potencia_kw, velocidade_m2_h, velocidade_calculo_m2_h";
 
 /** Lê tudo o que a conta precisa, com a chave de serviço. Só chamar DEPOIS de conferir a permissão. */
@@ -249,35 +281,179 @@ type EntradaDaConta = {
   quantidade: number;
   urgente: boolean;
   arte: EntradaDaCotacao["arte"];
+  multiplicadorManual: number | null;
 };
+
+/** As frases da conta e do cadastro já são para quem usa ("A altura vai de 12 a 40 cm."): passam adiante. */
+function traduzir(e: unknown, rotulo: string): Error {
+  if (e instanceof ErroDoTrofeu) return new Error(e.message);
+  if (e instanceof Error && e.message === FALHA_GENERICA) return e;
+  console.error(`[${rotulo}] a conta lançou:`, e instanceof Error ? e.message : "");
+  return new Error(FALHA_GENERICA);
+}
 
 /** Lê as taxas com a chave de serviço e faz a conta. Só chamar DEPOIS de conferir a permissão. */
 async function cotarComAsTaxasDoBanco(data: EntradaDaConta, rotulo: string): Promise<{ base: BaseDaCotacao; cotacao: CotacaoDoTrofeu }> {
-  const entrada: EntradaDaCotacao = { alturaCm: data.alturaCm, quantidade: data.quantidade, urgente: data.urgente, arte: data.arte };
+  const entrada: EntradaDaCotacao = {
+    alturaCm: data.alturaCm,
+    quantidade: data.quantidade,
+    urgente: data.urgente,
+    arte: data.arte,
+    multiplicadorManual: data.multiplicadorManual,
+  };
   try {
     const base = await lerABase(data.modeloId, rotulo);
     return { base, cotacao: cotarTrofeuComABase(base, entrada) };
   } catch (e) {
-    // As frases da conta e do cadastro já são para quem usa ("A altura vai de 12 a 40 cm."): passam adiante.
-    if (e instanceof ErroDoTrofeu) throw new Error(e.message);
-    if (e instanceof Error && e.message === FALHA_GENERICA) throw e;
-    console.error(`[${rotulo}] a conta lançou:`, e instanceof Error ? e.message : "");
-    throw new Error(FALHA_GENERICA);
+    throw traduzir(e, rotulo);
   }
 }
 
+async function bancoDeServico(): Promise<BancoDeLeitura> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as unknown as BancoDeLeitura;
+}
+
+export type CotacaoDoTrofeuComAval = CotacaoComCustoDoTrofeu & {
+  /** Quem pediu pode aplicar um multiplicador abaixo do piso (gestor ou admin). O simulador usa para liberar o botão. */
+  podeDarAval: boolean;
+};
+
 /**
  * O preço de um troféu (e, se pedida, da arte). Sem `financeiro.read`: só preço unitário, total, a arte, o total
- * geral e os avisos do que ainda é estimativa. Com a permissão: o mesmo e a decomposição.
+ * geral e os avisos do que ainda é estimativa. Com a permissão: o mesmo, a decomposição e se pode dar o aval.
  */
 export const cotarTrofeu = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => validar(entradaDaCotacao, d))
-  .handler(async ({ data, context }): Promise<CotacaoPublicaDoTrofeu | CotacaoComCustoDoTrofeu> => {
+  .handler(async ({ data, context }): Promise<CotacaoPublicaDoTrofeu | CotacaoDoTrofeuComAval> => {
     const usuario = context.supabase as unknown as BancoDoUsuario;
     const { verCusto } = await permissoesDe(usuario, context.userId);
+    if (data.multiplicadorManual != null && !verCusto) throw new Error(SO_QUEM_VE_CUSTO);
     const { cotacao } = await cotarComAsTaxasDoBanco(data, "cotarTrofeu");
-    return verCusto ? cotacaoComCusto(cotacao) : cotacaoPublica(cotacao);
+    if (!verCusto) return cotacaoPublica(cotacao);
+    return { ...cotacaoComCusto(cotacao), podeDarAval: await podeDarAval(usuario, context.userId) };
+  });
+
+/** O preço por quantidade: o unitário em cada degrau da escada, na mesma altura. Público, como o preço. */
+const entradaDaEscada = z
+  .object({
+    modeloId: z.string().uuid(),
+    alturaCm: camposDaCotacao.alturaCm,
+    urgente: z.boolean().default(false),
+  })
+  .strict();
+
+export type DegrauDaEscada = { aPartirDe: number; precoUnitario: number };
+
+export const escadaDoTrofeu = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => validar(entradaDaEscada, d))
+  .handler(async ({ data, context }): Promise<DegrauDaEscada[]> => {
+    const usuario = context.supabase as unknown as BancoDoUsuario;
+    await permissoesDe(usuario, context.userId);
+    try {
+      const base = await lerABase(data.modeloId, "escadaDoTrofeu");
+      const degraus = (Array.isArray(base.regras.faixas) ? (base.regras.faixas as { de?: unknown }[]) : [])
+        .map((f) => Number(f.de))
+        .filter((n) => Number.isInteger(n) && n > 0);
+      return [...new Set(degraus)]
+        .sort((a, b) => a - b)
+        .map((de) => ({
+          aPartirDe: de,
+          precoUnitario: cotarTrofeuComABase(base, { alturaCm: data.alturaCm, quantidade: de, urgente: data.urgente, arte: null, multiplicadorManual: null }).resultado
+            .precoUnitario,
+        }));
+    } catch (e) {
+      throw traduzir(e, "escadaDoTrofeu");
+    }
+  });
+
+export type ModeloParaEscolher = {
+  id: string;
+  nome: string;
+  linha: string;
+  descricao: string | null;
+  alturaDeReferenciaCm: number;
+  provisorio: boolean;
+  /** O preço de 1 troféu na altura de referência. Nulo quando o cadastro está incompleto: `indisponivel` diz por quê. */
+  aPartirDe: number | null;
+  indisponivel: string | null;
+};
+
+export type DadosDoTrofeu = {
+  modelos: ModeloParaEscolher[];
+  alturaMinimaCm: number;
+  alturaMaximaCm: number;
+};
+
+/** Os modelos ativos com o "a partir de", e os limites de altura. Sem custo nem multiplicador. */
+export const dadosDoTrofeu = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<DadosDoTrofeu> => {
+    const usuario = context.supabase as unknown as BancoDoUsuario;
+    await permissoesDe(usuario, context.userId);
+    const db = await bancoDeServico();
+    let rModelos: Resposta;
+    let rRegras: Resposta;
+    try {
+      [rModelos, rRegras] = await Promise.all([
+        db.from("trofeu_modelos").select("id").eq("ativo", true).order("nome"),
+        db.from("trofeu_regras").select("altura_minima_m, altura_maxima_m").eq("unica", true).maybeSingle(),
+      ]);
+    } catch (e) {
+      console.error("[dadosDoTrofeu] leitura lançou:", e instanceof Error ? e.message : "");
+      throw new Error(FALHA_GENERICA);
+    }
+    if (rModelos.error || rRegras.error) {
+      console.error("[dadosDoTrofeu] falha ao ler:", rModelos.error?.message ?? rRegras.error?.message ?? "");
+      throw new Error(FALHA_GENERICA);
+    }
+    const limites = rRegras.data as { altura_minima_m?: unknown; altura_maxima_m?: unknown } | null;
+    if (!limites) throw new Error(SEM_REGRAS);
+    const minimo = Number(limites.altura_minima_m);
+    const maximo = Number(limites.altura_maxima_m);
+    if (!(minimo > 0) || !(maximo >= minimo)) throw new Error(SEM_REGRAS);
+
+    const ids = linhas<{ id: string }>(rModelos).map((m) => m.id);
+    const modelos = await Promise.all(
+      ids.map(async (id): Promise<ModeloParaEscolher> => {
+        try {
+          const base = await lerABase(id, "dadosDoTrofeu");
+          const referenciaM = Number(base.modelo.altura_referencia_m);
+          const cotacao = cotarTrofeuComABase(base, {
+            alturaCm: referenciaM * 100,
+            quantidade: 1,
+            urgente: false,
+            arte: null,
+            multiplicadorManual: null,
+          });
+          return {
+            id,
+            nome: base.modelo.nome,
+            linha: String(base.modelo.linha),
+            descricao: typeof base.modelo.descricao === "string" ? base.modelo.descricao : null,
+            alturaDeReferenciaCm: Math.round(referenciaM * 1000) / 10,
+            provisorio: base.modelo.provisorio === true,
+            aPartirDe: cotacao.resultado.precoUnitario,
+            indisponivel: null,
+          };
+        } catch (e) {
+          const frase = traduzir(e, "dadosDoTrofeu").message;
+          return {
+            id,
+            nome: "Modelo de troféu",
+            linha: "",
+            descricao: null,
+            alturaDeReferenciaCm: 0,
+            provisorio: true,
+            aPartirDe: null,
+            indisponivel: frase,
+          };
+        }
+      }),
+    );
+    return { modelos, alturaMinimaCm: Math.round(minimo * 1000) / 10, alturaMaximaCm: Math.round(maximo * 1000) / 10 };
   });
 
 export type TrofeuGravado = {
@@ -291,6 +467,27 @@ export type TrofeuGravado = {
 
 const cm = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
+type ItemGravado = { id: string; orcamento_id: string; quantidade: unknown; origem_calculo: string | null; parametros: unknown };
+
+async function lerItemGravado(itemId: string, rotulo: string): Promise<ItemGravado | null> {
+  const db = await bancoDeServico();
+  let r: Resposta;
+  try {
+    r = await db.from("orcamento_itens").select("id, orcamento_id, quantidade, origem_calculo, parametros").eq("id", itemId).maybeSingle();
+  } catch (e) {
+    console.error(`[${rotulo}] leitura do item lançou:`, e instanceof Error ? e.message : "");
+    throw new Error(FALHA_GENERICA);
+  }
+  if (r.error) {
+    console.error(`[${rotulo}] falha ao ler orcamento_itens:`, r.error.message ?? "");
+    throw new Error(FALHA_GENERICA);
+  }
+  return (r.data as ItemGravado | null) ?? null;
+}
+
+const objeto = (v: unknown): Record<string, unknown> => (v != null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+const numeroOuNulo = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
 /**
  * Grava o troféu e as linhas de arte no orçamento: recalcula aqui (a mesma conta da cotação) e chama
  * `salvar_trofeu_no_orcamento` com o cliente do PRÓPRIO usuário. Devolve só o que foi gravado (preço), nunca custo.
@@ -300,23 +497,36 @@ export const salvarTrofeuNoOrcamento = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => validar(entradaDoSalvar, d))
   .handler(async ({ data, context }): Promise<TrofeuGravado> => {
     const usuario = context.supabase as unknown as BancoDoUsuario;
-    await permissoesDe(usuario, context.userId);
-    const { cotacao } = await cotarComAsTaxasDoBanco(data, "salvarTrofeuNoOrcamento");
+    const { verCusto } = await permissoesDe(usuario, context.userId);
+    if (data.multiplicadorManual != null && !verCusto) throw new Error(SO_QUEM_VE_CUSTO);
+
+    const { base, cotacao } = await cotarComAsTaxasDoBanco(data, "salvarTrofeuNoOrcamento");
     const publica = cotacaoPublica(cotacao);
+    const r = cotacao.resultado;
+
+    // O aval: preço abaixo do piso só passa com gestor ou admin. Só se pergunta quando a conta precisa.
+    if (r.abaixoDoPiso && !(await podeDarAval(usuario, context.userId))) throw new Error(SO_GESTOR_ABAIXO_DO_PISO);
+
+    // Editar um troféu que alguém com custo ajustou: quem não vê custo não o sobrescreve com o preço da escada.
+    if (data.itemId) {
+      const antes = await lerItemGravado(data.itemId, "salvarTrofeuNoOrcamento");
+      if (antes && numeroOuNulo(objeto(antes.parametros).multiplicador_manual) != null && !verCusto) throw new Error(PRECO_AJUSTADO);
+    }
 
     if (data.precoVisto != null && Math.abs(publica.totalGeral - data.precoVisto) > 0.005) throw new Error(PRECO_MUDOU);
 
-    const r = cotacao.resultado;
     const descricao = `${cotacao.modelo.nome} ${cm(data.alturaCm)} cm`;
     const especificacao = [`Altura ${cm(data.alturaCm)} cm`, `${r.pecas} peças em acrílico`, data.urgente ? "Prazo de urgência" : null]
       .filter((x): x is string => x != null)
       .join(" · ");
-    // Sem custo, multiplicador nem margem aqui: `parametros` não é lido pelo vendedor, mas o que não existe não vaza.
+    // Sem custo nem margem aqui: `parametros` não é lido pelo vendedor, mas o que não existe não vaza. O multiplicador
+    // só entra quando alguém com custo o escolheu à mão (e o aval, quando ficou abaixo do piso).
     const parametros = {
       origem: "trofeu",
       altura_cm: data.alturaCm,
       urgente: data.urgente,
       arte: data.arte ? { tipo: data.arte.tipo, alteracoes_extras: data.arte.alteracoesExtras, nomes_individuais: data.arte.nomesIndividuais } : null,
+      ...(r.multiplicadorManual ? { multiplicador_manual: r.multiplicador, ...(r.abaixoDoPiso ? { aval_de: context.userId } : {}) } : {}),
     };
     const arte = (cotacao.arte?.linhas ?? []).map((l) => ({ descricao: l.descricao, valor: l.valor, custo: l.custo }));
 
@@ -340,6 +550,11 @@ export const salvarTrofeuNoOrcamento = createServerFn({ method: "POST" })
     if (typeof g.item_id !== "string" || !Array.isArray(g.arte_item_ids)) {
       throw new Error("O banco não confirmou a gravação do troféu. Confira o orçamento antes de tentar de novo.");
     }
+
+    // O registro do preço ajustado à mão (e do aval). A gravação já aconteceu: se o registro falhar, não desfaz o
+    // orçamento, mas o erro vai para o log do servidor para alguém ver.
+    if (r.multiplicadorManual) await registrarPrecoAjustado({ base, data, cotacao, userId: context.userId, itemId: g.item_id });
+
     return {
       orcamentoId: typeof g.orcamento_id === "string" ? g.orcamento_id : data.orcamentoId,
       itemId: g.item_id,
@@ -347,5 +562,104 @@ export const salvarTrofeuNoOrcamento = createServerFn({ method: "POST" })
       valorUnitario: Number(g.valor_unitario),
       valorTotal: Number(g.valor_total),
       valorArte: Number(g.valor_arte ?? 0),
+    };
+  });
+
+async function registrarPrecoAjustado(a: {
+  base: BaseDaCotacao;
+  data: EntradaDaConta & { orcamentoId: string };
+  cotacao: CotacaoDoTrofeu;
+  userId: string;
+  itemId: string;
+}) {
+  try {
+    const padrao = cotarTrofeuComABase(a.base, {
+      alturaCm: a.data.alturaCm,
+      quantidade: a.data.quantidade,
+      urgente: a.data.urgente,
+      arte: null,
+      multiplicadorManual: null,
+    }).resultado;
+    const db = await bancoDeServico();
+    const { error } = await db.from("logs_auditoria").insert({
+      usuario_id: a.userId,
+      entidade: "orcamento_itens",
+      entidade_id: a.itemId,
+      acao: "trofeu_multiplicador_manual",
+      detalhes: {
+        orcamento_id: a.data.orcamentoId,
+        modelo_id: a.data.modeloId,
+        quantidade: a.data.quantidade,
+        multiplicador_aplicado: a.cotacao.resultado.multiplicador,
+        multiplicador_da_escada: padrao.multiplicador,
+        piso: a.cotacao.pisoDoMultiplicador,
+        abaixo_do_piso: a.cotacao.resultado.abaixoDoPiso,
+        preco_unitario_gravado: a.cotacao.resultado.precoUnitario,
+        preco_unitario_da_escada: padrao.precoUnitario,
+      },
+    });
+    if (error) console.error("[salvarTrofeuNoOrcamento] o registro do preço ajustado falhou:", error.message ?? "");
+  } catch (e) {
+    console.error("[salvarTrofeuNoOrcamento] o registro do preço ajustado lançou:", e instanceof Error ? e.message : "");
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Reabrir um troféu já gravado
+// ---------------------------------------------------------------------------------------------------------
+
+const entradaDoGravado = z.object({ itemId: z.string().uuid() }).strict();
+
+export type TrofeuParaEditar = {
+  itemId: string;
+  orcamentoId: string;
+  modeloId: string;
+  alturaCm: number;
+  quantidade: number;
+  urgente: boolean;
+  arte: { tipo: "cliente_manda" | "adaptar_modelo" | "criacao_exclusiva"; alteracoesExtras: number; nomesIndividuais: number } | null;
+  /** O preço foi ajustado à mão por quem vê custo. */
+  precoAjustado: boolean;
+  /** O multiplicador escolhido: só quem vê custo o recebe. */
+  multiplicadorManual: number | null;
+  /** Quem pediu pode alterar: o vendedor não altera um preço que o gestor ajustou. */
+  podeEditar: boolean;
+};
+
+const TIPOS_DE_ARTE = ["cliente_manda", "adaptar_modelo", "criacao_exclusiva"] as const;
+
+/** As escolhas de um troféu gravado, para reabrir a calculadora. `parametros` não é legível pelo navegador: sai por aqui. */
+export const lerTrofeuGravado = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => validar(entradaDoGravado, d))
+  .handler(async ({ data, context }): Promise<TrofeuParaEditar> => {
+    const usuario = context.supabase as unknown as BancoDoUsuario;
+    const { verCusto } = await permissoesDe(usuario, context.userId);
+    const item = await lerItemGravado(data.itemId, "lerTrofeuGravado");
+    if (!item || item.origem_calculo !== "trofeu") throw new Error(NAO_E_TROFEU);
+
+    const p = objeto(item.parametros);
+    const modeloId = typeof p.modelo_id === "string" ? p.modelo_id : null;
+    const alturaCm = numeroOuNulo(p.altura_cm);
+    const quantidade = numeroOuNulo(item.quantidade) ?? Number(item.quantidade);
+    if (!modeloId || alturaCm == null || !Number.isInteger(quantidade) || quantidade < 1) {
+      throw new Error("Este troféu foi gravado sem as escolhas. Refaça o troféu no orçamento.");
+    }
+    const a = objeto(p.arte);
+    const tipo = TIPOS_DE_ARTE.find((t) => t === a.tipo);
+    const manual = numeroOuNulo(p.multiplicador_manual);
+    return {
+      itemId: item.id,
+      orcamentoId: item.orcamento_id,
+      modeloId,
+      alturaCm,
+      quantidade,
+      urgente: p.urgente === true,
+      arte: tipo
+        ? { tipo, alteracoesExtras: numeroOuNulo(a.alteracoes_extras) ?? 0, nomesIndividuais: numeroOuNulo(a.nomes_individuais) ?? 0 }
+        : null,
+      precoAjustado: manual != null,
+      multiplicadorManual: verCusto ? manual : null,
+      podeEditar: manual == null || verCusto,
     };
   });

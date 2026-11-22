@@ -320,6 +320,10 @@ export const dicas = {
     menu: "Calculadora de orçamento de impressão 3D.",
     tela: "Monte o orçamento 3D peça por peça. Preencha peso, tempo e acabamento; o sistema aplica filamento, energia, mão de obra e margem para chegar ao preço. A embalagem é opcional: só entra quando você marca 'Cobrar embalagem neste item', e é cobrada uma vez por item 3D, qualquer que seja a quantidade.",
   },
+  "/orcamento-trofeu-novo": {
+    menu: "Calculadora de orçamento de troféu de acrílico.",
+    tela: "Escolha o modelo, a altura, a quantidade e a arte. O preço vem do servidor e entra no orçamento como linha própria; a arte criada do zero entra como outra linha. Falta de estoque só avisa: dá para orçar sem a chapa e o gestor repõe antes de produzir. Quem vê custo ganha o simulador de multiplicador; abaixo do piso só o gestor dá o aval.",
+  },
   "/orcamento-3d": {
     menu: "Detalhe do orçamento de impressão 3D.",
     tela: "Detalhe do orçamento 3D: peças, custos abertos e preço final. Aprovado, ele vira ordem de serviço com os trabalhos de impressão já criados.",

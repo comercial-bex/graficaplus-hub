@@ -112,6 +112,51 @@ describe("os três modelos, com o custo do banco depois dos dados do dono (doura
   });
 });
 
+describe("o multiplicador à mão (simulador de quem vê custo)", () => {
+  const manual = (m: number | null, q = 1) =>
+    calcularTrofeu({ modelo: ECONOMICO, alturaM: 0.18, quantidade: q, multiplicadorManual: m }, TAXAS, REGRAS);
+
+  it("vale no lugar do multiplicador da escada, e o preço é o custo cheio vezes ele, fechado em ,90", () => {
+    const r = manual(2.5);
+    expect(r.multiplicador).toBe(2.5);
+    expect(r.multiplicadorManual).toBe(true);
+    expect(r.precoCalculado).toBeCloseTo(r.custoCheio * 2.5, 1);
+    expect(r.precoUnitario).toBe(44.9);
+  });
+
+  it("sem multiplicador à mão, nada muda: a escada manda e a conta diz que não foi à mão", () => {
+    const r = manual(null);
+    expect(r.multiplicador).toBe(3);
+    expect(r.multiplicadorManual).toBe(false);
+    expect(r.abaixoDoPiso).toBe(false);
+    expect(r.precoUnitario).toBe(53.9);
+  });
+
+  it("abaixo do piso (×2,2) a conta aplica e AVISA: quem decide o aval é o servidor", () => {
+    const r = manual(1.8);
+    expect(r.abaixoDoPiso).toBe(true);
+    expect(r.precoUnitario).toBe(31.9);
+    expect(manual(2.2).abaixoDoPiso).toBe(false);
+    expect(manual(2.19).abaixoDoPiso).toBe(true);
+  });
+
+  it("o multiplicador à mão vale em qualquer quantidade (substitui a escada inteira)", () => {
+    expect(manual(2.5, 50).multiplicador).toBe(2.5);
+    expect(manual(2.5, 50).faixaDe).toBe(50);
+  });
+
+  it("fora de ×1 a ×10 é erro em português, e NaN também", () => {
+    expect(() => manual(0.9)).toThrow("O multiplicador vai de ×1 a ×10.");
+    expect(() => manual(10.5)).toThrow("O multiplicador vai de ×1 a ×10.");
+    expect(() => manual(Number.NaN)).toThrow("O multiplicador vai de ×1 a ×10.");
+  });
+
+  it("o custo e a margem seguem a conta: abaixar o multiplicador derruba a margem, até ficar negativa", () => {
+    expect(manual(1.8).margemLiquidaPct).toBeLessThan(manual(3).margemLiquidaPct);
+    expect(manual(1).margemLiquidaPct).toBeLessThan(0);
+  });
+});
+
 describe("a altura escala o troféu", () => {
   it("dobrar a altura quadruplica a área e dobra o corte", () => {
     // o econômico tem 18 cm: dobrado, 36 cm, ainda dentro do limite de 40 cm
@@ -273,10 +318,22 @@ describe("a arte do troféu é uma linha separada", () => {
     expect(arte("criacao_exclusiva", {}, 19).total).toBe(220);
     expect(arte("criacao_exclusiva", {}, 20).total).toBe(110);
   });
-  it("a criação exclusiva leva o custo das horas de designer; alteração e nome entram sem custo próprio", () => {
+  it("a criação exclusiva leva o custo das horas de designer; alteração e nome levam o preço ÷ 3 (o ×3 do dono)", () => {
     const r = precoDaArte({ tipo: "criacao_exclusiva", quantidadeDeTrofeus: 5, alteracoesExtras: 1, nomesIndividuais: 2 }, TAXAS, REGRAS_DA_ARTE);
-    expect(r.linhas.map((l) => l.custo)).toEqual([Math.round(3 * (TAXAS.moHora + TAXAS.adminHora) * 100) / 100, 0, 0]);
+    expect(r.linhas.map((l) => l.valor)).toEqual([220, 30, 8]);
+    expect(r.linhas.map((l) => l.custo)).toEqual([Math.round(3 * (TAXAS.moHora + TAXAS.adminHora) * 100) / 100, 10, 2.67]);
     expect(r.linhas[0].custo).toBe(74.2);
+  });
+  it("NENHUMA linha de arte tem custo zero: a conversão em OS recusa item fora do catálogo sem custo", () => {
+    for (const tipo of ["criacao_exclusiva", "adaptar_modelo", "cliente_manda"] as const) {
+      const r = precoDaArte({ tipo, quantidadeDeTrofeus: 30, alteracoesExtras: 3, nomesIndividuais: 30 }, TAXAS, REGRAS_DA_ARTE);
+      expect(r.linhas.length).toBeGreaterThan(0);
+      for (const l of r.linhas) {
+        expect(l.valor, l.descricao).toBeGreaterThan(0);
+        expect(l.custo, l.descricao).toBeGreaterThan(0);
+        expect(l.custo, `${l.descricao}: o custo fica abaixo do preço`).toBeLessThan(l.valor);
+      }
+    }
   });
   it("o desconto da arte por quantidade baixa o preço, não o custo", () => {
     const um = precoDaArte({ tipo: "criacao_exclusiva", quantidadeDeTrofeus: 1 }, TAXAS, REGRAS_DA_ARTE).linhas[0];

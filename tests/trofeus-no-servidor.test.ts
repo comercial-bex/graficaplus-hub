@@ -24,6 +24,9 @@ const h = vi.hoisted(() => ({
   leiturasDoUsuario: [] as string[],
   rpcSalvar: [] as Record<string, unknown>[],
   respostaDoSalvar: null as { data: unknown; error: { message: string } | null } | null,
+  papeis: new Set<string>(),
+  logsInseridos: [] as { tabela: string; linha: Record<string, unknown> }[],
+  erroNoLog: false,
 }));
 
 vi.mock("@/integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
@@ -40,7 +43,7 @@ vi.mock("@tanstack/react-start", () => {
           validar = v;
           return cadeia;
         },
-        handler: (fn: Manipulador) => async (entrada: { data: unknown }) => fn({ data: validar(entrada.data), context: contexto() }),
+        handler: (fn: Manipulador) => async (entrada?: { data: unknown }) => fn({ data: validar(entrada?.data), context: contexto() }),
       };
       return cadeia;
     },
@@ -57,6 +60,7 @@ vi.mock("@tanstack/react-start", () => {
             if (h.erroDePermissao) return { data: null, error: { message: "timeout" } };
             return { data: h.permissoes.has(String(args._permission)), error: null };
           }
+          if (nome === "has_role") return { data: h.papeis.has(String(args._role)), error: null };
           if (nome === "salvar_trofeu_no_orcamento") {
             h.rpcSalvar.push(args);
             if (h.respostaDoSalvar) return h.respostaDoSalvar;
@@ -116,6 +120,10 @@ vi.mock("@/integrations/supabase/client.server", () => {
           },
           order: () => b,
           maybeSingle: async () => responder(q, true),
+          insert: async (linha: Record<string, unknown>) => {
+            h.logsInseridos.push({ tabela, linha });
+            return { data: null, error: h.erroNoLog ? { message: "permission denied for table logs_auditoria" } : null };
+          },
           then: (ok: (r: unknown) => unknown, ko?: (e: unknown) => unknown) => Promise.resolve(responder(q, false)).then(ok, ko),
         };
         return b;
@@ -124,12 +132,15 @@ vi.mock("@/integrations/supabase/client.server", () => {
   };
 });
 
-import { cotarTrofeu, salvarTrofeuNoOrcamento } from "../src/lib/api/trofeus.functions";
+import { cotarTrofeu, dadosDoTrofeu, escadaDoTrofeu, lerTrofeuGravado, salvarTrofeuNoOrcamento } from "../src/lib/api/trofeus.functions";
 import { ECONOMICO, PADRAO, PREMIUM, baseDoBanco } from "./apoio/trofeus-banco";
 import type { ModeloDeTrofeu } from "../src/domain/trofeus/conta";
 
 const cotar = cotarTrofeu as unknown as (a: { data: unknown }) => Promise<Record<string, unknown>>;
 const salvar = salvarTrofeuNoOrcamento as unknown as (a: { data: unknown }) => Promise<Record<string, unknown>>;
+const escada = escadaDoTrofeu as unknown as (a: { data: unknown }) => Promise<{ aPartirDe: number; precoUnitario: number }[]>;
+const dados = dadosDoTrofeu as unknown as () => Promise<Record<string, unknown>>;
+const lerGravado = lerTrofeuGravado as unknown as (a: { data: unknown }) => Promise<Record<string, unknown>>;
 
 const MODELO = "3f8e1c2a-7b4d-4e6f-9a1b-2c3d4e5f6a7b";
 const PEDIDO = { modeloId: MODELO, alturaCm: 18, quantidade: 1 };
@@ -147,6 +158,7 @@ function carregarBanco(modelo: ModeloDeTrofeu = ECONOMICO, mexer?: (t: Record<st
     custos_tabela: b.custos.map((c) => ({ ...c, ativo: true })),
     custos_mao_de_obra: b.maoDeObra.map((m) => ({ ...(m as unknown as Linha), ativo: true })),
     maquinas: b.maquinas.map((m) => ({ ...(m as unknown as Linha), ativa: true })),
+    orcamento_itens: null,
   };
   mexer?.(tabelas);
   h.tabelas = tabelas;
@@ -161,6 +173,9 @@ beforeEach(() => {
   h.leiturasDoUsuario = [];
   h.rpcSalvar = [];
   h.respostaDoSalvar = null;
+  h.papeis = new Set();
+  h.logsInseridos = [];
+  h.erroNoLog = false;
   carregarBanco();
 });
 afterEach(() => vi.restoreAllMocks());
@@ -467,7 +482,8 @@ describe("gravar no orçamento: o preço gravado é o da conta do servidor", () 
     expect(arte.map((l) => l.descricao)).toEqual(["Criação exclusiva da arte", "Alteração extra da arte (1)"]);
     // 3 horas de designer: mão de obra com encargos mais o rateio administrativo
     expect(arte[0].custo).toBeCloseTo(3 * (9.2102 * 1.3282 + 12.5), 2);
-    expect(arte[1].custo).toBe(0);
+    expect(arte[1].custo).toBe(10); // R$ 30,00 de alteração ÷ 3: nunca zero, ou a OS não nasce
+    for (const l of arte) expect(l.custo).toBeGreaterThan(0);
   });
 
   it("cliente que manda a arte pronta: nenhuma linha de arte", async () => {
@@ -549,5 +565,314 @@ describe("gravar no orçamento: o que volta ao navegador", () => {
   it("altura fora do limite: a frase da conta, nada gravado", async () => {
     await expect(salvar({ data: { ...PEDIDO_SALVAR, alturaCm: 8 } })).rejects.toThrow("A altura vai de 12 a 40 cm.");
     expect(h.rpcSalvar).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// O multiplicador à mão e o aval do gestor
+// ---------------------------------------------------------------------------------------------------------
+
+const GESTOR = [...FINANCEIRO];
+
+describe("multiplicador à mão: o vendedor não mexe, quem vê custo simula, o gestor dá o aval", () => {
+  it("a entrada aceita multiplicadorManual só dentro de ×1 a ×10", async () => {
+    await expect(cotar({ data: { ...PEDIDO, multiplicadorManual: 0.5 } })).rejects.toThrow("(multiplicador): deve ser pelo menos 1");
+    await expect(cotar({ data: { ...PEDIDO, multiplicadorManual: 11 } })).rejects.toThrow("(multiplicador): deve ser no máximo 10");
+    await expect(cotar({ data: { ...PEDIDO, multiplicadorManual: "3" } })).rejects.toThrow("(multiplicador)");
+  });
+
+  it("o vendedor (sem financeiro.read) é barrado antes de qualquer leitura, em cotar e em salvar", async () => {
+    await expect(cotar({ data: { ...PEDIDO, multiplicadorManual: 2.5 } })).rejects.toThrow("Só quem vê custo ajusta o multiplicador do troféu.");
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, multiplicadorManual: 2.5 } })).rejects.toThrow("Só quem vê custo ajusta o multiplicador do troféu.");
+    expect(h.consultas).toHaveLength(0);
+    expect(h.rpcSalvar).toHaveLength(0);
+  });
+
+  it("quem vê custo simula: o preço é o custo cheio vezes o multiplicador, fechado em ,90", async () => {
+    h.permissoes = new Set(GESTOR);
+    h.papeis = new Set(["gestor"]);
+    const r = await cotar({ data: { ...PEDIDO, multiplicadorManual: 2.5 } });
+    expect(r.custoCheio).toBe(17.68);
+    expect(r.multiplicador).toBe(2.5);
+    expect(r.multiplicadorManual).toBe(true);
+    expect(r.abaixoDoPiso).toBe(false);
+    expect(r.pisoDoMultiplicador).toBe(2.2);
+    expect(r.precoUnitario).toBe(44.9);
+    expect(r.podeDarAval).toBe(true);
+  });
+
+  it("sem o multiplicador à mão, a resposta de quem vê custo diz que veio da escada", async () => {
+    h.permissoes = new Set(GESTOR);
+    const r = await cotar({ data: PEDIDO });
+    expect(r.multiplicadorManual).toBe(false);
+    expect(r.abaixoDoPiso).toBe(false);
+    expect(r.podeDarAval).toBe(false);
+    expect(r.multiplicador).toBe(3);
+  });
+
+  it("abaixo do piso: a simulação mostra, e diz se quem pediu pode dar o aval (gestor ou admin)", async () => {
+    h.permissoes = new Set(GESTOR);
+    h.papeis = new Set(["admin"]);
+    const r = await cotar({ data: { ...PEDIDO, multiplicadorManual: 1.8 } });
+    expect(r.abaixoDoPiso).toBe(true);
+    expect(r.precoUnitario).toBe(31.9);
+    expect(r.podeDarAval).toBe(true);
+    h.papeis = new Set();
+    const sem = await cotar({ data: { ...PEDIDO, multiplicadorManual: 1.8 } });
+    expect(sem.abaixoDoPiso).toBe(true);
+    expect(sem.podeDarAval).toBe(false);
+  });
+
+  it("o vendedor nunca recebe os campos do simulador", async () => {
+    const r = await cotar({ data: PEDIDO });
+    for (const campo of ["multiplicadorManual", "abaixoDoPiso", "pisoDoMultiplicador", "podeDarAval"]) expect(r, campo).not.toHaveProperty(campo);
+  });
+
+  it("salvar com aval do gestor abaixo do piso: grava o preço ajustado, o aval e o registro", async () => {
+    h.permissoes = new Set(GESTOR);
+    h.papeis = new Set(["gestor"]);
+    await salvar({ data: { ...PEDIDO_SALVAR, multiplicadorManual: 1.8 } });
+    expect(h.rpcSalvar).toHaveLength(1);
+    expect(h.rpcSalvar[0].p_valor_unitario).toBe(31.9);
+    expect(h.rpcSalvar[0].p_parametros).toMatchObject({ multiplicador_manual: 1.8, aval_de: "u1" });
+    expect(h.logsInseridos).toHaveLength(1);
+    const log = h.logsInseridos[0];
+    expect(log.tabela).toBe("logs_auditoria");
+    expect(log.linha).toMatchObject({ usuario_id: "u1", entidade: "orcamento_itens", acao: "trofeu_multiplicador_manual" });
+    expect(log.linha.detalhes).toMatchObject({
+      multiplicador_aplicado: 1.8,
+      multiplicador_da_escada: 3,
+      piso: 2.2,
+      abaixo_do_piso: true,
+      preco_unitario_gravado: 31.9,
+      preco_unitario_da_escada: 53.9,
+      orcamento_id: ORCAMENTO,
+    });
+  });
+
+  it("salvar abaixo do piso sem ser gestor ou admin: recusa, não grava e não registra", async () => {
+    h.permissoes = new Set(GESTOR);
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, multiplicadorManual: 1.8 } })).rejects.toThrow("Preço abaixo do piso da casa: só o gestor dá esse aval.");
+    expect(h.rpcSalvar).toHaveLength(0);
+    expect(h.logsInseridos).toHaveLength(0);
+  });
+
+  it("acima do piso não precisa de aval: grava o multiplicador, sem aval_de, e registra", async () => {
+    h.permissoes = new Set(GESTOR);
+    await salvar({ data: { ...PEDIDO_SALVAR, multiplicadorManual: 2.5 } });
+    expect(h.rpcSalvar[0].p_valor_unitario).toBe(44.9);
+    expect(h.rpcSalvar[0].p_parametros).toMatchObject({ multiplicador_manual: 2.5 });
+    expect(h.rpcSalvar[0].p_parametros).not.toHaveProperty("aval_de");
+    expect(h.logsInseridos[0].linha.detalhes).toMatchObject({ abaixo_do_piso: false });
+  });
+
+  it("sem multiplicador à mão: nada de aval, nada de registro, e a pergunta de papel nem é feita ao vendedor", async () => {
+    await salvar({ data: PEDIDO_SALVAR });
+    expect(h.logsInseridos).toHaveLength(0);
+    expect(h.rpcSalvar[0].p_parametros).not.toHaveProperty("multiplicador_manual");
+    expect(h.rpcDoUsuario.some((r) => r.startsWith("has_role"))).toBe(false);
+  });
+
+  it("o registro que falha não desfaz o orçamento gravado, mas vai para o log do servidor", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    h.permissoes = new Set(GESTOR);
+    h.erroNoLog = true;
+    const r = await salvar({ data: { ...PEDIDO_SALVAR, multiplicadorManual: 2.5 } });
+    expect(r.itemId).toBeTruthy();
+    expect(JSON.stringify(log.mock.calls)).toContain("o registro do preço ajustado falhou");
+  });
+
+  it("o total que a tela viu vale com o multiplicador à mão", async () => {
+    h.permissoes = new Set(GESTOR);
+    await salvar({ data: { ...PEDIDO_SALVAR, multiplicadorManual: 2.5, precoVisto: 44.9 } });
+    expect(h.rpcSalvar).toHaveLength(1);
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, multiplicadorManual: 2.5, precoVisto: 53.9 } })).rejects.toThrow("O preço mudou");
+  });
+});
+
+describe("editar um troféu que alguém com custo ajustou", () => {
+  const AJUSTADO = {
+    id: ITEM,
+    orcamento_id: ORCAMENTO,
+    quantidade: 1,
+    origem_calculo: "trofeu",
+    parametros: { origem: "trofeu", modelo_id: MODELO, altura_cm: 18, urgente: false, arte: null, multiplicador_manual: 2.5 },
+  };
+
+  it("o vendedor não regrava por cima: o preço da escada apagaria o ajuste", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.orcamento_itens = AJUSTADO));
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, itemId: ITEM } })).rejects.toThrow("Este troféu tem preço ajustado por quem vê custo: só eles alteram.");
+    expect(h.rpcSalvar).toHaveLength(0);
+  });
+
+  it("quem vê custo regrava, e o ajuste só continua se ele mandar o multiplicador de novo", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.orcamento_itens = AJUSTADO));
+    h.permissoes = new Set(GESTOR);
+    await salvar({ data: { ...PEDIDO_SALVAR, itemId: ITEM, multiplicadorManual: 2.5 } });
+    expect(h.rpcSalvar[0].p_item_id).toBe(ITEM);
+    expect(h.rpcSalvar[0].p_parametros).toMatchObject({ multiplicador_manual: 2.5 });
+  });
+
+  it("troféu sem ajuste, ou item que o servidor não acha: o vendedor edita e a RPC decide o resto", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.orcamento_itens = { ...AJUSTADO, parametros: { ...AJUSTADO.parametros, multiplicador_manual: undefined } }));
+    await salvar({ data: { ...PEDIDO_SALVAR, itemId: ITEM } });
+    expect(h.rpcSalvar).toHaveLength(1);
+    carregarBanco();
+    await salvar({ data: { ...PEDIDO_SALVAR, itemId: ITEM } });
+    expect(h.rpcSalvar).toHaveLength(2);
+  });
+});
+
+describe("a escada de quantidade (preço por quantidade, na mesma altura)", () => {
+  it("devolve o unitário de cada degrau: R$ 53,90, 45,90, 40,90 e 36,90", async () => {
+    const r = await escada({ data: { modeloId: MODELO, alturaCm: 18 } });
+    expect(r).toEqual([
+      { aPartirDe: 1, precoUnitario: 53.9 },
+      { aPartirDe: 5, precoUnitario: 45.9 },
+      { aPartirDe: 20, precoUnitario: 40.9 },
+      { aPartirDe: 50, precoUnitario: 36.9 },
+    ]);
+  });
+
+  it("a urgência vale em todos os degraus, e o piso nunca fica abaixo de ×2,2", async () => {
+    const normal = await escada({ data: { modeloId: MODELO, alturaCm: 18 } });
+    const urgente = await escada({ data: { modeloId: MODELO, alturaCm: 18, urgente: true } });
+    urgente.forEach((d, i) => expect(d.precoUnitario).toBeGreaterThan(normal[i].precoUnitario));
+  });
+
+  it("entrada estrita e permissão antes de ler", async () => {
+    await expect(escada({ data: { modeloId: MODELO, alturaCm: 18, multiplicador: 2 } })).rejects.toThrow("campo não aceito (multiplicador)");
+    h.permissoes = new Set();
+    await expect(escada({ data: { modeloId: MODELO, alturaCm: 18 } })).rejects.toThrow("Seu perfil não cota troféus.");
+    expect(h.consultas).toHaveLength(0);
+  });
+
+  it("altura fora do limite: a frase da conta", async () => {
+    await expect(escada({ data: { modeloId: MODELO, alturaCm: 8 } })).rejects.toThrow("A altura vai de 12 a 40 cm.");
+  });
+});
+
+describe("os modelos para escolher", () => {
+  it("lista o modelo com o 'a partir de' na altura de referência e os limites de altura", async () => {
+    const r = (await dados()) as { modelos: Record<string, unknown>[]; alturaMinimaCm: number; alturaMaximaCm: number };
+    expect(r.alturaMinimaCm).toBe(12);
+    expect(r.alturaMaximaCm).toBe(40);
+    expect(r.modelos).toHaveLength(1);
+    expect(r.modelos[0]).toMatchObject({ id: MODELO, nome: "Troféu econômico", linha: "economico", alturaDeReferenciaCm: 18, aPartirDe: 53.9, indisponivel: null });
+  });
+
+  it("não carrega custo, multiplicador nem taxa", async () => {
+    const texto = JSON.stringify(await dados());
+    for (const proibido of ["custo", "multiplicador", "margem", "194.5", "158"]) expect(texto, proibido).not.toContain(proibido);
+  });
+
+  it("cadastro incompleto: o modelo aparece sem preço e com o motivo, a lista não quebra", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.custos_mao_de_obra = []));
+    const r = (await dados()) as { modelos: Record<string, unknown>[] };
+    expect(r.modelos[0].aPartirDe).toBeNull();
+    expect(r.modelos[0].indisponivel).toBe("Não há custo de mão de obra cadastrado. Avise a gerência.");
+  });
+
+  it("sem permissão de cotar: nega e não lê", async () => {
+    h.permissoes = new Set();
+    await expect(dados()).rejects.toThrow("Seu perfil não cota troféus.");
+    expect(h.consultas).toHaveLength(0);
+  });
+
+  it("sem regras cadastradas: erro em português", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.trofeu_regras = null));
+    await expect(dados()).rejects.toThrow("As regras de preço do troféu não estão cadastradas. Avise a gerência.");
+  });
+});
+
+describe("reabrir um troféu já gravado", () => {
+  const GRAVADO = {
+    id: ITEM,
+    orcamento_id: ORCAMENTO,
+    quantidade: 5,
+    origem_calculo: "trofeu",
+    parametros: {
+      origem: "trofeu",
+      modelo_id: MODELO,
+      altura_cm: 22.5,
+      urgente: true,
+      arte: { tipo: "criacao_exclusiva", alteracoes_extras: 2, nomes_individuais: 3 },
+    },
+  };
+
+  it("devolve as escolhas, para a calculadora refazer a conta", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.orcamento_itens = GRAVADO));
+    const r = await lerGravado({ data: { itemId: ITEM } });
+    expect(r).toEqual({
+      itemId: ITEM,
+      orcamentoId: ORCAMENTO,
+      modeloId: MODELO,
+      alturaCm: 22.5,
+      quantidade: 5,
+      urgente: true,
+      arte: { tipo: "criacao_exclusiva", alteracoesExtras: 2, nomesIndividuais: 3 },
+      precoAjustado: false,
+      multiplicadorManual: null,
+      podeEditar: true,
+    });
+  });
+
+  it("troféu com preço ajustado: o vendedor vê que está ajustado e não edita; quem vê custo recebe o multiplicador", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.orcamento_itens = { ...GRAVADO, parametros: { ...GRAVADO.parametros, multiplicador_manual: 2.5 } }));
+    const vend = await lerGravado({ data: { itemId: ITEM } });
+    expect(vend).toMatchObject({ precoAjustado: true, multiplicadorManual: null, podeEditar: false });
+    h.permissoes = new Set(GESTOR);
+    const gest = await lerGravado({ data: { itemId: ITEM } });
+    expect(gest).toMatchObject({ precoAjustado: true, multiplicadorManual: 2.5, podeEditar: true });
+  });
+
+  it("item que não é troféu, ou que não existe: recusa", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.orcamento_itens = { ...GRAVADO, origem_calculo: "orcamento_3d" }));
+    await expect(lerGravado({ data: { itemId: ITEM } })).rejects.toThrow("Este item não é um troféu do orçamento.");
+    carregarBanco();
+    await expect(lerGravado({ data: { itemId: ITEM } })).rejects.toThrow("Este item não é um troféu do orçamento.");
+  });
+
+  it("troféu gravado sem as escolhas: pede para refazer, em vez de inventar", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.orcamento_itens = { ...GRAVADO, parametros: { origem: "trofeu" } }));
+    await expect(lerGravado({ data: { itemId: ITEM } })).rejects.toThrow("Este troféu foi gravado sem as escolhas. Refaça o troféu no orçamento.");
+  });
+
+  it("entrada estrita, id válido e permissão antes de ler", async () => {
+    await expect(lerGravado({ data: { itemId: "x" } })).rejects.toThrow("(troféu gravado)");
+    await expect(lerGravado({ data: { itemId: ITEM, orcamentoId: ORCAMENTO } })).rejects.toThrow("campo não aceito (orcamentoId)");
+    h.permissoes = new Set();
+    await expect(lerGravado({ data: { itemId: ITEM } })).rejects.toThrow("Seu perfil não cota troféus.");
+    expect(h.consultas).toHaveLength(0);
+  });
+});
+
+describe("estoque só avisa: dá para orçar sem a chapa", () => {
+  it("estoque abaixo do necessário: o preço sai igual e o aviso diz que o gestor repõe", async () => {
+    carregarBanco(ECONOMICO, (t) => {
+      for (const m of t.materiais as Linha[]) m.estoque = 0;
+    });
+    const r = await cotar({ data: PEDIDO });
+    expect(r.precoUnitario).toBe(53.9);
+    const texto = (r.avisos as string[]).join(" ");
+    expect(texto).toContain("Estoque de ACRILICO CRISTAL VIRGEM 2MM abaixo do necessário");
+    expect(texto).toContain("O orçamento sai normalmente; o gestor precisa repor antes de produzir.");
+  });
+
+  it("estoque sobrando: nenhum aviso de estoque", async () => {
+    carregarBanco(ECONOMICO, (t) => {
+      for (const m of t.materiais as Linha[]) m.estoque = 1000;
+    });
+    const r = await cotar({ data: PEDIDO });
+    expect((r.avisos as string[]).join(" ")).not.toContain("Estoque de");
+  });
+
+  it("e gravar no orçamento também não é barrado por falta de estoque", async () => {
+    carregarBanco(ECONOMICO, (t) => {
+      for (const m of t.materiais as Linha[]) m.estoque = 0;
+    });
+    const r = await salvar({ data: PEDIDO_SALVAR });
+    expect(r.itemId).toBeTruthy();
+    expect(h.rpcSalvar).toHaveLength(1);
   });
 });
