@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CartaoDeEscolha, GradeDeCartoes } from "@/components/orcamento/cartao-de-escolha";
+import { LerAFicha } from "@/components/trofeus/ler-a-ficha";
 import { Carregando } from "@/components/bex/Carregando";
 import { cn } from "@/lib/utils";
 import { mensagemErro } from "@/lib/erros";
@@ -300,7 +301,9 @@ export function CalculadoraDeTrofeu({ modo, orcamentoId, clienteId, itemId = nul
       )}
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="space-y-6">
+        {/* `min-w-0`: sem isso a coluna do grid não encolhe abaixo da tabela de peças da ficha (38 rem) e a página rola para o lado no celular. */}
+        <div className="min-w-0 space-y-6">
+          {podeEditar && <LerAFicha onUsar={(parte) => mudar(parte)} />}
           {!embutido && !orcamentoId && (
             <Card>
               <CardContent className="space-y-4 pt-5" data-testid="trofeu-cliente">
