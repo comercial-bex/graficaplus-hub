@@ -49,6 +49,7 @@ import { TarefasDaOS } from "@/components/os/tarefas-card";
 import { ApontamentoDaOS } from "@/components/os/apontamento-card";
 import { QualidadeDaOS } from "@/components/os/qualidade-card";
 import { ItensDaOS } from "@/components/os/itens-da-os";
+import { FichaDoTrofeuDaOs } from "@/components/trofeus/ficha-do-trofeu";
 import { podeEditarItensDaOS } from "@/domain/os/itens";
 import { SectionHeader } from "@/components/bex/SectionHeader";
 import { QuemTrouxeAVenda } from "@/components/os/quem-trouxe-a-venda";
@@ -456,7 +457,7 @@ function OSDetailPage() {
         </TabsList>
 
         <TabsContent value="resumo"><ResumoTab os={os} /></TabsContent>
-        <TabsContent value="itens"><ItensDaOS osId={id} canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} podeEditarItens={podeEditarItensDaOS(hasPermission)} /></TabsContent>
+        <TabsContent value="itens"><ItensDaOS osId={id} canSeeFinancials={canSeeFinancials} canSeePrices={canSeePrices} nivelDeVisao={nivelDeVisao} podeEditarItens={podeEditarItensDaOS(hasPermission)} /><div className="mt-4"><FichaDoTrofeuDaOs osId={id} /></div></TabsContent>
         <TabsContent value="arquivos"><ArquivosTab osId={id} userId={user?.id} /></TabsContent>
         <TabsContent value="tarefas"><TarefasTab osId={id} userId={user?.id} /></TabsContent>
         <TabsContent value="historico"><HistoricoTab osId={id} /></TabsContent>
