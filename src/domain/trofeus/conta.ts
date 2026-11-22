@@ -86,6 +86,11 @@ export type RegrasDoTrofeu = {
   multiplicadorDeUrgencia: number;
   alturaMinimaM: number;
   alturaMaximaM: number;
+  /**
+   * Espessura máxima que o laser da casa corta, em mm (o dono, 22/11/2026: "a nossa máquina só corta até 10 mm").
+   * A ficha do fabricante diz 30 mm; vale o que a oficina corta de verdade. Peça mais grossa é erro, não preço.
+   */
+  espessuraMaximaDeCorteMm: number;
 };
 
 export type EntradaDoTrofeu = {
@@ -189,6 +194,10 @@ export function calcularTrofeu(entrada: EntradaDoTrofeu, taxas: TaxasDoTrofeu, r
   for (const peca of modelo.pecas) {
     const custoM2 = taxas.custoM2PorMaterial[peca.materialId];
     exigir(custoM2 != null && custoM2 > 0, `O material de "${peca.nome}" está sem custo por m² no cadastro. Avise a gerência.`);
+    exigir(
+      peca.espessuraMm <= regras.espessuraMaximaDeCorteMm,
+      `"${peca.nome}" tem ${peca.espessuraMm} mm: o laser da casa corta acrílico até ${regras.espessuraMaximaDeCorteMm} mm.`,
+    );
     const velocidade = taxas.velocidadeDeCorteMPorMin[String(peca.espessuraMm)];
     exigir(velocidade != null && velocidade > 0, `Falta a velocidade de corte do acrílico de ${peca.espessuraMm} mm.`);
 

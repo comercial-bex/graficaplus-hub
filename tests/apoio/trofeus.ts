@@ -8,8 +8,9 @@ import type {
 
 /**
  * Os três modelos das imagens do dono (JariCross econômico, JariCross em duas camadas e KR Combat) e as taxas
- * do banco de 22/11/2026, como a migração 20261122200000 as planta. Medidas e tempos são PROVISÓRIOS até a primeira
- * produção medir (o teste da migração confere que este arquivo e o SQL dizem o mesmo).
+ * do banco, como as migrações 20261122200000 (catálogo) e 20261122300000 (dados do dono: dourado a R$ 480 a folha,
+ * velocidades do laser pesquisadas, limite de corte de 10 mm) as deixam. Medidas e tempos são PROVISÓRIOS até a
+ * primeira produção medir (os testes das migrações conferem que este arquivo e o SQL dizem o mesmo).
  */
 export const MATERIAL = {
   cristal2: "mat-cristal-2mm",
@@ -25,7 +26,7 @@ export const TAXAS: TaxasDoTrofeu = {
     [MATERIAL.cristal3]: 180.0,
     [MATERIAL.cristal6]: 400.76,
     [MATERIAL.preto3]: 194.5,
-    [MATERIAL.dourado2]: 174.18,
+    [MATERIAL.dourado2]: 240.0,
   },
   pctPerdaMaterial: 8,
   pctFalhaProducao: 5,
@@ -37,8 +38,8 @@ export const TAXAS: TaxasDoTrofeu = {
   colaMlPorJuncao: 1,
   custoMlCola: 71.26 / 250,
   laserHora: 10.79 + 1.9 * 1.1339,
-  velocidadeDeCorteMPorMin: { "2": 1.5, "3": 1.0, "6": 0.4 },
-  gravacaoMinPorM2: 60,
+  velocidadeDeCorteMPorMin: { "2": 1.9, "3": 1.15, "6": 0.48, "10": 0.2 },
+  gravacaoMinPorM2: 520,
   preparoDoLaserMin: 5,
   moHora: 9.2102 * 1.3282,
   adminHora: 12.5,
@@ -58,6 +59,7 @@ export const REGRAS: RegrasDoTrofeu = {
   multiplicadorDeUrgencia: 4,
   alturaMinimaM: 0.12,
   alturaMaximaM: 0.4,
+  espessuraMaximaDeCorteMm: 10,
 };
 
 export const REGRAS_DA_ARTE: RegrasDaArte = {
