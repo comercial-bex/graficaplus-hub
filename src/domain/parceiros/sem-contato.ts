@@ -1,11 +1,18 @@
 /**
  * "Parceiro nunca esquecido": regras puras espelhadas de
  * supabase/migrations/20261116150000_parceiro_nunca_esquecido.sql
- * e 20261119120000_parceiro_fechado_sem_contato.sql (chamado fechado sem mensagem).
+ * 20261119120000_parceiro_fechado_sem_contato.sql (chamado fechado sem mensagem),
+ * 20261122610000_aviso_de_parceiros_nao_esconde_chamado_fechado.sql (linhas guardadas para os fechados) e
+ * 20261122600000_parceiro_reabrir_chamado.sql (reabrir o chamado fechado sem atendimento).
  * O banco decide e envia; aqui só se repete a conta para a tela e para os testes.
  */
 
 export const LIMITE_LINHAS_LEMBRETE = 15;
+/**
+ * Das 15 linhas do aviso, até 5 ficam guardadas para os chamados fechados sem nenhuma mensagem (o caso mais grave): sem
+ * isso, 15 parceiros abertos sem contato gastavam todas as linhas e o fechado caía em "E mais N", escondido.
+ */
+export const LINHAS_GUARDADAS_PARA_FECHADOS = 5;
 export const LINK_PARCEIROS = "https://bexprint.com.br/parceiros";
 
 export type Contato = {
@@ -134,12 +141,14 @@ export function montarLembreteEquipe(
     );
   const partes: string[] = [];
   let usadas = 0;
+  // Os abertos usam o que sobra depois de guardar a reserva dos fechados.
+  const limiteAbertos = limite - Math.min(fechadas.length, LINHAS_GUARDADAS_PARA_FECHADOS);
   for (const g of agruparPorResponsavel(abertas)) {
-    if (usadas >= limite) break;
+    if (usadas >= limiteAbertos) break;
     const tel = g.linhas[0].responsavel_tel;
     partes.push(`${g.responsavel_nome}${tel ? ` @55${tel}` : ""}`);
     for (const l of g.linhas) {
-      if (usadas >= limite) break;
+      if (usadas >= limiteAbertos) break;
       partes.push(linhaDoParceiro(l));
       usadas++;
     }
@@ -161,7 +170,8 @@ export function montarLembreteEquipe(
       usadas++;
     }
   }
-  if (n > limite) corpo.push(`E mais ${n - limite}.`);
+  // O que de fato não coube: o total menos as linhas mostradas.
+  if (n > usadas) corpo.push(`E mais ${n - usadas}.`);
   const gestores = [...new Set(opcoes.telefonesGestor.map((t) => `55${t}`))].sort();
   const na = abertas.length;
   const topo =
@@ -176,6 +186,29 @@ export function montarLembreteEquipe(
     `Ver a lista: ${LINK_PARCEIROS}`
   );
 }
+
+/**
+ * Quem vê o botão "Reabrir chamado" no cartão: só no chamado fechado sem nenhuma mensagem, e só a gerência de parceiros
+ * (`parceiros.manage`) ou o responsável do próprio parceiro. A função do banco (`parceiro_reabrir_chamado`) confere de
+ * novo: isto só evita mostrar o botão a quem o banco recusaria.
+ */
+export function podeReabrirChamado(a: {
+  fechadoSemContato?: boolean;
+  podeGerir: boolean;
+  usuarioId: string | null;
+  responsavelId: string | null;
+}): boolean {
+  if (!a.fechadoSemContato) return false;
+  if (a.podeGerir) return true;
+  return !!a.usuarioId && !!a.responsavelId && a.usuarioId === a.responsavelId;
+}
+
+/** O que a tela diz depois de reabrir: o chamado volta a ser "aberto agora" e o prazo do aviso recomeça. */
+export function fraseDoChamadoReaberto(numero: string | null, horas: number): string {
+  return `${numero ? `Chamado ${numero} reaberto` : "Chamado reaberto"}. O prazo de ${horas} horas recomeça agora: se ninguém falar com o parceiro, ele volta para esta lista.`;
+}
+
+export const FRASE_CHAMADO_JA_ABERTO = "Este chamado já está aberto.";
 
 export const MODELO_CREDITO_VENCENDO =
   "Oi, {{nome}}! Seu crédito de {{credito}} na Bex Print vence em {{data}}. Ele vale na sua 1ª compra a partir de {{minimo}} em produtos. Tem algum serviço na mão? É só responder aqui.\n\nPara não receber estes avisos, responda SAIR.";

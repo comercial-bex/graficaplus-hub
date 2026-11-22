@@ -1,18 +1,42 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Headset, MessageCircle } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Headset, MessageCircle, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { mensagemErro } from "@/lib/erros";
-import { parceirosSemContato } from "@/lib/parceiro-atendimento-api";
-import { agruparPorResponsavel, diaMes, reais } from "@/domain/parceiros/sem-contato";
+import { useAuth } from "@/lib/auth-context";
+import { parceirosSemContato, reabrirChamadoDoParceiro } from "@/lib/parceiro-atendimento-api";
+import {
+  agruparPorResponsavel,
+  diaMes,
+  FRASE_CHAMADO_JA_ABERTO,
+  fraseDoChamadoReaberto,
+  podeReabrirChamado,
+  reais,
+} from "@/domain/parceiros/sem-contato";
 
-/** Parceiros com chamado aberto (ou fechado sem nenhuma mensagem) que a equipe ainda não atendeu, por responsável. */
+/**
+ * Parceiros com chamado aberto (ou fechado sem nenhuma mensagem) que a equipe ainda não atendeu, por responsável.
+ * O chamado fechado sem atendimento ganha o botão "Reabrir chamado" (só a gerência de parceiros e o responsável do parceiro;
+ * o banco confere de novo). Reabrir não mexe nas regras de fechamento da caixa do WhatsApp: só abre um chamado novo.
+ */
 export function AtendimentoDosParceiros() {
+  const { hasPermission, user } = useAuth();
+  const podeGerir = hasPermission("parceiros.manage");
+  const cliente = useQueryClient();
   const { data, error, isLoading } = useQuery({
     queryKey: ["parceiros-sem-contato"],
     queryFn: parceirosSemContato,
     refetchInterval: 5 * 60_000,
+  });
+  const reabrir = useMutation({
+    mutationFn: (parceiroId: string) => reabrirChamadoDoParceiro(parceiroId),
+    onSuccess: (r) => {
+      toast.success(r.jaAberto ? FRASE_CHAMADO_JA_ABERTO : fraseDoChamadoReaberto(r.numero, data?.horas ?? 48));
+      void cliente.invalidateQueries({ queryKey: ["parceiros-sem-contato"] });
+    },
+    onError: (e: unknown) => toast.error(mensagemErro(e)),
   });
 
   if (isLoading || data === null) return null; // ainda sem a função no banco
@@ -70,13 +94,33 @@ export function AtendimentoDosParceiros() {
                         {l.comprou ? " · já compra" : ""}
                       </span>
                     </span>
-                    {l.conversa_id && (
-                      <Button asChild size="sm" variant="outline" className="shrink-0">
-                        <Link to="/whatsapp" search={{ conversa: l.conversa_id }}>
-                          <MessageCircle className="mr-1 h-4 w-4" /> Conversa
-                        </Link>
-                      </Button>
-                    )}
+                    <span className="flex shrink-0 flex-wrap justify-end gap-2">
+                      {podeReabrirChamado({
+                        fechadoSemContato: l.fechado_sem_contato,
+                        podeGerir,
+                        usuarioId: user?.id ?? null,
+                        responsavelId: l.responsavel_id,
+                      }) && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="min-h-11"
+                          disabled={reabrir.isPending}
+                          onClick={() => reabrir.mutate(l.parceiro_id)}
+                          data-testid={`reabrir-chamado-${l.parceiro_id}`}
+                        >
+                          <RotateCcw className="mr-1 h-4 w-4" aria-hidden="true" />
+                          {reabrir.isPending && reabrir.variables === l.parceiro_id ? "Reabrindo…" : "Reabrir chamado"}
+                        </Button>
+                      )}
+                      {l.conversa_id && (
+                        <Button asChild size="sm" variant="outline" className="min-h-11">
+                          <Link to="/whatsapp" search={{ conversa: l.conversa_id }}>
+                            <MessageCircle className="mr-1 h-4 w-4" /> Conversa
+                          </Link>
+                        </Button>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -84,6 +128,10 @@ export function AtendimentoDosParceiros() {
           ))}
         </div>
       )}
+      <p className="mt-3 text-xs text-muted-foreground" data-testid="dica-reabrir-chamado">
+        Chamado fechado sem ninguém falar com o parceiro aparece aqui com o botão <span className="font-medium">Reabrir chamado</span>.
+        Reabrir só abre um chamado novo, sem mensagem para o parceiro, e o prazo de {data?.horas ?? 48} horas recomeça.
+      </p>
     </section>
   );
 }

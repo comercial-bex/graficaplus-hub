@@ -3,8 +3,11 @@ import {
   agruparPorResponsavel,
   desdeSemContato,
   fechadoSemContato,
+  fraseDoChamadoReaberto,
+  LINHAS_GUARDADAS_PARA_FECHADOS,
   montarLembreteCredito,
   montarLembreteEquipe,
+  podeReabrirChamado,
   situacaoDoContato,
   type LinhaSemContato,
 } from "@/domain/parceiros/sem-contato";
@@ -168,5 +171,65 @@ describe("chamado fechado sem nenhuma mensagem", () => {
     const texto = montarLembreteEquipe(linhas, { horas: 48, telefonesGestor: [] });
     expect(texto.split("\n").filter((l) => l.startsWith("- ")).length).toBe(15);
     expect(texto).toContain("E mais 3.");
+  });
+
+  // O defeito achado no ensaio do banco vivo (22/11/2026): com 15 abertos sem contato, o fechado caía em "E mais 1".
+  const abertos = (n: number) => Array.from({ length: n }, (_, i) => ({ ...base, parceiro_id: `a${i}`, nome: `A${i}`, horas_sem_contato: 50 }));
+  const fechados = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ ...base, parceiro_id: `f${i}`, nome: `F${i}`, horas_sem_contato: 70, fechado_sem_contato: true,
+      fechado_por_nome: "Jess", fechado_em: "2026-11-22T21:30:00Z" }));
+  const linhasDe = (texto: string) => texto.split("\n").filter((l) => l.startsWith("- "));
+
+  it("15 abertos e 1 fechado: o fechado APARECE, e o que não coube é um dos abertos", () => {
+    const texto = montarLembreteEquipe([...abertos(15), ...fechados(1)], { horas: 48, telefonesGestor: [] });
+    expect(linhasDe(texto)).toHaveLength(15);
+    expect(texto).toContain("Chamados fechados sem nenhuma mensagem:\n- F0 · fechado em 22/11");
+    expect(texto).toContain("\nE mais 1.\n");
+    // Os abertos saem em ordem de nome e de espera; o que não coube é o último (A9), não o fechado.
+    expect(texto).not.toContain("- A9 ·");
+  });
+  it("sem fechado nenhum, os abertos usam as 15 linhas inteiras (nada é guardado à toa)", () => {
+    const texto = montarLembreteEquipe(abertos(16), { horas: 48, telefonesGestor: [] });
+    expect(linhasDe(texto)).toHaveLength(15);
+    expect(linhasDe(texto)).toContain("- A14 · 50h");
+    expect(texto).not.toContain("Chamados fechados");
+    expect(texto).toContain("\nE mais 1.\n");
+  });
+  it("a reserva dos fechados é de no máximo 5 linhas", () => {
+    expect(LINHAS_GUARDADAS_PARA_FECHADOS).toBe(5);
+    const texto = montarLembreteEquipe([...abertos(20), ...fechados(8)], { horas: 48, telefonesGestor: [] });
+    expect(linhasDe(texto).filter((l) => l.includes("fechado em"))).toHaveLength(5);
+    expect(linhasDe(texto).filter((l) => !l.includes("fechado em"))).toHaveLength(10);
+    expect(texto).toContain("\nE mais 13.\n");
+  });
+  it("os 8 chamados fechados sem atendimento, com poucos abertos, aparecem quase todos, com a data e sem o nome de quem fechou", () => {
+    const texto = montarLembreteEquipe([...abertos(8), ...fechados(8)], { horas: 48, telefonesGestor: [] });
+    expect(linhasDe(texto)).toHaveLength(15);
+    expect(linhasDe(texto).filter((l) => l.includes("fechado em 22/11"))).toHaveLength(7);
+    expect(texto).toContain("\nE mais 1.\n");
+    expect(texto).not.toContain("Jess");
+  });
+});
+
+describe("reabrir o chamado fechado sem atendimento", () => {
+  const base = { podeGerir: false, usuarioId: "u1", responsavelId: "u1" };
+  it("o botão só existe no chamado fechado sem nenhuma mensagem", () => {
+    expect(podeReabrirChamado({ ...base, fechadoSemContato: true })).toBe(true);
+    expect(podeReabrirChamado({ ...base, fechadoSemContato: false })).toBe(false);
+    expect(podeReabrirChamado({ ...base })).toBe(false);
+    expect(podeReabrirChamado({ ...base, podeGerir: true })).toBe(false);
+  });
+  it("a gerência de parceiros reabre qualquer um; o responsável reabre o seu; os outros não", () => {
+    expect(podeReabrirChamado({ fechadoSemContato: true, podeGerir: true, usuarioId: "g", responsavelId: "u1" })).toBe(true);
+    expect(podeReabrirChamado({ fechadoSemContato: true, podeGerir: false, usuarioId: "u1", responsavelId: "u1" })).toBe(true);
+    expect(podeReabrirChamado({ fechadoSemContato: true, podeGerir: false, usuarioId: "u2", responsavelId: "u1" })).toBe(false);
+    expect(podeReabrirChamado({ fechadoSemContato: true, podeGerir: false, usuarioId: null, responsavelId: "u1" })).toBe(false);
+    expect(podeReabrirChamado({ fechadoSemContato: true, podeGerir: false, usuarioId: "u1", responsavelId: null })).toBe(false);
+  });
+  it("a frase depois de reabrir diz que o prazo recomeça", () => {
+    expect(fraseDoChamadoReaberto("WA-2611-0181", 48)).toBe(
+      "Chamado WA-2611-0181 reaberto. O prazo de 48 horas recomeça agora: se ninguém falar com o parceiro, ele volta para esta lista.",
+    );
+    expect(fraseDoChamadoReaberto(null, 24)).toMatch(/^Chamado reaberto\. O prazo de 24 horas/);
   });
 });

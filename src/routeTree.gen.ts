@@ -90,6 +90,7 @@ import { Route as AuthenticatedTabelaDePrecosRouteImport } from './routes/_authe
 import { Route as AuthenticatedTelasRouteImport } from './routes/_authenticated/telas'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVendasDiretasRouteImport } from './routes/_authenticated/vendas-diretas'
+import { Route as AuthenticatedParceirosCreditosRouteImport } from './routes/_authenticated/parceiros-creditos'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWhatsappFilaHumanaRouteImport } from './routes/_authenticated/whatsapp-fila-humana'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
@@ -581,6 +582,12 @@ const AuthenticatedVendasDiretasRoute =
     path: '/vendas-diretas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedParceirosCreditosRoute =
+  AuthenticatedParceirosCreditosRouteImport.update({
+    id: '/parceiros-creditos',
+    path: '/parceiros-creditos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
@@ -915,6 +922,7 @@ export interface FileRoutesByFullPath {
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
+  '/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -1044,6 +1052,7 @@ export interface FileRoutesByTo {
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
+  '/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -1176,6 +1185,7 @@ export interface FileRoutesById {
   '/_authenticated/telas': typeof AuthenticatedTelasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
+  '/_authenticated/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -1308,6 +1318,7 @@ export interface FileRouteTypes {
     | '/telas'
     | '/usuarios'
     | '/vendas-diretas'
+    | '/parceiros-creditos'
     | '/whatsapp'
     | '/whatsapp-fila-humana'
     | '/whatsapp-monitor'
@@ -1437,6 +1448,7 @@ export interface FileRouteTypes {
     | '/telas'
     | '/usuarios'
     | '/vendas-diretas'
+    | '/parceiros-creditos'
     | '/whatsapp'
     | '/whatsapp-fila-humana'
     | '/whatsapp-monitor'
@@ -1568,6 +1580,7 @@ export interface FileRouteTypes {
     | '/_authenticated/telas'
     | '/_authenticated/usuarios'
     | '/_authenticated/vendas-diretas'
+    | '/_authenticated/parceiros-creditos'
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-fila-humana'
     | '/_authenticated/whatsapp-monitor'
@@ -2224,6 +2237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendasDiretasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/parceiros-creditos': {
+      id: '/_authenticated/parceiros-creditos'
+      path: '/parceiros-creditos'
+      fullPath: '/parceiros-creditos'
+      preLoaderRoute: typeof AuthenticatedParceirosCreditosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/whatsapp': {
       id: '/_authenticated/whatsapp'
       path: '/whatsapp'
@@ -2636,6 +2656,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTelasRoute: typeof AuthenticatedTelasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVendasDiretasRoute: typeof AuthenticatedVendasDiretasRoute
+  AuthenticatedParceirosCreditosRoute: typeof AuthenticatedParceirosCreditosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappFilaHumanaRoute: typeof AuthenticatedWhatsappFilaHumanaRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
@@ -2731,6 +2752,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTelasRoute: AuthenticatedTelasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVendasDiretasRoute: AuthenticatedVendasDiretasRoute,
+  AuthenticatedParceirosCreditosRoute: AuthenticatedParceirosCreditosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappFilaHumanaRoute: AuthenticatedWhatsappFilaHumanaRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,

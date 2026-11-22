@@ -33,7 +33,9 @@ export function menuAprovado(nome: string, temCatalogo: boolean, decideReembolso
   somarFornecedores(b);
   if (temCatalogo) somarCatalogo(b);
   enxugarDeNovembro(b);
-  return renomearParceiros(b);
+  const resumo = renomearParceiros(b);
+  somarCreditosDosParceiros(resumo);
+  return resumo;
 }
 
 function somarCatalogo(b: ResumoDoMenu): void {
@@ -297,4 +299,21 @@ function somarTabelaDePrecos(b: ResumoDoMenu): void {
 /** O menu aprovado em 05/10 chamava o item de "Parceiros revendedores"; a palavra saiu da tela (só parceiro e cliente final). */
 function renomearParceiros(b: ResumoDoMenu): ResumoDoMenu {
   return JSON.parse(JSON.stringify(b).replaceAll("Parceiros revendedores", "Parceiros")) as ResumoDoMenu;
+}
+
+/**
+ * "Créditos" (22/11/2026, pedido do dono): saldo, lançamentos e o que cada crédito dos parceiros pagou, com o que vence primeiro,
+ * como aba de Parceiros. Abre com parceiros.read, a mesma porta da aba Vendas diretas: quem via o item Parceiros ganha a aba;
+ * ninguém ganha item nem linha nova.
+ */
+function somarCreditosDosParceiros(b: ResumoDoMenu): void {
+  for (const area of b.arvore) {
+    for (const sub of area.subs) {
+      const i = sub.itens.findIndex((t) => lerItem(t).titulo === "Parceiros");
+      if (i < 0) continue;
+      const item = lerItem(sub.itens[i]);
+      sub.itens[i] = escreverItem({ ...item, n: item.n + 1 });
+      b.abas += 1;
+    }
+  }
 }

@@ -530,6 +530,10 @@ export const dicas = {
     menu: "Compras dos parceiros direto com a gráfica.",
     tela: "Cada compra direta de parceiro, com o total recalculado pela tabela do nível dele e a forma de pagamento: sinal de 50% (metade agora, restante na entrega) ou à vista. Com OS aberta, o link leva à produção; sem OS, converta o pedido em Orçamentos.",
   },
+  "/parceiros-creditos": {
+    menu: "Saldo de crédito de cada parceiro, os lançamentos e o que vence primeiro.",
+    tela: "Cada parceiro com crédito aparece com o saldo e o vencimento mais próximo. Toque no parceiro para ver o livro: cada lançamento e o que ele pagou. O crédito de entrada vale na 1ª compra, até o teto do programa, e cada uso é abatido do crédito que vence primeiro. O quadro O que vence junta os créditos por dia de vencimento e diz quando o aviso aos responsáveis começa. O saldo é o mesmo do cartão Atendimento dos parceiros; se a soma do livro não bater com ele, a tela avisa e vale o saldo do banco. Esta tela só mostra: quem lança ou ajusta crédito usa a tela de Parceiros.",
+  },
   "/aprovacoes": {
     menu: "O que o cliente aprovou, o que pediu ajuste e o que já foi entregue.",
     tela: "Situação de cada orçamento na visão do cliente. Junta três coisas que costumam ficar separadas: o status do orçamento, a resposta do cliente em cada arte e os pedidos de ajuste abertos no portal. Se aparecer 'Pediu ajuste', não mande produzir.",
