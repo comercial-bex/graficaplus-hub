@@ -312,6 +312,14 @@ describe("a resposta do vendedor não tem custo, multiplicador nem margem", () =
     expect(Object.keys(publica).sort()).toEqual(["alturaCm", "arte", "avisos", "modelo", "precoTotal", "precoUnitario", "quantidade", "totalGeral", "urgente"]);
   });
 
+  it("as linhas da arte do vendedor têm descrição e valor, nunca o custo da linha", () => {
+    const c = cota(ECONOMICO, { arte: { tipo: "criacao_exclusiva", alteracoesExtras: 1, nomesIndividuais: 0 } });
+    expect(c.arte?.linhas[0].custo).toBeGreaterThan(0);
+    const publica = cotacaoPublica(c);
+    for (const linha of publica.arte!.linhas) expect(Object.keys(linha).sort()).toEqual(["descricao", "valor"]);
+    expect(JSON.stringify(publica)).not.toContain("custo");
+  });
+
   it("o total geral é o preço dos troféus mais a arte", () => {
     const c = cota(ECONOMICO, { quantidade: 5, arte: { tipo: "criacao_exclusiva", alteracoesExtras: 0, nomesIndividuais: 0 } });
     const p = cotacaoPublica(c);

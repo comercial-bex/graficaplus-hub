@@ -288,7 +288,15 @@ export type EntradaDaArte = {
   nomesIndividuais?: number;
 };
 
-export type LinhaDaArte = { descricao: string; valor: number };
+export type LinhaDaArte = {
+  descricao: string;
+  valor: number;
+  /**
+   * Custo da linha, em reais: as horas de designer da criação exclusiva (mão de obra e rateio). Alteração e nome
+   * individual são minutos de ajuste e entram sem custo próprio. Só o servidor e quem vê custo usam este campo.
+   */
+  custo: number;
+};
 
 export function precoDaArte(
   entrada: EntradaDaArte,
@@ -311,9 +319,10 @@ export function precoDaArte(
     linhas.push({
       descricao: desconto ? `Criação exclusiva da arte (com ${regras.descontoPct}% de desconto pela quantidade)` : "Criação exclusiva da arte",
       valor: centavos(valor),
+      custo: centavos(custo),
     });
   }
-  if (alteracoes > 0) linhas.push({ descricao: `Alteração extra da arte (${alteracoes})`, valor: centavos(alteracoes * regras.alteracaoExtra) });
-  if (nomes > 0) linhas.push({ descricao: `Nome individual (${nomes} troféus)`, valor: centavos(nomes * regras.nomeIndividualPorPeca) });
+  if (alteracoes > 0) linhas.push({ descricao: `Alteração extra da arte (${alteracoes})`, valor: centavos(alteracoes * regras.alteracaoExtra), custo: 0 });
+  if (nomes > 0) linhas.push({ descricao: `Nome individual (${nomes} troféus)`, valor: centavos(nomes * regras.nomeIndividualPorPeca), custo: 0 });
   return { linhas, total: centavos(linhas.reduce((s, l) => s + l.valor, 0)) };
 }

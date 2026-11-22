@@ -408,6 +408,9 @@ export function cotarTrofeuComABase(base: BaseDaCotacao, entrada: EntradaDaCotac
 // As duas respostas: a do vendedor e a de quem vê custo
 // ---------------------------------------------------------------------------------------------------------
 
+/** A linha da arte que o vendedor vê: descrição e valor, nunca o custo. */
+export type LinhaPublicaDaArte = { descricao: string; valor: number };
+
 export type CotacaoPublicaDoTrofeu = {
   modelo: { id: string; nome: string };
   alturaCm: number;
@@ -415,7 +418,7 @@ export type CotacaoPublicaDoTrofeu = {
   urgente: boolean;
   precoUnitario: number;
   precoTotal: number;
-  arte: { linhas: LinhaDaArte[]; total: number } | null;
+  arte: { linhas: LinhaPublicaDaArte[]; total: number } | null;
   totalGeral: number;
   avisos: string[];
 };
