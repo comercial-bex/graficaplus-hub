@@ -34,8 +34,9 @@ Grava o troféu e as linhas de arte dele como itens do orçamento (`orcamento_it
 - **A arte:** uma linha por item (criação exclusiva, alteração extra, nome individual), `origem_calculo = 'trofeu_arte'`,
   `tipo_produto = 'Arte do troféu'`, com o id do troféu em `parametros.trofeu_item_id`. **Não usa `gerado_por_item_id`**: essa coluna
   é das respostas que cobram e apaga em cascata. Salvar de novo o mesmo troféu troca as linhas de arte dele e só as dele.
-- **A criação exclusiva leva o custo das horas de designer** (3 h × (mão de obra com encargos + rateio) = R$ 74,20); alteração e nome
-  individual entram sem custo próprio. O desconto da arte por quantidade baixa o preço, não o custo.
+- **A criação exclusiva leva o custo das horas de designer** (3 h × (mão de obra com encargos + rateio) = R$ 74,20). Alteração e nome
+  individual levam o preço ÷ 3 (R$ 10,00 e R$ 1,33): **nunca zero**, porque a conversão em OS recusa item fora do catálogo sem custo
+  (achado depois, em `docs/ensaio-trofeu-tela-e-ligacoes-22-11-2026.md`). O desconto da arte por quantidade baixa o preço, não o custo.
 - **Só entra em orçamento que ainda não virou OS**, e só altera troféu deste orçamento.
 - **Segurança:** a função grava, então nasce fechada: `REVOKE ALL ... FROM PUBLIC, anon, authenticated` e só `authenticated`
   recebe `EXECUTE` de volta, porque o servidor chama com o cliente do próprio usuário e a função confere `orcamentos.create` por

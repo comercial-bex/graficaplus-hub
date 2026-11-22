@@ -98,7 +98,15 @@ export type EntradaDoTrofeu = {
   alturaM: number;
   quantidade: number;
   urgente?: boolean;
+  /**
+   * Multiplicador escolhido à mão por quem vê custo (o simulador do financeiro), no lugar do da escada de quantidade.
+   * Quem decide se ele vale, e se pode ficar abaixo do piso, é o servidor: esta conta só o aplica e diz se ficou abaixo.
+   */
+  multiplicadorManual?: number | null;
 };
+
+/** O multiplicador à mão vai de ×1 (preço igual ao custo cheio) a ×10. */
+export const LIMITES_DO_MULTIPLICADOR_MANUAL = { min: 1, max: 10 } as const;
 
 export type ResultadoDoTrofeu = {
   alturaM: number;
@@ -119,6 +127,10 @@ export type ResultadoDoTrofeu = {
   custoCheio: number;
   custoDeProducao: number;
   multiplicador: number;
+  /** Verdadeiro quando o multiplicador veio da mão de quem vê custo, e não da escada de quantidade. */
+  multiplicadorManual: boolean;
+  /** Verdadeiro quando o multiplicador aplicado ficou abaixo do piso da casa (×2,2): só o gestor dá o aval. */
+  abaixoDoPiso: boolean;
   faixaDe: number;
   precoCalculado: number;
   precoUnitario: number;
@@ -228,7 +240,17 @@ export function calcularTrofeu(entrada: EntradaDoTrofeu, taxas: TaxasDoTrofeu, r
   const ocupacao = (maquina + maoDeObra + indireto) * (100 / Math.min(Math.max(taxas.ocupacaoAlvoPct, 5), 100) - 1);
   const custoDeProducao = materialDoCusto / (1 - perda - falha) + maquina + maoDeObra + indireto + ocupacao;
 
-  const { multiplicador, faixaDe } = multiplicadorDaQuantidade(modelo.multiplicadorBase, quantidade, regras, entrada.urgente);
+  const daEscada = multiplicadorDaQuantidade(modelo.multiplicadorBase, quantidade, regras, entrada.urgente);
+  const manual = entrada.multiplicadorManual ?? null;
+  if (manual != null) {
+    exigir(
+      Number.isFinite(manual) && manual >= LIMITES_DO_MULTIPLICADOR_MANUAL.min && manual <= LIMITES_DO_MULTIPLICADOR_MANUAL.max,
+      `O multiplicador vai de ×${LIMITES_DO_MULTIPLICADOR_MANUAL.min} a ×${LIMITES_DO_MULTIPLICADOR_MANUAL.max}.`,
+    );
+  }
+  const multiplicador = manual != null ? Math.round(manual * 10000) / 10000 : daEscada.multiplicador;
+  const faixaDe = daEscada.faixaDe;
+  const abaixoDoPiso = multiplicador < regras.pisoDoMultiplicador - 1e-9;
   const precoCalculado = custoCheio * multiplicador;
   const precoUnitario = fecharEm90(precoCalculado);
   const retencao = 1 - (taxas.impostoPct + taxas.cartaoPct / 2) / 100;
@@ -253,6 +275,8 @@ export function calcularTrofeu(entrada: EntradaDoTrofeu, taxas: TaxasDoTrofeu, r
     custoCheio: centavos(custoCheio),
     custoDeProducao: centavos(custoDeProducao),
     multiplicador,
+    multiplicadorManual: manual != null,
+    abaixoDoPiso,
     faixaDe,
     precoCalculado: centavos(precoCalculado),
     precoUnitario,
@@ -292,8 +316,10 @@ export type LinhaDaArte = {
   descricao: string;
   valor: number;
   /**
-   * Custo da linha, em reais: as horas de designer da criação exclusiva (mão de obra e rateio). Alteração e nome
-   * individual são minutos de ajuste e entram sem custo próprio. Só o servidor e quem vê custo usam este campo.
+   * Custo da linha, em reais. A criação exclusiva leva as horas de designer (mão de obra e rateio). Alteração e nome
+   * individual são minutos de ajuste, e o preço do dono é o ×3 do custo, então o custo é o preço dividido pelo mesmo
+   * multiplicador. NUNCA zero: a conversão do orçamento em OS recusa item fora do catálogo sem custo ("item livre
+   * sem custo não vira OS"), e uma linha de arte a zero travaria o pedido inteiro. Só o servidor e quem vê custo usam este campo.
    */
   custo: number;
 };
@@ -322,7 +348,14 @@ export function precoDaArte(
       custo: centavos(custo),
     });
   }
-  if (alteracoes > 0) linhas.push({ descricao: `Alteração extra da arte (${alteracoes})`, valor: centavos(alteracoes * regras.alteracaoExtra), custo: 0 });
-  if (nomes > 0) linhas.push({ descricao: `Nome individual (${nomes} troféus)`, valor: centavos(nomes * regras.nomeIndividualPorPeca), custo: 0 });
+  const custoDoAjuste = (valor: number) => centavos(valor / regras.multiplicador);
+  if (alteracoes > 0) {
+    const valor = centavos(alteracoes * regras.alteracaoExtra);
+    linhas.push({ descricao: `Alteração extra da arte (${alteracoes})`, valor, custo: custoDoAjuste(valor) });
+  }
+  if (nomes > 0) {
+    const valor = centavos(nomes * regras.nomeIndividualPorPeca);
+    linhas.push({ descricao: `Nome individual (${nomes} troféus)`, valor, custo: custoDoAjuste(valor) });
+  }
   return { linhas, total: centavos(linhas.reduce((s, l) => s + l.valor, 0)) };
 }

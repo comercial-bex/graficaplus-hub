@@ -69,6 +69,7 @@ import { Route as AuthenticatedMovimentacoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedOndeParaRouteImport } from './routes/_authenticated/onde-para'
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
+import { Route as AuthenticatedOrcamentoTrofeuNovoRouteImport } from './routes/_authenticated/orcamento-trofeu-novo'
 import { Route as AuthenticatedParceirosRouteImport } from './routes/_authenticated/parceiros'
 import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
 import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authenticated/planilha-custos'
@@ -463,6 +464,12 @@ const AuthenticatedOrcamento3dNovoRoute =
   AuthenticatedOrcamento3dNovoRouteImport.update({
     id: '/orcamento-3d-novo',
     path: '/orcamento-3d-novo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOrcamentoTrofeuNovoRoute =
+  AuthenticatedOrcamentoTrofeuNovoRouteImport.update({
+    id: '/orcamento-trofeu-novo',
+    path: '/orcamento-trofeu-novo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedParceirosRoute = AuthenticatedParceirosRouteImport.update({
@@ -887,6 +894,7 @@ export interface FileRoutesByFullPath {
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/onde-para': typeof AuthenticatedOndeParaRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
+  '/orcamento-trofeu-novo': typeof AuthenticatedOrcamentoTrofeuNovoRoute
   '/parceiros': typeof AuthenticatedParceirosRoute
   '/perdas': typeof AuthenticatedPerdasRoute
   '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
@@ -1015,6 +1023,7 @@ export interface FileRoutesByTo {
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/onde-para': typeof AuthenticatedOndeParaRoute
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
+  '/orcamento-trofeu-novo': typeof AuthenticatedOrcamentoTrofeuNovoRoute
   '/parceiros': typeof AuthenticatedParceirosRoute
   '/perdas': typeof AuthenticatedPerdasRoute
   '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
@@ -1146,6 +1155,7 @@ export interface FileRoutesById {
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/onde-para': typeof AuthenticatedOndeParaRoute
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
+  '/_authenticated/orcamento-trofeu-novo': typeof AuthenticatedOrcamentoTrofeuNovoRoute
   '/_authenticated/parceiros': typeof AuthenticatedParceirosRoute
   '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
   '/_authenticated/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
@@ -1277,6 +1287,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/onde-para'
     | '/orcamento-3d-novo'
+    | '/orcamento-trofeu-novo'
     | '/parceiros'
     | '/perdas'
     | '/planilha-custos'
@@ -1405,6 +1416,7 @@ export interface FileRouteTypes {
     | '/ocorrencias'
     | '/onde-para'
     | '/orcamento-3d-novo'
+    | '/orcamento-trofeu-novo'
     | '/parceiros'
     | '/perdas'
     | '/planilha-custos'
@@ -1535,6 +1547,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ocorrencias'
     | '/_authenticated/onde-para'
     | '/_authenticated/orcamento-3d-novo'
+    | '/_authenticated/orcamento-trofeu-novo'
     | '/_authenticated/parceiros'
     | '/_authenticated/perdas'
     | '/_authenticated/planilha-custos'
@@ -2062,6 +2075,13 @@ declare module '@tanstack/react-router' {
       path: '/orcamento-3d-novo'
       fullPath: '/orcamento-3d-novo'
       preLoaderRoute: typeof AuthenticatedOrcamento3dNovoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/orcamento-trofeu-novo': {
+      id: '/_authenticated/orcamento-trofeu-novo'
+      path: '/orcamento-trofeu-novo'
+      fullPath: '/orcamento-trofeu-novo'
+      preLoaderRoute: typeof AuthenticatedOrcamentoTrofeuNovoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/parceiros': {
@@ -2595,6 +2615,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedOndeParaRoute: typeof AuthenticatedOndeParaRoute
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
+  AuthenticatedOrcamentoTrofeuNovoRoute: typeof AuthenticatedOrcamentoTrofeuNovoRoute
   AuthenticatedParceirosRoute: typeof AuthenticatedParceirosRoute
   AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
   AuthenticatedPlanilhaCustosRoute: typeof AuthenticatedPlanilhaCustosRoute
@@ -2689,6 +2710,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedOndeParaRoute: AuthenticatedOndeParaRoute,
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
+  AuthenticatedOrcamentoTrofeuNovoRoute: AuthenticatedOrcamentoTrofeuNovoRoute,
   AuthenticatedParceirosRoute: AuthenticatedParceirosRoute,
   AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
   AuthenticatedPlanilhaCustosRoute: AuthenticatedPlanilhaCustosRoute,

@@ -64,6 +64,7 @@ export type LinhaDasRegras = {
 export type LinhaDoModelo = {
   id: string;
   nome: string;
+  descricao?: string | null;
   linha: Valor;
   altura_referencia_m: Valor;
   minutos_de_mao_de_obra: Valor;
@@ -90,6 +91,8 @@ export type LinhaDeMaterial = {
   unidade: string | null;
   custo_unitario: Valor;
   custo_medio: Valor;
+  /** Saldo em estoque, na unidade do material (m² nas chapas). Só gera AVISO: nunca bloqueia o orçamento. */
+  estoque?: Valor;
 };
 
 export type LinhaDeCusto = { codigo: string; valor: Valor };
@@ -122,6 +125,8 @@ export type EntradaDaCotacao = {
   quantidade: number;
   urgente: boolean;
   arte: { tipo: TipoDeArte; alteracoesExtras: number; nomesIndividuais: number } | null;
+  /** Só quem vê custo manda; o servidor recusa de quem não vê, e o abaixo do piso só de gestor ou admin. */
+  multiplicadorManual?: number | null;
 };
 
 // ---------------------------------------------------------------------------------------------------------
@@ -367,12 +372,47 @@ export function avisosDaCotacao(
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// O estoque só AVISA: o dono decidiu (22/11/2026) que dá para orçar sem ter a chapa; o gestor repõe depois
+// ---------------------------------------------------------------------------------------------------------
+
+/** Metros quadrados de cada material que o pedido usa, já com a sobra de corte e a falha. */
+export function necessidadePorMaterial(
+  modelo: ModeloDeTrofeu,
+  alturaM: number,
+  quantidade: number,
+  pctPerdaEFalha: number,
+): Map<string, number> {
+  const f = alturaM / modelo.alturaDeReferenciaM;
+  const sobra = 1 - Math.min(Math.max(pctPerdaEFalha, 0), 90) / 100;
+  const total = new Map<string, number>();
+  for (const p of modelo.pecas) {
+    const area = p.larguraM * f * (p.alturaM * f) * p.quantidade * quantidade;
+    total.set(p.materialId, (total.get(p.materialId) ?? 0) + area / sobra);
+  }
+  return total;
+}
+
+export function avisosDeEstoque(base: BaseDaCotacao, necessidade: Map<string, number>): string[] {
+  const avisos: string[] = [];
+  for (const [id, precisa] of necessidade) {
+    const mat = base.materiais.find((m) => m.id === id);
+    if (!mat || mat.unidade !== "m²" || mat.estoque == null) continue;
+    const saldo = Number(mat.estoque);
+    if (!Number.isFinite(saldo) || saldo + 1e-9 >= precisa) continue;
+    avisos.push(`Estoque de ${mat.nome} abaixo do necessário para este pedido. O orçamento sai normalmente; o gestor precisa repor antes de produzir.`);
+  }
+  return avisos;
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // A cotação
 // ---------------------------------------------------------------------------------------------------------
 
 export type CotacaoDoTrofeu = {
   entrada: EntradaDaCotacao;
   modelo: ModeloDeTrofeu;
+  /** O piso do multiplicador da casa (×2,2), para o simulador mostrar de onde vem o "abaixo do piso". */
+  pisoDoMultiplicador: number;
   resultado: ResultadoDoTrofeu;
   arte: { linhas: LinhaDaArte[]; total: number } | null;
   avisos: string[];
@@ -383,7 +423,11 @@ export function cotarTrofeuComABase(base: BaseDaCotacao, entrada: EntradaDaCotac
   const { taxas, regras, regrasDaArte, modelo, plotterSemExtras } = montarTaxas(base);
   // Em milímetros inteiros: 18 cm vira 0,18 m sem a sujeira de ponto flutuante.
   const alturaM = Math.round(entrada.alturaCm * 10) / 1000;
-  const resultado = calcularTrofeu({ modelo, alturaM, quantidade: entrada.quantidade, urgente: entrada.urgente }, taxas, regras);
+  const resultado = calcularTrofeu(
+    { modelo, alturaM, quantidade: entrada.quantidade, urgente: entrada.urgente, multiplicadorManual: entrada.multiplicadorManual ?? null },
+    taxas,
+    regras,
+  );
 
   let arte: CotacaoDoTrofeu["arte"] = null;
   if (entrada.arte) {
@@ -396,12 +440,15 @@ export function cotarTrofeuComABase(base: BaseDaCotacao, entrada: EntradaDaCotac
     arte = precoDaArte(pedido, taxas, regrasDaArte);
   }
 
-  const avisos = avisosDaCotacao(base, {
-    pediuArte: entrada.arte != null,
-    plotterSemExtras,
-    usaDecoracaoImpressa: modelo.pecas.some((p) => p.decoracao === "vinil_laminado"),
-  });
-  return { entrada, modelo, resultado, arte, avisos };
+  const avisos = [
+    ...avisosDaCotacao(base, {
+      pediuArte: entrada.arte != null,
+      plotterSemExtras,
+      usaDecoracaoImpressa: modelo.pecas.some((p) => p.decoracao === "vinil_laminado"),
+    }),
+    ...avisosDeEstoque(base, necessidadePorMaterial(modelo, alturaM, entrada.quantidade, taxas.pctPerdaMaterial + taxas.pctFalhaProducao)),
+  ];
+  return { entrada, modelo, pisoDoMultiplicador: regras.pisoDoMultiplicador, resultado, arte, avisos };
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -428,6 +475,11 @@ export type CotacaoComCustoDoTrofeu = CotacaoPublicaDoTrofeu & {
   custoCheio: number;
   custoDeProducao: number;
   multiplicador: number;
+  /** O multiplicador veio da mão de quem simulou, e não da escada de quantidade. */
+  multiplicadorManual: boolean;
+  /** O multiplicador aplicado ficou abaixo do piso da casa: só gestor ou admin dá o aval. */
+  abaixoDoPiso: boolean;
+  pisoDoMultiplicador: number;
   faixaDe: number;
   precoCalculado: number;
   margemLiquidaPct: number;
@@ -465,6 +517,9 @@ export function cotacaoComCusto(c: CotacaoDoTrofeu): CotacaoComCustoDoTrofeu {
     custoCheio: r.custoCheio,
     custoDeProducao: r.custoDeProducao,
     multiplicador: r.multiplicador,
+    multiplicadorManual: r.multiplicadorManual,
+    abaixoDoPiso: r.abaixoDoPiso,
+    pisoDoMultiplicador: c.pisoDoMultiplicador,
     faixaDe: r.faixaDe,
     precoCalculado: r.precoCalculado,
     margemLiquidaPct: r.margemLiquidaPct,

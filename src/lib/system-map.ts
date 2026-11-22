@@ -45,6 +45,7 @@ export const casosDeUso: EtapaFluxo[] = [
     rotas: [
       { label: "Orçamentos", url: "/orcamentos" },
       { label: "Novo orçamento 3D", url: "/orcamento-3d-novo" },
+      { label: "Novo orçamento de troféu", url: "/orcamento-trofeu-novo" },
       { label: "Simulador de preço", url: "/precificacao" },
     ],
     entidades: [

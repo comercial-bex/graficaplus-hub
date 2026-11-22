@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { calcularTrofeu, ErroDoTrofeu, precoDaArte } from "@/domain/trofeus/conta";
 import {
+  avisosDeEstoque,
   cotacaoComCusto,
   cotacaoPublica,
   cotarTrofeuComABase,
   montarTaxas,
+  necessidadePorMaterial,
   type BaseDaCotacao,
   type EntradaDaCotacao,
 } from "@/domain/trofeus/cotacao";
@@ -356,5 +358,82 @@ describe("os três modelos do fixture ainda são os da conta", () => {
   it("padrão e premium cotam na altura de referência", () => {
     expect(cota(PADRAO).resultado.precoUnitario).toBe(85.9);
     expect(cota(PREMIUM).resultado.precoUnitario).toBe(201.9);
+  });
+});
+
+describe("o multiplicador à mão passa pela cotação", () => {
+  it("quem vê custo recebe o multiplicador, se foi à mão, se ficou abaixo do piso e qual é o piso", () => {
+    const c = cotarTrofeuComABase(baseDoBanco(ECONOMICO), { alturaCm: 18, quantidade: 1, urgente: false, arte: null, multiplicadorManual: 1.8 });
+    const com = cotacaoComCusto(c);
+    expect(com).toMatchObject({ multiplicador: 1.8, multiplicadorManual: true, abaixoDoPiso: true, pisoDoMultiplicador: 2.2, precoUnitario: 31.9 });
+  });
+
+  it("o vendedor não vê nada disso, mesmo quando a conta foi à mão", () => {
+    const c = cotarTrofeuComABase(baseDoBanco(ECONOMICO), { alturaCm: 18, quantidade: 1, urgente: false, arte: null, multiplicadorManual: 1.8 });
+    const texto = JSON.stringify(cotacaoPublica(c));
+    for (const proibido of ["multiplicador", "abaixoDoPiso", "piso", "1.8"]) expect(texto, proibido).not.toContain(proibido);
+  });
+
+  it("o multiplicador à mão fora de ×1 a ×10 é a frase da conta", () => {
+    expect(() => cotarTrofeuComABase(baseDoBanco(ECONOMICO), { alturaCm: 18, quantidade: 1, urgente: false, arte: null, multiplicadorManual: 12 })).toThrow(
+      "O multiplicador vai de ×1 a ×10.",
+    );
+  });
+});
+
+describe("estoque só avisa (dá para orçar sem a chapa)", () => {
+  const comEstoque = (modelo = ECONOMICO, saldo: number | null = 0) => {
+    const base = baseDoBanco(modelo);
+    for (const m of base.materiais) m.estoque = saldo;
+    return base;
+  };
+  const entrada18 = { alturaCm: 18, quantidade: 1, urgente: false, arte: null, multiplicadorManual: null };
+
+  it("a necessidade é a área de cada material mais a sobra de corte e a falha", () => {
+    const n = necessidadePorMaterial(ECONOMICO, 0.18, 1, 13);
+    // cristal 2 mm: placa 0,20 × 0,16 = 0,032 m²; preto 3 mm: 2 bases de 0,20 × 0,05 = 0,02 m²; ambos ÷ 0,87
+    expect(n.get(MATERIAL.cristal2)).toBeCloseTo(0.032 / 0.87, 6);
+    expect(n.get(MATERIAL.preto3)).toBeCloseTo(0.02 / 0.87, 6);
+  });
+
+  it("a necessidade cresce com a quantidade e com o quadrado da altura", () => {
+    const um = necessidadePorMaterial(ECONOMICO, 0.18, 1, 13).get(MATERIAL.preto3)!;
+    expect(necessidadePorMaterial(ECONOMICO, 0.18, 10, 13).get(MATERIAL.preto3)).toBeCloseTo(um * 10, 6);
+    expect(necessidadePorMaterial(ECONOMICO, 0.36, 1, 13).get(MATERIAL.preto3)).toBeCloseTo(um * 4, 6);
+  });
+
+  it("estoque zero: um aviso por material em falta, com o nome, e o preço sai igual", () => {
+    const c = cotarTrofeuComABase(comEstoque(), entrada18);
+    const avisos = c.avisos.filter((a) => a.startsWith("Estoque de"));
+    expect(avisos).toHaveLength(2);
+    expect(avisos.join(" ")).toContain("ACRILICO CRISTAL VIRGEM 2MM");
+    expect(avisos.join(" ")).toContain("ACRILICO PRETO VIRGEM 3MM");
+    expect(c.resultado.precoUnitario).toBe(53.9);
+  });
+
+  it("estoque que cobre o pedido não avisa; estoque que cobre só 1 troféu avisa para 100", () => {
+    const sobra = cotarTrofeuComABase(comEstoque(ECONOMICO, 5), entrada18);
+    expect(sobra.avisos.some((a) => a.startsWith("Estoque de"))).toBe(false);
+    const cem = cotarTrofeuComABase(comEstoque(ECONOMICO, 0.5), { ...entrada18, quantidade: 100 });
+    expect(cem.avisos.some((a) => a.startsWith("Estoque de"))).toBe(true);
+    const um = cotarTrofeuComABase(comEstoque(ECONOMICO, 0.5), entrada18);
+    expect(um.avisos.some((a) => a.startsWith("Estoque de"))).toBe(false);
+  });
+
+  it("material sem saldo cadastrado, ou que não é vendido em m², não gera aviso (não se inventa falta)", () => {
+    const base = comEstoque(ECONOMICO, null);
+    expect(avisosDeEstoque(base, necessidadePorMaterial(ECONOMICO, 0.18, 1, 13))).toEqual([]);
+    const outra = comEstoque(ECONOMICO, 0);
+    outra.materiais.find((m) => m.id === MATERIAL.preto3)!.unidade = "un";
+    expect(avisosDeEstoque(outra, necessidadePorMaterial(ECONOMICO, 0.18, 1, 13)).join(" ")).not.toContain("PRETO");
+  });
+
+  it("o aviso não traz quantidade nem valor (só o nome do material) e diz que o orçamento sai normalmente", () => {
+    const c = cotarTrofeuComABase(comEstoque(), entrada18);
+    for (const a of c.avisos.filter((x) => x.startsWith("Estoque de"))) {
+      expect(a).toContain("O orçamento sai normalmente; o gestor precisa repor antes de produzir.");
+      // o nome do material tem número ("2MM"); quantidade ou valor em m² ou reais é que não pode aparecer
+      expect(a).not.toMatch(/\d+[.,]\d+|R\$|m²/);
+    }
   });
 });
