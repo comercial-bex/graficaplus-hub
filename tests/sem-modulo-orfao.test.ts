@@ -39,12 +39,6 @@ const INFRAESTRUTURA = new Set(["routeTree.gen", "types", "styles", "router", "s
  * quebra o teste — que é exatamente o ponto.
  */
 const CONHECIDOS: Record<string, string> = {
-  // Orçamento de troféu de acrílico (22/11/2026): a conta pura vem antes do servidor que a chama, para o preço nascer
-  // travado em 40 testes. SAI DESTA LISTA no PR seguinte, quando `cotarTrofeu` (src/lib/api/trofeus.functions.ts) a
-  // importar. Se esta linha ainda estiver aqui depois disso, a conta virou o arquivo morto que compila.
-  "src/domain/trofeus/conta.ts":
-    "etapa 1 do orçamento de troféu: o servidor (etapa 2) é quem a importa; tabelas e testes já existem, ver roadmap.md",
-
   // Simulação de balcão (24/10/2026): ferramenta de análise, sem tela. Roda por
   // `npx tsx scripts/simular-balcao.ts --estoque` e pelos testes.
   "src/domain/simulacao/planejamento-de-estoque.ts":

@@ -90,13 +90,15 @@ describe("migração: o catálogo e as regras do troféu de acrílico", () => {
     expect(codigo).not.toMatch(/CREATE (OR REPLACE )?FUNCTION/);
   });
 
-  it("as regras plantadas são as do fixture dos testes da conta", () => {
+  it("as regras plantadas por ESTA migração são as de partida (a 20261122300000 revisou o laser e o dourado)", () => {
+    // A migração é histórica: planta os números de 22/11 de manhã. O fixture dos testes da conta tem os atuais,
+    // que `tests/trofeus-dados-do-dono.test.ts` confere contra a migração seguinte.
     const faixas = JSON.parse(codigo.match(/'(\[\{"de": 1[^']+)'::jsonb/)![1]);
     expect(faixas).toEqual(REGRAS.faixas);
     const velocidades = JSON.parse(codigo.match(/'(\{"2": 1\.5[^']+)'::jsonb/)![1]);
-    expect(velocidades).toEqual(TAXAS.velocidadeDeCorteMPorMin);
+    expect(velocidades).toEqual({ "2": 1.5, "3": 1.0, "6": 0.4 });
     const linha = codigo.match(/2\.20, 4\.00, 0\.120, 0\.400,\n\s+(.+?), '\{/)![1];
-    expect(linha).toBe(`${TAXAS.tintaMlM2.toFixed(2)}, ${TAXAS.colaMlPorJuncao.toFixed(2)}, ${TAXAS.gravacaoMinPorM2.toFixed(2)}, ${TAXAS.preparoDoLaserMin.toFixed(1)}`);
+    expect(linha).toBe(`${TAXAS.tintaMlM2.toFixed(2)}, ${TAXAS.colaMlPorJuncao.toFixed(2)}, 60.00, ${TAXAS.preparoDoLaserMin.toFixed(1)}`);
     expect([REGRAS.pisoDoMultiplicador, REGRAS.multiplicadorDeUrgencia, REGRAS.alturaMinimaM, REGRAS.alturaMaximaM]).toEqual([2.2, 4, 0.12, 0.4]);
     const arte = codigo.match(/3\.0, 3\.00, true, 20, 50\.00,\n\s+30\.00, 4\.00,/);
     expect(arte).not.toBeNull();

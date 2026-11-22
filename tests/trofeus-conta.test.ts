@@ -55,13 +55,14 @@ describe("o multiplicador: ×3 na linha, desconto por quantidade, piso e urgênc
   });
 });
 
-describe("os três modelos, com o custo do banco de 22/11/2026", () => {
+describe("os três modelos, com o custo do banco depois dos dados do dono (dourado a R$ 240 o m², laser pesquisado)", () => {
   it("custo cheio e preço de 1 troféu na altura de referência", () => {
     const eco = calcula(ECONOMICO);
     const pad = calcula(PADRAO);
     const pre = calcula(PREMIUM);
-    expect([eco.custoCheio, pad.custoCheio, pre.custoCheio]).toEqual([17.74, 28.45, 63.7]);
-    expect([eco.precoUnitario, pad.precoUnitario, pre.precoUnitario]).toEqual([53.9, 85.9, 191.9]);
+    // Conferidos à parte, em Python, com as mesmas taxas: 17,68 / 28,36 / 67,25.
+    expect([eco.custoCheio, pad.custoCheio, pre.custoCheio]).toEqual([17.68, 28.36, 67.25]);
+    expect([eco.precoUnitario, pad.precoUnitario, pre.precoUnitario]).toEqual([53.9, 85.9, 201.9]);
   });
 
   it("o preço é o custo cheio vezes 3, fechado em ,90 (nunca abaixo do ×3)", () => {
@@ -213,6 +214,30 @@ describe("taxa que falta é erro, nunca preço com número de fábrica", () => {
     expect(() => calcularTrofeu({ modelo: ECONOMICO, alturaM: 0.18, quantidade: 1 }, sem, REGRAS)).toThrow(
       "Falta a velocidade de corte do acrílico de 2 mm.",
     );
+  });
+  it("peça mais grossa que o laser da casa corta (10 mm)", () => {
+    const grosso: ModeloDeTrofeu = {
+      ...ECONOMICO,
+      pecas: [{ ...ECONOMICO.pecas[0], espessuraMm: 12 }],
+    };
+    expect(() => calcula(grosso)).toThrow('"Placa principal" tem 12 mm: o laser da casa corta acrílico até 10 mm.');
+  });
+  it("10 mm ainda vale: o limite é inclusivo", () => {
+    const dez: ModeloDeTrofeu = { ...ECONOMICO, pecas: [{ ...ECONOMICO.pecas[0], espessuraMm: 10 }] };
+    const r = calcula(dez);
+    expect(r.precoUnitario).toBeGreaterThan(0);
+    // 10 mm corta a 0,2 m/min: o corte da placa fica bem mais lento que o de 2 mm
+    expect(r.minutosDeLaser).toBeGreaterThan(calcula(ECONOMICO).minutosDeLaser);
+  });
+  it("o limite de espessura vem das regras, não do código", () => {
+    const folgado = { ...REGRAS, espessuraMaximaDeCorteMm: 12 };
+    const grosso: ModeloDeTrofeu = { ...ECONOMICO, pecas: [{ ...ECONOMICO.pecas[0], espessuraMm: 12 }] };
+    const taxas = {
+      ...TAXAS,
+      velocidadeDeCorteMPorMin: { ...TAXAS.velocidadeDeCorteMPorMin, "12": 0.15 },
+      custoM2PorMaterial: { ...TAXAS.custoM2PorMaterial, [MATERIAL.cristal2]: 700 },
+    };
+    expect(() => calcularTrofeu({ modelo: grosso, alturaM: 0.18, quantidade: 1 }, taxas, folgado)).not.toThrow();
   });
   it("modelo sem peças", () => {
     expect(() => calcula({ ...ECONOMICO, pecas: [] })).toThrow("O modelo não tem peças.");
