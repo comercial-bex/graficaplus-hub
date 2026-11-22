@@ -273,6 +273,17 @@ describe("a arte do troféu é uma linha separada", () => {
     expect(arte("criacao_exclusiva", {}, 19).total).toBe(220);
     expect(arte("criacao_exclusiva", {}, 20).total).toBe(110);
   });
+  it("a criação exclusiva leva o custo das horas de designer; alteração e nome entram sem custo próprio", () => {
+    const r = precoDaArte({ tipo: "criacao_exclusiva", quantidadeDeTrofeus: 5, alteracoesExtras: 1, nomesIndividuais: 2 }, TAXAS, REGRAS_DA_ARTE);
+    expect(r.linhas.map((l) => l.custo)).toEqual([Math.round(3 * (TAXAS.moHora + TAXAS.adminHora) * 100) / 100, 0, 0]);
+    expect(r.linhas[0].custo).toBe(74.2);
+  });
+  it("o desconto da arte por quantidade baixa o preço, não o custo", () => {
+    const um = precoDaArte({ tipo: "criacao_exclusiva", quantidadeDeTrofeus: 1 }, TAXAS, REGRAS_DA_ARTE).linhas[0];
+    const vinte = precoDaArte({ tipo: "criacao_exclusiva", quantidadeDeTrofeus: 20 }, TAXAS, REGRAS_DA_ARTE).linhas[0];
+    expect(vinte.valor).toBe(um.valor / 2);
+    expect(vinte.custo).toBe(um.custo);
+  });
   it("alteração extra e nome individual entram em linhas próprias", () => {
     const r = arte("adaptar_modelo", { alteracoesExtras: 2, nomesIndividuais: 8 });
     expect(r.linhas.map((l) => l.valor)).toEqual([60, 32]);

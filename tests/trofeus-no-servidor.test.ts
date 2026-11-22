@@ -22,6 +22,8 @@ const h = vi.hoisted(() => ({
   consultas: [] as { tabela: string; colunas: string; filtros: Record<string, unknown>; em: Record<string, unknown[]> }[],
   rpcDoUsuario: [] as string[],
   leiturasDoUsuario: [] as string[],
+  rpcSalvar: [] as Record<string, unknown>[],
+  respostaDoSalvar: null as { data: unknown; error: { message: string } | null } | null,
 }));
 
 vi.mock("@/integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
@@ -54,6 +56,24 @@ vi.mock("@tanstack/react-start", () => {
           if (nome === "has_permission") {
             if (h.erroDePermissao) return { data: null, error: { message: "timeout" } };
             return { data: h.permissoes.has(String(args._permission)), error: null };
+          }
+          if (nome === "salvar_trofeu_no_orcamento") {
+            h.rpcSalvar.push(args);
+            if (h.respostaDoSalvar) return h.respostaDoSalvar;
+            const qtd = Number(args.p_quantidade);
+            const unit = Number(args.p_valor_unitario);
+            const arte = (args.p_arte as { valor: number }[]) ?? [];
+            return {
+              data: {
+                orcamento_id: args.p_orcamento_id,
+                item_id: args.p_item_id ?? "9b1d2c3e-4f5a-4b6c-8d7e-0f1a2b3c4d5e",
+                arte_item_ids: arte.map((_, i) => `aa${i}d2c3e-4f5a-4b6c-8d7e-0f1a2b3c4d5e`),
+                valor_unitario: unit,
+                valor_total: Math.round(unit * qtd * 100) / 100,
+                valor_arte: arte.reduce((t, l) => t + l.valor, 0),
+              },
+              error: null,
+            };
           }
           return { data: null, error: { message: `rpc inesperada: ${nome}` } };
         },
@@ -104,11 +124,12 @@ vi.mock("@/integrations/supabase/client.server", () => {
   };
 });
 
-import { cotarTrofeu } from "../src/lib/api/trofeus.functions";
+import { cotarTrofeu, salvarTrofeuNoOrcamento } from "../src/lib/api/trofeus.functions";
 import { ECONOMICO, PADRAO, PREMIUM, baseDoBanco } from "./apoio/trofeus-banco";
 import type { ModeloDeTrofeu } from "../src/domain/trofeus/conta";
 
 const cotar = cotarTrofeu as unknown as (a: { data: unknown }) => Promise<Record<string, unknown>>;
+const salvar = salvarTrofeuNoOrcamento as unknown as (a: { data: unknown }) => Promise<Record<string, unknown>>;
 
 const MODELO = "3f8e1c2a-7b4d-4e6f-9a1b-2c3d4e5f6a7b";
 const PEDIDO = { modeloId: MODELO, alturaCm: 18, quantidade: 1 };
@@ -138,6 +159,8 @@ beforeEach(() => {
   h.consultas = [];
   h.rpcDoUsuario = [];
   h.leiturasDoUsuario = [];
+  h.rpcSalvar = [];
+  h.respostaDoSalvar = null;
   carregarBanco();
 });
 afterEach(() => vi.restoreAllMocks());
@@ -358,5 +381,173 @@ describe("o que o servidor lê, e só isso", () => {
     const fonte = readFileSync("src/lib/api/trofeus.functions.ts", "utf8");
     expect(fonte).not.toMatch(/custo_hora_manual/);
     expect(fonte).not.toMatch(/supabaseAdmin\.rpc/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// Gravar no orçamento
+// ---------------------------------------------------------------------------------------------------------
+
+const ORCAMENTO = "996f3d96-b34b-49fa-9be6-4f94c43129c7";
+const ITEM = "1e2f3a4b-5c6d-4e7f-8a9b-0c1d2e3f4a5b";
+const PEDIDO_SALVAR = { ...PEDIDO, orcamentoId: ORCAMENTO };
+const ARTE_EXCLUSIVA = { tipo: "criacao_exclusiva", alteracoesExtras: 1, nomesIndividuais: 0 };
+
+describe("gravar no orçamento: a entrada é estrita e o preço nunca vem do navegador", () => {
+  it("recusa preço, custo, valor, multiplicador e taxa", async () => {
+    for (const campo of ["preco", "precoUnitario", "valorUnitario", "custo", "custoUnitario", "multiplicador", "margem", "taxas"]) {
+      await expect(salvar({ data: { ...PEDIDO_SALVAR, [campo]: 1 } }), campo).rejects.toThrow(`campo não aceito (${campo})`);
+    }
+    expect(h.rpcSalvar).toHaveLength(0);
+    expect(h.consultas).toHaveLength(0);
+  });
+
+  it("exige o orçamento, e o troféu gravado (se vier) precisa ser um id", async () => {
+    await expect(salvar({ data: PEDIDO })).rejects.toThrow("Confira os dados do troféu (orçamento): falta preencher.");
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, orcamentoId: "o-primeiro" } })).rejects.toThrow("(orçamento)");
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, itemId: "x" } })).rejects.toThrow("(troféu gravado)");
+  });
+});
+
+describe("gravar no orçamento: permissão antes de ler e de gravar", () => {
+  it("sem permissão de cotar: nega, não lê nada e não chama a RPC", async () => {
+    h.permissoes = new Set();
+    await expect(salvar({ data: PEDIDO_SALVAR })).rejects.toThrow("Seu perfil não cota troféus.");
+    expect(h.consultas).toHaveLength(0);
+    expect(h.rpcSalvar).toHaveLength(0);
+  });
+
+  it("a RPC é chamada pelo cliente do USUÁRIO (ela confere orcamentos.create por auth.uid())", async () => {
+    await salvar({ data: PEDIDO_SALVAR });
+    expect(h.rpcDoUsuario.some((r) => r.startsWith("salvar_trofeu_no_orcamento:"))).toBe(true);
+    const fonte = readFileSync("src/lib/api/trofeus.functions.ts", "utf8");
+    expect(fonte).not.toMatch(/supabaseAdmin[\s\S]{0,80}salvar_trofeu_no_orcamento/);
+    expect(fonte).toContain("usuario.rpc(\"salvar_trofeu_no_orcamento\"");
+  });
+});
+
+describe("gravar no orçamento: o preço gravado é o da conta do servidor", () => {
+  it("1 troféu econômico: preço R$ 53,90 e custo cheio R$ 17,68 vão para a RPC, descrição e especificação em português", async () => {
+    await salvar({ data: PEDIDO_SALVAR });
+    expect(h.rpcSalvar).toHaveLength(1);
+    const a = h.rpcSalvar[0];
+    expect(a.p_orcamento_id).toBe(ORCAMENTO);
+    expect(a.p_item_id).toBeNull();
+    expect(a.p_modelo_id).toBe(MODELO);
+    expect(a.p_descricao).toBe("Troféu econômico 18 cm");
+    expect(a.p_quantidade).toBe(1);
+    expect(a.p_valor_unitario).toBe(53.9);
+    expect(a.p_custo_unitario).toBe(17.68);
+    expect(a.p_especificacao).toBe("Altura 18 cm · 3 peças em acrílico");
+    expect(a.p_arte).toEqual([]);
+  });
+
+  it("5 troféus: o unitário da escada (R$ 45,90) e a quantidade vão para a RPC", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, quantidade: 5 } });
+    expect(h.rpcSalvar[0].p_quantidade).toBe(5);
+    expect(h.rpcSalvar[0].p_valor_unitario).toBe(45.9);
+  });
+
+  it("urgência vai para a especificação e sobe o preço", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, urgente: true } });
+    expect(h.rpcSalvar[0].p_especificacao).toBe("Altura 18 cm · 3 peças em acrílico · Prazo de urgência");
+    expect(h.rpcSalvar[0].p_valor_unitario as number).toBeGreaterThan(53.9);
+    expect((h.rpcSalvar[0].p_parametros as { urgente: boolean }).urgente).toBe(true);
+  });
+
+  it("a altura em centímetros com casa decimal sai com vírgula", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, alturaCm: 22.5 } });
+    expect(h.rpcSalvar[0].p_descricao).toBe("Troféu econômico 22,5 cm");
+  });
+
+  it("a arte vai como linhas separadas, com o valor e o custo de cada uma", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, arte: ARTE_EXCLUSIVA } });
+    const arte = h.rpcSalvar[0].p_arte as { descricao: string; valor: number; custo: number }[];
+    expect(arte.map((l) => l.valor)).toEqual([220, 30]);
+    expect(arte.map((l) => l.descricao)).toEqual(["Criação exclusiva da arte", "Alteração extra da arte (1)"]);
+    // 3 horas de designer: mão de obra com encargos mais o rateio administrativo
+    expect(arte[0].custo).toBeCloseTo(3 * (9.2102 * 1.3282 + 12.5), 2);
+    expect(arte[1].custo).toBe(0);
+  });
+
+  it("cliente que manda a arte pronta: nenhuma linha de arte", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, arte: { tipo: "cliente_manda" } } });
+    expect(h.rpcSalvar[0].p_arte).toEqual([]);
+  });
+
+  it("editar: o id do troféu já gravado vai para a RPC", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, itemId: ITEM } });
+    expect(h.rpcSalvar[0].p_item_id).toBe(ITEM);
+  });
+
+  it("os parâmetros gravados não carregam custo, multiplicador nem margem", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, arte: ARTE_EXCLUSIVA } });
+    const texto = JSON.stringify(h.rpcSalvar[0].p_parametros);
+    for (const proibido of ["custo", "multiplicador", "margem", "faixa"]) expect(texto, proibido).not.toContain(proibido);
+    expect(Object.keys(h.rpcSalvar[0].p_parametros as object).sort()).toEqual(["altura_cm", "arte", "origem", "urgente"]);
+  });
+
+  it("o navegador nunca consegue mandar o preço: nenhum argumento da RPC vem da entrada", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, precoVisto: 53.9 } });
+    expect(Object.keys(h.rpcSalvar[0]).sort()).toEqual([
+      "p_arte", "p_custo_unitario", "p_descricao", "p_especificacao", "p_item_id", "p_modelo_id",
+      "p_orcamento_id", "p_parametros", "p_quantidade", "p_valor_unitario",
+    ]);
+  });
+});
+
+describe("gravar no orçamento: o total que a tela mostrou só é comparado", () => {
+  it("mesmo total: grava", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, precoVisto: 53.9 } });
+    expect(h.rpcSalvar).toHaveLength(1);
+  });
+
+  it("o total vale troféu mais arte", async () => {
+    await salvar({ data: { ...PEDIDO_SALVAR, arte: ARTE_EXCLUSIVA, precoVisto: 53.9 + 250 } });
+    expect(h.rpcSalvar).toHaveLength(1);
+  });
+
+  it("total diferente (o preço mudou depois da conta): recusa e não grava", async () => {
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, precoVisto: 49.9 } })).rejects.toThrow("O preço mudou desde a última conta. Confira o novo valor e salve de novo.");
+    expect(h.rpcSalvar).toHaveLength(0);
+  });
+
+  it("o total sem a arte não vale quando a arte foi pedida", async () => {
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, arte: ARTE_EXCLUSIVA, precoVisto: 53.9 } })).rejects.toThrow("O preço mudou");
+    expect(h.rpcSalvar).toHaveLength(0);
+  });
+});
+
+describe("gravar no orçamento: o que volta ao navegador", () => {
+  it("só ids e preço gravado, nunca custo", async () => {
+    const r = await salvar({ data: { ...PEDIDO_SALVAR, arte: ARTE_EXCLUSIVA } });
+    expect(Object.keys(r).sort()).toEqual(["arteItemIds", "itemId", "orcamentoId", "valorArte", "valorTotal", "valorUnitario"]);
+    expect(r.valorUnitario).toBe(53.9);
+    expect(r.valorTotal).toBe(53.9);
+    expect(r.valorArte).toBe(250);
+    expect((r.arteItemIds as string[]).length).toBe(2);
+  });
+
+  it("a frase da RPC passa adiante (orçamento que já virou OS, por exemplo)", async () => {
+    h.respostaDoSalvar = { data: null, error: { message: "Este orçamento já virou OS: os itens ficam como foram vendidos." } };
+    await expect(salvar({ data: PEDIDO_SALVAR })).rejects.toThrow("Este orçamento já virou OS: os itens ficam como foram vendidos.");
+  });
+
+  it("o banco que responde sem confirmar a gravação é um erro, não um sucesso", async () => {
+    h.respostaDoSalvar = { data: { ok: true }, error: null };
+    await expect(salvar({ data: PEDIDO_SALVAR })).rejects.toThrow("O banco não confirmou a gravação do troféu.");
+    h.respostaDoSalvar = { data: null, error: null };
+    await expect(salvar({ data: PEDIDO_SALVAR })).rejects.toThrow("O banco não confirmou a gravação do troféu.");
+  });
+
+  it("cadastro incompleto: erro em português e nada gravado", async () => {
+    carregarBanco(ECONOMICO, (t) => (t.custos_mao_de_obra = []));
+    await expect(salvar({ data: PEDIDO_SALVAR })).rejects.toThrow("Não há custo de mão de obra cadastrado. Avise a gerência.");
+    expect(h.rpcSalvar).toHaveLength(0);
+  });
+
+  it("altura fora do limite: a frase da conta, nada gravado", async () => {
+    await expect(salvar({ data: { ...PEDIDO_SALVAR, alturaCm: 8 } })).rejects.toThrow("A altura vai de 12 a 40 cm.");
+    expect(h.rpcSalvar).toHaveLength(0);
   });
 });

@@ -7,6 +7,7 @@ import {
   cotacaoPublica,
   cotarTrofeuComABase,
   type BaseDaCotacao,
+  type CotacaoDoTrofeu,
   type CotacaoComCustoDoTrofeu,
   type CotacaoPublicaDoTrofeu,
   type EntradaDaCotacao,
@@ -32,9 +33,11 @@ import {
  *   * cadastro que falta ou consulta que falha vira ERRO em português, nunca preço com número de fábrica;
  *   * a resposta de quem não vê custo é montada por lista explícita de campos (`cotacaoPublica`).
  *
- * Ainda NÃO há tela que chame esta função (a página do orçamento de troféu é a etapa 3) nem gravação no orçamento
- * (`salvarTrofeuNoOrcamento`, etapa seguinte): esta etapa entrega o preço, travado em testes e conferido com os
- * números do banco vivo.
+ * `salvarTrofeuNoOrcamento` recalcula aqui (a mesma conta) e grava pela RPC `salvar_trofeu_no_orcamento` com o cliente
+ * do PRÓPRIO usuário (a função do banco confere `orcamentos.create` por `auth.uid()`). O navegador não manda preço nem
+ * custo por este caminho: manda o que escolheu e, no máximo, o total que viu, que só é comparado.
+ *
+ * Ainda NÃO há tela que chame estas funções (a página do orçamento de troféu é a etapa 3).
  */
 
 /** Quem cota hoje o 3D (admin, gestor, vendedor): qualquer uma destas basta. */
@@ -47,31 +50,44 @@ const FALHA_GENERICA = "Não consegui calcular o preço agora. Tente de novo; se
 const SEM_MODELO = "Modelo de troféu não encontrado ou desativado. Escolha outro.";
 const SEM_REGRAS = "As regras de preço do troféu não estão cadastradas. Avise a gerência.";
 const MODELO_SEM_PECAS = "O modelo escolhido não tem peças cadastradas. Avise a gerência.";
+const PRECO_MUDOU = "O preço mudou desde a última conta. Confira o novo valor e salve de novo.";
 
 // ---------------------------------------------------------------------------------------------------------
 // Entrada
 // ---------------------------------------------------------------------------------------------------------
 
 /** O que o vendedor digita. Nada de taxa: qualquer outra chave é recusada (`.strict()`). */
-const entradaDaCotacao = z
+const camposDaCotacao = {
+  modeloId: z.string().uuid(),
+  alturaCm: z.number().finite().min(1).max(200),
+  quantidade: z.number().finite().int().min(1).max(100000),
+  urgente: z.boolean().default(false),
+  arte: z
+    .object({
+      tipo: z.enum(["cliente_manda", "adaptar_modelo", "criacao_exclusiva"]),
+      alteracoesExtras: z.number().finite().int().min(0).max(100).default(0),
+      nomesIndividuais: z.number().finite().int().min(0).max(100000).default(0),
+    })
+    .strict()
+    .nullable()
+    .default(null),
+};
+
+const entradaDaCotacao = z.object(camposDaCotacao).strict();
+
+const entradaDoSalvar = z
   .object({
-    modeloId: z.string().uuid(),
-    alturaCm: z.number().finite().min(1).max(200),
-    quantidade: z.number().finite().int().min(1).max(100000),
-    urgente: z.boolean().default(false),
-    arte: z
-      .object({
-        tipo: z.enum(["cliente_manda", "adaptar_modelo", "criacao_exclusiva"]),
-        alteracoesExtras: z.number().finite().int().min(0).max(100).default(0),
-        nomesIndividuais: z.number().finite().int().min(0).max(100000).default(0),
-      })
-      .strict()
-      .nullable()
-      .default(null),
+    ...camposDaCotacao,
+    orcamentoId: z.string().uuid(),
+    /** Editar um troféu já gravado neste orçamento; nulo para troféu novo. */
+    itemId: z.string().uuid().nullable().default(null),
+    /** O total (troféus mais arte) que a tela mostrou. Só é COMPARADO com a conta daqui; nunca é gravado. */
+    precoVisto: z.number().finite().nullable().optional(),
   })
   .strict();
 
 export type EntradaDeCotarTrofeu = z.input<typeof entradaDaCotacao>;
+export type EntradaDeSalvarTrofeu = z.input<typeof entradaDoSalvar>;
 
 const NOMES_DOS_CAMPOS: Record<string, string> = {
   modeloId: "modelo",
@@ -82,6 +98,9 @@ const NOMES_DOS_CAMPOS: Record<string, string> = {
   tipo: "tipo da arte",
   alteracoesExtras: "alterações extras da arte",
   nomesIndividuais: "nomes individuais",
+  orcamentoId: "orçamento",
+  itemId: "troféu gravado",
+  precoVisto: "preço mostrado",
 };
 
 const numeroBr = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -221,8 +240,31 @@ async function lerABase(modeloId: string, rotulo: string): Promise<BaseDaCotacao
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Função do servidor
+// Funções do servidor
 // ---------------------------------------------------------------------------------------------------------
+
+type EntradaDaConta = {
+  modeloId: string;
+  alturaCm: number;
+  quantidade: number;
+  urgente: boolean;
+  arte: EntradaDaCotacao["arte"];
+};
+
+/** Lê as taxas com a chave de serviço e faz a conta. Só chamar DEPOIS de conferir a permissão. */
+async function cotarComAsTaxasDoBanco(data: EntradaDaConta, rotulo: string): Promise<{ base: BaseDaCotacao; cotacao: CotacaoDoTrofeu }> {
+  const entrada: EntradaDaCotacao = { alturaCm: data.alturaCm, quantidade: data.quantidade, urgente: data.urgente, arte: data.arte };
+  try {
+    const base = await lerABase(data.modeloId, rotulo);
+    return { base, cotacao: cotarTrofeuComABase(base, entrada) };
+  } catch (e) {
+    // As frases da conta e do cadastro já são para quem usa ("A altura vai de 12 a 40 cm."): passam adiante.
+    if (e instanceof ErroDoTrofeu) throw new Error(e.message);
+    if (e instanceof Error && e.message === FALHA_GENERICA) throw e;
+    console.error(`[${rotulo}] a conta lançou:`, e instanceof Error ? e.message : "");
+    throw new Error(FALHA_GENERICA);
+  }
+}
 
 /**
  * O preço de um troféu (e, se pedida, da arte). Sem `financeiro.read`: só preço unitário, total, a arte, o total
@@ -234,22 +276,76 @@ export const cotarTrofeu = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<CotacaoPublicaDoTrofeu | CotacaoComCustoDoTrofeu> => {
     const usuario = context.supabase as unknown as BancoDoUsuario;
     const { verCusto } = await permissoesDe(usuario, context.userId);
+    const { cotacao } = await cotarComAsTaxasDoBanco(data, "cotarTrofeu");
+    return verCusto ? cotacaoComCusto(cotacao) : cotacaoPublica(cotacao);
+  });
 
-    const entrada: EntradaDaCotacao = {
-      alturaCm: data.alturaCm,
-      quantidade: data.quantidade,
+export type TrofeuGravado = {
+  orcamentoId: string;
+  itemId: string;
+  arteItemIds: string[];
+  valorUnitario: number;
+  valorTotal: number;
+  valorArte: number;
+};
+
+const cm = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+/**
+ * Grava o troféu e as linhas de arte no orçamento: recalcula aqui (a mesma conta da cotação) e chama
+ * `salvar_trofeu_no_orcamento` com o cliente do PRÓPRIO usuário. Devolve só o que foi gravado (preço), nunca custo.
+ */
+export const salvarTrofeuNoOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => validar(entradaDoSalvar, d))
+  .handler(async ({ data, context }): Promise<TrofeuGravado> => {
+    const usuario = context.supabase as unknown as BancoDoUsuario;
+    await permissoesDe(usuario, context.userId);
+    const { cotacao } = await cotarComAsTaxasDoBanco(data, "salvarTrofeuNoOrcamento");
+    const publica = cotacaoPublica(cotacao);
+
+    if (data.precoVisto != null && Math.abs(publica.totalGeral - data.precoVisto) > 0.005) throw new Error(PRECO_MUDOU);
+
+    const r = cotacao.resultado;
+    const descricao = `${cotacao.modelo.nome} ${cm(data.alturaCm)} cm`;
+    const especificacao = [`Altura ${cm(data.alturaCm)} cm`, `${r.pecas} peças em acrílico`, data.urgente ? "Prazo de urgência" : null]
+      .filter((x): x is string => x != null)
+      .join(" · ");
+    // Sem custo, multiplicador nem margem aqui: `parametros` não é lido pelo vendedor, mas o que não existe não vaza.
+    const parametros = {
+      origem: "trofeu",
+      altura_cm: data.alturaCm,
       urgente: data.urgente,
-      arte: data.arte,
+      arte: data.arte ? { tipo: data.arte.tipo, alteracoes_extras: data.arte.alteracoesExtras, nomes_individuais: data.arte.nomesIndividuais } : null,
     };
-    try {
-      const base = await lerABase(data.modeloId, "cotarTrofeu");
-      const cotacao = cotarTrofeuComABase(base, entrada);
-      return verCusto ? cotacaoComCusto(cotacao) : cotacaoPublica(cotacao);
-    } catch (e) {
-      // As frases da conta e do cadastro já são para quem usa ("A altura vai de 12 a 40 cm."): passam adiante.
-      if (e instanceof ErroDoTrofeu) throw new Error(e.message);
-      if (e instanceof Error && e.message === FALHA_GENERICA) throw e;
-      console.error("[cotarTrofeu] a conta lançou:", e instanceof Error ? e.message : "");
-      throw new Error(FALHA_GENERICA);
+    const arte = (cotacao.arte?.linhas ?? []).map((l) => ({ descricao: l.descricao, valor: l.valor, custo: l.custo }));
+
+    // Cliente do usuário, NÃO a chave de serviço: a RPC confere `orcamentos.create` por auth.uid().
+    const { data: gravado, error } = await usuario.rpc("salvar_trofeu_no_orcamento", {
+      p_orcamento_id: data.orcamentoId,
+      p_item_id: data.itemId,
+      p_modelo_id: data.modeloId,
+      p_descricao: descricao,
+      p_quantidade: data.quantidade,
+      p_valor_unitario: r.precoUnitario,
+      p_custo_unitario: r.custoCheio,
+      p_especificacao: especificacao,
+      p_parametros: parametros,
+      p_arte: arte,
+    });
+    // As mensagens da RPC já são frases para quem usa ("Este orçamento já virou OS..."): passam adiante.
+    if (error) throw new Error(error.message || "Não consegui salvar o troféu. Tente de novo.");
+
+    const g = (gravado ?? {}) as Record<string, unknown>;
+    if (typeof g.item_id !== "string" || !Array.isArray(g.arte_item_ids)) {
+      throw new Error("O banco não confirmou a gravação do troféu. Confira o orçamento antes de tentar de novo.");
     }
+    return {
+      orcamentoId: typeof g.orcamento_id === "string" ? g.orcamento_id : data.orcamentoId,
+      itemId: g.item_id,
+      arteItemIds: g.arte_item_ids.filter((x): x is string => typeof x === "string"),
+      valorUnitario: Number(g.valor_unitario),
+      valorTotal: Number(g.valor_total),
+      valorArte: Number(g.valor_arte ?? 0),
+    };
   });
