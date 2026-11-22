@@ -105,6 +105,8 @@ const ASSINATURAS: Record<string, string[]> = {
   parceiro_completar_cadastro: ["p_dados"],
   parceiros_contador_periodo: ["p_inicio", "p_fim"],
   parceiros_resumo: [],
+  // Migração 20261122600000: reabre o chamado do parceiro fechado sem nenhuma mensagem da equipe (cartão Atendimento dos parceiros).
+  parceiro_reabrir_chamado: ["p_parceiro"],
   previsoes_desatualizadas: [],
   produtividade_3d: ["p_inicio", "p_fim"],
   quitar_parcelas_ate: ["p_compromisso_id", "p_ate"],
