@@ -8,6 +8,7 @@ import {
   type DadosDaOs,
   type DadosDoOrcamento,
 } from "@/domain/relacionados/elos";
+import { FronteiraDaFaixa } from "./fronteira-da-faixa";
 import { RelacionadosDoRegistro } from "./relacionados-do-registro";
 import {
   useConversaDoCliente,
@@ -33,7 +34,7 @@ function useAbre() {
   return (caminho: string) => (getRoutePermissions(caminho) ?? []).some(hasPermission);
 }
 
-export function RelacionadosDaOs({ osId, os }: { osId: string; os: DadosDaOs }) {
+function FaixaDaOs({ osId, os }: { osId: string; os: DadosDaOs }) {
   const { canSeeFinancials, nivelDeVisao } = useAuth();
   const abre = useAbre();
   const orcamento = useOrcamentoDeOrigem(os.orcamento_id, nivelDeVisao);
@@ -44,7 +45,7 @@ export function RelacionadosDaOs({ osId, os }: { osId: string; os: DadosDaOs }) 
   return <RelacionadosDoRegistro elos={elos} />;
 }
 
-export function RelacionadosDoOrcamento({ orcamentoId, orc }: { orcamentoId: string; orc: DadosDoOrcamento }) {
+function FaixaDoOrcamento({ orcamentoId, orc }: { orcamentoId: string; orc: DadosDoOrcamento }) {
   const { hasPermission, nivelDeVisao } = useAuth();
   const abre = useAbre();
   const os = useOsGerada(orc.os_id, nivelDeVisao);
@@ -54,11 +55,40 @@ export function RelacionadosDoOrcamento({ orcamentoId, orc }: { orcamentoId: str
   return <RelacionadosDoRegistro elos={elos} />;
 }
 
-export function RelacionadosDoCliente({ clienteId }: { clienteId: string }) {
+function FaixaDoCliente({ clienteId }: { clienteId: string }) {
   const { canSeeFinancials, hasPermission } = useAuth();
   const abre = useAbre();
   const contas = useContasDoClienteLidas(clienteId, canSeeFinancials);
   const parceiro = useParceiroDoCliente(clienteId, hasPermission("parceiros.read"));
   const elos = aplicarAcesso(elosDoCliente({ contas, parceiro }), abre);
   return <RelacionadosDoRegistro elos={elos} />;
+}
+
+/*
+ * As três portas públicas. Cada uma põe a faixa dentro da fronteira de erro: a falha ao montá-la vira uma nota, e a ficha
+ * segue de pé. A fronteira precisa ficar POR FORA do componente que usa os hooks, por isso o par (porta + faixa).
+ */
+
+export function RelacionadosDaOs(props: { osId: string; os: DadosDaOs }) {
+  return (
+    <FronteiraDaFaixa>
+      <FaixaDaOs {...props} />
+    </FronteiraDaFaixa>
+  );
+}
+
+export function RelacionadosDoOrcamento(props: { orcamentoId: string; orc: DadosDoOrcamento }) {
+  return (
+    <FronteiraDaFaixa>
+      <FaixaDoOrcamento {...props} />
+    </FronteiraDaFaixa>
+  );
+}
+
+export function RelacionadosDoCliente(props: { clienteId: string }) {
+  return (
+    <FronteiraDaFaixa>
+      <FaixaDoCliente {...props} />
+    </FronteiraDaFaixa>
+  );
 }

@@ -40,6 +40,24 @@ describe("as três fichas desenham a faixa com o registro que já carregaram", (
   });
 });
 
+describe("a faixa não derruba a ficha", () => {
+  it("cada porta pública põe a faixa dentro da fronteira de erro, por fora do componente que usa os hooks", () => {
+    for (const nome of ["Os", "Orcamento", "Cliente"]) {
+      const porta = nome === "Os" ? "RelacionadosDaOs" : `Relacionados${nome === "Orcamento" ? "DoOrcamento" : "DoCliente"}`;
+      const interna = nome === "Os" ? "FaixaDaOs" : nome === "Orcamento" ? "FaixaDoOrcamento" : "FaixaDoCliente";
+      expect(FICHAS).toMatch(new RegExp(`export function ${porta}\\(props[^)]*\\) \\{\\s*return \\(\\s*<FronteiraDaFaixa>\\s*<${interna} \\{\\.\\.\\.props\\} />\\s*</FronteiraDaFaixa>`));
+      expect(FICHAS).toMatch(new RegExp(`\\nfunction ${interna}\\(`));
+    }
+  });
+  it("a fronteira diz que a faixa não carregou (erro diz que falhou) e não toca no resto da ficha", () => {
+    const f = ler("src/components/relacionados/fronteira-da-faixa.tsx");
+    expect(f).toMatch(/getDerivedStateFromError/);
+    expect(f).toMatch(/Não foi possível montar a faixa de relacionados/);
+    expect(f).toMatch(/role="status"/);
+    expect(SEM_COMENTARIOS(f)).not.toMatch(/console\./);
+  });
+});
+
 describe("a faixa só lê", () => {
   const codigo = SEM_COMENTARIOS(HOOKS) + SEM_COMENTARIOS(LEITURA) + SEM_COMENTARIOS(FICHAS) + SEM_COMENTARIOS(FAIXA);
   it("nenhuma escrita no banco", () => {
