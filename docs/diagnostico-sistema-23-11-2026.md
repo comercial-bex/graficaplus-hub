@@ -101,7 +101,7 @@ troféu de acrílico com "Ler a ficha". Nada disso mexe nas lacunas abaixo.
 | vendedor | 3 (Jhesselem, Maiara, Raymison) | 34 | Atende lead, orça, converte em OS | Não abre `/a-receber` (precisa de `financeiro.read`) |
 | financeiro | 1 (Cibele) | 20 | Paga, dá baixa, estorna, vê custo e margem | Não abre o WhatsApp, embora o servidor cobre por WhatsApp |
 | designer | 1 (Wellton) | 13 | Arte, mockup, pedido de aprovação | Não vê orçamentos nem aprovações |
-| operador | 1 (Fernando) | 21 | Escolhe a máquina, aponta, acabamento | Não abre `/materiais` (sem `custos.read` nem `estoque.read`) |
+| operador | 1 (Fernando) | 21 | Escolhe a máquina, aponta, acabamento | Não abre `/materiais` (sem `custos.read` nem `estoque.read`) e **não pode dar baixa de estoque** (sem `estoque.exit`, que só admin, gestor e estoque têm) |
 | estoque | 0 | 17 | Entrada, saída e ajuste de estoque, compras | Papel sem ninguém |
 | instalador | 0 | 12 | Entregas e instalações | Papel sem ninguém |
 | cliente | 0 | n/d | Portal do cliente: aprovar arte, enviar arquivo e comprovante | Portal sem nenhum acesso até hoje |
@@ -246,8 +246,14 @@ Risco do banco: toda proposta de estrutura é **aditiva** (coluna nova opcional 
   13 de 26 concluídas, e `custo_real` é nulo ou zero em 41 de 54 (76%). As 13 com margem vieram de `custos_operacionais_os` e
   snapshot, não de baixa nem de apontamento.
 - Impacto: a margem "real" é a margem do que foi lançado à mão, não do que foi consumido.
-- Proposta: no "Terminei" do operador, mostrar o consumo previsto já preenchido para confirmar com um toque, ou "sem consumo" com
-  motivo; só então fechar a OS.
+- **Causa provável da baixa de estoque quase inexistente [medido, 23/11]:** `baixar_estoque_os` exige `estoque.exit`, e essa permissão
+  só existe para **admin, gestor e o papel estoque** (que não tem ninguém). **O operador não a tem, nem o vendedor, nem o designer:
+  quem consome o material não pode dar baixa nele.** Hoje só o admin e o gestor podem, e a ficha da OS mostra o botão "Baixar
+  estoque" a todos (o banco recusa quem não pode). A "falta de hábito" do operador é, em parte, falta de permissão.
+- Proposta: antes de exigir consumo, **decidir quem confirma**: dar `estoque.exit` ao operador, ou criar uma função de "confirmar
+  consumo previsto" que só atue sobre a OS em que ele está trabalhando (mais segura que abrir o estoque inteiro). Depois, no
+  "Terminei" do operador, mostrar o consumo previsto já preenchido para confirmar com um toque, ou "sem consumo" com motivo; só
+  então fechar a OS.
 
 **R11. Entrega e retirada sem registro** (esforço B a M)
 - Prova [medido]: 26 de 26 OS concluídas sem registro em `entregas_instalacoes` (3 registros no total, para 54 OS).
@@ -442,7 +448,8 @@ que existe. Ganho = pontos estimados da nota geral (estimativa, não promessa).
 - R6 aviso de "aprovado sem OS" e R8 cliente obrigatório no envio.
 - R5 caminho único de pagamento (pela parcela).
 - R9 marcar o legado/balcão.
-- R10 e R11 "confirmar consumo" no "Terminei" e evento de entrega de um toque (**decisão do dono sobre obrigatoriedade**).
+- R10 e R11 "confirmar consumo" no "Terminei" e evento de entrega de um toque (**decisão do dono sobre obrigatoriedade e sobre
+  quem confirma o consumo: o operador hoje não tem `estoque.exit`**).
 - Chaves estrangeiras de endurecimento nas colunas com 0 órfão: `orcamentos.conversa_id`, `arquivos.conversa_id`,
   `parceiro_orcamentos.os_id`, `whatsapp_atendimentos.responsavel_id`, `whatsapp_conversa_leituras.user_id` e
   `alertas_integridade.fila_id` (para `notificacoes_fila`). **Nenhuma** chave nas colunas polimórficas.
@@ -490,7 +497,9 @@ não código.
 1. Qual é o fluxo canônico de compra: nota importada (`compras_fornecedor`, em uso) ou pedido (`pedidos_compra`, 1 uso)?
 2. Autoriza o preenchimento assistido de dados (lead→cliente derivável; fornecedor por chave nas 14 compras e 112 contas)? É escrita em
    produção, com ensaio e `ROLLBACK`, feita só depois do "sim".
-3. Fechar a OS passa a exigir consumo confirmado e registro de entrega, ou continua opcional?
+3. Fechar a OS passa a exigir consumo confirmado e registro de entrega, ou continua opcional? **Antes disso: quem confirma o
+   consumo?** Hoje o operador não tem `estoque.exit` e não pode dar baixa (R10): ou ele ganha essa permissão, ou nasce uma função
+   de "confirmar consumo previsto" restrita à OS dele.
 4. A emissão de nota fiscal é do sistema ou do contador?
 5. Pós-venda: construir o mínimo (garantia e retorno ligados à OS) ou retirar do esqueleto?
 6. Portal do cliente (0 acessos): ligar com dono e data, ou tirar do menu?
