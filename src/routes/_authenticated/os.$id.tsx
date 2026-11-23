@@ -76,6 +76,7 @@ import {
 } from "@/domain/os/resultado";
 import { formatBRL } from "@/lib/produtos-catalogo";
 import { Carregando } from "@/components/bex/Carregando";
+import { RelacionadosDaOs } from "@/components/relacionados/relacionados-das-fichas";
 import { BotaoBaixar } from "@/components/arquivos/botoes-do-arquivo";
 import { nomeSeguro } from "@/domain/portal/envio-de-arquivo";
 
@@ -107,6 +108,9 @@ function OSDetailPage() {
   // Quem não tem nem um nem outro não vê o botão — botão que só dá 42501 é
   // botão morto.
   const podeAgendar = hasPermission("kanban.move") || hasPermission("os.update");
+  // Dar baixa no estoque é `estoque.exit` no banco (`baixar_estoque_os`): admin, gestor e o papel estoque. Quem não tem
+  // não vê o botão que o banco recusaria (a mesma regra do "Agendar" logo acima).
+  const podeBaixarEstoque = hasPermission("estoque.exit");
   const podePedirReembolso = hasPermission("reembolsos.request");
   const [agendando, setAgendando] = useState(false);
   const [agendamento, setAgendamento] = useState<ResultadoAgendamento | null>(null);
@@ -331,15 +335,17 @@ function OSDetailPage() {
                 </Button>
               </Dica>
             )}
-            <Button
-              variant="outline"
-              className="hidden md:inline-flex"
-              disabled={os.estoque_baixado}
-              onClick={() => setBaixaOpen(true)}
-            >
-              <PackageMinus className="h-4 w-4 mr-1" />
-              {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
-            </Button>
+            {podeBaixarEstoque && (
+              <Button
+                variant="outline"
+                className="hidden md:inline-flex"
+                disabled={os.estoque_baixado}
+                onClick={() => setBaixaOpen(true)}
+              >
+                <PackageMinus className="h-4 w-4 mr-1" />
+                {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
+              </Button>
+            )}
             {/* Comprou algo para esta OS com o próprio dinheiro: o pedido abre com a OS
                 escolhida (15/10/2026). Toda a equipe pede; quem decide é o financeiro
                 ou a gerência, pelo semáforo da margem. */}
@@ -383,10 +389,12 @@ function OSDetailPage() {
                     {agendando ? "Agendando…" : jaAgendada ? "Já está na agenda" : "Agendar na máquina"}
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem className="py-3" disabled={os.estoque_baixado} onClick={() => setBaixaOpen(true)}>
-                  <PackageMinus className="h-4 w-4 mr-2" />
-                  {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
-                </DropdownMenuItem>
+                {podeBaixarEstoque && (
+                  <DropdownMenuItem className="py-3" disabled={os.estoque_baixado} onClick={() => setBaixaOpen(true)}>
+                    <PackageMinus className="h-4 w-4 mr-2" />
+                    {os.estoque_baixado ? "Estoque baixado" : "Baixar estoque"}
+                  </DropdownMenuItem>
+                )}
                 {podePedirReembolso && (
                   <DropdownMenuItem className="py-3" asChild>
                     <Link to="/meus-reembolsos" search={{ os: id }}>
@@ -412,6 +420,9 @@ function OSDetailPage() {
       <div className="rounded-lg border border-border bg-card px-4 py-3">
         <QuemTrouxeAVenda alvo="os" id={id} vendedorId={(os as any).vendedor_id ?? null} invalidar={[["os", id]]} compacto />
       </div>
+
+      {/* Orçamento de origem, cliente, produtos, entrega e o que falta receber (Onda 1 do diagnóstico de 23/11/2026). */}
+      <RelacionadosDaOs osId={id} os={os} />
 
       {/* KPI row */}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">

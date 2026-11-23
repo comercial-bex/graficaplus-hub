@@ -73,6 +73,7 @@ import { Dica, DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { formatBRL } from "@/lib/produtos-catalogo";
 import { Carregando } from "@/components/bex/Carregando";
+import { RelacionadosDoCliente } from "@/components/relacionados/relacionados-das-fichas";
 import { CampoDocumento } from "@/components/campo-documento";
 import {
   CamposDeCanais,
@@ -243,6 +244,9 @@ function ClienteDetailPage() {
         canSeePrices={canSeePrices}
         nivelDeVisao={nivelDeVisao}
       />
+
+      {/* O que o cliente deve e se é parceiro (Onda 1 do diagnóstico de 23/11/2026). */}
+      <RelacionadosDoCliente clienteId={id} />
 
       <Tabs defaultValue="resumo">
         <TabsList>
