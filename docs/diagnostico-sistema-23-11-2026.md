@@ -76,13 +76,13 @@ OS→chão (37), compra→estoque→pagar (43), OS→dinheiro (49), e a tela que
 | Indicador (plano de 21/11) | 21/11 | Agora | Leitura |
 |---|---|---|---|
 | OS abertas / com prazo vencido / paradas há mais de 7 dias | 21 cartões em 4 colunas (8, 6, 4 e 3), 20 vencidos | 27 / 26 / 11 | Não melhorou: as mesmas 21 continuam (8, 6, 4 e 3) e há mais 6 em outras etapas; o mutirão do fim de semana não apareceu no banco |
-| Apontamentos de máquina nos últimos 14 dias; último | 0; 10/11 | 2; 10/11 | Igual. O novo bloco "ninguém começou numa máquina" estreia no aviso de segunda |
+| Apontamentos de máquina nos últimos 14 dias; último | 0; 10/11 | 2; 10/11 | Igual. O novo bloco "ninguém começou numa máquina" **estreou no aviso das 09:00 de 23/11** (OS #235) |
 | TV vista nos últimos 5 minutos; último acesso | 0; 16/11 | 0; 16/11 | Igual: 3 aparelhos ativos, nenhum visto desde 16/11 |
 | Orçamentos enviados parados há mais de 7 dias | 25 | 26 | Igual |
 | Leads novos parados há mais de 1 dia / em atendimento parados há mais de 14 dias | 10 / 43 | 11 / 46 | Igual |
-| Envios a número bloqueado depois do bloqueio | 4 (18 a 21/11, 09:00) | os mesmos 4 | **Sem vazamento novo**: nenhum depois do ajuste de 21/11 |
+| Envios a número bloqueado depois do bloqueio | 4 (18 a 21/11, 09:00) | os mesmos 4 | **Sem vazamento novo**: nenhum depois do ajuste de 21/11. Conferido de novo em 23/11, 10h34: os lembretes das 09:00 foram para o Raymison (2) e a Cibele (1), nenhum para número bloqueado |
 | Inativo com login livre | 0 | 0 | Mantido |
-| Parceiros sem contato | 16 | 16 | O aviso de segunda 23/11 às 09:10 é o primeiro envio real com as correções |
+| Parceiros sem contato | 16 | 16 | **Enviado em 23/11 às 09:10** com as correções: 16 parceiros, 15 linhas e "E mais 1", sem nome de quem fechou (hoje não há chamado fechado sem atendimento, então o bloco da data ainda não apareceu em envio real) |
 | Rotinas agendadas (9 jobs) | ok | 9/9 com sucesso, 0 falha em 7 dias | Saudável |
 
 O que **entrou** desde então: reabertura de chamado de parceiro, tela de créditos, aviso do grupo que não esconde chamado fechado,
@@ -133,7 +133,7 @@ DINHEIRO (entrada)
 
 DINHEIRO (saída) E COMPRAS
  Pedido de compra ┄(sem ligação)┄ Compra de fornecedor ┄(0% com conta a pagar)┄► Conta a pagar
- Compra ┄(6% das entradas)┄► Estoque (lote) ┄(estoque_minimo: 33 de 35 abaixo)┄ Alerta
+ Compra ┄(6% das entradas)┄► Estoque (lote) ┄(19 dos 35 materiais com mínimo estão com estoque zero)┄ Saldo confiável
 
 CATÁLOGO
  Produto ━(100% com preço e ficha)━► Preço ─(59% com materiais)─► Material ┄(texto livre)┄ Fornecedor
@@ -365,10 +365,15 @@ Apontamento, agenda, TV, RIP e compatibilidade existem, e quase nada alimenta o 
 está certa; falta o hábito e o caminho curto no celular do operador.
 
 ### 6.4 Compras e estoque: o elo mais frágil
-É o único ponto onde a lógica **não** é de relação, e sim de texto e ação manual (R1 a R3). O alerta de estoque mínimo está
-saturado: 33 de 35 materiais com mínimo estão abaixo dele. Ou os mínimos estão irreais, ou as entradas estão incompletas (só 4
-entradas de compra em 65). Antes de ligar qualquer alarme novo, é preciso um inventário e uma recalibragem; do contrário o alerta vira
-ruído.
+É o único ponto onde a lógica **não** é de relação, e sim de texto e ação manual (R1 a R3). **O alerta de estoque mínimo funciona
+como deveria:** conta só o material com saldo (o aviso das 09:00 de 23/11 listou 3) e há um alerta crítico à parte para o material
+que nunca recebeu entrada. O fato que pesa é outro: **19 dos 35 materiais com mínimo definido têm estoque zero** (só 4 entradas de
+compra em 65; o resto é entrada manual e inventário), então o estoque ainda não é um registro confiável do que há na prateleira.
+Antes de exigir baixa por OS, é preciso um inventário.
+
+*Correção de 23/11:* uma versão anterior deste texto dizia "33 de 35 materiais abaixo do mínimo, alerta saturado". A conta estava
+errada (contava 11 materiais com mínimo 0 e estoque 0, que não estão "abaixo" de nada) e a conclusão também (o alerta já filtra por
+saldo). Os números certos: 35 materiais com mínimo maior que zero, 22 no mínimo ou abaixo, dos quais 3 com saldo e 19 com estoque zero.
 
 ### 6.5 Financeiro: disciplina boa, cadeia incompleta
 Contas a pagar com histórico, anexos e travas de estorno; contas de consumo; extrato com conciliação (95 de 95 linhas ligadas ao
@@ -459,7 +464,8 @@ que existe. Ganho = pontos estimados da nota geral (estimativa, não promessa).
 - R1 e R2 compra → conta a pagar → lote e entrada de estoque, e `fornecedor_id`.
 - R3 o fluxo canônico (compra importada ou pedido).
 - R4 assistente de conciliação do extrato com origem ou motivo.
-- **Antes de tudo:** inventário e recalibragem dos mínimos de estoque, senão o alerta de 33 de 35 só aumenta o ruído.
+- **Antes de tudo:** inventário do estoque (19 dos 35 materiais com mínimo estão com estoque zero), senão a baixa por OS e o alerta
+  de mínimo operam sobre um saldo que não é o real.
 - Dimensões afetadas: 5 e 3.
 
 ### Onda 4: higiene e decisões de produto (+2 pontos)
@@ -503,7 +509,7 @@ não código.
 4. A emissão de nota fiscal é do sistema ou do contador?
 5. Pós-venda: construir o mínimo (garantia e retorno ligados à OS) ou retirar do esqueleto?
 6. Portal do cliente (0 acessos): ligar com dono e data, ou tirar do menu?
-7. Estoque: inventário e novos mínimos antes de qualquer alarme.
+7. Estoque: inventário antes de exigir baixa por OS (19 dos 35 materiais com mínimo estão com estoque zero).
 8. Papéis sem pessoa (estoque, instalador) e função de reserva para pagar, validar e apontar.
 9. O código-casa `BEXPRINT` do cadastro de parceiro e a regra mínima de senha.
 10. Comissão (pendente de 21/11): hoje só o gestor tem regra e a tabela tem 0 linhas.
@@ -523,7 +529,7 @@ não código.
   (As permissões por papel que li do código foram conferidas no banco vivo e batem: o gestor não tem `pagamentos.*`, o vendedor não
   tem `financeiro.read`, o operador não tem `custos.read` nem `estoque.read`, o financeiro não tem WhatsApp e o designer não tem
   orçamentos.)
-- O primeiro envio real das rotinas corrigidas é o de segunda, 23/11.
+- O primeiro envio real das rotinas corrigidas saiu em 23/11 e foi conferido nos registros de envio (seção 3). O que ainda não teve envio real é o bloco "fechado em dd/mm" do aviso dos parceiros, porque hoje nenhum chamado está fechado sem atendimento.
 - Parte dos movimentos de caixa "sem origem" pode ser legítima (tarifa, transferência, aporte).
 
 ---
