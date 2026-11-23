@@ -208,6 +208,7 @@ import { CabecalhoIdentificacao } from "@/components/orcamento/tela/CabecalhoIde
 import { ONDE_RESOLVER, ROTULO_DO_STATUS, statusTone } from "@/components/orcamento/tela/comum";
 import { AcoesDoStatus } from "@/components/orcamento/acoes-do-status";
 import { HistoricoDeVersoes } from "@/components/orcamento/historico-de-versoes";
+import { RelacionadosDoOrcamento } from "@/components/relacionados/relacionados-das-fichas";
 import { FaixaDeMudanca } from "@/components/orcamento/faixa-de-mudanca";
 import type { DiferencaDaVersao } from "@/domain/orcamentos/o-que-mudou";
 
@@ -1744,6 +1745,9 @@ function OrcamentoDetailPage() {
           </p>
         )}
       </header>
+
+      {/* Cliente, OS gerada, envios registrados e conversa (Onda 1 do diagnóstico de 23/11/2026). */}
+      <RelacionadosDoOrcamento orcamentoId={id} orc={orc} />
 
       <BarraDePassosDoOrcamento atual={passo} estados={estados} onIr={(p) => irParaPasso(p)} />
 
