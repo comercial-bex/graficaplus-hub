@@ -8,6 +8,9 @@
  * documento brasileiro, e o telefone é escrito com "+" e o código do país.
  */
 
+import { ehCelularBrasileiro } from "@/domain/contato/ddds-do-brasil";
+import { chaveWhatsApp, numeroRecebidoDeFora } from "@/domain/documentos";
+
 export interface Pais {
   /** ISO 3166-1 de duas letras, em maiúsculas. */
   codigo: string;
@@ -99,8 +102,11 @@ const TABELA: ReadonlyArray<readonly [string, string, string]> = [
 
 export const PAIS_PADRAO = "BR";
 
-/** Os que mais aparecem para uma gráfica de Macapá: o Brasil, os vizinhos de fronteira e o resto que pede orçamento. */
-export const PAISES_FREQUENTES: readonly string[] = ["BR", "GF", "SR", "GY", "VE", "PT", "US"];
+/**
+ * Os que mais aparecem para uma gráfica de Macapá: o Brasil, os vizinhos de fronteira e o resto que pede orçamento.
+ * França e Colômbia entraram em 26/11/2026: o dono tem cliente dos dois países.
+ */
+export const PAISES_FREQUENTES: readonly string[] = ["BR", "GF", "FR", "CO", "SR", "GY", "VE", "PT", "US"];
 
 const todos: Pais[] = TABELA.map(([codigo, nome, ddi]) => ({ codigo, nome, ddi }));
 
@@ -114,6 +120,11 @@ export const PAISES: readonly Pais[] = [
 
 export function paisPorCodigo(codigo: string | null | undefined): Pais | undefined {
   return todos.find((p) => p.codigo === (codigo ?? "").toUpperCase());
+}
+
+/** O país de um código de discagem. Código dividido por vários países ("1": EUA e Canadá) devolve o mais usado. */
+export function paisPorDdi(ddi: string | null | undefined): Pais | undefined {
+  return PAISES.find((p) => p.ddi === (ddi ?? "").replace(/\D/g, ""));
 }
 
 /** Sem país informado é Brasil: é o que os clientes de antes são. */
@@ -136,9 +147,32 @@ export function rotuloDoPais(codigo: string | null | undefined): string {
 
 const soDigitos = (v: string) => v.replace(/\D/g, "");
 
-/** "+594 694 12 34 56": o código do país e o número, do jeito que o banco e o WhatsApp esperam. */
+/**
+ * Os países em que o número nacional começa com um "0" de discagem que NÃO entra no número internacional: o francês digita
+ * "06 12 34 56 78", mas pelo WhatsApp é +33 6 12 34 56 78. Sem tirar o zero, o número gravado era 330612345678, que não
+ * existe (provado em 26/11/2026 com o campo do cadastro: "+33 06 12 34 56 78" saía para o Z-API como 330612345678).
+ *
+ * Só entram os países em que o número, depois do código, nunca começa com 0 de verdade. Fora da lista de propósito: Itália
+ * (o fixo mantém o 0), Argentina (tem o 9 e o 15 no meio) e México (regra própria): para esses o número vai como foi digitado.
+ */
+const DDIS_COM_ZERO_DE_DISCAGEM: ReadonlySet<string> = new Set([
+  "33", "594", "58", "44", "49", "31", "32", "41", "43", "46", "358", "353", "90", "380", "61", "64", "595", "598", "593",
+  "27", "234", "20", "212", "213", "81", "82", "91", "62", "66", "84", "63", "60", "886", "971", "966", "972", "92", "880",
+]);
+
+/** O número nacional sem o "(0)" nem o zero de discagem, quando o país usa. Sem dígitos sobrando, devolve como veio. */
+export function semZeroDeDiscagem(ddi: string, nacional: string): string {
+  let n = (nacional ?? "").trim().replace(/^\(0\)\s*/, "");
+  if (DDIS_COM_ZERO_DE_DISCAGEM.has(soDigitos(ddi))) {
+    const sem = n.replace(/^0\s*/, "");
+    if (soDigitos(sem)) n = sem;
+  }
+  return n;
+}
+
+/** "+594 694 12 34 56": o código do país e o número, do jeito que o banco e o WhatsApp esperam (sem o zero de discagem). */
 export function montarTelefoneInternacional(ddi: string, nacional: string): string {
-  const resto = (nacional ?? "").trim();
+  const resto = semZeroDeDiscagem(ddi, nacional);
   return soDigitos(resto) ? `+${soDigitos(ddi)} ${resto}` : "";
 }
 
@@ -183,4 +217,82 @@ export function trocarDePais(
     telefone = montarTelefoneInternacional(paisPorCodigo(novoPais)?.ddi ?? "", nacional);
   }
   return { pais: novoPais, documento, telefone };
+}
+
+/** O país que o telefone diz ser: o código depois do "+". Sem "+", ou com +55, é Brasil. */
+export function paisDoTelefone(valor: string | null | undefined): string {
+  const { ddi } = separarTelefoneInternacional(valor);
+  if (!ddi || ddi === "55") return PAIS_PADRAO;
+  return paisPorDdi(ddi)?.codigo ?? PAIS_PADRAO;
+}
+
+/**
+ * O país do cadastro, corrigido pelo telefone. Cliente criado a partir de um contato de orçamento ou de um lead nascia com
+ * país Brasil mesmo com "+33…" no telefone (a coluna tem o padrão BR), e a lista de clientes passava a cobrar CPF/CNPJ dele.
+ * Se o cadastro diz Brasil e o telefone diz outro país, vale o telefone; qualquer outro país escolhido vale como está.
+ */
+export function paisEfetivo(pais: string | null | undefined, telefone: string | null | undefined): string {
+  if (!ehBrasil(pais)) return (pais ?? PAIS_PADRAO).toUpperCase();
+  return paisDoTelefone(telefone);
+}
+
+/** Exemplos de número, sem o código do país, para o campo de cada país mais usado. */
+const EXEMPLO_DO_NUMERO: Record<string, string> = {
+  "55": "(96) 99999-9999",
+  "594": "694 12 34 56",
+  "33": "6 12 34 56 78",
+  "57": "300 123 4567",
+  "597": "712 3456",
+  "592": "612 3456",
+  "58": "412 123 4567",
+  "351": "912 345 678",
+  "1": "212 555 1234",
+};
+
+export function exemploDoNumero(ddi: string): string {
+  return EXEMPLO_DO_NUMERO[soDigitos(ddi)] ?? "número sem o código do país";
+}
+
+/**
+ * O telefone para mostrar. Brasileiro passa como veio. De fora, vai com o "+" e o código do país: o que está gravado com "+"
+ * (cadastro) sai limpo, sem o zero de discagem; o que chegou pelo webhook só com dígitos (12 a 15) ganha o "+" e o código
+ * separado do resto. Sem país reconhecível, só o "+" na frente dos dígitos.
+ */
+export function telefoneInternacionalLegivel(valor: string | null | undefined): string | null {
+  const bruto = (valor ?? "").trim();
+  if (!bruto) return null;
+  if (bruto.startsWith("+")) {
+    const { ddi, nacional } = separarTelefoneInternacional(bruto);
+    if (ddi === "55") return null;
+    if (ddi) return montarTelefoneInternacional(ddi, nacional) || bruto;
+    return bruto;
+  }
+  const d = soDigitos(bruto);
+  // A mesma regra do envio (`numeroRecebidoDeFora`): quem pode ser respondido como número de fora também aparece como tal.
+  // Celular brasileiro (com ou sem o 55) nunca: é mostrado como brasileiro.
+  if (numeroRecebidoDeFora(d) && !ehCelularBrasileiro(chaveWhatsApp(d))) {
+    const { ddi, nacional } = separarTelefoneInternacional(`+${d}`);
+    return ddi ? `+${ddi} ${nacional}` : `+${d}`;
+  }
+  return null;
+}
+
+/**
+ * O que a pessoa colou ou digitou no campo de telefone, arrumado para o campo com bandeira.
+ *   "0033 6 12 34 56 78"           -> "+33 6 12 34 56 78"   (o "00" europeu é o "+")
+ *   "wa.me/33612345678"            -> "+33612345678"        (o link do WhatsApp sempre leva o código do país)
+ *   "wa.me/5596991562194"          -> "96991562194"         (o Brasil volta sem o 55, como o campo brasileiro espera)
+ * Qualquer outra coisa passa como veio.
+ */
+export function textoParaCampoDeTelefone(texto: string | null | undefined): string {
+  const t = (texto ?? "").replace(/^\s+/, "");
+  const link = t.match(/wa\.me\/\+?([\d\s().-]+)/i) ?? t.match(/[?&]phone=\+?([\d%+]+)/i);
+  if (link) {
+    const d = soDigitos(link[1]);
+    if (!d) return t;
+    if (d.startsWith("55") && (d.length === 12 || d.length === 13)) return d.slice(2);
+    return `+${d}`;
+  }
+  if (/^00[1-9]/.test(t)) return `+${t.slice(2).replace(/^\s+/, "")}`;
+  return t;
 }

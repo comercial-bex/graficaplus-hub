@@ -872,8 +872,8 @@ function ContatosTab({ clienteId }: { clienteId: string }) {
             onChange={(e) => setForm({ ...form, cargo: e.target.value })}
           />
           <Input
-            placeholder="Telefone"
-            maxLength={20}
+            placeholder="Telefone (de fora: +código)"
+            maxLength={24}
             value={form.telefone}
             onChange={(e) => setForm({ ...form, telefone: e.target.value })}
           />

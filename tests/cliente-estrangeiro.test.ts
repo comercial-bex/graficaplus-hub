@@ -134,11 +134,23 @@ describe("quem recebe WhatsApp (espelha o banco)", () => {
     expect(numeroEstrangeiro("+0 123 456 789")).toBeNull();
   });
 
-  it("o número que chegou pelo webhook vale com 12 a 15 dígitos fora do 55; os EUA, sem o '+', ficam de fora", () => {
+  it("o número que chegou pelo webhook vale com 11 a 15 dígitos fora do 55 (os EUA e a França passam a valer em 26/11/2026)", () => {
     expect(numeroRecebidoDeFora("594694123456")).toBe("594694123456");
+    expect(numeroRecebidoDeFora("573001234567")).toBe("573001234567");
+    // 11 dígitos: antes ficavam de fora e a conversa abria mas não podia ser respondida
+    expect(numeroRecebidoDeFora("33612345678")).toBe("33612345678");
+    expect(numeroRecebidoDeFora("34612345678")).toBe("34612345678");
+    expect(numeroRecebidoDeFora("13055550100")).toBe("13055550100");
+    // o 55 é o Brasil; dois números colados não são número
     expect(numeroRecebidoDeFora("5596991112233")).toBeNull();
-    expect(numeroRecebidoDeFora("13055550100")).toBeNull();
     expect(numeroRecebidoDeFora("96 99131-8834 / 96 98140-8722")).toBeNull();
+  });
+
+  it("10 dígitos só valem se não começarem por DDD do Brasil (Suriname e Guiana sim, fixo de Macapá não)", () => {
+    expect(numeroRecebidoDeFora("5977123456")).toBe("5977123456"); // Suriname: 597 + 7
+    expect(numeroRecebidoDeFora("5921234567")).toBe("5921234567"); // Guiana: 592 + 7
+    expect(numeroRecebidoDeFora("9632221234")).toBeNull(); // fixo de Macapá
+    expect(numeroRecebidoDeFora("1132221234")).toBeNull(); // fixo de São Paulo
   });
 
   it("a chave de reconhecimento do cliente de fora é o número com o código do país", () => {

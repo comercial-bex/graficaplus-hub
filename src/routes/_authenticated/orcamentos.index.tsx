@@ -14,6 +14,8 @@ import { mensagemDaFuncao } from "@/domain/orcamentos/acoes-do-orcamento";
 import { Checkbox } from "@/components/ui/checkbox";
 import { chaveWhatsApp } from "@/domain/documentos";
 import { recebeWhatsApp } from "@/domain/documentos";
+import { paisDoTelefone } from "@/domain/clientes/paises";
+import { CampoDeTelefoneInternacional } from "@/components/bex/CampoDeTelefoneInternacional";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -267,6 +269,9 @@ function OrcamentosPage() {
               tipo_cliente: "pf",
               telefone: form.contato_telefone.trim(),
               whatsapp_principal: form.contato_telefone.trim(),
+              // Contato de fora (+33…, +594…, +57…) nasce com o país dele: a coluna tem o padrão BR, e a lista de
+              // clientes cobraria CPF/CNPJ de quem não tem.
+              pais: paisDoTelefone(form.contato_telefone),
               email: form.contato_email.trim() || null,
             })
             .select("id")
@@ -440,14 +445,15 @@ function OrcamentosPage() {
                         Telefone
                         <DicaIcone texto={dicaCampo("/orcamentos", "Telefone")} rotulo="Telefone" />
                       </Label>
-                      <Input id="orcl-3-telefone"
-                        value={form.contato_telefone}
-                        onChange={(e) => setForm({ ...form, contato_telefone: e.target.value })}
-                        placeholder="(00) 00000-0000"
+                      <CampoDeTelefoneInternacional
+                        id="orcl-3-telefone"
+                        valor={form.contato_telefone}
+                        onChange={(contato_telefone) => setForm({ ...form, contato_telefone })}
+                        placeholderBrasil="(00) 00000-0000"
                       />
                       {form.contato_telefone.trim() && !recebeWhatsApp(form.contato_telefone) && (
                         <p className="text-xs text-amber-500">
-                          Esse número não parece um celular com WhatsApp (DDD + 9 dígitos, ou + e o código do país para cliente de fora). O envio pelo sistema não vai funcionar.
+                          Esse número não parece um celular com WhatsApp (DDD + 9 dígitos). Para cliente de fora, escolha o país na bandeira. O envio pelo sistema não vai funcionar.
                         </p>
                       )}
                     </div>

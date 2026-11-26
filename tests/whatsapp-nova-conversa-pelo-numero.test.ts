@@ -32,7 +32,15 @@ describe("o número colado, do jeito que vier", () => {
 
   it("sem DDD é de Macapá: ganha o 96 e diz isso", () => {
     const r = lerNumeroColado("99156-2194");
-    expect(r).toEqual({ ok: true, chave: "96991562194", legivel: "(96) 99156-2194", dddPresumido: true });
+    expect(r).toEqual({
+      ok: true,
+      chave: "96991562194",
+      telefone: "96991562194",
+      legivel: "(96) 99156-2194",
+      dddPresumido: true,
+      internacional: false,
+      pais: "BR",
+    });
   });
 
   it.each([
@@ -40,7 +48,9 @@ describe("o número colado, do jeito que vier", () => {
     ["96 3222-1234", "fixo"],
     ["96 99131-8834 / 96 98140-8722", "mais de um número"],
     ["9915", "Faltam dígitos"],
-    ["+1 415 555 1234", "celular do Brasil"],
+    // Sem o "+", sem o 00 e sem link: continua a regra brasileira, e a mensagem manda escolher o país
+    ["33612345678", "escolha o país na bandeira"],
+    ["573001234567", "escolha o país na bandeira"],
   ])("%s é recusado (%s)", (colado, motivo) => {
     const r = lerNumeroColado(colado);
     expect(r.ok).toBe(false);

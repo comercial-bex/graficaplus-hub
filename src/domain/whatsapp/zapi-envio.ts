@@ -1,3 +1,4 @@
+import { ehCelularBrasileiro } from "@/domain/contato/ddds-do-brasil";
 import { chaveWhatsApp, numeroEstrangeiro, numeroRecebidoDeFora } from "@/domain/documentos";
 
 /**
@@ -64,16 +65,19 @@ export function atrasoValidoDoZapi(v: unknown): number | null {
  * "número inválido", e é o tipo de erro que só aparece em produção.
  */
 export function telefoneParaZapi(valor: string | null | undefined): string | null {
+  // O "+" é a pessoa dizendo "este é de fora": vale ANTES do formato brasileiro. Antes de 26/11/2026 o formato brasileiro
+  // era conferido primeiro, e "+33 9 12 34 56 78" (linha 09 da França) saía para 5533912345678, um número brasileiro de
+  // verdade (DDD 33), e "+597 712 3456" (Suriname) para 5559977123456.
+  const explicito = numeroEstrangeiro(valor);
+  if (explicito) return explicito;
   const chave = chaveWhatsApp(valor);
-  if (chave && /^[1-9][1-9]9[0-9]{8}$/.test(chave)) return `55${chave}`;
-  // Cliente de fora: o número já carrega o código do país e NÃO leva o 55 na frente. Escrito com
-  // "+" (cadastro) ou só dígitos de 12 a 15 (conversa que chegou pelo webhook).
-  return numeroEstrangeiro(valor) ?? numeroRecebidoDeFora(valor);
+  if (ehCelularBrasileiro(chave)) return `55${chave}`;
+  // Conversa que chegou pelo webhook: só dígitos, com o código do país e sem o "+".
+  return numeroRecebidoDeFora(valor);
 }
 
 function celularBrDoZapi(valor: string | null | undefined): boolean {
-  const chave = chaveWhatsApp(valor);
-  return !!chave && /^[1-9][1-9]9[0-9]{8}$/.test(chave);
+  return numeroEstrangeiro(valor) === null && ehCelularBrasileiro(chaveWhatsApp(valor));
 }
 
 /** O lid no formato gravado ("253386293268636@lid"), ou nulo. É o único jeito de o Z-API receber um lid no `phone`. */

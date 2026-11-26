@@ -1,3 +1,4 @@
+import { ehCelularBrasileiro } from "@/domain/contato/ddds-do-brasil";
 import { chaveWhatsApp, formatarTelefone } from "@/domain/documentos";
 import { semAcento } from "./normalizar";
 import { interpretar } from "./quadro";
@@ -507,7 +508,6 @@ export type TelefoneLido =
       motivo: "sem_numero" | "curto" | "longo" | "sem_ddd" | "nao_e_celular" | "varios";
     };
 
-const CELULAR_BR = /^[1-9][1-9]9\d{8}$/;
 
 /** O número do chat serve para mostrar e confirmar? Decide pelo sufixo lid e pelo formato, não pelo tamanho. */
 export function telefoneDoChatUtilizavel(chat: {
@@ -516,13 +516,13 @@ export function telefoneDoChatUtilizavel(chat: {
 }): boolean {
   if (chat.ehLid || !chat.normalizado) return false;
   const chave = chaveWhatsApp(chat.normalizado);
-  return !!chave && CELULAR_BR.test(chave);
+  return ehCelularBrasileiro(chave);
 }
 
 /** O celular brasileiro (sem o 55) que o texto carrega, ou nulo. Decide só pelo formato. */
 export function celularBrasileiro(valor: string | null | undefined): string | null {
   const chave = chaveWhatsApp(valor);
-  return chave && CELULAR_BR.test(chave) ? chave : null;
+  return chave && ehCelularBrasileiro(chave) ? chave : null;
 }
 
 /**
@@ -612,7 +612,7 @@ export function extrairTelefone(
   }
   const chave = chaveWhatsApp(d);
   if (!chave || chave.length < 10) return { ok: false, motivo: "curto" };
-  if (!CELULAR_BR.test(chave))
+  if (!ehCelularBrasileiro(chave))
     return {
       ok: false,
       motivo: chave.length === 10 || chave.length === 11 ? "nao_e_celular" : "longo",

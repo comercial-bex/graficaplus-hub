@@ -6,6 +6,8 @@
  * digitação (troca de posição, dígito faltando) sem precisar consultar nada.
  */
 
+import { ehCelularBrasileiro, ehDddDoBrasil } from "@/domain/contato/ddds-do-brasil";
+
 export type TipoDocumento = "cpf" | "cnpj";
 
 /** Só os dígitos — é assim que o documento deve ser comparado e consultado. */
@@ -162,11 +164,10 @@ export function chaveWhatsApp(valor: string | null | undefined): string | null {
  * digita os dois números do cliente na mesma caixa não vê nada de errado, e a
  * mensagem simplesmente nunca chega.
  *
- * Celular brasileiro: DDD (2 dígitos, 11 a 99) + 9 + 8 dígitos.
+ * Celular brasileiro: DDD que existe (lista oficial, `ddds-do-brasil.ts`) + 9 + 8 dígitos.
  */
 export function recebeWhatsApp(valor: string | null | undefined): boolean {
-  const chave = chaveWhatsApp(valor);
-  if (chave && /^[1-9][1-9]9[0-9]{8}$/.test(chave)) return true;
+  if (ehCelularBrasileiro(chaveWhatsApp(valor))) return true;
   return numeroEstrangeiro(valor) !== null;
 }
 
@@ -186,12 +187,22 @@ export function numeroEstrangeiro(valor: string | null | undefined): string | nu
 }
 
 /**
- * Número de fora que CHEGOU pelo webhook: só dígitos, com o código do país, de 12 a 15, fora do
- * 55. É regra para o que o sistema recebeu, não para o que alguém digitou. Espelha
- * `public.conversa_recebe_whatsapp`. Número dos EUA e do Canadá (11 dígitos) fica de fora, porque
- * sem o "+" se confunde com número brasileiro errado; cadastrado com "+1" funciona.
+ * Número de fora que CHEGOU pelo webhook (ou foi gravado com o código do país): só dígitos, fora do 55. É regra para o
+ * que o sistema recebeu, não para o que alguém digitou. Espelha `public.conversa_recebe_whatsapp`.
+ *
+ *   12 a 15 dígitos         vale (Colômbia, Guiana Francesa, Portugal...);
+ *   11 dígitos              vale desde 26/11/2026 (França, Espanha, Bélgica, Holanda, Suíça, EUA e Canadá). Antes ficavam
+ *                           de fora e a conversa abria, mas o sistema não deixava responder;
+ *   10 dígitos              só se os dois primeiros NÃO forem DDD do Brasil (Suriname 597 e Guiana 592 têm 10 dígitos). Fixo
+ *                           brasileiro de 10 dígitos tem DDD de verdade, então não passa por estrangeiro.
+ *
+ * Quem decide entre brasileiro e estrangeiro, quando o número cabe nos dois, é o chamador: o celular brasileiro vale
+ * primeiro, e o "+" escrito pela pessoa vale antes de tudo (`telefoneParaZapi`).
  */
 export function numeroRecebidoDeFora(valor: string | null | undefined): string | null {
   const d = apenasDigitos(valor ?? "");
-  return /^[1-9][0-9]{11,14}$/.test(d) && !d.startsWith("55") ? d : null;
+  if (d.startsWith("55")) return null;
+  if (/^[1-9][0-9]{10,14}$/.test(d)) return d;
+  if (/^[1-9][0-9]{9}$/.test(d) && !ehDddDoBrasil(d.slice(0, 2))) return d;
+  return null;
 }
