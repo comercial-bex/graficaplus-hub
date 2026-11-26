@@ -213,8 +213,9 @@ describe("o bloco FICHA-BEX, sem imagem, não usa IA", () => {
     semChaves();
     const r = ok(await ler({ texto: BLOCO }));
     expect(r.catalogo.materiais.map((m) => m.nome)).not.toContain("ACRILICO VERDE 3MM");
-    expect(r.catalogo.materiais).toContainEqual({ nome: "ACRILICO CRISTAL VIRGEM 2MM", espessuraMm: 2 });
-    expect(r.catalogo.materiais.every((m) => Object.keys(m).sort().join() === "espessuraMm,nome")).toBe(true);
+    // O id e a unidade entram para a cotação sob medida escolher a chapa pelo cadastro (26/11/2026): nunca custo nem estoque.
+    expect(r.catalogo.materiais).toContainEqual({ id: "mat-c2", nome: "ACRILICO CRISTAL VIRGEM 2MM", espessuraMm: 2, unidade: null });
+    expect(r.catalogo.materiais.every((m) => Object.keys(m).sort().join() === "espessuraMm,id,nome,unidade")).toBe(true);
   });
 
   it("NUNCA devolve custo, multiplicador, fator de forma nem taxa, e nunca os lê do banco", async () => {

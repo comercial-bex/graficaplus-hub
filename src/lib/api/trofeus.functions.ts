@@ -5,6 +5,14 @@ import { ErroDoTrofeu, LIMITES_DO_MULTIPLICADOR_MANUAL, type Decoracao, type Lin
 import { montarFicha, type FichaDoTrofeu } from "@/domain/trofeus/ficha";
 import { PRECO_MUDOU_TROFEU } from "@/domain/trofeus/tela";
 import {
+  LIMITES_SOB_MEDIDA,
+  avisosDoSobMedida,
+  conferirPecasSobMedida,
+  linhasDoSobMedida,
+  mesmaEspessuraDaChapa,
+  type PecaSobMedida,
+} from "@/domain/trofeus/sob-medida";
+import {
   cotacaoComCusto,
   cotacaoPublica,
   cotarTrofeuComABase,
@@ -121,6 +129,14 @@ const NOMES_DOS_CAMPOS: Record<string, string> = {
   orcamentoId: "orçamento",
   itemId: "troféu gravado",
   precoVisto: "preço mostrado",
+  pecas: "peças",
+  nome: "nome da peça",
+  materialId: "material",
+  materialPedido: "material pedido pela ficha",
+  espessuraMm: "espessura",
+  larguraCm: "largura",
+  decoracao: "decoração",
+  fatorDeForma: "fator de forma",
 };
 
 const numeroBr = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -334,6 +350,151 @@ export const cotarTrofeu = createServerFn({ method: "POST" })
     const { cotacao } = await cotarComAsTaxasDoBanco(data, "cotarTrofeu");
     if (!verCusto) return cotacaoPublica(cotacao);
     return { ...cotacaoComCusto(cotacao), podeDarAval: await podeDarAval(usuario, context.userId) };
+  });
+
+// ---------------------------------------------------------------------------------------------------------
+// Cotar as peças de uma ficha, sem modelo cadastrado (26/11/2026)
+// ---------------------------------------------------------------------------------------------------------
+
+const pecaDaFicha = z
+  .object({
+    nome: z.string().max(LIMITES_SOB_MEDIDA.nomeMaximo * 2),
+    materialId: z.string().uuid(),
+    espessuraMm: z.number().finite(),
+    larguraCm: z.number().finite(),
+    alturaCm: z.number().finite(),
+    quantidade: z.number().finite(),
+    decoracao: z.enum(["nenhuma", "vinil_laminado", "gravacao_laser"]),
+    fatorDeForma: z.number().finite().default(1),
+    materialPedido: z.string().max(120).nullable().default(null),
+  })
+  .strict();
+
+/**
+ * O que o vendedor manda para cotar uma ficha: a altura, a quantidade, a urgência e as peças com o material do CADASTRO
+ * escolhido para cada uma. Nada de preço, custo, taxa, multiplicador nem margem: qualquer outra chave é recusada. A
+ * arte e o multiplicador à mão ficam fora (a arte se cota na calculadora; o multiplicador é do simulador do modelo).
+ */
+const entradaDaFichaSobMedida = z
+  .object({
+    alturaCm: camposDaCotacao.alturaCm,
+    quantidade: camposDaCotacao.quantidade,
+    urgente: camposDaCotacao.urgente,
+    pecas: z.array(pecaDaFicha).min(1).max(LIMITES_SOB_MEDIDA.pecasMaximas),
+  })
+  .strict();
+
+export type EntradaDeCotarFicha = z.input<typeof entradaDaFichaSobMedida>;
+type EntradaSobMedida = z.output<typeof entradaDaFichaSobMedida>;
+
+const MODELO_PADRAO_AUSENTE =
+  "Falta o modelo Padrão ativo no cadastro: ele dá a mão de obra e o multiplicador da cotação sob medida. Avise a gerência.";
+const emMmDaFrase = (n: number) => String(Math.round(n * 100) / 100).replace(".", ",");
+
+/** Lê as taxas e os materiais das peças com a chave de serviço e monta a base com o modelo de passagem. */
+async function lerABaseSobMedida(data: EntradaSobMedida, rotulo: string): Promise<BaseDaCotacao> {
+  const db = await bancoDeServico();
+  const falha = (tabela: string, e: unknown) => {
+    console.error(`[${rotulo}] falha ao ler ${tabela}:`, e instanceof Error ? e.message : String((e as { message?: string } | null)?.message ?? ""));
+    return new Error(FALHA_GENERICA);
+  };
+
+  let primeira: Resposta[];
+  try {
+    primeira = await Promise.all([
+      db.from("trofeu_regras").select("*").eq("unica", true).maybeSingle(),
+      db.from("trofeu_modelos").select(COLUNAS_DO_MODELO).eq("linha", "padrao").eq("ativo", true).order("nome"),
+      db.from("custos_tabela").select("codigo, valor").eq("ativo", true),
+      db.from("custos_mao_de_obra").select("funcao, setor, custo_hora, encargos_pct").eq("ativo", true),
+      db.from("maquinas").select(COLUNAS_DA_MAQUINA).eq("ativa", true).in("tipo", ["laser_co2", "plotter_impressao"]),
+    ]);
+  } catch (e) {
+    throw falha("as taxas do troféu", e);
+  }
+  const nomes = ["trofeu_regras", "trofeu_modelos", "custos_tabela", "custos_mao_de_obra", "maquinas"];
+  primeira.forEach((r, i) => {
+    if (r.error) throw falha(nomes[i], r.error);
+  });
+  const [rRegras, rReferencia, rCustos, rMao, rMaquinas] = primeira;
+
+  const regras = rRegras.data as LinhaDasRegras | null;
+  if (!regras) throw new ErroDoTrofeu(SEM_REGRAS);
+  const referencia = linhas<LinhaDoModelo>(rReferencia)[0];
+  if (!referencia) throw new ErroDoTrofeu(MODELO_PADRAO_AUSENTE);
+
+  const ids = [
+    ...new Set(
+      [
+        ...data.pecas.map((p) => p.materialId),
+        regras.material_vinil_id,
+        regras.material_laminacao_id,
+        regras.material_tinta_id,
+        regras.material_cola_id,
+      ].filter((x): x is string => typeof x === "string"),
+    ),
+  ];
+  let rMateriais: Resposta;
+  try {
+    rMateriais = await db.from("materiais").select(`${COLUNAS_DO_MATERIAL}, espessura_mm`).in("id", ids);
+  } catch (e) {
+    throw falha("materiais", e);
+  }
+  if (rMateriais.error) throw falha("materiais", rMateriais.error);
+  const materiais = linhas<LinhaDeMaterial & { espessura_mm?: unknown }>(rMateriais);
+
+  // O material escolhido tem de existir como chapa e ter a MESMA espessura da peça: o custo do m² é daquela espessura.
+  for (const peca of data.pecas) {
+    const material = materiais.find((m) => m.id === peca.materialId);
+    const nome = peca.nome.trim();
+    if (!material || material.unidade !== "m²") {
+      throw new ErroDoTrofeu(`O material da peça "${nome}" não está no cadastro de chapas. Escolha outro.`);
+    }
+    if (!mesmaEspessuraDaChapa(peca.espessuraMm, material.espessura_mm == null ? null : Number(material.espessura_mm))) {
+      throw new ErroDoTrofeu(
+        `A peça "${nome}" pede ${emMmDaFrase(peca.espessuraMm)} mm, mas ${material.nome} é de outra espessura. Escolha um material da mesma espessura.`,
+      );
+    }
+  }
+
+  const { modelo, pecas } = linhasDoSobMedida(data.pecas as PecaSobMedida[], data.alturaCm, referencia);
+  // "As medidas vêm das imagens do modelo" não vale aqui: as medidas vêm da ficha.
+  const provisorios = Array.isArray(regras.provisorios) ? (regras.provisorios as unknown[]).filter((x) => x !== "medidas_dos_modelos") : regras.provisorios;
+  return {
+    regras: { ...regras, provisorios },
+    modelo,
+    pecas,
+    materiais,
+    custos: linhas<LinhaDeCusto>(rCustos),
+    maoDeObra: linhas<LinhaDeMaoDeObra>(rMao),
+    maquinas: linhas<LinhaDeMaquina>(rMaquinas),
+  };
+}
+
+/**
+ * O preço de um troféu cujas peças vêm de uma ficha, sem modelo cadastrado: a MESMA conta do `cotarTrofeu`
+ * (`cotarTrofeuComABase`) sobre um modelo de passagem montado com as peças. Não precisa de estoque (só avisa), precisa
+ * do custo do m² de cada material, e a mão de obra e o multiplicador são os da linha Padrão. Nada é gravado. Quem
+ * não vê custo recebe só o preço e os avisos; quem vê custo recebe também a decomposição, sem aval (não há multiplicador à mão).
+ */
+export const cotarFichaSobMedida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => validar(entradaDaFichaSobMedida, d))
+  .handler(async ({ data, context }): Promise<CotacaoPublicaDoTrofeu | CotacaoDoTrofeuComAval> => {
+    const usuario = context.supabase as unknown as BancoDoUsuario;
+    const { verCusto } = await permissoesDe(usuario, context.userId);
+    let cotacao: CotacaoDoTrofeu;
+    try {
+      const problema = conferirPecasSobMedida(data.pecas as PecaSobMedida[]);
+      if (problema) throw new ErroDoTrofeu(problema);
+      const base = await lerABaseSobMedida(data, "cotarFichaSobMedida");
+      cotacao = cotarTrofeuComABase(base, { alturaCm: data.alturaCm, quantidade: data.quantidade, urgente: data.urgente, arte: null, multiplicadorManual: null });
+      const nomeDoMaterial = (id: string) => base.materiais.find((m) => m.id === id)?.nome ?? null;
+      cotacao = { ...cotacao, avisos: [...avisosDoSobMedida(data.pecas as PecaSobMedida[], nomeDoMaterial), ...cotacao.avisos] };
+    } catch (e) {
+      throw traduzir(e, "cotarFichaSobMedida");
+    }
+    if (!verCusto) return cotacaoPublica(cotacao);
+    return { ...cotacaoComCusto(cotacao), podeDarAval: false };
   });
 
 /** O preço por quantidade: o unitário em cada degrau da escada, na mesma altura. Público, como o preço. */

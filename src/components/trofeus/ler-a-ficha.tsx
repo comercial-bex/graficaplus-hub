@@ -5,6 +5,7 @@ import { ChevronDown, ClipboardCopy, FileSearch, ImagePlus, Info, TriangleAlert,
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { CotarAsPecasDaFicha } from "@/components/trofeus/cotar-pecas-da-ficha";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { mensagemErro } from "@/lib/erros";
@@ -380,6 +381,8 @@ export function LerAFicha({ onUsar }: Props) {
                   </div>
                   <Divergencias lista={divergencias} />
                 </div>
+
+                {ok.ficha.pecas.length > 0 && <CotarAsPecasDaFicha key={ler.submittedAt} ficha={ok.ficha} catalogo={ok.catalogo} />}
 
                 <div className="flex flex-wrap items-center gap-3">
                   <Button

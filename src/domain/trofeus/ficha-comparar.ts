@@ -13,7 +13,14 @@ import type { Decoracao, LinhaDoTrofeu } from "./conta";
 import type { FichaLida, PecaLida } from "./ficha-lida";
 import type { EscolhasDaTela } from "./tela";
 
-export type MaterialDoCadastro = { nome: string; espessuraMm: number | null };
+export type MaterialDoCadastro = {
+  nome: string;
+  espessuraMm: number | null;
+  /** Para a cotação sob medida escolher o material pelo cadastro. Nunca custo. */
+  id?: string;
+  /** m² nas chapas. */
+  unidade?: string | null;
+};
 
 export type PecaDoModeloParaComparar = {
   nome: string;

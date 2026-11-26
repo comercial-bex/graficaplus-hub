@@ -141,7 +141,7 @@ async function lerOCatalogo(db: Banco): Promise<CatalogoParaFicha> {
   const [rModelos, rRegras, rMateriais] = await Promise.all([
     db.from("trofeu_modelos").select("id, nome, linha, altura_referencia_m").eq("ativo", true).order("nome"),
     db.from("trofeu_regras").select("altura_minima_m, altura_maxima_m, espessura_maxima_de_corte_mm").eq("unica", true).maybeSingle(),
-    db.from("materiais").select("id, nome, espessura_mm, status"),
+    db.from("materiais").select("id, nome, espessura_mm, status, unidade"),
   ]);
   for (const r of [rModelos, rRegras, rMateriais]) if (r.error) throw new Error(r.error.message ?? "falha ao ler");
   const modelos = linhas<{ id: string; nome: string; linha: LinhaDoTrofeu; altura_referencia_m: unknown }>(rModelos);
@@ -150,7 +150,7 @@ async function lerOCatalogo(db: Banco): Promise<CatalogoParaFicha> {
 
   const regras = rRegras.data as { altura_minima_m?: unknown; altura_maxima_m?: unknown; espessura_maxima_de_corte_mm?: unknown } | null;
   if (!regras) throw new Error("regras do troféu ausentes");
-  const materiais = linhas<{ id: string; nome: string; espessura_mm: unknown; status: unknown }>(rMateriais);
+  const materiais = linhas<{ id: string; nome: string; espessura_mm: unknown; status: unknown; unidade?: unknown }>(rMateriais);
   const nomeDe = new Map(materiais.map((m) => [m.id, m.nome]));
   const pecas = linhas<{ modelo_id: string; nome: string; material_id: string; espessura_mm: unknown; largura_m: unknown; altura_m: unknown; quantidade: unknown; decoracao: Decoracao }>(rPecas);
 
@@ -174,7 +174,9 @@ async function lerOCatalogo(db: Banco): Promise<CatalogoParaFicha> {
   return {
     modelos: paraComparar,
     // Só materiais ativos: o que está inativo no cadastro é como se não existisse. Sem olhar estoque.
-    materiais: materiais.filter((m) => m.status === "ativo" || m.status == null).map((m) => ({ nome: m.nome, espessuraMm: m.espessura_mm == null ? null : numero(m.espessura_mm) })),
+    materiais: materiais
+      .filter((m) => m.status === "ativo" || m.status == null)
+      .map((m) => ({ id: m.id, nome: m.nome, espessuraMm: m.espessura_mm == null ? null : numero(m.espessura_mm), unidade: typeof m.unidade === "string" ? m.unidade : null })),
     alturaMinimaCm: Math.round(numero(regras.altura_minima_m) * 1000) / 10,
     alturaMaximaCm: Math.round(numero(regras.altura_maxima_m) * 1000) / 10,
     espessuraMaximaDeCorteMm: numero(regras.espessura_maxima_de_corte_mm),
