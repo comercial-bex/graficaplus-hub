@@ -11,6 +11,7 @@ import {
   precisaGuardar,
   urlDeFotoConfiavel,
 } from "@/domain/whatsapp/foto-do-contato";
+import { telefoneParaZapi } from "@/domain/whatsapp/zapi-envio";
 
 /**
  * A foto do contato, do lado do servidor (pedido do dono em 14/10/2026).
@@ -118,7 +119,8 @@ async function linkPeloZapi(
 ): Promise<URL | null> {
   const endereco =
     `https://api.z-api.io/instances/${credenciais.instanceId}/token/${credenciais.token}` +
-    `/profile-picture?phone=${encodeURIComponent(telefone)}`;
+    // O número como o Z-API entende: conversa de fora aberta pela equipe guarda "+33 6…", com sinal e espaço.
+    `/profile-picture?phone=${encodeURIComponent(telefoneParaZapi(telefone) ?? telefone)}`;
   const r = await comTeto(
     endereco,
     { headers: credenciais.clientToken ? { "Client-Token": credenciais.clientToken } : {} },

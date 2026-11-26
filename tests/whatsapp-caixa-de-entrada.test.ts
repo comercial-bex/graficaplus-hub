@@ -172,9 +172,12 @@ describe("a lista de conversas", () => {
     expect(nomeDaConversa(conversa())).toBe("(96) 98121-6527");
   });
 
-  it("telefone legível tira o 55 e formata; o que não é celular brasileiro passa como veio", () => {
+  it("telefone legível tira o 55 e formata; o de fora aparece com + e o código do país; o resto passa como veio", () => {
     expect(telefoneLegivel("5596981216527")).toBe("(96) 98121-6527");
-    expect(telefoneLegivel("12025550123456")).toBe("12025550123456");
+    expect(telefoneLegivel("12025550123456")).toBe("+1 2025550123456");
+    expect(telefoneLegivel("+33 06 12 34 56 78")).toBe("+33 6 12 34 56 78");
+    expect(telefoneLegivel("33612345678")).toBe("+33 612345678");
+    expect(telefoneLegivel("anotado à mão")).toBe("anotado à mão");
   });
 
   it("abas separam abertas de concluídas e contam certo", () => {

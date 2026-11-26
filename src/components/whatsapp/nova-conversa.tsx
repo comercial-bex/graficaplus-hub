@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2, MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CampoDeTelefoneInternacional } from "@/components/bex/CampoDeTelefoneInternacional";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -119,7 +120,8 @@ export function NovaConversa({
     abrindoRef.current = true;
     setAbrindo(true);
     try {
-      const r = await abrir({ data: { telefone: lido.chave, nome: nome.trim() || undefined } });
+      // O brasileiro vai pela chave de 11 dígitos; o de fora vai com o "+" e o código do país (é o "+" que o diz de fora).
+      const r = await abrir({ data: { telefone: lido.telefone, nome: nome.trim() || undefined } });
       const quem = r.cliente?.trim() || nome.trim() || lido.legivel;
       toast.success(r.nova ? `Conversa com ${quem} criada. Escreva a primeira mensagem.` : `A conversa com ${quem} já existia. Aberta para você continuar.`);
       void qc.invalidateQueries({ queryKey: CHAVES.conversas });
@@ -149,8 +151,8 @@ export function NovaConversa({
         <DialogHeader>
           <DialogTitle>Nova conversa</DialogTitle>
           <DialogDescription>
-            Cole o número do jeito que veio: com ou sem +55, o link wa.me ou só o celular. Nada é enviado
-            até você escrever na conversa.
+            Cole o número do jeito que veio: com ou sem +55, o link wa.me ou só o celular. Para outro país, escolha a
+            bandeira ou escreva com o +. Nada é enviado até você escrever na conversa.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -162,21 +164,18 @@ export function NovaConversa({
         >
           <div className="space-y-1.5">
             <Label htmlFor="nova-conversa-numero">WhatsApp</Label>
-            <Input
+            <CampoDeTelefoneInternacional
               id="nova-conversa-numero"
-              inputMode="tel"
-              autoComplete="off"
+              valor={numero}
+              onChange={setNumero}
               autoFocus={!numeroInicial}
-              placeholder="(96) 99999-9999"
-              value={numero}
-              onChange={(e) => setNumero(e.target.value)}
+              descritoPor="nova-conversa-leitura"
               onPaste={(e) => {
                 // Colou um número bom: o próximo passo é o nome (ou Enter).
                 if (lerNumeroColado(e.clipboardData.getData("text")).ok) {
                   setTimeout(() => nomeRef.current?.focus(), 0);
                 }
               }}
-              aria-describedby="nova-conversa-leitura"
             />
             <div id="nova-conversa-leitura" className="min-h-5 text-xs" aria-live="polite">
               {lido.ok ? (

@@ -1,3 +1,4 @@
+import { telefoneInternacionalLegivel } from "@/domain/clientes/paises";
 import { chaveWhatsApp, formatarTelefone } from "@/domain/documentos";
 import { situacaoDaConexao, type InstanciaResumo } from "@/domain/whatsapp/situacao-conexao";
 import type { StatusMensagem } from "@/domain/whatsapp/status-das-filas";
@@ -210,8 +211,13 @@ export function instanciaPrincipal<T extends InstanciaResumo & { created_at?: st
 /* Lista de conversas                                                  */
 /* ------------------------------------------------------------------ */
 
-/** "5596981216527" → "(96) 98121-6527"; o que não for telefone brasileiro passa como veio. */
+/**
+ * "5596981216527" → "(96) 98121-6527"; "+33 06 12 34 56 78" e "33612345678" (França, pelo webhook) → "+33 6 12 34 56 78";
+ * o que não for telefone passa como veio.
+ */
 export function telefoneLegivel(telefone: string | null | undefined): string {
+  const deFora = telefoneInternacionalLegivel(telefone);
+  if (deFora) return deFora;
   const chave = chaveWhatsApp(telefone);
   if (chave && (chave.length === 10 || chave.length === 11)) return formatarTelefone(chave);
   return telefone ?? "";

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { origensParaOferecer } from "@/domain/crm/origens";
 import { formatarTelefone, apenasDigitos } from "@/domain/documentos";
+import { CampoDeTelefoneInternacional } from "@/components/bex/CampoDeTelefoneInternacional";
 import {
   OPCOES_DE_INSCRICAO_ESTADUAL,
   inscricaoEstadualHabilitada,
@@ -133,17 +134,18 @@ function CampoDeTelefone({
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{rotulo}</Label>
-      <Input
+      <CampoDeTelefoneInternacional
         id={id}
-        inputMode="tel"
-        maxLength={20}
-        placeholder="(96) 99999-9999"
-        value={valor ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        // Máscara na saída do campo, não a cada tecla: a cada tecla o cursor pula.
-        onBlur={(e) => {
-          const n = apenasDigitos(e.target.value).length;
-          if (n === 10 || n === 11) onChange(formatarTelefone(e.target.value));
+        valor={valor ?? ""}
+        onChange={onChange}
+        maxLength={24}
+        // Máscara na saída do campo, não a cada tecla: a cada tecla o cursor pula. Número de fora ("+33…") fica como
+        // está: com 10 ou 11 dígitos ele passaria por brasileiro e viraria "(33) 61234-5678".
+        onBlur={() => {
+          const atual = valor ?? "";
+          if (atual.trim().startsWith("+")) return;
+          const n = apenasDigitos(atual).length;
+          if (n === 10 || n === 11) onChange(formatarTelefone(atual));
         }}
       />
     </div>

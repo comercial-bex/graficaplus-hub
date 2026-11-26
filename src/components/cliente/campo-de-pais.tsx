@@ -129,7 +129,7 @@ export function SeletorDePais({
 }
 
 /** O código de discagem, com a bandeira do primeiro país que o usa. */
-function SeletorDeDdi({ ddi, aoEscolher }: { ddi: string; aoEscolher: (ddi: string) => void }) {
+export function SeletorDeDdi({ ddi, aoEscolher }: { ddi: string; aoEscolher: (ddi: string) => void }) {
   const [aberto, setAberto] = useState(false);
   const dono = PAISES.find((p) => p.ddi === ddi);
   return (

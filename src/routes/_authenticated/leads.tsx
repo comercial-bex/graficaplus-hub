@@ -43,6 +43,8 @@ import { DicaIcone } from "@/components/bex/Dica";
 import { dicaTela } from "@/lib/dicas";
 import { Carregando } from "@/components/bex/Carregando";
 import { ORIGENS } from "@/domain/crm/origens";
+import { paisDoTelefone } from "@/domain/clientes/paises";
+import { CampoDeTelefoneInternacional } from "@/components/bex/CampoDeTelefoneInternacional";
 import { SeloParceiro } from "@/components/crm/selo-parceiro";
 import { ehLeadParceiro } from "@/domain/crm/tipo-do-lead";
 export const Route = createFileRoute("/_authenticated/leads")({
@@ -166,12 +168,26 @@ function LeadsPage() {
         p_criar_orcamento: comOrcamento,
       });
       if (error) throw error;
-      return data as {
+      const r = data as {
         cliente_id: string;
         orcamento_id: string | null;
         cliente_existente?: boolean;
         idempotent?: boolean;
       };
+      // Lead de fora (+33…, +594…, +57…): a função cria o cliente com o país padrão (Brasil), e a lista de clientes
+      // passaria a cobrar CPF/CNPJ dele. Só o cliente que acabou de nascer recebe o país; o que já existia fica como está.
+      const pais = paisDoTelefone(converter.telefone);
+      if (pais !== "BR" && !r.cliente_existente && !r.idempotent) {
+        const { error: erroPais } = await (supabase as any)
+          .from("clientes")
+          .update({ pais })
+          .eq("id", r.cliente_id)
+          .eq("pais", "BR");
+        if (erroPais) {
+          toast.warning("Cliente criado, mas não consegui marcar o país dele. Ajuste o país na ficha do cliente.");
+        }
+      }
+      return r;
     },
     onSuccess: (r) => {
       if (r.idempotent) {
@@ -256,11 +272,11 @@ function LeadsPage() {
             </div>
             <div>
               <Label htmlFor="telefone" className="text-xs">Telefone</Label>
-              <Input
+              <CampoDeTelefoneInternacional
                 id="telefone"
-                value={form.telefone}
-                onChange={(e) => campo("telefone", e.target.value)}
-                placeholder="(96) 99999-0000"
+                valor={form.telefone}
+                onChange={(telefone) => campo("telefone", telefone)}
+                placeholderBrasil="(96) 99999-0000"
               />
             </div>
             <div>
