@@ -17752,6 +17752,335 @@ export type Database = {
           },
         ]
       }
+      trofeu_modelos: {
+        Row: {
+          altura_referencia_m: number
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          linha: string
+          minutos_de_mao_de_obra: number
+          multiplicador_base: number
+          nome: string
+          provisorio: boolean
+          updated_at: string
+        }
+        Insert: {
+          altura_referencia_m: number
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          linha: string
+          minutos_de_mao_de_obra: number
+          multiplicador_base?: number
+          nome: string
+          provisorio?: boolean
+          updated_at?: string
+        }
+        Update: {
+          altura_referencia_m?: number
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          linha?: string
+          minutos_de_mao_de_obra?: number
+          multiplicador_base?: number
+          nome?: string
+          provisorio?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      trofeu_pecas: {
+        Row: {
+          altura_m: number
+          created_at: string
+          decoracao: string
+          espessura_mm: number
+          fator_de_forma: number
+          id: string
+          largura_m: number
+          material_id: string
+          modelo_id: string
+          nome: string
+          ordem: number
+          quantidade: number
+        }
+        Insert: {
+          altura_m: number
+          created_at?: string
+          decoracao?: string
+          espessura_mm: number
+          fator_de_forma?: number
+          id?: string
+          largura_m: number
+          material_id: string
+          modelo_id: string
+          nome: string
+          ordem: number
+          quantidade?: number
+        }
+        Update: {
+          altura_m?: number
+          created_at?: string
+          decoracao?: string
+          espessura_mm?: number
+          fator_de_forma?: number
+          id?: string
+          largura_m?: number
+          material_id?: string
+          modelo_id?: string
+          nome?: string
+          ordem?: number
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trofeu_pecas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_pecas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_pecas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_pecas_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "trofeu_pecas_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "trofeu_modelos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trofeu_regras: {
+        Row: {
+          altura_maxima_m: number
+          altura_minima_m: number
+          arte_alteracao_extra: number
+          arte_arredonda_na_dezena: boolean
+          arte_desconto_a_partir_de: number
+          arte_desconto_pct: number
+          arte_horas: number
+          arte_multiplicador: number
+          arte_nome_individual: number
+          cola_ml_por_frasco: number
+          cola_ml_por_juncao: number
+          created_at: string
+          espessura_maxima_de_corte_mm: number
+          faixas: Json
+          gravacao_min_por_m2: number
+          id: string
+          material_cola_id: string
+          material_laminacao_id: string
+          material_tinta_id: string
+          material_vinil_id: string
+          multiplicador_de_urgencia: number
+          piso_do_multiplicador: number
+          preparo_do_laser_min: number
+          provisorios: string[]
+          tinta_ml_m2: number
+          unica: boolean
+          updated_at: string
+          velocidade_de_corte: Json
+        }
+        Insert: {
+          altura_maxima_m: number
+          altura_minima_m: number
+          arte_alteracao_extra: number
+          arte_arredonda_na_dezena?: boolean
+          arte_desconto_a_partir_de: number
+          arte_desconto_pct: number
+          arte_horas: number
+          arte_multiplicador: number
+          arte_nome_individual: number
+          cola_ml_por_frasco?: number
+          cola_ml_por_juncao: number
+          created_at?: string
+          espessura_maxima_de_corte_mm?: number
+          faixas: Json
+          gravacao_min_por_m2: number
+          id?: string
+          material_cola_id: string
+          material_laminacao_id: string
+          material_tinta_id: string
+          material_vinil_id: string
+          multiplicador_de_urgencia: number
+          piso_do_multiplicador: number
+          preparo_do_laser_min: number
+          provisorios?: string[]
+          tinta_ml_m2: number
+          unica?: boolean
+          updated_at?: string
+          velocidade_de_corte: Json
+        }
+        Update: {
+          altura_maxima_m?: number
+          altura_minima_m?: number
+          arte_alteracao_extra?: number
+          arte_arredonda_na_dezena?: boolean
+          arte_desconto_a_partir_de?: number
+          arte_desconto_pct?: number
+          arte_horas?: number
+          arte_multiplicador?: number
+          arte_nome_individual?: number
+          cola_ml_por_frasco?: number
+          cola_ml_por_juncao?: number
+          created_at?: string
+          espessura_maxima_de_corte_mm?: number
+          faixas?: Json
+          gravacao_min_por_m2?: number
+          id?: string
+          material_cola_id?: string
+          material_laminacao_id?: string
+          material_tinta_id?: string
+          material_vinil_id?: string
+          multiplicador_de_urgencia?: number
+          piso_do_multiplicador?: number
+          preparo_do_laser_min?: number
+          provisorios?: string[]
+          tinta_ml_m2?: number
+          unica?: boolean
+          updated_at?: string
+          velocidade_de_corte?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trofeu_regras_material_cola_id_fkey"
+            columns: ["material_cola_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_cola_id_fkey"
+            columns: ["material_cola_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_cola_id_fkey"
+            columns: ["material_cola_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_cola_id_fkey"
+            columns: ["material_cola_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_laminacao_id_fkey"
+            columns: ["material_laminacao_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_laminacao_id_fkey"
+            columns: ["material_laminacao_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_laminacao_id_fkey"
+            columns: ["material_laminacao_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_laminacao_id_fkey"
+            columns: ["material_laminacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_tinta_id_fkey"
+            columns: ["material_tinta_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_tinta_id_fkey"
+            columns: ["material_tinta_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_tinta_id_fkey"
+            columns: ["material_tinta_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_tinta_id_fkey"
+            columns: ["material_tinta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_vinil_id_fkey"
+            columns: ["material_vinil_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_vinil_id_fkey"
+            columns: ["material_vinil_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_financeiro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_vinil_id_fkey"
+            columns: ["material_vinil_id"]
+            isOneToOne: false
+            referencedRelation: "materiais_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trofeu_regras_material_vinil_id_fkey"
+            columns: ["material_vinil_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_critico"
+            referencedColumns: ["material_id"]
+          },
+        ]
+      }
       tv_dispositivos: {
         Row: {
           criado_em: string
@@ -25320,6 +25649,7 @@ export type Database = {
         Args: { p_catalogo_id: string; p_regras: Json }
         Returns: Json
       }
+      celular_br_valido: { Args: { p_chave: string }; Returns: boolean }
       cliente_retirou: { Args: { p_os_id: string }; Returns: Json }
       comecar_na_maquina: {
         Args: { p_maquina_id: string; p_os_id: string }
@@ -25535,6 +25865,7 @@ export type Database = {
         }[]
       }
       dashboard_caixa: { Args: never; Returns: Json }
+      ddd_do_brasil: { Args: { p_ddd: string }; Returns: boolean }
       decidir_arte_por_token: {
         Args: {
           p_canal: string
@@ -26317,6 +26648,7 @@ export type Database = {
           unidade: string
         }[]
       }
+      parceiro_reabrir_chamado: { Args: { p_parceiro: string }; Returns: Json }
       parceiro_salvar_marca: { Args: { p_dados: Json }; Returns: undefined }
       parceiro_simular_niveis: {
         Args: { p_descontos?: Json }
@@ -26353,6 +26685,7 @@ export type Database = {
         Args: { p_fim: string; p_inicio: string }
         Returns: Json
       }
+      parceiros_creditos_painel: { Args: never; Returns: Json }
       parceiros_pendentes: {
         Args: never
         Returns: {
@@ -26860,6 +27193,10 @@ export type Database = {
         Args: { p_orcamento_3d_id: string }
         Returns: undefined
       }
+      remover_trofeu_do_orcamento: {
+        Args: { p_item_id: string }
+        Returns: Json
+      }
       renovar_orcamento_vencido: {
         Args: { p_orcamento_id: string }
         Returns: Json
@@ -27034,6 +27371,21 @@ export type Database = {
           p_observacoes?: string
           p_pedido_id: string
           p_previsao_entrega?: string
+        }
+        Returns: Json
+      }
+      salvar_trofeu_no_orcamento: {
+        Args: {
+          p_arte: Json
+          p_custo_unitario: number
+          p_descricao: string
+          p_especificacao: string
+          p_item_id: string
+          p_modelo_id: string
+          p_orcamento_id: string
+          p_parametros: Json
+          p_quantidade: number
+          p_valor_unitario: number
         }
         Returns: Json
       }
