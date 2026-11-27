@@ -31,6 +31,8 @@ export type PecaLida = {
 };
 
 export type FichaLida = {
+  /** O nome que a ficha dá ao modelo, como está escrito ("JariCross 10 Anos"). Serve para achar o modelo cadastrado. */
+  modeloNome: string | null;
   linha: LinhaDoTrofeu | null;
   alturaCm: number | null;
   larguraCm: number | null;
@@ -96,6 +98,7 @@ export function semValor(texto: unknown): boolean {
 
 function fichaTemAlgo(f: FichaLida): boolean {
   return (
+    f.modeloNome != null ||
     f.linha != null ||
     f.alturaCm != null ||
     f.larguraCm != null ||
@@ -234,6 +237,7 @@ function textosDoTexto(texto: string): FichaLida["textos"] {
 
 export function fichaVazia(): FichaLida {
   return {
+    modeloNome: null,
     linha: null,
     alturaCm: null,
     larguraCm: null,
@@ -253,6 +257,7 @@ export function fichaVazia(): FichaLida {
 // ---------------------------------------------------------------------------------------------------------
 
 const CAMPOS: Record<string, string> = {
+  modelo: "modelo",
   linha: "linha",
   altura: "altura",
   altura_cm: "altura",
@@ -353,6 +358,9 @@ export function lerBlocoDaFicha(texto: string): ResultadoDoBloco {
     if (semValor(valor)) continue;
 
     switch (campo) {
+      case "modelo":
+        ficha.modeloNome = limpar(valor, 80) || null;
+        break;
       case "linha": {
         const l = linhaDoTexto(valor);
         if (l) ficha.linha = l;
@@ -430,6 +438,8 @@ export function normalizarFichaDaIa(bruto: unknown): { ficha: FichaLida; avisos:
 
   const avisos: string[] = [];
   const ficha = fichaVazia();
+  const modelo = limpar(dado.modelo_nome, 80);
+  ficha.modeloNome = modelo && !semValor(modelo) ? modelo : null;
   ficha.linha = linhaDoTexto(dado.linha);
   ficha.alturaCm = medidaValida(numeroSolto(dado.altura_cm), "Altura", avisos);
   ficha.larguraCm = medidaValida(numeroSolto(dado.largura_cm), "Largura", avisos);
@@ -493,6 +503,7 @@ export function normalizarFichaDaIa(bruto: unknown): { ficha: FichaLida; avisos:
 /** O bloco que o gerador escreve no fim. Os nomes dos campos são os que `lerBlocoDaFicha` entende. */
 export const BLOCO_DA_FICHA = [
   "FICHA-BEX v1",
+  "modelo: (o nome do modelo escrito no título da ficha; vazio se não houver)",
   "linha: economico | padrao | premium",
   "altura_cm:",
   "largura_cm:",

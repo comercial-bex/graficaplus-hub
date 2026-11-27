@@ -47,7 +47,7 @@ describe("o motor é a chave da agência", () => {
 });
 
 describe("o pedido ao provedor", () => {
-  it("Claude: a imagem em base64, a ferramenta forçada, a instrução de sistema e a chave só no cabeçalho", () => {
+  it("Claude: a imagem em base64, a ferramenta oferecida (NÃO forçada), a instrução de sistema e a chave só no cabeçalho", () => {
     const p = pedidoParaAnthropic(CLAUDE, { texto: "Troféu para o JariCross", imagem: IMAGEM });
     expect(p.url).toBe("https://api.anthropic.com/v1/messages");
     expect(p.cabecalhos["x-api-key"]).toBe("sk-ant-segredo");
@@ -55,7 +55,9 @@ describe("o pedido ao provedor", () => {
     expect(JSON.stringify(p.corpo)).not.toContain("sk-ant-segredo");
     expect(p.corpo.model).toBe("claude-sonnet-5-5");
     expect(p.corpo.system).toBe(INSTRUCAO_DA_LEITURA);
-    expect(p.corpo.tool_choice).toEqual({ type: "tool", name: NOME_DA_FERRAMENTA });
+    // Ferramenta forçada dá HTTP 400 no Sonnet 5.5 (e no Opus 5.5 e no Fable): foi o erro da tela em 26/11/2026.
+    expect(p.corpo.tool_choice).toEqual({ type: "auto" });
+    expect(p.corpo.max_tokens).toBeGreaterThanOrEqual(16000);
     expect(p.corpo.tools[0]).toMatchObject({ name: NOME_DA_FERRAMENTA, input_schema: ESQUEMA_DA_FICHA });
     const conteudo = p.corpo.messages[0].content as { type: string; source?: unknown; text?: string }[];
     expect(conteudo[0]).toEqual({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: IMAGEM.base64 } });

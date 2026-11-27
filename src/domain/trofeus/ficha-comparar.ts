@@ -118,8 +118,27 @@ export function acharMaterial(material: string | null, espessuraMm: number | nul
   return { estado: "outra_espessura", opcoes };
 }
 
-/** O modelo que a ficha parece pedir: pela linha, ou pelo número de peças quando a linha não veio. */
+/** O nome sem acento, maiúscula nem pontuação, para comparar "JariCross 10 Anos" com "Jari Cross - 10 anos". */
+const nomeParaComparar = (t: string) => semAcento(t).replace(/[^a-z0-9]+/g, "");
+
+/**
+ * O modelo que a ficha parece pedir. Primeiro pelo NOME que a ficha escreve no título ("JariCross 10 Anos"): se há um modelo
+ * cadastrado com esse nome, é ele, seja qual for a linha. Sem nome que case, pela linha; sem linha, pelo número de peças.
+ */
 export function modeloSugerido(ficha: FichaLida, modelos: ModeloParaComparar[]): string | null {
+  if (ficha.modeloNome) {
+    const alvo = nomeParaComparar(ficha.modeloNome);
+    if (alvo.length >= 4) {
+      const igual = modelos.find((m) => nomeParaComparar(m.nome) === alvo);
+      if (igual) return igual.id;
+      // um nome contém o outro ("Troféu JariCross 10 Anos" e "JariCross 10 Anos"), mas só se for um só candidato
+      const parecidos = modelos.filter((m) => {
+        const n = nomeParaComparar(m.nome);
+        return n.length >= 4 && (n.includes(alvo) || alvo.includes(n));
+      });
+      if (parecidos.length === 1) return parecidos[0].id;
+    }
+  }
   if (ficha.linha) {
     const achado = modelos.find((m) => m.linha === ficha.linha);
     if (achado) return achado.id;

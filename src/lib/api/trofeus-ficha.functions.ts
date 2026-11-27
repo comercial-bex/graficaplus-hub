@@ -5,7 +5,9 @@ import type { Decoracao, LinhaDoTrofeu } from "@/domain/trofeus/conta";
 import type { CatalogoParaFicha, ModeloParaComparar } from "@/domain/trofeus/ficha-comparar";
 import {
   argumentosDaResposta,
+  erroDoProvedor,
   faltaSaldo,
+  motivoDeParada,
   motorDaFicha,
   pedidoParaOProvedor,
   TIPOS_DE_IMAGEM,
@@ -31,7 +33,8 @@ import { lerBlocoDaFicha, normalizarFichaDaIa, temBlocoDaFicha, type FichaLida, 
 
 const SEM_PERMISSAO = "A leitura da ficha é de quem cria orçamentos.";
 const FALHA_GENERICA = "Não consegui ler a ficha agora. Tente de novo; se continuar, avise a gerência.";
-const TEMPO_LIMITE_MS = 60_000;
+/** O modelo novo pensa antes de responder; 90 s ainda ficam abaixo do corte de 100 s do proxy da hospedagem. */
+const TEMPO_LIMITE_MS = 90_000;
 const TEXTO_MAXIMO = 12_000;
 /** ~5 MB de imagem em base64. A tela reduz a imagem antes de mandar; isto é a trava do servidor. */
 const BASE64_MAXIMO = 7_000_000;
@@ -104,7 +107,10 @@ export async function lerFichaComIa(entrada: EntradaDaLeitura, motor: Motor | nu
     if (faltaSaldo(resposta.status, texto)) return { estado: "sem_saldo" };
     if (resposta.status === 429) return { estado: "limite" };
     if (resposta.status === 401 || resposta.status === 403) return { estado: "falhou", detalhe: "o provedor da IA recusou a chave da agência" };
-    return { estado: "falhou", detalhe: `o serviço de IA respondeu HTTP ${resposta.status}` };
+    // O porquê fica no log do servidor (sem a chave); a tela só ganha o TIPO do erro, de um vocabulário fechado.
+    const { tipo, mensagem } = erroDoProvedor(texto, motor.chave);
+    console.error("[lerFichaDoTrofeu] o provedor respondeu erro:", motor.provedor, motor.modelo, resposta.status, tipo ?? "", mensagem ?? "");
+    return { estado: "falhou", detalhe: `o serviço de IA respondeu HTTP ${resposta.status}${tipo ? ` (${tipo})` : ""}` };
   }
   let corpo: unknown;
   try {
@@ -112,6 +118,8 @@ export async function lerFichaComIa(entrada: EntradaDaLeitura, motor: Motor | nu
   } catch {
     return { estado: "falhou", detalhe: "resposta da IA ilegível" };
   }
+  const parada = motivoDeParada(motor.provedor, corpo);
+  if (parada) return { estado: "falhou", detalhe: parada };
   const lido = normalizarFichaDaIa(argumentosDaResposta(motor.provedor, corpo));
   if (!lido) return { estado: "falhou", detalhe: "a IA não conseguiu ler dados de troféu nesta ficha" };
   return { estado: "ok", ...lido };
