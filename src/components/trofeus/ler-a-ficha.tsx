@@ -80,6 +80,7 @@ function Divergencias({ lista }: { lista: Divergencia[] }) {
 
 function ResumoDaFicha({ f }: { f: FichaLida }) {
   const itens: [string, string][] = [
+    ["Modelo da ficha", f.modeloNome ?? "—"],
     ["Linha", f.linha ? (ROTULO_DA_LINHA[f.linha] ?? f.linha) : "—"],
     ["Altura", f.alturaCm != null ? `${numero(f.alturaCm)} cm` : "—"],
     ["Largura", f.larguraCm != null ? `${numero(f.larguraCm)} cm` : "—"],

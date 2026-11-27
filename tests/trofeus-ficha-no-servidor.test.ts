@@ -323,6 +323,36 @@ describe("cada falha do provedor vira um estado que a tela sabe dizer", () => {
     expect(erros.mock.calls.flat().join(" ")).not.toContain("NAO-PODE-VAZAR");
   });
 
+  it("HTTP 400 de pedido inválido mostra só o TIPO do erro; o texto do provedor vai para o log do servidor, sem a chave", async () => {
+    chave("ANTHROPIC_API_KEY", CHAVE_CLAUDE);
+    const mensagem = `tool_choice: type "tool" and "any" are not supported for this model. (chave ${CHAVE_CLAUDE})`;
+    buscar.mockImplementation(resposta(400, JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: mensagem } })));
+    const r = await ler({ imagem: IMAGEM });
+    expect(r).toEqual({ estado: "falhou", detalhe: "o serviço de IA respondeu HTTP 400 (invalid_request_error)" });
+    // a tela não ganha o texto livre do provedor...
+    expect(JSON.stringify(r)).not.toContain("tool_choice");
+    // ...mas o log do servidor, que é onde se acha o porquê, ganha, sem a chave
+    const log = erros.mock.calls.flat().join(" ");
+    expect(log).toContain("tool_choice");
+    expect(log).toContain("invalid_request_error");
+    expect(log).not.toContain(CHAVE_CLAUDE);
+  });
+
+  it("um tipo de erro que não é do vocabulário dos provedores não chega à tela", async () => {
+    chave("ANTHROPIC_API_KEY", CHAVE_CLAUDE);
+    buscar.mockImplementation(resposta(400, JSON.stringify({ error: { type: "texto livre com dado do pedido", message: "x" } })));
+    expect(await ler({ imagem: IMAGEM })).toEqual({ estado: "falhou", detalhe: "o serviço de IA respondeu HTTP 400" });
+  });
+
+  it("resposta 200 em que o modelo recusou ou foi cortado não vira ficha, e diz o motivo", async () => {
+    chave("ANTHROPIC_API_KEY", CHAVE_CLAUDE);
+    const parcial = { type: "tool_use", name: "registrar_ficha_do_trofeu", input: { linha: "economico", altura_cm: 18, pecas: [] } };
+    buscar.mockImplementation(async () => new Response(JSON.stringify({ stop_reason: "refusal", content: [parcial] }), { status: 200 }));
+    expect(await ler({ imagem: IMAGEM })).toEqual({ estado: "falhou", detalhe: "a IA se recusou a ler esta imagem" });
+    buscar.mockImplementation(async () => new Response(JSON.stringify({ stop_reason: "max_tokens", content: [parcial] }), { status: 200 }));
+    expect(await ler({ imagem: IMAGEM })).toEqual({ estado: "falhou", detalhe: "a resposta da IA veio cortada" });
+  });
+
   it("lerFichaComIa sem motor não chama a rede", async () => {
     const fake = vi.fn();
     expect(await lerFichaComIa({ texto: "x", imagem: null }, null, fake as unknown as typeof fetch)).toEqual({ estado: "sem_ia" });
