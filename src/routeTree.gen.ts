@@ -71,6 +71,7 @@ import { Route as AuthenticatedOndeParaRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedOrcamento3dNovoRouteImport } from './routes/_authenticated/orcamento-3d-novo'
 import { Route as AuthenticatedOrcamentoTrofeuNovoRouteImport } from './routes/_authenticated/orcamento-trofeu-novo'
 import { Route as AuthenticatedParceirosRouteImport } from './routes/_authenticated/parceiros'
+import { Route as AuthenticatedParceirosCreditosRouteImport } from './routes/_authenticated/parceiros-creditos'
 import { Route as AuthenticatedPerdasRouteImport } from './routes/_authenticated/perdas'
 import { Route as AuthenticatedPlanilhaCustosRouteImport } from './routes/_authenticated/planilha-custos'
 import { Route as AuthenticatedPortalClienteRouteImport } from './routes/_authenticated/portal-cliente'
@@ -90,7 +91,6 @@ import { Route as AuthenticatedTabelaDePrecosRouteImport } from './routes/_authe
 import { Route as AuthenticatedTelasRouteImport } from './routes/_authenticated/telas'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVendasDiretasRouteImport } from './routes/_authenticated/vendas-diretas'
-import { Route as AuthenticatedParceirosCreditosRouteImport } from './routes/_authenticated/parceiros-creditos'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWhatsappFilaHumanaRouteImport } from './routes/_authenticated/whatsapp-fila-humana'
 import { Route as AuthenticatedWhatsappMonitorRouteImport } from './routes/_authenticated/whatsapp-monitor'
@@ -478,6 +478,12 @@ const AuthenticatedParceirosRoute = AuthenticatedParceirosRouteImport.update({
   path: '/parceiros',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedParceirosCreditosRoute =
+  AuthenticatedParceirosCreditosRouteImport.update({
+    id: '/parceiros-creditos',
+    path: '/parceiros-creditos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPerdasRoute = AuthenticatedPerdasRouteImport.update({
   id: '/perdas',
   path: '/perdas',
@@ -580,12 +586,6 @@ const AuthenticatedVendasDiretasRoute =
   AuthenticatedVendasDiretasRouteImport.update({
     id: '/vendas-diretas',
     path: '/vendas-diretas',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedParceirosCreditosRoute =
-  AuthenticatedParceirosCreditosRouteImport.update({
-    id: '/parceiros-creditos',
-    path: '/parceiros-creditos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
@@ -903,6 +903,7 @@ export interface FileRoutesByFullPath {
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/orcamento-trofeu-novo': typeof AuthenticatedOrcamentoTrofeuNovoRoute
   '/parceiros': typeof AuthenticatedParceirosRoute
+  '/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/perdas': typeof AuthenticatedPerdasRoute
   '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -922,7 +923,6 @@ export interface FileRoutesByFullPath {
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
-  '/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -1033,6 +1033,7 @@ export interface FileRoutesByTo {
   '/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/orcamento-trofeu-novo': typeof AuthenticatedOrcamentoTrofeuNovoRoute
   '/parceiros': typeof AuthenticatedParceirosRoute
+  '/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/perdas': typeof AuthenticatedPerdasRoute
   '/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -1052,7 +1053,6 @@ export interface FileRoutesByTo {
   '/telas': typeof AuthenticatedTelasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
-  '/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -1166,6 +1166,7 @@ export interface FileRoutesById {
   '/_authenticated/orcamento-3d-novo': typeof AuthenticatedOrcamento3dNovoRoute
   '/_authenticated/orcamento-trofeu-novo': typeof AuthenticatedOrcamentoTrofeuNovoRoute
   '/_authenticated/parceiros': typeof AuthenticatedParceirosRoute
+  '/_authenticated/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/_authenticated/perdas': typeof AuthenticatedPerdasRoute
   '/_authenticated/planilha-custos': typeof AuthenticatedPlanilhaCustosRoute
   '/_authenticated/portal-cliente': typeof AuthenticatedPortalClienteRoute
@@ -1185,7 +1186,6 @@ export interface FileRoutesById {
   '/_authenticated/telas': typeof AuthenticatedTelasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/vendas-diretas': typeof AuthenticatedVendasDiretasRoute
-  '/_authenticated/parceiros-creditos': typeof AuthenticatedParceirosCreditosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/whatsapp-fila-humana': typeof AuthenticatedWhatsappFilaHumanaRoute
   '/_authenticated/whatsapp-monitor': typeof AuthenticatedWhatsappMonitorRoute
@@ -1299,6 +1299,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d-novo'
     | '/orcamento-trofeu-novo'
     | '/parceiros'
+    | '/parceiros-creditos'
     | '/perdas'
     | '/planilha-custos'
     | '/portal-cliente'
@@ -1318,7 +1319,6 @@ export interface FileRouteTypes {
     | '/telas'
     | '/usuarios'
     | '/vendas-diretas'
-    | '/parceiros-creditos'
     | '/whatsapp'
     | '/whatsapp-fila-humana'
     | '/whatsapp-monitor'
@@ -1429,6 +1429,7 @@ export interface FileRouteTypes {
     | '/orcamento-3d-novo'
     | '/orcamento-trofeu-novo'
     | '/parceiros'
+    | '/parceiros-creditos'
     | '/perdas'
     | '/planilha-custos'
     | '/portal-cliente'
@@ -1448,7 +1449,6 @@ export interface FileRouteTypes {
     | '/telas'
     | '/usuarios'
     | '/vendas-diretas'
-    | '/parceiros-creditos'
     | '/whatsapp'
     | '/whatsapp-fila-humana'
     | '/whatsapp-monitor'
@@ -1561,6 +1561,7 @@ export interface FileRouteTypes {
     | '/_authenticated/orcamento-3d-novo'
     | '/_authenticated/orcamento-trofeu-novo'
     | '/_authenticated/parceiros'
+    | '/_authenticated/parceiros-creditos'
     | '/_authenticated/perdas'
     | '/_authenticated/planilha-custos'
     | '/_authenticated/portal-cliente'
@@ -1580,7 +1581,6 @@ export interface FileRouteTypes {
     | '/_authenticated/telas'
     | '/_authenticated/usuarios'
     | '/_authenticated/vendas-diretas'
-    | '/_authenticated/parceiros-creditos'
     | '/_authenticated/whatsapp'
     | '/_authenticated/whatsapp-fila-humana'
     | '/_authenticated/whatsapp-monitor'
@@ -2104,6 +2104,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedParceirosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/parceiros-creditos': {
+      id: '/_authenticated/parceiros-creditos'
+      path: '/parceiros-creditos'
+      fullPath: '/parceiros-creditos'
+      preLoaderRoute: typeof AuthenticatedParceirosCreditosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/perdas': {
       id: '/_authenticated/perdas'
       path: '/perdas'
@@ -2235,13 +2242,6 @@ declare module '@tanstack/react-router' {
       path: '/vendas-diretas'
       fullPath: '/vendas-diretas'
       preLoaderRoute: typeof AuthenticatedVendasDiretasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/parceiros-creditos': {
-      id: '/_authenticated/parceiros-creditos'
-      path: '/parceiros-creditos'
-      fullPath: '/parceiros-creditos'
-      preLoaderRoute: typeof AuthenticatedParceirosCreditosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/whatsapp': {
@@ -2637,6 +2637,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOrcamento3dNovoRoute: typeof AuthenticatedOrcamento3dNovoRoute
   AuthenticatedOrcamentoTrofeuNovoRoute: typeof AuthenticatedOrcamentoTrofeuNovoRoute
   AuthenticatedParceirosRoute: typeof AuthenticatedParceirosRoute
+  AuthenticatedParceirosCreditosRoute: typeof AuthenticatedParceirosCreditosRoute
   AuthenticatedPerdasRoute: typeof AuthenticatedPerdasRoute
   AuthenticatedPlanilhaCustosRoute: typeof AuthenticatedPlanilhaCustosRoute
   AuthenticatedPortalClienteRoute: typeof AuthenticatedPortalClienteRoute
@@ -2656,7 +2657,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTelasRoute: typeof AuthenticatedTelasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVendasDiretasRoute: typeof AuthenticatedVendasDiretasRoute
-  AuthenticatedParceirosCreditosRoute: typeof AuthenticatedParceirosCreditosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhatsappFilaHumanaRoute: typeof AuthenticatedWhatsappFilaHumanaRoute
   AuthenticatedWhatsappMonitorRoute: typeof AuthenticatedWhatsappMonitorRoute
@@ -2733,6 +2733,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOrcamento3dNovoRoute: AuthenticatedOrcamento3dNovoRoute,
   AuthenticatedOrcamentoTrofeuNovoRoute: AuthenticatedOrcamentoTrofeuNovoRoute,
   AuthenticatedParceirosRoute: AuthenticatedParceirosRoute,
+  AuthenticatedParceirosCreditosRoute: AuthenticatedParceirosCreditosRoute,
   AuthenticatedPerdasRoute: AuthenticatedPerdasRoute,
   AuthenticatedPlanilhaCustosRoute: AuthenticatedPlanilhaCustosRoute,
   AuthenticatedPortalClienteRoute: AuthenticatedPortalClienteRoute,
@@ -2752,7 +2753,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTelasRoute: AuthenticatedTelasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVendasDiretasRoute: AuthenticatedVendasDiretasRoute,
-  AuthenticatedParceirosCreditosRoute: AuthenticatedParceirosCreditosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhatsappFilaHumanaRoute: AuthenticatedWhatsappFilaHumanaRoute,
   AuthenticatedWhatsappMonitorRoute: AuthenticatedWhatsappMonitorRoute,
